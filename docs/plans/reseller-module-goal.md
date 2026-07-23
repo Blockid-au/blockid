@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.294
+version: 2026-07-23.295
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,164 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 295
+    ran_at: 2026-07-23
+    action: p10_logo_url_text_nullable_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail
+    result: |
+      Fresh-column rotation per tick 294 next-pick option (a) —
+      resellers.logo_url text nullable wire-shape pin landed on BOTH
+      admin-resellers-list-authz.spec.ts AND
+      admin-reseller-detail-authz.spec.ts in the same tick, extending
+      the tick 286+287+288+289+290+291+292+293+294 discipline of
+      bringing both admin resellers-family surfaces up to parity in one
+      pass.
+
+      Twenty-first pin in the tick 275-295 lineage; tenth consecutive
+      single-tick cross-surface pair (commission_share_pct at 286,
+      gst_registered at 287, allowed_tiers at 288, monthly_credit_budget
+      at 289, monthly_sandbox_credits at 290, can_create_startups at
+      291, can_grant_credits at 292, collateral_approval_required at
+      293, abn at 294, logo_url at 295). Continues on the nullable text
+      cluster started at tick 294 (abn) but transitions from a two-part
+      guard (null-or-string + null-or-string+ABN_RE) to a single-guard
+      null-or-string posture because logo_url has NO DB CHECK and NO
+      application write-path format guard — the semantic dimension
+      (regex format) that justified the second guard on abn does not
+      exist here.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:26 declares
+          `logo_url text` on the resellers table with no NOT NULL
+          constraint (nullable) and no CHECK constraint.
+        - Application write path at web/src/lib/reseller/admin-
+          validator.ts touches primary_color (hex format regex at
+          admin-validator.ts:81-90 with reason='primary_color_bad_
+          format') but does NOT touch logo_url — writes pass through
+          unchecked aside from standard NULL/undefined omission.
+        - The column feeds the P5 co-branding topbar pill at
+          web/src/components/workspace/reseller-pill.tsx and the
+          Stripe invoice memo path at
+          web/src/app/api/stripe/checkout/route.ts so a wire-side
+          regression (schema type flip, projection drop, PostgREST
+          NULL serialisation drift) would surface as a broken pill on
+          the founder workspace and a missing invoice memo on the
+          reseller-attributed subscription flow.
+        - The two admin resellers-family GET surfaces project the
+          column via select("*"):
+            list: route.ts:41-44 select("*").order("created_at", …)
+            detail: route.ts:47-48 select("*").eq("code", code)
+        - PostgREST returns text columns as JS string (or JSON null
+          when the column value is NULL) on the wire so the single-
+          guard null-or-string assert below reflects the actual
+          serialisation contract.
+
+      Design choice — single-guard null-or-typeof-string shape matching
+      the tick 275 nullable-text posture rather than the tick 294 two-
+      part null-or-string / null-or-string+ABN_RE posture:
+        - No DB CHECK and no admin-validator format guard → no format
+          regex to layer as a second guard. The single-guard posture
+          matches the tick 275 (attribution.source), tick 276
+          (attribution.updated_at from before its ISO tightening), and
+          tick 279 (contact_email before any format layer) shapes for
+          nullable text columns with no format dimension.
+        - Nullable column → the null branch is exercised on every
+          green CI run because seed-qa-reseller.mjs never populates
+          logo_url (all seven probe variants seed with logo_url=NULL);
+          a populated production reseller row (INFOVISION when P1.5
+          clears H.20) with a real logo URL would exercise the null-
+          or-string branch instead.
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 admin harness iterates every
+          returned resellers row inside the per-row for-loop, so
+          seeded hosts holding ≥7 cohort rows from seed-qa-reseller.mjs
+          exercise the pin on every green CI run (the null branch is
+          exercised because the seed script leaves logo_url unset).
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          ONCE per test against the QAPROBEWHOLESALEACTIVE seed row —
+          since that row also carries logo_url=NULL by default, the
+          null branch is exercised.
+        - Fresh CI hosts without the QA reseller seed still green
+          because test.skip() fires when the fixture returns null
+          (list surface's for-loop is a no-op on zero rows).
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 295 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:26 as the column source.
+            + row interface widened with logo_url?: unknown.
+            + Single-guard null-or-typeof-string assert inside the
+              wave-5 row 164 per-row for-loop, immediately after the
+              tick 294 abn two-part asserts.
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 295 paragraph) above
+              ISO_TIMESTAMP_RE citing the same schema source.
+            + body.reseller row interface widened with logo_url?:
+              unknown.
+            + Single-guard null-or-typeof-string assert inside the
+              wave-5 row 167 happy GET test, immediately after the
+              tick 294 abn two-part asserts.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-294 discipline
+          verbatim: tighten one column across two surfaces with zero
+          net new imports and zero production-code touches.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 scanned 11 files + R-03 scanned
+          31 manifest routes + R-04 scanned 8 stripe files, 6
+          exemptions, 0 violations
+        - npx vitest run: 85 files 1037/1037 pass (Playwright specs
+          excluded from vitest by design; the two new asserts fire when
+          `npx playwright test admin-resellers-list-authz admin-
+          reseller-detail-authz` runs on a seeded host)
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (module-scope doc-block extended with tick 295 paragraph;
+          per-row shape interface gains logo_url?: unknown; wave-5 row
+          164 for-loop body gains one null-or-string assert immediately
+          after the tick 294 abn two-part asserts.)
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 295 paragraph;
+          body.reseller row interface gains logo_url?: unknown; wave-5
+          row 167 happy GET body gains one null-or-string assert
+          immediately after the tick 294 abn two-part asserts.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.294 → 2026-07-23.295; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new imports, no widening of existing guards. Consistent with
+          ticks 234-294's incremental-pin pattern.
+        - Cross-surface pair rather than staggered mirror — the list-
+          surface + detail-surface pins land in the same tick so the
+          two admin resellers-family GET lenses carry the same nullable
+          text wire-shape pin on logo_url simultaneously. Matches tick
+          286+287+288+289+290+291+292+293+294 cross-surface pair
+          discipline continued on the nullable text cluster.
+
+      Next natural picks on tick 296:
+        (a) rotate to primary_color nullable text column at 0091:27 —
+        also nullable text but with an admin-validator write-path hex
+        format regex at admin-validator.ts:81-90 (reason='primary_
+        color_bad_format'), so a two-part guard (null-or-string + null-
+        or-string+HEX_COLOR_RE) matching the tick 294 abn posture would
+        land, not the single-guard tick 295 posture.
+        (b) rotate to contact_email or notes nullable text columns at
+        0091:41-42 — both nullable free text with no DB CHECK and no
+        write-path format guard, same single-guard null-or-string shape
+        as tick 295 (contact_email has an app-side email format hint
+        but no admin-validator regex).
+        (c) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening ticks
+        while the two HUMAN-BLOCKED leaves await external unblock
+        signals.
+    commit: (this tick)
+
   - tick: 294
     ran_at: 2026-07-23
     action: p10_abn_text_nullable_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail

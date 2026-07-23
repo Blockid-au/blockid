@@ -338,6 +338,31 @@ const UUID_RE =
 // drop from route.ts:47-48 select("*") would each surface at a
 // distinct assertion failure mode on both admin resellers-family
 // surfaces (list + detail) on the same CI pass.
+//
+// Tick 295 — logo_url text nullable wire-shape pin, cross-surface mirror
+// of the sibling pin landed on admin-resellers-list-authz.spec.ts in the
+// same tick. Column declared at 0091:26 as `logo_url text` with no NOT
+// NULL constraint (nullable) and NO DB CHECK — free text storing a
+// reseller-branding logo URL consumed by the topbar reseller pill at
+// web/src/components/workspace/reseller-pill.tsx and the Stripe invoice
+// memo path at web/src/app/api/stripe/checkout/route.ts (P5 co-
+// branding). Unlike abn (pinned at tick 294) there is NO application
+// write-path regex or format-validator guard on this column at
+// web/src/lib/reseller/admin-validator.ts — admin-validator.ts:81-90
+// only rejects the hex primary_color column on format, and logo_url
+// passes through unchecked aside from standard NULL/undefined omission.
+// Nullable discipline with no format layer → single-guard null-or-
+// typeof-string assert, looser than the tick 294 two-part guard because
+// there is no format regex to layer on top. Detail-row assert runs ONCE
+// per test (single object). The QAPROBEWHOLESALEACTIVE seed row carries
+// logo_url=NULL by default (seed-qa-reseller.mjs never populates the
+// column) so the null branch is exercised on every green CI run; a
+// populated production reseller row (INFOVISION when P1.5 clears H.20)
+// would exercise the null-or-string branch instead. A schema-side type
+// flip from text to non-string, a PostgREST serialisation regression
+// that returned NULL as the literal string "null", or a projection-side
+// drop from route.ts:47-48 select("*") would each surface on both admin
+// resellers-family surfaces (list + detail) on the same CI pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -541,6 +566,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         can_grant_credits?: unknown;
         collateral_approval_required?: unknown;
         abn?: unknown;
+        logo_url?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -803,6 +829,22 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         (typeof body.reseller?.abn === "string" &&
           ABN_RE.test(body.reseller!.abn as string)),
       `reseller.abn '${String(body.reseller?.abn)}' should be null or an AU ABN string in the spaced format 'NN NNN NNN NNN' (DB CHECK ck_abn_format at 0091:52-54 + admin-validator.ts:52 ABN_RE); a drift to an unspaced 11-digit string, a hyphenated form, or any other shape would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+
+    // Tick 295 — logo_url text nullable wire-shape pin, cross-surface
+    // mirror of the sibling pin landed on admin-resellers-list-authz.
+    // spec.ts in the same tick. See module-scope doc-block (tick 295
+    // paragraph) for the rationale. Column source 0091:26 `logo_url
+    // text` (nullable) with NO DB CHECK and NO application write-path
+    // format guard. Nullable discipline with no format layer → single-
+    // guard null-or-typeof-string assert, looser than the tick 294 two-
+    // part guard because there is no format regex to layer on top. The
+    // QAPROBEWHOLESALEACTIVE seed row carries logo_url=NULL by default
+    // so the null branch is exercised on every green CI run.
+    expect(
+      body.reseller?.logo_url === null ||
+        typeof body.reseller?.logo_url === "string",
+      `reseller.logo_url '${String(body.reseller?.logo_url)}' should be null or a string (nullable text per 0091:26; NULL when no logo URL is populated, string when a reseller has uploaded/registered a branded logo URL — no DB CHECK, no admin-validator format guard). Row: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
