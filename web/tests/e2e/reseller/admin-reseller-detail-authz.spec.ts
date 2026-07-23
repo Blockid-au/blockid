@@ -109,6 +109,32 @@ const ROUTE = `/api/admin/resellers/${PLACEHOLDER_CODE}`;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Tick 285 — cross-surface mirror of admin-resellers-list-authz.spec.ts's
+// tick 283 + tick 284 ISO wire-shape pins onto the /api/admin/resellers/
+// [code] single-row GET surface. Natural next-pick option (a) from tick
+// 284's review_history entry ("mirror tick 283/284 created_at +
+// updated_at ISO pins onto admin-reseller-detail-authz.spec.ts (single-
+// row GET surface for /api/admin/resellers/[code]) so the third admin
+// resellers-family surface joins the pin"). Pre-tick posture pinned
+// body.reseller.id (UUID) / .code (=== fixture.code uppercased) /
+// .display_name (typeof string) / .billing_model (enum) / .status (enum)
+// but left the two timestamptz columns silent even though the route
+// projects them via select("*") at route.ts:47-48. Same schema source as
+// the list surface (0091:43 created_at + 0091:44 updated_at, both
+// timestamptz NOT NULL DEFAULT now()), same regex, same NOT-NULL
+// discipline (single typeof-string + regex assert per column, mirrors
+// ticks 283 + 284 verbatim). Detail-row asserts run ONCE per test (single
+// object, not a per-row for-loop) — matches the list surface's per-row
+// asserts semantically: a PostgREST serialisation regression on either
+// column, a projection-side column drop from route.ts:48 select("*"),
+// or a PATCH-time drift that stopped stamping updated_at=now() would
+// surface here on the next CI pass whenever the wave-5 row 167 happy
+// GET fires. Third admin resellers-family surface to carry the pin
+// (after list ticks 283/284); the reseller-loop-status surface uses an
+// on-disk snapshot envelope so it has no timestamptz projection to
+// mirror against.
+const ISO_TIMESTAMP_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
 // buildPromoCodeName write-path guarantee at
 // web/src/lib/reseller/promotion-code-mint.ts:41-58 (uppercase + <=40 chars,
@@ -286,6 +312,8 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         display_name?: unknown;
         billing_model?: unknown;
         status?: unknown;
+        created_at?: unknown;
+        updated_at?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -330,6 +358,33 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
     expect(
       STATUSES.has(body.reseller?.status as string),
       `reseller.status should be active|paused|terminated: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+
+    // Tick 285 — cross-surface mirror of tick 283 + tick 284 ISO wire-
+    // shape pins from admin-resellers-list-authz.spec.ts (see module-scope
+    // doc-block above ISO_TIMESTAMP_RE for the rationale). Column sources:
+    //   - 0091:43 `created_at timestamptz NOT NULL DEFAULT now()`
+    //   - 0091:44 `updated_at timestamptz NOT NULL DEFAULT now()`
+    // Both projected via route.ts:47-48 select("*"). NOT-NULL discipline →
+    // single typeof-string + regex assert per column, mirrors tick 283
+    // (created_at) + tick 284 (updated_at) posture verbatim rather than
+    // the null-or-string / null-or-string+regex layering used for
+    // nullable decision_at / decision_reason columns on the admin-
+    // requests-list surface. Single-row GET so the asserts run once per
+    // test — equivalent to a per-row for-loop that iterates exactly one
+    // row on the list surface. A PostgREST serialisation regression on
+    // either column, a projection-side drop from route.ts:48 select("*"),
+    // or a PATCH-time drift that stopped stamping updated_at=now()
+    // surfaces here on the next CI pass.
+    expect(typeof body.reseller?.created_at).toBe("string");
+    expect(
+      ISO_TIMESTAMP_RE.test(body.reseller?.created_at as string),
+      `reseller.created_at '${String(body.reseller?.created_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:43 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+    expect(typeof body.reseller?.updated_at).toBe("string");
+    expect(
+      ISO_TIMESTAMP_RE.test(body.reseller?.updated_at as string),
+      `reseller.updated_at '${String(body.reseller?.updated_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:44 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
