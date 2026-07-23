@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.265
+version: 2026-07-23.266
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,150 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 266
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_readback_decision_by_uuid_shape_pin_option_b
+    result: |
+      Landed tick 265's "natural next pick" option (b) as a decision_by
+      UUID wire-shape pin on all THREE post-PATCH read-back rows of
+      admin-requests-patch-authz.spec.ts (deny + cancel + approve blocks).
+      Companion to the tick 265 decision_at ISO-8601 pin — both columns
+      flip from null to non-null on all three PATCH branches per the
+      0095:43-45 CHECK constraint / route.ts:309 stamp, so pinning the
+      wire shape of both closes the two "decision-flip" columns on the
+      reseller_requests row simultaneously.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:34 declares
+          `decision_by uuid REFERENCES public.app_users(id) ON DELETE
+          SET NULL` — nullable while status='pending', typically
+          non-null once status ∈ ('approved','denied','cancelled') per
+          the PATCH route's `decision_by: user.id` stamp at
+          /api/admin/resellers/requests/[id]/route.ts:309. Unlike
+          decision_at, the CHECK at 0095:43-45 does NOT force
+          decision_by IS NOT NULL when status ∈ ('approved','denied',
+          'cancelled') — only the pending clause pins decision_by to
+          null. On the happy path however the route always writes the
+          authenticated admin's user.id and no admin-delete fires
+          between the PATCH and the very next GET in the same test, so
+          the read-back MUST carry a non-null UUID here.
+        - The list route SELECT at /api/admin/resellers/requests/
+          route.ts:44 includes decision_by in the column projection so
+          the PostgREST serialisation of uuid shows up in the read-back
+          row.
+        - PostgREST serialises uuid as the standard 8-4-4-4-12 lower-
+          case hex form; the existing module-scope UUID_RE at line
+          139-140 already matches this shape (case-insensitive via /i
+          flag), so no seventh module-scope constant is required — the
+          tick 266 pin reuses UUID_RE verbatim across the three blocks.
+
+      Design choice — reuse UUID_RE + three-block reuse:
+        - Sixth module-scope constant (ISO_TIMESTAMP_RE from tick 265)
+          gains a doc-comment sibling paragraph describing the tick-266
+          decision_by pin + the explicit call NOT to add a seventh
+          constant (UUID_RE at line 139-140 already covers this shape;
+          adding a seventh constant would fork the uuid shape definition
+          across the same file). Header doc-comment above the constants
+          block extended to describe the tick-266 addition + its
+          reference to UUID_RE.
+        - decision_by pin fires ONLY after the tick-265 decision_at pin
+          has passed on the same read-back row so a regression in the
+          decision_at wire shape surfaces at the tighter existing pin
+          before the decision_by check even runs.
+        - Same two-part guard shape as the decision_at pin from tick
+          265: (a) typeof-string check (catches a column-type flip from
+          uuid to say bigint that would surface as a number) + (b)
+          UUID_RE regex value pin (catches a serialisation drift or a
+          read-path regression that stripped decision_by from the list
+          SELECT's column projection at route.ts:44). TYPEOF alone
+          would miss a "not-a-UUID" string; regex alone would miss a
+          numeric drift.
+        - readbackRow type shape extended with `decision_by?: unknown;`
+          in all three inline type declarations (deny/cancel/approve)
+          so the pin does not require a `(row as any)` cast.
+
+      Coverage-per-guard posture:
+        - All three PATCH branches (deny + cancel + approve) exercise
+          decision_by on green-path CI runs — the route's `decision_by:
+          user.id` stamp fires unconditionally in all three flows and
+          the fixture/seed rows for each branch structurally guarantee
+          the read-back row carries the admin's uuid. Zero-coverage
+          branches from the payload pin (code_request + collateral_
+          approval on green path) do NOT apply to the decision_by pin
+          because decision_by is populated regardless of request_type.
+        - The three read-back surfaces (?status=denied /
+          ?status=cancelled / ?status=approved) each carry the same pin
+          so a regression in any one of the three ALLOWED_STATUS filter
+          paths that dropped decision_by from the SELECT would surface
+          on that specific surface only — matches the tick 262/263/264/
+          265 one-surface-at-a-time discipline.
+
+      Diagnostic delta of the pass:
+        - Zero new module-scope constants (UUID_RE at line 139-140
+          reused verbatim). One new field on each of the three inline
+          readbackRow type shapes (decision_by?: unknown), and one new
+          two-line assertion pair (typeof-string + regex) inside each
+          of the three read-back blocks after the tick-265 decision_at
+          pin.
+        - Header doc-comment above the module-scope constants block
+          expanded with a new tick-266 paragraph describing the pin's
+          reference to UUID_RE + the deliberate reuse over adding a
+          seventh constant.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-265 discipline: tighten one
+          dimension (in this case add a new wire-shape pin to the
+          reseller_requests.decision_by column across three surfaces
+          simultaneously) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (module-scope constants doc-comment block gains a tick-266
+          paragraph describing the decision_by pin + the UUID_RE reuse;
+          three inline readbackRow type shapes each extended with
+          `decision_by?: unknown;`; three read-back blocks each gain a
+          typeof-string + UUID_RE.test() assertion pair after the tick-
+          265 decision_at pin, each with a brief block-scope comment
+          citing 0095:34 as the column declaration source and
+          route.ts:309 as the write site.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.265 → 2026-07-23.266; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no new module-scope constant. Consistent with
+          ticks 234-265's incremental-pin pattern.
+        - Three surfaces at once (option b design was for a single new
+          pin type applied uniformly to all three read-back rows — the
+          tick 262/263/264/265 sequence already established the three
+          read-back rows share the same shape contract for each pinned
+          column; extending that contract to include decision_by is a
+          single logical unit rather than three separate ticks).
+          Next natural picks on tick 267: (a) extending the same read-
+          back to the reseller-scoped GET list route for ?status=denied
+          or ?status=cancelled or ?status=approved (the tick 264 option
+          a — still worth doing since the reseller-scoped list route at
+          /api/reseller/requests/route.ts has its own SELECT + filter
+          logic that today only has the tick 260/261 default-pending
+          read-back pinned), or (b) adding a created_at ISO-8601 pin to
+          the read-back rows for symmetry with the tick 265 decision_at
+          pin (created_at at 0095:39 is populated at row-insert time so
+          it has coverage on every read-back row regardless of PATCH
+          branch, whereas decision_at only populates after a status flip
+          away from pending), or (c) adding a decision_reason value pin
+          (typeof-string + length ≤ REASON_MAX) to the read-back rows
+          so a validator-side drift in the decision_reason max length
+          surfaces at the read layer too.
+
   - tick: 265
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_readback_decision_at_iso_timestamp_shape_pin_option_b
@@ -27493,6 +27637,9 @@ next_action:
    17) DONE tick 50 — Track B B4_guide_ch_9_to_12 shipped. Chapters 9-12 (09-funding, 10-fundraise, 11-scale, 12-exit) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended to 12 entries; module doc-comment updated to reflect the B2+B3+B4 arc. VI is complete parity, not machine translation. Chapter 10 honours U.15.11 wording supersession — blockchain hash described as "immutable record for later verification" and explicitly NOT as legal notarisation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[9..12] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 9 unlocks with B4" placeholder text flipped on both surfaces to arc-complete wording (marketing: "You've reached the final chapter. After exit, open a new workspace at Chapter 1 or move into the reseller/accelerator role."; workspace: "Final chapter. After exit: new workspace or reseller role."; VI parity on both). Test suite: EXPECTED_SLUGS bumped to 12, order + phase arrays extended to [1..12], allChapterSlugs assertion updated, unknown-slug case bumped to "13-post-exit", last-slot adjacent assertion flipped to 12-exit ↔ 11-scale, plus a new boundary assertion for the B3/B4 stitch (08-team ↔ 09-funding) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{09..12}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 10/10 pass in startup-journey.test.ts (was 9/9); 65/65 combined guide+showcase (was 64/64); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 9-12 copy references B4-scoped integrations from plan §299 by name (investor NDA workflow, term-sheet AI review UI, blockchain sync activation, LP-report bundling) but the actual UI wiring for those integrations is a follow-up tick — matches the B2/B3 precedent where chapter copy referenced integrations before the capture UI shipped. Frontier after tick 50: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B9_reviews_surface (deps: B4 now done) unblocked — the showcase_reviews table + Phase-9 investor-review capture surface; migration 0100 slot already reserved. (c) B7 product tour + B8 reseller linkage remain unblocked from earlier ticks. (d) P0.3 advisory reviews still pending. (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20. The 12-chapter content-authoring arc is now closed.
   authorised: true
   on_success: |
+    Frontier after tick 266: shape unchanged — Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What tick 266 unblocks: reseller_requests.decision_by (uuid column, 0095:34) now has a wire-shape pin (typeof-string + UUID_RE) on all three post-PATCH read-back rows (deny + cancel + approve) inside admin-requests-patch-authz.spec.ts. Companion to the tick 265 decision_at ISO-8601 pin — both "decision-flip" columns on the reseller_requests row are now content-pinned across the three ALLOWED_STATUS surfaces (?status=denied / ?status=cancelled / ?status=approved). Zero net new imports, zero new module-scope constants (UUID_RE at line 139-140 reused). tsc clean; lint:reseller 11 R-01 + 31 R-03, 3 exemptions, 0 violations; vitest 75 files / 954 pass. Thirty-eight Playwright spec files still sit in web/tests/e2e/reseller/. Next autonomous tick options: (i) created_at ISO-8601 pin on the three read-back rows for symmetry with the tick 265 decision_at pin (created_at at 0095:39 populates on every row regardless of PATCH branch); (ii) decision_reason value pin (typeof-string + length ≤ REASON_MAX) so a validator-side drift in the max length surfaces at the read layer too; (iii) extending decision_at/decision_by to the reseller-scoped GET list route for ?status=denied|cancelled|approved (tick 264 option a); (iv) idle until human unblock arrives on P8.5 or P1.5 — the fixture design at docs/plans/p10-temp-reseller-mint-fixture-design.md is independent of both, so implementation can proceed either before or after those clear.
+
+    (superseded — for tick 127 detail see the tick-127 log entry above)
     Frontier after tick 127: shape unchanged — Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What tick 127 unblocks: the QA-mode temp-reseller mint fixture that would activate the ~50 deferred HAPPY-PATH rows from ticks 94..126 now has a concrete design spec at docs/plans/p10-temp-reseller-mint-fixture-design.md — a follow-up implementation tick can ship all five artefacts (seed-qa-reseller.mjs + seed-qa-reseller-requests.mjs + seed-qa-reseller-storage.mjs + seed-test-users.mjs delta + web/tests/e2e/fixtures/reseller.ts extension) against a documented seven-variant matrix without further discovery. Thirty-eight Playwright spec files still sit in web/tests/e2e/reseller/. Next autonomous tick options: (i) idle until human review of the design doc lands (preferred — design decisions are cheaper to revise before code ships); (ii) implement the seven-variant mint script (web/scripts/seed-qa-reseller.mjs) as a stand-alone artefact that ships without the Playwright fixture wiring, so the human review layer has a concrete row-set to inspect before the fixture consumes it; (iii) idle until human unblock arrives on P8.5 or P1.5 — the fixture design is independent of both, so implementation can proceed either before or after those clear.
 
     (superseded — for tick 125 detail see the tick-125 log entry above)
