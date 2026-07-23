@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getProjectById, updateProject, archiveProject } from "@/lib/projects";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +69,7 @@ export async function PATCH(
 
 // DELETE /api/projects/[id] — archive (soft delete) a project
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
@@ -98,6 +99,18 @@ export async function DELETE(
       { status: 422 },
     );
   }
+
+  // SOC2-lite audit: record successful project archive. Never throws.
+  await logUserAction({
+    userId: user.id,
+    action: "project.archive",
+    subjectType: "project",
+    subjectId: id,
+    fields: { was_default: Boolean(project.isDefault) },
+    route: `/api/projects/${id}`,
+    ip: extractIp(request.headers),
+    ua: extractUserAgent(request.headers),
+  });
 
   return NextResponse.json({ ok: true });
 }
