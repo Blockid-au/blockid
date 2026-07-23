@@ -473,6 +473,7 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         role?: unknown;
         status?: unknown;
         linked_at?: unknown;
+        revoked_at?: unknown;
       }>;
       attributions_summary?: {
         total?: unknown;
@@ -720,6 +721,76 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         ISO_TIMESTAMP_RE.test(row.linked_at as string),
         `admins[].linked_at '${String(row.linked_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:75 serialised via PostgREST); a drift to a Postgres-native "YYYY-MM-DD HH:MM:SS" form with a space delimiter, a Unix epoch number-as-string, a truncated date-only slug, or a legacy pre-ISO timestamp would surface here. Also the ORDER BY column for the route.ts:93 .order("linked_at", { ascending: false }) sort, so a shape drift here breaks the deterministic row ordering the fixture implicitly depends on for the admins projection. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Tick 351 — admins[].revoked_at nullable ISO-8601 timestamptz
+      // wire-shape pin, SIXTH and CLOSING column pinned in the
+      // reseller_admins[] child-row cluster on this detail-validation
+      // spec (opened tick 340 with role + status set-membership pair;
+      // ticks 321/322-style id + user_id UUID pins already carried at
+      // rows 606-612 from earlier row-1710 baseline; tick 350 lifted
+      // linked_at as the fifth column). Executes tick 350 next-pick
+      // option (i) verbatim: propagates the tick 307 pin already
+      // carried on the sibling admin-reseller-detail-authz.spec.ts
+      // (rows 3371-3386) as a cross-surface twin — combines the tick
+      // 301 nullable-text posture (null-or-typeof-string) with the
+      // tick 300/306/350 ISO shape assert on the non-null branch, so
+      // the two-part shape guard fires on both the NULL-for-active-
+      // links branch and the ISO-8601-string-for-tombstoned-links
+      // branch of the natural resurrection lifecycle. Column source:
+      // reseller_admins.revoked_at declared at web/supabase/migrations/
+      // 0091_reseller_module_foundations.sql:76 as `revoked_at
+      // timestamptz` (nullable, NO NOT NULL clause) projected via
+      // select("id, user_id, role, status, linked_at, revoked_at") on
+      // the Promise.all fan-out at web/src/app/api/admin/resellers/
+      // [code]/route.ts:89-93. Application semantics: NULL for live
+      // admin links (status === 'active'), stamped with now() on
+      // revoke path (status === 'revoked'). Guard shape:
+      //   (a) null-or-typeof-string half labelled with diagnostic
+      //       prose preserves the nullable-timestamptz raw-type
+      //       discipline — catches a schema-side NOT NULL addition
+      //       (which would trip on the still-live active links that
+      //       carry NULL), a PostgREST serialisation regression that
+      //       returned undefined instead of null, or a projection-
+      //       side drop from route.ts:89-93. Separated from the ISO
+      //       shape assert below so a raw-type flip does not hide
+      //       behind a shape-based diagnostic.
+      //   (b) When typeof row.revoked_at === "string" (tombstoned
+      //       branch), ISO_TIMESTAMP_RE.test() shape assert catches
+      //       a serialisation regression to a Postgres-native
+      //       "YYYY-MM-DD HH:MM:SS" form with a space delimiter, a
+      //       Unix epoch number-as-string, a truncated date-only
+      //       slug, or a legacy pre-ISO timestamp. Reuses the
+      //       module-scope ISO_TIMESTAMP_RE const introduced this
+      //       file at tick 349 (row 242) — zero new imports, zero
+      //       new module-scope constants.
+      // Detail-surface only — the admin-resellers-list route projects
+      // only the resellers-row shape and does not fan out to
+      // reseller_admins; the Promise.all leg that pulls admins rows
+      // is unique to the detail route. Seed cohort rows carry
+      // revoked_at=NULL by default (status='active'), so the null
+      // branch is exercised on every green CI run when the seeded
+      // reseller has admin rows; on hosts without seeded admins the
+      // for-loop is a no-op so the pin never fires — matches the
+      // tick 350 posture for linked_at. CLOSES the admins[] child-
+      // row cluster on this spec — every column enumerated in the
+      // route.ts:89-93 select tuple (id, user_id, role, status,
+      // linked_at, revoked_at) now carries a full wire-shape pin on
+      // this detail-validation surface. Note: the tick 326 status ⇔
+      // revoked_at cross-column lifecycle invariant on the sibling
+      // detail-authz spec is intentionally NOT lifted in this tick —
+      // this tick is scoped to the shape twin per tick 350's stated
+      // next-pick option (i); the lifecycle-invariant twin is a
+      // natural follow-up next-pick option once the shape-pin cluster
+      // is fully symmetrised across both detail surfaces.
+      expect(
+        row.revoked_at === null || typeof row.revoked_at === "string",
+        `admins[].revoked_at '${String(row.revoked_at)}' should be null or a string (nullable timestamptz per web/supabase/migrations/0091_reseller_module_foundations.sql:76; NULL for active links, ISO 8601 string for tombstoned links stamped by the app-layer revoke code-path; a schema-side NOT NULL addition, a PostgREST serialisation regression that returned undefined, or a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:89-93 would surface here — separated from the ISO_TIMESTAMP_RE.test() assert below so a raw-type flip does not hide behind a shape-based diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      if (typeof row.revoked_at === "string") {
+        expect(
+          ISO_TIMESTAMP_RE.test(row.revoked_at as string),
+          `admins[].revoked_at '${String(row.revoked_at)}' should match ISO 8601 shape when non-null (nullable timestamptz per 0091:76 serialised via PostgREST as an ISO 8601 string on the tombstoned branch); a drift to a Postgres-native "YYYY-MM-DD HH:MM:SS" form with a space delimiter, a Unix epoch number-as-string, a truncated date-only slug, or a legacy pre-ISO timestamp would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      }
     }
 
     // Attributions summary — pins the {total, active, by_source} shape
