@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.311
+version: 2026-07-23.312
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -651,6 +651,104 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 312
+    ran_at: 2026-07-23
+    action: p10_commissions_discount_pct_value_set_enum_pin_on_admin_reseller_detail
+    result: |
+      Fourth column tightened in the reseller_commissions_current[]
+      child-row cluster opened at tick 308 — commissions[].discount_pct.
+      Tick 311 next-pick option (a) taken verbatim — rotates to the
+      discount_pct column using the ALLOWED_TIER_VALUES Set already
+      introduced at tick 288 (natural reuse — same {0,10,20,30,40}
+      enumeration enforced by admin-validator.ts on write and by the DB
+      CHECK at 0094:38). Continues the P10 hardening posture — pin-
+      tightening only, no production code touched, no fixture change,
+      no route change, no new imports, no new module-scope constants
+      (ALLOWED_TIER_VALUES already lives at row 918).
+
+      Writer-schema justification:
+        - 0094_reseller_commissions_and_events.sql:38 declares
+          `discount_pct int NOT NULL CHECK (discount_pct IN
+          (0,10,20,30,40))` on reseller_commissions. Wire type is
+          therefore number NOT NULL restricted to the STARTUP_TIER_
+          STEPS enumeration.
+        - Application write path: minted by the webhook processor's
+          planAccrualForLine helper (web/src/lib/reseller/
+          webhook-helpers.ts) from the reseller.tier_pct denorm on
+          each invoice.paid line-item.
+        - Projected via `rc.discount_pct` in the reseller_commissions_
+          current view at 0094:144 and selected on the Promise.all
+          leg at web/src/app/api/admin/resellers/[code]/route.ts:
+          99-105.
+
+      Design choice — two-part guard mirroring the tick 304/305
+      ALLOWED_ADMIN_ROLES / ALLOWED_ADMIN_STATUSES value-set posture:
+        - (a) typeof-number preserves the NOT-NULL raw-type discipline;
+          catches a PostgREST regression that returned null|undefined,
+          a schema-side NOT NULL drop, a projection-side drop from the
+          SELECT tuple, or a stringified-int wire regression.
+        - (b) ALLOWED_TIER_VALUES.has() membership assert reuses the
+          module-scope Set already introduced at row 918 for the
+          resellers-row allowed_tiers[] pin at row 1258/1492. Catches
+          a schema-side CHECK constraint drop or a webhook-processor
+          drift that stamped a discount_pct outside the enumeration
+          (e.g. 5, 15, or a stringified "20" — the latter would already
+          fail guard (a) but the value-set membership assert catches
+          the semantic drift explicitly).
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          two-part pin up to 50 times per test, once per commissions[]
+          row on the QAPROBEWHOLESALEACTIVE seed reseller. Hosts
+          without seeded commission events still green because the
+          for-loop degrades gracefully to a no-op.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 312 paragraph) added below
+              the tick 311 list_price_aud_cents paragraph above
+              ISO_TIMESTAMP_RE.
+            + body type widened: commissions? row shape extended with
+              discount_pct?: unknown so TypeScript narrows the
+              row.discount_pct access inside the for-of loop.
+            + wave-5 row 167 for-of loop pin appended after the tick
+              311 list_price_aud_cents guard: typeof-number assert
+              plus ALLOWED_TIER_VALUES.has() membership assert
+              against row.discount_pct.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+          Matches ticks 234-311 discipline verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0 (tests/** excluded from tsc include
+          set; production tree unchanged).
+        - npm run lint:reseller: 11 R-01 + 32 R-03 + 8 R-04, 6
+          exemptions, 0 violations (spec lives under tests/**, not
+          in the reseller manifest).
+        - vitest src/lib/reseller: 32 files / 472 tests pass —
+          Playwright specs are excluded from vitest by design.
+
+      Next natural picks on tick 313:
+        (a) rotate to the commission_aud_cents column (int NOT NULL
+        CHECK >= 0 at 0094:41) — three-part numeric pin mirroring
+        tick 311's list_price_aud_cents guard but with >= 0 tail
+        assert rather than > 0 (retail rows carry positive commission,
+        wholesale rows always 0 per ck_commission_split at 0094:52-60).
+        (b) rotate to the status column (view CASE at 0094:150-172
+        exposes {cleared, pending_clearance, clawed_back, dispute_open,
+        partially_refunded}) — value-set enum pin using a new
+        module-scope Set const ALLOWED_COMMISSION_STATUSES.
+        (c) rotate to the net_owed_cents column (view-computed
+        arithmetic at 0094:174 — commission_aud_cents plus event
+        deltas) — typeof-number + Number.isInteger guard; drop the
+        > 0 tail assert because the sum can be zero after a full
+        clawback.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 311
     ran_at: 2026-07-23
     action: p10_commissions_list_price_aud_cents_int_positive_pin_on_admin_reseller_detail
