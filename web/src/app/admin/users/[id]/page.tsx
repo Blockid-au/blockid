@@ -30,6 +30,7 @@ import {
   isSandboxRow,
   parseScope,
   type SandboxScope,
+  type SandboxScopeQueryLike,
 } from "@/lib/admin/sandbox-scope";
 import { UserActionsClient } from "./user-actions-client";
 
@@ -385,7 +386,7 @@ export default async function AdminUserDetailPage({
     advisorClients,
   } = result;
 
-  const sandboxRowCount = transactions.filter((t) => isSandboxRow(t)).length;
+  const sandboxRowCount = transactions.filter((t) => isSandboxRow(t as unknown as Record<string, unknown>)).length;
   const scopeNote = !sandboxColumnAvailable
     ? "Chip-only — migration 0103 not yet applied on this environment."
     : scope === "sandbox"
@@ -760,7 +761,7 @@ export default async function AdminUserDetailPage({
               </thead>
               <tbody className="divide-y divide-surface-100">
                 {transactions.map((t, i) => {
-                  const isSandbox = isSandboxRow(t);
+                  const isSandbox = isSandboxRow(t as unknown as Record<string, unknown>);
                   return (
                     <tr key={t.id ?? `${t.created_at}-${i}`}>
                       <td className="p-3 text-xs text-ink-600">
