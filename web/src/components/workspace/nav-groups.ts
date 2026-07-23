@@ -63,6 +63,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Overview",
     items: [
       { href: "/workspace/projects", label: "My Startups", icon: Briefcase },
+      { href: "/dashboard/portfolio", label: "Portfolio", icon: LayoutDashboard, lifecycle: "beta" },
       { href: "/dashboard/svi", label: "SVI Score", icon: TrendingUp },
       { href: "/", label: "New Analysis", icon: Zap },
       { href: "/workspace/roadmap", label: "Action Plan", icon: Map },

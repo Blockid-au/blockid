@@ -14,8 +14,7 @@ import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
 import { CANONICAL_STAGES, CANONICAL_STAGE_LABELS, type StageKey } from "@/lib/journey-vocabulary";
-import { getPortfolioRows } from "@/app/api/projects/portfolio/route";
-import type { PortfolioRow } from "@/lib/portfolio";
+import { getPortfolioRows, type PortfolioRow } from "@/lib/portfolio";
 
 export const metadata: Metadata = {
   title: "Portfolio · BlockID",
