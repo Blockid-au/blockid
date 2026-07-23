@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FundraisingReadinessClient } from "./fundraising-readiness-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Fundraising Readiness · BlockID",
@@ -16,8 +17,10 @@ export default async function FundraisingReadinessPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/fundraise");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <FundraisingReadinessClient />
     </WorkspaceLayout>
   );

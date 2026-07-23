@@ -21,6 +21,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { SecondaryOfferIntakeForm } from "./intake-form";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Secondary Offer — Founder Intake",
@@ -55,8 +56,10 @@ export default async function SecondaryOfferPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/secondary-offer");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-4xl mx-auto space-y-8">
         <header className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">

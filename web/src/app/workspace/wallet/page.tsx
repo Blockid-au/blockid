@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { WalletClient } from "./wallet-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Wallet — BlockID.au",
@@ -16,8 +17,10 @@ export default async function WalletPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/wallet");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-5xl mx-auto">
         <WalletClient />
       </div>

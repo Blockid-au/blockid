@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
-import { getActiveProject } from "@/lib/projects";
+import { getActiveProject, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EquityWizard } from "./wizard-client";
@@ -19,6 +19,8 @@ export const dynamic = "force-dynamic";
 export default async function EquitySetupPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/equity-setup");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   // Check if the user already has a cap table with shareholders
   const supabase = getSupabaseAdmin();
@@ -42,7 +44,7 @@ export default async function EquitySetupPage() {
 
   if (!project) {
     return (
-      <WorkspaceLayout user={user}>
+      <WorkspaceLayout user={user} isSandbox={isSandbox}>
         <div className="p-6 max-w-3xl mx-auto">
           <div className="rounded-2xl border border-dashed border-surface-200 bg-white px-6 py-16 text-center">
             <p className="text-ink-600 font-medium">No project found.</p>
@@ -62,7 +64,7 @@ export default async function EquitySetupPage() {
   }
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-3xl mx-auto">
         <EquityWizard
           email={user.email}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { DataRoomClient } from "./data-room-client";
 import { DATA_ROOM_STRUCTURE } from "@/lib/data-room-templates";
@@ -169,6 +169,8 @@ export default async function DataRoomPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/data-room");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   // Load existing evidence to determine item states
   const itemStates: DataRoomItemState[] = [];
   const supabase = getSupabaseAdmin();
@@ -210,7 +212,7 @@ export default async function DataRoomPage() {
   }
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-4xl mx-auto">
         <DataRoomClient
           items={DATA_ROOM_ITEMS}

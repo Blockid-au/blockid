@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { BarChart3 } from "lucide-react";
 import { ReportsClient, type SnapshotRow } from "./reports-client";
@@ -20,6 +20,8 @@ export const dynamic = "force-dynamic";
 export default async function ReportsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/reports");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   const sb = getSupabaseAdmin();
 
@@ -101,7 +103,7 @@ export default async function ReportsPage() {
   }
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-3xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">Weekly Reports</h1>

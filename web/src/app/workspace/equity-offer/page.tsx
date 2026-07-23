@@ -17,6 +17,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FeatureGate } from "@/components/access/FeatureGate";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { getSurface } from "@/lib/legal/surfaces";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Pay in Equity — Enterprise Solution + Equity",
@@ -59,11 +60,13 @@ export default async function EquityOfferPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/equity-offer");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const surface = getSurface("equity_offer_page");
   const disclaimerBody = surface?.body_md ?? FALLBACK_DISCLAIMER;
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-4xl mx-auto space-y-8">
         <FeatureGate
           feature="equity_offer.request"

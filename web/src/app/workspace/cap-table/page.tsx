@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { CapTableManager } from "@/components/workspace/cap-table-manager";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Cap Table | BlockID",
@@ -16,8 +17,10 @@ export default async function CapTablePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/cap-table");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-6xl mx-auto">
         <CapTableManager />
       </div>

@@ -4,6 +4,7 @@ import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { kbList } from "@/lib/kb-client";
 import { KnowledgeBaseClient } from "./client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Knowledge Base",
@@ -17,11 +18,13 @@ export default async function KnowledgeBasePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/knowledge-base");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const articles = await kbList(undefined, 500);
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <KnowledgeBaseClient
         initialArticles={articles.map((a) => ({
           id: a.id,

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getUserProjects, getProjectLimit } from "@/lib/projects";
+import { getUserProjects, getProjectLimit, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProjectsClient } from "./projects-client";
 
@@ -17,11 +17,13 @@ export default async function ProjectsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/projects");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const projects = await getUserProjects(user.id);
   const limit = await getProjectLimit(user.plan ?? "free");
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <ProjectsClient
         initialProjects={projects}
         limit={limit}

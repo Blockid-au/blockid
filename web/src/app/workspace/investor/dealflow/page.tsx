@@ -20,6 +20,7 @@ import {
   type StageBand,
   type ChequeBand,
 } from "@/lib/investor-portal";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Deal Flow | Investor Workspace | BlockID",
@@ -102,6 +103,8 @@ export default async function InvestorDealFlowPage({
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/investor/dealflow");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const sp = await searchParams;
   const stage = coerceStage(firstParam(sp.stage));
   const sector = firstParam(sp.sector)?.trim() || null;
@@ -119,7 +122,7 @@ export default async function InvestorDealFlowPage({
   ]);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>

@@ -7,6 +7,7 @@ import {
 } from "@/lib/email-preferences";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { NotificationsClient } from "./notifications-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Notification Preferences",
@@ -20,12 +21,14 @@ export default async function NotificationsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/notifications");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   // Ensure preferences exist
   const token = await ensureEmailPreferences(user.email, user.id);
   const prefs = await getEmailPreferences(user.email);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">

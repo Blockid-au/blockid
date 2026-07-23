@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { listGrants } from "@/lib/esop-grants";
 import { DIV83A_DISCLAIMER } from "@/lib/div83a-checker";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -20,11 +20,13 @@ export default async function EsopGrantsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/esop/grants");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const projectId = await getProjectIdFromRequest();
   const grants = await listGrants(user.id, projectId);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-6xl mx-auto">
         <GrantsClient
           initialGrants={grants}

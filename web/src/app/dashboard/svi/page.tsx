@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getBalance } from "@/lib/credits";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
@@ -42,6 +42,8 @@ export default async function SVIDashboardPage() {
   if (!user) {
     redirect("/auth/login?next=/dashboard/svi");
   }
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   const supabase = getSupabaseAdmin();
   let analysis: SVIAnalysis | null = null;
@@ -255,7 +257,7 @@ export default async function SVIDashboardPage() {
   // ── Empty state — no analysis yet ────────────────────────────────────────
   if (!analysis) {
     return (
-      <WorkspaceLayout user={user} startupName={startupName}>
+      <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox}>
         <div className="max-w-5xl mx-auto px-6 pb-24 pt-10">
           <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-white to-emerald-50/40 px-8 py-10 text-center shadow-sm">
             <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-brand-100 border border-brand-200 mb-4">
@@ -298,7 +300,7 @@ export default async function SVIDashboardPage() {
 
   // ── Render the living dashboard ──────────────────────────────────────────
   return (
-    <WorkspaceLayout user={user} startupName={startupName}>
+    <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox}>
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
         {/* ── SVI Score History Trend Chart (T0081) ──────────────────────── */}
         {sviHistory.length > 0 && (

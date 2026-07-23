@@ -14,6 +14,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FeatureGate } from "@/components/access/FeatureGate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Engagement Notes — Advisor Workspace",
@@ -98,6 +99,8 @@ export default async function AdvisorNotesPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/advisor/notes");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const params = await searchParams;
   const raw = params.client;
   const clientId = Array.isArray(raw) ? raw[0] : raw;
@@ -105,7 +108,7 @@ export default async function AdvisorNotesPage({ searchParams }: PageProps) {
   const notes = clientId ? await loadNotes(user.id, clientId) : [];
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <FeatureGate feature={ADVISOR_COHORT_FEATURE} label="Engagement notes">
         <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
           <header>

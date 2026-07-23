@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { VestingDashboard } from "./vesting-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Vesting Schedules | BlockID",
@@ -17,8 +18,10 @@ export default async function VestingPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/vesting");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-5xl mx-auto">
         <VestingDashboard />
       </div>

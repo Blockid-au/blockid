@@ -13,6 +13,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FeatureGate } from "@/components/access/FeatureGate";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Weekly Digest | Investor Workspace | BlockID",
@@ -120,6 +121,8 @@ export default async function InvestorDigestPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/investor/digest");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const { rows, tableMissing } = await loadDigests(user.id);
 
   // Group by ISO week.
@@ -135,7 +138,7 @@ export default async function InvestorDigestPage() {
   );
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-4xl mx-auto space-y-6">
         <header>
           <nav

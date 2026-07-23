@@ -13,6 +13,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FeatureGate } from "@/components/access/FeatureGate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Client Roster — Advisor Workspace",
@@ -72,10 +73,12 @@ export default async function AdvisorRosterPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/advisor/roster");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const roster = await loadRoster(user.id);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <FeatureGate feature={ADVISOR_COHORT_FEATURE} label="Advisor client roster">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header className="flex flex-wrap items-start justify-between gap-4">

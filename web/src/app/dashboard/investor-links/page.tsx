@@ -9,6 +9,7 @@ import {
   type InvestorLinkWithViewCount,
 } from "@/lib/investor-links";
 import { InvestorLinksClient } from "./investor-links-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Investor Links — Dashboard — BlockID",
@@ -33,6 +34,8 @@ export default async function InvestorLinksPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/investor-links");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const links: InvestorLinkWithViewCount[] = isSupabaseConfigured()
     ? await listInvestorLinksForFounder(user.id, user.email)
     : [];
@@ -45,7 +48,7 @@ export default async function InvestorLinksPage() {
   }));
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

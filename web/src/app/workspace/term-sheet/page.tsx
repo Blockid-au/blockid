@@ -6,6 +6,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { formatAud } from "@/lib/utils";
 import { TermSheetHistoryClient } from "./term-sheet-history-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "My Term Sheets",
@@ -27,6 +28,8 @@ export default async function TermSheetHistoryPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/term-sheet");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const supabase = getSupabaseAdmin();
   let rows: HistoryRow[] = [];
   if (supabase) {
@@ -40,7 +43,7 @@ export default async function TermSheetHistoryPage() {
   }
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-5xl mx-auto">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>

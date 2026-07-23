@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
-import { getActiveProject } from "@/lib/projects";
+import { getActiveProject, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getEquitySummary } from "@/lib/equity";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EquityClient } from "./equity-client";
@@ -19,6 +19,8 @@ export default async function EquityPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/equity");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   // Read the active project from the cookie
   const store = await cookies();
   const projectSlug = store.get("blockid_project")?.value ?? undefined;
@@ -26,7 +28,7 @@ export default async function EquityPage() {
 
   if (!project) {
     return (
-      <WorkspaceLayout user={user}>
+      <WorkspaceLayout user={user} isSandbox={isSandbox}>
         <div className="p-6 max-w-5xl mx-auto">
           <div className="rounded-2xl border border-dashed border-surface-200 bg-white px-6 py-16 text-center">
             <p className="text-ink-600 font-medium">No project found.</p>
@@ -48,7 +50,7 @@ export default async function EquityPage() {
   const summary = await getEquitySummary(project.id);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-5xl mx-auto">
         <EquityClient
           projectId={project.id}
