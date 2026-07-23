@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-16T12:52:29.272Z",
+  "generated_at": "2026-07-23T15:46:25.265Z",
   "plans": [
     {
       "plan_id": "founder_starter",
@@ -96,9 +96,9 @@
       "stripe_env_var": "STRIPE_PRICE_ACCEL_STARTER",
       "currency": "aud",
       "monthly_amount_cents": 50000,
-      "annual_amount_cents": 600000,
+      "annual_amount_cents": 500000,
       "interval": "monthly",
-      "trial_days": 7
+      "trial_days": 14
     },
     {
       "plan_id": "accelerator_growth",
@@ -107,9 +107,9 @@
       "stripe_env_var": "STRIPE_PRICE_ACCEL_GROWTH",
       "currency": "aud",
       "monthly_amount_cents": 150000,
-      "annual_amount_cents": 1800000,
+      "annual_amount_cents": 1500000,
       "interval": "monthly",
-      "trial_days": 7
+      "trial_days": 14
     },
     {
       "plan_id": "accelerator_enterprise",
@@ -118,9 +118,9 @@
       "stripe_env_var": "STRIPE_PRICE_ACCEL_ENTERPRISE",
       "currency": "aud",
       "monthly_amount_cents": 350000,
-      "annual_amount_cents": 4200000,
+      "annual_amount_cents": 3500000,
       "interval": "monthly",
-      "trial_days": 7
+      "trial_days": 14
     }
   ]
 }

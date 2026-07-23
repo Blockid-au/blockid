@@ -228,16 +228,18 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "segment": "accelerator",
     "name": "Cohort Starter",
     "price_aud_cents": 50000,
-    "annual_price_aud_cents": 600000,
+    "annual_price_aud_cents": 500000,
     "interval": "monthly",
-    "trial_days": 7,
+    "trial_days": 14,
     "stripe_env_var": "STRIPE_PRICE_ACCEL_STARTER",
     "feature_flags": [
-      "accelerator.cohort",
-      "accelerator.batch_svi"
+      "cohort_dashboard",
+      "cohort_reports",
+      "program_curriculum_hub"
     ],
     "usage_limits": {
-      "founders": 15
+      "seats": 15,
+      "monthly_credits": 2000
     },
     "active": true,
     "sort_order": 100
@@ -247,17 +249,21 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "segment": "accelerator",
     "name": "Cohort Growth",
     "price_aud_cents": 150000,
-    "annual_price_aud_cents": 1800000,
+    "annual_price_aud_cents": 1500000,
     "interval": "monthly",
-    "trial_days": 7,
+    "trial_days": 14,
     "stripe_env_var": "STRIPE_PRICE_ACCEL_GROWTH",
     "feature_flags": [
-      "accelerator.cohort",
-      "accelerator.batch_svi",
-      "accelerator.lp_report"
+      "cohort_dashboard",
+      "cohort_reports",
+      "program_curriculum_hub",
+      "co_mentor_pool",
+      "cohort_batch_reports",
+      "alumni_network_tools"
     ],
     "usage_limits": {
-      "founders": 50
+      "seats": 50,
+      "monthly_credits": 8000
     },
     "active": true,
     "sort_order": 110
@@ -267,18 +273,25 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "segment": "accelerator",
     "name": "Cohort Enterprise",
     "price_aud_cents": 350000,
-    "annual_price_aud_cents": 4200000,
+    "annual_price_aud_cents": 3500000,
     "interval": "monthly",
-    "trial_days": 7,
+    "trial_days": 14,
     "stripe_env_var": "STRIPE_PRICE_ACCEL_ENTERPRISE",
     "feature_flags": [
-      "accelerator.cohort",
-      "accelerator.batch_svi",
-      "accelerator.lp_report",
-      "api.access"
+      "cohort_dashboard",
+      "cohort_reports",
+      "program_curriculum_hub",
+      "co_mentor_pool",
+      "cohort_batch_reports",
+      "alumni_network_tools",
+      "multi_cohort_management",
+      "white_label_reports",
+      "dedicated_success_manager",
+      "sso"
     ],
     "usage_limits": {
-      "founders": 100
+      "seats": -1,
+      "monthly_credits": -1
     },
     "active": true,
     "sort_order": 120

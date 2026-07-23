@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { can } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
-const PRO_PLANS = new Set(["growth", "scale", "enterprise"]);
-
-function isPro(user: { plan: string | null; role?: string }): boolean {
-  return user.role === "admin" || PRO_PLANS.has(user.plan ?? "");
+async function isPro(user: {
+  id: string;
+  plan: string | null;
+  role?: string;
+}): Promise<boolean> {
+  if (user.role === "admin") return true;
+  return can(
+    { id: user.id, plan: user.plan ?? "free", segment: "founder" },
+    "pdf_branding",
+  );
 }
 
 // GET /api/branding — return saved brand settings for current user
@@ -48,7 +55,7 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
-  if (!isPro(user)) {
+  if (!(await isPro(user))) {
     return NextResponse.json(
       { ok: false, error: "Custom branding requires Growth plan or above" },
       { status: 403 },

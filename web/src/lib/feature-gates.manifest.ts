@@ -66,6 +66,11 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   { route: "api/blockchain/verify/route.ts", required_feature: "blockchain.sync" },
   { route: "api/tokenization/route.ts", required_feature: "share_management" },
 
+  // PDF branding (Growth+/Scale/Enterprise) — feature-upgrade-roadmap-v2 §3.
+  // Renderer wire-in follows in a separate tick; this gate lets Growth+ users
+  // save their brand config today so the settings surface is not a dead end.
+  { route: "api/branding/route.ts", required_feature: "pdf_branding" },
+
   // Reseller module
   { route: "api/reseller/credits/grant/route.ts", required_feature: "reseller.grant_credits" },
   { route: "api/reseller/sandbox/setup/route.ts", required_feature: "reseller.console" },
@@ -86,6 +91,7 @@ export function requiredFeatureFor(route: string): Feature | null {
  * completeness test.
  */
 export const GATED_DIRECTORIES: readonly string[] = Object.freeze([
+  "api/branding",
   "api/cap-table",
   "api/data-room",
   "api/dataroom",
