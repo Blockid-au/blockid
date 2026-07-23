@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.227
+version: 2026-07-23.228
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,155 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 228
+    ran_at: 2026-07-23
+    action: p10_drawer_pair_progression_optional_field_shape_pins_option_f
+    result: |
+      Landed tick 227 "natural next pick" option (f) verbatim: extended BOTH
+      drawer-authz.spec.ts row 146 AND drawer-validation.spec.ts row 147
+      with progression[0] optional-field shape pins on the four
+      ProgressionEvent optional fields (customer-drawer.ts:32-38):
+      .detail / .phase / .chapterSlug / .href. Twin symmetrisation, single
+      tick, both rows advance together — matches the tick 225 → tick 226
+      OverviewSummary twin discipline + tick 148 → tick 227 progression[0]
+      .kind literal twin discipline.
+
+      Route + lib references pinned by this delta:
+        - progression[0] is the signup event pushed unconditionally at the
+          top of buildProgressionTimeline (customer-drawer.ts:122-126) with
+          only kind/ts/label set — detail is NOT set, so JSON.stringify
+          drops the key and the client reads undefined.
+        - annotateProgression (progression-linkage.ts:57-61) spreads
+          linkageForEvent onto every event AFTER buildProgressionTimeline
+          returns; linkageForEvent (progression-linkage.ts:44-50) reads
+          PHASE_BY_KIND[event.kind] and folds phase + chapterSlug + href
+          onto the row. PHASE_BY_KIND[signup] = 1 (progression-linkage.ts:24)
+          so the signup row resolves to phase 1 → chapterSlug "01-vision"
+          (via chapterSlugForPhase → listChapters().find(c=>c.phase===1),
+          returning the startup-journey.ts:76-78 slug) → href
+          "/guide/01-vision".
+        - Cross-cutting kinds (report_generated / plan_change /
+          credit_grant per PHASE_BY_KIND lines 28-30) return the null
+          triple. Row 146 + 147 both target progression[0] which is
+          guaranteed to be the signup row per the emission order
+          documented in tick 227's result block, so in practice both pins
+          exercise the phase-1 branch — but the null-or-typeof discipline
+          leaves room for a future re-classification of signup to a
+          cross-cutting kind without a false-fail on the shape assertion.
+
+      Body-shape type declarations widened symmetrically. Pre-tick both
+      spec files declared progression?: Array<{ kind: string; ts: string;
+      label: string; detail?: string | null; phase?: number | null }>.
+      Post-tick both declarations add chapterSlug?: string | null; href?:
+      string | null so the compile-time envelope matches the runtime
+      shape emitted by annotateProgression.
+
+      Assertion pattern chosen: loose `x == null || typeof x === "T"` for
+      each of the four fields. Rationale:
+        - `x == null` catches both null AND undefined so the signup row's
+          undefined detail (drop-on-serialise) does not false-fail.
+          Cross-cutting kinds' explicit null triple on phase/chapterSlug/
+          href is also caught by the same `x == null` branch, so a re-
+          classification of signup to report_generated (which sets detail
+          explicitly to null at customer-drawer.ts:164) would still pass.
+        - `typeof x === "T"` catches the populated case (signup phase-1
+          triple, non-signup kinds with a numeric delta or plan_id in
+          detail).
+        - The pattern does NOT accidentally forbid an empty-string detail
+          (e.g. if a future svi_score_update pushed detail:"" instead of
+          detail:null) — matches the tick 223+224+225+226+227 discipline
+          of shape-pinning without content-pinning.
+
+      Diagnostic delta of the pass:
+        - VALUE assertions on the "01-vision" chapterSlug and the
+          "/guide/01-vision" href are intentionally deferred. Same
+          discipline as ticks 218-227 shape-vs-value split. A future tick
+          could lift the signup-row triple to concrete equality pins
+          ({phase:1, chapterSlug:"01-vision", href:"/guide/01-vision"})
+          across both rows — flagged as option (h) in the next-pick list.
+        - No production code touched. Both files under web/tests/e2e/**;
+          route.ts + customer-drawer.ts + progression-linkage.ts unchanged.
+        - No migration. No new spec-local constant. No fixture-file delta
+          (loadTempReseller / tempResellerSkipReason from
+          tests/e2e/fixtures/reseller unchanged; the widened body shape
+          declaration lives inline in each spec).
+        - Twin symmetry now fully established on the ProgressionEvent
+          shape:
+            .kind        — literal "signup" pinned on both rows (146
+                           tick 148, 147 tick 227)
+            .ts          — typeof "string" pinned on both rows (146+147
+                           tick 225+226)
+            .label       — typeof "string" pinned on both rows (146+147
+                           tick 225+226)
+            .detail?     — null-or-typeof-string pinned on both rows
+                           (146+147 THIS TICK)
+            .phase?      — null-or-typeof-number pinned on both rows
+                           (146+147 THIS TICK)
+            .chapterSlug?— null-or-typeof-string pinned on both rows
+                           (146+147 THIS TICK)
+            .href?       — null-or-typeof-string pinned on both rows
+                           (146+147 THIS TICK)
+          Full 7-field ProgressionEvent shape now covered on both rows.
+        - Verified: tsc clean; npm run lint:reseller: 11 R-01 files +
+          31 R-03 routes scanned, 3 exemptions, 0 violations (both spec
+          files live under web/tests/e2e/**, not in the reseller
+          manifest so R-01/R-03 do not fire on the edited files).
+
+      Files:
+        - web/tests/e2e/reseller/drawer-authz.spec.ts (body shape
+          progression?: Array<{...}> widened to add chapterSlug?/href?;
+          four new expects inserted between the tick 225 progression[0]
+          .ts + .label typeof pins and the tick 148 svi_curve /
+          Array.isArray pins, with an inline comment block above the new
+          assertions referencing customer-drawer.ts:122-126 signup emit +
+          annotateProgression spread + PHASE_BY_KIND[signup]=1 →
+          "01-vision" resolution.)
+        - web/tests/e2e/reseller/drawer-validation.spec.ts (body shape
+          progression?: Array<{...}> widened symmetrically; four new
+          expects inserted after the tick 227 progression[0].kind literal
+          pin at the end of the happy-path body, with an inline comment
+          block referencing tick 225 → tick 226 mirror discipline + the
+          shared route + lib references.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.227 → 2026-07-23.228; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Twin-symmetrisation posture — both rows advance together in a
+          single tick, matching the ticks 223/224 and 225/226 precedent.
+        - Shape pins only. No VALUE assertions on the phase-1 → 01-vision
+          → /guide/01-vision triple. Options (h) below reserves that
+          value-tightening for a follow-up tick.
+        - Loose `== null` rather than strict `=== null` because the
+          signup row's detail key is dropped by JSON.stringify (undefined
+          on the wire), and shape pins must accommodate both wire shapes
+          that the client renderer already handles.
+
+      Natural next pick for tick 229:
+        (h) tighten the signup-row triple across both drawer rows from
+            null-or-typeof pins to VALUE equality: expect(phase).toBe(1)
+            + expect(chapterSlug).toBe("01-vision") + expect(href).toBe(
+            "/guide/01-vision"). Trade-off: pin is tighter and would
+            catch a PHASE_BY_KIND[signup] regression exactly, but also
+            couples the spec to the phase-1 chapter slug so a rename of
+            01-vision → 01-day-zero (or a re-numbering of the U.9 phase
+            taxonomy) would force a synchronised spec + lib bump. Given
+            the tick 218-227 preference for shape-pinning, option (h) is
+            a deliberate step DOWN in flexibility and should ship only
+            after the PHASE_BY_KIND signup→1 contract has stabilised
+            across a few more phase-taxonomy revisions.
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks; today
+            only over_budget_approval branch of the terminal handler
+            carries the shape+helper twin coverage. P8.5-blocked.
+        (e) joint clean-up of stale header comment blocks on requests-
+            validation.spec.ts lines 217-227 + reseller-requests-list-
+            authz.spec.ts lines 172-182 (both headers say "Do NOT pin
+            decision_at / decision_reason" which contradicts the tick
+            223 + tick 224 pins now inline). Pure comment cleanup, no
+            assertion or production code delta.
+    commit: (this tick)
+
   - tick: 227
     ran_at: 2026-07-23
     action: p10_drawer_validation_row_147_progression_kind_signup_literal_pin_twin_symmetrisation
