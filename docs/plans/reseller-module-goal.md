@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.257
+version: 2026-07-23.258
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,154 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 258
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_goal_completed_message_and_completion_marker_two_pin_option_y20
+    result: |
+      Landed tick 257's "natural next pick" option (y20) as the nineteenth
+      conditional-by-stage schema pin on tick_history rows in admin-
+      reseller-loop-status-authz.spec.ts happy path. Closes the goal-
+      completion summary row (mjs:242-246) writer contract by pinning
+      BOTH `message` and `completion_marker` bare string literals as
+      typeof=string — two-pin single-guard shape, departing from the tick
+      254 + 255 + 256 + 257 one-pin cadence because the writer at
+      mjs:242-246 legitimately emits two extras beyond the log() helper
+      prefix (matches the tick 247 auto_deploy_triggered + tick 248
+      auto_deploy_finished two-pin precedent for multi-field rows). Closes
+      the LAST unpinned row within the mjs:241-266 goal-completion
+      detector — with this pin, every writer site in the block
+      (goal_completed row + cron_removal happy branch pinned tick 257 +
+      cron_removal_failed catch branch pinned tick 256) is schema-guarded.
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:242-246 writes
+          `log({ stage: 'goal_completed', message: 'goal_id status: done
+          detected — stopping loop', completion_marker: '/tmp/blockid-
+          reseller-goal-done' })` inside the `if (/^status:\s*done\b/mi
+          .test(goalMd))` branch of the goal-completion detector at
+          mjs:241-266. Only fires on the FINAL tick of the entire loop
+          (when the goal file's top-level `status: done` line matches
+          the regex at mjs:241) — coverage-per-guard is zero on green-
+          path CI runs where the goal is still in_progress, but the pin
+          still closes the writer contract for the completion-path
+          summary row so a future writer-side rename (e.g. `message` →
+          `summary` or `completion_marker` → `marker_path` or payload
+          restructure) surfaces as a test failure rather than silent
+          drift.
+        - `message` is `'goal_id status: done detected — stopping loop'`
+          at mjs:244 — a bare string literal with no interpolation, so
+          typeof=string is a writer-contract invariant. Value pin would
+          also be valid (the literal is a compile-time constant with no
+          runtime construction), but per the tick 230 "typeof only so
+          the value can drift" convention this pin stays typeof-only to
+          match the sibling `idle` row's `reason` field (tick 241 option
+          u, writer at mjs:290) which also carries a bare string literal
+          that was intentionally pinned typeof-only. Consistency with
+          the existing loop-detector guards matters more than the drift-
+          vs-invariant micro-optimisation.
+        - `completion_marker` is `'/tmp/blockid-reseller-goal-done'` at
+          mjs:245 — a bare string literal with no interpolation. Same
+          rationale as `message` — a value pin would technically be
+          valid but typeof-only matches the drift convention. The
+          `/tmp/...` filesystem path could in principle relocate under
+          macOS SIP or a Docker container's tmpfs mount, so leaving the
+          value un-pinned means the writer can move the marker without
+          a mandatory test-side rewrite.
+
+      Design choice — two-pin single guard:
+        - Sits in its own conditional-by-stage guard matching the tick
+          240-257 convention. Comes AFTER the tick 257 cron_removal
+          guard so future guards land in monotonic tick-order.
+        - TYPEOF pins only (not value) per the tick 230 "typeof only so
+          the value can drift" convention. Both fields are compile-time
+          bare string literals so value pins would also be valid, but
+          typeof-only keeps the drift affordance the writer has today.
+        - Two pins because the writer contract at mjs:242-246 emits
+          exactly two fields beyond the log() helper's fixed tick_id/ts/
+          human_review_minutes_7d prefix — departs from the tick 241 +
+          243 + 254 + 255 + 256 + 257 single-field precedent because
+          the writer legitimately emits two extras here. Matches the
+          tick 247 auto_deploy_triggered + tick 248 auto_deploy_finished
+          two-pin precedent for multi-field rows.
+
+      Diagnostic delta of the pass:
+        - Added 1 stage-guarded two-pin expect block (~75 lines: ~63
+          lines of justifying comment + ~7 lines of guard + two expect
+          statements) inside the tick_history row loop, immediately
+          after the tick 257 cron_removal guard.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change, no new module-scope constant. Matches ticks 223-257
+          discipline: tighten one dimension (in this case close the
+          goal-completion summary row writer contract), single tick.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one conditional-by-stage two-pin guard added after the tick
+          257 cron_removal guard, citing reseller-goal-loop.mjs:244-245
+          as the goal_completed writer site and mjs:241-266 as the
+          bounding goal-completion detector envelope.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.257 → 2026-07-23.258; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local constant, no fixture-file
+          delta, no seed-script change, no P8.5-gated code_request work
+          (option (c) still blocked), no production-code touch.
+          Consistent with ticks 239-257's stage-guard pattern.
+
+      Verified:
+        - reseller-goal-loop.mjs:242-246 grepped to confirm exactly one
+          `stage: 'goal_completed'` writer site; mjs:241-266 confirms
+          the goal-completion detector envelope shape unchanged.
+        - tsc clean (npx tsc --noEmit in web/, exit 0, no output).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemptions, 0 violations.
+        - The tick 258 pin sits directly above the closing brace of
+          the tick_history row loop — matches the monotonic tick-order
+          convention.
+
+      Frontier after tick 258: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 258 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20. goal_completed summary row writer contract
+      now pinned — combined with tick 257's cron_removal happy-branch
+      guard and tick 256's cron_removal_failed catch-branch guard, ALL
+      THREE writer sites within the mjs:241-266 goal-completion
+      detector are schema-guarded. Zero unpinned rows remain in the
+      goal-completion detector block. The pin-frontier now shifts to
+      remaining un-audited writer sites elsewhere in main() — see
+      natural-next-picks below.
+
+      Natural next pick for tick 259:
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list
+            + admin-side patch spec) in a single bigger-diff tick.
+            Available; deferred at ticks 235-257.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235-257.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof
+            string to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at
+            235-257.
+        (x) audit format-shape pins for now_utc / next_utc (HH:MM:SS /
+            HH:MM regex) / seconds_until (0..3600 range) / tick_state
+            (enum of 4 branches) — header-rewrite option (contradicts
+            existing "typeof-string only so the value can drift"
+            comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 257
     ran_at: 2026-07-23
     action: p10_loop_status_tick_row_cron_removal_status_one_pin_option_y13

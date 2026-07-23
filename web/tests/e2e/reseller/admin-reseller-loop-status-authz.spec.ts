@@ -1254,6 +1254,79 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history cron_removal row.status should be typeof number (reseller-goal-loop.mjs:257 writes \`stop.status ?? -1\` — narrows null/undefined spawnSync exit-code to -1 so the field is number-typed): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("number");
       }
+      // tick 258 — goal_completed stage schema pin (option y20 from tick 257's
+      // natural-next-picks — the goal-completion-branch summary row's `message`
+      // and `completion_marker` keys). Two-pin candidate — the log() call at
+      // scripts/cron/reseller-goal-loop.mjs:242-246 spreads exactly two fields
+      // beyond the log() helper's own tick_id/ts/human_review_minutes_7d
+      // prefix: `message` (bare string literal at mjs:244) and
+      // `completion_marker` (bare string literal at mjs:245). Sibling of the
+      // tick 256 cron_removal_failed + tick 257 cron_removal guards within
+      // the same mjs:241-266 goal-completion detector envelope, so lands
+      // naturally next in monotonic tick-order. Closes the LAST unpinned row
+      // within the goal-completion detector — with this pin, every writer
+      // site inside the mjs:241-266 block (goal_completed row + cron_removal
+      // happy branch + cron_removal_failed catch branch) is schema-guarded.
+      //
+      // Writer-schema justification:
+      //   - scripts/cron/reseller-goal-loop.mjs:242-246 writes
+      //     `log({ stage: 'goal_completed', message: 'goal_id status: done
+      //     detected — stopping loop', completion_marker: '/tmp/blockid-
+      //     reseller-goal-done' })` inside the `if (/^status:\s*done\b/mi
+      //     .test(goalMd))` branch of the goal-completion detector at
+      //     mjs:241-266. Only fires on the FINAL tick of the entire loop
+      //     (when the goal file's top-level `status: done` line matches the
+      //     regex at mjs:241) — coverage-per-guard is zero on green-path CI
+      //     runs where the goal is still in_progress, but the pin still
+      //     closes the writer contract for the completion-path summary row
+      //     so a future writer-side rename (e.g. `message` → `summary` or
+      //     `completion_marker` → `marker_path` or payload restructure)
+      //     surfaces as a test failure rather than silent drift.
+      //   - `message` is `'goal_id status: done detected — stopping loop'`
+      //     at mjs:244 — a bare string literal with no interpolation, so
+      //     typeof=string is a writer-contract invariant. Value pin would
+      //     also be valid here (the literal is a compile-time constant with
+      //     no runtime construction), but per the tick 230 "typeof only so
+      //     the value can drift" convention this pin stays typeof-only to
+      //     match the sibling `idle` row's reason field (tick 241 option u,
+      //     writer at mjs:290) which also carries a bare string literal
+      //     that was intentionally pinned typeof-only. Consistency with the
+      //     existing loop-detector guards matters more than the drift-vs-
+      //     invariant micro-optimisation.
+      //   - `completion_marker` is `'/tmp/blockid-reseller-goal-done'` at
+      //     mjs:245 — a bare string literal with no interpolation. Same
+      //     rationale as `message` — a value pin would technically be
+      //     valid but typeof-only matches the drift convention. The
+      //     `/tmp/...` filesystem path could in principle relocate under
+      //     macOS System Integrity Protection or a Docker container's
+      //     tmpfs mount, so leaving the value un-pinned means the writer
+      //     can move the marker without a mandatory test-side rewrite.
+      //
+      // Design choice — two-pin single guard:
+      //   - Sits in its own conditional-by-stage guard matching the tick
+      //     240-257 convention. Comes AFTER the tick 257 cron_removal guard
+      //     so future guards land in monotonic tick-order.
+      //   - TYPEOF pins only (not value) per the tick 230 "typeof only so
+      //     the value can drift" convention. Both fields are compile-time
+      //     bare string literals so value pins would also be valid, but
+      //     typeof-only keeps the drift affordance the writer has today.
+      //   - Two pins because the writer contract at mjs:242-246 emits
+      //     exactly two fields beyond the log() helper's fixed tick_id/ts/
+      //     human_review_minutes_7d prefix — departs from the tick 241 +
+      //     243 + 254 + 255 + 256 + 257 single-field precedent because the
+      //     writer legitimately emits two extras here. Matches the tick
+      //     247 auto_deploy_triggered + tick 248 auto_deploy_finished two-
+      //     pin precedent for multi-field goal-completion / deploy rows.
+      if (tickRow.stage === "goal_completed") {
+        expect(
+          typeof tickRow.message,
+          `tick_history goal_completed row.message should be typeof string (reseller-goal-loop.mjs:244 writes bare string literal 'goal_id status: done detected — stopping loop' — no interpolation, writer-contract invariant): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+        expect(
+          typeof tickRow.completion_marker,
+          `tick_history goal_completed row.completion_marker should be typeof string (reseller-goal-loop.mjs:245 writes bare string literal '/tmp/blockid-reseller-goal-done' — no interpolation, writer-contract invariant): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
