@@ -166,6 +166,54 @@ const ALLOWED_TIER_PCTS = new Set<number>([0, 10, 20, 30, 40]);
 //     also silently drop the row out of that hot index.
 const ADMIN_ROLES = new Set<string>(["owner", "admin", "viewer"]);
 const ADMIN_STATUSES = new Set<string>(["active", "revoked"]);
+// Tick 348 — value set for commissions[].status element membership,
+// cross-surface twin of ALLOWED_COMMISSION_STATUSES at
+// web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts:2508
+// (introduced there on tick 316). Mirrors the CASE expression at
+// web/supabase/migrations/0094_reseller_commissions_and_events.sql:150-172
+// in the reseller_commissions_current view, which derives the status from
+// the presence/absence of specific event_type rows in
+// reseller_commission_events: (a) 'clawed_back' when any refund_full /
+// dispute_lost / void event exists; (b) 'dispute_open' when a
+// dispute_opened event exists without a matching dispute_won or
+// dispute_lost; (c) 'partially_refunded' when a refund_partial event
+// exists; (d) 'cleared' when a cleared event exists; (e)
+// 'pending_clearance' as the ELSE branch when none of the above match.
+// The status is view-computed rather than a stored column, so the CASE
+// expression is the sole enforcement layer — a schema-side edit that
+// added a new event_type WITHOUT extending the CASE (leaving a
+// partially-refunded-then-cleared row falling through to the
+// pending_clearance ELSE branch, for example), or a view-definition
+// drift that introduced a new status literal outside the enumeration,
+// would land straight through PostgREST onto the wire — which this Set
+// catches on the first offending row. NARROWER than the resellers-row
+// STATUSES Set {active, paused, terminated} at row 127 because
+// reseller_commissions.status is a settlement-lifecycle enum (five
+// states tracking the commission's clearance journey), not the
+// business-lifecycle enum used on the resellers table. Kept adjacent to
+// the existing ADMIN_ROLES / ADMIN_STATUSES / ALLOWED_TIER_PCTS /
+// BILLING_MODELS / STATUSES cluster so a future value-set tick lands
+// next to its siblings without scattering. Introduced on this file to
+// power the tick 348 commissions[].status two-part typeof-string +
+// ALLOWED_COMMISSION_STATUSES.has() cross-surface twin lift below —
+// seventh column pinned in the reseller_commissions_current[] child-row
+// cluster on this detail-validation spec (opened tick 342 with
+// commission_id UUID; tightened tick 343 with list_price_aud_cents
+// strictly-positive int; extended tick 344 with stripe_invoice_id
+// STRIPE_INVOICE_ID_RE; extended tick 345 with discount_pct
+// ALLOWED_TIER_PCTS set-membership; extended tick 346 with
+// commission_aud_cents three-part non-negative int; extended tick 347
+// with net_owed_cents two-part typeof-number + Number.isInteger).
+// SECOND new module-scope const added to this file in the commissions[]
+// sweep (tick 344 introduced STRIPE_INVOICE_ID_RE; ticks 342/343/345/
+// 346/347 reused existing consts or needed no const at all).
+const ALLOWED_COMMISSION_STATUSES = new Set<string>([
+  "cleared",
+  "pending_clearance",
+  "clawed_back",
+  "dispute_open",
+  "partially_refunded",
+]);
 // Tick 342 — opens the reseller_commissions_current[] child-row cluster on
 // this detail-validation spec by pinning the commission_id UUID column,
 // cross-surface twin of tick 308 on admin-reseller-detail-authz.spec.ts.
@@ -410,6 +458,7 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         discount_pct?: unknown;
         commission_aud_cents?: unknown;
         net_owed_cents?: unknown;
+        status?: unknown;
       }>;
     };
 
@@ -919,6 +968,73 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       expect(
         Number.isInteger(row.net_owed_cents),
         `commissions[].net_owed_cents '${String(row.net_owed_cents)}' should be an integer (view-computed int at 0094:173-177 summing int commission_aud_cents + int delta_aud_cents; a PostgREST bigint-as-string serialisation regression, a fractional-cents value from a proration edge, or NaN/Infinity from a reducer refactor that widened int → float via Number(...) coercion would surface here. NO sign tail assert per tick 315 rationale on the sibling detail-authz spec — net_owed_cents MAY be negative on clawback rows when a refund/clawback delta exceeds the base commission; a '>= 0' tail would false-positive on every fully or partially refunded row). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 348 — commissions[].status two-part typeof-string +
+      // ALLOWED_COMMISSION_STATUSES set-membership wire-shape pin, seventh
+      // column pinned in the reseller_commissions_current[] child-row cluster
+      // on this detail-validation spec (opened tick 342 with commission_id
+      // UUID; tightened tick 343 with list_price_aud_cents strictly-positive
+      // int; extended tick 344 with stripe_invoice_id STRIPE_INVOICE_ID_RE;
+      // extended tick 345 with discount_pct ALLOWED_TIER_PCTS set-membership;
+      // extended tick 346 with commission_aud_cents three-part non-negative
+      // int; extended tick 347 with net_owed_cents two-part typeof-number +
+      // Number.isInteger). Executes tick 347 next-pick option (a) verbatim:
+      // propagates the tick 316 pin already carried on the sibling admin-
+      // reseller-detail-authz.spec.ts (rows 3627-3646). Column source: the
+      // reseller_commissions_current view derives the status via a CASE
+      // expression at web/supabase/migrations/0094_reseller_commissions_and_
+      // events.sql:150-172, returning one of {clawed_back, dispute_open,
+      // partially_refunded, cleared, pending_clearance} based on the presence
+      // / absence of specific event_type rows in reseller_commission_events.
+      // The status is VIEW-computed rather than a stored column, so the CASE
+      // expression is the sole enforcement layer — a schema-side edit that
+      // added a new event_type WITHOUT extending the CASE (leaving a
+      // partially-refunded-then-cleared row falling through to the
+      // pending_clearance ELSE branch), or a view-definition drift that
+      // introduced a new status literal outside the enumeration, would land
+      // straight through PostgREST onto the wire. Projected via the SELECT
+      // tuple at web/src/app/api/admin/resellers/[code]/route.ts:98-105.
+      // Two-part guard mirroring the tick 316 posture on the sibling spec
+      // verbatim + the ticks 339/340/345 set-membership discipline on the
+      // sibling child-row clusters above:
+      //   (a) typeof-string half labelled with diagnostic prose preserves the
+      //       NOT-NULL raw-type discipline — the CASE expression always
+      //       returns a text literal so the wire type is text NOT NULL; a
+      //       view-definition drift that dropped the ELSE branch leaving the
+      //       column nullable, a projection-side drop from the SELECT tuple
+      //       at route.ts:98-105, or a PostgREST serialisation regression
+      //       that returned null|undefined would surface here. Separated
+      //       from the set-membership check below so a raw-type flip does
+      //       not hide behind an out-of-band diagnostic.
+      //   (b) ALLOWED_COMMISSION_STATUSES.has(row.status as string) shape
+      //       assert catches a view-definition drift that introduced a new
+      //       status literal outside the enumeration or a schema-side edit
+      //       that added a new event_type without extending the CASE — the
+      //       CASE is the sole enforcement layer (no DB CHECK, no writer-
+      //       side validator today). Uses the new module-scope
+      //       ALLOWED_COMMISSION_STATUSES const introduced above (row 168+),
+      //       cross-surface twin of the const at
+      //       admin-reseller-detail-authz.spec.ts:2508. NARROWER than the
+      //       top-level STATUSES const at row 127 — reseller_commissions.
+      //       status is a settlement-lifecycle enum (five states tracking
+      //       the commission's clearance journey), not the business-
+      //       lifecycle enum used on the resellers table (three states
+      //       tracking the counterparty relationship).
+      // No fixture change, no route change, no new imports beyond the module-
+      // scope const introduced above. Continues the P10 hardening posture on
+      // this spec: the two-part pin fires once per commissions[] row when
+      // the seeded reseller has attributed founders with paid Stripe
+      // invoices in the last 50 rows (route.ts:105 limits the projection to
+      // 50). On hosts without seeded commission events the for-loop is a
+      // no-op so the pin never fires — matches the tick 342/343/344/345/346/
+      // 347 posture on this spec.
+      expect(
+        typeof row.status,
+        `commissions[].status '${String(row.status)}' should be a string (view-computed text NOT NULL via CASE expression at web/supabase/migrations/0094_reseller_commissions_and_events.sql:150-172; the CASE ELSE branch guarantees a non-null text literal on the view side; a view-definition drift that dropped the ELSE branch leaving the column nullable, a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:98-105, or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the set-membership check below so a raw-type flip does not hide behind an out-of-band diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        ALLOWED_COMMISSION_STATUSES.has(row.status as string),
+        `commissions[].status '${String(row.status)}' should be one of {cleared, pending_clearance, clawed_back, dispute_open, partially_refunded} (CASE at 0094:150-172 in the reseller_commissions_current view — the CASE expression is the sole enforcement layer since status is view-computed rather than stored, with no DB CHECK and no writer-side validator; a view-definition drift that introduced a new status literal outside the enumeration or a schema-side edit that added a new event_type without extending the CASE would slip an out-of-band status straight past the schema and surface here on the first offending row). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });

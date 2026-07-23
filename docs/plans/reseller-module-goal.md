@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.347
+version: 2026-07-23.348
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,137 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 348
+    ran_at: 2026-07-23
+    action: p10_commissions_status_two_part_typeof_string_allowed_commission_statuses_cross_surface_twin_lift_on_admin_reseller_detail_validation
+    result: |
+      Executes tick 347 next-pick option (a) verbatim: continues the
+      reseller_commissions_current[] child-row cluster sweep on admin-
+      reseller-detail-validation.spec.ts by propagating the tick 316 pin
+      already carried on the sibling admin-reseller-detail-authz.spec.ts —
+      commissions[].status two-part typeof-string +
+      ALLOWED_COMMISSION_STATUSES set-membership wire-shape pin. Before
+      this tick the sibling cluster on this file carried column pins for
+      commission_id (tick 342) + list_price_aud_cents (tick 343) +
+      stripe_invoice_id (tick 344) + discount_pct (tick 345) +
+      commission_aud_cents (tick 346) + net_owed_cents (tick 347); this
+      tick adds the seventh column and narrows the cross-surface twin gap
+      by one column. Only remaining un-tightened column on this spec is
+      created_at (typeof-string + ISO_TIMESTAMP_RE — needs a new
+      ISO_TIMESTAMP_RE module-scope const).
+
+      Shape lifted:
+        - Writer-side source: reseller_commissions_current view derives
+          status via CASE expression at
+          web/supabase/migrations/0094_reseller_commissions_and_events.sql
+          :150-172, returning one of {clawed_back, dispute_open,
+          partially_refunded, cleared, pending_clearance} based on the
+          presence/absence of specific event_type rows in
+          reseller_commission_events. Status is VIEW-computed, not stored
+          — the CASE expression is the sole enforcement layer (no DB
+          CHECK, no writer-side validator).
+        - Application read path: projected via select("commission_id,
+          stripe_invoice_id, list_price_aud_cents, discount_pct,
+          commission_aud_cents, net_owed_cents, status, created_at") on
+          the Promise.all fan-out at
+          web/src/app/api/admin/resellers/[code]/route.ts:98-105.
+        - Runtime enforcement in this spec: two-part guard mirroring the
+          tick 316 posture on the sibling spec verbatim + the ticks
+          339/340/345 set-membership discipline on the sibling child-row
+          clusters above. (a) typeof-string half preserves the NOT-NULL
+          raw-type discipline; (b) ALLOWED_COMMISSION_STATUSES.has()
+          shape assert catches a view-definition drift that introduced a
+          new status literal outside the enumeration.
+
+      Rotation rationale:
+        - Executes tick 347 next-pick option (a) verbatim. Priorities
+          (b) created_at + (c) rotate to detail-authz twin + (d) idle
+          rotate to future ticks.
+        - Cross-surface twin symmetrisation: continues the column-by-
+          column sweep in the same order the sibling spec pinned columns
+          (tick 308 commission_id → tick 309 stripe_invoice_id → tick 311
+          list_price_aud_cents → tick 312 discount_pct → tick 314
+          commission_aud_cents → tick 315 net_owed_cents → tick 316
+          status on the sibling). Reads the SELECT tuple at route.ts:98-
+          105 in projection order.
+        - Introduces ONE new module-scope const:
+          ALLOWED_COMMISSION_STATUSES = new Set(["cleared",
+          "pending_clearance", "clawed_back", "dispute_open",
+          "partially_refunded"]) — mirrors the sibling const at
+          detail-authz:2508 verbatim. Placed adjacent to the existing
+          ADMIN_ROLES / ADMIN_STATUSES / ALLOWED_TIER_PCTS /
+          BILLING_MODELS / STATUSES cluster. SECOND new module-scope
+          const added to this file in the commissions[] sweep (tick 344
+          introduced STRIPE_INVOICE_ID_RE; ticks 342/343/345/346/347
+          reused existing consts or needed no const at all).
+        - Zero new imports, no fixture change, no route change. Comment-
+          plus-inline-pin tightening tick — matches the accepted P10
+          rotation shape while P8.5 remains HUMAN-BLOCKED on Stripe env
+          vars.
+
+      Coverage-per-guard posture: the two-part pin fires once per
+      commissions[] row when the seeded reseller has attributed founders
+      with paid Stripe invoices in the last 50 rows (route.ts:105 limits
+      the projection to 50). On hosts without seeded commission events
+      the for-loop is a no-op so the pin never fires — matches the tick
+      342/343/344/345/346/347 posture on this spec.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + new module-scope ALLOWED_COMMISSION_STATUSES Set const
+              (5 elements) placed adjacent to the ADMIN_ROLES /
+              ADMIN_STATUSES cluster with a doc-comment naming the tick
+              316 sibling const at detail-authz:2508 + the 0094:150-172
+              view-CASE source + the NARROWER-than-STATUSES rationale.
+            + widened commissions body annotation to add
+              `status?: unknown` in projection-tuple order (after
+              net_owed_cents).
+            + added a two-expect pin block after the net_owed_cents
+              guards (row order matches the SELECT tuple at route.ts:98-
+              105: commission_id → stripe_invoice_id → list_price_aud_
+              cents → discount_pct → commission_aud_cents →
+              net_owed_cents → status) with typeof-string half naming
+              the view-CASE-ELSE-branch source + set-membership half
+              naming the view-definition drift fault-model.
+            + inline tick-348 doc-comment placed above the pin block for
+              cross-column traceability + rationale for the two-part
+              guard shape + reference to the new module-scope const.
+        - No production code touched, no fixture change, no route
+          change, no new imports (only one new module-scope const).
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 347).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 348: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      commissions[].status text NOT NULL enum two-part pin now COMPLETE
+      on the admin-reseller-detail-validation surface — seventh column
+      pinned in the reseller_commissions_current[] child-row cluster on
+      this surface (out of eight tuple columns; only created_at remains).
+
+      Next natural picks on tick 349:
+        (a) close the commissions[] cross-surface twin sweep on
+        admin-reseller-detail-validation: propagate the tick 317
+        created_at pin (needs a new module-scope ISO_TIMESTAMP_RE const
+        — mirrors the sibling const at detail-authz:2401 verbatim; also
+        the ORDER BY column for the route.ts:104 sort). This closes the
+        commissions[] cluster on this surface (all 8 tuple columns
+        pinned) and completes cross-surface twin symmetrisation for the
+        detail-validation spec.
+        (b) rotate to cross-surface twin on admin-reseller-detail-authz:
+        propagate the tick 341 attributions_summary .total + .active
+        two-part typeof-number + Number.isFinite + range discipline.
+        (c) idle — frontier remains tight: P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed. P10 hardening continues
+        to accept incremental pin-tightening ticks.
+    commit: (this tick)
+
   - tick: 347
     ran_at: 2026-07-23
     action: p10_commissions_net_owed_cents_two_part_typeof_number_integer_cross_surface_twin_lift_on_admin_reseller_detail_validation
