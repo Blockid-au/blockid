@@ -116,6 +116,34 @@ const STATUSES = new Set(["active", "paused", "terminated"]);
 // tier as part of the deterministic coupon id (res_<uuid8>_t<tier>) so a
 // slip past the CHECK would also poison the Stripe coupon namespace.
 const ALLOWED_TIER_PCTS = new Set<number>([0, 10, 20, 30, 40]);
+// Tick 340 — allowed admins[].role + admins[].status Sets for the admins[]
+// two-part typeof-string + set-membership lift below (executes tick 339
+// next-pick option (a) verbatim: rows 378/379 admins[].role + admins[].status
+// bare typeof-string pair). Mirrors the ALLOWED_TIER_PCTS + BILLING_MODELS +
+// STATUSES module-scope precedent above so the set-membership half of a two-
+// part guard reads off a single-source-of-truth constant rather than an inline
+// literal. Distinct constant names (ADMIN_ROLES + ADMIN_STATUSES) from the
+// top-level STATUSES const above — reseller_admins.status enum {active,
+// revoked} is a DIFFERENT set from resellers.status enum {active, paused,
+// terminated} despite both columns being named "status" (a shared name would
+// silently pass the wrong set on a copy-paste refactor). Writer-side sources:
+//   - reseller_admins.role declared at web/supabase/migrations/0091_reseller_
+//     module_foundations.sql:71-72 as `role text NOT NULL DEFAULT 'admin'
+//     CHECK (role IN ('owner','admin','viewer'))`. The DB CHECK is the sole
+//     schema backstop for the reseller-admin role enum — there is no writer-
+//     side validator today (reseller_admins rows are minted server-side by the
+//     P9 admin-console + reseller onboarding flows, none of which surface a
+//     freeform role field), so a schema-side CHECK DROP or a superuser bypass
+//     would surface here on the first offending row.
+//   - reseller_admins.status declared at 0091:73-74 as `status text NOT NULL
+//     DEFAULT 'active' CHECK (status IN ('active','revoked'))`. Same posture
+//     as .role — DB CHECK is the sole schema backstop. The value drives the
+//     reseller_admins_user_idx partial-index membership (0091:80-81) which
+//     scopedReseller() consumes to authorise reseller-side console reads, so
+//     an out-of-band status ('paused', 'terminated', anything else) would
+//     also silently drop the row out of that hot index.
+const ADMIN_ROLES = new Set<string>(["owner", "admin", "viewer"]);
+const ADMIN_STATUSES = new Set<string>(["active", "revoked"]);
 
 interface ValidationCase {
   label: string;
@@ -424,8 +452,52 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         typeof row.user_id === "string" && UUID_RE.test(row.user_id as string),
         `admins[].user_id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
-      expect(typeof row.role).toBe("string");
-      expect(typeof row.status).toBe("string");
+      // Tick 340 — admins[].role two-part typeof-string + ADMIN_ROLES set-
+      // membership lift on this detail-validation spec, mirroring the tick 339
+      // promotion_codes[].tier_pct two-part discipline on the sibling child-row
+      // cluster above. Executes tick 339 next-pick option (a) verbatim: the
+      // bare `expect(typeof row.role).toBe("string")` at the prior row 378 was
+      // the first outstanding tick-1710 baseline bare typeof pin on the
+      // admins[] row cluster (the row.status line below is symmetrised in the
+      // same tick since both columns share the reseller_admins schema-CHECK
+      // backstop posture). Two-part guard:
+      //   (a) typeof-string half labelled with diagnostic prose preserves the
+      //       NOT-NULL raw-type discipline — catches a schema-side type flip
+      //       (text → int), a projection-side drop from the reseller_admins
+      //       SELECT tuple at route.ts:91, or a PostgREST serialisation
+      //       regression that returned null|undefined. Separated from the
+      //       set-membership check below so a raw-type flip does not hide
+      //       behind an out-of-band diagnostic.
+      //   (b) ADMIN_ROLES.has(row.role as string) shape assert catches an
+      //       unvalidated INSERT / bypass write path that stamped role outside
+      //       the {owner, admin, viewer} set — the DB CHECK at 0091:71-72 is
+      //       the sole schema backstop (no writer-side validator today).
+      expect(
+        typeof row.role,
+        `admins[].role '${String(row.role)}' should be a string (text NOT NULL per 0091:71-72; a schema-side type flip, a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:91, or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the set-membership check below so a raw-type flip does not hide behind an out-of-band diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        ADMIN_ROLES.has(row.role as string),
+        `admins[].role '${String(row.role)}' should be one of {owner, admin, viewer} (0091:71-72 role text NOT NULL DEFAULT 'admin' CHECK (role IN ('owner','admin','viewer')) — DB CHECK is the sole schema backstop; an ALTER CHECK DROP or a superuser INSERT bypassing the constraint would slip an out-of-band role straight past the schema and surface on any reseller-side console read that consumes reseller_admins as authorisation input). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 340 — admins[].status twin-symmetrised alongside admins[].role
+      // above. Distinct constant (ADMIN_STATUSES = {active, revoked}) from the
+      // top-level module-scope STATUSES const (= {active, paused, terminated})
+      // because reseller_admins.status is a DIFFERENT enum from
+      // resellers.status despite the shared column name — see the
+      // ADMIN_STATUSES doc-comment at module scope above for the naming
+      // rationale. The reseller_admins_user_idx partial-index (0091:80-81)
+      // uses status='active' to drive scopedReseller() authorisation lookups,
+      // so an out-of-band status also silently drops the row from that hot
+      // index.
+      expect(
+        typeof row.status,
+        `admins[].status '${String(row.status)}' should be a string (text NOT NULL per 0091:73-74; a schema-side type flip, a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:91, or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the set-membership check below so a raw-type flip does not hide behind an out-of-band diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        ADMIN_STATUSES.has(row.status as string),
+        `admins[].status '${String(row.status)}' should be one of {active, revoked} (0091:73-74 status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked')) — DB CHECK is the sole schema backstop; an ALTER CHECK DROP or a superuser INSERT bypassing the constraint would slip an out-of-band status straight past the schema AND drop the row out of the reseller_admins_user_idx partial index at 0091:80-81 which scopedReseller() consumes for reseller-side console authorisation). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
     }
 
     // Attributions summary — pins the {total, active, by_source} shape

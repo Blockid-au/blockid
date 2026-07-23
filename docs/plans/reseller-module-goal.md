@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.339
+version: 2026-07-23.340
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,172 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 340
+    ran_at: 2026-07-23
+    action: p10_admins_role_and_status_two_part_typeof_string_set_membership_lift_on_admin_reseller_detail_validation
+    result: |
+      Executes tick 339 next-pick option (a) verbatim: sweep the two
+      remaining pre-tick 320+ bare typeof asserts on
+      admin-reseller-detail-validation.spec.ts admins[] loop —
+      `expect(typeof row.role).toBe("string")` and
+      `expect(typeof row.status).toBe("string")` at the prior rows 378/379.
+      Both lifted to the tick 320+ two-part labelled discipline in one
+      tick because they share the reseller_admins schema-CHECK backstop
+      posture and are natural symmetrised siblings on the same loop.
+      Mirrors the tick 339 promotion_codes[].tier_pct two-part typeof +
+      set-membership discipline on the sibling child-row cluster above.
+
+      Shape lifted (mirrors tick 339 promotion_codes[].tier_pct posture
+      verbatim, adapted to the admins[] loop lens):
+        - Writer-side sources:
+            - reseller_admins.role declared at web/supabase/migrations/
+              0091_reseller_module_foundations.sql:71-72 as `role text
+              NOT NULL DEFAULT 'admin' CHECK (role IN ('owner','admin',
+              'viewer'))`. The DB CHECK is the sole schema backstop for
+              the reseller-admin role enum — there is no writer-side
+              validator today.
+            - reseller_admins.status declared at 0091:73-74 as `status
+              text NOT NULL DEFAULT 'active' CHECK (status IN ('active',
+              'revoked'))`. Same posture as .role — DB CHECK is the
+              sole schema backstop. The value ALSO drives the
+              reseller_admins_user_idx partial-index membership
+              (0091:80-81) which scopedReseller() consumes to authorise
+              reseller-side console reads, so an out-of-band status
+              would also silently drop the row out of that hot index.
+        - Application read path: projected via .from("reseller_admins")
+          .select("id, user_id, role, status, linked_at, revoked_at")
+          on the detail route at web/src/app/api/admin/resellers/
+          [code]/route.ts:91 — the Promise.all fan-out surfaces the
+          admins array on every detail GET after loadReseller resolves
+          the parent row.
+        - Runtime enforcement in this spec: two-part guards mirroring
+          the tick 339 promotion_codes[].tier_pct posture verbatim on
+          BOTH columns —
+            - (a) typeof-string labelled with diagnostic prose
+              preserves the NOT-NULL raw-type discipline. Catches a
+              PostgREST regression that returned null|undefined, a
+              schema-side type flip (text → int), or a projection-side
+              drop from the route.ts:91 SELECT tuple. Separated from
+              the set-membership check below so a raw-type flip does
+              not hide behind an out-of-band diagnostic.
+            - (b) ADMIN_ROLES.has(row.role as string) / ADMIN_STATUSES
+              .has(row.status as string) shape assert catches an
+              unvalidated INSERT / bypass write path that stamped role
+              or status outside their respective CHECK enums.
+        - Module-scope precedent: BILLING_MODELS + STATUSES +
+          ALLOWED_TIER_PCTS already live at module scope as Sets
+          consumed by the tick 330/339 two-part guards, so ADMIN_ROLES
+          + ADMIN_STATUSES are the coherent addition of a fourth +
+          fifth enum-Set alongside them. Distinct constant name for
+          ADMIN_STATUSES (rather than reusing the top-level STATUSES
+          const) because reseller_admins.status enum {active, revoked}
+          is a DIFFERENT set from resellers.status enum {active,
+          paused, terminated} despite both columns being named "status"
+          — a shared name would silently pass the wrong set on a copy-
+          paste refactor.
+
+      Rotation rationale:
+        - Closes the last two outstanding tick-1710 baseline bare
+          typeof asserts on the admins[] row cluster per tick 339
+          option (a) verbatim. Both columns share the same writer-side
+          posture (DB CHECK is sole schema backstop, no writer-side
+          validator) so symmetrising them in one tick avoids a stale
+          asymmetry between adjacent lines of the same loop.
+        - Distinct from tick 339 (promotion_codes[].tier_pct two-part
+          typeof-number + ALLOWED_TIER_PCTS on the same file) in ONE
+          dimension: tick 340 targets the admins[] child-row cluster
+          rather than the promotion_codes[] child-row cluster on the
+          same spec. Both share the tick 320+ two-part labelled
+          discipline.
+        - Distinct from ticks 327 + 336 + 338 (display_name two-part
+          typeof + non-blank on detail-authz + list-authz + detail-
+          validation surfaces) in one dimension: those three ticks were
+          cross-surface twin symmetrisation ticks over the same shape;
+          this tick is a within-file column sweep from the top-level
+          reseller-row cluster (already lifted at ticks 327/330/337/338)
+          down to the admins[] child-row cluster.
+        - Two new module-scope consts (ADMIN_ROLES + ADMIN_STATUSES),
+          no new imports, no fixture change, no route change. The
+          module-scope consts follow the BILLING_MODELS + STATUSES +
+          ALLOWED_TIER_PCTS precedent from the same file.
+
+      Coverage-per-guard posture: the two-part pin fires once per row
+      on the admins[] loop for BOTH columns. The wave-5 row 168 seed
+      reseller (QAPROBEWHOLESALEACTIVE) surfaces ≥1 reseller_admins row
+      per the P10 wave-5 fixture doc so all four halves fire ≥1 time on
+      that surface. On fresh hosts without the seeded fixture the loop
+      iterates zero rows and the pin block is skipped upstream via
+      loadTempReseller() short-circuit.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + module-scope ADMIN_ROLES + ADMIN_STATUSES Set<string>
+              consts inserted after ALLOWED_TIER_PCTS with tick 340
+              doc-comment naming writer sources (0091:71-72 role,
+              0091:73-74 status) + reseller_admins_user_idx
+              consequence for status + naming-collision rationale for
+              choosing ADMIN_STATUSES over reusing STATUSES.
+            + inline pins at prior rows 378/379 lifted from bare
+              `expect(typeof row.role).toBe("string")` +
+              `expect(typeof row.status).toBe("string")` to labelled
+              two-expect discipline each: typeof-string half with
+              diagnostic prose + set-membership half naming the DB
+              CHECK backstop. Inline tick-340 doc-comment placed above
+              the pin blocks for cross-column + cross-surface twin
+              traceability.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-339 discipline
+          (comment-and-const-only tightening ticks are the accepted
+          P10 rotation shape while P8.5 remains HUMAN-BLOCKED on
+          Stripe env vars).
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03
+          32 routes + R-04 8 stripe files; 6 exemptions, 0
+          violations (unchanged from tick 339).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 340: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. admins[].role + admins[].status two-part typeof + set-
+      membership pins now COMPLETE on the admin-reseller-detail-
+      validation surface — second-and-third of the four
+      promotion_codes[] + admins[] + attributions_summary bare typeof
+      asserts that tick 338 option (a) enumerated as follow-ups (only
+      attributions_summary.total + .active typeof-number remaining).
+
+      Next natural picks on tick 341:
+        (a) continue sweep on admin-reseller-detail-validation.spec.ts
+        — rows 438/439 attributions_summary.total + .active typeof-
+        number pair; natural second half is a Number.isFinite + >= 0
+        range assert since these are non-negative counters computed
+        at route.ts:113-114 from attributions.length +
+        attributions.filter(...).length (both length reads which are
+        always finite non-negative integers, so the range assert has
+        a genuine "would surface a NaN / Infinity / negative
+        regression" fault-model rather than a tautological pin).
+        (b) cross-surface twin lift on admin-reseller-detail-authz.
+        spec.ts: propagate the tick 340 admins[].role +
+        admins[].status two-part typeof + set-membership discipline
+        to the sibling surface — the admins[] loop on that spec still
+        carries the pre-tick 320+ bare typeof asserts per the tick
+        338 grep. Would mirror the tick 336-338 sequence that
+        symmetrised display_name across list-authz + detail-authz +
+        detail-validation.
+        (c) rotate to reseller_commissions_current[] cross-column
+        lifecycle summary cross-surface twin on
+        admin-reseller-loop-status-authz spec — the tick 334
+        detail-side commissions[] summary landed on admin-reseller-
+        detail-authz.spec.ts only.
+        (d) idle — frontier remains tight: P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 339
     ran_at: 2026-07-23
     action: p10_promotion_codes_tier_pct_two_part_typeof_number_set_membership_lift_on_admin_reseller_detail_validation
