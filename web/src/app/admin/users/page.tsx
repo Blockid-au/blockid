@@ -22,6 +22,12 @@ import {
   isAccountType,
   type AccountType,
 } from "@/lib/segments";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+import {
+  parseScope,
+  SANDBOX_SCOPE_PARAM,
+  type SandboxScope,
+} from "@/lib/admin/sandbox-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -137,6 +143,7 @@ interface SearchParams {
   filter?: string;
   account_type?: string;
   page?: string;
+  scope?: string;
 }
 
 export default async function AdminUsersPage({
@@ -154,6 +161,10 @@ export default async function AdminUsersPage({
   const accountType = parseAccountType(sp.account_type);
   const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
   const offset = (page - 1) * PAGE_SIZE;
+  // D3-CISO-05: sandbox scope. Chip-only here — app_users has no sandbox
+  // column; the URL param is preserved on pagination but does not filter.
+  // no sandbox column on app_users — chip is display-only for future consistency
+  const scope = parseScope(sp);
 
   const { rows, balances, resellers, total } = await loadUsers(
     q,
@@ -167,18 +178,22 @@ export default async function AdminUsersPage({
     filter?: Filter;
     account_type?: AccountType | null;
     page?: number;
+    scope?: SandboxScope;
   } = {}) => {
     const nextFilter = over.filter ?? filter;
     const nextAccount =
       over.account_type === undefined ? accountType : over.account_type;
+    const nextScope = over.scope ?? scope;
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (nextFilter !== "all") params.set("filter", nextFilter);
     if (nextAccount) params.set("account_type", nextAccount);
     if (over.page && over.page > 1) params.set("page", String(over.page));
+    if (nextScope !== "all") params.set(SANDBOX_SCOPE_PARAM, nextScope);
     const qs = params.toString();
     return qs ? `/admin/users?${qs}` : "/admin/users";
   };
+  const buildScopeHref = (next: SandboxScope) => buildHref({ scope: next });
 
   return (
     <div className="min-h-screen bg-surface-50">
@@ -263,6 +278,12 @@ export default async function AdminUsersPage({
               </a>
             )}
           </form>
+
+          <SandboxScopeChip
+            scope={scope}
+            buildHref={buildScopeHref}
+            note="Chip-only — app_users has no sandbox column; URL param is preserved for cross-page consistency."
+          />
 
           <div className="ml-auto flex items-center gap-2">
             {(["all", "admin", "reseller", "unverified"] as Filter[]).map((f) => (
