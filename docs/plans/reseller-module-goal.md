@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.292
+version: 2026-07-23.293
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,168 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 293
+    ran_at: 2026-07-23
+    action: p10_collateral_approval_required_bool_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail
+    result: |
+      Fresh-column rotation per tick 292 next-pick option (a) —
+      resellers.collateral_approval_required bool wire-shape pin landed
+      on BOTH admin-resellers-list-authz.spec.ts AND
+      admin-reseller-detail-authz.spec.ts in the same tick, extending
+      the tick 286+287+288+289+290+291+292 discipline of bringing both
+      admin resellers-family surfaces up to parity in one pass.
+
+      Nineteenth pin in the tick 275-293 lineage; eighth consecutive
+      single-tick cross-surface pair (commission_share_pct at 286,
+      gst_registered at 287, allowed_tiers at 288, monthly_credit_budget
+      at 289, monthly_sandbox_credits at 290, can_create_startups at
+      291, can_grant_credits at 292, collateral_approval_required at
+      293). Rotates onto the fourth bool NOT NULL column on the
+      resellers row after gst_registered (287), can_create_startups
+      (291), and can_grant_credits (292) — same single typeof-boolean
+      assert shape because the write-side invariant shape is identical
+      (bool NOT NULL, no finite / range dimension). First bool NOT NULL
+      column in the resellers row to carry a DEFAULT true rather than
+      DEFAULT false (the prior three all default false); the same
+      typeof-boolean guard covers both branches identically because the
+      invariant is on the JS type of the wire value, not the boolean
+      value itself, so no shape delta relative to ticks 287/291/292.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:35 declares
+          `collateral_approval_required bool NOT NULL DEFAULT true` on
+          the resellers table.
+        - No DB CHECK — bool NOT NULL is the entire invariant surface.
+          Application-side gating (whether reseller-authored marketing
+          collateral requires the D4-CLO-08 admin approval inbox pass
+          landed by P9.3 tick 31 before it goes live) lives on the
+          write path but has no wire-side echo distinct from the bool
+          value itself.
+        - The two admin resellers-family GET surfaces project the
+          column via select("*"):
+            list: route.ts:41-44 select("*").order("created_at", …)
+            detail: route.ts:47-48 select("*").eq("code", code)
+        - PostgREST returns bool columns as JS boolean on the wire so
+          the typeof-boolean pin below reflects the actual serialisation
+          contract. A schema-side flip from bool to text/int would
+          surface on the typeof-boolean layer; a PostgREST regression
+          that returned booleans as "true"/"false" strings would also
+          surface on the typeof-boolean layer.
+
+      Design choice — verbatim single-guard mirror of tick 287 + tick
+      291 + tick 292:
+        - typeof-boolean fires ONCE per row. Bool has no finite / range
+          / integer dimension so no second guard is layered — matches
+          the tick 287 gst_registered + tick 291 can_create_startups +
+          tick 292 can_grant_credits posture verbatim rather than the
+          two-part (tick 283/284 ISO), three-part (tick 286 numeric
+          range, tick 288 array element-set), or four-part (tick 289
+          /290 int + non-negative + integer) guards used for scalar
+          columns with a semantic dimension beyond raw type.
+        - Non-null column → single guard without a null-or-boolean
+          outer layer (matches ticks 283-292's NOT-NULL posture
+          verbatim).
+        - DEFAULT true rather than DEFAULT false — no guard-shape
+          delta because typeof(true) === typeof(false) === "boolean";
+          the seed row exercises the true branch by default rather
+          than the false branch, but the same assert covers both
+          branches identically.
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 admin harness iterates every
+          returned resellers row inside the per-row for-loop, so
+          seeded hosts holding ≥7 cohort rows from seed-qa-reseller.mjs
+          exercise the pin on every green CI run (seed rows inherit
+          the DEFAULT true so the pin exercises the true branch).
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          ONCE per test against the QAPROBEWHOLESALEACTIVE seed row —
+          equivalent to the list surface's per-row loop iterating
+          exactly one row.
+        - Fresh CI hosts without the QA reseller seed still green
+          because test.skip() fires when the fixture returns null (list
+          surface's for-loop is a no-op on zero rows).
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 293 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:35 as the column source.
+            + row interface widened with
+              collateral_approval_required?: unknown.
+            + Single typeof-boolean assert inside the wave-5 row 164
+              per-row for-loop, immediately after the tick 292
+              can_grant_credits typeof-boolean assert.
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 293 paragraph) above
+              ISO_TIMESTAMP_RE citing the same schema source.
+            + body.reseller row interface widened with
+              collateral_approval_required?: unknown.
+            + Single typeof-boolean assert inside the wave-5 row 167
+              happy GET test, immediately after the tick 292
+              can_grant_credits typeof-boolean assert.
+        - No production code touched, no fixture change, no route
+          change, no new imports. Matches ticks 234-292 discipline:
+          tighten one column across two surfaces with zero net new
+          imports and zero production-code touches.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 scanned 11 files + R-03 scanned
+          31 manifest routes + R-04 scanned 8 stripe files, 6
+          exemptions, 0 violations
+        - Playwright specs excluded from vitest by design; the two
+          new asserts (1 per surface) fire when `npx playwright test
+          admin-resellers-list-authz admin-reseller-detail-authz` runs
+          on a seeded host (wave-5 row 164/167 skip on CI hosts lacking
+          loadAdminHarness / loadTempReseller seeds).
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (module-scope doc-block extended with tick 293 paragraph;
+          per-row shape interface gains collateral_approval_required?:
+          unknown; wave-5 row 164 for-loop body gains a single
+          typeof-boolean assert immediately after the tick 292
+          can_grant_credits typeof-boolean assert.)
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 293 paragraph;
+          body.reseller row interface gains
+          collateral_approval_required?: unknown; wave-5 row 167 happy
+          GET body gains a single typeof-boolean assert immediately
+          after the tick 292 can_grant_credits typeof-boolean assert.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.292 → 2026-07-23.293; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new imports, no widening of the guards on existing pins.
+          Consistent with ticks 234-292's incremental-pin pattern.
+        - Cross-surface pair rather than staggered mirror — the
+          list-surface + detail-surface pins land in the same tick so
+          the two admin resellers-family GET lenses carry the same
+          bool wire-shape pin on collateral_approval_required
+          simultaneously. Matches tick 286+287+288+289+290+291+292
+          cross-surface pair discipline rotated onto the fourth bool
+          NOT NULL column (first one that defaults true).
+
+      Next natural picks on tick 294:
+        (a) rotate to the abn text column at 0091:37 — nullable so
+        needs a null-or-string / null-or-string+regex two-part guard
+        matching the ck_abn_format CHECK at 0091:52-54 and the
+        ABN_RE at admin-validator.ts:87-97.
+        (b) rotate to logo_url or primary_color text columns at
+        0091:26-27 — both nullable free text, so a two-part null-or-
+        string guard would land.
+        (c) rotate to contact_email or notes text columns at
+        0091:41-42 — both nullable free text, so a two-part null-or-
+        string guard would land.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals.
+    commit: (this tick)
+
   - tick: 292
     ran_at: 2026-07-23
     action: p10_can_grant_credits_bool_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail

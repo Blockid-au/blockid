@@ -278,6 +278,36 @@ const UUID_RE =
 // type flip from bool to text/int, or a projection-side drop from
 // route.ts:47-48 select("*") would each surface on both admin
 // resellers-family surfaces (list + detail) on the same CI pass.
+//
+// Tick 293 — collateral_approval_required bool wire-shape pin, cross-
+// surface mirror of the sibling pin landed on admin-resellers-list-
+// authz.spec.ts in the same tick. Column source 0091:35
+// `collateral_approval_required bool NOT NULL DEFAULT true` — fourth
+// bool NOT NULL column on the resellers row after gst_registered
+// (pinned at tick 287), can_create_startups (pinned at tick 291), and
+// can_grant_credits (pinned at tick 292) with the same NOT-NULL
+// discipline; governs whether reseller-authored marketing collateral
+// must clear the D4-CLO-08 admin approval inbox before it goes live
+// (write-side application gating tied to the P9.3 requests inbox
+// landed at tick 31, no wire-side echo distinct from the bool value
+// itself). This is the first bool NOT NULL column in the resellers
+// row to carry a DEFAULT true (the prior three default false) so the
+// QAPROBEWHOLESALEACTIVE seed row exercises the true branch by
+// default; the same typeof-boolean guard covers both branches
+// identically because the invariant is on the JS type of the wire
+// value, not the boolean value itself. Projected via route.ts:47-48
+// select("*"). NOT-NULL discipline → single typeof-boolean assert;
+// bool has no finite / range dimension so no second guard is layered,
+// matching the list-surface posture verbatim. Detail-row assert runs
+// ONCE per test (single object) — equivalent to a list-surface loop
+// iterating exactly one row. Fresh-column rotation on this surface —
+// the two admin resellers-family surfaces (list + detail) come up to
+// parity in the same tick, avoiding an asymmetry window. A PostgREST
+// serialisation regression that returned booleans as "true"/"false"
+// strings, a schema-side type flip from bool to text/int, or a
+// projection-side drop from route.ts:47-48 select("*") would each
+// surface on both admin resellers-family surfaces (list + detail) on
+// the same CI pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -472,6 +502,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         monthly_sandbox_credits?: unknown;
         can_create_startups?: unknown;
         can_grant_credits?: unknown;
+        collateral_approval_required?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -692,6 +723,24 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
     expect(
       typeof body.reseller?.can_grant_credits,
       `reseller.can_grant_credits '${String(body.reseller?.can_grant_credits)}' should be a boolean (bool NOT NULL DEFAULT false per 0091:32 serialised via PostgREST); a drift to a string, number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("boolean");
+
+    // Tick 293 — collateral_approval_required bool wire-shape pin, cross-
+    // surface mirror of the sibling pin landed on admin-resellers-list-
+    // authz.spec.ts in the same tick. See module-scope doc-block (tick
+    // 293 paragraph) for the rationale. Column source 0091:35
+    // `collateral_approval_required bool NOT NULL DEFAULT true` — fourth
+    // bool NOT NULL column on the resellers row after gst_registered
+    // (pinned at tick 287), can_create_startups (pinned at tick 291), and
+    // can_grant_credits (pinned at tick 292); first bool NOT NULL column
+    // to carry a DEFAULT true so the QAPROBEWHOLESALEACTIVE seed row
+    // exercises the true branch. Projected via route.ts:47-48 select("*").
+    // NOT-NULL discipline → single typeof-boolean assert; bool has no
+    // finite / range dimension so no second guard is layered, matching
+    // the list-surface posture verbatim.
+    expect(
+      typeof body.reseller?.collateral_approval_required,
+      `reseller.collateral_approval_required '${String(body.reseller?.collateral_approval_required)}' should be a boolean (bool NOT NULL DEFAULT true per 0091:35 serialised via PostgREST); a drift to a string, number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe("boolean");
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
