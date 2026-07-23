@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.273
+version: 2026-07-23.274
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,179 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 274
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_readback_resellers_join_projection_pin_option_c
+    result: |
+      Landed tick 273's "natural next pick" option (c) as a resellers-join
+      projection pin on all THREE post-PATCH read-back rows of admin-requests-
+      patch-authz.spec.ts (deny + cancel + approve blocks). Tenth per-column
+      pin on the same three surfaces after ticks 265-273. First pin that
+      targets the embedded to-one FK join `resellers(code, display_name)` at
+      the admin list route's SELECT projection rather than a scalar column of
+      reseller_requests itself — closes a route-projection gap where a
+      dropped embed clause at /api/admin/resellers/requests/route.ts:44 would
+      have left the read-back rows without any parent-reseller identity.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:24-25 declares
+          `code text NOT NULL UNIQUE` + `display_name text NOT NULL`. Both
+          columns are NOT NULL so on every green-path CI run the embed
+          carries non-null string values.
+        - 0095_reseller_requests.sql:27 declares
+          `reseller_id uuid NOT NULL REFERENCES public.resellers(id) ON DELETE
+          RESTRICT`. The ON DELETE RESTRICT semantics guarantee the parent
+          resellers row cannot vanish mid-fixture leaving the embed empty.
+        - Admin list route at /api/admin/resellers/requests/route.ts:44
+          ends the SELECT projection with `resellers(code, display_name)`.
+          PostgREST returns a to-one FK embed as a single row object (not an
+          array) so a route regression that switched the cardinality
+          (e.g. a `!inner` → `!left` toggle or a schema mis-config that
+          silently returned to-many) would surface here as
+          `Array.isArray(resellers) === true`.
+        - normaliseResellerCode() at web/src/lib/reseller/admin-validator.ts
+          uppercases the code at admin-create time — a regression that
+          removed the normaliser would surface as a lowercase / mixed-case
+          value here.
+
+      Design choice — mirror tick 222 + tick 231 pin from admin-requests-list
+      -authz.spec.ts:449-469:
+        - The sibling admin-requests-list spec already pins the same embed
+          on the pending-list surface (tick 222 landed the plain-object +
+          typeof-string guards, tick 231 option (j) tightened embed.code to
+          RESELLER_CODE_RE). This tick brings the identical four-part guard
+          to the three PATCH-branch read-back surfaces (denied + cancelled +
+          approved) so a projection drop or embed-shape drift surfaces on
+          all four ALLOWED_STATUS filter paths, not just the default
+          pending one.
+        - New tenth module-scope constant RESELLER_CODE_RE mirrors the
+          hoists at admin-requests-list-authz.spec.ts:91 +
+          admin-resellers-list-authz.spec.ts:81 verbatim. Same source-of-
+          truth invariant (normaliseResellerCode() at admin-validator.ts).
+        - Four-part guard per surface:
+          (a) `resellers !== null && typeof resellers === "object" &&
+              !Array.isArray(resellers)` — catches a PostgREST config flip
+              from to-one to to-many;
+          (b) `typeof embed.code === "string"` — catches a projection drop
+              of code from the resellers(...) embed at route.ts:44;
+          (c) `RESELLER_CODE_RE.test(embed.code)` — catches a normaliser
+              regression at admin-create time OR a schema-side change that
+              removed the UPPERCASE convention (mirrors tick 231 option (j));
+          (d) `typeof embed.display_name === "string"` — catches a
+              projection drop of display_name; display_name has no VALUE
+              invariant (free text per 0091:25) so it stays as typeof
+              string only, identical to the sibling pin at line 469 of the
+              admin-requests-list spec.
+        - Pin fires ONLY after the tick-272 requested_by pin (deny + cancel)
+          or the tick-273 linked_credit_transaction_id pin (approve) has
+          passed on the same read-back row so tighter existing pins
+          surface first (matches ticks 265-273 layering discipline
+          verbatim).
+        - Three readbackRow inline type shapes gain a new
+          `resellers?: unknown;` field — placed at the end of each type
+          shape to keep the deny + cancel + approve blocks visually
+          consistent and to reflect that the embed is projected AFTER the
+          scalar columns at route.ts:44.
+
+      Coverage-per-guard posture:
+        - Green-path fixtures always seed a real resellers row via
+          loadTempReseller (deny + cancel blocks) or loadAdminHarness +
+          attachApproveTarget (approve block) so all three surfaces
+          exercise the full four-part guard on every CI pass — no
+          zero-coverage-per-guard risk.
+        - The 0095:27 ON DELETE RESTRICT semantics guarantee the parent
+          reseller cannot be deleted mid-fixture, so a null/undefined/array
+          read-back here would surface a bona-fide route or projection
+          regression rather than a fixture race.
+
+      Diagnostic delta of the pass:
+        - One new module-scope constant (RESELLER_CODE_RE = /^[A-Z0-9]+$/,
+          mirroring the sibling hoists at admin-requests-list-authz.spec
+          .ts:91 + admin-resellers-list-authz.spec.ts:81).
+        - Three new fields on the deny + cancel + approve readbackRow
+          inline type shapes (`resellers?: unknown;` appended after the
+          existing keys to keep the projection-order-mirroring convention).
+        - Three new pin blocks (deny at line ~885 after the tick-272
+          requested_by pin, cancel at line ~1415 after the tick-272
+          requested_by pin, approve at line ~1885 after the tick-273
+          linked_credit_transaction_id pin). Each block is ~10 lines of
+          four-part guard + comment citing 0091:24-25 + 0095:27 + route.ts:44.
+        - Module-scope doc-comment block above the tick-273 comment
+          extended with a new tick-274 paragraph describing the pin's
+          writer-schema justification + the four-part guard breakdown +
+          the ON DELETE RESTRICT fixture-race analysis + the tick 222 +
+          tick 231 sibling-pin lineage.
+        - No production code touched, no fixture change, no route change,
+          no new imports (RESELLER_CODE_RE is a fresh module-scope constant
+          but no import needed — the regex is inlined). Matches ticks
+          223-273 discipline: tighten one dimension (in this case add a
+          new embed-projection pin to the resellers(code, display_name)
+          join at route.ts:44 on all three PATCH-branch read-back
+          surfaces) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (new module-scope constant RESELLER_CODE_RE after
+          ALLOWED_STATUS_VALUES; new module-scope tick-274 doc-comment
+          block prepended above the tick-273 comment; deny + cancel +
+          approve readbackRow inline type shapes each gain a
+          `resellers?: unknown;` field; deny + cancel + approve blocks
+          each gain a four-part resellers-join projection pin after the
+          tick-272 requested_by pin (deny + cancel) or the tick-273
+          linked_credit_transaction_id pin (approve), with a block-scope
+          comment citing 0091:24-25 as the embed-column schema source,
+          0095:27 as the FK schema source, and route.ts:44 as the
+          projection source.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.273 → 2026-07-23.274; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-273's incremental-pin pattern.
+        - Symmetric across three surfaces (deny + cancel + approve) —
+          returns to the tick 265-272 symmetric-across-three-surfaces
+          discipline after tick 273's one-tick asymmetric detour on
+          the ck_credit_link CHECK's approve-only inclusion side. The
+          embedded resellers join is populated identically on every
+          PATCH branch since none of them touches reseller_id or the
+          parent resellers row.
+
+      Next natural picks on tick 275:
+        (a) extending the same resellers-join projection pin to the
+        reseller-scoped GET list route at /api/reseller/requests/route.ts
+        (still-outstanding tick 266/268/269/270/271/272/273 option a — the
+        reseller-scoped list route has its own SELECT + filter logic and
+        may or may not include the same embed; needs a route-file audit
+        before landing),
+        (b) adding a linked_promotion_code_id UUID pin to the approve-
+        block read-back (still-outstanding tick 272/273 option — asymmetric
+        single-surface pin, deny + cancel null this column per the
+        ck_promo_link CHECK so only the approve-code_request surface
+        would carry it; but green-path fixtures only seed
+        over_budget_approval requests so this pin would be zero-coverage
+        on the wire; skippable pending a code_request approve fixture
+        which is P8.5-blocked on Stripe test-mode wiring),
+        (c) tightening the approve-block PATCH-response envelope
+        linked_credit_transaction_id pin at line ~1534 with a block-scope
+        comment citing 0095:37 + the ck_credit_link exclusion analysis
+        (tick 273 option d — the read-back pin now closes the projection-
+        side contract so the write-envelope pin could be doc-tightened
+        with the same schema citations without behavioural change),
+        (d) mirroring the resellers-join projection pin onto the sibling
+        admin-reseller-loop-status-authz.spec.ts read-back rows if that
+        surface also embeds resellers(code, display_name) — needs an
+        audit of that spec's SELECT expectations before landing.
+
   - tick: 273
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_readback_linked_credit_transaction_id_uuid_pin_option_b

@@ -238,6 +238,58 @@ const UUID_RE =
 // drop of decision_reason there would still let the PATCH echo the value
 // back on the write envelope but would fail the read-back here.
 //
+// Tick 274 — resellers-join projection pin added as the tenth per-column pin
+// on the same three post-PATCH read-back rows (deny + cancel + approve). Unlike
+// the tick 265-273 per-column pins on scalar columns of the reseller_requests
+// row itself, this one closes the writer contract on the embedded
+// `resellers(code, display_name)` to-one join at the admin list route's SELECT
+// projection (/api/admin/resellers/requests/route.ts:44, tail of the column
+// list). PostgREST returns the embedded join as a single row object (not an
+// array) for a to-one FK on reseller_requests.reseller_id → resellers.id at
+// 0095:27 — so a route regression that stripped `resellers(code, display_name)`
+// from the SELECT projection would surface here as `resellers === undefined`,
+// and a regression that switched the embed to an array-of-rows shape (e.g. a
+// PostgREST cardinality mis-config) would surface as `Array.isArray(resellers)
+// === true`. Mirrors the tick-222 + tick-231 pattern from admin-requests-list-
+// authz.spec.ts:449-469 — the same pin already lives on the pending-list
+// surface; this tick brings it to the three PATCH-branch read-back surfaces
+// (denied + cancelled + approved) so a projection drop or embed-shape drift
+// surfaces on all four ALLOWED_STATUS filter paths, not just the default
+// pending one. Both embed columns are NOT NULL text per 0091:24-25
+// (resellers.code text NOT NULL UNIQUE = normaliseResellerCode()'s UPPERCASE
+// slug family; resellers.display_name text NOT NULL = free-form label), so
+// the read-back MUST carry non-null string values here on every green-path
+// CI run regardless of which PATCH branch fired (the reseller_requests row
+// FK-links to a NOT NULL resellers.id column at 0095:27 ON DELETE RESTRICT,
+// which guarantees the parent reseller row cannot vanish mid-fixture leaving
+// the embed empty). Four-part guard per key mirrors the sibling admin-
+// requests-list pin at line 449-469:
+//   (a) plain-object envelope — `resellers !== null && typeof resellers ===
+//       "object" && !Array.isArray(resellers)` catches a PostgREST config
+//       flip from to-one to to-many that returns the embed as an array;
+//   (b) `typeof embed.code === "string"` catches a projection drop of code
+//       from the resellers(...) embed at route.ts:44 or a schema-side
+//       column-type flip;
+//   (c) `RESELLER_CODE_RE.test(embed.code)` catches a normaliser regression
+//       at admin-create time (admin-validator.ts) or a schema-side change
+//       that removed the UPPERCASE convention — mirrors the tick 231
+//       option (j) VALUE-tighten on admin-requests-list-authz.spec.ts:468
+//       so a drift here surfaces symmetrically across both admin surfaces;
+//   (d) `typeof embed.display_name === "string"` catches a projection drop
+//       of display_name from the embed — display_name has no VALUE
+//       invariant (free text per 0091:25) so it stays as typeof string only,
+//       identical to the sibling pin at admin-requests-list-authz.spec.ts:469.
+// Fires ONLY after the tick-272 requested_by pin (deny + cancel) or the
+// tick-273 linked_credit_transaction_id pin (approve) has passed on the same
+// read-back row so tighter existing pins surface first. Coverage-per-guard
+// posture: green-path fixtures always seed a real resellers row via
+// loadTempReseller / loadAdminHarness so all three surfaces exercise the
+// full four-part guard on every CI pass — no zero-coverage-per-guard risk.
+// The 0095:27 ON DELETE RESTRICT semantics guarantee the parent reseller
+// cannot be deleted mid-fixture, so a null/undefined/array read-back here
+// would surface a bona-fide route or projection regression rather than a
+// fixture race.
+//
 // Tick 273 — linked_credit_transaction_id UUID wire-shape pin added as the
 // ninth per-column pin. Unlike tick 265-272's symmetric-across-three-surfaces
 // pins, this one is ASYMMETRIC single-surface: only the approve-block read-
@@ -418,6 +470,15 @@ const ALLOWED_STATUS_VALUES = new Set([
   "denied",
   "cancelled",
 ]);
+// Tick 274 — resellers.code UPPERCASE-slug invariant mirrors normaliseResellerCode()
+// at web/src/lib/reseller/admin-validator.ts and the sibling RESELLER_CODE_RE
+// hoists in admin-requests-list-authz.spec.ts:91 + admin-resellers-list-authz.spec
+// .ts:81. Used by the tick-274 resellers-join projection pin on the three post-
+// PATCH read-back rows below (see the module-scope tick-274 comment for full
+// rationale). Kept as a module-scope constant for parity with the other
+// enum/regex hoists — whenever the validator-side invariant exists, the spec
+// echoes it verbatim rather than re-deriving inline.
+const RESELLER_CODE_RE = /^[A-Z0-9]+$/;
 
 test.describe("Admin reseller requests PATCH pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — PATCH with no session returns 401 no_user", async ({
@@ -703,6 +764,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           decision_by?: unknown;
           decision_reason?: unknown;
           created_at?: unknown;
+          resellers?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -870,6 +932,34 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       UUID_RE.test(readbackRow.requested_by as string),
       `read-back row.requested_by '${String(readbackRow.requested_by)}' should match UUID shape (uuid NOT NULL per 0095:28, populated at INSERT time and untouched by any PATCH branch); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 274 — resellers-join projection pin on the deny-branch read-back
+    // row. The admin list SELECT at /api/admin/resellers/requests/route.ts:44
+    // ends with `resellers(code, display_name)` — a PostgREST to-one FK embed
+    // over reseller_requests.reseller_id → resellers.id at 0095:27. The deny
+    // PATCH branch does NOT touch either reseller_id or the parent resellers
+    // row, so the embed here mirrors the reseller row row-155's INSERT
+    // pointed at. Four-part guard mirrors the sibling admin-requests-list-
+    // authz.spec.ts:449-469 pin verbatim: (a) plain-object envelope catches
+    // an array-shape drift, (b) typeof-string on code catches a projection
+    // drop, (c) RESELLER_CODE_RE catches a normaliser regression, (d)
+    // typeof-string on display_name catches a projection drop. See the
+    // module-scope tick-274 comment for the full rationale.
+    expect(
+      readbackRow.resellers !== null &&
+        typeof readbackRow.resellers === "object" &&
+        !Array.isArray(readbackRow.resellers),
+      `read-back row.resellers should be a plain object (PostgREST to-one FK embed over reseller_requests.reseller_id → resellers.id per 0095:27; a to-many array shape would surface here): ${JSON.stringify(readbackRow.resellers).slice(0, 200)}`,
+    ).toBe(true);
+    const denyResellerEmbed = readbackRow.resellers as {
+      code?: unknown;
+      display_name?: unknown;
+    };
+    expect(typeof denyResellerEmbed.code).toBe("string");
+    expect(
+      RESELLER_CODE_RE.test(denyResellerEmbed.code as string),
+      `read-back row.resellers.code '${String(denyResellerEmbed.code)}' should match UPPERCASE-slug shape /^[A-Z0-9]+$/ (resellers.code text NOT NULL UNIQUE per 0091:24 + normaliseResellerCode() at admin-validator.ts); a drift to a lowercase or mixed-case string would surface here: ${JSON.stringify(denyResellerEmbed).slice(0, 200)}`,
+    ).toBe(true);
+    expect(typeof denyResellerEmbed.display_name).toBe("string");
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261 pins. TYPEOF + VALUE-tighten pins per key so a rename OR
@@ -1169,6 +1259,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           decision_by?: unknown;
           decision_reason?: unknown;
           created_at?: unknown;
+          resellers?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -1303,6 +1394,32 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       UUID_RE.test(readbackRow.requested_by as string),
       `read-back row.requested_by '${String(readbackRow.requested_by)}' should match UUID shape (uuid NOT NULL per 0095:28, populated at INSERT time and untouched by any PATCH branch); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 274 — resellers-join projection pin mirrored from the deny-block
+    // onto the cancel-block surface so the embedded `resellers(code,
+    // display_name)` join at route.ts:44 is content-pinned on the second of
+    // the three post-PATCH read-back rows too. Same four-part guard as the
+    // deny surface: plain-object envelope + typeof-string on code +
+    // RESELLER_CODE_RE + typeof-string on display_name. The cancel branch
+    // does NOT touch reseller_id or the parent resellers row (identical to
+    // deny + approve on this key) so the wire value mirrors whatever the
+    // reseller-side POST INSERTed. See the module-scope tick-274 comment
+    // for full rationale.
+    expect(
+      readbackRow.resellers !== null &&
+        typeof readbackRow.resellers === "object" &&
+        !Array.isArray(readbackRow.resellers),
+      `read-back row.resellers should be a plain object (PostgREST to-one FK embed over reseller_requests.reseller_id → resellers.id per 0095:27; a to-many array shape would surface here): ${JSON.stringify(readbackRow.resellers).slice(0, 200)}`,
+    ).toBe(true);
+    const cancelResellerEmbed = readbackRow.resellers as {
+      code?: unknown;
+      display_name?: unknown;
+    };
+    expect(typeof cancelResellerEmbed.code).toBe("string");
+    expect(
+      RESELLER_CODE_RE.test(cancelResellerEmbed.code as string),
+      `read-back row.resellers.code '${String(cancelResellerEmbed.code)}' should match UPPERCASE-slug shape /^[A-Z0-9]+$/ (resellers.code text NOT NULL UNIQUE per 0091:24 + normaliseResellerCode() at admin-validator.ts); a drift to a lowercase or mixed-case string would surface here: ${JSON.stringify(cancelResellerEmbed).slice(0, 200)}`,
+    ).toBe(true);
+    expect(typeof cancelResellerEmbed.display_name).toBe("string");
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261/262 pins. TYPEOF + VALUE-tighten pins per key so a rename
@@ -1635,6 +1752,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           decision_reason?: unknown;
           created_at?: unknown;
           linked_credit_transaction_id?: unknown;
+          resellers?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -1826,6 +1944,33 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       UUID_RE.test(readbackRow.linked_credit_transaction_id as string),
       `read-back row.linked_credit_transaction_id '${String(readbackRow.linked_credit_transaction_id)}' should match UUID shape (uuid per 0095:37, populated by the approve fan-out at route.ts:269+303); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 274 — resellers-join projection pin mirrored from the deny +
+    // cancel blocks onto the approve-block surface so the embedded
+    // `resellers(code, display_name)` join at route.ts:44 is content-pinned
+    // on the third of the three post-PATCH read-back rows. Same four-part
+    // guard as the deny + cancel surfaces: plain-object envelope +
+    // typeof-string on code + RESELLER_CODE_RE + typeof-string on
+    // display_name. The approve branch does NOT touch reseller_id or the
+    // parent resellers row at route.ts:200-320 (only status + decision_* +
+    // linked_* columns are stamped in the approve fan-out) so the wire value
+    // mirrors whatever attachApproveTarget() INSERTed. See the module-scope
+    // tick-274 comment for full rationale.
+    expect(
+      readbackRow.resellers !== null &&
+        typeof readbackRow.resellers === "object" &&
+        !Array.isArray(readbackRow.resellers),
+      `read-back row.resellers should be a plain object (PostgREST to-one FK embed over reseller_requests.reseller_id → resellers.id per 0095:27; a to-many array shape would surface here): ${JSON.stringify(readbackRow.resellers).slice(0, 200)}`,
+    ).toBe(true);
+    const approveResellerEmbed = readbackRow.resellers as {
+      code?: unknown;
+      display_name?: unknown;
+    };
+    expect(typeof approveResellerEmbed.code).toBe("string");
+    expect(
+      RESELLER_CODE_RE.test(approveResellerEmbed.code as string),
+      `read-back row.resellers.code '${String(approveResellerEmbed.code)}' should match UPPERCASE-slug shape /^[A-Z0-9]+$/ (resellers.code text NOT NULL UNIQUE per 0091:24 + normaliseResellerCode() at admin-validator.ts); a drift to a lowercase or mixed-case string would surface here: ${JSON.stringify(approveResellerEmbed).slice(0, 200)}`,
+    ).toBe(true);
+    expect(typeof approveResellerEmbed.display_name).toBe("string");
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261/262/263 pins. TYPEOF + VALUE-tighten pins per key so a
