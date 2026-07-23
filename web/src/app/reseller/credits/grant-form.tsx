@@ -80,7 +80,7 @@ interface Copy {
   grant_failed: (m: string) => string;
 }
 
-const COPY: Record<Locale, Copy> = {
+export const COPY: Record<Locale, Copy> = {
   en: {
     no_customers_prefix:
       "No attributed customers yet — share your reseller code first (see ",

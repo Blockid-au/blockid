@@ -37,6 +37,35 @@ export interface Div83AProjectInput {
   isListed?: boolean;
   /** True if the company has an ESIC ruling / meets 83A-33 startup tests. */
   hasEsicRuling?: boolean;
+  /**
+   * True if the employer is an Australian resident-taxpayer for the income
+   * year of the grant (s83A-33(6)(d)). Undefined = unknown → treated as
+   * failing the test (fail-closed) in the qualifying-tests summary.
+   */
+  isAustralianResidentTaxpayer?: boolean;
+}
+
+/**
+ * Structured summary of the five ATO qualifying tests for the Division 83A
+ * start-up concession. Each test carries a boolean outcome, a plain-English
+ * reason with the ITAA 1997 reference, and optional evidence pulled from the
+ * request payload. `all_passed` and `concession_available` collapse the row
+ * results into a single go / no-go answer for the CHRO surface.
+ */
+export interface QualifyingTest {
+  passed: boolean;
+  reason: string;
+  evidence?: string;
+}
+
+export interface QualifyingTests {
+  test_1_startup: QualifyingTest;
+  test_2_unlisted: QualifyingTest;
+  test_3_turnover_le_50m: QualifyingTest;
+  test_4_australian_resident: QualifyingTest;
+  test_5_holding_period: QualifyingTest;
+  all_passed: boolean;
+  concession_available: boolean;
 }
 
 export type Criterion = {
@@ -51,6 +80,7 @@ export interface Div83ACheck {
   status: "eligible" | "ineligible" | "unsure";
   criteria: Criterion[];
   guidance: string;
+  qualifying_tests: QualifyingTests;
 }
 
 // ---------------------------------------------------------------------------

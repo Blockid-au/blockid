@@ -875,3 +875,6 @@
 {"ts":"2026-07-23T12:27:07.588Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 288 — P10 allowed_tiers int[] wire-shape + value-set pin cross-surface pair on admin-resellers-list + admin-reseller-detail (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T12:27:20.057Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T12-20-01-406Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T12:32:37Z","status":"success","gates":"8/8","pid":"3462469","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T12:36:32.408Z","event":"github-push-master","detail":"Blockid-au: chore(reports): snapshot autonomous-loop report streams before parallel-agent burst (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T12:39:38.119Z","event":"github-push-master","detail":"Blockid-au: feat(svi-exc): T_SVI_EXC_0012 v0.5 — founder-side secondary offer intake page (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T12:39:51.735Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 289 — P10 monthly_credit_budget int wire-shape + non-negative + integer pin cross-surface pair on admin-resellers-list + admin-reseller-detail (1 commits)","source":"github-webhook"}
