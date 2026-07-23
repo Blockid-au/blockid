@@ -66,6 +66,13 @@ export function deriveNextAction(
   return { label: "Start fundraising", url: "/workspace/fundraise" };
 }
 
+export interface PortfolioSviPoint {
+  /** UTC calendar day, `YYYY-MM-DD`. */
+  date: string;
+  /** SVI score for that day (last-value-wins when multiple analyses run same day). */
+  score: number;
+}
+
 export interface PortfolioRow {
   id: string;
   slug: string;
@@ -75,6 +82,93 @@ export interface PortfolioRow {
   credits_used_mtd: number;
   last_activity_at: string | null;
   next_action: { label: string; url: string };
+  /**
+   * Last-30-days SVI history for the cross-project comparison chart.
+   * One entry per calendar day (UTC), sorted ascending. When svi_analyses
+   * has no rows in-window this is `[]`. When it has exactly one row the
+   * series is a single point — the chart still renders a marker.
+   */
+  svi_history: PortfolioSviPoint[];
+}
+
+/** Cap the comparison chart at N series so the legend stays legible. */
+export const PORTFOLIO_COMPARISON_MAX_SERIES = 5;
+
+/** UTC calendar day (`YYYY-MM-DD`) for a timestamp string. */
+export function toUtcDay(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+/**
+ * Reduce raw svi_analyses rows into last-30-day daily points, keeping the
+ * latest score per calendar day (svi_analyses is ordered ascending here).
+ */
+export function reduceSviHistory(
+  rows: Array<{ total_svi: number | null; created_at: string | null }>,
+  now: Date = new Date(),
+): PortfolioSviPoint[] {
+  const cutoff = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+  const byDay = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.created_at || typeof r.total_svi !== "number") continue;
+    const ts = new Date(r.created_at).getTime();
+    if (Number.isNaN(ts) || ts < cutoff) continue;
+    // Last write wins — rows come in ascending order.
+    byDay.set(toUtcDay(r.created_at), Math.round(r.total_svi));
+  }
+  return Array.from(byDay.entries())
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([date, score]) => ({ date, score }));
+}
+
+/**
+ * Prepare Recharts-friendly wide-format data for the comparison chart:
+ * one row per date, one key per project. Caps series at
+ * `PORTFOLIO_COMPARISON_MAX_SERIES` (highest-current-SVI wins) so the
+ * legend never gets crowded. Returns `null` when no row has any history.
+ */
+export function deriveComparisonSeries(
+  rows: Pick<PortfolioRow, "id" | "name" | "current_svi_score" | "svi_history">[],
+  maxSeries: number = PORTFOLIO_COMPARISON_MAX_SERIES,
+): {
+  series: Array<{ id: string; name: string; last_score: number | null }>;
+  data: Array<Record<string, string | number>>;
+  total_projects_with_history: number;
+} | null {
+  const withHistory = rows.filter((r) => r.svi_history.length > 0);
+  if (withHistory.length === 0) return null;
+
+  // Rank by current SVI descending; nulls last. Stable tiebreak by name.
+  const ranked = [...withHistory].sort((a, b) => {
+    const aScore = a.current_svi_score ?? -1;
+    const bScore = b.current_svi_score ?? -1;
+    if (aScore !== bScore) return bScore - aScore;
+    return a.name.localeCompare(b.name);
+  });
+
+  const kept = ranked.slice(0, Math.max(0, maxSeries));
+
+  // Collect union of dates across kept series.
+  const dateSet = new Set<string>();
+  for (const r of kept) for (const p of r.svi_history) dateSet.add(p.date);
+  const dates = Array.from(dateSet).sort();
+
+  const data: Array<Record<string, string | number>> = dates.map((date) => {
+    const row: Record<string, string | number> = { date };
+    for (const r of kept) {
+      const point = r.svi_history.find((p) => p.date === date);
+      if (point) row[r.id] = point.score;
+    }
+    return row;
+  });
+
+  const series = kept.map((r) => ({
+    id: r.id,
+    name: r.name,
+    last_score: r.svi_history.length > 0 ? r.svi_history[r.svi_history.length - 1].score : null,
+  }));
+
+  return { series, data, total_projects_with_history: withHistory.length };
 }
 
 /** ISO timestamp for the first of the current UTC month. */
@@ -106,10 +200,11 @@ export async function getPortfolioRows(
   if (projects.length === 0) return [];
 
   const monthStart = startOfMonthIso();
+  const historyStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   return Promise.all(
     projects.map(async (project): Promise<PortfolioRow> => {
-      const [analysisResult, usageResult] = await Promise.all([
+      const [analysisResult, usageResult, historyResult] = await Promise.all([
         supabase
           .from("svi_analyses")
           .select("total_svi, analysis_json, created_at")
@@ -124,6 +219,13 @@ export async function getPortfolioRows(
           .eq("user_id", user.id)
           .eq("project_id", project.id)
           .gte("created_at", monthStart),
+        supabase
+          .from("svi_analyses")
+          .select("total_svi, created_at")
+          .eq("project_id", project.id)
+          .eq("email", user.email)
+          .gte("created_at", historyStart)
+          .order("created_at", { ascending: true }),
       ]);
 
       const analysis = analysisResult.data;
@@ -149,6 +251,12 @@ export async function getPortfolioRows(
         return analysisAt ?? lastUsageAt ?? project.updatedAt ?? project.createdAt;
       })();
 
+      const historyRows = (historyResult.data ?? []) as Array<{
+        total_svi: number | null;
+        created_at: string | null;
+      }>;
+      const sviHistory = reduceSviHistory(historyRows);
+
       return {
         id: project.id,
         slug: project.slug,
@@ -158,6 +266,7 @@ export async function getPortfolioRows(
         credits_used_mtd: creditsUsedMtd,
         last_activity_at: lastActivityAt,
         next_action: deriveNextAction(totalSvi),
+        svi_history: sviHistory,
       };
     }),
   );

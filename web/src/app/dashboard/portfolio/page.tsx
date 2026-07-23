@@ -15,6 +15,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
 import { CANONICAL_STAGES, CANONICAL_STAGE_LABELS, type StageKey } from "@/lib/journey-vocabulary";
 import { getPortfolioRows, type PortfolioRow } from "@/lib/portfolio";
+import { PortfolioComparisonChart } from "@/components/portfolio/comparison-chart";
 
 export const metadata: Metadata = {
   title: "Portfolio · BlockID",
@@ -148,6 +149,11 @@ export default async function PortfolioPage() {
           <EmptyState />
         ) : (
           <>
+            {/* ── Cross-project SVI comparison — Q4 Multi-project #2 ────── */}
+            {sortedRows.some((r) => r.svi_history.length > 0) ? (
+              <PortfolioComparisonChart rows={sortedRows} />
+            ) : null}
+
             {/* ── Desktop table ────────────────────────────────────────────── */}
             <div className="hidden md:block rounded-2xl border border-surface-200 bg-white overflow-hidden">
               <table className="w-full text-sm">
