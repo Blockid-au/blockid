@@ -89,6 +89,18 @@ const ALL_PUNCT_CODE = "---";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
+// buildPromoCodeName write-path guarantee at
+// web/src/lib/reseller/promotion-code-mint.ts:41-58 (uppercase + <=40 chars,
+// composed from normaliseResellerCode() output + optional SUFFIX_RE-vetted
+// tier suffix). The DB column reseller_promotion_codes.code (0091:91) is
+// UNIQUE but carries NO CHECK constraint, so the invariant lives ONLY on the
+// application write path. Pinning the shape at the Playwright layer catches
+// a regression that INSERTed a raw / lowercase / punctuated code straight
+// past buildPromoCodeName (e.g. a P9.4 approve-branch bypass). Landed tick
+// 232 in the same twin-symmetrisation discipline as tick 231 option (j)
+// which pinned resellers.code across the admin-list surfaces.
+const PROMO_CODE_RE = /^[A-Z0-9]+$/;
 const BILLING_MODELS = new Set(["retail", "wholesale"]);
 const STATUSES = new Set(["active", "paused", "terminated"]);
 
@@ -317,7 +329,14 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         `promotion_codes[].id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
       expect(typeof row.tier_pct).toBe("number");
+      // Tick 232 twin-symmetrisation with admin-reseller-detail-authz.spec.ts
+      // row 335: shape-pin promotion_codes[].code against PROMO_CODE_RE
+      // (uppercase alphanumeric per buildPromoCodeName). A route regression
+      // that echoed a raw / lowercase / punctuated code (bypassing the P9.4
+      // approve-branch normalisation) surfaces here on the first offending
+      // row rather than only at visual QA of /admin/resellers/[code].
       expect(typeof row.code).toBe("string");
+      expect(row.code as string).toMatch(PROMO_CODE_RE);
     }
 
     expect(

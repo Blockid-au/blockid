@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.231
+version: 2026-07-23.232
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,191 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 232
+    ran_at: 2026-07-23
+    action: p10_admin_reseller_detail_pair_promo_code_shape_pin_option_l_extended
+    result: |
+      Landed tick 231 "natural next pick" option (l) with a scope
+      extension. The original (l) audit target — resellers.code on the
+      DETAIL READ envelope — was confirmed a NON-candidate this tick
+      because both admin-reseller-detail-authz.spec.ts:312 and admin-
+      reseller-detail-validation.spec.ts:297 already pin
+      body.reseller?.code === fixture.code (exact value equality is
+      strictly stronger than any regex shape). But the same audit
+      surfaced a sibling twin-tightening opportunity on the same GET
+      envelope: body.promotion_codes[].code at row 335 (authz) and row
+      320 (validation) was pinned only to typeof string. That column
+      carries the same uppercase-alphanumeric invariant tightened under
+      tick 231 option (j) — landed both files this tick to stay inside
+      the twin-symmetrisation discipline.
+
+      Audit outcome:
+        - body.reseller.code — ALREADY value-pinned .toBe(fixture.code)
+          on both files, so option (l) as originally written is a
+          non-candidate (a regex pin would be weaker than the exact-
+          equality pin already in place).
+        - body.promotion_codes[].code — pinned only typeof string on
+          both files. Route reference:
+          web/src/app/api/admin/resellers/[code]/route.ts:74-97 selects
+          reseller_promotion_codes.code straight through with no
+          normalisation. Write-path invariant lives at
+          web/src/lib/reseller/promotion-code-mint.ts:41-58
+          (buildPromoCodeName): uppercase alphanumeric, capped at 40
+          chars, composed from normaliseResellerCode() output + an
+          optional SUFFIX_RE-vetted tier suffix. The DB column
+          reseller_promotion_codes.code at
+          web/supabase/migrations/0091_reseller_module_foundations.sql:91
+          is `text NOT NULL UNIQUE` — NO CHECK constraint. So the
+          invariant lives ONLY on the application write path (P9.4
+          approve branch), and a route regression that INSERTed a raw /
+          lowercase / punctuated code straight past buildPromoCodeName
+          would land the malformed row untouched. This IS a legitimate
+          tightening candidate — same shape as tick 231 option (j)
+          which pinned resellers.code on the admin-list surfaces.
+        - body.reseller.id / promotion_codes[].id / admins[].id /
+          admins[].user_id — already pinned typeof string + UUID_RE
+          .test() on both files (no additional tightening candidate).
+        - body.reseller.display_name — free text per 0091:25, no
+          invariant to pin (matches tick 231's option (j) framing where
+          display_name stayed typeof string only on the list surfaces).
+        - body.reseller.billing_model / status — already pinned to
+          Set-membership (BILLING_MODELS / STATUSES) on both files, so
+          no additional tightening candidate.
+
+      Value pins landed (twin, same tick):
+        expect(row.code as string).toMatch(PROMO_CODE_RE);
+      where PROMO_CODE_RE = /^[A-Z0-9]+$/ hoisted to module scope in
+      each spec (matches the UUID_RE hoisting pattern used across the
+      reseller e2e suite, matches the RESELLER_CODE_RE landing under
+      tick 231).
+
+      Regression coverage tightened:
+        - buildPromoCodeName at promotion-code-mint.ts:41-58 is the only
+          normaliser on the P9.4 approve-branch write path (route
+          reference: /api/admin/resellers/requests/[id]/route.ts:93-197
+          approve branch, which calls decideCodeMint → buildPromoCodeName
+          before INSERTing reseller_promotion_codes). A route regression
+          that skipped buildPromoCodeName and INSERTed body.code
+          directly would land a lowercase / punctuated / whitespace-
+          carrying row into reseller_promotion_codes.code — the DB has
+          no CHECK constraint to reject it, and the admin-reseller-
+          detail GET fan-out would then echo the un-normalised value
+          straight to the client.
+        - The seed script at web/scripts/seed-qa-reseller.mjs:376
+          composes promoCode = `${variantCode}${tier.tier_pct}` where
+          variantCode is uppercase (e.g. QAPROBEWHOLESALEACTIVE) and
+          tier_pct is 10/20/30/40. Seed output matches /^[A-Z0-9]+$/
+          so the tightened pin holds today.
+        - PRE-tick: typeof string pins passed regardless of case /
+          punctuation, so the regression would only surface at visual
+          QA of /admin/resellers/[code].
+        - POST-tick: both detail specs fail the PROMO_CODE_RE match on
+          the first offending row, catching the regression at the
+          Playwright layer instead of the visual QA layer.
+
+      Twin-symmetrisation posture — both admin-reseller-detail spec
+      surfaces advance together in a single tick, matching ticks
+      223/224 (requests spec pair FK-echo pins) + ticks 225-230 (drawer
+      spec pair progression pins) + tick 231 (admin-list resellers.code
+      RESELLER_CODE_RE pins) twin discipline. Both surfaces read
+      body.promotion_codes[].code from the same
+      /api/admin/resellers/[code] route (route.ts:74-97 Promise.all
+      third fan-out select), so tightening one without the other would
+      leave the visual QA lens carrying the other surface's coverage.
+
+      Trade-off accepted:
+        - Shape pin couples both specs to the PROMO_CODE_RE literal
+          /^[A-Z0-9]+$/. A future change to buildPromoCodeName that
+          widened the accepted character set (e.g. allowing '_' as a
+          separator) would force a synchronised bump across
+          promotion-code-mint.ts + these two admin-reseller-detail
+          specs.
+        - Accepted because the coupling reflects the same single-
+          source-of-truth discipline that tick 231 accepted for
+          RESELLER_CODE_RE: buildPromoCodeName is the sole write-path
+          normaliser and its output shape is a load-bearing invariant
+          across the P9.4 approve branch + Stripe promotion_codes.
+          create call + reseller_promotion_codes INSERT. A widening
+          would already require a coordinated review across those
+          surfaces; the spec pin surfaces the mismatch at the
+          Playwright layer rather than at production.
+        - Preserves the shape-pin discipline where the underlying
+          column allows free text: display_name stays typeof string
+          only on both surfaces (0091:25 no invariant).
+
+      Diagnostic delta of the pass:
+        - Added 1 new module-scope constant per file (PROMO_CODE_RE
+          hoisted to match UUID_RE + RESELLER_CODE_RE pattern).
+        - Added 1 new expect per file (2 total, twin-symmetric).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change.
+        - Comment blocks added in both files to cite the tick 232
+          landing + the buildPromoCodeName invariant reference + the
+          cross-surface single-source-of-truth chain + the P9.4
+          approve-branch bypass regression the pin catches.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (PROMO_CODE_RE hoisted at module scope with comment block;
+          row 335 promotion_codes[].code shape pin extended with
+          .toMatch(PROMO_CODE_RE) + inline comment block referencing
+          the twin sibling.)
+        - web/tests/e2e/reseller/admin-reseller-detail-validation.
+          spec.ts (PROMO_CODE_RE hoisted at module scope with comment
+          block; row 320 promotion_codes[].code shape pin extended
+          with .toMatch(PROMO_CODE_RE) + inline comment block
+          referencing the twin sibling.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.231 → 2026-07-23.232; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Value pin tightening only. No new spec-local constant beyond
+          PROMO_CODE_RE (one per file, hoisted to module scope), no
+          fixture-file delta, no seed-script change, no P8.5-gated
+          code_request work (option (c) still blocked), no production-
+          code touch. Matches ticks 223-231 discipline: tighten one
+          dimension, symmetrise across the pair, single tick.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemption(s), 0 violation(s). Both
+          spec files live under web/tests/e2e/**, not in the reseller
+          manifest so R-01/R-03 do not fire on the edited files.
+
+      Frontier after tick 232: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 232 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20 (Auschain existing counsel or LegalVision
+      AU).
+
+      Natural next pick for tick 233:
+        (m) audit whether the reveal-email spec pair's masked-email
+            response body could be shape-pinned against a MASKED_EMAIL_RE
+            literal for the non-plaintext branch. maskEmail() at
+            web/src/lib/reseller/customer-reveal.ts produces a
+            deterministic shape (leading char + '***' + '@' + domain)
+            per its test suite — a candidate for the same twin-
+            symmetrisation pattern used across ticks 231-232 if the
+            reveal-email pair currently pins the masked output only to
+            typeof string.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof
+            string to an ISO-8601 regex — trade-off called out in tick
+            230 (the header comment explicitly says "assert typeof
+            string only so the value can drift"). Landing the ISO
+            regex would contradict the header, so this is a header-
+            rewrite-first option (i.e. update the "assert typeof
+            string only" comment before pinning ISO shape).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 231
     ran_at: 2026-07-23
     action: p10_admin_list_pair_reseller_code_value_pin_option_j
