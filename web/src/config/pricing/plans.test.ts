@@ -139,3 +139,62 @@ describe("PRC-INV — 12-SKU pricing matrix", () => {
     expect(popular).toEqual(["investor_advisor"]);
   });
 });
+
+describe("PRC-ACC — Accelerator per-cohort SKUs", () => {
+  const byId = (id: string) => {
+    const plan = GENERATED_PLANS.find((p) => p.id === id);
+    if (!plan) throw new Error(`generated plan missing: ${id}`);
+    return plan;
+  };
+
+  it("Cohort Starter — A$500/mo, 15 seats, cohort_dashboard feature flag", () => {
+    const p = byId("accelerator_starter");
+    expect(p.price_aud_cents).toBe(50000);
+    expect(p.annual_price_aud_cents).toBe(500000);
+    expect(p.trial_days).toBe(14);
+    expect(p.usage_limits.seats).toBe(15);
+    expect(p.usage_limits.monthly_credits).toBe(2000);
+    expect(p.feature_flags).toEqual(
+      expect.arrayContaining([
+        "cohort_dashboard",
+        "cohort_reports",
+        "program_curriculum_hub",
+      ]),
+    );
+  });
+
+  it("Cohort Growth — A$1500/mo, 50 seats, adds co_mentor_pool + alumni tools", () => {
+    const p = byId("accelerator_growth");
+    expect(p.price_aud_cents).toBe(150000);
+    expect(p.annual_price_aud_cents).toBe(1500000);
+    expect(p.trial_days).toBe(14);
+    expect(p.usage_limits.seats).toBe(50);
+    expect(p.usage_limits.monthly_credits).toBe(8000);
+    expect(p.feature_flags).toEqual(
+      expect.arrayContaining([
+        "cohort_dashboard",
+        "co_mentor_pool",
+        "cohort_batch_reports",
+        "alumni_network_tools",
+      ]),
+    );
+  });
+
+  it("Cohort Enterprise — A$3500/mo, unlimited seats, adds multi_cohort + sso", () => {
+    const p = byId("accelerator_enterprise");
+    expect(p.price_aud_cents).toBe(350000);
+    expect(p.annual_price_aud_cents).toBe(3500000);
+    expect(p.trial_days).toBe(14);
+    expect(p.usage_limits.seats).toBe(-1);
+    expect(p.usage_limits.monthly_credits).toBe(-1);
+    expect(p.feature_flags).toEqual(
+      expect.arrayContaining([
+        "multi_cohort_management",
+        "white_label_reports",
+        "dedicated_success_manager",
+        "sso",
+      ]),
+    );
+    expect(p.stripe_env_var).toBe("STRIPE_PRICE_ACCEL_ENTERPRISE");
+  });
+});

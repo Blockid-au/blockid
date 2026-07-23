@@ -57,11 +57,11 @@
 
 ### Accelerator / program side
 
-| Tier | AUD/mo | Fit |
-|---|---|---|
-| Cohort Starter | A$500 (≤15 founders) | Uni programs, bootcamps |
-| Cohort Growth | A$1,500 (≤50) | Regional accelerators |
-| Cohort Enterprise | A$3,500 + A$50/founder over 100 | Antler-scale |
+| Tier | AUD/mo | Fit | Status |
+|---|---|---|---|
+| Cohort Starter | A$500 (≤15 founders) | Uni programs, bootcamps | ✅ Shipped with placeholder Stripe ID + `usage_limits.seats=15`, `monthly_credits=2000`, 14d trial (2026-07-23, iter-7 PRC-ACC). Feature flags: `cohort_dashboard`, `cohort_reports`, `program_curriculum_hub`. Real `STRIPE_PRICE_ACCEL_STARTER` deferred to P8.5. |
+| Cohort Growth | A$1,500 (≤50) | Regional accelerators | ✅ Shipped with placeholder Stripe ID + `usage_limits.seats=50`, `monthly_credits=8000`, 14d trial. Adds `co_mentor_pool`, `cohort_batch_reports`, `alumni_network_tools`. Real `STRIPE_PRICE_ACCEL_GROWTH` deferred to P8.5. |
+| Cohort Enterprise | A$3,500 + A$50/founder over 100 | Antler-scale | ✅ Shipped with placeholder Stripe ID + `usage_limits.seats=-1` (unlimited), `monthly_credits=-1`, 14d trial, "Contact sales" CTA. Adds `multi_cohort_management`, `white_label_reports`, `dedicated_success_manager`, `sso`. Real `STRIPE_PRICE_ACCEL_ENTERPRISE` deferred to P8.5. |
 
 ### Add-ons / metered
 
