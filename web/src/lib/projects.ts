@@ -652,6 +652,74 @@ export async function unarchiveProject(
 }
 
 /**
+ * Hard-delete archived projects whose `archived_at` is older than the given
+ * retention window (Iteration-18 T1 — Q4 MP #5 90-day retention).
+ *
+ * SAFETY GUARANTEES:
+ * - Skips rows where `archived_at IS NULL` (only archived rows are eligible).
+ * - Never throws — returns `{ ok:false, error }` on Supabase failure so the
+ *   cron caller can still emit a failure audit row rather than crash silently.
+ * - Returns the list of purged `{ id, user_id }` pairs so the caller can emit
+ *   one audit row per project preserving the original owning user_id.
+ *
+ * @param days   Retention window in days (must be > 0).
+ */
+export async function purgeArchivedOlderThan(
+  days: number,
+): Promise<
+  | { ok: true; count: number; purged: Array<{ id: string; user_id: string }> }
+  | { ok: false; error: string }
+> {
+  if (!Number.isFinite(days) || days <= 0) {
+    return { ok: false, error: "days must be a positive number" };
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: "supabase_not_configured" };
+
+  const cutoffIso = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  // Two-step: SELECT the target rows first so we can return their user_ids
+  // for the audit trail, THEN delete by id list. This keeps the audit
+  // fan-out independent of any RETURNING support in the underlying client
+  // and lets us report an accurate count even when the DELETE is a no-op.
+  try {
+    const { data: targets, error: selErr } = await supabase
+      .from("projects")
+      .select("id, user_id")
+      .not("archived_at", "is", null)
+      .lt("archived_at", cutoffIso);
+
+    if (selErr) {
+      console.error("[blockid:projects] purgeArchivedOlderThan select failed", selErr);
+      return { ok: false, error: selErr.message };
+    }
+
+    const rows = (targets ?? []) as Array<{ id: string; user_id: string }>;
+    if (rows.length === 0) {
+      return { ok: true, count: 0, purged: [] };
+    }
+
+    const ids = rows.map((r) => r.id);
+    const { error: delErr } = await supabase
+      .from("projects")
+      .delete()
+      .in("id", ids);
+
+    if (delErr) {
+      console.error("[blockid:projects] purgeArchivedOlderThan delete failed", delErr);
+      return { ok: false, error: delErr.message };
+    }
+
+    return { ok: true, count: rows.length, purged: rows };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[blockid:projects] purgeArchivedOlderThan threw", err);
+    return { ok: false, error: message };
+  }
+}
+
+/**
  * Ensure a user has at least one (default) project.
  * Called lazily when needed — creates a "My Startup" default if none exist.
  */
