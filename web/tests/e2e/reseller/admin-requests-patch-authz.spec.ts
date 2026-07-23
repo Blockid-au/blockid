@@ -237,6 +237,41 @@ const UUID_RE =
 // projection at /api/admin/resellers/requests/route.ts:44 — a projection
 // drop of decision_reason there would still let the PATCH echo the value
 // back on the write envelope but would fail the read-back here.
+//
+// Tick 269 — request_type enum value pin added as the fifth per-column pin
+// on the same three post-PATCH read-back rows (deny + cancel + approve).
+// reseller_requests.request_type is a NOT NULL text column (0095:29-30) with
+// a CHECK constraint pinning it to one of three enum values ('code_request',
+// 'over_budget_approval', 'collateral_approval'); the validator side mirrors
+// the same set at web/src/lib/reseller/requests.ts:12-15 (ResellerRequestType
+// union) and 218-221 (invalid_request_type gate). New seventh module-scope
+// constant ALLOWED_REQUEST_TYPES echoes both source-of-truth sites verbatim
+// so a widening/narrowing of the enum at either site surfaces here on the
+// next CI pass. Two-part guard: (a) typeof-string (catches a column-type
+// flip from text to something else, or a route regression that stripped
+// request_type from the list SELECT's column projection at route.ts:44 —
+// which would fail the guard because undefined is not a string), (b)
+// ALLOWED_REQUEST_TYPES.has() set membership (catches a DB-level enum drift
+// where the CHECK constraint at 0095:30 gains a fourth value that the
+// spec did not track, or a route regression that returned a stale/mismatched
+// request_type value that no longer maps to the discriminated-union branches
+// below at lines ~625/1000/1436). Complements the discriminated-union pin
+// below by ensuring the request_type key is present + within the enum
+// BEFORE the switch statement runs — today a null/undefined/stale value
+// silently skips all three branches so a route regression that dropped
+// request_type from the SELECT would light up no assertion. Fires ONLY
+// after the tick-268 decision_reason pin has passed on the same read-back
+// row so tighter existing pins surface first. Pin is not backed by the
+// discriminated-union branches (which are zero-coverage on code_request +
+// collateral_approval today) — this is a pure column-level pin that runs
+// on every read-back row regardless of which request_type the fixture
+// seeded, so all three surfaces exercise the pin on every green-path CI
+// run. Zero-coverage-per-guard risk on the enum values themselves —
+// green-path fixtures only seed over_budget_approval so the code_request
+// + collateral_approval enum values are never exercised as the actual
+// wire value, but the ALLOWED_REQUEST_TYPES set still forbids a
+// route-regression drift to a non-enum string here, which is what the
+// pin catches.
 const ALLOWED_TIER_PCT_VALUES = new Set([0, 10, 20, 30, 40]);
 const SUFFIX_RE = /^[A-Z0-9]{1,16}$/;
 const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
@@ -244,6 +279,11 @@ const REASON_MAX = 200;
 const PURPOSE_MAX = 500;
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const ALLOWED_REQUEST_TYPES = new Set([
+  "code_request",
+  "over_budget_approval",
+  "collateral_approval",
+]);
 
 test.describe("Admin reseller requests PATCH pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — PATCH with no session returns 401 no_user", async ({
@@ -617,6 +657,23 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       `read-back row.decision_reason length ${(readbackRow.decision_reason as string).length} > REASON_MAX (${REASON_MAX}) per requests.ts:66 — a validator-side cap widening would surface here: ${JSON.stringify(readbackRow.decision_reason).slice(0, 100)}`,
     ).toBe(true);
     expect(readbackRow.decision_reason).toBe(decisionReason);
+    // Tick 269 — request_type enum value pin, fifth per-column pin on the
+    // deny-branch read-back row. reseller_requests.request_type is a NOT
+    // NULL text column with a CHECK IN ('code_request','over_budget_
+    // approval','collateral_approval') at 0095:29-30, mirrored by
+    // ResellerRequestType at requests.ts:12-15. Two-part guard: typeof-
+    // string (catches a projection drop of request_type from the list
+    // SELECT at route.ts:44, which would fail the guard because undefined
+    // is not a string) + ALLOWED_REQUEST_TYPES.has() set membership
+    // (catches a DB-level CHECK widening or a route regression that
+    // returned a stale/mismatched enum value). Runs BEFORE the
+    // discriminated-union switch below so a null/undefined/stale value no
+    // longer silently skips all three branches.
+    expect(typeof readbackRow.request_type).toBe("string");
+    expect(
+      ALLOWED_REQUEST_TYPES.has(readbackRow.request_type as string),
+      `read-back row.request_type '${String(readbackRow.request_type)}' not in {code_request, over_budget_approval, collateral_approval} per 0095:29-30 + requests.ts:12-15: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261 pins. TYPEOF + VALUE-tighten pins per key so a rename OR
@@ -992,6 +1049,19 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       `read-back row.decision_reason length ${(readbackRow.decision_reason as string).length} > REASON_MAX (${REASON_MAX}) per requests.ts:66 — a validator-side cap widening would surface here: ${JSON.stringify(readbackRow.decision_reason).slice(0, 100)}`,
     ).toBe(true);
     expect(readbackRow.decision_reason).toBe(decisionReason);
+    // Tick 269 — request_type enum value pin mirrored from the deny-block
+    // onto the cancel-block surface so the NOT NULL text column with
+    // CHECK IN ('code_request','over_budget_approval','collateral_approval')
+    // at 0095:29-30 is content-pinned on the second of the three post-PATCH
+    // read-back rows too. Same two-part guard as the deny surface: typeof-
+    // string + ALLOWED_REQUEST_TYPES.has() set membership. See the deny-
+    // block block-scope comment above and the module-scope tick-269 comment
+    // for full rationale.
+    expect(typeof readbackRow.request_type).toBe("string");
+    expect(
+      ALLOWED_REQUEST_TYPES.has(readbackRow.request_type as string),
+      `read-back row.request_type '${String(readbackRow.request_type)}' not in {code_request, over_budget_approval, collateral_approval} per 0095:29-30 + requests.ts:12-15: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261/262 pins. TYPEOF + VALUE-tighten pins per key so a rename
@@ -1427,6 +1497,24 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       `read-back row.decision_reason length ${(readbackRow.decision_reason as string).length} > REASON_MAX (${REASON_MAX}) per requests.ts:66 — a validator-side cap widening would surface here: ${JSON.stringify(readbackRow.decision_reason).slice(0, 100)}`,
     ).toBe(true);
     expect(readbackRow.decision_reason).toBe(decisionReason);
+    // Tick 269 — request_type enum value pin mirrored from the deny-block +
+    // cancel-block onto the approve-block surface so the NOT NULL text
+    // column with CHECK IN ('code_request','over_budget_approval','collateral
+    // _approval') at 0095:29-30 is now content-pinned on all three post-PATCH
+    // read-back rows. Same two-part guard: typeof-string +
+    // ALLOWED_REQUEST_TYPES.has() set membership. The approve fan-out at
+    // route.ts:200-293 does not touch the request_type column (only status
+    // + decision_by + decision_at + decision_reason + linked_credit_
+    // transaction_id move on approve) so the read-back reflects exactly
+    // what attachApproveTarget() INSERT stamped — the fixture contract
+    // guarantees over_budget_approval on green-path runs. See the deny-
+    // block block-scope comment above and the module-scope tick-269
+    // comment for full rationale.
+    expect(typeof readbackRow.request_type).toBe("string");
+    expect(
+      ALLOWED_REQUEST_TYPES.has(readbackRow.request_type as string),
+      `read-back row.request_type '${String(readbackRow.request_type)}' not in {code_request, over_budget_approval, collateral_approval} per 0095:29-30 + requests.ts:12-15: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
     // 259/260/261/262/263 pins. TYPEOF + VALUE-tighten pins per key so a
