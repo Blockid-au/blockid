@@ -37,7 +37,7 @@ export function ScnDirectionNavigator({ stageLabel, weakestLayer, steps }: Props
       <div className="mb-4 flex items-center gap-2">
         <Navigation className="h-4 w-4 text-brand-600" />
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-700">
-          Startup Navigation · Your route
+          Startup Compass · Your route
         </p>
       </div>
 
@@ -131,7 +131,18 @@ export function ScnDirectionNavigator({ stageLabel, weakestLayer, steps }: Props
       )}
 
       <p className="mt-4 text-[11px] text-ink-400">
-        Sequenced from your weakest SCN layer · driver: {stageLabel}
+        Sequenced from your weakest Startup Compass dimension · driver: {stageLabel}
+      </p>
+      <p className="mt-1 text-[10px] leading-relaxed text-ink-400">
+        Direction sequencing synthesises Christensen JTBD + Amazon working-backwards +
+        YC seed-hurdle guidance —{" "}
+        <Link
+          href="/guide/scn"
+          className="underline decoration-dotted hover:text-brand-600"
+        >
+          framework citations
+        </Link>
+        .
       </p>
     </div>
   );
