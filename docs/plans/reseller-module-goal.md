@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.308
+version: 2026-07-23.309
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,111 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 309
+    ran_at: 2026-07-23
+    action: p10_commissions_stripe_invoice_id_shape_pin_on_admin_reseller_detail
+    result: |
+      Second column tightened in the reseller_commissions_current[]
+      child-row cluster opened at tick 308 — commissions[].
+      stripe_invoice_id. Tick 308 next-pick (first remaining un-tightened
+      column in the projection tuple) taken verbatim. Note tick 308's
+      forward-plan noted "(text nullable)" for this column — that was an
+      on-write projection error; the underlying reseller_commissions.
+      stripe_invoice_id column is actually declared `text NOT NULL` at
+      0094:34, not nullable. Corrected mid-tick.
+
+      Writer-schema justification:
+        - 0094_reseller_commissions_and_events.sql:34 declares
+          `stripe_invoice_id text NOT NULL` on reseller_commissions.
+          Non-unique btree idx reseller_commissions_invoice_idx at
+          0094:70-71 for join-back from charge.refunded webhooks.
+        - Application write path: minted by Stripe API on invoice.paid
+          events and stored verbatim by the webhook processor's accrual
+          code-path at web/src/lib/reseller/webhook-helpers.ts. Real
+          values follow Stripe's canonical `in_<alphanumerics>` shape
+          (typical length 24-32 chars, no punctuation, live-mode and
+          test-mode both share the in_ prefix).
+        - Projected via `rc.stripe_invoice_id` in the
+          reseller_commissions_current view at 0094:139 and selected on
+          the Promise.all leg at web/src/app/api/admin/resellers/[code]/
+          route.ts:99-105.
+
+      Design choice — two-part guard mirroring the tick 306 timestamptz
+      posture used on admins[].linked_at (typeof-string + shape regex),
+      with the shape regex being a NEW module-scope const
+      STRIPE_INVOICE_ID_RE = /^in_[A-Za-z0-9]{8,}$/:
+        - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+          catches a PostgREST regression that returned null|undefined,
+          a schema-side NOT NULL drop, or a projection-side drop from
+          the SELECT tuple.
+        - (b) STRIPE_INVOICE_ID_RE.test() shape assert catches a
+          webhook-processor drift that stamped a stringified integer,
+          a truncated slug, or a non-Stripe id shape. The invariant
+          lives ONLY at the write path (Stripe minted the id, webhook
+          processor stores it verbatim — no DB CHECK) so the shape pin
+          catches drift from that source.
+        - Introduction of a NEW module-scope const rather than reusing
+          an existing regex because no prior pin covered the Stripe
+          `in_` prefix invariant. tick 301/302 stripe_coupon_id and
+          stripe_promotion_code_id pins were bare null-or-typeof-string
+          with no shape assert (nullable text, no DB CHECK). Const
+          discipline matches ISO_TIMESTAMP_RE, UUID_RE, PROMO_CODE_RE,
+          ABN_RE, HEX_COLOR_RE already in the module-scope regex
+          cluster.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          up to 50 times per test, once per commissions[] row on the
+          QAPROBEWHOLESALEACTIVE seed reseller. Hosts without seeded
+          commission events still green because the for-loop degrades
+          gracefully to a no-op.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 309 paragraph) added below
+              the tick 308 commissions[].commission_id block above
+              ISO_TIMESTAMP_RE.
+            + new module-scope const STRIPE_INVOICE_ID_RE added below
+              ISO_TIMESTAMP_RE with a shape-rationale doc comment.
+            + body type widened: commissions? row shape extended with
+              stripe_invoice_id?: unknown so TypeScript narrows the
+              row.stripe_invoice_id access inside the for-of loop.
+            + wave-5 row 167 for-of loop pin appended after the tick
+              308 commission_id guard: typeof-string assert plus
+              STRIPE_INVOICE_ID_RE.test() assert against
+              row.stripe_invoice_id.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no seed-script change. One new
+          module-scope const (STRIPE_INVOICE_ID_RE). Matches ticks
+          234-308 discipline verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0 for tests/** (pre-existing unrelated
+          error in src/lib/pdf/svi-report-pdf.tsx — @react-pdf View
+          overload — not touched by this tick).
+        - npm run lint:reseller: 11 R-01 + 32 R-03 + 8 R-04, 6
+          exemptions, 0 violations (spec lives under tests/**, not in
+          the reseller manifest).
+        - vitest: unchanged — Playwright specs are excluded from
+          vitest by design.
+
+      Next natural picks on tick 310:
+        (a) continue the commissions[] cluster with list_price_aud_cents
+        (int non-negative, `list_price_aud_cents int NOT NULL CHECK
+        (list_price_aud_cents > 0)` at 0094:37) — numeric shape pin,
+        mirrors the tick 288-tier value-set pin discipline.
+        (b) rotate to the discount_pct column (int CHECK IN (0,10,20,
+        30,40) at 0094:38) — value-set enum pin using the ALLOWED_TIER
+        Set from tick 288 (natural reuse — same value set).
+        (c) rotate to status column (view CASE at 0094:150-172 exposes
+        {cleared, pending_clearance, clawed_back, dispute_open,
+        partially_refunded}) — value-set enum pin, requires a new
+        module-scope Set constant.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening ticks.
+    commit: (this tick)
+
   - tick: 308
     ran_at: 2026-07-23
     action: p10_commissions_commission_id_uuid_shape_pin_on_admin_reseller_detail
