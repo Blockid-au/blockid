@@ -23,7 +23,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { getActiveProject } from "@/lib/projects";
+import { getActiveProject, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProjectAnalyzeShell } from "./project-analyze-shell";
 
@@ -53,13 +53,15 @@ export default async function ProjectAnalyzePage({
     redirect(`/auth/login?next=/workspace/projects/${encodeURIComponent(slug)}/analyze`);
   }
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const project = await getActiveProject(user.id, slug);
   if (!project) notFound();
 
   const queryParam = typeof sp.query === "string" ? sp.query : "";
 
   return (
-    <WorkspaceLayout user={user} startupName={project.name}>
+    <WorkspaceLayout user={user} startupName={project.name} isSandbox={isSandbox}>
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-4 flex items-center gap-2 text-sm text-ink-600">
           <Link

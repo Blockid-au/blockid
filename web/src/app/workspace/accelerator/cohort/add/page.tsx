@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Add Founder to Cohort — Workspace — BlockID",
@@ -17,8 +18,10 @@ export default async function AddCohortFounderPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/accelerator/cohort/add");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         <nav className="text-sm text-ink-500">
           <Link href="/workspace/accelerator/cohort" className="hover:text-brand-600">

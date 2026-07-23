@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { listApiKeys, canCreateApiKeys, getRateLimitForPlan } from "@/lib/api-keys";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ApiKeysClient } from "./api-keys-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "API Keys",
@@ -17,12 +18,14 @@ export default async function ApiKeysPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/api-keys");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const keys = await listApiKeys(user.id);
   const canCreate = await canCreateApiKeys(user);
   const rateLimit = getRateLimitForPlan(user.plan);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">API Keys</h1>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { MetricsClient, type MetricRow } from "./metrics-client";
@@ -19,6 +19,8 @@ export const dynamic = "force-dynamic";
 export default async function MetricsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/metrics");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   const sb = getSupabaseAdmin();
 
@@ -73,7 +75,7 @@ export default async function MetricsPage() {
   }
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <PageTracker page="metrics" />
       <div className="p-6 max-w-4xl mx-auto">
         <div className="mb-6">

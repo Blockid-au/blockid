@@ -18,6 +18,7 @@ import {
   getCohortSviAvg,
   type ApplicantRow,
 } from "@/lib/accelerator-portal";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Accelerator Workspace — BlockID",
@@ -36,6 +37,8 @@ export default async function AcceleratorWorkspacePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/accelerator");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const cohort = await getCohort(user.id);
   const [applicants, sviAvg] = await Promise.all([
     listApplicants(cohort.id),
@@ -51,7 +54,7 @@ export default async function AcceleratorWorkspacePage() {
     });
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <FeatureGate feature={COHORT_FEATURE} label="Accelerator cohort workspace">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header>

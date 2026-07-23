@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EvaluationClient } from "@/components/evaluation/evaluation-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Startup Evaluation | BlockID",
@@ -17,8 +18,10 @@ export default async function EvaluationPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/evaluation");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <EvaluationClient user={{ email: user.email }} />
     </WorkspaceLayout>
   );

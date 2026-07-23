@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { loadFounderProfile, EMPTY_PROFILE } from "@/lib/founder-profile";
 import { FounderProfileClient } from "./founder-profile-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Founder Profile · BlockID",
@@ -17,10 +18,12 @@ export default async function FounderProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/founder-profile");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const profile = (await loadFounderProfile(user.id)) ?? EMPTY_PROFILE(user.id, user.email);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <FounderProfileClient initialProfile={profile} />
     </WorkspaceLayout>
   );

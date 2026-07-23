@@ -11,6 +11,7 @@ import {
   type BlockchainConfigSummary,
   type OAuthConnectionSummary,
 } from "@/lib/integrations/catalogue";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Integrations",
@@ -28,6 +29,8 @@ export default async function IntegrationsPage({
 }): Promise<React.ReactElement> {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/integrations");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   const sp = await searchParams;
   const [connections, chainConfig] = await Promise.all([
@@ -64,7 +67,7 @@ export default async function IntegrationsPage({
   const summary = summariseCatalogue(rows);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-3xl mx-auto space-y-6">
         <header>
           <h1 className="text-2xl font-semibold text-ink-900 dark:text-ink-100">

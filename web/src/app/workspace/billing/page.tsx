@@ -10,6 +10,7 @@ import { getPlatformConfig } from "@/lib/platform-config";
 import { ADDON_PRICE_IDS } from "@/lib/stripe";
 import { isWholesaleProvisionedFounder } from "@/lib/stripe/portal-gate";
 import { BillingClient } from "./billing-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Billing & Subscription",
@@ -22,6 +23,8 @@ export const dynamic = "force-dynamic";
 export default async function BillingPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/billing");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   // Load plan_started_at and stripe_customer_id from the DB (not on the
   // AppUser type, so we query directly).
@@ -53,7 +56,7 @@ export default async function BillingPage() {
   }
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <PageTracker page="billing" />
       <div className="p-6 max-w-4xl mx-auto">
         <div className="mb-6">

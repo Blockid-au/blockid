@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { SavedReportClient } from "./saved-report-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Saved Report",
@@ -26,10 +27,12 @@ export default async function SavedReportPage({
     redirect(`/auth/login?next=/workspace/reports/${id}`);
   }
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return (
-      <WorkspaceLayout user={user}>
+      <WorkspaceLayout user={user} isSandbox={isSandbox}>
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-ink-600">Database unavailable. Please try again later.</p>
         </div>
@@ -47,7 +50,7 @@ export default async function SavedReportPage({
   // Verify ownership
   if (!analysis || analysis.email !== user.email) {
     return (
-      <WorkspaceLayout user={user}>
+      <WorkspaceLayout user={user} isSandbox={isSandbox}>
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 px-8 py-12">
             <h1 className="text-xl font-bold text-ink-800 mb-2">Report Not Found</h1>
@@ -74,7 +77,7 @@ export default async function SavedReportPage({
     .order("created_at", { ascending: true });
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <SavedReportClient
         analysis={{
           id: analysis.id as string,

@@ -9,7 +9,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
@@ -76,6 +76,8 @@ export default async function InvestorPackPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/investor-pack");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const projectId = await getProjectIdFromRequest();
   const overview = await loadOverview(user.id, projectId);
 
@@ -83,7 +85,7 @@ export default async function InvestorPackPage() {
   const downloadHref = "/api/investor-pack/preview?download=1";
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-3xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">Investor pack</h1>

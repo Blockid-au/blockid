@@ -14,6 +14,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FeatureGate } from "@/components/access/FeatureGate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Quarterly Report — Accelerator Workspace",
@@ -149,6 +150,8 @@ export default async function AcceleratorQuarterlyReportPage() {
   if (!user)
     redirect("/auth/login?next=/workspace/accelerator/quarterly-report");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const summary = await loadSummary(user.id);
 
   const exportHref = summary.cohortId
@@ -156,7 +159,7 @@ export default async function AcceleratorQuarterlyReportPage() {
     : "/api/reports/quarterly";
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <FeatureGate feature={COHORT_FEATURE} label="Quarterly report">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header className="flex flex-wrap items-start justify-between gap-4">

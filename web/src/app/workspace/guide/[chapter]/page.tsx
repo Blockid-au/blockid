@@ -25,6 +25,7 @@ import {
   type Chapter,
 } from "@/lib/guide/startup-journey";
 import { getLocale, type Locale } from "@/lib/i18n";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 interface RouteParams {
   chapter: string;
@@ -133,12 +134,14 @@ export default async function WorkspaceGuideChapterPage({
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/login?next=/workspace/guide/${c.slug}`);
 
+
+  const isSandbox = await getCurrentProjectIsSandbox();
   const locale = await getLocale();
   const t = (v: { en: string; vi: string }) => (locale === "vi" ? v.vi : v.en);
   const { previous, next } = getAdjacentChapters(c.slug);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <PageTracker
         page="workspace-guide-chapter"
         chapter={c.phase}

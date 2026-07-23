@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FeatureGate } from "@/components/access/FeatureGate";
 import { getClientRoster, type ClientRow } from "@/lib/advisor-portal";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Advisor Workspace — BlockID",
@@ -26,10 +27,12 @@ export default async function AdvisorWorkspacePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/advisor");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const roster = await getClientRoster(user.id);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <FeatureGate feature={ADVISOR_FEATURE} label="Advisor workspace">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header>

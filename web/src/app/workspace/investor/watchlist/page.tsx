@@ -18,6 +18,7 @@ import {
   type WatchlistTag,
 } from "@/lib/investor-portal";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Watchlist | Investor Workspace | BlockID",
@@ -76,6 +77,8 @@ export default async function InvestorWatchlistPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/investor/watchlist");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const rows = await getWatchlist(user.id);
   const scores = await fetchTickerScores(rows.map((r) => r.ticker));
 
@@ -90,7 +93,7 @@ export default async function InvestorWatchlistPage() {
   ).length;
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>

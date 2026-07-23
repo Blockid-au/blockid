@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { CohortBenchmarkChart } from "@/components/dashboard/cohort-benchmark-chart";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "SVI Cohort Benchmark · BlockID",
@@ -51,6 +52,8 @@ export default async function BenchmarkPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/benchmark");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   let cohortScores: number[] = [];
   let userScore: number | null = null;
 
@@ -87,7 +90,7 @@ export default async function BenchmarkPage() {
       : null;
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-8 space-y-6">
         <div className="flex items-start justify-between gap-6">
           <div>

@@ -265,6 +265,35 @@ const UUID_RE =
 // because the pin lives inside the per-row for-loop; seeded hosts
 // exercise the DEFAULT false branch on every green CI run (seed-qa-
 // reseller.mjs uses the default).
+//
+// Tick 292 — can_grant_credits bool wire-shape pin, natural next-pick
+// option (a) from tick 291. resellers.can_grant_credits is the third
+// bool NOT NULL column on the resellers row after gst_registered
+// (pinned at tick 287) and can_create_startups (pinned at tick 291) —
+// same NOT-NULL invariant with no finite / range dimension so the same
+// single typeof-boolean guard shape applies. Column declared at
+// 0091:32 as `can_grant_credits bool NOT NULL DEFAULT false` — no DB
+// CHECK; the column controls whether the reseller UI exposes the
+// "grant credits to attributed startup" branch per the reseller U.15
+// module design (paired with monthly_credit_budget at 0091:33 — the
+// budget cap only matters when this bool is true; write-side
+// application gating, no wire-side echo distinct from the bool value
+// itself). Projected via route.ts:41-44 select("*"). NOT-NULL
+// discipline → single typeof-boolean assert; bool has no finite /
+// range dimension so no second guard is layered — matches the tick
+// 287 gst_registered + tick 291 can_create_startups posture verbatim
+// rather than the two-part (tick 283/284 ISO), three-part (tick 286
+// numeric range, tick 288 array element-set), or four-part (tick 289
+// /290 int + non-negative + integer) guards used for scalar columns
+// with a semantic dimension beyond raw type. Cross-surface pair with
+// the companion pin landed on admin-reseller-detail-authz.spec.ts in
+// the same tick so the two admin resellers-family surfaces (list +
+// detail) carry the pin simultaneously, matching the tick 286+287+288+
+// 289+290+291 discipline of bringing both surfaces up to parity in one
+// pass. Fresh CI hosts with zero rows still green because the pin
+// lives inside the per-row for-loop; seeded hosts exercise the
+// DEFAULT false branch on every green CI run (seed-qa-reseller.mjs
+// uses the default).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -368,6 +397,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         monthly_credit_budget?: unknown;
         monthly_sandbox_credits?: unknown;
         can_create_startups?: unknown;
+        can_grant_credits?: unknown;
       }>;
     };
     expect(
@@ -588,6 +618,23 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
       expect(
         typeof row.can_create_startups,
         `reseller.can_create_startups '${String(row.can_create_startups)}' should be a boolean (bool NOT NULL DEFAULT false per 0091:31 serialised via PostgREST); a drift to a string, number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("boolean");
+      // Tick 292 — can_grant_credits bool wire-shape pin, cross-
+      // surface pair with the sibling pin landed on admin-reseller-
+      // detail-authz.spec.ts in the same tick. See module-scope doc-
+      // block (tick 292 paragraph) for the rationale. Column source
+      // 0091:32 `can_grant_credits bool NOT NULL DEFAULT false` — no
+      // DB CHECK; sibling bool column to gst_registered (pinned at
+      // tick 287) and can_create_startups (pinned at tick 291) with
+      // the same NOT-NULL discipline → single typeof-boolean assert.
+      // A schema-side type flip from bool to text/int, a PostgREST
+      // serialisation regression that returned booleans as
+      // "true"/"false" strings, or a projection-side drop from route.
+      // ts:41-44 select("*") would surface here on the next CI pass
+      // whenever any resellers row is returned.
+      expect(
+        typeof row.can_grant_credits,
+        `reseller.can_grant_credits '${String(row.can_grant_credits)}' should be a boolean (bool NOT NULL DEFAULT false per 0091:32 serialised via PostgREST); a drift to a string, number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe("boolean");
     }
   });

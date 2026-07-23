@@ -8,6 +8,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +23,10 @@ export default async function NewListingPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/listings/new");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="mx-auto max-w-3xl px-6 py-10">
         <header>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-500">

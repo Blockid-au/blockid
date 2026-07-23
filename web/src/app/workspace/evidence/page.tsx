@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import Link from "next/link";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EvidenceVaultClient } from "@/components/svi/evidence-vault-client";
@@ -32,6 +32,8 @@ export const dynamic = "force-dynamic";
 export default async function EvidencePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/evidence");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   let evidence: Record<string, unknown>[] = [];
   let evidenceGaps: SVIEvidenceGap[] = [];
@@ -88,7 +90,7 @@ export default async function EvidencePage() {
   const providers: OAuthProvider[] = ["github", "stripe", "ga4"];
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <PageTracker page="evidence" />
       <div className="p-6 max-w-3xl mx-auto space-y-8">
         <div className="rounded-md border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 px-4 py-3 flex items-center gap-3 flex-wrap">

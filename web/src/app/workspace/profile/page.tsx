@@ -7,6 +7,7 @@ import { ProfileProgress } from "@/components/workspace/profile-progress";
 import { BadgeShelf } from "@/components/workspace/badge-shelf";
 import { PasswordForm } from "@/components/workspace/password-form";
 import { NotificationPrefs } from "@/components/workspace/notification-prefs";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "My Profile",
@@ -19,6 +20,8 @@ export const dynamic = "force-dynamic";
 export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/profile");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   // Check if user has an existing password
   let hasPassword = false;
@@ -33,7 +36,7 @@ export default async function ProfilePage() {
   }
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">My Profile</h1>

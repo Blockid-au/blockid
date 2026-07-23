@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { RevenueClient } from "./revenue-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Revenue Dashboard | BlockID",
@@ -17,8 +18,10 @@ export default async function RevenuePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/revenue");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-5xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">

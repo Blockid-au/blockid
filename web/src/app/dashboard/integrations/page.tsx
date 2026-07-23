@@ -3,10 +3,7 @@ import { redirect } from "next/navigation";
 import { GitBranch, LineChart } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import {
-  findOrCreateSVIAccount,
-  getProjectIdFromRequest,
-} from "@/lib/projects";
+import { findOrCreateSVIAccount, getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { isGitHubOAuthConfigured } from "@/lib/github";
 import { isGoogleAnalyticsOAuthConfigured } from "@/lib/google-analytics-oauth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -26,6 +23,8 @@ export default async function IntegrationsPage({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/integrations");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   const sp = await searchParams;
 
@@ -57,7 +56,7 @@ export default async function IntegrationsPage({
   }
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="max-w-3xl mx-auto px-6 pb-24 pt-8 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-ink-900">Integrations</h1>

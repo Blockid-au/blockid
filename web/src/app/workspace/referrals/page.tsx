@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ReferralsClient } from "./referrals-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Referral Program | BlockID",
@@ -16,8 +17,10 @@ export default async function ReferralsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/referrals");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-3xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">Referral Program</h1>

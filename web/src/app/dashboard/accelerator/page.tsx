@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { AcceleratorClient } from "./accelerator-client";
 
@@ -24,6 +24,8 @@ export interface AcceleratorPageProps {
 export default async function AcceleratorPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/accelerator");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
 
   const supabase = getSupabaseAdmin();
   let currentSvi = 0;
@@ -78,7 +80,7 @@ export default async function AcceleratorPage() {
   }
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <AcceleratorClient
         currentSvi={currentSvi}
         stage={stage}

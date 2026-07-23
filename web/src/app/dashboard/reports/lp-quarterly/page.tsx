@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "LP Quarterly Report — Dashboard — BlockID",
@@ -17,8 +18,10 @@ export default async function LpQuarterlyReportPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/reports/lp-quarterly");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
         <nav className="text-sm text-ink-500">
           <Link href="/workspace/accelerator" className="hover:text-brand-600">

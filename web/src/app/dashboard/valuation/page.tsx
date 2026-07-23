@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { VcValuationDashboard } from "./vc-valuation-dashboard";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "VC Valuation Dashboard — BlockID",
@@ -15,8 +16,10 @@ export default async function ValuationDashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/valuation");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="max-w-4xl">
         <header className="mb-8">
           <p className="text-xs uppercase tracking-[0.2em] text-brand-600 font-semibold">VC-Grade Analysis</p>

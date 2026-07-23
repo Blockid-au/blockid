@@ -8,7 +8,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { assemblePackData } from "@/lib/investor-pack-assembler";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { InvestorPackGenerateClient } from "./generate-client";
@@ -28,11 +28,13 @@ export default async function InvestorPackGeneratePage() {
     redirect("/auth/login?next=/workspace/investor-pack/generate");
   }
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const projectId = await getProjectIdFromRequest();
   const data = await assemblePackData(user.id, projectId);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <InvestorPackGenerateClient preview={data} />
     </WorkspaceLayout>
   );

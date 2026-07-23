@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { CriteriaBrowser } from "./criteria-browser";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Accelerator Criteria · BlockID",
@@ -39,6 +40,8 @@ export default async function AcceleratorCriteriaPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/accelerator-criteria");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const supabase = getSupabaseAdmin();
   let rows: KnowledgeRow[] = [];
   if (supabase) {
@@ -63,7 +66,7 @@ export default async function AcceleratorCriteriaPage() {
     .sort((a, b) => b.count - a.count);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="space-y-2">

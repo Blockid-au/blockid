@@ -13,6 +13,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FeatureGate } from "@/components/access/FeatureGate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Cohort — Accelerator Workspace",
@@ -74,6 +75,8 @@ export default async function AcceleratorCohortPage({ searchParams }: PageProps)
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/accelerator/cohort");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const params = await searchParams;
   const rawBatch = params.batch;
   const selectedBatch = Array.isArray(rawBatch) ? rawBatch[0] : rawBatch;
@@ -89,7 +92,7 @@ export default async function AcceleratorCohortPage({ searchParams }: PageProps)
       : members;
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <FeatureGate feature={COHORT_FEATURE} label="Cohort management">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
           <header className="flex flex-wrap items-start justify-between gap-4">

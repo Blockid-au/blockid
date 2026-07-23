@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EquityDashboardClient } from "./equity-dashboard-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Equity Dashboard | BlockID",
@@ -17,8 +18,10 @@ export default async function EquityDashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/equity-dashboard");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-6xl mx-auto">
         <EquityDashboardClient
           isAdmin={

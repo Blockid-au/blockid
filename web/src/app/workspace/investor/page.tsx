@@ -17,6 +17,7 @@ import {
   getPortfolio,
   readWatchlistTag,
 } from "@/lib/investor-portal";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Investor Workspace | BlockID",
@@ -31,6 +32,8 @@ export default async function InvestorWorkspacePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/investor");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   // Fetch all three columns in parallel — server-side, single round trip.
   const [dealflow, watchlist, portfolio] = await Promise.all([
     getDealFlow(user.id, { limit: 5 }),
@@ -41,7 +44,7 @@ export default async function InvestorWorkspacePage() {
   const upgradeV2 = process.env.NEXT_PUBLIC_UPGRADE_V2 === "true";
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <header className="flex items-start justify-between gap-4">
           <div>

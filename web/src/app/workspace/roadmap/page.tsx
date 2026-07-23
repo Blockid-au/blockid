@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { RoadmapSteps } from "@/components/workspace/roadmap-steps";
 import { PlatformRoadmap } from "@/components/workspace/platform-roadmap";
@@ -89,10 +89,12 @@ export default async function RoadmapPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/roadmap");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const completedSteps = await getCompletedSteps(user.email);
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-4xl mx-auto space-y-12">
         <div>
           <div className="mb-6">

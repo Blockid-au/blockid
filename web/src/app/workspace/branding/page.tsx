@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/entitlements";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { BrandingClient } from "./branding-client";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Custom Branding | BlockID",
@@ -17,6 +18,8 @@ export default async function BrandingPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/branding");
 
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   const isPro =
     user.role === "admin" ||
     (await can(
@@ -25,7 +28,7 @@ export default async function BrandingPage() {
     ));
 
   return (
-    <WorkspaceLayout user={user}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">Custom Branding</h1>
