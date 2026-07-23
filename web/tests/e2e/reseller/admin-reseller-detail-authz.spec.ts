@@ -2322,6 +2322,82 @@ const UUID_RE =
 //   route child-slot summary hoists are now complete so the next
 //   rotation naturally moves to the list-surface twin (option a) or
 //   message-prose refresh (option c).
+//
+// Tick 337 — message-prose refresh on the last three bare
+// `expect(typeof body.reseller.<col>).toBe(<t>)` asserts on this
+// detail spec (created_at + updated_at at tick 285, commission_share
+// _pct at tick 286), executing tick 335 next-pick option (c) verbatim:
+// rotate to per-column message-prose refresh on any of the ticks 283-
+// 317 pins where the wording predates the tick 320+ two-part labelled
+// discipline. Restores prose-symmetry across every per-column pin on
+// this spec so a diagnostic-message drift on any raw-type half surfaces
+// the same column-labelled failure-mode prose as its sibling shape /
+// range half.
+//
+// Baseline gap: ticks 285 (created_at + updated_at) and 286 (commission
+// _share_pct) each landed the SECOND half of a two-part guard with a
+// labelled bespoke failure message (ISO_TIMESTAMP_RE mismatch, finite
+// number, [0, 100] range), but the FIRST half's `expect(typeof …).toBe
+// (<t>)` invocation carried no message argument. A PostgREST regression
+// returning row.created_at as an epoch integer or row.commission_share_
+// pct as text-serialised "40.00" would fail with the unlabelled Vitest
+// default `Expected 'number' to be 'string'` / `Expected 'string' to be
+// 'number'` output — the column name, writer-schema source, and
+// projection source were all silent. That asymmetry drifted the two
+// ticks out of the tick 320+ discipline that ticks 287, 288, 289 (and
+// every subsequent per-column pin on this spec) uphold.
+//
+// Refreshed baseline (this tick): all three typeof half-asserts now
+// carry a labelled failure message naming
+//   - the column and its serialised value,
+//   - the writer-schema source (0091:43 created_at / 0091:44 updated_at
+//     / 0091:38 commission_share_pct), including the type (`timestamptz
+//     NOT NULL DEFAULT now()` / `numeric(5,2) NOT NULL DEFAULT 40.00`),
+//   - the projection source (route.ts:47-48 select("*")),
+//   - the concrete failure modes a drift would produce (PostgREST
+//     serialising the timestamp as an epoch integer; PostgREST flipping
+//     the numeric to text-serialised; a schema-side type flip; a null
+//     on NOT-NULL; a projection-side drop from select("*")),
+// mirroring the two-part labelled discipline used by every ticks 320+
+// pin. No new imports, no new module-scope const, no fixture change,
+// no route change, no per-row assert added — pure documentation-only
+// refresh. Continues the P10 hardening posture per ticks 234-335
+// (comment-only tightening ticks are the accepted P10 rotation shape
+// while P8.5 remains HUMAN-BLOCKED on Stripe env vars).
+//
+// Coverage-per-guard posture: the refresh itself is documentation-only
+// on the assert-side (behaviour when green is unchanged); the diagnostic
+// improvement fires only on a failed run when the refreshed message
+// argument replaces the pre-refresh unlabelled Vitest default. The
+// wave-5 row 167 single-row GET fires all three refreshed pins on
+// every green CI run against the QAPROBEWHOLESALEACTIVE seed reseller.
+//
+// Rotation rationale:
+//   - Closes the last three raw-type-half message-prose asymmetries on
+//     this spec so every per-column pin on the detail lens now reads
+//     with symmetric two-part labelled diagnostic prose, matching
+//     ticks 287, 288, 289, 290+ (and every subsequent pin) verbatim.
+//     A follow-up tick surveying this spec for message-prose drift no
+//     longer has any pre-tick 320+ bare typeof asserts to hoist.
+//   - Sibling to tick 324 (promotion_codes[] code message refresh) and
+//     tick 331 (list-side reseller.code message-symmetry lift) which
+//     hit the same refresh target on different columns / surfaces.
+//
+// Next-pick candidates for tick 338:
+//   (a) rotate to the sibling admin-reseller-patch-authz /
+//   admin-reseller-detail-validation surfaces which have their own
+//   pre-tick 320+ bare typeof asserts (grep confirms 4+ bare
+//   typeof-string / typeof-number / typeof-boolean asserts remain
+//   on those two surfaces).
+//   (b) rotate to a fresh cross-surface twin summary hoist — the
+//   remaining detail-route child-slot summaries have no natural
+//   list-surface home (list route projects only resellers-row columns,
+//   not the promotion_codes[] / admins[] / attributions_summary /
+//   commissions[] child slots), so option (a) is a fuller cover.
+//   (c) rotate to attributions_summary.by_source enum-tightening
+//   exhaustiveness pass on wave-5-seeded hosts.
+//   (d) idle — frontier remains tight per ticks 335-336 (P1.5 + P8.5
+//   HUMAN-BLOCKED, P11 never_completes, Track B closed).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -2757,12 +2833,29 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
     // either column, a projection-side drop from route.ts:48 select("*"),
     // or a PATCH-time drift that stopped stamping updated_at=now()
     // surfaces here on the next CI pass.
-    expect(typeof body.reseller?.created_at).toBe("string");
+    // Tick 337 — message-prose refresh on the tick 285 typeof-string
+    // asserts (created_at + updated_at) to carry labelled failure-mode
+    // diagnostics matching the tick 320+ two-part labelled discipline.
+    // Pre-refresh baseline was bare `expect(typeof …).toBe("string")` so a
+    // PostgREST regression returning a number / null / undefined would
+    // surface as an unlabelled `Expected 'number' to be 'string'` without
+    // naming the column, the writer schema source (0091:43 / 0091:44), or
+    // the projection source (route.ts:47-48 select("*")). The refreshed
+    // typeof half now labels the raw-type failure with the same NOT-NULL
+    // discipline prose already carried by the regex half so the two-part
+    // guard reads symmetrically per column, matching ticks 320+ practice.
+    expect(
+      typeof body.reseller?.created_at,
+      `reseller.created_at '${String(body.reseller?.created_at)}' should be a string (timestamptz NOT NULL DEFAULT now() per 0091:43 serialised via PostgREST as ISO 8601 text); a PostgREST regression that returned an epoch integer, a null on NOT-NULL, or a projection-side drop from route.ts:47-48 select("*") would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("string");
     expect(
       ISO_TIMESTAMP_RE.test(body.reseller?.created_at as string),
       `reseller.created_at '${String(body.reseller?.created_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:43 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
-    expect(typeof body.reseller?.updated_at).toBe("string");
+    expect(
+      typeof body.reseller?.updated_at,
+      `reseller.updated_at '${String(body.reseller?.updated_at)}' should be a string (timestamptz NOT NULL DEFAULT now() per 0091:44 serialised via PostgREST as ISO 8601 text; PATCH-time stamp is a trigger-free assignment in admin-validator write path so updated_at always advances on write); a PostgREST regression that returned an epoch integer, a null on NOT-NULL, or a projection-side drop from route.ts:47-48 select("*") would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("string");
     expect(
       ISO_TIMESTAMP_RE.test(body.reseller?.updated_at as string),
       `reseller.updated_at '${String(body.reseller?.updated_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:44 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
@@ -2780,7 +2873,24 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
     // admin-validator drift that stopped rejecting out-of-band values,
     // or a projection-side drop from route.ts:47-48 select("*") would
     // surface here on the next CI pass.
-    expect(typeof body.reseller?.commission_share_pct).toBe("number");
+    // Tick 337 — message-prose refresh on the tick 286 typeof-number
+    // assert (commission_share_pct) to carry labelled failure-mode
+    // diagnostics matching the tick 320+ two-part labelled discipline.
+    // Pre-refresh baseline was bare `expect(typeof …).toBe("number")` so
+    // a PostgREST regression returning the numeric as a text-serialised
+    // "40.00" (Stripe SDK style) or a projection-side drop from
+    // route.ts:47-48 select("*") would surface as an unlabelled
+    // `Expected 'string' to be 'number'` without naming the column, the
+    // writer schema source (0091:38 numeric(5,2) NOT NULL DEFAULT 40.00),
+    // or the application write-path validator that clamps the value into
+    // [0, 100] (admin-validator.ts:114-118). The refreshed typeof half
+    // now labels the raw-type failure with the same NOT-NULL discipline
+    // prose already carried by the finite + range halves below so the
+    // three-part guard reads symmetrically, matching ticks 320+ practice.
+    expect(
+      typeof body.reseller?.commission_share_pct,
+      `reseller.commission_share_pct '${String(body.reseller?.commission_share_pct)}' should be a number (numeric(5,2) NOT NULL DEFAULT 40.00 per 0091:38 serialised via PostgREST as a JS number, NOT a text-serialised "40.00" — PostgREST's default numeric serialisation returns raw numbers for values that fit into IEEE 754 without precision loss, which every value in [0, 100] with 2 decimal places satisfies); a PostgREST regression that flipped numeric to text, a schema-side type flip from numeric to text/varchar, a null on NOT-NULL, or a projection-side drop from route.ts:47-48 select("*") would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("number");
     expect(
       Number.isFinite(body.reseller?.commission_share_pct as number),
       `reseller.commission_share_pct '${String(body.reseller?.commission_share_pct)}' should be a finite number (numeric(5,2) NOT NULL DEFAULT 40.00 per 0091:38 serialised via PostgREST); a drift to NaN, Infinity, string, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
