@@ -1,21 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { can } from "@/lib/entitlements";
+import { gateRequireFeature } from "@/lib/feature-gate";
 
 export const dynamic = "force-dynamic";
-
-async function isPro(user: {
-  id: string;
-  plan: string | null;
-  role?: string;
-}): Promise<boolean> {
-  if (user.role === "admin") return true;
-  return can(
-    { id: user.id, plan: user.plan ?? "free", segment: "founder" },
-    "pdf_branding",
-  );
-}
 
 // GET /api/branding — return saved brand settings for current user
 export async function GET() {
@@ -51,16 +40,11 @@ export async function GET() {
 
 // POST /api/branding — save brand settings
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
-  if (!(await isPro(user))) {
-    return NextResponse.json(
-      { ok: false, error: "Custom branding requires Growth plan or above" },
-      { status: 403 },
-    );
-  }
+  // Feature-gate: Growth+/Scale/Enterprise only. Gate manifest entry is in
+  // web/src/lib/feature-gates.manifest.ts; see also lib/branding/gate.ts.
+  const gate = await gateRequireFeature("pdf_branding");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   let body: unknown;
   try {

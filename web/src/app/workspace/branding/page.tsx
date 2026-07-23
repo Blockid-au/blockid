@@ -20,11 +20,14 @@ export default async function BrandingPage() {
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
+  // PDF branding gate (Growth+/Scale/Enterprise). Distinct from `white_label`
+  // which unlocks full white-label chrome — pdf_branding only grants the
+  // report-branding settings surface. See lib/branding/gate.ts.
   const isPro =
     user.role === "admin" ||
     (await can(
       { id: user.id, plan: user.plan ?? "free", segment: "founder" },
-      "white_label",
+      "pdf_branding",
     ));
 
   return (
