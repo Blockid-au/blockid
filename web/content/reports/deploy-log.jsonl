@@ -1022,3 +1022,4 @@
 {"ts":"2026-07-23T19:31:36.586Z","event":"github-push-master","detail":"Blockid-au: fix(deploy): Gate 11 Playwright — use npx invocation to fix PATH miss (iter-12 flagged false-pass) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T19:34:38Z","status":"success","gates":"9/9","pid":"694960","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T19:37:53.593Z","event":"github-push-master","detail":"Blockid-au: docs(smoke): note /workspace/* auth-gate 200-with-embedded-NEXT_REDIRECT pattern (iter-12 flag resolved) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T19:38:53.071Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 330 (goal) — reseller.billing_model+status two-part typeof-string+Set.has twin-symmetry lift on admin-resellers list (1 commits)","source":"github-webhook"}
