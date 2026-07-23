@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.302
+version: 2026-07-23.303
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -658,6 +658,127 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 303
+    ran_at: 2026-07-23
+    action: p10_promotion_codes_tier_pct_value_set_enum_tightening_on_admin_reseller_detail
+    result: |
+      Fifth column pinned in the promotion_codes[] child-row cluster
+      opened at tick 299; CLOSES the child-row column-pin project because
+      tier_pct was the last un-tightened column in the projection tuple
+      select("id, tier_pct, code, stripe_coupon_id, stripe_promotion_code_
+      id, active, created_at") at web/src/app/api/admin/resellers/[code]/
+      route.ts:83-88. Tick 302 next-pick option (a) taken verbatim.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:90 declares
+          `tier_pct int NOT NULL CHECK (tier_pct IN (0,10,20,30,40))`
+          on reseller_promotion_codes — the CHECK enumerates the legal
+          value set at the DB layer.
+        - Application write path enforces the same enum at
+          web/src/lib/reseller/promotion-code-mint.ts via decideCodeMint
+          and normaliseResellerCode; admin-validator.ts on
+          reseller.allowed_tiers writes rejects out-of-enum values with
+          reason 'tier_bad' via STARTUP_TIER_STEPS.
+        - Projected on the same Promise.all leg at route.ts:83-88 — a
+          projection-side drop or PostgREST serialisation regression on
+          this column would surface on the first offending row.
+
+      Design choice — promote the tick 232 bare typeof-number guard to a
+      full two-part shape:
+        - (a) typeof-number + Number.isFinite preserves the raw-type
+          discipline the tick 232 pin already covered; catches a schema-
+          side widening or a PostgREST regression that returned null|
+          undefined | stringified value.
+        - (b) ALLOWED_TIER_VALUES.has() membership assert — reuses the
+          module-scope Set already used at row 934 for reseller.allowed_
+          tiers element membership. A DB CHECK drop, a legacy pre-P9.4
+          code_request approve branch that stamped a bad tier value, or
+          an admin-validator drift widening STARTUP_TIER_STEPS would
+          surface here on the first offending row.
+        - Layered BEFORE the tick 301/302 tier-coupled invariant asserts
+          on stripe_coupon_id / stripe_promotion_code_id so those
+          continue to gate on `typeof row.tier_pct === 'number' &&
+          row.tier_pct === 0 | > 0` without regressing on a stringified
+          tier that would silently skip both branches.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the pin
+          N times per test, once per promotion_codes[] row on the
+          QAPROBEWHOLESALEACTIVE seed reseller. seed-qa-reseller.mjs
+          mints per-cohort code rows across both tier 0 (attribution-
+          only, tier_pct=0) and tier > 0 (Stripe-minted, tier_pct=20)
+          so both branches of the enum are exercised on every green CI
+          run.
+        - Fresh CI hosts without the QA reseller seed still green
+          because the for-loop is a no-op on zero rows (matches
+          tick 299/300/301/302 posture).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 303 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:90 as the column source.
+            + wave-5 row 167 for-of loop over body.promotion_codes:
+              bare `expect(typeof row.tier_pct).toBe("number")` replaced
+              by a two-part assert — typeof-number+finite guard followed
+              by ALLOWED_TIER_VALUES.has() enum membership assert.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants (Set
+          reused from row 618). Matches ticks 234-302 discipline
+          verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 + R-03 + R-04 unchanged from
+          tick 302 (11 R-01 + 31 R-03 + 8 R-04, 6 exemptions, 0
+          violations)
+        - npx vitest run: 88 files 1058/1058 pass (Playwright specs
+          excluded from vitest by design; the new asserts fire when
+          `npx playwright test admin-reseller-detail-authz` runs on a
+          seeded host)
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 303 paragraph; row
+          1152 bare typeof-number assert replaced by two-part typeof-
+          number+finite + ALLOWED_TIER_VALUES.has() enum guard.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.302 → 2026-07-23.303; this review_history entry
+          prepended noting the CLOSURE of the promotion_codes[] child-
+          row column-pin project opened at tick 299.)
+
+      Design fidelity:
+        - Additive-plus-tighten only. No new spec-local test case, no
+          fixture-file delta, no seed-script change, no production-code
+          touch, no new imports, no new module-scope constants.
+          Consistent with ticks 234-302's incremental-pin pattern.
+        - Detail-only tick — CLOSES the promotion_codes[] child-row
+          column-pin project by promoting the last un-tightened column
+          (tier_pct) to a full value-set enum guard. List surface not
+          touched because the list route doesn't project promotion_codes
+          at all.
+
+      Next natural picks on tick 304:
+        (a) rotate to reseller_admins[] child-row cluster per tick 302
+        next-pick option (b) — 0091:68-76 columns (user_id UUID + role
+        text + status text + linked_at timestamptz + revoked_at nullable
+        timestamptz). Detail-surface only per the same posture. Current
+        wave-5 row 167 already asserts admins[].id UUID + user_id UUID +
+        typeof role string + typeof status string; the frontier there is
+        role/status value-set enum tightening (role IN active|revoked?)
+        + linked_at ISO 8601 shape + revoked_at nullable-ISO shape.
+        (b) rotate to reseller_attributions[] or reseller_commissions[]
+        clusters — larger fan-outs with more per-row columns; same
+        pinning discipline.
+        (c) tighten reserved-word / high-cardinality columns on the
+        resellers-row surface (e.g. custom_role, plan slug enum) if any
+        remaining columns lack a full value-set guard.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening ticks
+        while the two HUMAN-BLOCKED leaves await external unblock
+        signals.
+    commit: (this tick)
+
   - tick: 302
     ran_at: 2026-07-23
     action: p10_promotion_codes_stripe_promotion_code_id_text_nullable_wire_shape_pin_on_admin_reseller_detail

@@ -580,6 +580,48 @@ const UUID_RE =
 // pin, not a cross-surface pair, because promotion_codes[] is projected
 // only on the detail route — the resellers-row cross-surface pair
 // posture (ticks 283-298) does not apply to child-row clusters.
+//
+// Tick 303 — promotion_codes[].tier_pct value-set enum tightening, fifth
+// column pinned in the promotion_codes[] child-row cluster per tick 302
+// next-pick option (a). Closes the child-row column-pin cluster because
+// tier_pct was the last un-tightened column in the projection tuple
+// select("id, tier_pct, code, stripe_coupon_id, stripe_promotion_code_id,
+// active, created_at"): id (UUID guard, tick 232), code (PROMO_CODE_RE,
+// tick 232), active (tick 299), created_at (tick 300), stripe_coupon_id
+// (tick 301), stripe_promotion_code_id (tick 302), tier_pct (this tick).
+// Column declared at 0091:90 as `tier_pct int NOT NULL CHECK (tier_pct IN
+// (0,10,20,30,40))` on the reseller_promotion_codes table — the CHECK is
+// the strongest wire-shape constraint on any column in the promotion_
+// codes[] cluster because it fully enumerates the legal value set (five
+// discrete integers), which mirrors the STARTUP_TIER_STEPS enum enforced
+// at the application write path by admin-validator.ts on
+// reseller.allowed_tiers writes. Prior tick 232 landed only a bare
+// typeof-number assert `expect(typeof row.tier_pct).toBe("number")`;
+// this tick promotes that single guard to a two-part shape (a)
+// typeof-number+Number.isFinite preserving the raw-type discipline and
+// (b) ALLOWED_TIER_VALUES.has() membership assert against the reused
+// module-scope Set already used at row 934 for reseller.allowed_tiers —
+// a schema-side CHECK drop, a PostgREST serialisation regression that
+// returned a stringified tier ("20"), a legacy pre-P9.4 code_request
+// branch that stamped a bad tier value, or an admin-validator drift that
+// widened the STARTUP_TIER_STEPS enum would surface here on the first
+// offending row. The tier-coupled invariant asserts at rows 1199-1209
+// (stripe_coupon_id) and 1222-1232 (stripe_promotion_code_id) already
+// gate on `typeof row.tier_pct === "number" && row.tier_pct === 0` /
+// `> 0` so they remain unaffected — the new enum guard is layered before
+// those and validates the raw value, not the tier-coupled dispatch.
+// Fires on every green CI run because seed-qa-reseller.mjs mints per-
+// cohort code rows across both tier 0 (attribution-only branch) and
+// tier > 0 (Stripe-minted branch); on hosts without seeded codes the
+// for-loop is a no-op so the pin never fires. Detail-only tick because
+// the admin-resellers-list surface does NOT project promotion_codes
+// (list route selects only the resellers-row shape); the Promise.all
+// fan-out that pulls the child rows is unique to the detail surface,
+// matching the tick 299/300/301/302 detail-only posture. CLOSES the
+// promotion_codes[] child-row column-pin project opened at tick 299 —
+// every column in the projection tuple now carries a wire-shape pin;
+// next-tick frontier rotates to the reseller_admins[] child-row cluster
+// (0091:68-76) per tick 302 next-pick option (b).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -1149,7 +1191,25 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         typeof row.id === "string" && UUID_RE.test(row.id as string),
         `promotion_codes[].id should be UUID: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
-      expect(typeof row.tier_pct).toBe("number");
+      // Tick 303 — tighten from bare typeof-number to full value-set enum
+      // guard against ck_reseller_promotion_codes tier_pct CHECK at
+      // 0091:90 (tier_pct IN (0,10,20,30,40)). Layered as two asserts:
+      // (a) typeof-number + Number.isFinite preserves the raw-type
+      // discipline the tick 232 pin already covered; (b) reuses the
+      // module-scope ALLOWED_TIER_VALUES Set already used at row 934 for
+      // reseller.allowed_tiers element membership so a schema-side CHECK
+      // drop, a PostgREST regression that returned a stringified tier, or
+      // an admin-validator drift widening STARTUP_TIER_STEPS would surface
+      // here on the first offending row. See module-scope doc-block above
+      // ISO_TIMESTAMP_RE (tick 303 paragraph) for the rationale.
+      expect(
+        typeof row.tier_pct === "number" && Number.isFinite(row.tier_pct),
+        `promotion_codes[].tier_pct '${String(row.tier_pct)}' should be a finite number (int NOT NULL per 0091:90 serialised via PostgREST as a JSON number; a schema-side widening, a PostgREST serialisation regression that returned null|undefined or a stringified value, or a projection-side drop from route.ts:83-88 select would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        ALLOWED_TIER_VALUES.has(row.tier_pct as number),
+        `promotion_codes[].tier_pct '${String(row.tier_pct)}' should be in the enum {0,10,20,30,40} per ck_reseller_promotion_codes tier_pct CHECK at 0091:90; a DB CHECK drop, a legacy code_request approve branch that stamped an out-of-enum tier, or an admin-validator drift that widened STARTUP_TIER_STEPS would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       // Tick 232 twin-symmetrisation with admin-reseller-detail-validation.
       // spec.ts row 320: shape-pin promotion_codes[].code against
       // PROMO_CODE_RE (uppercase alphanumeric per buildPromoCodeName). A
