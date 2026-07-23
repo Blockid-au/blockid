@@ -384,6 +384,31 @@ const UUID_RE =
 // serialisation regression, an admin-validator drift, or a projection-
 // side drop from route.ts:47-48 select("*") would each surface on both
 // admin resellers-family surfaces (list + detail) on the same CI pass.
+//
+// Tick 297 — contact_email text nullable wire-shape pin, cross-surface
+// mirror of the sibling pin landed on admin-resellers-list-authz.spec.ts
+// in the same tick. Column declared at 0091:41 as `contact_email text`
+// with no NOT NULL constraint (nullable) and NO DB CHECK — free text
+// field storing the reseller org's primary contact address consumed by
+// the admin detail surface and the InfoVision seed row. Unlike
+// primary_color (tick 296) there is NO application write-path format
+// regex or format-validator guard on this column at
+// web/src/lib/reseller/admin-validator.ts:141-143 — the validator only
+// String()s+trim()s or nulls when empty; it does NOT enforce an RFC
+// 5322 or similar email-shape regex. Nullable discipline with no format
+// layer → single-guard null-or-typeof-string assert, matching the tick
+// 295 logo_url posture verbatim rather than the tick 294/296 two-part
+// guard used when a format layer exists. Detail-row assert runs ONCE
+// per test (single object). The QAPROBEWHOLESALEACTIVE seed row
+// carries contact_email=NULL by default (seed-qa-reseller.mjs never
+// populates the column) so the null branch is exercised on every green
+// CI run; a populated production reseller row (INFOVISION when P1.5
+// clears H.20) would exercise the null-or-string branch instead. A
+// schema-side type flip from text to non-string, a PostgREST
+// serialisation regression that returned NULL as the literal string
+// "null", or a projection-side drop from route.ts:47-48 select("*")
+// would each surface on both admin resellers-family surfaces (list +
+// detail) on the same CI pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -596,6 +621,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         abn?: unknown;
         logo_url?: unknown;
         primary_color?: unknown;
+        contact_email?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -896,6 +922,25 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         (typeof body.reseller?.primary_color === "string" &&
           HEX_COLOR_RE.test(body.reseller!.primary_color as string)),
       `reseller.primary_color '${String(body.reseller?.primary_color)}' should be null or a hex colour string matching /^#[0-9a-fA-F]{6}$/ (admin-validator.ts:53 HEX_COLOR_RE rejects other shapes with reason 'primary_color_bad_format'); a drift to a 3-digit hex, unhashed hex, rgba() string, or any other shape would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe(true);
+
+    // Tick 297 — contact_email text nullable wire-shape pin, cross-
+    // surface mirror of the sibling pin landed on admin-resellers-list-
+    // authz.spec.ts in the same tick. See module-scope doc-block (tick
+    // 297 paragraph) for the rationale. Column source 0091:41
+    // `contact_email text` (nullable) with NO DB CHECK and NO
+    // application write-path format guard (admin-validator.ts:141-143
+    // only String()s+trim()s or nulls when empty; no email-shape regex
+    // is enforced). Nullable discipline with no format layer → single-
+    // guard null-or-typeof-string assert, matching the tick 295
+    // logo_url posture verbatim rather than the tick 294/296 two-part
+    // guard because there is no format regex to layer on top. The
+    // QAPROBEWHOLESALEACTIVE seed row carries contact_email=NULL by
+    // default so the null branch is exercised on every green CI run.
+    expect(
+      body.reseller?.contact_email === null ||
+        typeof body.reseller?.contact_email === "string",
+      `reseller.contact_email '${String(body.reseller?.contact_email)}' should be null or a string (nullable text per 0091:41; NULL when no contact address is populated, string when a reseller has registered a contact address — no DB CHECK, no admin-validator format guard). Row: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
