@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.340
+version: 2026-07-23.341
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,168 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 341
+    ran_at: 2026-07-23
+    action: p10_attributions_summary_total_and_active_two_part_typeof_number_isfinite_range_lift_on_admin_reseller_detail_validation
+    result: |
+      Executes tick 340 next-pick option (a) verbatim: sweep the last
+      two outstanding pre-tick 320+ bare typeof asserts on
+      admin-reseller-detail-validation.spec.ts —
+      `expect(typeof body.attributions_summary?.total).toBe("number")` and
+      `expect(typeof body.attributions_summary?.active).toBe("number")`
+      at the prior rows 510/511. Both lifted to the tick 320+ two-part
+      labelled discipline in one tick because they share the same
+      computation posture (route.ts:113-115 computes .total =
+      attributions.length + .active = attributions.filter(...).length
+      — both length reads which are always finite non-negative integers)
+      and are natural symmetrised siblings on the same summary block.
+      CLOSES the pre-tick 320+ bare typeof assert sweep on this file
+      entirely — every remaining typeof pin on the DETAIL envelope
+      now carries the two-part labelled discipline.
+
+      Shape lifted (adapts tick 340 posture to computed numeric
+      aggregates rather than DB-CHECK-enum text columns):
+        - Writer-side source: not a schema column — attributions_summary
+          is a route-side aggregate computed at
+          web/src/app/api/admin/resellers/[code]/route.ts:113-120 from
+          the reseller_attributions Promise.all leg. .total =
+          attributions.length; .active = attributions.filter((a) =>
+          a.status === "active").length; .by_source = reduce into a
+          Record<string, number>. Both .total + .active are unbounded
+          non-negative counters — no small enum of legal values.
+        - Application read path: projected on the same DETAIL envelope
+          as promotion_codes[] + admins[] + commissions[] via the
+          NextResponse.json return at route.ts:122-129.
+        - Runtime enforcement in this spec: two-part guards per column,
+          mirroring the tick 340 admins[].role + admins[].status
+          discipline but with the second half rewritten to fit the
+          computed-numeric fault-model:
+            - (a) typeof-number labelled with diagnostic prose preserves
+              the raw-type discipline. Catches a route-side regression
+              that stopped calling .length (returned raw array or
+              null|undefined placeholder), a serialisation regression
+              that stringified the count, or a Number(...) coercion of
+              a text column.
+            - (b) Number.isFinite + >= 0 range half for .total; the same
+              plus <= body.attributions_summary.total upper-bound half
+              for .active. Range assert has a genuine "would surface a
+              NaN / Infinity / negative regression" fault-model rather
+              than a tautological pin — a future refactor that swapped
+              .length for a manual counter, a subtraction over two
+              length reads, or a cached counter row could produce
+              out-of-band values that would silently pass a bare
+              typeof-number pin. The .active <= .total upper bound
+              additionally catches a decoupling refactor (e.g. reading
+              .active from a separate .from() query) that could break
+              the total>=active invariant guaranteed by
+              Array.prototype.filter semantics.
+        - Module-scope precedent: unlike tick 340 (which added
+          ADMIN_ROLES + ADMIN_STATUSES Set<string> consts alongside
+          BILLING_MODELS + STATUSES + ALLOWED_TIER_PCTS), tick 341
+          introduces zero new module-scope constants — the range check
+          uses Number.isFinite + inline >= 0 / <= .total comparisons
+          because .total + .active are unbounded non-negative counters
+          with no small enum of legal values. Coherent with the tick
+          320+ discipline: the second half of a two-part guard is
+          whichever assert best matches the writer-side fault-model,
+          not a mandatory set-membership check.
+
+      Rotation rationale:
+        - Closes the last two outstanding tick-1710 baseline bare
+          typeof asserts on this file per tick 340 option (a) verbatim.
+          Every typeof pin on admin-reseller-detail-validation.spec.ts
+          now carries the tick 320+ two-part labelled discipline.
+        - Distinct from tick 340 (admins[].role + admins[].status
+          two-part typeof-string + set-membership on the same file) in
+          ONE dimension: tick 341 targets the top-level
+          attributions_summary aggregate rather than the admins[]
+          child-row cluster on the same spec. Both share the tick 320+
+          two-part labelled discipline; only the second half differs
+          (set-membership on enum text vs Number.isFinite + range on
+          computed numeric aggregate).
+        - Distinct from ticks 327 + 336 + 338 (display_name two-part
+          typeof + non-blank on detail-authz + list-authz +
+          detail-validation surfaces) in one dimension: those three
+          ticks were cross-surface twin symmetrisation ticks over the
+          same shape; this tick is a within-file column sweep from the
+          child-row clusters (already lifted at ticks 339/340) up to
+          the top-level attributions_summary aggregate.
+        - Zero new imports, zero new module-scope consts, no fixture
+          change, no route change. Comment-and-inline-pin-only
+          tightening tick — matches the accepted P10 rotation shape
+          while P8.5 remains HUMAN-BLOCKED on Stripe env vars.
+
+      Coverage-per-guard posture: the two-part pin fires once per
+      DETAIL GET regardless of seed shape — attributions_summary is
+      always present in the response envelope (route.ts:113-120
+      computes it unconditionally from attributions ?? []). The wave-5
+      row 168 seed reseller (QAPROBEWHOLESALEACTIVE) surfaces the
+      aggregate on every green CI run; on hosts without the seeded
+      fixture the loadTempReseller() short-circuit skips the whole
+      test upstream so the pin block is never reached.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + inline pins at prior rows 510/511 lifted from bare
+              `expect(typeof body.attributions_summary?.total).toBe("number")`
+              + `expect(typeof body.attributions_summary?.active).toBe("number")`
+              to labelled two-expect discipline each: typeof-number
+              half with diagnostic prose naming route.ts:114/115 source
+              + Number.isFinite + >= 0 range half (with the additional
+              <= .total upper-bound half on .active) naming the
+              Array.prototype.length + .filter semantics that make the
+              range assert non-tautological. Inline tick-341
+              doc-comment placed above the pin block for cross-column
+              traceability.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope consts. Matches
+          ticks 234-340 discipline.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03
+          32 routes + R-04 8 stripe files; 6 exemptions, 0
+          violations (unchanged from tick 340).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 341: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. attributions_summary.total + .active two-part typeof-
+      number + Number.isFinite + range pins now COMPLETE on the
+      admin-reseller-detail-validation surface — last of the four
+      promotion_codes[] + admins[] + attributions_summary bare typeof
+      asserts that tick 338 option (a) enumerated as follow-ups.
+      Pre-tick 320+ bare typeof assert sweep on this file CLOSED.
+
+      Next natural picks on tick 342:
+        (a) cross-surface twin lift on admin-reseller-detail-authz.
+        spec.ts: propagate the tick 340 admins[].role +
+        admins[].status two-part typeof + set-membership discipline
+        to the sibling surface — the admins[] loop on that spec
+        still carries the pre-tick 320+ bare typeof asserts per the
+        tick 338 grep. Would mirror the tick 336-338 sequence that
+        symmetrised display_name across list-authz + detail-authz +
+        detail-validation.
+        (b) cross-surface twin lift on admin-reseller-detail-authz.
+        spec.ts: propagate the tick 341 attributions_summary.total +
+        .active two-part typeof-number + Number.isFinite + range
+        discipline to the sibling surface — the attributions_summary
+        aggregate on that spec still carries the pre-tick 320+ bare
+        typeof asserts. Would extend the cross-surface twin
+        symmetrisation posture to computed numeric aggregates.
+        (c) rotate to reseller_commissions_current[] cross-column
+        lifecycle summary cross-surface twin on
+        admin-reseller-loop-status-authz spec — the tick 334
+        detail-side commissions[] summary landed on admin-reseller-
+        detail-authz.spec.ts only.
+        (d) idle — frontier remains tight: P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 340
     ran_at: 2026-07-23
     action: p10_admins_role_and_status_two_part_typeof_string_set_membership_lift_on_admin_reseller_detail_validation

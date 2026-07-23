@@ -507,8 +507,58 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       body.attributions_summary,
       `attributions_summary should be present: ${JSON.stringify(body).slice(0, 200)}`,
     ).toBeTruthy();
-    expect(typeof body.attributions_summary?.total).toBe("number");
-    expect(typeof body.attributions_summary?.active).toBe("number");
+    // Tick 341 — attributions_summary.total + attributions_summary.active
+    // twin-symmetrised two-part typeof-number + Number.isFinite + >= 0 range
+    // lift on this detail-validation spec. Executes tick 340 next-pick
+    // option (a) verbatim: rows 510/511 were the last two outstanding
+    // pre-tick 320+ bare typeof asserts on this file. Both columns share
+    // the same computation posture (route.ts:113-115 computes .total =
+    // attributions.length and .active = attributions.filter(...).length —
+    // both length reads which are always finite non-negative integers) so
+    // symmetrising them in one tick avoids a stale asymmetry between
+    // adjacent lines of the same summary block. Two-part guard per column:
+    //   (a) typeof-number half labelled with diagnostic prose preserves
+    //       the raw-type discipline — catches a route-side regression
+    //       that stopped calling .length (e.g. returned the raw array or
+    //       a null|undefined placeholder), a schema-side type flip that
+    //       broke Array.prototype.length semantics via monkey-patch, or a
+    //       JSON serialisation regression that stringified the count.
+    //       Separated from the range check below so a raw-type flip does
+    //       not hide behind an out-of-band range diagnostic.
+    //   (b) Number.isFinite + >= 0 range half catches a NaN / Infinity
+    //       / negative regression: attributions is `attributionsRes.data
+    //       ?? []` at route.ts:110 so .length is always a non-negative
+    //       integer, but a future refactor that swapped .length for a
+    //       manual counter, a subtraction, or a Number(...) coercion of
+    //       a text column could produce NaN / Infinity / negative values
+    //       that would silently pass a bare typeof-number pin. Genuine
+    //       fault-model rather than a tautological pin — the two-part
+    //       guard mirrors the tick 320+ discipline applied verbatim on
+    //       ticks 327/330/337/338/339/340 to raw-type columns; here the
+    //       second half is a range assert rather than a set-membership
+    //       because .total + .active are unbounded non-negative counters
+    //       (no small enum of legal values), matching the natural
+    //       fault-model for computed numeric aggregates.
+    expect(
+      typeof body.attributions_summary?.total,
+      `attributions_summary.total '${String(body.attributions_summary?.total)}' should be a number (computed as attributions.length at web/src/app/api/admin/resellers/[code]/route.ts:114 where attributions = attributionsRes.data ?? []; a route-side regression that returned the raw array, a null|undefined placeholder, a stringified count, or a Number(...) coercion of a text column would surface here — separated from the range check below so a raw-type flip does not hide behind an out-of-band range diagnostic). Body: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe("number");
+    expect(
+      Number.isFinite(body.attributions_summary?.total) &&
+        (body.attributions_summary?.total as number) >= 0,
+      `attributions_summary.total '${String(body.attributions_summary?.total)}' should be a finite non-negative integer (route.ts:114 computes .total = attributions.length which is always a non-negative integer per Array.prototype.length semantics; a future refactor that swapped .length for a manual counter, a subtraction over two length reads, or a Number(...) coercion of a numeric-text column could produce NaN / Infinity / negative values that would silently pass a bare typeof-number pin — the range half catches those regressions on the first offending host). Body: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      typeof body.attributions_summary?.active,
+      `attributions_summary.active '${String(body.attributions_summary?.active)}' should be a number (computed as attributions.filter((a) => a.status === "active").length at web/src/app/api/admin/resellers/[code]/route.ts:115 where attributions = attributionsRes.data ?? []; a route-side regression that returned the raw filtered array, a null|undefined placeholder, a stringified count, or a Number(...) coercion of a text column would surface here — separated from the range check below so a raw-type flip does not hide behind an out-of-band range diagnostic). Body: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe("number");
+    expect(
+      Number.isFinite(body.attributions_summary?.active) &&
+        (body.attributions_summary?.active as number) >= 0 &&
+        (body.attributions_summary?.active as number) <=
+          (body.attributions_summary?.total as number),
+      `attributions_summary.active '${String(body.attributions_summary?.active)}' should be a finite non-negative integer bounded above by .total='${String(body.attributions_summary?.total)}' (route.ts:115 computes .active = attributions.filter((a) => a.status === "active").length which is always a non-negative integer AND is definitionally <= attributions.length = .total per Array.prototype.filter semantics; a future refactor that decoupled .active from the same source array — e.g. reading a cached counter row or a separate .from() query — could break the total>=active invariant. The upper-bound half catches that regression on the first offending host in addition to the NaN / Infinity / negative fault-model that the isFinite + >= 0 half covers for .total above). Body: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe(true);
     expect(
       body.attributions_summary?.by_source !== null &&
         typeof body.attributions_summary?.by_source === "object" &&
