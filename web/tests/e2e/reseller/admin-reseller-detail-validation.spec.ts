@@ -383,6 +383,7 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       };
       commissions?: Array<{
         commission_id?: unknown;
+        list_price_aud_cents?: unknown;
       }>;
     };
 
@@ -644,6 +645,44 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       expect(
         UUID_RE.test(row.commission_id as string),
         `commissions[].commission_id '${String(row.commission_id)}' should match UUID shape (uuid PRIMARY KEY per 0094:34); a projection-side drop from route.ts:98-105 select that replaced commission_id with a stringified integer id, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 343 — commissions[].list_price_aud_cents two-part typeof-number
+      // + Number.isFinite + strictly-positive integer wire-shape pin, second
+      // column pinned in the reseller_commissions_current[] child-row
+      // cluster on this detail-validation spec (opened at tick 342 with
+      // commission_id UUID). Executes caller-brief option (a) verbatim.
+      // Two-part guard:
+      //   (a) typeof-number half labelled with diagnostic prose preserves
+      //       the NOT-NULL raw-type discipline — catches a schema-side type
+      //       flip (int → text), a view-side column drop from
+      //       reseller_commissions_current at 0094:138, a projection-side
+      //       drop from route.ts:98-105 select tuple, or a PostgREST
+      //       serialisation regression that returned null|undefined /
+      //       stringified the cents. Separated from the range check below
+      //       so a raw-type flip does not hide behind an out-of-band range
+      //       diagnostic.
+      //   (b) Number.isFinite + Number.isInteger + strictly-positive
+      //       (> 0) range half catches an out-of-band write path that
+      //       bypassed the DB CHECK (list_price_aud_cents > 0) — writer-
+      //       side source at 0094:37 declares
+      //       `list_price_aud_cents int NOT NULL CHECK (list_price_aud_cents > 0)`
+      //       so a zero, negative, non-integer float, NaN, or Infinity
+      //       would only reach the wire via an ALTER CHECK DROP, a
+      //       superuser INSERT bypass, or a route-side Number(...)
+      //       coercion that widened an int → float. Note strictly '> 0'
+      //       (not '>= 0') per the schema CHECK — the ck_commission_split
+      //       invariant at 0094:48-58 divides by list_price so a zero here
+      //       would silently break the retail 60/40 split arithmetic on
+      //       every downstream consumer of net_owed_cents.
+      expect(
+        typeof row.list_price_aud_cents,
+        `commissions[].list_price_aud_cents '${String(row.list_price_aud_cents)}' should be a number (int NOT NULL CHECK (list_price_aud_cents > 0) per web/supabase/migrations/0094_reseller_commissions_and_events.sql:37; view alias rc.list_price_aud_cents at 0094:138; a schema-side type flip, a view-side column drop, a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:98-105, or a PostgREST serialisation regression that returned null|undefined / stringified the cents would surface here — separated from the range check below so a raw-type flip does not hide behind an out-of-band range diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
+      expect(
+        Number.isFinite(row.list_price_aud_cents) &&
+          Number.isInteger(row.list_price_aud_cents) &&
+          (row.list_price_aud_cents as number) > 0,
+        `commissions[].list_price_aud_cents '${String(row.list_price_aud_cents)}' should be a finite strictly-positive integer (0094:37 CHECK (list_price_aud_cents > 0) — DB CHECK is the sole schema backstop; an ALTER CHECK DROP, a superuser INSERT bypass, or a route-side Number(...) coercion that widened int → float / NaN / Infinity would slip an out-of-band price straight past the schema. Strictly '> 0' not '>= 0' per the schema — the ck_commission_split invariant at 0094:48-58 divides by list_price_aud_cents so a zero here would silently break the retail 60/40 split arithmetic on every downstream consumer of net_owed_cents). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
