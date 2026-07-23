@@ -784,10 +784,27 @@ rm -rf /tmp/nginx-blockid-cache/* 2>/dev/null && echo "  ✅ Nginx cache cleared
 # ══════════════════════════════════════════════════════════════════════
 gate "Post-deploy hydrated smoke (Playwright)"
 export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-https://blockid.au}"
+# Playwright config, tests, and node_modules live in $WEB_DIR. Previous swap
+# gate cd'd into $RELEASE_DIR (standalone output), which has no node_modules/.bin
+# — that's why iter-12 failed with `sh: 1: playwright: not found` yet still
+# reported pass (the `| tail -40` pipe swallowed the non-zero exit). Explicitly
+# cd back to $WEB_DIR and use npx --no-install so PATH resolution is deterministic.
+cd "$WEB_DIR"
+# Preflight: fail loud if the playwright binary isn't installed. Surfaces
+# lockfile drift immediately instead of after the smoke silently no-ops.
+if ! PW_VERSION="$(npx --no-install playwright --version 2>&1)"; then
+  echo "  ❌ Playwright binary missing from node_modules: $PW_VERSION"
+  fail "Playwright not installed — run: npm install (and once: npx playwright install --with-deps chromium)"
+fi
+echo "  ℹ  Playwright preflight: $PW_VERSION"
 # Give Cloudflare + purge a moment to propagate before we probe the CDN.
 sleep 5
-PW_EXIT=0
-npm run e2e:post-deploy 2>&1 | tail -40 || PW_EXIT=$?
+# Capture playwright's exit code via PIPESTATUS[0] — piping to `tail` without
+# `set -o pipefail` would otherwise mask a non-zero exit and false-pass.
+set +e
+npx --no-install playwright test tests/e2e/smoke/post-deploy.spec.ts --reporter=list 2>&1 | tail -40
+PW_EXIT=${PIPESTATUS[0]}
+set -e
 if [ "$PW_EXIT" -ne 0 ]; then
   echo "  ❌ Playwright hydrated smoke failed against $PLAYWRIGHT_BASE_URL"
   echo "  Rollback candidate: bash scripts/deploy-live.sh --rollback"
