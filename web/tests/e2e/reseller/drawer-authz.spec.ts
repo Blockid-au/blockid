@@ -224,6 +224,8 @@ test.describe("Reseller customer-drawer — P10 wave-2 happy path", () => {
         label: string;
         detail?: string | null;
         phase?: number | null;
+        chapterSlug?: string | null;
+        href?: string | null;
       }>;
       svi_curve?: Array<{ month: string; score: number }>;
       reports?: Array<{ id: string; title: string; type: string }>;
@@ -294,6 +296,45 @@ test.describe("Reseller customer-drawer — P10 wave-2 happy path", () => {
     // from the row shape would break the drawer client renderer.
     expect(typeof body.progression?.[0]?.ts).toBe("string");
     expect(typeof body.progression?.[0]?.label).toBe("string");
+    // Tick 228 — option (f): extend progression[0] with shape pins on the four
+    // optional fields declared on ProgressionEvent (customer-drawer.ts:32-38).
+    //   - detail: undefined on the signup push (buildProgressionTimeline at
+    //     customer-drawer.ts:122-126 sets only kind/ts/label; no detail key),
+    //     so on the wire JSON.stringify drops the field and the client reads
+    //     undefined. Other kinds set detail to string | null (first_svi_run
+    //     line 145, svi_score_update lines 153-156, report_generated line
+    //     164, plan_change line 177, credit_grant line 189). Loose `== null`
+    //     catches both null and undefined so the pin holds for whichever
+    //     shape the signup row emits.
+    //   - phase / chapterSlug / href: populated by annotateProgression
+    //     (progression-linkage.ts:57-61) which spreads linkageForEvent onto
+    //     every row. PHASE_BY_KIND[signup] = 1 (line 24) so signup resolves
+    //     to phase 1 → chapterSlug "01-vision" (startup-journey.ts:76-78) →
+    //     href "/guide/01-vision". Cross-cutting kinds (report_generated /
+    //     plan_change / credit_grant per PHASE_BY_KIND lines 28-30) return
+    //     null triple. Row 146 is the signup row (progression[0]) so we
+    //     expect the phase-1 triple in practice, but the pins stay
+    //     null-or-typeof discipline so a re-classification of signup to a
+    //     cross-cutting kind (via PHASE_BY_KIND edit) does not false-fail
+    //     the shape assertion. VALUE assertions on the "01-vision" slug and
+    //     "/guide/01-vision" href are intentionally deferred — matches the
+    //     tick 218-227 discipline of shape-pinning without content-pinning.
+    expect(
+      body.progression?.[0]?.detail == null ||
+        typeof body.progression?.[0]?.detail === "string",
+    ).toBe(true);
+    expect(
+      body.progression?.[0]?.phase == null ||
+        typeof body.progression?.[0]?.phase === "number",
+    ).toBe(true);
+    expect(
+      body.progression?.[0]?.chapterSlug == null ||
+        typeof body.progression?.[0]?.chapterSlug === "string",
+    ).toBe(true);
+    expect(
+      body.progression?.[0]?.href == null ||
+        typeof body.progression?.[0]?.href === "string",
+    ).toBe(true);
     // svi_curve + reports may be empty arrays for a founder with no analyses
     // but MUST be arrays — a null here would flag the client renderer.
     expect(Array.isArray(body.svi_curve)).toBe(true);
