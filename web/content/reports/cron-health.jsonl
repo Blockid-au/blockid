@@ -839,3 +839,5 @@
 {"ts":"2026-07-23T06:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":4685,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-07-23T06:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17015,"detail":""}
 {"ts":"2026-07-23T06:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2580,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (233959632 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274946256 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-23T06:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":131,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-07-23T06:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":596,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (233957824 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274946236 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
