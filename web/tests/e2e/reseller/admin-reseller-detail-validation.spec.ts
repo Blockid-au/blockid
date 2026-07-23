@@ -472,6 +472,7 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         user_id?: unknown;
         role?: unknown;
         status?: unknown;
+        linked_at?: unknown;
       }>;
       attributions_summary?: {
         total?: unknown;
@@ -655,6 +656,69 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       expect(
         ADMIN_STATUSES.has(row.status as string),
         `admins[].status '${String(row.status)}' should be one of {active, revoked} (0091:73-74 status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked')) — DB CHECK is the sole schema backstop; an ALTER CHECK DROP or a superuser INSERT bypassing the constraint would slip an out-of-band status straight past the schema AND drop the row out of the reseller_admins_user_idx partial index at 0091:80-81 which scopedReseller() consumes for reseller-side console authorisation). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 350 — admins[].linked_at two-part typeof-string +
+      // ISO_TIMESTAMP_RE wire-shape pin, FIFTH column pinned in the
+      // reseller_admins[] child-row cluster on this detail-validation
+      // spec (opened tick 340 with role + status set-membership pair;
+      // ticks 321/322-style id + user_id UUID pins already carried at
+      // rows 606-612 from earlier row-1710 baseline). Executes tick 349
+      // next-pick option "admins[].linked_at when hoisted" verbatim:
+      // propagates the tick 306 pin already carried on the sibling
+      // admin-reseller-detail-authz.spec.ts (rows 3363-3370) as a
+      // cross-surface twin, first ISO-shape pin on the admins[] cluster
+      // for this spec. Column source: reseller_admins.linked_at declared
+      // at web/supabase/migrations/0091_reseller_module_foundations.sql:75
+      // as `linked_at timestamptz NOT NULL DEFAULT now()`, projected via
+      // select("id, user_id, role, status, linked_at, revoked_at") on the
+      // Promise.all fan-out at web/src/app/api/admin/resellers/[code]/
+      // route.ts:89-93. ALSO the ORDER BY column for the route.ts:93
+      // `.order("linked_at", { ascending: false })` sort, so a shape
+      // drift here would break the deterministic row ordering the
+      // fixture implicitly depends on for the admins projection. Two-
+      // part guard mirroring the tick 349 commissions[].created_at
+      // posture on this spec verbatim + the tick 306 admins[].linked_at
+      // posture on the sibling detail-authz spec:
+      //   (a) typeof-string half labelled with diagnostic prose
+      //       preserves the NOT-NULL raw-type discipline — catches a
+      //       schema-side NOT NULL drop, a projection-side drop from
+      //       route.ts:89-93, or a PostgREST serialisation regression
+      //       that returned null|undefined. Separated from the
+      //       ISO_TIMESTAMP_RE.test() assert below so a raw-type flip
+      //       does not hide behind a shape-based diagnostic.
+      //   (b) ISO_TIMESTAMP_RE.test() shape assert catches a
+      //       serialisation regression to a Postgres-native
+      //       "YYYY-MM-DD HH:MM:SS" form with a space delimiter, a Unix
+      //       epoch number-as-string, a truncated date-only slug, or a
+      //       legacy pre-ISO timestamp. Reuses the module-scope
+      //       ISO_TIMESTAMP_RE const introduced this file at tick 349
+      //       (row 242) — no new const needed. The stamp captures when
+      //       a user was linked to a reseller as owner|admin|viewer; a
+      //       drift here also silently breaks the reseller_admins_user
+      //       _idx (0091:80-81) sort ordering that scopedReseller()
+      //       consumes for reseller-side console authorisation, so this
+      //       pin doubles as a canary for that hot index. Detail-surface
+      //       only — the admin-resellers-list route projects only the
+      //       resellers-row shape and does not fan out to
+      //       reseller_admins; the Promise.all leg that pulls admins
+      //       rows is unique to the detail route. Fires on every green
+      //       CI run when the seeded reseller has admin rows; on hosts
+      //       without seeded admins the for-loop is a no-op so the pin
+      //       never fires — matches the tick 340 posture on this spec
+      //       for role + status. Zero new imports; zero new module-
+      //       scope constants (ISO_TIMESTAMP_RE reused from tick 349).
+      //       Remaining un-tightened column in the admins[] projection
+      //       after this tick: revoked_at (nullable ISO-8601 shape —
+      //       combines the tick 301 nullable-text posture with the ISO
+      //       shape assert; natural next-pick to CLOSE the admins[]
+      //       child-row cluster on this spec).
+      expect(
+        typeof row.linked_at,
+        `admins[].linked_at '${String(row.linked_at)}' should be a string (timestamptz NOT NULL DEFAULT now() per web/supabase/migrations/0091_reseller_module_foundations.sql:75 serialised via PostgREST as an ISO 8601 string; a schema-side NOT NULL drop, a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:89-93, or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the ISO_TIMESTAMP_RE.test() assert below so a raw-type flip does not hide behind a shape-based diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        ISO_TIMESTAMP_RE.test(row.linked_at as string),
+        `admins[].linked_at '${String(row.linked_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:75 serialised via PostgREST); a drift to a Postgres-native "YYYY-MM-DD HH:MM:SS" form with a space delimiter, a Unix epoch number-as-string, a truncated date-only slug, or a legacy pre-ISO timestamp would surface here. Also the ORDER BY column for the route.ts:93 .order("linked_at", { ascending: false }) sort, so a shape drift here breaks the deterministic row ordering the fixture implicitly depends on for the admins projection. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
 
