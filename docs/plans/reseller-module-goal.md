@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.334
+version: 2026-07-23.335
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,154 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 335
+    ran_at: 2026-07-23
+    action: p10_resellers_row_wholesale_gst_abn_cross_column_invariant_summary_hoist_on_admin_resellers_list_twin
+    result: |
+      Executes tick 334 next-pick option (a) verbatim: mirror the
+      resellers-row ck_wholesale_gst_required cross-column invariant
+      summary (billing_model ⇔ gst_registered ⇔ abn) that landed on
+      the detail surface at tick 333 onto the twin list surface
+      admin-resellers-list-authz.spec.ts. Restores the tick 231-232
+      twin-symmetrisation discipline across the two admin-resellers-
+      family surfaces so the resellers-row cross-column-invariant
+      cluster now carries the same module-scope summary on both
+      admin-resellers list + detail surfaces.
+
+      Cross-column invariant summarised (mirrors the tick 333 detail-
+      side hoist verbatim for the wholesale-clause halves so the two
+      twin surfaces carry symmetric wording):
+        - Writer-side source: resellers table DB CHECK
+          ck_wholesale_gst_required at
+          web/supabase/migrations/0091_reseller_module_foundations.sql:47-50
+          enforces the disjunction
+            (billing_model = 'retail')
+            OR
+            (billing_model = 'wholesale'
+               AND gst_registered = true
+               AND abn IS NOT NULL)
+          Sibling CHECK ck_abn_format at 0091:52-54 is orthogonal
+          single-column format guard on abn (spaced NN NNN NNN NNN
+          shape) that must co-satisfy for wholesale writes to land.
+        - Application write path: validateAdminResellerPatch() at
+          web/src/lib/reseller/admin-validator.ts:169-174 builds a
+          merged view of {billing_model, gst_registered, abn} across
+          incoming patch + current row, then rejects wholesale merges
+          that fail gst_registered=true (reason='wholesale_requires_
+          gst') or abn IS NOT NULL / ABN_RE.test (reason='wholesale_
+          requires_abn'). Sole application-layer gate — a validator-
+          drift bypass would still be caught by the DB CHECK.
+        - Read path (list surface, distinct from detail): projected
+          via select("*") on the resellers query at web/src/app/api/
+          admin/resellers/route.ts:41-44 — .from("resellers").select
+          ("*").order("created_at", {ascending:false}) so all three
+          columns come out on the wire on EVERY row of the
+          resellers[] array on every list GET. The detail route also
+          projects select("*") from the same table via loadReseller()
+          at web/src/app/api/admin/resellers/[code]/route.ts:47-48
+          so the invariant is observable on BOTH admin resellers-
+          family surfaces on every green CI run.
+        - Runtime enforcement in this spec: per-column pins at
+          row 793-800 (billing_model typeof-string + BILLING_MODELS
+          Set.has, tick 330 — list-side twin of detail-side tick
+          328), row 891-894 (gst_registered typeof-boolean, tick
+          287), and row 1044-1053 (abn null-or-string + null-or-
+          ABN_RE, tick 294) iterate every row of the resellers[]
+          array on every green CI run. No inline cross-column
+          if/else assert added because per-column pins are
+          sufficient to surface any single-column drift — DB CHECK
+          + validator handle write-side enforcement.
+
+      Rotation rationale:
+        - Completes the twin-hoist pair with tick 333 (detail-side
+          ck_wholesale_gst_required hoist) per tick 334 option (a)
+          verbatim. The resellers-row cross-column-invariant
+          cluster now carries the same module-scope summary on
+          both admin-resellers-family surfaces (list + detail),
+          matching the tick 231-232 twin-symmetrisation discipline.
+        - Distinct from tick 333 in ONE dimension: the list surface
+          iterates a cohort (invariant enforced per-row across
+          every SELECTed row) rather than pinning a single fixture
+          row, so a legacy INSERT that stamped a wholesale row
+          without a matching abn on ANY row of the cohort would
+          surface here — the detail surface would only catch it if
+          the /code lens landed on that specific row.
+        - No new imports, no new module-scope const, no fixture
+          change, no route change, no per-row assert added — pure
+          documentation-only close-out lift. Matches ticks 234-334
+          discipline (comment-only tightening ticks are the accepted
+          P10 rotation shape while P8.5 remains HUMAN-BLOCKED on
+          Stripe env vars).
+
+      Coverage-per-guard posture: the hoist itself is documentation-
+      only — the runtime pins on the three coupled columns already
+      fire on every green CI run via the tick 287 / 294 / 330 per-
+      column asserts iterating every seeded resellers row. The wave-5
+      cohort from seed-qa-reseller.mjs exercises both branches of the
+      disjunction: retail-branch (most probe variants default
+      billing_model='retail') and wholesale-branch (QAPROBEWHOLESALE
+      ACTIVE variant carries wholesale+GST+ABN). On fresh hosts
+      without seeded cohort the resellers[] loop is a no-op so the
+      pins never fire. The new module-scope doc-block gives a future
+      frontier tick a single lift-source when rotating into the
+      resellers-row cross-column-invariant cluster from the list lens.
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + tick 335 doc-block inserted between tick 331's closing
+              paragraph and the `const ISO_TIMESTAMP_RE` declaration,
+              at the same module-scope-comment position pattern used
+              by the sibling detail spec tick 333 hoist. Summary
+              paragraph names all three coupled columns (billing_
+              model, gst_registered, abn), the DB CHECK constraint at
+              0091:47-50, the orthogonal ck_abn_format CHECK at
+              0091:52-54, the application write-path validator at
+              admin-validator.ts:169-174, the list read-path
+              projection at route.ts:41-44, and the three per-column
+              pin locations at rows 793-800 / 891-894 / 1044-1053.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const, no
+          per-row assert added. Matches ticks 234-334 discipline.
+
+      Verification:
+        - tsc --noEmit: whole tree clean (exit 0) from web/ workspace.
+        - npm run lint:reseller: R-01 11 files + R-03 32 routes +
+          R-04 8 stripe files; 6 exemptions, 0 violations.
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 335: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. Detail-route cluster summary coverage now COMPLETE
+      across all five child slots (see tick 334); list-surface
+      twin coverage now carries the resellers-row ck_wholesale_gst_
+      required summary alongside the detail lens (this tick).
+
+      Next natural picks on tick 336:
+        (a) rotate to reseller_commissions_current[] cross-column
+        lifecycle summary cross-surface twin — the tick 334 detail-
+        side commissions[] status ⇔ event_type + net_owed_cents ⇔
+        delta_aud_cents summary landed on admin-reseller-detail-
+        authz.spec.ts only; the list route does NOT project
+        commissions[] so this invariant has no natural list-surface
+        home, but the sibling admin-reseller-loop-status-authz spec
+        or the reseller-scoped commissions ledger spec would be
+        candidates.
+        (b) rotate to attributions_summary.by_source enum-tightening
+        pass — the current pin accepts arbitrary string keys against
+        ALLOWED_ATTRIBUTION_SOURCES; a stronger pin would assert
+        exhaustiveness (every enum value present) rather than
+        membership (every present value in enum).
+        (c) rotate to per-column message-prose refresh on any of the
+        ticks 283-317 pins where wording predates the tick 320+ two-
+        part labelled discipline. Sibling to ticks 324 (promotion_
+        codes messages) and 331 (resellers-row messages).
+        (d) idle — frontier remains tight: P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed. P10 hardening continues
+        to accept incremental pin-tightening ticks.
+    commit: (this tick)
+
   - tick: 334
     ran_at: 2026-07-23
     action: p10_commissions_current_status_event_type_net_owed_lifecycle_summary_hoist_on_admin_reseller_detail
