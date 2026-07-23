@@ -72,6 +72,34 @@ const ROUTE = "/api/admin/resellers";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Tick 283 — created_at ISO-8601 wire-shape pin mirrored from
+// admin-requests-list-authz.spec.ts (tick 280) onto the admin-scoped
+// /api/admin/resellers GET. Route at route.ts:41-44 projects the row via
+// select("*") + .order("created_at", { ascending: false }), so
+// resellers.created_at is on the wire as an ISO string on every green
+// response. Column declared at 0091:43 as `created_at timestamptz NOT
+// NULL DEFAULT now()` — non-null column, so the pin below asserts BOTH
+// typeof-string AND ISO_TIMESTAMP_RE.test() rather than the reseller-
+// side null-or-typeof-string / null-or-ISO layering used for nullable
+// decision_at / decision_reason columns (matches the reseller-side tick
+// 275 posture verbatim: NOT-NULL columns → single typeof+regex assert;
+// nullable columns → two-part null-or-string / null-or-string+regex).
+//
+// Symmetric-across-surfaces posture: the same created_at ISO pin now
+// fires on the admin resellers-list surface (via this pin) and the
+// admin requests-list surface (via tick 280's pin at
+// admin-requests-list-authz.spec.ts) so a PostgREST serialisation
+// regression or a projection-side column drop lights up on both admin
+// list lenses simultaneously. Ninth cross-surface companion pin in the
+// tick 275-283 lineage; first pin to leave the admin-requests /
+// reseller-requests pair and land on the admin-resellers surface — the
+// natural next-pick option (b) from tick 282's review_history entry
+// ("rotate to a different admin spec surface — admin-resellers-list-
+// authz.spec.ts").
+const ISO_TIMESTAMP_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
 // resellers.code invariant per normaliseResellerCode() at
 // web/src/lib/reseller/attribution.ts:29 — trim → toUpperCase() →
 // replace(/[^A-Z0-9]/g, "") so every code stored in the resellers table
@@ -158,6 +186,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         display_name?: unknown;
         billing_model?: unknown;
         status?: unknown;
+        created_at?: unknown;
       }>;
     };
     expect(
@@ -200,6 +229,22 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
       expect(
         STATUSES.has(row.status as string),
         `reseller.status should be active|paused|terminated: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 283 — created_at ISO wire-shape tightening. See module-scope
+      // doc-block above ISO_TIMESTAMP_RE for the rationale. Column source
+      // 0091:43 `created_at timestamptz NOT NULL DEFAULT now()` (non-null
+      // → single typeof+regex assert rather than the null-or-string /
+      // null-or-string+regex two-part guard used for nullable decision_at
+      // / decision_reason on the admin-requests-list surface). Mirrors
+      // admin-requests-list-authz.spec.ts (tick 280) which pins the same
+      // ISO wire-shape on reseller_requests.created_at. A PostgREST
+      // serialisation regression, a resellers.created_at type flip from
+      // timestamptz to a bigint clock, or a projection-side drop of
+      // created_at from route.ts:43 select("*") would surface here.
+      expect(typeof row.created_at).toBe("string");
+      expect(
+        ISO_TIMESTAMP_RE.test(row.created_at as string),
+        `reseller.created_at '${String(row.created_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:43 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });

@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.282
+version: 2026-07-23.283
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,139 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 283
+    ran_at: 2026-07-23
+    action: p10_admin_resellers_list_created_at_iso_pin_mirror_from_admin_requests_280
+    result: |
+      Rotated to a fresh admin spec surface per tick 282's next-pick option
+      (b) verbatim — created_at ISO wire-shape pin landed on
+      admin-resellers-list-authz.spec.ts, first pin to leave the admin-
+      requests / reseller-requests pair and land on the admin-resellers
+      surface. Pre-tick posture pinned id (UUID) / code
+      (RESELLER_CODE_RE) / display_name (typeof string) / billing_model
+      (enum) / status (enum) on each row but left resellers.created_at
+      silent even though the route projects it via select("*") and
+      orders by it DESC (route.ts:41-44).
+
+      Ninth cross-surface companion pin in the tick 275-283 lineage;
+      mirrors admin-requests-list-authz.spec.ts's tick 280 created_at
+      pin verbatim onto the admin resellers-list surface so a PostgREST
+      serialisation regression on either reseller_requests.created_at
+      OR resellers.created_at surfaces on both admin list lenses on the
+      same CI pass.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:43 declares
+          `created_at timestamptz NOT NULL DEFAULT now()` on the
+          resellers table — NON-NULL column so the pin uses a single
+          typeof+regex assert (mirrors tick 275's reseller_requests
+          .created_at posture verbatim: NOT-NULL columns → single
+          assert; nullable columns like decision_at / decision_reason
+          → two-part null-or-string / null-or-string+regex layering).
+        - PostgREST serialises timestamptz to ISO-8601 on the wire
+          (same library behaviour tick 280 exercises on the admin-
+          requests-list surface).
+        - Admin-scoped route at /api/admin/resellers/route.ts:41-44
+          projects via select("*") + .order("created_at", {ascending:
+          false}) — so a route regression that dropped created_at
+          from the SELECT list or a type flip from timestamptz to a
+          bigint clock would surface here.
+
+      Design choice — mirror admin-requests-list tick 280 verbatim:
+        - Reuses the same ISO_TIMESTAMP_RE constant shape from tick
+          275 hoisted here as a module-scope constant so the regex is
+          the sibling-surface single-source-of-truth.
+        - Single-part guard (matches tick 275 NOT-NULL discipline
+          verbatim): typeof-string assert fires first, ISO_TIMESTAMP_RE
+          match fires immediately after so a projection drop surfaces
+          on the typeof check before the regex runs.
+
+      Coverage-per-guard posture:
+        - Green-path fixture wave-5 row 164 seeds an ACTIVATED admin
+          harness (qa-admin-1@blockid.au) so the requireAdmin() gate
+          passes; the loop iterates every returned resellers row so
+          seeded hosts holding ≥7 cohort rows exercise the pin on
+          every green CI run.
+        - Fresh CI hosts with zero resellers rows still green because
+          the pin lives inside the per-row for-loop — an empty array
+          skips the loop body entirely, matching the existing UUID_RE
+          + RESELLER_CODE_RE + BILLING_MODELS + STATUSES pins' skip
+          discipline.
+
+      Diagnostic delta of the pass:
+        - One new module-scope constant (ISO_TIMESTAMP_RE) hoisted
+          immediately below UUID_RE with a block-scope doc-comment
+          citing 0091:43 as the column declaration source, route.ts:
+          41-44 as the projection source, and the admin-requests-
+          list-authz spec's tick 280 pin as the sibling-surface
+          companion.
+        - One new inline assertion block (two-line typeof-string +
+          ISO_TIMESTAMP_RE.test() assert) inside the per-row for-loop
+          of the wave-5 row 164 happy GET block, immediately after
+          the existing status enum pin. Block-scope comment cites
+          0091:43 and the admin-requests-list tick 280 pin.
+        - One-line addition to the body.resellers row interface
+          (created_at?: unknown) so tsc still resolves the shape.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no widening of existing guards.
+          Matches ticks 234-282 discipline verbatim: tighten one
+          dimension (add ISO wire-shape assert on
+          resellers.created_at) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged —
+          Playwright specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (new module-scope tick-283 doc-comment block + ISO_TIMESTAMP_RE
+          constant hoisted below UUID_RE; per-row for-loop of the wave-5
+          row 164 happy GET block gains a typeof-string + ISO_TIMESTAMP_RE
+          .test() assert on row.created_at immediately after the status
+          enum pin, with a block-scope comment citing 0091:43 as the
+          column source and admin-requests-list tick 280 as the
+          sibling-surface companion.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.282 → 2026-07-23.283; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-282's incremental-pin pattern.
+        - Cross-surface parity — mirrors the admin-requests-list-authz
+          tick 280 created_at ISO pin verbatim onto the sibling admin-
+          resellers-list surface so a timestamptz serialisation drift
+          surfaces on both admin list lenses simultaneously. Ninth
+          cross-surface companion pin in the 275-283 lineage; first
+          rotation off the requests-pair onto the resellers surface.
+
+      Next natural picks on tick 284:
+        (a) mirror tick 280's created_at ISO pin onto
+        admin-reseller-detail-authz.spec.ts (single-row GET surface
+        for /api/admin/resellers/[id]) so the third admin resellers-
+        family surface joins the pin. Same schema source (0091:43),
+        same regex, same NOT-NULL discipline.
+        (b) mirror tick 275's created_at ISO pin onto reseller-side
+        /api/reseller/me/route.ts surface if it projects reseller
+        row created_at (needs a quick route read to confirm the
+        projection first).
+        (c) rotate to updated_at column — resellers table has
+        `updated_at timestamptz NOT NULL DEFAULT now()` at 0091:44
+        which is also on the wire via select("*") and has zero pins
+        on any surface today. Single-tick fresh-column rotation.
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals (H.20 InfoVision ABN + GST confirmation
+        OR Stripe add-on price env vars).
+    commit: (this tick)
+
   - tick: 282
     ran_at: 2026-07-23
     action: p10_admin_requests_list_decision_reason_length_pin_mirror_from_reseller_277
