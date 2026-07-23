@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.344
+version: 2026-07-23.346
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,138 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 346
+    ran_at: 2026-07-23
+    action: p10_commissions_commission_aud_cents_three_part_typeof_number_integer_non_negative_cross_surface_twin_lift_on_admin_reseller_detail_validation
+    result: |
+      Executes tick 345 next-pick option (b) verbatim: continues the
+      reseller_commissions_current[] child-row cluster sweep on admin-
+      reseller-detail-validation.spec.ts by propagating the tick 314 pin
+      already carried on the sibling admin-reseller-detail-authz.spec.ts —
+      commissions[].commission_aud_cents three-part typeof-number +
+      Number.isInteger + >= 0 non-negative int wire-shape pin. Before this
+      tick the sibling cluster on this file carried column pins for
+      commission_id (tick 342) + list_price_aud_cents (tick 343) +
+      stripe_invoice_id (tick 344) + discount_pct (tick 345); this tick
+      adds the fifth column and narrows the cross-surface twin gap by
+      one column. Remaining un-tightened columns on this spec are
+      net_owed_cents (two-part typeof-number + Number.isInteger; NO sign
+      tail per the tick 315 rationale — net_owed_cents may be negative on
+      clawback rows), status (typeof-string + value-set enum {cleared,
+      pending_clearance, clawed_back, dispute_open, partially_refunded} —
+      needs a new ALLOWED_COMMISSION_STATUSES module-scope const), and
+      created_at (typeof-string + ISO_TIMESTAMP_RE — needs a new
+      ISO_TIMESTAMP_RE module-scope const).
+
+      Shape lifted:
+        - Writer-side source: reseller_commissions.commission_aud_cents
+          `int NOT NULL CHECK (commission_aud_cents >= 0)` at
+          web/supabase/migrations/0094_reseller_commissions_and_events.sql
+          :41, projected verbatim through the reseller_commissions_current
+          view alias rc.commission_aud_cents at 0094:147.
+        - Application read path: projected via select("commission_id,
+          stripe_invoice_id, list_price_aud_cents, discount_pct,
+          commission_aud_cents, net_owed_cents, status, created_at") on
+          the Promise.all fan-out at
+          web/src/app/api/admin/resellers/[code]/route.ts:98-105.
+        - Runtime enforcement in this spec: three-part guard, mirroring
+          the tick 314 posture on the sibling spec verbatim but with a
+          `>= 0` (non-negative) tail rather than `> 0` (strictly-positive)
+          because wholesale rows always stamp commission_aud_cents = 0 per
+          the ck_commission_split CHECK at 0094:52-60 — a strict positive
+          tail would false-positive on every wholesale commission row of
+          the QAPROBEWHOLESALEACTIVE seed reseller.
+
+      Rotation rationale:
+        - Executes tick 345 next-pick option (b) verbatim (the option (a)
+          discount_pct pin landed on tick 345). Priorities (c) rotate to
+          detail-authz cross-surface twin symmetrisation on other
+          surfaces + (d) idle remain future options.
+        - Cross-surface twin symmetrisation: continues the column-by-
+          column sweep in the same order the sibling spec pinned columns
+          (tick 308 commission_id → tick 309 stripe_invoice_id → tick 311
+          list_price_aud_cents → tick 312 discount_pct → tick 314
+          commission_aud_cents on the sibling). Reads the SELECT tuple at
+          route.ts:98-105 in projection order.
+        - No new module-scope const introduced (Number.isInteger is a
+          built-in; the >= 0 range check is inline). Matches the tick 342
+          + 343 + 345 pattern of zero-const cluster columns.
+        - Zero new imports, no fixture change, no route change.
+          Comment-plus-inline-pin tightening tick — matches the accepted
+          P10 rotation shape while P8.5 remains HUMAN-BLOCKED on Stripe
+          env vars.
+
+      Coverage-per-guard posture: the three-part pin fires once per
+      commissions[] row when the seeded reseller has attributed founders
+      with paid Stripe invoices in the last 50 rows (route.ts:105 limits
+      the projection to 50). On hosts without seeded commission events
+      the for-loop is a no-op so the pin never fires — matches the tick
+      342/343/344/345 posture on this spec.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + widened `commissions?: Array<{ commission_id?: unknown;
+              stripe_invoice_id?: unknown; list_price_aud_cents?:
+              unknown; discount_pct?: unknown; }>` body annotation to
+              add `commission_aud_cents?: unknown` in projection-tuple
+              order.
+            + added a three-expect pin block after the discount_pct
+              guards (row order matches the SELECT tuple at route.ts:98-
+              105: commission_id → stripe_invoice_id → list_price_aud_
+              cents → discount_pct → commission_aud_cents) with typeof-
+              number half naming 0094:41/147 + route.ts:98-105 sources +
+              Number.isInteger half naming the PostgREST bigint/float
+              fault-model + >= 0 range half naming the ck_commission_
+              split wholesale carveout for the `>= 0` vs `> 0` split.
+            + inline tick-346 doc-comment placed above the pin block for
+              cross-column traceability.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit non-zero due to two pre-
+          existing errors in src/lib/portfolio.ts + src/app/api/projects/
+          portfolio/route.test.ts (missing `svi_history` property on
+          PortfolioRow). Neither file touched by this tick; the two errors
+          are unrelated to admin-reseller-detail-validation.spec.ts. Grep
+          confirms zero TS errors mention detail-validation.
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 345).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 346: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      commissions[].commission_aud_cents int NOT NULL >= 0 three-part
+      pin now COMPLETE on the admin-reseller-detail-validation surface —
+      fifth column pinned in the reseller_commissions_current[] child-
+      row cluster on this surface (out of eight tuple columns; three
+      columns remain: net_owed_cents, status, created_at).
+
+      Next natural picks on tick 347:
+        (a) continue the commissions[] cross-surface twin sweep on
+        admin-reseller-detail-validation: propagate the tick 315
+        net_owed_cents two-part typeof-number + Number.isInteger pin
+        (NO sign tail per tick 315 rationale — net_owed_cents may be
+        negative on clawback rows; two-part not three-part).
+        (b) continue the commissions[] cross-surface twin sweep:
+        propagate the tick 316 status pin (needs a new module-scope
+        ALLOWED_COMMISSION_STATUSES = new Set(["cleared",
+        "pending_clearance", "clawed_back", "dispute_open",
+        "partially_refunded"]) const — mirrors the sibling const at
+        detail-authz:2508 verbatim).
+        (c) continue the commissions[] cross-surface twin sweep:
+        propagate the tick 317 created_at pin (needs a new module-
+        scope ISO_TIMESTAMP_RE const — mirrors the sibling const at
+        detail-authz:2401 verbatim; also the ORDER BY column for the
+        route.ts:104 sort).
+        (d) idle — frontier remains tight: P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed. P10 hardening continues
+        to accept incremental pin-tightening ticks.
+    commit: (this tick)
+
   - tick: 344
     ran_at: 2026-07-23
     action: p10_commissions_stripe_invoice_id_two_part_typeof_string_stripe_invoice_id_re_cross_surface_twin_lift_on_admin_reseller_detail_validation
