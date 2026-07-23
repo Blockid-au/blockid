@@ -992,3 +992,8 @@
 {"ts":"2026-07-23T17:44:07.498Z","event":"github-push-master","detail":"Blockid-au: chore(deploy): iter-9 live deploy log — HEAD a545486e, 10/10 gates, 16/17 smoke (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T17:48:39Z","status":"success","gates":"8/8","pid":"344875","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T17:53:04.494Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 320 — promotion_codes[].id UUID two-part pin on admin reseller detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T17:53:15.492Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T17-50-01-286Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T17:55:37.357Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 321 — admins[].id UUID two-part pin on admin reseller detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T17:58:31Z","status":"success","gates":"8/8","pid":"378763","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T17:59:06.251Z","event":"github-push-master","detail":"Blockid-au: feat(qa): Playwright-based post-deploy hydrated smoke (catches client-side render regressions like tab content) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T18:02:40.054Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 322 — admins[].user_id UUID two-part pin on admin reseller detail (1 commits)","source":"github-webhook"}
