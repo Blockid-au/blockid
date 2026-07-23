@@ -859,6 +859,87 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history phase_dispatched row.status should be typeof number (reseller-goal-loop.mjs:204 dispatchToClaude returns \`res.status ?? -1\` → mjs:299 spread): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("number");
       }
+      // tick 252 — phase_dispatched stage schema pin (option y18;
+      // paired two-pin closing the dispatchToClaude() writer contract
+      // completely — the tick 251 guard pinned label + status; this
+      // tick pins the remaining two keys of the dispatchToClaude()
+      // return shape at mjs:204: elapsed_ms + signal). Sits in its
+      // own conditional-by-stage guard rather than being folded into
+      // the tick 251 block so the per-tick comment header + writer
+      // citation stays traceable to the tick that added it — matches
+      // the tick 240-243 pattern where the same stage can receive
+      // multiple guard blocks in successive ticks without merging.
+      //
+      // Writer-schema justification:
+      //   - scripts/cron/reseller-goal-loop.mjs:299 writes
+      //     `log({ stage: 'phase_dispatched', ...result })` where
+      //     `result` is the dispatchToClaude() return object at
+      //     mjs:198-204: `{ status: res.status ?? -1, elapsed_ms,
+      //     signal, label }` — the `...result` spread threads all
+      //     four keys through the log() helper (mjs:52-58) which
+      //     prepends tick_id/ts/human_review_minutes_7d then spreads
+      //     `...row` untouched into the jsonl history line.
+      //   - `elapsed_ms` is `Date.now() - started` at mjs:203 where
+      //     `started` is `Date.now()` at mjs:197 — Date.now() returns
+      //     a finite integer millisecond count on every Node.js
+      //     platform (monotonic within a process; not affected by
+      //     wall-clock jumps for the delta subtraction), so the
+      //     result is a finite non-negative JSON number every time.
+      //     Schema-level typeof=number guarantee (never null, never
+      //     absent, never Infinity, never NaN — subtracting two
+      //     Date.now() values inside the same process cannot produce
+      //     any of those). Bare `typeof === 'number'` pin.
+      //   - `signal` is `res.signal` at mjs:198 where `res` is the
+      //     spawnSync result — on the Node.js child_process contract
+      //     (documented at nodejs.org/api/child_process.html) it is
+      //     `string | null` (null on clean exit, string like
+      //     'SIGTERM' / 'SIGKILL' on process termination by signal).
+      //     Bare typeof=string would fail on every green subprocess
+      //     exit (the common case) because signal lands as null;
+      //     bare typeof=object would fail on the kill-signal branch.
+      //     Nullable typeof guard `signal === null || typeof signal
+      //     === 'string'` accepts both branches — matches the JSON
+      //     serialisation of null (typeof null === 'object' in JS,
+      //     but JSON.stringify preserves null so the parsed value
+      //     round-trips as null in the tickRow object).
+      //
+      // Design choice — two-pin paired with tick 251:
+      //   - Guard cost amortised across both pins because elapsed_ms
+      //     + signal always land together on the same row (both are
+      //     part of the same `...result` spread at mjs:299), so a
+      //     single conditional-by-stage guard is sufficient. Matches
+      //     the tick 240 + 242 + 244 + 245 + 247 + 248 + 251 two-pin
+      //     rationale verbatim except for the specific keys pinned.
+      //   - TYPEOF pin only (not value) — elapsed_ms varies per
+      //     subprocess (bounded by the 45min timeout at mjs:201 but
+      //     otherwise unbounded); signal varies per outcome (null on
+      //     green, 'SIGTERM' on timeout, other signal names on
+      //     external kill). Value pins would either break daily or
+      //     force a moving-target regex, matching tick 240's "typeof
+      //     only so the value can drift" convention.
+      //   - Fires on EVERY frontier entry the loop dispatches — same
+      //     coverage cohort as the tick 251 label + status guard.
+      //     One of the highest-coverage guards in the file: any
+      //     non-idle tick with an unblocked frontier exercises it.
+      //     Together with the tick 251 pair, this fully closes the
+      //     dispatchToClaude() writer contract — all four keys of
+      //     the `{ status, elapsed_ms, signal, label }` return shape
+      //     now carry pinned schema guards on the success path
+      //     (phase_dispatched) with label + status also pinned on
+      //     the failure path (phase_failed via tick 240).
+      //   - Comes AFTER the tick 251 phase_dispatched guard so future
+      //     guards land in monotonic tick-order (matches the
+      //     tick 240-251 convention verbatim).
+      if (tickRow.stage === "phase_dispatched") {
+        expect(
+          typeof tickRow.elapsed_ms,
+          `tick_history phase_dispatched row.elapsed_ms should be typeof number (reseller-goal-loop.mjs:203 writes \`Date.now() - started\` where started is Date.now() at mjs:197 — finite non-negative integer delta always → mjs:299 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+        expect(
+          tickRow.signal === null || typeof tickRow.signal === "string",
+          `tick_history phase_dispatched row.signal should be null OR typeof string (reseller-goal-loop.mjs:198 threads res.signal from spawnSync — Node.js child_process contract is \`string | null\`: null on clean exit, string like 'SIGTERM' on kill-signal termination → mjs:299 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
