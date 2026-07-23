@@ -949,6 +949,37 @@ const UUID_RE =
 // forward to a raw reseller_attributions[] cluster if the detail route
 // is ever widened to fan out the raw rows (per U.15.1 the raw fan-out
 // remains behind attributions_summary today).
+//
+// Tick 314 — commissions[].commission_aud_cents int NOT NULL non-negative
+// wire-shape pin, SCOPE ROTATION BACK into the reseller_commissions_current[]
+// child-row cluster after the tick 313 rotation into attributions_summary.
+// Tick 313 next-pick option (a) taken verbatim — rotates back to the
+// commissions[] cluster's next un-tightened column. Column source:
+// reseller_commissions.commission_aud_cents `int NOT NULL CHECK
+// (commission_aud_cents >= 0)` at 0094:41, projected via view alias
+// rc.commission_aud_cents in reseller_commissions_current at 0094:147
+// and selected on the Promise.all leg at web/src/app/api/admin/resellers/
+// [code]/route.ts:99-105. Three-part guard mirroring the tick 311
+// list_price_aud_cents posture verbatim but with a >= 0 tail assert
+// rather than > 0 — retail rows carry positive commission but wholesale
+// rows always stamp commission_aud_cents = 0 per the ck_commission_split
+// CHECK constraint at 0094:52-60 (wholesale branch requires
+// commission_aud_cents = 0), so a strict > 0 tail assert would false-
+// positive on every wholesale commission row. Guard parts: (a) typeof-
+// number preserves the NOT-NULL raw-type discipline; catches a PostgREST
+// regression that returned null|undefined, a schema-side NOT NULL drop,
+// or a projection-side drop from the SELECT tuple. (b) Number.isInteger()
+// catches a bigint-as-string serialisation regression, a fractional-cents
+// value from a proration edge, or NaN/Infinity from a webhook processor
+// drift. (c) >= 0 assert catches a schema-side CHECK constraint drop or
+// a webhook processor drift that stamped negative cents (a clawback or
+// refund event lives in reseller_commission_events with a negative
+// delta_aud_cents; the base commission_aud_cents column itself is always
+// non-negative per 0094:41). Detail-surface only per the same posture as
+// ticks 299-312 — the commissions Promise.all leg is unique to the
+// detail route. No new module-scope const needed — Number.isInteger is a
+// built-in. Continues the P10 hardening posture — no fixture change, no
+// route change, no new imports.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1237,6 +1268,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         stripe_invoice_id?: unknown;
         list_price_aud_cents?: unknown;
         discount_pct?: unknown;
+        commission_aud_cents?: unknown;
       }>;
     };
 
@@ -1883,6 +1915,28 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       expect(
         ALLOWED_TIER_VALUES.has(row.discount_pct as number),
         `commissions[].discount_pct '${String(row.discount_pct)}' should be one of {0,10,20,30,40} (CHECK (discount_pct IN (0,10,20,30,40)) per 0094:38; a schema-side CHECK constraint drop or a webhook processor drift that stamped a discount_pct outside the STARTUP_TIER_STEPS enumeration would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 314 — commissions[].commission_aud_cents int NOT NULL non-
+      // negative wire-shape pin. Column source: reseller_commissions.
+      // commission_aud_cents `int NOT NULL CHECK (commission_aud_cents >= 0)`
+      // at 0094:41, projected via view alias rc.commission_aud_cents at
+      // 0094:147. Three-part guard mirroring the tick 311 list_price_aud_cents
+      // posture verbatim but with a >= 0 tail assert rather than > 0 —
+      // wholesale rows always stamp commission_aud_cents = 0 per
+      // ck_commission_split at 0094:52-60, so > 0 would false-positive.
+      // See module-scope doc-block above ISO_TIMESTAMP_RE (tick 314
+      // paragraph) for the full rationale.
+      expect(
+        typeof row.commission_aud_cents === "number",
+        `commissions[].commission_aud_cents '${String(row.commission_aud_cents)}' should be a number (int NOT NULL per 0094:41; view alias rc.commission_aud_cents at 0094:147; a schema-side NOT NULL drop, a projection-side drop from route.ts:99-105 select, or a PostgREST serialisation regression that returned null|undefined|stringified-int would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        Number.isInteger(row.commission_aud_cents),
+        `commissions[].commission_aud_cents '${String(row.commission_aud_cents)}' should be an integer (int NOT NULL per 0094:41; a PostgREST serialisation regression that returned a bigint-as-string, a floating-point cents value from a proration edge, or NaN/Infinity from a webhook processor drift would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        (row.commission_aud_cents as number) >= 0,
+        `commissions[].commission_aud_cents '${String(row.commission_aud_cents)}' should be non-negative (CHECK (commission_aud_cents >= 0) per 0094:41; a schema-side CHECK constraint drop or a webhook processor drift that stamped negative cents would surface here — clawback/refund deltas live in reseller_commission_events, the base column is always non-negative). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });

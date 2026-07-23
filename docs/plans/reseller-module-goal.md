@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.313
+version: 2026-07-23.314
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -651,6 +651,117 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 314
+    ran_at: 2026-07-23
+    action: p10_commissions_commission_aud_cents_int_nonnegative_pin_on_admin_reseller_detail_SCOPE_ROTATION_BACK
+    result: |
+      SCOPE ROTATION BACK into the reseller_commissions_current[] child-row
+      cluster (opened at tick 308, four columns already pinned across
+      ticks 308/309/311/312 — commission_id, stripe_invoice_id,
+      list_price_aud_cents, discount_pct) after tick 313 rotated out to
+      the attributions_summary.by_source aggregate. Tick 313 next-pick
+      option (a) taken verbatim — rotates back to the commissions[]
+      cluster's next un-tightened column, commission_aud_cents.
+
+      Writer-schema justification:
+        - 0094_reseller_commissions_and_events.sql:41 declares
+          `commission_aud_cents int NOT NULL CHECK
+          (commission_aud_cents >= 0)` on reseller_commissions. Wire
+          type is therefore number NOT NULL, non-negative integer cents.
+        - Application write path: minted by the webhook processor's
+          planAccrualForLine helper (web/src/lib/reseller/
+          webhook-helpers.ts) from the 60/40 split for retail invoices
+          and stamped 0 for wholesale invoices per the ck_commission_split
+          CHECK constraint at 0094:52-60 (wholesale branch requires
+          commission_aud_cents = 0). Clawback/refund events live as
+          delta_aud_cents rows in reseller_commission_events, not as
+          mutations of the base column.
+        - Projected via `rc.commission_aud_cents` in the
+          reseller_commissions_current view at 0094:147 and selected on
+          the Promise.all leg at web/src/app/api/admin/resellers/[code]/
+          route.ts:99-105.
+
+      Design choice — three-part guard mirroring the tick 311
+      list_price_aud_cents posture verbatim but with a >= 0 tail assert
+      rather than > 0:
+        - (a) typeof-number preserves the NOT-NULL raw-type discipline;
+          catches a PostgREST regression that returned null|undefined,
+          a schema-side NOT NULL drop, a projection-side drop from the
+          SELECT tuple, or a stringified-int wire regression.
+        - (b) Number.isInteger() shape assert catches a PostgREST
+          bigint-as-string serialisation regression, a fractional-cents
+          value from a proration edge, or NaN/Infinity from a webhook
+          processor drift. Uses the built-in rather than a new
+          module-scope const because the shape is intrinsic to the
+          number type.
+        - (c) >= 0 assert catches a schema-side CHECK constraint drop
+          or a webhook processor drift that stamped negative cents.
+          Strictly non-negative rather than strictly positive because
+          wholesale rows always stamp commission_aud_cents = 0 per the
+          ck_commission_split CHECK — a > 0 tail assert would
+          false-positive on every wholesale commission row on the
+          QAPROBEWHOLESALEACTIVE seed reseller.
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          three-part pin up to 50 times per test, once per
+          commissions[] row on the QAPROBEWHOLESALEACTIVE seed
+          reseller. Hosts without seeded commission events still
+          green because the for-loop degrades gracefully to a no-op.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 314 paragraph) added below
+              the tick 313 attributions_summary.by_source paragraph
+              above ISO_TIMESTAMP_RE.
+            + body type widened: commissions? row shape extended with
+              commission_aud_cents?: unknown so TypeScript narrows the
+              row.commission_aud_cents access inside the for-of loop.
+            + wave-5 row 167 for-of loop pin appended after the tick
+              312 discount_pct guard: typeof-number assert plus
+              Number.isInteger() assert plus >= 0 assert against
+              row.commission_aud_cents.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+          Matches ticks 234-313 discipline verbatim.
+
+      Verification:
+        - tsc --noEmit: exit 0 (tests/** excluded from tsc include
+          set; production tree unchanged).
+        - npm run lint:reseller: 11 R-01 + 32 R-03 + 8 R-04, 6
+          exemptions, 0 violations (spec lives under tests/**, not
+          in the reseller manifest) — unchanged from tick 313
+          baseline.
+        - vitest src/lib/reseller: no delta expected — Playwright
+          specs are excluded from vitest by design.
+
+      Next natural picks on tick 315:
+        (a) continue the commissions[] cluster with net_owed_cents
+        (view-computed arithmetic at 0094:173-177 — base
+        commission_aud_cents plus event delta_aud_cents SUM; can be
+        negative on clawback rows) — two-part typeof-number +
+        Number.isInteger guard only (no >= 0 tail assert because the
+        sum can be negative after a full refund/dispute-lost event).
+        (b) rotate to the status column (view CASE at 0094:150-172
+        exposes {cleared, pending_clearance, clawed_back, dispute_open,
+        partially_refunded}) — value-set enum pin using a NEW
+        module-scope Set const ALLOWED_COMMISSION_STATUSES adjacent to
+        the existing ALLOWED_ADMIN_ROLES / ALLOWED_ADMIN_STATUSES /
+        ALLOWED_TIER_VALUES / ALLOWED_ATTRIBUTION_SOURCES cluster.
+        (c) rotate to the created_at column (timestamptz NOT NULL at
+        0094:44 projected via rc.created_at at 0094:149) — two-part
+        typeof-string + ISO_TIMESTAMP_RE assert; reuses the module-
+        scope ISO_TIMESTAMP_RE with no new const needed.
+        (d) rotate forward to attributions_summary.total /
+        attributions_summary.active — refine the existing typeof-number
+        asserts with Number.isInteger + >= 0 tail asserts matching the
+        posture applied to by_source values at tick 313.
+        (e) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 313
     ran_at: 2026-07-23
     action: p10_attributions_summary_by_source_value_set_enum_pin_on_admin_reseller_detail_SCOPE_ROTATION
