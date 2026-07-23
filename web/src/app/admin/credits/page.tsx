@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { parseScope } from "@/lib/admin/sandbox-scope";
 import { CreditsClient } from "./credits-client";
 
 export const metadata: Metadata = {
@@ -26,12 +27,23 @@ interface UserWithCredits {
   };
 }
 
-export default async function AdminCreditsPage() {
+export default async function AdminCreditsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ scope?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/admin/credits");
 
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
   if (!isAdmin) redirect("/admin");
+
+  // D3-CISO-05: sandbox scope chip. Chip-only on this page — the underlying
+  // credit_balances rollup has no sandbox column; scope is threaded to the
+  // client for future consistency once a per-row flag lands.
+  // no sandbox column on credit_balances — chip is display-only for future consistency
+  const sp = searchParams ? await searchParams : {};
+  const scope = parseScope(sp);
 
   const supabase = getSupabaseAdmin();
   let usersWithCredits: UserWithCredits[] = [];
@@ -90,6 +102,7 @@ export default async function AdminCreditsPage() {
     <CreditsClient
       user={{ email: user.email, displayName: user.displayName ?? null }}
       initialUsers={usersWithCredits}
+      scope={scope}
     />
   );
 }
