@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.276
+version: 2026-07-23.277
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,161 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 277
+    ran_at: 2026-07-23
+    action: p10_reseller_requests_list_readback_decision_reason_length_pin_option_a
+    result: |
+      Landed tick 276's "natural next pick" option (a) as a null-or-string
+      + length ≤ REASON_MAX tightening on row.decision_reason in the
+      reseller-scoped GET happy path of reseller-requests-list-authz.spec.ts.
+      Sibling companion to the payload.notes / payload.reason length pins
+      landed at tick 261 (lines 438-441 + 452-457) and the admin-side
+      tick-272 decision_reason length pin at admin-requests-patch-authz
+      .spec.ts. Cross-surface parity: the same length invariant now fires
+      on both the admin patch read-back surface (via the tick 272 pin) and
+      the reseller-scoped list surface (via this pin) so a validator-side
+      widening of REASON_MAX or a projection swap to a different text
+      column surfaces on both admin and reseller lenses simultaneously.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:36 declares
+          `decision_reason text` (nullable). No DB-side CHECK ties the
+          column length or ties it to status — the row can carry any-length
+          text or NULL for any status.
+        - validateAdminDecision at web/src/lib/reseller/requests.ts:276-304
+          is the writer-side chokepoint. Line 293-300: when
+          input.decision_reason is non-null and non-empty, the validator
+          computes `r = String(...).trim()` and rejects with
+          reason='reason_too_long' whenever r.length > REASON_MAX (200).
+          The trimmed `r` is stored via {status, decision_reason: reason}.
+          So a green-path row that carries a non-null decision_reason on
+          the wire will always be a trimmed string of length ≤ 200.
+        - Reseller-scoped list route at /api/reseller/requests/route.ts:169-
+          173 projects decision_reason as the sixth column of the SELECT
+          list. A projection swap that returned a different text column
+          (e.g. a freeform notes column widened to 4KB) would still pass
+          the pre-tick-277 typeof-string guard at line 491-494 but fail
+          this length tightening.
+
+      Design choice — mirror the tick-261 payload.notes / payload.reason
+      length pin layout:
+        - Reuses the REASON_MAX=200 module-scope constant hoisted at tick
+          261 line 91 — no ninth module-scope constant needed. Same
+          source-of-truth invariant as the sibling payload.notes and
+          payload.reason pins earlier in the same for-loop.
+        - Two-part layered guard (matches ticks 265-276 layering
+          discipline verbatim):
+          (a) preserved null-or-typeof-string pin at line 491-494 (landed
+              at tick 224) fires first so a projection drop surfaces before
+              the new length check;
+          (b) new null-or-(typeof-string-AND-length ≤ REASON_MAX) pin
+              fires only after the typeof-string guard passes — the
+              short-circuit && ensures the length is only tested when the
+              value is a string.
+        - No new inline type-shape field — row.decision_reason already
+          carries `decision_reason?: string | null;` in the readback
+          envelope declaration, so this pin lands as a pure four-line
+          assertion + a ten-line block-scope comment citing the module-
+          scope doc-block for the rationale.
+
+      Coverage-per-guard posture:
+        - Green-path fixture loadTempReseller("active_wholesale") + wave-3
+          row 155 seeded pending over_budget_approval row guarantee at
+          least one row with decision_reason=NULL is returned from the GET
+          on every green CI run (pending rows never carry a decision), so
+          the ===null branch exercises on every wave-4 row 161 pass. The
+          typeof-string+length branch has zero-coverage on the wire today
+          because no approve/deny fixture seeds a decided reseller_requests
+          row that this GET would return — but the pin still closes the
+          writer contract so a length regression across the null-or-string
+          surface would surface on the next CI pass whenever a decide-
+          fixture seeds a row (matches the tick 261 zero-coverage-per-guard
+          rationale).
+        - Fresh hosts (where row 155 has not run) return an empty
+          body.requests[] and the for-loop skips — but the module-scope
+          doc-block still ships, so a downstream tick that seeds more
+          variants (P8.5-unblock or an expanded fixture matrix) picks up
+          the pin without further wiring.
+
+      Diagnostic delta of the pass:
+        - Zero new module-scope constants (REASON_MAX reused from tick 261
+          hoist at line 91).
+        - One new inline assertion block (four-line null-or-typeof-string
+          AND length ≤ REASON_MAX guard added immediately after the
+          preserved null-or-typeof-string pin on decision_reason) inside
+          the per-row for-loop of the active_wholesale happy GET block.
+          Ten-line block-scope comment citing 0095:36 as the column
+          declaration source, requests.ts:293-300 as the validator source-
+          of-truth, and the admin-side tick 272 pin as the sibling-surface
+          companion.
+        - Module-scope doc-comment block above the tick-276 decision_at
+          block extended with a new tick-277 paragraph describing the pin's
+          writer-schema justification + the two-part guard breakdown +
+          the validator invariant + the sibling-surface tick 272 lineage.
+        - No production code touched, no fixture change, no route change,
+          no new imports (REASON_MAX is reused from tick 261's hoist).
+          Matches ticks 234-276 discipline: tighten one dimension (in this
+          case add the length tightening to the reseller-scoped GET list
+          surface's decision_reason column) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts
+          (module-scope tick-277 doc-comment block prepended above the
+          tick-276 comment; per-row for-loop of the active_wholesale happy
+          GET block gains a null-or-typeof-string-AND-length ≤ REASON_MAX
+          assertion immediately after the existing null-or-typeof-string
+          pin on row.decision_reason at line 491-494, with a block-scope
+          comment citing 0095:36 as the column declaration source,
+          requests.ts:293-300 as the validator source-of-truth, and the
+          admin-side tick 272 pin as the sibling-surface companion.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.276 → 2026-07-23.277; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-276's incremental-pin pattern.
+        - Cross-surface parity — mirrors the admin-side tick 272 pin
+          verbatim onto the reseller-scoped GET list surface so a
+          decision_reason length drift surfaces on both admin and
+          reseller lenses simultaneously. Third cross-surface companion
+          pin after tick 275's created_at and tick 276's decision_at.
+
+      Next natural picks on tick 278:
+        (a) status enum value pin on the reseller-scoped GET (hoisting a
+        shared ALLOWED_STATUS_VALUES constant for symmetry with the admin-
+        side tick 270 pattern — the existing typeof-string +
+        `["pending","approved","denied","cancelled"].includes(...)` pin at
+        line 299-300 already closes both parts as an inline literal, but
+        hoisting to a module-scope constant matches the admin-side
+        ALLOWED_STATUS_VALUES hoist so a schema-side enum extension lands
+        as a single spec edit);
+        (b) request_type enum value pin on the reseller-scoped GET (same
+        as option a but for the request_type enum at line 296-298 — hoist
+        a shared ALLOWED_REQUEST_TYPES constant for symmetry with the
+        admin-side tick 269 pattern);
+        (c) extending the tick-274 resellers-join projection pin onto the
+        reseller-scoped GET (needs a route-file audit — the reseller-scoped
+        SELECT at /api/reseller/requests/route.ts:169-173 does NOT include
+        a `resellers(code, display_name)` embed since the reseller
+        already knows its own identity via the scopedReseller() gate, so
+        this pick would need a route-side embed addition before the pin
+        could land; skippable pending that route change);
+        (d) decision_by UUID shape pin on the reseller-scoped GET (nullable
+        per 0095:34 governed by ck_decision_shape which requires
+        decision_by IS NOT NULL only on approved rows so denied+cancelled
+        may carry NULL; existing pin at ~line ~490 needs verification for
+        UUID_RE tightening on the non-null branch).
+
   - tick: 276
     ran_at: 2026-07-23
     action: p10_reseller_requests_list_readback_decision_at_iso_pin_option_a
