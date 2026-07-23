@@ -670,6 +670,56 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history auto_deploy_triggered row.last_deployed should be typeof string (reseller-goal-loop.mjs:355 writes \`(parsed.git_sha || parsed.sha || '').slice(0, 7)\` — empty when last-good-build.json missing/malformed, otherwise 7-char short-sha): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("string");
       }
+      // tick 248 — auto_deploy_finished stage schema pin (option y15;
+      // symmetric two-pin shape matching tick 240's phase_failed guard +
+      // tick 242's auto_commit_finished guard + tick 244's error guard +
+      // tick 245's human_blocked_snapshot guard + tick 247's
+      // auto_deploy_triggered guard). scripts/cron/reseller-goal-loop.mjs:367
+      // writes `log({ stage: 'auto_deploy_finished', status: deploy.status ??
+      // -1, head: headSha })` inside the else-branch at mjs:360-367 that
+      // fires immediately after auto_deploy_triggered whenever headSha !==
+      // lastSha — so this row lands together with the tick 247 guard on
+      // every non-idle tick where the loop committed new work. Paired
+      // writer contract: auto_deploy_triggered emits BEFORE the spawnSync
+      // deploy-live.sh call at mjs:362-366, auto_deploy_finished emits
+      // AFTER it with the resulting spawn status. Both share the same
+      // conditional branch (headSha !== lastSha) so they always land
+      // together on the same tick — same coverage-per-guard rationale as
+      // tick 245 human_blocked_snapshot (which fires on every tick's
+      // happy path). Two pins in one guard because status + head share
+      // the same conditional at mjs:367 — they always land together on
+      // the same row, so the guard cost is amortised (matches ticks
+      // 240 + 242 + 244 + 245 + 247 two-pin rationale verbatim except
+      // for the stage literal + writer source line citations). `status`
+      // is `deploy.status ?? -1` where `deploy` is the spawnSync return
+      // of `bash deploy-live.sh --quick` at mjs:362-366 — `.status` is
+      // `number | null` per the Node.js contract, the `?? -1` fallback
+      // narrows it to a JSON number every time (0 on green deploy,
+      // non-zero on deploy failure, -1 when spawnSync itself fails to
+      // launch bash). `head` is the same `headSha` string threaded
+      // through from the tick 247 auto_deploy_triggered guard — always
+      // a string (empty on repo-less host, otherwise 7-char short-sha
+      // from `git rev-parse --short HEAD`). No value pin — `status`
+      // drifts with deploy outcome per tick; `head` drifts with git
+      // history per tick 230's "assert typeof string only so the value
+      // can drift" convention. Continues the two-pin cadence from tick
+      // 247 (auto_deploy_triggered) — the auto_deploy_* family cluster
+      // now lands three consecutive rows (247 triggered → 248 finished,
+      // with 249 slot open for skipped/failed) — coverage-per-guard is
+      // maximised by pinning the paired triggered/finished contract
+      // together in adjacent ticks rather than fanning across the ~10
+      // remaining stages. Comes AFTER the tick 247 auto_deploy_
+      // triggered guard so future guards land in monotonic tick-order.
+      if (tickRow.stage === "auto_deploy_finished") {
+        expect(
+          typeof tickRow.status,
+          `tick_history auto_deploy_finished row.status should be typeof number (reseller-goal-loop.mjs:367 writes \`deploy.status ?? -1\` from spawnSync bash deploy-live.sh --quick at mjs:362-366): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+        expect(
+          typeof tickRow.head,
+          `tick_history auto_deploy_finished row.head should be typeof string (reseller-goal-loop.mjs:367 threads the same \`headSha\` from mjs:358-359 as the paired auto_deploy_triggered row): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
