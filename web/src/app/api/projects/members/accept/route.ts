@@ -15,8 +15,18 @@ import {
   acceptInvite,
   ProjectMemberScopeError,
 } from "@/lib/project-members/scope";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 export const dynamic = "force-dynamic";
+
+// Extract the domain portion of an email for PII-safe audit metadata.
+// We NEVER log the local-part — only the host, or null if malformed.
+function emailDomain(email: string): string | null {
+  const at = email.lastIndexOf("@");
+  if (at < 0 || at === email.length - 1) return null;
+  const host = email.slice(at + 1).trim().toLowerCase();
+  return host.length > 0 ? host : null;
+}
 
 function scopeErrorToStatus(err: ProjectMemberScopeError): number {
   switch (err.code) {
@@ -62,6 +72,24 @@ export async function POST(request: Request) {
 
   try {
     const member = await acceptInvite(token, user.id);
+
+    // SOC2-lite audit: record the successful accept. Domain only —
+    // never the local-part — so PII is preserved.
+    await logUserAction({
+      userId: user.id,
+      action: "project.member.accepted",
+      subjectType: "project",
+      subjectId: member.projectId,
+      fields: {
+        member_id: member.id,
+        role: member.role,
+        email_domain: emailDomain(member.userEmail),
+      },
+      route: "/api/projects/members/accept",
+      ip: extractIp(request.headers),
+      ua: extractUserAgent(request.headers),
+    });
+
     return NextResponse.json({ ok: true, member });
   } catch (err) {
     if (err instanceof ProjectMemberScopeError) {

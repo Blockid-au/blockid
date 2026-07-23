@@ -24,8 +24,13 @@ import {
   type ResellerAdminMembershipRow,
   type RolesPermissionsPanel,
 } from "@/lib/admin/user-panels";
-import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
-import { parseScope, type SandboxScope } from "@/lib/admin/sandbox-scope";
+import { SandboxScopeChip, SandboxRowBadge } from "@/components/admin/sandbox-scope-chip";
+import {
+  applySandboxScopeToQuery,
+  isSandboxRow,
+  parseScope,
+  type SandboxScope,
+} from "@/lib/admin/sandbox-scope";
 import { UserActionsClient } from "./user-actions-client";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +79,10 @@ interface TransactionRow {
   reason: string;
   metadata: Record<string, unknown> | null;
   created_at: string;
+  // Added in migration 0103 (credit_transactions.sandbox boolean, default
+  // false). Optional here because the fallback query path — used when 0103
+  // has not been applied yet — omits the column entirely.
+  sandbox?: boolean | null;
 }
 
 interface SessionRow {
@@ -91,7 +100,10 @@ interface ResellerLite {
   display_name: string;
 }
 
-async function loadDetail(id: string): Promise<
+async function loadDetail(
+  id: string,
+  scope: SandboxScope,
+): Promise<
   | { kind: "not_configured" }
   | { kind: "not_found" }
   | {
@@ -99,6 +111,7 @@ async function loadDetail(id: string): Promise<
       user: UserFull;
       balance: BalanceRow | null;
       transactions: TransactionRow[];
+      sandboxColumnAvailable: boolean;
       sessions: SessionRow[];
       reseller: ResellerLite | null;
       rolesPanel: RolesPermissionsPanel;
@@ -151,18 +164,49 @@ async function loadDetail(id: string): Promise<
 
     const typedUser = user as unknown as UserFull;
 
-    const [balRes, txRes, sessRes, resellerRes, attrRes, memberRes, clientLinkRes] = await Promise.all([
+    // Transactions query — try the 0103 wire-shape (with `sandbox` column
+    // + scope filter) first; on failure (column absent, e.g. migration not
+    // yet applied to this env) fall back to the pre-0103 shape so the page
+    // still renders. `sandboxColumnAvailable` drives the header hint /
+    // per-row 🧪 badge downstream.
+    let sandboxColumnAvailable = true;
+    const loadTransactions = async (): Promise<TransactionRow[]> => {
+      try {
+        // Cast through unknown / SandboxScopeQueryLike keeps the deep
+        // supabase-js generic chain from blowing up the type inference
+        // (TS2589 otherwise). The runtime shape is identical.
+        const base = supabase
+          .from("credit_transactions")
+          .select("id, amount, balance_after, reason, metadata, created_at, sandbox")
+          .eq("user_id", id);
+        const scoped = applySandboxScopeToQuery(
+          base as unknown as SandboxScopeQueryLike,
+          scope,
+        ) as unknown as typeof base;
+        const { data, error } = await scoped
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (error) throw error;
+        return (data ?? []) as TransactionRow[];
+      } catch {
+        sandboxColumnAvailable = false;
+        const { data } = await supabase
+          .from("credit_transactions")
+          .select("id, amount, balance_after, reason, metadata, created_at")
+          .eq("user_id", id)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        return (data ?? []) as TransactionRow[];
+      }
+    };
+
+    const [balRes, txRows, sessRes, resellerRes, attrRes, memberRes, clientLinkRes] = await Promise.all([
       supabase
         .from("credit_balances")
         .select("balance, lifetime_earned, lifetime_spent, updated_at")
         .eq("user_id", id)
         .maybeSingle(),
-      supabase
-        .from("credit_transactions")
-        .select("id, amount, balance_after, reason, metadata, created_at")
-        .eq("user_id", id)
-        .order("created_at", { ascending: false })
-        .limit(20),
+      loadTransactions(),
       supabase
         .from("sessions")
         .select("token, created_at, last_used_at, expires_at, ip_hash, user_agent")
@@ -267,7 +311,8 @@ async function loadDetail(id: string): Promise<
       kind: "ok",
       user: typedUser,
       balance: (balRes.data as BalanceRow | null) ?? null,
-      transactions: (txRes.data ?? []) as TransactionRow[],
+      transactions: txRows,
+      sandboxColumnAvailable,
       sessions: (sessRes.data ?? []) as SessionRow[],
       reseller: (resellerRes.data as ResellerLite | null) ?? null,
       rolesPanel: buildRolesPermissionsPanel(typedUser),
@@ -298,16 +343,17 @@ export default async function AdminUserDetailPage({
   if (!currentUser) redirect(`/auth/login?next=/admin/users/${id}`);
   if (!isAdmin(currentUser)) redirect("/dashboard/svi");
 
-  // D3-CISO-05: sandbox scope. Chip-only — credit_transactions has no
-  // sandbox column (sandbox spend is routed to reseller_credit_grants
-  // instead, see web/src/lib/credits.ts § trySpendSandboxCredits).
-  // no sandbox column on credit_transactions — chip is display-only for future consistency
+  // D3-CISO-05: sandbox scope. Post-migration-0103 the underlying
+  // credit_transactions table carries a boolean `sandbox` column with
+  // DEFAULT false, so the chip is a live filter (not display-only). The
+  // load path falls back to the pre-0103 shape if the column is missing,
+  // in which case the chip degrades to a no-op with a factual note.
   const sp = searchParams ? await searchParams : {};
   const scope: SandboxScope = parseScope(sp);
   const buildScopeHref = (next: SandboxScope) =>
     next === "all" ? `/admin/users/${id}` : `/admin/users/${id}?scope=${next}`;
 
-  const result = await loadDetail(id);
+  const result = await loadDetail(id, scope);
 
   if (result.kind === "not_configured") {
     return (
@@ -330,6 +376,7 @@ export default async function AdminUserDetailPage({
     user,
     balance,
     transactions,
+    sandboxColumnAvailable,
     sessions,
     reseller,
     rolesPanel,
@@ -337,6 +384,17 @@ export default async function AdminUserDetailPage({
     resellerMemberships,
     advisorClients,
   } = result;
+
+  const sandboxRowCount = transactions.filter((t) => isSandboxRow(t)).length;
+  const scopeNote = !sandboxColumnAvailable
+    ? "Chip-only — migration 0103 not yet applied on this environment."
+    : scope === "sandbox"
+      ? `Sandbox filter active on ${transactions.length} rows`
+      : scope === "live"
+        ? `Live filter active on ${transactions.length} rows`
+        : sandboxRowCount > 0
+          ? `${sandboxRowCount} sandbox row${sandboxRowCount === 1 ? "" : "s"} in view`
+          : undefined;
   const isSelf = currentUser.id === user.id;
 
   return (
@@ -683,8 +741,8 @@ export default async function AdminUserDetailPage({
               </h2>
               <SandboxScopeChip
                 scope={scope}
-                buildHref={buildScopeHref}
-                note="Chip-only — sandbox spend never touches credit_transactions."
+                buildHref={sandboxColumnAvailable ? buildScopeHref : undefined}
+                note={scopeNote}
               />
             </div>
           </div>
@@ -701,25 +759,33 @@ export default async function AdminUserDetailPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-100">
-                {transactions.map((t, i) => (
-                  <tr key={t.id ?? `${t.created_at}-${i}`}>
-                    <td className="p-3 text-xs text-ink-600">
-                      {new Date(t.created_at).toISOString().slice(0, 19).replace("T", " ")}
-                    </td>
-                    <td
-                      className={`p-3 text-sm font-medium ${
-                        t.amount >= 0 ? "text-emerald-700" : "text-red-700"
-                      }`}
-                    >
-                      {t.amount >= 0 ? "+" : ""}
-                      {Number(t.amount).toFixed(2)}
-                    </td>
-                    <td className="p-3 text-xs text-ink-700">
-                      {Number(t.balance_after).toFixed(2)}
-                    </td>
-                    <td className="p-3 text-xs text-ink-600">{t.reason}</td>
-                  </tr>
-                ))}
+                {transactions.map((t, i) => {
+                  const isSandbox = isSandboxRow(t);
+                  return (
+                    <tr key={t.id ?? `${t.created_at}-${i}`}>
+                      <td className="p-3 text-xs text-ink-600">
+                        {new Date(t.created_at).toISOString().slice(0, 19).replace("T", " ")}
+                      </td>
+                      <td
+                        className={`p-3 text-sm font-medium ${
+                          t.amount >= 0 ? "text-emerald-700" : "text-red-700"
+                        }`}
+                      >
+                        {t.amount >= 0 ? "+" : ""}
+                        {Number(t.amount).toFixed(2)}
+                      </td>
+                      <td className="p-3 text-xs text-ink-700">
+                        {Number(t.balance_after).toFixed(2)}
+                      </td>
+                      <td className="p-3 text-xs text-ink-600">
+                        <span className="inline-flex items-center gap-1">
+                          <span>{t.reason}</span>
+                          {isSandbox && <SandboxRowBadge />}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

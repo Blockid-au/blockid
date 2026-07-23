@@ -18,6 +18,7 @@ import {
   archiveProject,
   unarchiveProject,
 } from "@/lib/projects";
+import { assertProjectMemberCan } from "@/lib/project-members/scope";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,10 @@ export async function POST(
       { status: 404 },
     );
   }
-  if (project.userId !== user.id) {
+  // Member-aware write guard: owner OR accepted admin/editor may archive.
+  try {
+    await assertProjectMemberCan(id, user.id, "write");
+  } catch {
     return NextResponse.json(
       { ok: false, error: "Forbidden" },
       { status: 403 },
@@ -95,7 +99,10 @@ export async function DELETE(
       { status: 404 },
     );
   }
-  if (project.userId !== user.id) {
+  // Member-aware write guard: owner OR accepted admin/editor may unarchive.
+  try {
+    await assertProjectMemberCan(id, user.id, "write");
+  } catch {
     return NextResponse.json(
       { ok: false, error: "Forbidden" },
       { status: 403 },

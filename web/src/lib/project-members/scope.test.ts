@@ -75,6 +75,7 @@ vi.mock("@/lib/supabase", () => ({
 
 import {
   assertProjectOwner,
+  assertProjectMemberCan,
   listMembers,
   inviteMember,
   acceptInvite,
@@ -124,6 +125,197 @@ describe("assertProjectOwner", () => {
     setHandler("projects", "select", null);
     await expect(assertProjectOwner("missing", "u1")).rejects.toMatchObject({
       code: "not_found",
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// assertProjectMemberCan — permission matrix
+// ---------------------------------------------------------------------------
+//
+// Q4 Multi-project #4 (iteration-14 T1). The guard checks ownership first
+// (owner always wins → read + write + admin) and falls back to an accepted
+// project_members row lookup. Role → permission map:
+//   admin  → read + write + admin
+//   editor → read + write         (no admin — cannot invite/revoke)
+//   viewer → read only
+//   invited/revoked → no access at all
+
+describe("assertProjectMemberCan", () => {
+  describe("owner (primary path)", () => {
+    it("owner has read permission", async () => {
+      setHandler("projects", "select", { user_id: "owner" });
+      await expect(
+        assertProjectMemberCan("p1", "owner", "read"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("owner has write permission", async () => {
+      setHandler("projects", "select", { user_id: "owner" });
+      await expect(
+        assertProjectMemberCan("p1", "owner", "write"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("owner has admin permission", async () => {
+      setHandler("projects", "select", { user_id: "owner" });
+      await expect(
+        assertProjectMemberCan("p1", "owner", "admin"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("throws not_found when the project does not exist", async () => {
+      setHandler("projects", "select", null);
+      await expect(
+        assertProjectMemberCan("missing", "u1", "read"),
+      ).rejects.toMatchObject({ code: "not_found" });
+    });
+  });
+
+  describe("accepted admin member (secondary path)", () => {
+    beforeEach(() => {
+      setHandler("projects", "select", { user_id: "owner" });
+      setHandler("project_members", "select", {
+        role: "admin",
+        status: "accepted",
+      });
+    });
+
+    it("admin member has read permission", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "read"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("admin member has write permission", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "write"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("admin member has admin permission", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "admin"),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe("accepted editor member", () => {
+    beforeEach(() => {
+      setHandler("projects", "select", { user_id: "owner" });
+      setHandler("project_members", "select", {
+        role: "editor",
+        status: "accepted",
+      });
+    });
+
+    it("editor member has read permission", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "read"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("editor member has write permission", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "write"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("editor member is denied admin permission (cannot invite/revoke)", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "admin"),
+      ).rejects.toMatchObject({ code: "forbidden" });
+    });
+  });
+
+  describe("accepted viewer member", () => {
+    beforeEach(() => {
+      setHandler("projects", "select", { user_id: "owner" });
+      setHandler("project_members", "select", {
+        role: "viewer",
+        status: "accepted",
+      });
+    });
+
+    it("viewer member has read permission", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "read"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("viewer member is denied write permission", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "write"),
+      ).rejects.toMatchObject({ code: "forbidden" });
+    });
+
+    it("viewer member is denied admin permission", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "admin"),
+      ).rejects.toMatchObject({ code: "forbidden" });
+    });
+  });
+
+  describe("invited (not-yet-accepted) member", () => {
+    // The .eq("status", "accepted") filter on the real query excludes
+    // `invited` rows, so the mock returns null to mirror the DB shape.
+    beforeEach(() => {
+      setHandler("projects", "select", { user_id: "owner" });
+      setHandler("project_members", "select", null);
+    });
+
+    it("invited member has no read access", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "read"),
+      ).rejects.toMatchObject({ code: "forbidden" });
+    });
+
+    it("invited member has no write access", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "write"),
+      ).rejects.toMatchObject({ code: "forbidden" });
+    });
+
+    it("invited member has no admin access", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "admin"),
+      ).rejects.toMatchObject({ code: "forbidden" });
+    });
+  });
+
+  describe("revoked member", () => {
+    // Same as invited — the accepted-status filter drops revoked rows.
+    beforeEach(() => {
+      setHandler("projects", "select", { user_id: "owner" });
+      setHandler("project_members", "select", null);
+    });
+
+    it("revoked member has no read access", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "read"),
+      ).rejects.toMatchObject({ code: "forbidden" });
+    });
+
+    it("revoked member has no write access", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "write"),
+      ).rejects.toMatchObject({ code: "forbidden" });
+    });
+
+    it("revoked member has no admin access", async () => {
+      await expect(
+        assertProjectMemberCan("p1", "u2", "admin"),
+      ).rejects.toMatchObject({ code: "forbidden" });
+    });
+  });
+
+  describe("stranger with no membership row", () => {
+    it("throws forbidden when there is no members row for the caller", async () => {
+      setHandler("projects", "select", { user_id: "owner" });
+      setHandler("project_members", "select", null);
+      await expect(
+        assertProjectMemberCan("p1", "randomer", "read"),
+      ).rejects.toMatchObject({ code: "forbidden" });
     });
   });
 });
@@ -311,7 +503,11 @@ describe("revokeMember", () => {
     expect(typeof patch.revoked_at).toBe("string");
   });
 
-  it("non-owner is rejected with not_owner (via assertProjectOwner)", async () => {
+  it("non-owner non-member is rejected with forbidden (via assertProjectMemberCan)", async () => {
+    // The initial revokeMember member-row select and the internal
+    // assertProjectMemberCan member-row select both resolve through the
+    // same project_members.select handler in the mock. The stub row
+    // carries no `role`, so admin-perm lookup rejects the caller.
     setHandler("project_members", "select", {
       id: "m1",
       project_id: "p1",
@@ -323,7 +519,7 @@ describe("revokeMember", () => {
       ProjectMemberScopeError,
     );
     await expect(revokeMember("m1", "someone-else")).rejects.toMatchObject({
-      code: "not_owner",
+      code: "forbidden",
     });
   });
 

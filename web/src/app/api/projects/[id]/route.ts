@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getProjectById, updateProject, archiveProject } from "@/lib/projects";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { assertProjectMemberCan } from "@/lib/project-members/scope";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +22,23 @@ export async function PATCH(
 
   const { id } = await params;
 
-  // Verify ownership
+  // Verify project exists (surface 404 vs 403 distinctly for UX).
   const project = await getProjectById(id);
-  if (!project || project.userId !== user.id) {
+  if (!project) {
     return NextResponse.json(
       { ok: false, error: "Project not found" },
       { status: 404 },
+    );
+  }
+
+  // Member-aware write guard: owner OR accepted admin/editor may PATCH.
+  // Viewers, invited, and revoked members are rejected with 403.
+  try {
+    await assertProjectMemberCan(id, user.id, "write");
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Forbidden" },
+      { status: 403 },
     );
   }
 
@@ -62,6 +74,24 @@ export async function PATCH(
     );
   }
 
+  // SOC2-lite audit: record which top-level fields the caller touched.
+  // We log KEYS ONLY — never values — so plaintext names/descriptions
+  // never land in the audit row. PII-free by construction.
+  const changed: string[] = [];
+  if (name !== undefined) changed.push("name");
+  if (description !== undefined) changed.push("description");
+  if (industry !== undefined) changed.push("industry");
+  await logUserAction({
+    userId: user.id,
+    action: "project.updated",
+    subjectType: "project",
+    subjectId: id,
+    fields: { changed },
+    route: `/api/projects/${id}`,
+    ip: extractIp(request.headers),
+    ua: extractUserAgent(request.headers),
+  });
+
   // Return updated project
   const updated = await getProjectById(id);
   return NextResponse.json({ ok: true, project: updated });
@@ -82,12 +112,22 @@ export async function DELETE(
 
   const { id } = await params;
 
-  // Verify ownership
+  // Verify project exists (surface 404 vs 403 distinctly for UX).
   const project = await getProjectById(id);
-  if (!project || project.userId !== user.id) {
+  if (!project) {
     return NextResponse.json(
       { ok: false, error: "Project not found" },
       { status: 404 },
+    );
+  }
+
+  // Member-aware write guard: owner OR accepted admin/editor may archive.
+  try {
+    await assertProjectMemberCan(id, user.id, "write");
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Forbidden" },
+      { status: 403 },
     );
   }
 

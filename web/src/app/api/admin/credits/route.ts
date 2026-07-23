@@ -86,6 +86,12 @@ export async function POST(request: Request) {
       { onConflict: "user_id" },
     );
 
+    // Admin-revoke rows are always live (real deduction against the
+    // user's balance, not reseller-sandbox bookkeeping). The
+    // credit_transactions.sandbox column added by migration 0103 has
+    // DEFAULT false, so we intentionally OMIT the field here — that keeps
+    // the insert wire-shape backward-compatible with pre-0103 envs while
+    // the DEFAULT gives us the correct steady-state value post-0103.
     await supabase.from("credit_transactions").insert({
       user_id: targetUser.id,
       amount: -amount,

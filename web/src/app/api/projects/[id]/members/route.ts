@@ -15,12 +15,23 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import {
   assertProjectOwner,
+  assertProjectMemberCan,
   listMembers,
   inviteMember,
   revokeMember,
   ProjectMemberScopeError,
   type ProjectMemberRole,
 } from "@/lib/project-members/scope";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+
+// Extract the domain portion of an email for PII-safe audit metadata.
+// We NEVER log the full local-part — only the host, or null if malformed.
+function emailDomain(email: string): string | null {
+  const at = email.lastIndexOf("@");
+  if (at < 0 || at === email.length - 1) return null;
+  const host = email.slice(at + 1).trim().toLowerCase();
+  return host.length > 0 ? host : null;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +51,7 @@ function scopeErrorToStatus(err: ProjectMemberScopeError): number {
     case "not_found":
       return 404;
     case "not_owner":
+    case "forbidden":
       return 403;
     case "duplicate":
     case "invalid_role":
@@ -134,8 +146,28 @@ export async function POST(
   }
 
   try {
-    await assertProjectOwner(id, user.id);
+    // Admin-perm required — owner OR accepted admin members may invite.
+    // Editors/viewers get 403; inviting new collaborators is admin-level.
+    await assertProjectMemberCan(id, user.id, "admin");
     const member = await inviteMember(id, email, role, user.id);
+
+    // SOC2-lite audit: record the successful invite. Domain only — never
+    // the local-part — so PII is preserved.
+    await logUserAction({
+      userId: user.id,
+      action: "project.member.invited",
+      subjectType: "project",
+      subjectId: id,
+      fields: {
+        member_id: member.id,
+        role: member.role,
+        email_domain: emailDomain(member.userEmail),
+      },
+      route: `/api/projects/${id}/members`,
+      ip: extractIp(request.headers),
+      ua: extractUserAgent(request.headers),
+    });
+
     return NextResponse.json({
       ok: true,
       member,
@@ -184,8 +216,9 @@ export async function DELETE(
   }
 
   try {
-    // Verify owner via the project first — this also 404s a stale projectId.
-    await assertProjectOwner(projectId, user.id);
+    // Admin-perm required — owner OR accepted admin members may revoke.
+    // Also 404s a stale projectId via the internal project lookup.
+    await assertProjectMemberCan(projectId, user.id, "admin");
     const member = await revokeMember(memberId, user.id);
     if (member.projectId !== projectId) {
       // Guard against a memberId pointing to a member of a different project.
@@ -194,6 +227,23 @@ export async function DELETE(
         { status: 400 },
       );
     }
+
+    // SOC2-lite audit: record the successful revoke.
+    await logUserAction({
+      userId: user.id,
+      action: "project.member.revoked",
+      subjectType: "project",
+      subjectId: projectId,
+      fields: {
+        member_id: member.id,
+        role: member.role,
+        email_domain: emailDomain(member.userEmail),
+      },
+      route: `/api/projects/${projectId}/members`,
+      ip: extractIp(request.headers),
+      ua: extractUserAgent(request.headers),
+    });
+
     return NextResponse.json({ ok: true, member });
   } catch (err) {
     if (err instanceof ProjectMemberScopeError) {
