@@ -749,6 +749,54 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
           (row.list_price_aud_cents as number) > 0,
         `commissions[].list_price_aud_cents '${String(row.list_price_aud_cents)}' should be a finite strictly-positive integer (0094:37 CHECK (list_price_aud_cents > 0) — DB CHECK is the sole schema backstop; an ALTER CHECK DROP, a superuser INSERT bypass, or a route-side Number(...) coercion that widened int → float / NaN / Infinity would slip an out-of-band price straight past the schema. Strictly '> 0' not '>= 0' per the schema — the ck_commission_split invariant at 0094:48-58 divides by list_price_aud_cents so a zero here would silently break the retail 60/40 split arithmetic on every downstream consumer of net_owed_cents). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Tick 345 — commissions[].discount_pct two-part typeof-number +
+      // ALLOWED_TIER_PCTS set-membership wire-shape pin, fourth column pinned
+      // in the reseller_commissions_current[] child-row cluster on this
+      // detail-validation spec (opened tick 342 with commission_id UUID;
+      // tightened tick 343 with list_price_aud_cents strictly-positive int;
+      // extended tick 344 with stripe_invoice_id STRIPE_INVOICE_ID_RE).
+      // Executes tick 344 next-pick option (a) verbatim: propagates the
+      // commissions[].discount_pct value-set pin from the sibling admin-
+      // reseller-detail-authz.spec.ts tick 312 posture. Column source:
+      // reseller_commissions.discount_pct declared at web/supabase/migrations/
+      // 0094_reseller_commissions_and_events.sql:38 as
+      // `discount_pct int NOT NULL CHECK (discount_pct IN (0,10,20,30,40))`,
+      // projected verbatim through the reseller_commissions_current view
+      // alias rc.discount_pct at 0094:144 and selected on the Promise.all leg
+      // at web/src/app/api/admin/resellers/[code]/route.ts:98-105. Two-part
+      // guard mirroring the tick 339 ALLOWED_TIER_PCTS posture on
+      // promotion_codes[].tier_pct above:
+      //   (a) typeof-number half labelled with diagnostic prose preserves
+      //       the NOT-NULL raw-type discipline — catches a schema-side type
+      //       flip (int → text), a view-side column drop from 0094:144, a
+      //       projection-side drop from the SELECT tuple at route.ts:98-105,
+      //       or a PostgREST serialisation regression that returned null|
+      //       undefined / stringified the pct. Separated from the set-
+      //       membership check below so a raw-type flip does not hide behind
+      //       an out-of-band diagnostic.
+      //   (b) ALLOWED_TIER_PCTS.has(row.discount_pct as number) shape assert
+      //       catches an out-of-band write path that bypassed the DB CHECK
+      //       (discount_pct IN (0,10,20,30,40)) — an ALTER CHECK DROP, a
+      //       superuser INSERT bypass, or a webhook-processor drift that
+      //       stamped a non-tier discount_pct (e.g. 15, 25, 50, 100) would
+      //       slip an out-of-band pct straight past the schema. Reuses the
+      //       module-scope ALLOWED_TIER_PCTS const introduced at tick 339
+      //       (row 140) — the {0,10,20,30,40} set is IDENTICAL between
+      //       reseller_promotion_codes.tier_pct (0091:90) and
+      //       reseller_commissions.discount_pct (0094:38) by design (the
+      //       accrual write path copies the resolved tier percentage from
+      //       the promo code into the commission row verbatim), so no new
+      //       module-scope const is needed (tick 342 precedent: reused
+      //       UUID_RE across cluster columns rather than minting per-column
+      //       aliases).
+      expect(
+        typeof row.discount_pct,
+        `commissions[].discount_pct '${String(row.discount_pct)}' should be a number (int NOT NULL CHECK (discount_pct IN (0,10,20,30,40)) per web/supabase/migrations/0094_reseller_commissions_and_events.sql:38; view alias rc.discount_pct at 0094:144; a schema-side type flip, a view-side column drop, a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:98-105, or a PostgREST serialisation regression that returned null|undefined / stringified the pct would surface here — separated from the set-membership check below so a raw-type flip does not hide behind an out-of-band diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
+      expect(
+        ALLOWED_TIER_PCTS.has(row.discount_pct as number),
+        `commissions[].discount_pct '${String(row.discount_pct)}' should be one of {0,10,20,30,40} (0094:38 discount_pct int NOT NULL CHECK (discount_pct IN (0,10,20,30,40)) — DB CHECK is the sole schema backstop; an ALTER CHECK DROP, a superuser INSERT bypass, or a webhook-processor drift that stamped a non-tier pct (e.g. 15, 25, 50, 100) would slip an out-of-band pct straight past the schema. Reuses ALLOWED_TIER_PCTS at row 140 — the {0,10,20,30,40} set is identical between reseller_promotion_codes.tier_pct at 0091:90 and reseller_commissions.discount_pct at 0094:38 by design because the accrual write path copies the resolved tier percentage from the promo code into the commission row verbatim). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
     }
   });
 });
