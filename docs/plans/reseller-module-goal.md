@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.286
+version: 2026-07-23.287
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,172 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 287
+    ran_at: 2026-07-23
+    action: p10_gst_registered_bool_wire_shape_pin_cross_surface_pair_on_admin_resellers_list_plus_admin_reseller_detail
+    result: |
+      Fresh-column rotation per tick 286 next-pick option (b) verbatim —
+      resellers.gst_registered typeof-boolean wire-shape pin landed on
+      BOTH admin-resellers-list-authz.spec.ts AND
+      admin-reseller-detail-authz.spec.ts in the same tick, mirroring
+      the tick 286 discipline of bringing multiple admin resellers-
+      family surfaces up to parity in one pass.
+
+      Thirteenth pin in the tick 275-287 lineage; second consecutive
+      single-tick cross-surface pair (rather than list-tick-N →
+      detail-tick-N+1 like ticks 283→285 did for created_at +
+      updated_at). Both surfaces come up to parity in one tick so a
+      schema-side or projection-side regression on gst_registered
+      surfaces on BOTH admin resellers-family GETs on the same CI pass
+      rather than the usual staggered signal. Fresh non-timestamp
+      non-numeric column pin — rotates onto the boolean invariant
+      column that gates the wholesale CHECK ck_wholesale_gst_required.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:36 declares
+          `gst_registered bool NOT NULL DEFAULT false` on the
+          resellers table.
+        - 0091:47-50 declares CHECK ck_wholesale_gst_required
+          `billing_model = 'retail' OR (billing_model = 'wholesale'
+          AND gst_registered = true AND abn IS NOT NULL)` — the
+          wholesale branch is dead-locked to gst_registered=true so
+          the QAPROBEWHOLESALEACTIVE seed row exercised by the detail
+          surface will always project true.
+        - The two admin resellers-family GET surfaces project the
+          column via select("*"):
+            list: route.ts:41-44 select("*").order("created_at", …)
+            detail: route.ts:47-48 select("*").eq("code", code)
+        - PostgREST returns bool columns as JS boolean on the wire so
+          the typeof-boolean pin below reflects the actual serialisation
+          contract. A regression that flipped bool→text or returned
+          "true"/"false" strings would surface on both surfaces.
+
+      Design choice — shape-only rather than value-tighten:
+        - Bool has no finite / range dimension so a single
+          typeof-boolean assert is sufficient. No layered guards
+          (unlike numeric commission_share_pct at tick 286 which
+          layered typeof + Number.isFinite + range-in-[0,100]).
+        - Non-null column → single typeof assert rather than the
+          null-or-typeof layering used for nullable columns on the
+          admin-requests-list surface. Matches ticks 283-286's
+          NOT-NULL posture verbatim.
+        - No value pin on the true/false branch — a fresh CI host
+          without wholesale seed rows will hit false rows only (retail
+          + wholesale-inactive-until-cutover), so the pin exercises
+          the "default false" branch on the list surface. The detail
+          surface's active_wholesale fixture exercises the true
+          branch by construction of the wholesale CHECK gate.
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 admin harness iterates every
+          returned resellers row inside the per-row for-loop, so
+          seeded hosts holding ≥7 cohort rows from seed-qa-reseller.mjs
+          exercise the pin on every green CI run. Fresh CI hosts with
+          zero rows still green because the pin lives inside the
+          for-loop.
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          pin ONCE per test against the QAPROBEWHOLESALEACTIVE seed
+          row (loadTempReseller('active_wholesale')) — equivalent to
+          the list surface's per-row loop iterating exactly one row.
+          Because the fixture is a wholesale row, the CHECK
+          ck_wholesale_gst_required guarantees gst_registered=true on
+          this surface, so the true branch of the boolean type is
+          exercised on every green CI run.
+        - Fresh CI hosts without the QA reseller seed still green
+          because test.skip() fires when the fixture returns null.
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 287 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:36 as the column source,
+              0091:47-50 as the wholesale invariant CHECK source, and
+              the same-tick cross-surface mirror rationale.
+            + row interface widened with gst_registered?: unknown.
+            + Single typeof-boolean assertion block inside the wave-5
+              row 164 per-row for-loop, immediately after the tick 286
+              commission_share_pct range pin.
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 287 paragraph) above
+              ISO_TIMESTAMP_RE citing the same schema sources plus
+              the wholesale fixture rationale.
+            + reseller interface widened with gst_registered?:
+              unknown.
+            + Single typeof-boolean assertion block inside the wave-5
+              row 167 happy GET test, immediately after the tick 286
+              commission_share_pct range pin.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no widening of existing guards.
+          Matches ticks 234-286 discipline: tighten one column across
+          two surfaces with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 scanned 11 files + R-03 scanned
+          31 manifest routes, 3 exemptions, 0 violations
+        - Playwright specs excluded from vitest by design; the two
+          new asserts (1 per surface) fire when `npx playwright test
+          admin-resellers-list-authz admin-reseller-detail-authz`
+          runs on a seeded host (wave-5 row 164/167 skip on CI hosts
+          lacking loadAdminHarness / loadTempReseller seeds).
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (module-scope doc-block extended with tick 287 paragraph;
+          per-row shape interface gains gst_registered?: unknown;
+          wave-5 row 164 for-loop body gains a typeof-boolean assert
+          block immediately after the tick 286 commission_share_pct
+          range pin.)
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 287 paragraph;
+          body.reseller row interface gains gst_registered?: unknown;
+          wave-5 row 167 happy GET body gains a typeof-boolean assert
+          block immediately after the tick 286 commission_share_pct
+          range pin.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.286 → 2026-07-23.287; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-286's incremental-pin pattern.
+        - Cross-surface pair rather than staggered mirror — the
+          list-surface + detail-surface pins land in the same tick so
+          the two admin resellers-family GET lenses carry the same
+          typeof-boolean shape check on gst_registered simultaneously.
+          Matches tick 286's cross-surface pair discipline rotated
+          onto a fresh boolean column.
+
+      Next natural picks on tick 288:
+        (a) rotate to another resellers-row non-null non-timestamp
+        column — status text NOT NULL DEFAULT 'active' CHECK
+        (status IN ('active','paused','terminated')) at 0091:40-41
+        is already enum-pinned on both surfaces; billing_model text
+        NOT NULL enum is already pinned via BILLING_MODELS set on
+        both surfaces; commission_share_pct + created_at + updated_at
+        + gst_registered are pinned as of tick 287. Remaining
+        candidates: allowed_tiers int[] NOT NULL DEFAULT
+        ARRAY[0,10,20,30,40] at 0091:30 (Array.isArray + every-elem
+        typeof-number + inclusion in {0,10,20,30,40}); can_create_
+        startups + can_grant_credits bool NOT NULL at 0091:31-32
+        (typeof-boolean per-column); collateral_approval_required
+        bool NOT NULL at 0091:35 (typeof-boolean).
+        (b) rotate to the abn text column at 0091:37 — nullable so
+        needs a null-or-string / null-or-string+regex two-part guard;
+        wholesale rows gated by CHECK ck_wholesale_gst_required
+        exercise the non-null branch on the detail surface.
+        (c) rotate to the reseller-side /api/reseller/me/route.ts
+        surface if it projects reseller row columns (carries over
+        from ticks 285 + 286 option (c)).
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals (H.20 InfoVision ABN + GST confirmation
+        OR Stripe add-on price env vars).
+    commit: (this tick)
+
   - tick: 286
     ran_at: 2026-07-23
     action: p10_commission_share_pct_wire_shape_pin_fresh_column_rotation_across_list_plus_detail_admin_resellers_family

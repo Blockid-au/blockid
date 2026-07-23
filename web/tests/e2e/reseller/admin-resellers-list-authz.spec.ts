@@ -143,6 +143,26 @@ const UUID_RE =
 // values, or a projection-side drop from route.ts:41-44 select("*")
 // would surface here on the next CI pass whenever any resellers row
 // is returned.
+//
+// Tick 287 — gst_registered bool wire-shape pin, natural next-pick option
+// (b) from tick 286. resellers.gst_registered is a non-null boolean column
+// echoed via the same route select("*") projection (route.ts:41-44).
+// Column declared at 0091:36 as `gst_registered bool NOT NULL DEFAULT
+// false` and gated by the wholesale invariant CHECK ck_wholesale_gst_
+// required at 0091:47-50 (`billing_model = 'retail' OR (billing_model =
+// 'wholesale' AND gst_registered = true AND abn IS NOT NULL)`). NOT-NULL
+// discipline → single typeof-boolean assert per row rather than the
+// three-part typeof + finite + range guard used for numeric
+// commission_share_pct at tick 286; bool has no finite / range
+// dimension. Cross-surface pair with the companion pin landed on
+// admin-reseller-detail-authz.spec.ts in the same tick so the two admin
+// resellers-family GET lenses carry the boolean pin simultaneously,
+// matching the tick 286 discipline of bringing both surfaces up to
+// parity in one pass. A schema-side type flip from bool to text/int, a
+// PostgREST serialisation regression that returned booleans as
+// "true"/"false" strings, or a projection-side drop from route.ts:41-44
+// select("*") would surface on both admin resellers-family surfaces
+// (list + detail) on the same CI pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -235,6 +255,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         created_at?: unknown;
         updated_at?: unknown;
         commission_share_pct?: unknown;
+        gst_registered?: unknown;
       }>;
     };
     expect(
@@ -339,6 +360,22 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
           (row.commission_share_pct as number) <= 100,
         `reseller.commission_share_pct '${String(row.commission_share_pct)}' should be within [0, 100] (admin-validator.ts:114-118 rejects out-of-band writes with commission_share_pct_out_of_range); a schema-side drift or a validator-side drop of the [0, 100] guard would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Tick 287 — gst_registered bool wire-shape pin. See module-scope
+      // doc-block (tick 287 paragraph) for the rationale. Column source
+      // 0091:36 `gst_registered bool NOT NULL DEFAULT false`; wholesale
+      // rows are further gated by CHECK ck_wholesale_gst_required at
+      // 0091:47-50 so any wholesale row must carry gst_registered=true
+      // + abn IS NOT NULL. NOT-NULL discipline → single typeof-boolean
+      // assert; bool has no finite / range dimension so no second guard
+      // is layered. A schema-side type flip from bool to text/int, a
+      // PostgREST serialisation regression that returned booleans as
+      // "true"/"false" strings, or a projection-side drop from
+      // route.ts:41-44 select("*") would surface here on the next CI
+      // pass whenever any resellers row is returned.
+      expect(
+        typeof row.gst_registered,
+        `reseller.gst_registered '${String(row.gst_registered)}' should be a boolean (bool NOT NULL DEFAULT false per 0091:36 serialised via PostgREST); a drift to a string, number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("boolean");
     }
   });
 });
