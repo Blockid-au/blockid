@@ -1133,6 +1133,42 @@ const UUID_RE =
 // scope const needed (typeof/isInteger/>=0 are all bare-JS). See
 // module-scope doc-block above ISO_TIMESTAMP_RE (tick 313 paragraph)
 // for the by_source parallel discipline this tick mirrors.
+//
+// Tick 319 — attributions_summary.active int non-negative wire-shape
+// tightening. Natural next pick per the tick 318 doc-block "extending
+// it to total (this tick) + active (natural next pick option (a) for
+// tick 319) closes the summary object out symmetrically". Column
+// source: route.ts:115 stamps `active: attributions.filter((a) =>
+// a.status === "active").length` where `attributions` is the array
+// selected on route.ts:94-97 with .select("id, subject_type, status,
+// source, attributed_at").eq("reseller_id", row.id). By
+// Array.prototype.filter → Array.length invariant the value is a
+// non-negative int32 in [0, 2^32-1] and is bounded above by
+// attributions_summary.total (already pinned by tick 318); the wave-5
+// row 167 QAPROBEWHOLESALEACTIVE seed reseller has 0 attributions by
+// default so the value is trivially 0 on green runs.
+//
+// Design choice — three-part guard mirroring tick 318 total guard
+// shape verbatim so total + active + by_source counts all share the
+// same tail-invariant discipline: (a) typeof-number preserves the
+// raw-type discipline the existing bare row 2001 pin already covered;
+// (b) Number.isInteger() catches a JS regression that stamped a
+// stringified count (`String(attributions.filter(...).length)` under a
+// refactor to `.toString()`), a floating-point value from an
+// accidental `attributions.reduce((n) => n + 0.5, 0)` refactor, or
+// NaN/Infinity from a divide-by-zero edge; (c) >= 0 assert catches a
+// signed-int wraparound or a filter refactor that stamped a negative
+// counter (e.g. `attributions.filter(...).length - 1` under an
+// off-by-one refactor). Closes the attributions_summary object cluster
+// out symmetrically — total (tick 318) + active (this tick) + by_source
+// (tick 313) are now all three-part-guarded. Next tick 320 rotates
+// scope onto the promotion_codes[] cluster (route.ts:83-88 Promise.all
+// leg selects id / tier_pct / code / stripe_coupon_id /
+// stripe_promotion_code_id / active / created_at — seven tuple columns
+// waiting for column-by-column pinning). No new imports, no new
+// module-scope const needed (typeof/isInteger/>=0 are all bare-JS). See
+// module-scope doc-block above ISO_TIMESTAMP_RE (tick 318 paragraph)
+// for the total parallel discipline this tick mirrors.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
@@ -1998,7 +2034,29 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       (body.attributions_summary?.total as number) >= 0,
       `attributions_summary.total '${String(body.attributions_summary?.total)}' should be non-negative (route.ts:114 stamps Array.length; a signed-int wraparound or a reducer refactor that stamped a negative counter via off-by-one would surface here). attributions_summary: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
     ).toBe(true);
-    expect(typeof body.attributions_summary?.active).toBe("number");
+    // Tick 319 — attributions_summary.active int non-negative wire-shape
+    // tightening. Three-part guard mirroring the tick 318 total guard
+    // shape verbatim: (a) typeof-number preserves the raw-type
+    // discipline; (b) Number.isInteger() catches a JS regression that
+    // stamped a stringified count, floating-point value, or NaN/Infinity;
+    // (c) >= 0 assert catches a signed-int wraparound or a filter
+    // refactor that stamped a negative counter. Closes the
+    // attributions_summary object cluster out symmetrically — total
+    // (tick 318) + active (this tick) + by_source (tick 313) are now
+    // all three-part-guarded. See module-scope doc-block above
+    // ISO_TIMESTAMP_RE (tick 319 paragraph) for the full rationale.
+    expect(
+      typeof body.attributions_summary?.active === "number",
+      `attributions_summary.active '${String(body.attributions_summary?.active)}' should be a number (route.ts:115 stamps 'active: attributions.filter((a) => a.status === "active").length' which is a non-negative JS array length; a JS regression that stringified the count via .toString() or an undefined-branch reducer refactor would surface here). attributions_summary: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      Number.isInteger(body.attributions_summary?.active),
+      `attributions_summary.active '${String(body.attributions_summary?.active)}' should be an integer (route.ts:115 reads Array.filter → Array.length which is a non-negative int32 in [0, 2^32-1]; a floating-point value from an accidental reducer refactor, NaN from divide-by-zero, or Infinity would surface here). attributions_summary: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe(true);
+    expect(
+      (body.attributions_summary?.active as number) >= 0,
+      `attributions_summary.active '${String(body.attributions_summary?.active)}' should be non-negative (route.ts:115 stamps Array.filter → Array.length; a signed-int wraparound or a filter refactor that stamped a negative counter via off-by-one would surface here). attributions_summary: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
+    ).toBe(true);
     expect(
       body.attributions_summary?.by_source !== null &&
         typeof body.attributions_summary?.by_source === "object" &&
