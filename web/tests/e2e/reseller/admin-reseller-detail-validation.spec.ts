@@ -791,6 +791,85 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
           `admins[].revoked_at '${String(row.revoked_at)}' should match ISO 8601 shape when non-null (nullable timestamptz per 0091:76 serialised via PostgREST as an ISO 8601 string on the tombstoned branch); a drift to a Postgres-native "YYYY-MM-DD HH:MM:SS" form with a space delimiter, a Unix epoch number-as-string, a truncated date-only slug, or a legacy pre-ISO timestamp would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe(true);
       }
+      // Tick 352 — admins[] status ⇔ revoked_at cross-column lifecycle
+      // invariant pin, lifted from the sibling admin-reseller-detail-
+      // authz.spec.ts (rows 3387-3407, tick 326) as a cross-surface
+      // twin. Executes tick 351 next-pick option (i) verbatim: now
+      // that the tick 351 revoked_at shape pin closed the per-column
+      // wire-shape sweep on the reseller_admins[] child-row cluster
+      // (id / user_id / role / status / linked_at / revoked_at all
+      // carry a full guard on this detail-validation surface), the
+      // natural follow-up is the cross-column lifecycle invariant
+      // that no per-column pin can enforce alone. Symmetrises the
+      // detail-authz + detail-validation pair on both the shape lens
+      // (per-column) AND the lifecycle lens (cross-column) so a
+      // regression on either surface fails identically.
+      //
+      // Writer-schema justification (identical to tick 326 on the
+      // sibling spec):
+      //   - 0091_reseller_module_foundations.sql:73-76 declares
+      //     status text NOT NULL CHECK IN ('active','revoked') +
+      //     revoked_at timestamptz nullable. The DB has NO CHECK
+      //     constraint tying the two — the lifecycle invariant
+      //     lives on the application write path only, so a wire-
+      //     shape pin is the sole guard.
+      //   - Application write path: no revoke code-path currently
+      //     ships in tree (grep -rn "revoked_at" web/src/lib/
+      //     reseller/ web/src/app/api/reseller/ web/src/app/api/
+      //     admin/resellers/ returns only the detail route's SELECT
+      //     projection). Therefore every green-CI admins[] row today
+      //     has status='active' + revoked_at=null; the pin is
+      //     defensive against a future revoke-mutation path that
+      //     forgets to stamp revoked_at when flipping status →
+      //     'revoked', or a resurrect-mutation path that flips
+      //     status back to 'active' but forgets to null revoked_at.
+      //   - Application read path: two columns co-projected on the
+      //     same Promise.all leg at web/src/app/api/admin/resellers/
+      //     [code]/route.ts:89-93 select("id, user_id, role,
+      //     status, linked_at, revoked_at").
+      //
+      // Design choice — two-branch cross-column guard mirrors tick
+      // 326 on the sibling spec verbatim:
+      //   - (a) status === 'active' branch: revoked_at should be
+      //     null; catches a legacy INSERT that stamped a revoked_at
+      //     value on an active row (violates the "active for live
+      //     links" half of the tick 307 invariant), or a future
+      //     resurrect path that flipped status back to 'active' but
+      //     forgot to null revoked_at.
+      //   - (b) status === 'revoked' branch: revoked_at should be a
+      //     string (already pinned as ISO 8601 shape at the tick 351
+      //     lift above on the non-null branch); catches a future
+      //     revoke path that flipped status → 'revoked' but forgot
+      //     to stamp revoked_at with now() (violates the "revoked
+      //     for tombstoned admins whose revoked_at timestamp is set"
+      //     half of the tick 307 invariant).
+      //   - Guarded by the tick 340 ALLOWED_ADMIN_STATUSES set-
+      //     membership pin already firing above so a rogue enum
+      //     value ('disabled') would surface at the status pin
+      //     rather than as a spurious lifecycle failure here.
+      //
+      // Detail-surface only per the same posture as ticks 340-351 on
+      // this spec — the admin-resellers-list route projects only the
+      // resellers-row shape and does not fan out to reseller_admins;
+      // the Promise.all leg that pulls admins rows is unique to the
+      // detail route. Fires on every green CI run because seed-qa-
+      // reseller.mjs mints per-variant reseller_admins rows per
+      // reseller cohort (all status='active' + revoked_at=null under
+      // the current app write-path posture); on hosts without seeded
+      // admins the for-loop is a no-op so the pin never fires — same
+      // posture as tick 351. Zero new module-scope constants, zero
+      // new imports.
+      if (row.status === "active") {
+        expect(
+          row.revoked_at === null,
+          `admins[].revoked_at '${String(row.revoked_at)}' should be null when status === 'active' per the lifecycle invariant documented at tick 307 ('status === "revoked" ⇔ revoked_at IS NOT NULL, active for live links, revoked for tombstoned admins'); a legacy INSERT that stamped a revoked_at value on an active row, or a future resurrect path that flipped status back to 'active' but forgot to null revoked_at, would surface here — no DB CHECK ties these columns together (0091:73-76 declares each independently), so this wire-shape pin is the sole guard against a write-path regression on the application layer. Row: ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      } else if (row.status === "revoked") {
+        expect(
+          typeof row.revoked_at === "string",
+          `admins[].revoked_at '${String(row.revoked_at)}' should be a non-null ISO 8601 string when status === 'revoked' per the lifecycle invariant documented at tick 307 ('status === "revoked" ⇔ revoked_at IS NOT NULL'); a future revoke path that flipped status → 'revoked' but forgot to stamp revoked_at with now() would surface here — the ISO shape assert on the non-null branch is separately enforced by the tick 351 pin above so this cross-column guard only defends the "must be non-null" half. Row: ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      }
     }
 
     // Attributions summary — pins the {total, active, by_source} shape
