@@ -8,6 +8,7 @@ import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
 import { hashUserId } from "@/lib/reseller/hash";
 import { buildCheckoutSuccessUrl } from "@/lib/stripe/checkout-success-url";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 // POST /api/stripe/checkout
 // Body: { plan, couponCode? }
@@ -303,6 +304,26 @@ export async function POST(request: Request) {
 
   try {
     const session = await stripe.checkout.sessions.create(sessionParams);
+
+    // SOC2-lite audit: record the successful checkout session creation.
+    // Non-PII only — plan id, cadence, trial days, and whether a reseller code
+    // was attributed. Never logs email, coupon, or Stripe session URL. Never
+    // throws.
+    await logUserAction({
+      userId: user.id,
+      action: "stripe.checkout.create",
+      subjectType: "stripe_session",
+      subjectId: null,
+      fields: {
+        plan_id: planId,
+        cadence: plan.cadence,
+        trial_days: trialDays,
+        reseller_attributed: Boolean(resellerAttribution),
+      },
+      route: "/api/stripe/checkout",
+      ip: extractIp(request.headers),
+      ua: extractUserAgent(request.headers),
+    });
 
     return NextResponse.json({ ok: true, url: session.url });
   } catch (err) {
