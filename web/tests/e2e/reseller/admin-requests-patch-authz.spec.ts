@@ -175,6 +175,23 @@ const UUID_RE =
 // `+00:00` numeric offset suffix so a PostgREST config change from `.toISOString`
 // (Z suffix) to timezone-offset serialisation does NOT trip this pin —
 // tightening beyond that would false-positive on a benign wire-format toggle.
+//
+// Tick 266 — decision_by UUID wire-shape pin added as the companion column
+// to the tick-265 decision_at pin. Reuses the module-scope UUID_RE (line
+// 139-140) rather than adding a seventh constant — decision_by is a uuid
+// column (0095:34) that references public.app_users(id) ON DELETE SET NULL,
+// so the read-back row carries the admin user id as a UUID string on the
+// happy path. Pin fires on the same six list surfaces after the tick-265
+// decision_at pin so a drift in reseller_requests.decision_by from uuid to
+// something else (e.g. a text column, a dropped column, or a route
+// regression that stripped decision_by from the list SELECT's column
+// projection at route.ts:44) surfaces here. The 0095:43-45 CHECK constraint
+// permits decision_by to be null when status ∈ ('approved','denied',
+// 'cancelled') — only decision_at is required to be non-null in those
+// states — but the PATCH route always stamps decision_by: user.id at
+// route.ts:309 for all three branches, and no admin-delete fires between
+// the PATCH and the very next GET in the same test, so the read-back MUST
+// carry a non-null UUID here.
 const ALLOWED_TIER_PCT_VALUES = new Set([0, 10, 20, 30, 40]);
 const SUFFIX_RE = /^[A-Z0-9]{1,16}$/;
 const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
@@ -462,6 +479,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           status?: unknown;
           payload?: unknown;
           decision_at?: unknown;
+          decision_by?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -499,6 +517,26 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       ISO_TIMESTAMP_RE.test(readbackRow.decision_at as string),
       `read-back row.decision_at '${String(readbackRow.decision_at)}' should match ISO 8601 shape (timestamptz per 0095:35 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 266 — decision_by UUID wire-shape pin, companion to the tick-265
+    // decision_at pin above. reseller_requests.decision_by is a uuid column
+    // (0095:34) that the deny branch just stamped via decision_by: user.id
+    // at route.ts:309 (identical assignment on all three PATCH branches).
+    // The 0095:43-45 CHECK constraint permits decision_by to be null when
+    // status ∈ ('approved','denied','cancelled') — only decision_at is
+    // required to be non-null in those states — but the route always sets
+    // decision_by to the authenticated admin's uuid and no admin-delete
+    // fires between the PATCH and this GET, so on the happy path the read-
+    // back carries a non-null UUID string here. Two-part guard mirrors the
+    // decision_at pin: typeof-string (column-type flip from uuid to say a
+    // bigint would surface as a number) + UUID_RE (a drift in the uuid
+    // serialisation shape or a route regression that stripped decision_by
+    // from the list SELECT's column projection at route.ts:44 would fail
+    // the regex match).
+    expect(typeof readbackRow.decision_by).toBe("string");
+    expect(
+      UUID_RE.test(readbackRow.decision_by as string),
+      `read-back row.decision_by '${String(readbackRow.decision_by)}' should match UUID shape (uuid per 0095:34, stamped from user.id at route.ts:309); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
@@ -794,6 +832,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           status?: unknown;
           payload?: unknown;
           decision_at?: unknown;
+          decision_by?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -828,6 +867,19 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       ISO_TIMESTAMP_RE.test(readbackRow.decision_at as string),
       `read-back row.decision_at '${String(readbackRow.decision_at)}' should match ISO 8601 shape (timestamptz per 0095:35 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 266 — decision_by UUID wire-shape pin mirrored from the deny-
+    // block onto the cancel-block surface so the uuid column shape
+    // (0095:34) is content-pinned on the second of the three post-PATCH
+    // read-back rows too. Same two-part guard as the deny surface: typeof-
+    // string + UUID_RE. The cancel branch just stamped decision_by:
+    // user.id at route.ts:309 (identical assignment line to deny + approve)
+    // so the pending-then-cancelled row now carries a non-null uuid value
+    // here. See the deny-block block-scope comment above for full rationale.
+    expect(typeof readbackRow.decision_by).toBe("string");
+    expect(
+      UUID_RE.test(readbackRow.decision_by as string),
+      `read-back row.decision_by '${String(readbackRow.decision_by)}' should match UUID shape (uuid per 0095:34, stamped from user.id at route.ts:309); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
@@ -1155,6 +1207,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
           status?: unknown;
           payload?: unknown;
           decision_at?: unknown;
+          decision_by?: unknown;
         }
       | undefined;
     if (!readbackRow) {
@@ -1199,6 +1252,27 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       ISO_TIMESTAMP_RE.test(readbackRow.decision_at as string),
       `read-back row.decision_at '${String(readbackRow.decision_at)}' should match ISO 8601 shape (timestamptz per 0095:35 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 266 — decision_by UUID wire-shape pin mirrored from the tick-266
+    // deny-block + cancel-block additions onto the approve-block surface so
+    // the uuid column shape (0095:34) is now content-pinned on all three
+    // post-PATCH read-back rows. Same two-part guard: typeof-string +
+    // UUID_RE. The approve branch just stamped decision_by: user.id at
+    // route.ts:309 (identical assignment line to deny + cancel; the approve
+    // fan-out at route.ts:200-293 does not touch the decision_by column
+    // separately) so the pending-then-approved row now carries a non-null
+    // uuid value here. Unlike decision_at, the 0095:43-45 CHECK constraint
+    // does NOT force decision_by to be non-null when status ∈ ('approved',
+    // 'denied','cancelled') — only decision_at is required in those states
+    // per the second CHECK clause — so this pin catches a route regression
+    // that returned status='approved' with a null decision_by (which would
+    // pass the DB CHECK but is not the expected happy-path shape) as well
+    // as a read-path regression that stripped decision_by from the list
+    // route's column projection at route.ts:44.
+    expect(typeof readbackRow.decision_by).toBe("string");
+    expect(
+      UUID_RE.test(readbackRow.decision_by as string),
+      `read-back row.decision_by '${String(readbackRow.decision_by)}' should match UUID shape (uuid per 0095:34, stamped from user.id at route.ts:309); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
