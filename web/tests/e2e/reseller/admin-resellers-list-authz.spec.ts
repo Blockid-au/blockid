@@ -551,6 +551,62 @@ const UUID_RE =
 // tick 328 posture verbatim. No new imports, no new module-scope const
 // needed — BILLING_MODELS + STATUSES already hoisted at the const block
 // below.
+//
+// Tick 331 — reseller.code message-symmetry lift on the list-side row.code
+// two-part typeof-string + RESELLER_CODE_RE.test() pin (already two-part
+// via tick 231 option (j) but the diagnostic messages were empty/minimal
+// while the detail-side tick 329 landed full labelled bespoke failure
+// messages pointing at 0091:24 as the writer-schema source and at
+// normaliseResellerCode() as the uppercase invariant source). Executes
+// tick 330 next-pick option (c) verbatim. The list-side uses a regex
+// half rather than the detail-side's equality half because the list
+// iterates a cohort of rows (each row's code is not a known fixture
+// constant like the single-row detail lens); the regex half against the
+// hoisted RESELLER_CODE_RE (^[A-Z0-9]+$ per line 563) enforces the same
+// normaliseResellerCode() UPPERCASE-alphanumeric invariant per row.
+// Restores prose-symmetry across the two admin-resellers-family surfaces
+// so a diagnostic-message drift on either lens surfaces the same shape
+// defect with the same bespoke wording on the next CI pass.
+//
+// Writer-schema justification (mirrors tick 329 detail-side notes):
+//   - 0091_reseller_module_foundations.sql:24 declares `code text NOT
+//     NULL UNIQUE` on the resellers base table. The DB has no CHECK
+//     constraint against mixed-case or non-alphanumeric slugs —
+//     UPPERCASE-alphanumeric discipline is enforced ONLY on the
+//     application write path via normaliseResellerCode() at
+//     web/src/lib/reseller/attribution.ts:29 (trim → toUpperCase() →
+//     replace(/[^A-Z0-9]/g, "")). A legacy INSERT that bypassed the
+//     normaliser could still land a lowercase / punctuated code straight
+//     through PostgREST onto the wire.
+//   - Application read path: projected via route.ts:41-44 select("*")
+//     on the /api/admin/resellers list endpoint, echoed as the `code`
+//     column on every row of the resellers[] array on the wire.
+//
+// Design choice — two-part guard per row mirroring the tick 329 detail-
+// side prose posture verbatim so the two admin-resellers-family surfaces
+// carry parity messages, not just parity structure:
+//   - (a) typeof-string preserves the NOT-NULL raw-type discipline;
+//     catches a PostgREST regression that returned null|undefined, a
+//     schema-side NOT NULL drop, or a projection-side drop from
+//     route.ts:41-44 select("*") SELECT tuple. Without the typeof-string
+//     half, a serialisation regression that returned row.code=null
+//     would fail the RESELLER_CODE_RE.test() check with a
+//     `test(undefined)` diagnostic that hides the raw-type flip behind
+//     the pattern mismatch; the per-half split surfaces the shape defect
+//     directly.
+//   - (b) RESELLER_CODE_RE.test() shape assert against the
+//     normaliseResellerCode() invariant catches a normaliser drift at
+//     admin-create time (route.ts:86 currently invokes the normaliser),
+//     a legacy INSERT that stamped a mixed-case or punctuated slug
+//     bypassing the write path, or a PostgREST serialisation regression
+//     that returned a lower-cased slug.
+//
+// Rotation rationale: closes the message-prose asymmetry between the
+// list-side row.code pin (bare `expect(typeof row.code).toBe("string")`
+// + `expect(row.code as string).toMatch(RESELLER_CODE_RE)` from tick 231)
+// and the detail-side reseller.code pin (tick 329 full labelled two-
+// expect discipline). No new imports, no new module-scope const needed —
+// RESELLER_CODE_RE already hoisted at line 563.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -707,8 +763,23 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
       // convention would surface across both admin surfaces simultaneously.
       // display_name has no such invariant (free text per 0091:25) so it
       // stays as typeof string only.
-      expect(typeof row.code).toBe("string");
-      expect(row.code as string).toMatch(RESELLER_CODE_RE);
+      //
+      // Tick 331 — message-symmetry lift on the two-part typeof + regex
+      // pin so the list-side prose matches the detail-side tick 329
+      // labelled two-expect discipline verbatim (differs only in the
+      // second-half assert: the list lens uses RESELLER_CODE_RE.test()
+      // per-row rather than the detail lens's toBe(fixture.code) identity
+      // because the list iterates a cohort of rows). See module-scope
+      // doc-block (tick 331 paragraph) above ISO_TIMESTAMP_RE for the
+      // full rationale.
+      expect(
+        typeof row.code,
+        `reseller.code '${String(row.code)}' should be a string (text NOT NULL per 0091:24; a schema-side NOT NULL drop, a projection-side drop from route.ts:41-44 select("*"), or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the RESELLER_CODE_RE.test() check below so a raw-type flip does not hide behind a pattern mismatch diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        RESELLER_CODE_RE.test(row.code as string),
+        `reseller.code '${String(row.code)}' should match RESELLER_CODE_RE /^[A-Z0-9]+$/ (normaliseResellerCode() invariant at web/src/lib/reseller/attribution.ts:29 applied at admin-create time via route.ts:86); a normaliser drift, a legacy INSERT that stamped a mixed-case or punctuated slug bypassing the write path, or a PostgREST serialisation regression that returned a lower-cased slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       expect(typeof row.display_name).toBe("string");
       // Tick 330 — billing_model two-part typeof-string + Set.has()
       // twin-symmetry lift. See module-scope doc-block (tick 330
