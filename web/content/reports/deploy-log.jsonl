@@ -1016,3 +1016,5 @@
 {"ts":"2026-07-23T19:14:25.204Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 328 — reseller.billing_model/status two-part typeof-string+Set.has value-set enum pin on admin reseller detail (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T19:14:54.622Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 328 (spec+goal) — reseller.billing_model/status two-part typeof-string+Set.has value-set enum pin on admin reseller detail (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T19:27:44Z","status":"success","gates":"11/11","pid":"670078","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T19:28:15.363Z","event":"github-push-master","detail":"Blockid-au: chore(deploy): iter-12 deploy — a30f0fc4 → release 3x06_0gG225y-PBVfhniP (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T19:29:12.991Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 329 (goal) — reseller.code text NOT NULL UNIQUE two-part typeof-string+equality pin on admin reseller detail (1 commits)","source":"github-webhook"}
