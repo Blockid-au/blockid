@@ -152,6 +152,20 @@ const UUID_RE =
 // stopped rejecting out-of-band values, or a projection-side drop from
 // route.ts:47-48 select("*") would surface on both admin
 // resellers-family surfaces (list + detail) on the same CI pass.
+//
+// Tick 287 — gst_registered bool wire-shape pin, cross-surface mirror of
+// the sibling pin landed on admin-resellers-list-authz.spec.ts in the
+// same tick. Column source 0091:36 `gst_registered bool NOT NULL DEFAULT
+// false`, gated by CHECK ck_wholesale_gst_required at 0091:47-50 so any
+// wholesale row must carry gst_registered=true + abn IS NOT NULL. The
+// active_wholesale fixture (QAPROBEWHOLESALEACTIVE seed row) therefore
+// exercises the true branch on this surface — a schema-side type flip
+// from bool to text/int, a PostgREST serialisation regression that
+// returned booleans as "true"/"false" strings, or a projection-side
+// drop from route.ts:47-48 select("*") would surface here on the next
+// CI pass. NOT-NULL discipline → single typeof-boolean assert; bool has
+// no finite / range dimension so no second guard is layered, matching
+// the list-surface posture verbatim.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -334,6 +348,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         created_at?: unknown;
         updated_at?: unknown;
         commission_share_pct?: unknown;
+        gst_registered?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -429,6 +444,22 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         (body.reseller?.commission_share_pct as number) <= 100,
       `reseller.commission_share_pct '${String(body.reseller?.commission_share_pct)}' should be within [0, 100] (admin-validator.ts:114-118 rejects out-of-band writes with commission_share_pct_out_of_range); a schema-side drift or a validator-side drop of the [0, 100] guard would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
+
+    // Tick 287 — gst_registered bool wire-shape pin, cross-surface mirror
+    // of the sibling pin landed on admin-resellers-list-authz.spec.ts in
+    // the same tick. See module-scope doc-block (tick 287 paragraph) for
+    // the rationale. Column source 0091:36 `gst_registered bool NOT NULL
+    // DEFAULT false`; wholesale rows are further gated by CHECK
+    // ck_wholesale_gst_required at 0091:47-50 so the active_wholesale
+    // fixture (QAPROBEWHOLESALEACTIVE seed row) exercises the true
+    // branch on this GET. Projected via route.ts:47-48 select("*").
+    // NOT-NULL discipline → single typeof-boolean assert; bool has no
+    // finite / range dimension so no second guard is layered, matching
+    // the list-surface posture verbatim.
+    expect(
+      typeof body.reseller?.gst_registered,
+      `reseller.gst_registered '${String(body.reseller?.gst_registered)}' should be a boolean (bool NOT NULL DEFAULT false per 0091:36 serialised via PostgREST; wholesale rows gated true by CHECK ck_wholesale_gst_required at 0091:47-50); a drift to a string, number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("boolean");
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
     // a SELECT-column drift on the route-side Promise.all (route.ts:74-97).
