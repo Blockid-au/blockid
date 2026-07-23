@@ -117,6 +117,132 @@ export function phaseToStageLabel(
   return { stage, label_en: labels.label_en, label_vi: labels.label_vi };
 }
 
+// ─── Second 12-phase taxonomy: startup-growth-phases string ids ────────────
+//
+// The `web/src/lib/startup-growth-phases.ts` module publishes a parallel 12-
+// phase taxonomy keyed by human-readable string ids (vision, customer_dev,
+// …, funding). It is consumed by the SVI report pipeline, the CEO daily
+// summary cron, the SCN detector and the phase-progress API. This block
+// bridges that taxonomy to the canonical 8-stage vocabulary so any surface
+// can collapse fine-grained phases into VC-standard buckets when needed.
+//
+// The DB continues to store the string id — this map is a pure display /
+// analytics-time collapse, identical in spirit to the numeric PHASE_TO_STAGE
+// bridge above.
+//
+// Rationale table (drawn from GROWTH_PHASES semantics in
+// `startup-growth-phases.ts:35-324` and STAGE_ENTRY_CRITERIA in
+// `journey-vocabulary.ts:76-116`):
+//
+// |  # | GrowthPhaseId    | 8-stage bucket    | Why                                                     |
+// | -- | ---------------- | ----------------- | ------------------------------------------------------- |
+// |  1 | vision           | idea              | Day-0 founder vision, no artefact yet                    |
+// |  2 | customer_dev     | validation        | Persona + discovery interviews = validation entry gate   |
+// |  3 | revenue_model    | validation        | Business Model Canvas + pricing hypothesis, still pre-MVP|
+// |  4 | pitch            | mvp_early_revenue | Pitch deck with early metrics/LOIs, MVP era              |
+// |  5 | mentor_review    | mvp_early_revenue | Mentor panel testing MVP hypothesis, pivot/persevere     |
+// |  6 | legal_equity     | seed              | Cap table + SHA + ESOP = clean seed-round legal chassis  |
+// |  7 | go_to_market     | seed              | GTM + first 100 paying customers = repeatable sales      |
+// |  8 | product_dev      | series_a          | Product roadmap + scalable stack = post-PMF scaling      |
+// |  9 | investor_review  | series_a          | Traction dashboard + valuation basis = Series A ready    |
+// | 10 | team             | series_b_c        | ESOP + org chart + culture = scale-era leadership build  |
+// | 11 | growth           | late_stage        | 10x scaling engine + cohort retention = pre-IPO scale    |
+// | 12 | funding          | public_exit       | Data room + DD + term sheet = IPO / exit preparation     |
+//
+// The mapping keeps every canonical bucket populated (no orphans) — a hard
+// invariant enforced by the growth-phases-map tests. Semantic stretches
+// (team → series_b_c, funding → public_exit) are called out in the table
+// above and reflect that this 12-phase taxonomy front-loads validation-era
+// activity and treats "funding" as a terminal fundraising milestone that
+// extends into exit prep.
+
+/**
+ * Every string id declared in `startup-growth-phases.ts:GROWTH_PHASES`, in
+ * declaration order. Callers should prefer the derived `GrowthPhaseId` type
+ * rather than raw strings so a rename in the source module surfaces here at
+ * compile time.
+ */
+export const GROWTH_PHASE_IDS = [
+  "vision",
+  "customer_dev",
+  "revenue_model",
+  "pitch",
+  "mentor_review",
+  "legal_equity",
+  "go_to_market",
+  "product_dev",
+  "investor_review",
+  "team",
+  "growth",
+  "funding",
+] as const;
+
+export type GrowthPhaseId = (typeof GROWTH_PHASE_IDS)[number];
+
+/**
+ * String-keyed bucket map for the startup-growth-phases 12-phase taxonomy.
+ * Mirrors the numeric {@link PHASE_TO_STAGE} above — every phase gets exactly
+ * one canonical stage, and every canonical stage receives at least one phase.
+ */
+export const GROWTH_PHASE_TO_STAGE: Record<GrowthPhaseId, StageKey> = {
+  vision: "idea",
+  customer_dev: "validation",
+  revenue_model: "validation",
+  pitch: "mvp_early_revenue",
+  mentor_review: "mvp_early_revenue",
+  legal_equity: "seed",
+  go_to_market: "seed",
+  product_dev: "series_a",
+  investor_review: "series_a",
+  team: "series_b_c",
+  growth: "late_stage",
+  funding: "public_exit",
+};
+
+/**
+ * Return the canonical 8-stage bucket for a growth-phase string id. Unknown
+ * ids (or `null` / `undefined`) fall back to `"idea"`, matching the safety
+ * behaviour of {@link phaseToStage} and {@link
+ * import("./journey-vocabulary").sviStageToCanonical}.
+ */
+export function growthPhaseToStage(
+  id: GrowthPhaseId | string | null | undefined,
+): StageKey {
+  if (id == null) return "idea";
+  return GROWTH_PHASE_TO_STAGE[id as GrowthPhaseId] ?? "idea";
+}
+
+/**
+ * Reverse lookup — every growth-phase string id that lands in a canonical
+ * bucket. Deterministic: iterates {@link GROWTH_PHASE_IDS} in declaration
+ * order so the output is stable for the same input.
+ */
+export function stageToGrowthPhases(stage: StageKey): GrowthPhaseId[] {
+  const out: GrowthPhaseId[] = [];
+  for (const id of GROWTH_PHASE_IDS) {
+    if (GROWTH_PHASE_TO_STAGE[id] === stage) out.push(id);
+  }
+  return out;
+}
+
+/**
+ * Canonical-stage display copy for a growth-phase string id. Mirrors {@link
+ * phaseToStageLabel} for the numeric taxonomy so a UI surface can render a
+ * bucketed badge for either taxonomy with a single helper shape.
+ *
+ * Returns `null` for unknown ids so callers can hide the badge instead of
+ * showing a misleading fallback.
+ */
+export function growthPhaseToStageLabel(
+  id: GrowthPhaseId | string | null | undefined,
+): { stage: StageKey; label_en: string; label_vi: string } | null {
+  if (id == null) return null;
+  const stage = GROWTH_PHASE_TO_STAGE[id as GrowthPhaseId];
+  if (!stage) return null;
+  const labels = CANONICAL_STAGE_LABELS[stage];
+  return { stage, label_en: labels.label_en, label_vi: labels.label_vi };
+}
+
 // Re-export the 12-phase constants so consumers can import both taxonomies
 // from a single module when rendering side-by-side.
 export { PHASE_COUNT, PHASE_LABELS };

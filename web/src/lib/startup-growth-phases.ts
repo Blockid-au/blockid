@@ -2,6 +2,15 @@
 // Maps C-Level agent responsibilities to each phase
 // Used by SVI reports to show "Where am I now?" journey map
 // Supports step-by-step tracking with completion percentage per phase
+//
+// Second-taxonomy bridge (follow-up to H.21): every phase id in
+// GROWTH_PHASES maps to a canonical 8-stage bucket via
+// `web/src/lib/journey-map.ts:GROWTH_PHASE_TO_STAGE`. Callers of
+// `getCurrentPhase` may pass `{ bucketToCanonical: true }` to swap the
+// fine-grained 12-phase title/subtitle for the canonical VC-standard label,
+// without touching the underlying phase data.
+
+import { growthPhaseToStageLabel } from "./journey-map";
 
 export interface PhaseStep {
   id: string;
@@ -323,11 +332,35 @@ export const GROWTH_PHASES: GrowthPhase[] = [
   },
 ];
 
-export function getCurrentPhase(sviStage: number): GrowthPhase {
+export interface GetCurrentPhaseOptions {
+  /**
+   * When true, the returned phase's `title` and `subtitle` are replaced with
+   * the canonical 8-stage bucket labels (English + Vietnamese) drawn from
+   * `journey-vocabulary.ts:CANONICAL_STAGE_LABELS`. The phase `id`, `order`,
+   * agents, questions, deliverables and steps stay intact — only the display
+   * copy is collapsed. Defaults to `false` (legacy fine-grained labels).
+   *
+   * Mirrors the H.21 `bucketToCanonical` flag on `showcase/gallery.ts:
+   * buildGallerySections`, extended here for the string-id 12-phase taxonomy.
+   */
+  bucketToCanonical?: boolean;
+}
+
+export function getCurrentPhase(
+  sviStage: number,
+  options: GetCurrentPhaseOptions = {},
+): GrowthPhase {
   const matching = GROWTH_PHASES.filter(
     (p) => sviStage >= p.sviStageRange[0] && sviStage <= p.sviStageRange[1],
   );
-  return matching[matching.length - 1] ?? GROWTH_PHASES[0];
+  const phase = matching[matching.length - 1] ?? GROWTH_PHASES[0];
+  if (options.bucketToCanonical) {
+    const badge = growthPhaseToStageLabel(phase.id);
+    if (badge) {
+      return { ...phase, title: badge.label_en, subtitle: badge.label_vi };
+    }
+  }
+  return phase;
 }
 
 export function getPhaseProgress(sviStage: number): { completed: GrowthPhase[]; current: GrowthPhase[]; upcoming: GrowthPhase[] } {
