@@ -890,3 +890,5 @@
 {"ts":"2026-07-23T13:13:21.795Z","event":"github-push-master","detail":"Blockid-au: feat(journey): startup-growth-phases → canonical 8-stage bucket map (second 12-phase taxonomy bridged) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T13:18:19Z","status":"success","gates":"10/10","pid":"3622152","note":"autonomous live deploy of master b99dfee0"}
 {"ts":"2026-07-23T13:18:44Z","actor":"autonomous-loop","sha":"a1bf4542deebca1e4859529be60c57bc2c6d1ddf","status":"ok","smoke":{"home":200,"roadmap":200,"team":200,"docs":200,"status":200,"stats":200,"acceptable_use":200},"note":"post-deploy smoke green — all 7 canonical URLs 200 + substring pass"}
+{"ts":"2026-07-23T13:19:04.422Z","event":"github-push-master","detail":"Blockid-au: chore(deploy): live deploy of a1bf4542 — post-deploy smoke green (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T13:19:51.033Z","event":"github-push-master","detail":"Blockid-au: test(reseller): P10 tick 293 — collateral_approval_required bool wire-shape pin on admin resellers list + detail (1 commits)","source":"github-webhook"}
