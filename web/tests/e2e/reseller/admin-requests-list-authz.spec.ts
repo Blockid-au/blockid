@@ -199,6 +199,53 @@ const PURPOSE_MAX = 500;
 // on reseller_requests.decision_at now surfaces on the admin patch read-back
 // (tick 265), reseller-scoped list (tick 276), and admin-scoped list (this
 // tick) lenses simultaneously.
+//
+// Tick 282 — decision_reason length ≤ REASON_MAX tightening on the admin-scoped
+// GET at /api/admin/resellers/requests/route.ts:44 (decision_reason is the
+// eighth column of the admin SELECT projection: id, reseller_id, request_type,
+// status, payload, decision_by, decision_at, decision_reason, ...). Natural
+// next pick option (a) from tick 281 — sibling companion to the tick-281
+// decision_at ISO pin above and admin-surface mirror of the reseller-side
+// tick 277 pin at reseller-requests-list-authz.spec.ts:651-656.
+// reseller_requests.decision_reason is a plain nullable `text` column at
+// 0095:36 with no DB-side CHECK — so the writer contract is enforced only in
+// validateAdminDecision at web/src/lib/reseller/requests.ts:293-300 which
+// rejects the mutation with reason='reason_too_long' whenever
+// String(input.decision_reason).trim().length > REASON_MAX (200) and stores the
+// already-trimmed value on approve/deny/cancel. Pre-tick-282 posture pinned
+// only null-or-typeof-string at line ~428-430 leaving the length invariant
+// silent on the admin lens even though the reseller lens has carried the
+// tightening since tick 277 — a route regression that projected
+// decision_reason from a different column, or a validator regression that
+// widened REASON_MAX, would pass the null-or-string guard but fail this length
+// tightening on the next CI pass.
+//
+// Two-part guard (matches ticks 265-281 layering discipline verbatim):
+//   (a) preserved null-or-typeof-string pin at line ~428-430 fires first so a
+//       projection drop still surfaces before the new length check;
+//   (b) new null-or-(typeof-string AND length ≤ REASON_MAX) pin fires only
+//       after the null-or-string guard passes so tighter existing pins
+//       surface first. Reuses the REASON_MAX=200 module-scope constant hoisted
+//       at tick 259 line 120 — no additional constant needed.
+//
+// Coverage-per-guard posture: the wave-3 row 155 seeded pending
+// over_budget_approval row carries decision_reason=NULL on the wire per
+// validator + ck_decision_shape (pending rows never carry a decision), so the
+// ===null branch of the null-or-length guard exercises on every green CI run
+// where the harness is provisioned; the non-null length branch has
+// zero-coverage on the wire today because no approve/deny fixture seeds a
+// decided reseller_requests row that this default status='pending' GET would
+// return — matches the tick 261/276/277/281 zero-coverage-per-guard rationale
+// (the pin still closes the writer contract so a length-regression across the
+// null-or-string surface would surface on the next CI pass whenever a
+// decide-fixture seeds a row and a future ?status= filter change surfaces
+// decided rows via this spec).
+//
+// Sibling-surface parity: eighth cross-surface companion pin in the
+// ticks 275-282 lineage — a validator-side or projection-side regression on
+// reseller_requests.decision_reason length now surfaces on the admin patch
+// read-back (tick 272), reseller-scoped list (tick 277), and admin-scoped
+// list (this tick) lenses simultaneously.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -427,6 +474,27 @@ test.describe("Admin reseller-requests list — P10 wave-5 row 174 happy path", 
       ).toBe(true);
       expect(
         r.decision_reason === null || typeof r.decision_reason === "string",
+      ).toBe(true);
+      // Tick 282 — length ≤ REASON_MAX tightening on decision_reason, sibling
+      // companion to the tick-281 decision_at ISO pin above and admin-surface
+      // mirror of the reseller-side tick 277 pin at
+      // reseller-requests-list-authz.spec.ts:651-656. See the tick-282
+      // module-scope doc-block above ISO_TIMESTAMP_RE for the validator
+      // source-of-truth rationale (requests.ts:293-300 —
+      // validateAdminDecision rejects with reason='reason_too_long' whenever
+      // trim().length > REASON_MAX=200 and stores the trimmed value, so the
+      // wire never carries a longer string on a green path). Fires ONLY when
+      // decision_reason is non-null so the wave-3 row 155 pending fixture's
+      // decision_reason=NULL still passes cleanly through the null branch; a
+      // decided-row fixture (future approve/deny seed) would exercise the
+      // length branch. Eighth cross-surface companion pin in the 275-282
+      // lineage. Reuses the REASON_MAX=200 module-scope constant hoisted at
+      // tick 259 line 120 — no additional constant needed.
+      expect(
+        r.decision_reason === null ||
+          (typeof r.decision_reason === "string" &&
+            (r.decision_reason as string).length <= REASON_MAX),
+        `admin happy GET row.decision_reason should be null or a string of length ≤ ${REASON_MAX} per validator invariant at requests.ts:293-300 (validateAdminDecision rejects with reason='reason_too_long' when trim().length > REASON_MAX=200 and stores the trimmed value); a widening of the validator or a projection swap to a different text column would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
       // Tick 234 — payload plain-object shape pin per tick 233 next-pick
       // option (p) sibling-audit outcome. Route SELECT at route.ts:44 echoes
