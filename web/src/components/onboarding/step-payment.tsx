@@ -167,7 +167,12 @@ export function StepPayment({
         }),
       });
 
-      window.location.href = "/dashboard?onboarding=complete";
+      // Advance to Step 6 ("Create your first startup") — the activation
+      // moment added by real-world audit #8. If the flow was reopened at
+      // step=6 directly (Stripe-hosted checkout return), the wizard shell
+      // handles that via URL params; from here we NEXT into it.
+      dispatch({ type: "SET_LOADING", loading: false });
+      dispatch({ type: "NEXT" });
     } catch {
       setLocalError("Something went wrong confirming your card. Please try again.");
       setSubmitting(false);
