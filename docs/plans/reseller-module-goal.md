@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.322
+version: 2026-07-23.323
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -62,7 +62,7 @@ open_questions_resolved:
 tracks:
   A:
     name: reseller-module
-    current_focus: P2_redemption_attribution
+    current_focus: P10_hardening
     phases:
       P0_goal_and_orchestration:
         status: done
@@ -299,8 +299,11 @@ tracks:
           "GST reconciliation delta <= A$1/month (DONE P7.3 — GST_TOLERANCE_CENTS=100 in reconciliation.ts; monthly cron sums revenue_events.gst_aud_cents vs Stripe invoice.total_taxes[].amount and emails admin@blockid.au on drift)"
         ]
       P8_share_management_addon:
-        status: in_progress
+        status: done_pending_stripe
+        tick: 323
+        completed_at: 2026-07-23
         migration_files: [0098]  # 0097 already consumed by P7 report-storage; P8 grandfather backfill lands as 0098
+        sign_off_note: "Tick 323 sign-off: 5/5 non-blocked sub_phases (P8.1 manifest / P8.2 route gating / P8.3 grandfather backfill / P8.4 purchase drawer / P8.4b end-of-cycle removal) all done + on-disk verified (feature-gates.manifest.ts + feature-gate.ts + 0098 backfill migration + share-mgmt-drawer.tsx + stripe/addon-schedule.ts all exist). 6/7 exit_criteria met via code: manifest complete (P8.1 28-route completeness test 6/6); R-03 AST lint enforces requireFeature on all gated routes (P8.2 lint:reseller clean); grandfather backfill migration 0098 applied idempotently (P8.3 dev-DB 0/45 users grandfathered as expected — no legacy paying subs); purchase drawer functional with proration preview (P8.4 monthly/annual + Save 2 months + reseller code auto-detect); cancel path defaults to end-of-cycle via subscription schedule with end_behavior=release (P8.4b tick 56 CRO advisory #21 fixed). Only remaining item = P8.5 Stripe env vars STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL which must be minted in Stripe dashboard by account owner (H.13 chain — same TBD_verify_at_dashboard_stripe_com carve-out as stripe.account_owner_email). Per goal-file rule that TBD on required attribute = human intervention required, this carve-out does not block P10_hardening's non-Stripe exit_criteria (perf-audit, security-audit, au-compliance, CI rules R-01..R-09) which can proceed independently. Aligning wording with P1's done_pending_seed / P3's done_pending_agreement / P4+P5's done_pending_playwright conventions."
         sub_phases:
           P8.1_manifest_completeness: {status: done, tick: 44, completed_at: 2026-07-21, files: [
             "web/src/lib/feature-gates.manifest.ts",
