@@ -529,6 +529,54 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history auto_commit_started row.dirty_files should be typeof number (reseller-goal-loop.mjs:332 writes \`dirty.split('\\n').length\` — Array.prototype.length): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe("number");
       }
+      // Writer schema pin (tick 244 option y8 — sixth conditional-by-stage pin,
+      // symmetric two-pin shape matching tick 240's phase_failed guard + tick
+      // 242's auto_commit_finished guard). scripts/cron/reseller-goal-loop.mjs:218
+      // writes `log({ stage: 'error', where: 'readGoal', error: String(err) })`
+      // inside the try/catch at mjs:214-220 that wraps `readGoal()` — the only
+      // `stage: 'error'` writer in the loop (grep-verified: 1 match at mjs:218).
+      // `where` is a bare string literal at the call site — schema-level
+      // typeof=string guarantee (never null, never object, never absent — the
+      // one call site passes the static literal 'readGoal'). `error` is
+      // `String(err)` where err is the caught exception — the `String()` cast
+      // narrows any throwable (Error, string, null, undefined, number, arbitrary
+      // object with toString) to a JSON string, so it is a schema-level
+      // typeof=string guarantee too (never null, never absent, never a
+      // non-string primitive). The log() helper at mjs:52-58 prepends
+      // tick_id/ts/human_review_minutes_7d then spreads `...row` — both keyvals
+      // flow through untouched. Landing a stage-guarded two-pin block catches
+      // (a) a writer regression that renamed either key on the log envelope;
+      // (b) a call-site regression that dropped the `String()` cast so `error`
+      // could land as a non-string (Error object, null, etc.); (c) a future
+      // call site that added a `stage: 'error'` write without passing both
+      // keys. No value pin — `where` may drift as future try/catch blocks add
+      // other error-emit sites with different tag strings, and `error` varies
+      // with subprocess/IO failure modes; the pin should tolerate that drift
+      // per tick 230's "assert typeof string only so the value can drift"
+      // convention. Skipped on hosts where the loop has never taken the
+      // readGoal-throws branch (i.e. every host where docs/plans/reseller-
+      // module-goal.md exists and is readable) — the pin has no effect on
+      // green-path hosts, same natural side effect as the tick 239
+      // frontier_computed guard + tick 240 phase_failed guard + tick 241 idle
+      // guard + tick 242 auto_commit_finished guard + tick 243 auto_commit_
+      // started guard. Two pins in one guard because where + error share the
+      // same conditional at mjs:217 — they always land together on the same
+      // row, so the guard cost is amortised (matches tick 240's phase_failed
+      // two-pin rationale + tick 242's auto_commit_finished two-pin rationale
+      // verbatim except for the stage literal + writer source line citations).
+      // Restores the one-pin / two-pin alternation cadence established by
+      // ticks 239-243 (frontier_computed: 1 → phase_failed: 2 → idle: 1 →
+      // auto_commit_finished: 2 → auto_commit_started: 1 → error: 2).
+      if (tickRow.stage === "error") {
+        expect(
+          typeof tickRow.where,
+          `tick_history error row.where should be typeof string (reseller-goal-loop.mjs:218 writes bare string literal 'readGoal'): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+        expect(
+          typeof tickRow.error,
+          `tick_history error row.error should be typeof string (reseller-goal-loop.mjs:218 writes \`String(err)\` — narrows any throwable to a JSON string): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
