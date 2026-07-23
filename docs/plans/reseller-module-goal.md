@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.236
+version: 2026-07-23.237
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,154 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 237
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_human_review_minutes_7d_number_pin_option_v
+    result: |
+      Landed tick 236's "natural next pick" option (v — new): a single
+      typeof=number pin for the `human_review_minutes_7d` field on every
+      tick_history row in admin-reseller-loop-status-authz.spec.ts happy
+      path. Closes the last un-pinned writer-guaranteed field on the
+      tick_history row (tick 235 pinned tick_id + ts + stage).
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:44 declares
+          `let HUMAN_REVIEW_MINUTES_7D = 0` — the default is typeof=number
+          before any await fires.
+        - The try/catch at reseller-goal-loop.mjs:45-47 either reassigns
+          from `await sumHumanReviewMinutes7d()` (which always returns a
+          number per scripts/cron/human-review-minutes.mjs:24-48 — 0
+          fallback when the counter file is missing, or a summed total)
+          or leaves the 0 default in place on any thrown error.
+        - The log() helper at reseller-goal-loop.mjs:52-58 then spreads
+          `human_review_minutes_7d: HUMAN_REVIEW_MINUTES_7D` into every
+          appended row. It is therefore a schema-level guarantee from the
+          writer — always present, always typeof=number (never null,
+          never string, never undefined).
+
+      Symmetric convention (per tick 235 + tick 236):
+        - Same insertion pattern as tick_id + ts + stage: a two-line pin
+          after the stage typeof-string assertion, with an inline citation
+          of the writer-script path + line numbers so a future refactor of
+          either side (writer or spec) surfaces a coupled diff obligation.
+        - No value pin — the number drifts with cumulative human handoff
+          cost per CHRO §26 rec #1, so pinning any specific value would
+          fail on every non-zero writer sample.
+        - No twin surface (singleton endpoint) — same rationale as
+          monitor_ts + head_sha + last_log.
+
+      Regression coverage tightened:
+        - PRE-tick: a writer regression that renamed
+          human_review_minutes_7d → review_minutes_7d, replaced the 0
+          default with null, or a helper regression that returned a non-
+          number (Promise<string>, undefined) so the spread landed a
+          stringified number in the row would silently pass admin-
+          reseller-loop-status-authz — the tick_id + ts + stage pins only
+          cover the three timestamp/enum fields. The admin visual-QA lens
+          (/admin/reseller-loop dashboard) would carry the mismatch alone.
+        - POST-tick: the human_review_minutes_7d guarantee is now covered
+          by a presence + type pin at the wire, so any of the three
+          regression modes above surfaces here.
+
+      Trade-off accepted:
+        - The typeof=number pin is coupled to reseller-goal-loop.mjs:44 +
+          :57. A writer refactor that migrated human_review_minutes_7d to
+          a nested telemetry envelope like {kpis: {human_review_minutes_7d
+          : N}} would still fail the presence pin — the pin only guards
+          the top-level shape, not the schema evolution. That is
+          intentional: this is the last un-pinned top-level writer-
+          guaranteed field, and a nested-envelope refactor would need a
+          coordinated spec bump anyway.
+        - Accepted because the coupling reflects the writer contract at
+          the outer envelope level (human_review_minutes_7d is a top-
+          level number) and any structural change is a load-bearing
+          telemetry evolution that warrants a coupled spec review.
+
+      Diagnostic delta of the pass:
+        - Added 1 new expect block in admin-reseller-loop-status-authz.
+          spec.ts (inside the tick_history row loop, immediately after
+          the stage pin), with an inline citation of reseller-goal-loop.
+          mjs:44 + :57 + human-review-minutes.mjs:24-48.
+        - No production code touched, no fixture change, no route change,
+          no new imports, no vitest / Playwright runtime posture change,
+          no new module-scope constant (the pin is an inline literal
+          matching tick 235's + 236's convention).
+        - One comment block added citing the tick 237 landing + the
+          three writer-script line ranges + the "no value pin" +
+          the "singleton-endpoint-no-twin-surface" rationale.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one typeof=number pin added after the tick_id + ts + stage
+          pins with an inline writer-schema comment pointing to reseller-
+          goal-loop.mjs:44, :57 and human-review-minutes.mjs:24-48.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.236 → 2026-07-23.237; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Schema pin only. No new spec-local constant (the field-presence
+          + typeof=number pin reads clearly inline; hoisting would
+          obscure the tie-back to the specific writer line numbers in
+          the expect message). No fixture-file delta, no seed-script
+          change, no P8.5-gated code_request work (option (c) still
+          blocked), no production-code touch. Matches ticks 223-236
+          discipline: tighten one dimension, symmetrise against known
+          invariants, single tick.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemption(s), 0 violation(s). The
+          edited spec file lives under web/tests/e2e/**, not in the
+          reseller manifest, so R-01/R-03 do not fire on the edited
+          file.
+        - reseller vitest suite unchanged (no production code or lib
+          touched — Playwright specs are excluded from vitest by design).
+
+      Frontier after tick 237: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 237 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20.
+
+      Natural next pick for tick 238:
+        (t) SUPERSEDED — audit at tick 237 confirmed the snapshot field
+            is NOT capped in the route (route.ts:52 does an unbounded
+            safeRead of /tmp/blockid-reseller-monitor.txt with no length
+            cap). Landing a length-cap pin would fabricate a route
+            contract that does not exist. If a future tick adds a byte
+            cap to safeRead, this option re-opens.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list +
+            admin-side patch spec) in a single bigger-diff tick. Tick
+            234 explicitly deferred this ("per-key admin pin would BREAK
+            the three-surface symmetry either land per-key pins across
+            all three surfaces in one tick — bigger diff — or defer").
+            Would close option (r) for good.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at tick 235 + 236.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof
+            string to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235 +
+            236.
+        (w) audit whether the singleton reseller-monitor.jsonl writer at
+            scripts/cron/reseller-monitor.sh:58-64 could carry any
+            additional schema-level guarantees beyond monitor_ts +
+            head_sha + last_log. Read the sh script inline before landing
+            — the show-next-reseller-tick.sh state spread may contribute
+            additional guaranteed keys worth pinning as a set.
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 236
     ran_at: 2026-07-23
     action: p10_loop_status_monitor_row_last_log_plain_object_pin_option_s
