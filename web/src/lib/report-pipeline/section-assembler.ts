@@ -25,6 +25,7 @@ import {
   getNextActionableSteps,
   GROWTH_PHASES,
 } from "@/lib/startup-growth-phases";
+import { growthPhaseToStageLabel } from "@/lib/journey-map";
 
 // ── Section Order ───────────────────────────────────────────────────────────
 
@@ -274,6 +275,15 @@ function sectionsToMarkdown(sections: ReportSection[], context: ReportContext): 
   parts.push(`<!-- growth-journey-svg -->\n${journeySvg}\n<!-- /growth-journey-svg -->`);
   if (current.length > 0) {
     parts.push(`**Current Phase${current.length > 1 ? "s" : ""}:** ${current.map(p => `${p.title} (Lead: ${p.leadAgent.toUpperCase()})`).join(", ")}`);
+    // H.21 parity: canonical 8-stage overlay so the report speaks the same
+    // vocabulary as the four showcase timelines and the dashboard header.
+    const canonicalLabels = current
+      .map(p => growthPhaseToStageLabel(p.id))
+      .filter((s): s is NonNullable<ReturnType<typeof growthPhaseToStageLabel>> => s !== null)
+      .map(s => `${s.label_en} · ${s.label_vi}`);
+    if (canonicalLabels.length > 0) {
+      parts.push(`**Stage:** ${canonicalLabels.join(", ")}`);
+    }
   }
   parts.push(`**Progress:** ${completed.length}/${GROWTH_PHASES.length} phases complete | ${upcoming.length} upcoming`);
   parts.push("---");

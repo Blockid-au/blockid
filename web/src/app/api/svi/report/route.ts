@@ -12,6 +12,7 @@ import {
   renderThreeQuestionsSVG,
   GROWTH_PHASES,
 } from "@/lib/startup-growth-phases";
+import { growthPhaseToStageLabel } from "@/lib/journey-map";
 
 function detectLanguage(text: string): "en" | "vi" | "auto" {
   // Simple heuristic: check for Vietnamese diacritical marks
@@ -272,6 +273,14 @@ Write naturally, be thorough, and remember: this founder is trusting you with th
         growthJourney: journeySvg,
         threeQuestions: threeQSvg,
         currentPhases: current.map(p => ({ id: p.id, title: p.title, order: p.order, color: p.color })),
+        // H.21 parity: canonical 8-stage overlay so downstream renderers
+        // (PDF/DOCX exporters, email digests, mobile clients) can display
+        // the same vocabulary as the founder dashboard and the four
+        // showcase timelines without recomputing the bucket. Additive —
+        // `currentPhases` remains authoritative for the fine-grained view.
+        canonical_stage: current
+          .map(p => growthPhaseToStageLabel(p.id))
+          .filter((s): s is NonNullable<ReturnType<typeof growthPhaseToStageLabel>> => s !== null),
         progress: { completed: completed.length, total: GROWTH_PHASES.length },
       },
     });
