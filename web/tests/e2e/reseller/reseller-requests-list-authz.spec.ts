@@ -91,6 +91,40 @@ const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
 const REASON_MAX = 200;
 const PURPOSE_MAX = 500;
 
+// Tick 276 — decision_at ISO-8601 wire-shape tightening on the reseller-scoped
+// GET at /api/reseller/requests/route.ts:169-173 (fifth column of the SELECT
+// projection). Natural next pick option (a) from tick 275 — sibling companion
+// to the tick-275 created_at ISO pin. reseller_requests.decision_at is a
+// `timestamptz` NULLABLE column per 0095:35 governed by the ck_decision_shape
+// CHECK at 0095:41-45 which requires decision_at NON-NULL when status ∈
+// ('approved','denied','cancelled') and permits NULL only when status='pending'.
+// Pre-tick-276 posture pinned only null-or-typeof-string at line 440-443
+// (landed at tick 224) leaving the ISO shape silent whenever decision_at is
+// non-null. A route regression that dropped decision_at from the SELECT would
+// surface as undefined here (undefined fails both the ===null branch and the
+// typeof-string branch), but a serialisation drift (PostgREST returning an
+// epoch integer stringified as "1735689600", or a column swap to a text field
+// that stores freeform values) would pass the typeof-string guard but fail
+// this ISO regex tightening. Three-part guard: (a) preserved null-or-typeof-
+// string pin at line 440-443 fires first (matches ticks 265-275 layering
+// discipline verbatim), (b) new null-or-ISO_TIMESTAMP_RE-match pin fires only
+// after the typeof-string guard passes so tighter existing pins surface first,
+// (c) reuses the ISO_TIMESTAMP_RE module-scope constant hoisted at tick 275 —
+// no ninth module-scope constant needed. Coverage-per-guard posture: the
+// wave-3 row 155 seeded pending over_budget_approval row exercises the NULL
+// branch of the null-or-ISO guard on every green CI run (pending rows carry
+// decision_at IS NULL per ck_decision_shape); the NON-NULL ISO branch has
+// zero-coverage on the wire today because no approve/deny fixture seeds a
+// decided reseller_requests row that this GET would return — matches the
+// tick 261 zero-coverage-per-guard rationale (the pin still closes the writer
+// contract so a serialisation regression across the null-or-string surface
+// would surface on the next CI pass whenever a decide-fixture seeds a row).
+// Symmetric-across-surfaces posture: the same decision_at ISO pin now fires
+// on the admin patch read-back rows (via the tick 265 pin at admin-requests-
+// patch-authz.spec.ts:801-804) and this reseller-scoped list route so a
+// projection-side or serialisation-side regression on reseller_requests
+// .decision_at surfaces on both admin and reseller lenses simultaneously.
+//
 // Tick 275 — created_at ISO-8601 wire-shape pin mirrored from the admin-side
 // tick 267 pin at admin-requests-patch-authz.spec.ts:460-461. Reseller-scoped
 // GET at /api/reseller/requests/route.ts:169-173 projects created_at as the
@@ -440,6 +474,19 @@ test.describe("Reseller requests list — P10 wave-4 happy path", () => {
       expect(
         row.decision_at === null || typeof row.decision_at === "string",
         `active_wholesale + happy GET row.decision_at should be null or a string timestamp (nullable per 0095:35; NULL on pending rows per ck_decision_shape at 0095:41-45). Row: ${JSON.stringify(row)}`,
+      ).toBe(true);
+      // Tick 276 — ISO_TIMESTAMP_RE tightening on decision_at, sibling
+      // companion to the tick-275 created_at ISO pin above. Fires ONLY when
+      // decision_at is non-null so the wave-3 row 155 pending fixture's
+      // decision_at=NULL still passes cleanly; a decided-row fixture (future
+      // approve/deny seed) would exercise the ISO regex branch. See module-
+      // scope doc-block above ISO_TIMESTAMP_RE (tick 276 paragraph) for the
+      // ck_decision_shape + PostgREST serialisation rationale.
+      expect(
+        row.decision_at === null ||
+          (typeof row.decision_at === "string" &&
+            ISO_TIMESTAMP_RE.test(row.decision_at)),
+        `active_wholesale + happy GET row.decision_at '${String(row.decision_at)}' should be null or an ISO 8601 timestamp string (timestamptz per 0095:35 serialised via PostgREST; NULL on pending rows per ck_decision_shape at 0095:41-45); a drift to a non-ISO string, a number, or a locale-formatted date would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
       expect(
         row.decision_reason === null || typeof row.decision_reason === "string",
