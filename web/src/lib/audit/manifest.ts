@@ -116,6 +116,15 @@ export const AUDIT_MANIFEST: readonly AuditManifestEntry[] = Object.freeze([
     action: "api_key.revoked",
     subject_type: "api_key",
   },
+
+  // Wave 4 — Iteration-18 T1 (Q4 MP #5) — 90-day retention purge cron
+  {
+    route: "api/cron/archived-purge/route.ts",
+    method: "POST",
+    action: "project.purged",
+    subject_type: "project",
+    note: "Emitted once per purged project, preserving original user_id.",
+  },
 ]);
 
 /**
