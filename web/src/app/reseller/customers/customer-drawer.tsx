@@ -91,7 +91,7 @@ interface Copy {
   rp_col_generated: string;
 }
 
-const COPY: Record<Locale, Copy> = {
+export const COPY: Record<Locale, Copy> = {
   en: {
     header_eyebrow: "Customer",
     header_fallback: "—",
