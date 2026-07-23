@@ -12,6 +12,11 @@ import Link from "next/link";
 import { ADMIN_EMAIL, getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getRealMrrAud, type RealMrr } from "@/lib/metrics/mrr";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+// D3-CISO-05: sandbox scope chip is display-only on /admin/pricing-metrics
+// — MRR views (v_mrr_active, v_mrr_by_segment) and revenue_events do not
+// carry a sandbox flag; sandbox activity has no billing impact anyway.
+// no sandbox column on revenue_events / v_mrr_* — chip is display-only for future consistency
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -186,6 +191,11 @@ export default async function PricingMetricsPage() {
             ← Admin home
           </Link>
         </header>
+
+        <SandboxScopeChip
+          scope="all"
+          note="Chip-only — MRR/revenue views measure billable activity only; sandbox is bookkeeping."
+        />
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Tile label="MRR" value={formatAud(mrr.mrrAud)} sub="Sum of active subs × monthly rate" />

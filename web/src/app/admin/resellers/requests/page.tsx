@@ -7,6 +7,11 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+// D3-CISO-05: sandbox scope chip is display-only on /admin/resellers/requests
+// — reseller_requests has no sandbox column; the sandbox/live distinction on
+// the underlying grant lives on reseller_credit_grants.kind.
+// no sandbox column on reseller_requests — chip is display-only for future consistency
 import { RequestsInboxClient } from "./inbox-client";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +86,12 @@ export default async function AdminResellerRequestsPage() {
             </a>
             .
           </p>
+          <div className="mt-3">
+            <SandboxScopeChip
+              scope="all"
+              note="Chip-only — reseller_requests has no sandbox column."
+            />
+          </div>
         </header>
 
         <RequestsInboxClient

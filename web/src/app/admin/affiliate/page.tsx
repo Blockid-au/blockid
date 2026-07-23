@@ -22,6 +22,11 @@ import {
   K_ANONYMITY_THRESHOLD,
 } from "@/lib/reseller/portfolio-aggregates";
 import { AffiliateViewClient } from "./affiliate-view-client";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+// D3-CISO-05: sandbox scope chip is display-only on /admin/affiliate —
+// reseller_attributions have no sandbox column; each reseller edit page
+// carries its own isSandbox flag.
+// no sandbox column on reseller_attributions — chip is display-only for future consistency
 import type { ResellerListEntry, ResellerRow } from "./types";
 
 export const dynamic = "force-dynamic";
@@ -106,6 +111,12 @@ export default async function AdminAffiliatePage() {
             their promo code, and act on individual attributions. Counts below
             5 render as {"<5"} (k-anonymity, per docs/plans/reseller-module-plan.md § U.15.3).
           </p>
+          <div className="mt-3">
+            <SandboxScopeChip
+              scope="all"
+              note="Chip-only — attributions are wholesale-scoped; per-reseller sandbox lives on the reseller detail page."
+            />
+          </div>
         </header>
 
         {resellers.length === 0 ? (

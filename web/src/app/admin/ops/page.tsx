@@ -10,6 +10,10 @@ import {
   getReleaseInfo,
   getSecurityPosture,
 } from "@/lib/ops-metrics";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+// D3-CISO-05: sandbox scope chip is display-only on /admin/ops — deploy /
+// cron / posture rollups are infrastructure-scoped, not tenant-scoped.
+// no sandbox column on ops-metrics inputs — chip is display-only for future consistency
 import { OpsDashboardClient } from "./ops-dashboard-client";
 
 export const metadata: Metadata = {
@@ -45,15 +49,23 @@ export default async function AdminOpsPage() {
   ]);
 
   return (
-    <OpsDashboardClient
-      user={{ email: user.email, displayName: user.displayName ?? null }}
-      release={release}
-      deployHealth={deployHealth}
-      creditBurn={creditBurn}
-      cronHealth={cronHealth}
-      experiments={experiments}
-      growth={growth}
-      posture={posture}
-    />
+    <>
+      <div className="mx-auto max-w-7xl px-6 pt-4">
+        <SandboxScopeChip
+          scope="all"
+          note="Chip-only — ops metrics are infra-scoped, not tenant-scoped."
+        />
+      </div>
+      <OpsDashboardClient
+        user={{ email: user.email, displayName: user.displayName ?? null }}
+        release={release}
+        deployHealth={deployHealth}
+        creditBurn={creditBurn}
+        cronHealth={cronHealth}
+        experiments={experiments}
+        growth={growth}
+        posture={posture}
+      />
+    </>
   );
 }
