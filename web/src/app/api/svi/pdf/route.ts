@@ -5,6 +5,7 @@ import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { loadBrandSettings } from "@/lib/branding/load";
 
 export const dynamic = "force-dynamic";
 
@@ -86,9 +87,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // ── Load per-user branding (Growth+/Scale/Enterprise only) ─────────
+    // Returns null for locked plans OR when no row has been saved — the
+    // renderer then falls back to the default BlockID palette + logo.
+    // Never log the resolved logo URL: Supabase storage URLs are PII.
+    const branding = await loadBrandSettings(user.id, user.plan);
+
     // ── Render PDF ──────────────────────────────────────────────────────
     const buffer = await renderToBuffer(
-      SVIReportPDF({ analysis, email }),
+      SVIReportPDF({ analysis, email, branding }),
     );
 
     const filename = slug
