@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.281
+version: 2026-07-23.282
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,147 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 282
+    ran_at: 2026-07-23
+    action: p10_admin_requests_list_decision_reason_length_pin_mirror_from_reseller_277
+    result: |
+      Landed tick 281's next-pick option (a) verbatim — decision_reason length
+      ≤ REASON_MAX tightening on the admin-scoped GET at
+      admin-requests-list-authz.spec.ts. Pre-tick posture pinned only
+      null-or-typeof-string on decision_reason at line ~475-477 leaving the
+      length invariant silent on the admin lens even though the reseller lens
+      has carried the tightening since tick 277.
+
+      Eighth cross-surface companion pin in the tick 275-282 lineage; mirrors
+      reseller-side tick 277's pin verbatim onto the admin surface so a
+      validator-side widening of REASON_MAX or a projection swap on
+      reseller_requests.decision_reason now surfaces on the admin patch
+      read-back (tick 272), reseller-scoped list (tick 277), and admin-scoped
+      list (this tick) lenses simultaneously.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:36 declares `decision_reason text`
+          (NULLABLE) with no DB-side CHECK on length — so the writer contract
+          for length is enforced only in validateAdminDecision at
+          web/src/lib/reseller/requests.ts:293-300 which rejects the mutation
+          with reason='reason_too_long' whenever
+          String(input.decision_reason).trim().length > REASON_MAX (200) and
+          stores the trimmed value on approve/deny/cancel.
+        - Admin-scoped list route at
+          /api/admin/resellers/requests/route.ts:44 projects decision_reason
+          as the eighth column of the SELECT list (id, reseller_id,
+          request_type, status, payload, decision_by, decision_at,
+          decision_reason, ...).
+
+      Design choice — mirror reseller-side tick 277 verbatim:
+        - Reuses the REASON_MAX=200 module-scope constant hoisted at tick
+          259 line 120 — no additional module-scope constant needed.
+        - Two-part guard (matches ticks 265-281 layering discipline
+          verbatim):
+          (a) preserved null-or-typeof-string pin at line ~475-477 fires
+              first so a projection drop still surfaces before the new
+              length check;
+          (b) new null-or-(typeof-string AND length ≤ REASON_MAX) pin fires
+              only after the null-or-string guard passes so tighter existing
+              pins surface first.
+
+      Coverage-per-guard posture:
+        - Green-path fixture wave-3 row 155 seeded pending
+          over_budget_approval row guarantees decision_reason IS NULL per
+          validator + ck_decision_shape (pending rows never carry a
+          decision) so the null branch fires on every green CI run where the
+          harness is provisioned.
+        - The NON-NULL length branch has zero-coverage on the wire today
+          because no approve/deny fixture seeds a decided reseller_requests
+          row that this default status='pending' GET would return —
+          matches the tick 261/276/277/281 zero-coverage-per-guard rationale
+          (the pin still closes the writer contract so a length-regression
+          across the null-or-string surface would surface on the next CI
+          pass whenever a decide-fixture seeds a row and a future ?status=
+          filter change surfaces the decided rows via this spec).
+
+      Diagnostic delta of the pass:
+        - One new inline assertion block (five-line
+          null-or-(typeof-string-AND-length ≤ REASON_MAX) branch added
+          immediately after the preserved null-or-typeof-string pin on
+          decision_reason) inside the per-row for-loop of the wave-5 row 174
+          happy GET block. Block-scope comment citing 0095:36 as the column
+          declaration source, requests.ts:293-300 as the validator source,
+          and the reseller-side tick 277 pin as the sibling-surface
+          companion.
+        - Module-scope doc-comment block above the ISO_TIMESTAMP_RE
+          constant describing the pin's writer-schema justification, the
+          two-part guard breakdown, the sibling reseller + admin-patch
+          surface companions, and the eighth cross-surface companion
+          lineage in ticks 275-282.
+        - No production code touched, no fixture change, no route change,
+          no new imports, no new module-scope constant, no widening of
+          existing guards. Matches ticks 234-281 discipline verbatim:
+          tighten one dimension (in this case add the length assertion to
+          the admin list surface's decision_reason column) with zero net
+          new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes scanned,
+          3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-list-authz.spec.ts
+          (new module-scope tick-282 doc-comment block appended after the
+          tick-281 doc-block and above the shared ISO_TIMESTAMP_RE
+          constant; per-row for-loop of the wave-5 row 174 happy GET block
+          gains a null-or-(typeof-string AND length ≤ REASON_MAX)
+          assertion immediately after the preserved null-or-typeof-string
+          pin on decision_reason, with a block-scope comment citing
+          0095:36 + requests.ts:293-300 as the column + validator sources
+          and the reseller-side tick 277 pin as the sibling-surface
+          companion.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.281 → 2026-07-23.282; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no new
+          import, no new module-scope constant, no widening of the guards
+          on existing pins. Consistent with ticks 234-281's incremental-pin
+          pattern.
+        - Cross-surface parity — mirrors the reseller-side tick 277
+          decision_reason length pin verbatim onto the admin-scoped GET
+          list surface so a decision_reason length drift surfaces on both
+          admin and reseller list lenses simultaneously. Eighth cross-
+          surface companion pin in the 275-282 lineage.
+
+      Next natural picks on tick 283:
+        (a) status enum value pin hoist on the admin-scoped GET as a
+        shared module-scope ALLOWED_STATUS_VALUES constant — the admin
+        surface pins status via REQUEST_STATUSES.has() at line ~99-104
+        (already hoisted), which already covers the enum values. The
+        reseller-side tick 278 hoisted ALLOWED_STATUS_VALUES onto the
+        reseller-scoped list surface using the sibling admin-requests-
+        patch-authz spec's tick 270 hoist. Admin-list already has the
+        same set hoisted, so this would be a no-op re-symmetrisation
+        unless the naming needs to align (REQUEST_STATUSES vs
+        ALLOWED_STATUS_VALUES).
+        (b) rotate again to a fresh spec surface — the admin-list surface
+        has now received the full tick 275-277 mirror pass through ticks
+        280-282 (created_at ISO, decision_at ISO, decision_reason length).
+        Cross-surface tightening pressure has moved from reseller-side to
+        admin-side and back; next natural pick is to rotate to a
+        different admin spec surface (admin-resellers-list-authz.spec.ts,
+        admin-reseller-detail-authz.spec.ts) or a fresh reseller-side
+        column that hasn't been tightened yet.
+        (c) idle — the frontier remains tight: P1.5 + P8.5 remain HUMAN-
+        BLOCKED, P11 never_completes, Track B closed. P10 hardening
+        continues to accept incremental pin-tightening ticks while the
+        two HUMAN-BLOCKED leaves await external unblock signals (H.20
+        InfoVision ABN + GST confirmation OR Stripe add-on price env
+        vars).
+    commit: (this tick)
+
   - tick: 281
     ran_at: 2026-07-23
     action: p10_admin_requests_list_decision_at_iso_pin_mirror_from_reseller_276
