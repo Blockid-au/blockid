@@ -809,3 +809,7 @@
 {"ts":"2026-07-23T07:52:02.750Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T07-45-01-206Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T07:57:36Z","status":"success","gates":"8/8","pid":"2556545","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T08:00:09.983Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 266 — P10 admin-requests-patch decision_by UUID wire-shape pins on deny+cancel+approve read-backs (option b companion to tick 265 decision_at) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T08:05:13.270Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T08-00-01-677Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T08:10:47Z","status":"success","gates":"8/8","pid":"2600691","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T08:16:57.428Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 267 — P10 admin-requests-patch created_at ISO-8601 shape pins on deny+cancel+approve read-backs (option i) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T08:21:03.089Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 268 — P10 admin-requests-patch decision_reason value pins on deny+cancel+approve read-backs (option c) (1 commits)","source":"github-webhook"}
