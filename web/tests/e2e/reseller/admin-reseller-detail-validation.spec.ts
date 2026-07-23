@@ -144,6 +144,58 @@ const ALLOWED_TIER_PCTS = new Set<number>([0, 10, 20, 30, 40]);
 //     also silently drop the row out of that hot index.
 const ADMIN_ROLES = new Set<string>(["owner", "admin", "viewer"]);
 const ADMIN_STATUSES = new Set<string>(["active", "revoked"]);
+// Tick 342 — opens the reseller_commissions_current[] child-row cluster on
+// this detail-validation spec by pinning the commission_id UUID column,
+// cross-surface twin of tick 308 on admin-reseller-detail-authz.spec.ts.
+// Executes caller-brief option (d) verbatim: at tick 341 the commissions[]
+// array on this file was pinned only at the Array.isArray() top level with
+// zero per-row shape asserts, while the sibling admin-reseller-detail-authz
+// spec has carried a full commissions[] column cluster since tick 308
+// (commission_id UUID + stripe_invoice_id + list_price_aud_cents + discount_
+// pct + commission_aud_cents + ...). This tick opens the mirror cluster on
+// admin-reseller-detail-validation by pinning the FIRST column of the
+// projection tuple — commission_id UUID — reusing the existing UUID_RE
+// regex above (no new module-scope const needed). Column source:
+// reseller_commissions_current view at web/supabase/migrations/0094_reseller_
+// commissions_and_events.sql:130-178 exposes `rc.id AS commission_id` where
+// the underlying reseller_commissions.id is declared at 0094:34 as `id uuid
+// PRIMARY KEY DEFAULT gen_random_uuid()` — so the wire type is UUID NOT NULL.
+// Projected via select("commission_id, stripe_invoice_id, list_price_aud_
+// cents, discount_pct, commission_aud_cents, net_owed_cents, status, created_
+// at") on the Promise.all fan-out at web/src/app/api/admin/resellers/[code]/
+// route.ts:98-105. Two-part guard mirroring the tick 308 UUID posture on the
+// sibling detail-authz spec + the promotion_codes[].id + admins[].id +
+// admins[].user_id UUID pins above on this file:
+//   (a) typeof-string half labelled with diagnostic prose preserves the
+//       NOT-NULL raw-type discipline — catches a schema-side type flip
+//       (uuid → bigserial), a view-side column drop, or a PostgREST
+//       serialisation regression that returned null|undefined. Separated
+//       from the UUID_RE assert below so a raw-type flip does not hide
+//       behind a shape-based diagnostic.
+//   (b) UUID_RE.test() shape assert catches a projection-side drop from the
+//       SELECT tuple at route.ts:98-105 that replaced commission_id with a
+//       stringified integer id, a bigint-serialised-as-string sequence id,
+//       or a truncated non-UUID slug. Reuses UUID_RE at row 90-91 (no new
+//       module-scope const).
+// Detail-surface only per the same posture as tick 308 on the sibling spec —
+// the admin-resellers-list route projects only the resellers-row shape (list
+// route SELECT at web/src/app/api/admin/resellers/route.ts does not fan out
+// to reseller_commissions_current); the Promise.all leg that pulls the
+// commissions rows is unique to the detail route. Fires on every green CI
+// run only where the seeded reseller has attributed founders with paid
+// Stripe invoices in the last 50 rows; on hosts without seeded commission
+// events the for-loop is a no-op so the pin never fires. Continues the P10
+// hardening posture — no fixture change, no route change, no new imports,
+// no new module-scope constants (UUID_RE reused). Opens the commissions[]
+// child-row column-pin cluster on this surface; remaining un-tightened
+// columns for future ticks are stripe_invoice_id (text NOT NULL — needs
+// STRIPE_INVOICE_ID_RE const per tick 309 on sibling), list_price_aud_cents
+// (int NOT NULL positive per tick 311), discount_pct (int NOT NULL {0,10,
+// 20,30,40} per tick 312 — needs ALLOWED_TIER_VALUES const), commission_aud_
+// cents (int NOT NULL >= 0 per tick 314), net_owed_cents (int, may be
+// negative on clawback), status (value-set enum {cleared, pending_clearance,
+// clawed_back, dispute_open, partially_refunded} per view CASE at 0094:150-
+// 172), and created_at (ISO-8601 shape — needs ISO_TIMESTAMP_RE const).
 
 interface ValidationCase {
   label: string;
@@ -329,7 +381,9 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         active?: unknown;
         by_source?: unknown;
       };
-      commissions?: unknown;
+      commissions?: Array<{
+        commission_id?: unknown;
+      }>;
     };
 
     expect(
@@ -570,5 +624,27 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       Array.isArray(body.commissions),
       `commissions should be an array: ${JSON.stringify(body).slice(0, 200)}`,
     ).toBe(true);
+    for (const row of body.commissions ?? []) {
+      // Tick 342 — commissions[].commission_id UUID two-part typeof-string
+      // + UUID_RE.test wire-shape pin, first column pinned in the
+      // reseller_commissions_current[] child-row cluster on this detail-
+      // validation spec (cross-surface twin of tick 308 on admin-reseller-
+      // detail-authz.spec.ts). Executes caller-brief option (d) verbatim.
+      // See module-scope doc-block above ADMIN_STATUSES (tick 342
+      // paragraph) for the full rationale and the writer-side source
+      // reference. Two-part guard: (a) typeof-string preserves the raw-
+      // type discipline; (b) UUID_RE.test() shape assert catches a
+      // projection-side drop from route.ts:98-105 select that replaced
+      // commission_id with a stringified integer id, a bigint-serialised-
+      // as-string sequence id, or a truncated non-UUID slug.
+      expect(
+        typeof row.commission_id,
+        `commissions[].commission_id '${String(row.commission_id)}' should be a string (view alias for reseller_commissions.id uuid PRIMARY KEY DEFAULT gen_random_uuid() per web/supabase/migrations/0094_reseller_commissions_and_events.sql:34; view alias rc.id AS commission_id at 0094:135; a schema-side type flip to bigserial, a view-side column drop, a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:98-105, or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the UUID_RE assert below so a raw-type flip does not hide behind a shape-based diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        UUID_RE.test(row.commission_id as string),
+        `commissions[].commission_id '${String(row.commission_id)}' should match UUID shape (uuid PRIMARY KEY per 0094:34); a projection-side drop from route.ts:98-105 select that replaced commission_id with a stringified integer id, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+    }
   });
 });
