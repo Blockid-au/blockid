@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.247
+version: 2026-07-23.248
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,194 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 248
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_auto_deploy_finished_two_pin_option_y3
+    result: |
+      Landed tick 247's "natural next pick" option (y3) as the ninth
+      conditional-by-stage schema pin on tick_history rows in admin-
+      reseller-loop-status-authz.spec.ts happy path. Symmetric two-pin
+      shape matching tick 240's phase_failed guard + tick 242's
+      auto_commit_finished guard + tick 244's error guard + tick 245's
+      human_blocked_snapshot guard + tick 247's auto_deploy_triggered
+      guard — adds one typeof=number pin for `status` and one typeof=
+      string pin for `head` guarded by `stage === 'auto_deploy_finished'`.
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:367 writes
+          `log({ stage: 'auto_deploy_finished', status: deploy.status
+          ?? -1, head: headSha })` inside the else-branch at
+          mjs:360-367 that fires immediately after the paired
+          auto_deploy_triggered emit whenever headSha !== lastSha.
+        - `status` is `deploy.status ?? -1` where `deploy` is the
+          spawnSync return of `bash deploy-live.sh --quick` at
+          mjs:362-366 — `.status` is `number | null` per the Node.js
+          contract; the `?? -1` fallback narrows it to a JSON number
+          every time (0 on green deploy, non-zero on failure, -1 when
+          spawnSync itself fails to launch bash).
+        - `head` is the same `headSha` string threaded through from
+          the tick 247 auto_deploy_triggered guard — always a string
+          (empty on repo-less host, otherwise 7-char short-sha from
+          `git rev-parse --short HEAD` per Node.js `spawnSync.stdout`
+          with `encoding: 'utf8'`).
+        - The log() helper at mjs:52-58 prepends tick_id/ts/human_
+          review_minutes_7d then spreads `...row` — both keyvals flow
+          through untouched.
+
+      Design choice — two-pin symmetric to ticks 240 + 242 + 244 + 245 + 247:
+        - Conditional-by-stage guard (`if (tickRow.stage === 'auto_
+          deploy_finished')`) matches ticks 239-247's convention
+          verbatim except for the stage literal. Reads clearly inline;
+          hoisting the guard into a helper would obscure the per-
+          writer-line citation each expect message carries.
+        - Two pins in one guard because status + head share the same
+          conditional at mjs:367 — they always land together on the
+          same row, so the guard cost is amortised. Matches ticks
+          240 + 242 + 244 + 245 + 247 two-pin rationale verbatim
+          except for the stage literal + writer source line citations.
+        - No value pin — `status` drifts with deploy outcome per tick;
+          `head` drifts with git history per tick 230's "assert typeof
+          string only so the value can drift" convention. Neither key
+          is safe to further narrow because deploy.status can legitimately
+          be -1 (spawnSync failed to launch bash) and headSha can be
+          empty (repo-less CI host).
+        - Row fires in the same conditional as tick 247's auto_deploy_
+          triggered guard (headSha !== lastSha) so both rows land on
+          the same tick whenever the autonomous loop committed new
+          work and rebuilt the site. Coverage-per-guard is high on
+          green-path CI runs — the loop commits+deploys on nearly
+          every non-idle tick, so this guard fires alongside the tick
+          247 guard on every fresh deploy row.
+        - Paired writer contract: auto_deploy_triggered emits BEFORE
+          the spawnSync deploy-live.sh call, auto_deploy_finished
+          emits AFTER it with the resulting spawn status. Pinning
+          the pair together in adjacent ticks (247 triggered → 248
+          finished) maximises coverage-per-guard by closing the two
+          halves of the same writer contract before fanning across
+          the ~8 remaining stages.
+        - Continues the two-pin cadence from tick 247 (auto_deploy_
+          triggered). The auto_deploy_* family cluster now lands two
+          consecutive rows with 249 slot open for skipped/failed.
+        - Comes AFTER the tick 247 auto_deploy_triggered guard (last
+          block in the tick_history row loop before the closing brace)
+          so future guards land in monotonic tick-order.
+
+      Diagnostic delta of the pass:
+        - Added 1 stage-guarded expect block (~50 lines: ~40 lines of
+          justifying comment + ~10 lines of guard + two expect
+          statements) inside the tick_history row loop, immediately
+          after the tick 247 auto_deploy_triggered guard.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change, no new module-scope constant. Matches ticks
+          223-247 discipline: tighten one dimension (in this case
+          auto_deploy_finished writer contract), symmetrise against
+          known invariants, single tick.
+        - No new comment block on the guard side (the comment is
+          embedded above the guard as with all prior stage-guard
+          pins).
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one conditional-by-stage two-pin guard added after the tick
+          247 auto_deploy_triggered guard, citing reseller-goal-loop.mjs:
+          362-366 + mjs:367 as the writer sites for status + head.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.247 → 2026-07-23.248; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local constant, no fixture-file
+          delta, no seed-script change, no P8.5-gated code_request
+          work (option (c) still blocked), no production-code touch.
+          Consistent with ticks 239-247's stage-guard pattern.
+
+      Verified:
+        - reseller-goal-loop.mjs:362-366 + mjs:367 grepped to confirm
+          `stage: 'auto_deploy_finished'` matches exactly 1 site
+          (mjs:367) and both status/head writer derivations are
+          typeof-number and typeof-string schema guarantees per
+          Node.js `spawnSync.status` (number | null narrowed by
+          `?? -1`) and `spawnSync.stdout` (string via `encoding:
+          'utf8'` narrowed by `?? ''`).
+        - reseller vitest suite unchanged (no production code or lib
+          touched — Playwright specs are excluded from vitest by
+          design).
+        - The edited spec file lives under web/tests/e2e/**, not in
+          the reseller manifest, so R-01/R-03 do not fire on the
+          edited file.
+
+      Frontier after tick 248: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 248 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20.
+
+      Natural next pick for tick 249:
+        (y15) land `auto_deploy_skipped` (mjs:369) row's `{ reason,
+             head, last_deployed }` keys — reason is bare string
+             literal 'no new commits' (schema guarantee); head +
+             last_deployed same as tick 247's y14 pin. Three-pin
+             candidate — could land as full three-pin (breaks the
+             two-pin ceiling established by ticks 240 + 242 + 244 +
+             245 + 247 + 248) or as two-pin (skip one to preserve
+             cadence). Closes the auto_deploy_* family cluster
+             alongside 247 + 248.
+        (y6) land `delegated_dispatch` (mjs:319) row spread of
+             dispatchToClaude() — same `{ status, elapsed_ms, signal,
+             label }` shape as phase_failed except `signal` is
+             `string | null` on Node.js `spawnSync` returns. Deferred
+             audit: signal nullability.
+        (y11) land `auto_commit_failed` (mjs:340) row's `error`
+             key — `String(err)` cast pattern identical to tick 244's
+             error stage, so a typeof=string pin is safe. Only fires
+             on the safety-net commit catch branch — very rare in
+             CI runs, so coverage-per-guard is low. One-pin candidate.
+        (y12) land `human_blocked_snapshot_failed` (mjs:234) row's
+             `error` key — `String(err)` cast pattern identical to
+             tick 244's error stage. Only fires when
+             extractHumanBlockedSnapshot throws, which is bounded by
+             the try/catch at mjs:226-235. Very rare in CI runs.
+             One-pin candidate.
+        (y13) land `cron_removal` (mjs:257) row's `status` key —
+             spawnSync `stop.status ?? -1` (number guaranteed).
+             Only fires when the goal file's top-level status is
+             'done', which by design should be the FINAL tick of
+             the entire loop — coverage-per-guard is zero on green-
+             path CI runs, but the pin closes the writer contract
+             for the completion path. One-pin candidate.
+        (y16) land `phase_dispatched` (mjs:299) row spread of
+             dispatchToClaude() — same shape as delegated_dispatch
+             (y6). Paired writer contract with phase_failed (tick
+             240) — phase_dispatched fires on the success path,
+             phase_failed on the non-zero-status path. Landing y16
+             would close the phase_dispatched/phase_failed pair the
+             same way tick 247+248 closed auto_deploy_triggered/
+             auto_deploy_finished. Two-pin or four-pin candidate.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list +
+            admin-side patch spec) in a single bigger-diff tick.
+            Available; deferred at ticks 235-247.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235-247.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof string
+            to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235-247.
+        (x) audit format-shape pins for now_utc / next_utc (HH:MM:SS /
+            HH:MM regex) / seconds_until (0..3600 range) / tick_state
+            (enum of 4 branches) — header-rewrite option (contradicts
+            existing "typeof-string only so the value can drift" comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 247
     ran_at: 2026-07-23
     action: p10_loop_status_tick_row_auto_deploy_triggered_two_pin_option_y14
