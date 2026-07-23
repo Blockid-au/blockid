@@ -233,6 +233,27 @@ const UUID_RE =
 // projection-side drop from route.ts:47-48 select("*") would each
 // surface on both admin resellers-family surfaces (list + detail) on
 // the same CI pass.
+//
+// Tick 291 — can_create_startups bool wire-shape pin, cross-surface
+// mirror of the sibling pin landed on admin-resellers-list-authz.spec.
+// ts in the same tick. Column source 0091:31 `can_create_startups bool
+// NOT NULL DEFAULT false` — sibling bool column to gst_registered
+// (pinned at tick 287) with the same NOT-NULL discipline; controls
+// whether the reseller UI exposes the "create startup" branch per the
+// reseller U.15 module design (write-side application gating, no
+// wire-side echo distinct from the bool value itself). Projected via
+// route.ts:47-48 select("*"). NOT-NULL discipline → single typeof-
+// boolean assert; bool has no finite / range dimension so no second
+// guard is layered, matching the list-surface posture verbatim.
+// Detail-row assert runs ONCE per test (single object) — equivalent
+// to a list-surface loop iterating exactly one row. Fresh-column
+// rotation on this surface — the two admin resellers-family surfaces
+// (list + detail) come up to parity in the same tick, avoiding an
+// asymmetry window. A PostgREST serialisation regression that
+// returned booleans as "true"/"false" strings, a schema-side type
+// flip from bool to text/int, or a projection-side drop from
+// route.ts:47-48 select("*") would each surface on both admin
+// resellers-family surfaces (list + detail) on the same CI pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -425,6 +446,7 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         allowed_tiers?: unknown;
         monthly_credit_budget?: unknown;
         monthly_sandbox_credits?: unknown;
+        can_create_startups?: unknown;
       };
       promotion_codes?: Array<{
         id?: unknown;
@@ -617,6 +639,20 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
       (body.reseller?.monthly_sandbox_credits as number) >= 0,
       `reseller.monthly_sandbox_credits '${String(body.reseller?.monthly_sandbox_credits)}' should be >= 0 (admin-validator.ts:107-112 rejects value < 0 with reason 'sandbox_negative'); a validator drift or a schema-side drop of the non-negative invariant would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
     ).toBe(true);
+
+    // Tick 291 — can_create_startups bool wire-shape pin, cross-surface
+    // mirror of the sibling pin landed on admin-resellers-list-authz.spec.
+    // ts in the same tick. See module-scope doc-block (tick 291 paragraph)
+    // for the rationale. Column source 0091:31 `can_create_startups bool
+    // NOT NULL DEFAULT false` — sibling bool column to gst_registered
+    // (pinned at tick 287). Projected via route.ts:47-48 select("*").
+    // NOT-NULL discipline → single typeof-boolean assert; bool has no
+    // finite / range dimension so no second guard is layered, matching
+    // the list-surface posture verbatim.
+    expect(
+      typeof body.reseller?.can_create_startups,
+      `reseller.can_create_startups '${String(body.reseller?.can_create_startups)}' should be a boolean (bool NOT NULL DEFAULT false per 0091:31 serialised via PostgREST); a drift to a string, number, or null would surface here: ${JSON.stringify(body.reseller).slice(0, 200)}`,
+    ).toBe("boolean");
 
     // Related-rows arrays — do NOT pin length; each row-shape pin catches
     // a SELECT-column drift on the route-side Promise.all (route.ts:74-97).
