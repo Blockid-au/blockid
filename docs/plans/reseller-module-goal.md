@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.318
+version: 2026-07-23.319
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -651,6 +651,102 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 319
+    ran_at: 2026-07-23
+    action: p10_attributions_summary_active_int_non_negative_pin_on_admin_reseller_detail
+    result: |
+      Closes the aggregate attributions_summary object cluster out
+      symmetrically — total (tick 318) + active (this tick) + by_source
+      (tick 313) are now all three-part-guarded (typeof-number +
+      Number.isInteger + `>= 0`). Tick 318 next-pick option (a) taken
+      verbatim — tightens the existing bare typeof-number pin on
+      attributions_summary.active to a three-part guard mirroring the
+      tick 318 total guard shape verbatim.
+
+      Writer-schema justification:
+        - Application read path: route.ts:115 stamps
+          `active: attributions.filter((a) => a.status === "active").length`
+          where `attributions` is the array selected on
+          web/src/app/api/admin/resellers/[code]/route.ts:94-97 with
+          .select("id, subject_type, status, source, attributed_at")
+          .eq("reseller_id", row.id).
+        - By Array.prototype.filter → Array.length invariant the value
+          is a non-negative int32 in [0, 2^32-1] bounded above by
+          attributions_summary.total (already pinned by tick 318).
+        - The wave-5 row 167 QAPROBEWHOLESALEACTIVE seed reseller has
+          0 attributions by default so the value is trivially 0 on
+          green runs — the guard fires against any non-zero-active
+          reseller (e.g. once the H.20 unblock seeds INFOVISION with
+          real active attributed rows).
+
+      Design choice — three-part guard mirroring the tick 318 total
+      guard shape verbatim:
+        - (a) typeof-number preserves the raw-type discipline the
+          existing bare row 2001 pin already covered; catches a JS
+          regression that stamped a stringified count under a refactor
+          to `.toString()`.
+        - (b) Number.isInteger() catches a floating-point value from
+          an accidental reducer refactor, or NaN/Infinity from a
+          divide-by-zero edge.
+        - (c) `>= 0` assert catches a signed-int wraparound or a
+          filter refactor that stamped a negative counter via
+          off-by-one (e.g. `attributions.filter(...).length - 1`).
+
+      Rotation rationale:
+        - Closes the attributions_summary object cluster out
+          symmetrically per tick 318 design note: total (tick 318) +
+          active (this tick) + by_source (tick 313) now all share the
+          same three-part tail-invariant discipline.
+        - Next tick 320 rotates scope onto the promotion_codes[]
+          cluster (route.ts:83-88 Promise.all leg selects id / tier_pct
+          / code / stripe_coupon_id / stripe_promotion_code_id / active
+          / created_at — seven tuple columns waiting for column-by-
+          column pinning matching the tick 308-317 commissions[]
+          discipline).
+        - No new imports, no new module-scope const needed
+          (typeof/isInteger/>=0 are all bare-JS).
+
+      Coverage-per-guard posture:
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          three-part pin once per test regardless of seeded attribution
+          row count (the aggregate is materialised even when the filter
+          input array is empty).
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 319 paragraph) added below
+              the tick 318 paragraph above ISO_TIMESTAMP_RE.
+            + bare row 2001 typeof-number pin replaced with three-part
+              guard: typeof-number + Number.isInteger + `>= 0` — each
+              with a bespoke failure message pointing at route.ts:115
+              as the write-path source.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope const. Matches
+          ticks 234-318 discipline.
+
+      Verification:
+        - tsc --noEmit: production tree clean (exit 0).
+        - vitest full tree: unchanged (Playwright specs excluded from
+          vitest by design).
+
+      Frontier after tick 319: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+
+      Next natural picks on tick 320:
+        (a) rotate to promotion_codes[].id — bare typeof-string +
+        UUID_RE pin at row 1748 that could be lifted to a labelled
+        tick-numbered pin matching the tick 308 commission_id posture.
+        (b) rotate to admins[].id / admins[].user_id — same bare
+        UUID_RE posture at rows 1857-1865 that could be lifted to
+        labelled tick-numbered pins matching the tick 308 posture.
+        (c) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks.
+    commit: (this tick)
+
   - tick: 318
     ran_at: 2026-07-23
     action: p10_attributions_summary_total_int_non_negative_pin_on_admin_reseller_detail
