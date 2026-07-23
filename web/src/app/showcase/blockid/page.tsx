@@ -40,6 +40,23 @@ const CANONICAL = `${SITE_URL}/showcase/blockid`;
 const TITLE = "BlockID.au — Live Startup Showcase";
 const DESCRIPTION =
   "A public, read-only mirror of the BlockID.au workspace — the startup building BlockID, dogfooding its own product. See the current phase, milestone timeline, and C-Level agent activity as it happens.";
+// Iteration-8 T3 — App Router file-convention paths for the
+// opengraph-image.tsx / twitter-image.tsx routes colocated in this segment.
+// Next.js auto-injects og:image / twitter:image tags for the conventions, but
+// crawlers that follow Metadata verbatim (Slack Unfurl, some LinkedIn paths)
+// pick up the explicit list below — belt-and-suspenders.
+const OG_IMAGE = {
+  url: `${CANONICAL}/opengraph-image`,
+  width: 1200,
+  height: 630,
+  alt: "BlockID.au — Startup Valuation Index",
+};
+const TWITTER_IMAGE = {
+  url: `${CANONICAL}/twitter-image`,
+  width: 1200,
+  height: 675,
+  alt: "BlockID.au — Startup Valuation Index",
+};
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -58,11 +75,13 @@ export const metadata: Metadata = {
     url: CANONICAL,
     siteName: "BlockID",
     locale: "en_AU",
+    images: [OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
+    images: [TWITTER_IMAGE],
   },
   alternates: { canonical: CANONICAL },
   robots: { index: true, follow: true },
