@@ -280,6 +280,28 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
         typeof tickRow.stage,
         `tick_history row.stage should be typeof string (reseller-goal-loop.mjs:70 default 'unknown' guarantees presence at every call site): ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe("string");
+      // Writer schema pin (tick 237 option v) — reseller-goal-loop.mjs:44
+      // declares `let HUMAN_REVIEW_MINUTES_7D = 0` (typeof=number), then the
+      // try/catch at :45-47 either reassigns from sumHumanReviewMinutes7d()
+      // (which always returns a number — 0 fallback or total sum per
+      // scripts/cron/human-review-minutes.mjs:24-48) or leaves the 0 default
+      // in place. The log() helper at :52-58 then spreads
+      // `human_review_minutes_7d: HUMAN_REVIEW_MINUTES_7D` into every appended
+      // row. It is therefore a schema-level guarantee from the writer — always
+      // present, always typeof=number (never null, never string, never
+      // undefined). Landing this pin closes the last un-pinned writer-
+      // guaranteed field on the tick_history row (tick 235 pinned tick_id +
+      // ts + stage), catching (a) a writer regression that renamed the key;
+      // (b) a helper regression that returned a non-number (e.g. Promise
+      // <string>) so the spread landed a stringified number in the row;
+      // (c) a call site that stripped the KPI from the log envelope. No
+      // value pin — the number drifts with cumulative human handoff cost per
+      // CHRO §26 rec #1. No twin surface (singleton endpoint), same
+      // rationale as monitor_ts + head_sha + last_log.
+      expect(
+        typeof tickRow.human_review_minutes_7d,
+        `tick_history row.human_review_minutes_7d should be typeof number (reseller-goal-loop.mjs:44 default 0 + :57 spread guarantee): ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("number");
     }
     expect(
       typeof body.generated_at === "string" &&
