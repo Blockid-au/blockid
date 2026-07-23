@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.268
+version: 2026-07-23.269
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,160 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 269
+    ran_at: 2026-07-23
+    action: p10_admin_requests_patch_readback_request_type_enum_value_pin_option_d
+    result: |
+      Landed tick 268's "natural next pick" option (d) as a request_type
+      enum value pin on all THREE post-PATCH read-back rows of
+      admin-requests-patch-authz.spec.ts (deny + cancel + approve blocks).
+      Fifth per-column pin on the same three surfaces after tick 265
+      (decision_at ISO-8601), tick 266 (decision_by UUID), tick 267
+      (created_at ISO-8601), and tick 268 (decision_reason value). Closes
+      an audit-visibility gap where a null/undefined/stale request_type
+      wire value would silently skip all three discriminated-union
+      branches below (code_request / over_budget_approval / collateral
+      _approval), leaving no assertion to fire — the pin now forces
+      request_type to be present + within the enum BEFORE the switch runs.
+
+      Writer-schema justification:
+        - 0095_reseller_requests.sql:29-30 declares
+          `request_type text NOT NULL CHECK (request_type IN
+          ('code_request','over_budget_approval','collateral_approval'))`.
+          The DB CHECK guarantees the wire value can only be one of the
+          three enum members on any row a green-path INSERT stamped, so
+          this pin is backed by a database-level invariant across all
+          three PATCH branches AND the pending-list surface.
+        - Validator side mirrors the same three values at
+          web/src/lib/reseller/requests.ts:12-15 (ResellerRequestType
+          union) and 218-221 (invalid_request_type gate) — the source-
+          of-truth for the enum lives in two coupled places (DB CHECK +
+          TS union) and the spec constant echoes both.
+        - The list route SELECT at /api/admin/resellers/requests/
+          route.ts:44 includes request_type in the column projection so
+          the PostgREST serialisation of text shows up in the read-back
+          row.
+
+      Design choice — seventh module-scope constant + three-block reuse:
+        - New seventh module-scope constant ALLOWED_REQUEST_TYPES
+          mirrors the DB CHECK at 0095:30 + the TS union at requests.ts
+          :12-15 verbatim. Kept as a Set for O(1) has() lookup consistent
+          with the sibling ALLOWED_TIER_PCT_VALUES set (line 240).
+        - Header doc-comment above the constants block extended with a
+          tick-269 paragraph describing the pin's dual-source-of-truth
+          reference + the zero-coverage-per-guard rationale for the
+          non-over_budget_approval enum values (green-path fixtures only
+          seed over_budget_approval today so code_request + collateral
+          _approval enum values are never exercised as the actual wire
+          value — but the set still forbids a drift to a non-enum
+          string).
+        - request_type pin fires ONLY after the tick-268 decision_reason
+          pin has passed on the same read-back row so a regression in
+          the decision_reason wire shape surfaces at the tighter existing
+          pin before the request_type check even runs.
+        - Two-part guard shape (unchanged from ticks 265/266/267):
+          (a) typeof-string (catches a projection drop of request_type
+          from the list SELECT at route.ts:44, which would fail the
+          guard because undefined is not a string), (b)
+          ALLOWED_REQUEST_TYPES.has() set membership (catches a
+          DB-level CHECK widening or a route regression that returned a
+          stale/mismatched enum value).
+        - readbackRow inline type shape already carries
+          `request_type?: unknown;` in all three declarations (deny/
+          cancel/approve) from ticks 262/263/264's payload
+          discriminated-union pin — no new type-shape field required.
+
+      Coverage-per-guard posture:
+        - All three PATCH branches (deny + cancel + approve) exercise
+          request_type on green-path CI runs — the DB CHECK at 0095:30
+          guarantees the wire value is one of the three enum members on
+          every seeded row. Zero-coverage on enum values themselves:
+          green-path fixtures only seed over_budget_approval (row 155
+          for deny; row 155-b for cancel; attachApproveTarget() for
+          approve) so code_request + collateral_approval are never
+          exercised as the actual wire value on the read-back surface —
+          matches the tick 259/260/261/262/263/264 zero-coverage-per-
+          guard rationale for the discriminated-union branches below.
+        - The three read-back surfaces (?status=denied /
+          ?status=cancelled / ?status=approved) each carry the same pin
+          so a regression in any one of the three ALLOWED_STATUS filter
+          paths that dropped request_type from the SELECT would surface
+          on that specific surface only — matches the tick 262/263/264/
+          265/266/267/268 one-surface-at-a-time discipline.
+
+      Diagnostic delta of the pass:
+        - One new module-scope constant (ALLOWED_REQUEST_TYPES, seventh
+          in the constants block). Zero new fields on the three inline
+          readbackRow type shapes (request_type?: unknown was already
+          present from ticks 262/263/264). One new two-line assertion
+          pair (typeof-string + Set.has()) inside each of the three
+          read-back blocks after the tick-268 decision_reason pin.
+        - Header doc-comment above the module-scope constants block
+          expanded with a new tick-269 paragraph describing the pin's
+          dual-source-of-truth reference + the zero-coverage-per-guard
+          rationale for non-over_budget_approval enum values.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-268 discipline: tighten one
+          dimension (in this case add a new value pin to the reseller
+          _requests.request_type column across three surfaces
+          simultaneously) with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes
+          scanned, 3 exemptions, 0 violations
+        - npx vitest run: 75 files 954/954 pass (unchanged — Playwright
+          specs are excluded from vitest by design)
+
+      Files:
+        - web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts
+          (module-scope constants doc-comment block gains a tick-269
+          paragraph describing the request_type enum pin + the
+          ALLOWED_REQUEST_TYPES dual-source-of-truth reference; new
+          seventh module-scope constant ALLOWED_REQUEST_TYPES defined
+          as Set of three enum values; three read-back blocks each
+          gain a typeof-string + Set.has() assertion pair after the
+          tick-268 decision_reason pin, each with a block-scope comment
+          citing 0095:29-30 as the column declaration source and
+          requests.ts:12-15 as the TS union mirror.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.268 → 2026-07-23.269; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of any inline type shape. Consistent
+          with ticks 234-268's incremental-pin pattern.
+        - Three surfaces at once (option d design was for a single new
+          pin type applied uniformly to all three read-back rows — the
+          tick 262/263/264/265/266/267/268 sequence already established
+          the three read-back rows share the same shape contract for
+          each pinned column; extending that contract to include
+          request_type is a single logical unit rather than three
+          separate ticks).
+          Next natural picks on tick 270: (a) extending the same read-
+          back to the reseller-scoped GET list route (still-outstanding
+          tick 266/268 option a — the reseller-scoped list route at
+          /api/reseller/requests/route.ts has its own SELECT + filter
+          logic that today only has the tick 260/261 default-pending
+          read-back pinned), or (b) adding a status enum value pin
+          (∈ {'pending','approved','denied','cancelled'}) to the read-
+          back rows using a new ALLOWED_STATUS_VALUES constant — the
+          read-back on each PATCH branch is filtered by ?status=<val>
+          so the status column value is already implicit but a spec-
+          level pin catches a route regression that returned a stale
+          status while the filter still passed, or (c) adding a
+          linked_credit_transaction_id UUID pin to the approve-block
+          read-back (asymmetric single-surface pin — deny + cancel
+          null this column per the ck_credit_link CHECK so only the
+          approve surface would carry it — sixth per-column pin), or
+          (d) adding a reseller_id UUID pin (0095:27 declares
+          `reseller_id uuid NOT NULL REFERENCES public.resellers(id)
+          ON DELETE RESTRICT` — a routing regression that stripped
+          reseller_id from the SELECT would surface here).
+
   - tick: 268
     ran_at: 2026-07-23
     action: p10_admin_requests_patch_readback_decision_reason_value_pin_option_c
