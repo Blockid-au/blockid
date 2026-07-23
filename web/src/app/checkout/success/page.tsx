@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CheckCircle } from "lucide-react";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
+import {
+  ONBOARDING_RETURN_STEP_URL,
+  shouldReturnToOnboarding,
+} from "@/lib/stripe/checkout-success-url";
 import { CheckoutTracker } from "./checkout-tracker";
 
 export const dynamic = "force-dynamic";
@@ -18,12 +23,22 @@ export const metadata: Metadata = {
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; onboarding?: string }>;
 }) {
   const sp = await searchParams;
   const planId = sp.plan ?? "founding50";
   const plan = getPlan(planId);
   const user = await getCurrentUser();
+
+  // Iteration-6 task #2: when the Stripe-hosted checkout was initiated from
+  // the onboarding wizard (`?onboarding=1`, stamped by the checkout route
+  // when POST body had origin:"onboarding") and the user is signed in,
+  // bounce them straight back into the wizard at Step 6 ("Create your first
+  // startup"). Anon users still see the sign-in CTA below so the purchase
+  // can be linked to an account first.
+  if (shouldReturnToOnboarding(sp.onboarding, Boolean(user))) {
+    redirect(ONBOARDING_RETURN_STEP_URL);
+  }
 
   const planName = plan?.name ?? "BlockID";
   const features = plan?.features ?? [];

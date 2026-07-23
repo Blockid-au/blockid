@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
 import { hashUserId } from "@/lib/reseller/hash";
+import { buildCheckoutSuccessUrl } from "@/lib/stripe/checkout-success-url";
 
 // POST /api/stripe/checkout
 // Body: { plan, couponCode? }
@@ -42,8 +43,23 @@ export async function POST(request: Request) {
     );
   }
 
-  const { plan: planId, couponCode, resellerCode: bodyResellerCode } =
-    (body as { plan?: string; couponCode?: string; resellerCode?: string }) ?? {};
+  const {
+    plan: planId,
+    couponCode,
+    resellerCode: bodyResellerCode,
+    origin: bodyOrigin,
+  } =
+    (body as {
+      plan?: string;
+      couponCode?: string;
+      resellerCode?: string;
+      // Iteration-6 task #2: the onboarding wizard passes `origin:"onboarding"`
+      // so the success_url can steer the Stripe-hosted return back to Step 6
+      // ("Create your first startup"). Standalone callers (upgrade, add-on,
+      // billing, founding-50, landing pricing) omit this field and keep the
+      // marketing thank-you landing.
+      origin?: string;
+    }) ?? {};
 
   // Reseller attribution — priority: body param (from onboarding wizard state)
   // → cookie blockid_via. Per docs/plans/reseller-module-plan.md § C.2 / U.6.
@@ -190,7 +206,7 @@ export async function POST(request: Request) {
     mode: isRecurring ? "subscription" : "payment",
     customer_email: user.email,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${siteUrl}/checkout/success?plan=${planId}`,
+    success_url: buildCheckoutSuccessUrl(siteUrl, planId, bodyOrigin),
     cancel_url: `${siteUrl}/#pricing`,
     // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
     metadata: {
