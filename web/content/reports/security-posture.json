@@ -1,13 +1,13 @@
 {
-  "date": "2026-07-22",
-  "overall": 30,
+  "date": "2026-07-23",
+  "overall": 26,
   "status": "RED",
   "dimensions": [
     {
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "273/338 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "279/344 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/actions/route.ts",
@@ -23,7 +23,7 @@
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 1,
-      "detail": "17/338 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "18/344 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/accelerator/cohort/route.ts",
@@ -39,7 +39,7 @@
       "key": "secrets_hygiene",
       "label": "Secrets hygiene (no committed credentials)",
       "score": 0,
-      "detail": "17 suspicious lines",
+      "detail": "18 suspicious lines",
       "findings": [
         "Leak: src/app/api/cron/security-posture/route.ts:126:    \"STRIPE_SECRET_KEY=sk_\",",
         "Leak: src/app/api/cron/security-posture/route.ts:127:    \"SUPABASE_SERVICE_ROLE_KEY=ey\",",
@@ -64,11 +64,11 @@
     {
       "key": "deps",
       "label": "Dependency vulnerabilities",
-      "score": 4,
-      "detail": "crit 0, high 5, mod 6",
+      "score": 1,
+      "detail": "crit 0, high 9, mod 2",
       "findings": [
-        "5 high CVE(s)",
-        "6 moderate CVE(s)"
+        "9 high CVE(s)",
+        "2 moderate CVE(s)"
       ]
     },
     {

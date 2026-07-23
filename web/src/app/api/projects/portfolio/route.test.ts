@@ -75,6 +75,7 @@ describe("GET /api/projects/portfolio", () => {
         credits_used_mtd: 3.5,
         last_activity_at: "2026-07-20T00:00:00.000Z",
         next_action: { label: "Set up equity", url: "/workspace/equity-setup" },
+        svi_history: [],
       },
     ];
     getPortfolioRowsMock.mockResolvedValue(rows);
