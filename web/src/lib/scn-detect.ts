@@ -42,6 +42,7 @@ import {
 } from "./svi-analysis";
 import { getCurrentPhase } from "./startup-growth-phases";
 import { buildVcValuationReport, type VcValuationReport } from "./agents/cfo-valuation";
+import { growthPhaseToStageLabel, type StageKey } from "./journey-map";
 
 export type ScnInputType = "idea" | "website" | "github" | "revenue" | "mixed";
 
@@ -60,6 +61,18 @@ export interface ScnContext {
   stage: number; // 0-7
   stageLabel: string;
   phase: { id: string; order: number; title: string; subtitle: string };
+  /**
+   * Canonical 8-stage bucket for `phase` (H.21 parity with the four showcase
+   * timelines and the founder dashboard header). Additive alongside `phase`
+   * — the fine-grained 12-phase payload is still authoritative; this field
+   * lets any UI reuse the same canonical vocab without re-computing the
+   * bucket. `null` when the growth phase id is outside the map.
+   */
+  canonical_stage: {
+    stage: StageKey;
+    label_en: string;
+    label_vi: string;
+  } | null;
   signals: SVIExtractedSignals;
   valuation: VcValuationReport;
   confidence: number; // 0-100
@@ -246,6 +259,7 @@ export async function buildScnContext(input: ScnInput, deps: ScnDeps = {}): Prom
     stage,
     stageLabel,
     phase: { id: phase.id, order: phase.order, title: phase.title, subtitle: phase.subtitle },
+    canonical_stage: growthPhaseToStageLabel(phase.id),
     signals,
     valuation,
     confidence,

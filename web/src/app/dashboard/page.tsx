@@ -725,6 +725,7 @@ export default async function DashboardPage({
           stageLabel={phaseName}
           percentile={scnPercentile}
           valuationLabel={valuation.value}
+          phase6={phase}
         />
 
         {/* ── Row 1: Metric Cards ───────────────────────────────────────────── */}
