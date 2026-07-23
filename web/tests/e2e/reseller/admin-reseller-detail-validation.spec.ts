@@ -241,6 +241,40 @@ const ALLOWED_COMMISSION_STATUSES = new Set<string>([
 // closing the cluster with all 8 tuple columns pinned).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+// Tick 353 — value set for attributions_summary.by_source keys.
+// Cross-surface twin of ALLOWED_ATTRIBUTION_SOURCES at
+// web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts:2480
+// (introduced there on tick 313). Mirrors the DB CHECK at
+// web/supabase/migrations/0091_reseller_module_foundations.sql:123
+// `source IN ('code','provisioned','admin_manual')` on the
+// reseller_attributions table, which is the sole enforcement layer —
+// attribution.ts stamps the value based on the linking flow rather
+// than a Zod-validated field, so a schema-side CHECK drop or a legacy
+// INSERT that stamped a source outside the enumeration would land
+// straight through PostgREST onto the wire. The route's
+// attributions_summary.by_source reducer at
+// web/src/app/api/admin/resellers/[code]/route.ts:116-119 keys the
+// accumulator directly on the raw reseller_attributions.source column,
+// so a rogue value surfaces as a rogue KEY on the wire — which this
+// Set catches on the first offending key. NARROWER than the
+// three-value admin-source enum because the attribution flow is
+// strictly one of the three enumerated origins: user-typed promotion
+// code, reseller-provisioned link, or admin-manual override. Kept
+// adjacent to the existing ADMIN_ROLES / ADMIN_STATUSES /
+// ALLOWED_TIER_PCTS / ALLOWED_COMMISSION_STATUSES / BILLING_MODELS /
+// STATUSES cluster so a future value-set tick lands next to its
+// siblings without scattering. FOURTH new module-scope const added to
+// this file in the commissions[] + attributions_summary sweep (tick
+// 344 introduced STRIPE_INVOICE_ID_RE; tick 348 introduced
+// ALLOWED_COMMISSION_STATUSES; tick 349 introduced ISO_TIMESTAMP_RE;
+// this tick introduces ALLOWED_ATTRIBUTION_SOURCES — opens the
+// attributions_summary.by_source Record<enum, number> value-set
+// enum-tightening cluster on this surface).
+const ALLOWED_ATTRIBUTION_SOURCES = new Set<string>([
+  "code",
+  "provisioned",
+  "admin_manual",
+]);
 // Tick 342 — opens the reseller_commissions_current[] child-row cluster on
 // this detail-validation spec by pinning the commission_id UUID column,
 // cross-surface twin of tick 308 on admin-reseller-detail-authz.spec.ts.
@@ -937,6 +971,70 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
         !Array.isArray(body.attributions_summary?.by_source),
       `attributions_summary.by_source should be a plain object: ${JSON.stringify(body.attributions_summary).slice(0, 200)}`,
     ).toBe(true);
+    // Tick 353 — attributions_summary.by_source Record<enum, number>
+    // value-set enum tightening, cross-surface twin of tick 313 on
+    // admin-reseller-detail-authz.spec.ts:3467-3499. Executes tick 352
+    // next-pick option (i) verbatim: rotates out of the reseller_admins[]
+    // cluster (closed on this file across ticks 340..352 by pinning role +
+    // status enums, id + user_id + linked_at + revoked_at wire shapes, and
+    // the status ⇔ revoked_at cross-column lifecycle invariant) into the
+    // aggregate attributions_summary shape. The .total + .active count
+    // pins already landed on tick 341; the by_source sub-map has carried
+    // only a plain-object shape guard since then (rows 934-939 above), so
+    // this tick tightens the last un-guarded surface on the attributions
+    // aggregate. Four-part guard mirroring the tick 313 posture on the
+    // sibling detail-authz spec verbatim:
+    //   (a) every KEY must be in ALLOWED_ATTRIBUTION_SOURCES
+    //       {'code','provisioned','admin_manual'} — catches a schema-side
+    //       CHECK drop at 0091:123 on the reseller_attributions.source
+    //       column, a legacy INSERT that stamped a rogue source like
+    //       'referral' or 'partner', or a route.ts:116-119 reducer
+    //       refactor that keyed the accumulator on a non-source column
+    //       (e.g. subject_type or status). Empty by_source `{}` — when
+    //       the reseller has zero attribution rows — trivially satisfies
+    //       this assert via Object.entries → no iterations, matching the
+    //       tick 313 sibling posture so hosts without seeded attributions
+    //       remain green.
+    //   (b) every VALUE must be typeof-number — catches a JS regression
+    //       in the route.ts:116-119 reducer that stamped a stringified
+    //       count via String(...) coercion or an accidental JSON.stringify
+    //       round-trip.
+    //   (c) every VALUE must be Number.isInteger — catches a NaN from a
+    //       divide-by-zero, a floating-point count from a reducer refactor
+    //       that swapped +1 for a rate/average computation, or Infinity
+    //       from a runaway loop.
+    //   (d) every VALUE must be >= 0 — catches a reducer refactor that
+    //       stamped a negative counter or a signed-int wraparound.
+    // Detail-surface only per the same posture as ticks 340-352 on this
+    // spec — the admin-resellers-list route projects only the resellers-
+    // row shape and does not compute attributions_summary; the reducer
+    // is unique to the detail route. Fires on every green CI run when
+    // the seeded reseller has attribution rows; on hosts without seeded
+    // attributions the for-loop is a no-op so the pin never fires — same
+    // posture as tick 313 sibling. Reuses the module-scope
+    // ALLOWED_ATTRIBUTION_SOURCES const introduced at row 244 above —
+    // zero new imports, one new module-scope const per the tick 313
+    // sibling precedent.
+    for (const [source, count] of Object.entries(
+      body.attributions_summary?.by_source ?? {},
+    )) {
+      expect(
+        ALLOWED_ATTRIBUTION_SOURCES.has(source),
+        `attributions_summary.by_source key '${source}' should be in the enum {code,provisioned,admin_manual} per ck_reseller_attributions_source CHECK at web/supabase/migrations/0091_reseller_module_foundations.sql:123; a DB CHECK drop, a legacy INSERT that stamped a source outside the enumeration ('referral', 'partner'), or a web/src/app/api/admin/resellers/[code]/route.ts:116-119 reducer refactor that keyed on a non-source column (e.g. subject_type or status) would surface here. by_source: ${JSON.stringify(body.attributions_summary?.by_source).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        typeof count === "number",
+        `attributions_summary.by_source['${source}'] value '${String(count)}' should be a number (route.ts:116-119 reducer accumulates integer counts via acc[a.source] = (acc[a.source] ?? 0) + 1; a JS regression that stamped a stringified count via String(...) coercion or an accidental JSON.stringify round-trip would surface here — separated from the isInteger + non-negative checks below so a raw-type flip does not hide behind an out-of-band range diagnostic). by_source: ${JSON.stringify(body.attributions_summary?.by_source).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        Number.isInteger(count),
+        `attributions_summary.by_source['${source}'] value '${String(count)}' should be an integer (route.ts:116-119 reducer only counts by +1 per row so the accumulator is always an integer; a NaN from a divide-by-zero refactor, a floating-point count from a reducer that swapped +1 for a rate/average computation, or Infinity from a runaway loop would surface here). by_source: ${JSON.stringify(body.attributions_summary?.by_source).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        (count as number) >= 0,
+        `attributions_summary.by_source['${source}'] value '${String(count)}' should be non-negative (route.ts:116-119 reducer only accumulates +1 per row so the counter monotonically increases from 0; a reducer refactor that stamped a negative counter or a signed-int wraparound would surface here). by_source: ${JSON.stringify(body.attributions_summary?.by_source).slice(0, 200)}`,
+      ).toBe(true);
+    }
 
     expect(
       Array.isArray(body.commissions),
