@@ -212,9 +212,19 @@ test.describe("Reseller customer-drawer — P10 wave-2 happy path", () => {
         display_name: string | null;
         masked_email: string;
         signup_at: string;
+        last_active_at: string | null;
+        onboarding_completed: boolean;
+        plan_label: string | null;
         credits_balance: number;
+        mrr_aud_cents: number;
       };
-      progression?: Array<{ kind: string; ts: string; label: string }>;
+      progression?: Array<{
+        kind: string;
+        ts: string;
+        label: string;
+        detail?: string | null;
+        phase?: number | null;
+      }>;
       svi_curve?: Array<{ month: string; score: number }>;
       reports?: Array<{ id: string; title: string; type: string }>;
       reason?: string;
@@ -232,12 +242,58 @@ test.describe("Reseller customer-drawer — P10 wave-2 happy path", () => {
     expect(body.overview?.masked_email ?? "").toMatch(/\*/);
     expect(typeof body.overview?.signup_at).toBe("string");
     expect(typeof body.overview?.credits_balance).toBe("number");
+    // Tick 225 — extend row 146 with shape pins on the five previously-silent
+    // OverviewSummary fields the route SELECT + buildOverviewSummary always
+    // emit (customer-drawer.ts:54-63). Same discipline as tick 223 row 161 +
+    // tick 224 row 156 in the reseller-requests spec pair: shape pins only,
+    // no VALUE assertions on fields that drift across staging seed rewrites.
+    //   - display_name: nullable string per app_users.display_name column
+    //     (nullable text in migration 0005) so a null here is a legitimate
+    //     founder-with-no-display-name signal, not a route regression.
+    //   - last_active_at: nullable string per app_users.last_login_at column
+    //     (nullable timestamptz in 0035) so a null here signals a founder
+    //     who signed up but never logged back in, not a regression.
+    //   - onboarding_completed: boolean per buildOverviewSummary's `!!` coercion
+    //     of nullable app_users.onboarding_completed (customer-drawer.ts:282)
+    //     — always boolean at the wire, never null, never undefined.
+    //   - plan_label: nullable string per buildOverviewSummary's latestPlan
+    //     accumulator (customer-drawer.ts:264+283) — null when the founder
+    //     has zero revenue_events rows with a plan_id (fresh signup that
+    //     never subscribed), string when they've hit checkout at least once.
+    //   - mrr_aud_cents: number per buildOverviewSummary's `mrr` accumulator
+    //     (customer-drawer.ts:263+285) — always number at the wire (0 when
+    //     no recurring events in the last 31 days).
+    // Null-or-typeof-string pattern chosen over `x === null || (typeof x ===
+    // "string" && x.length > 0)` so the pin does not accidentally forbid an
+    // empty-string display_name — assertion scope is shape only per the
+    // tick 223+224 discipline.
+    expect(
+      body.overview?.display_name === null ||
+        typeof body.overview?.display_name === "string",
+    ).toBe(true);
+    expect(
+      body.overview?.last_active_at === null ||
+        typeof body.overview?.last_active_at === "string",
+    ).toBe(true);
+    expect(typeof body.overview?.onboarding_completed).toBe("boolean");
+    expect(
+      body.overview?.plan_label === null ||
+        typeof body.overview?.plan_label === "string",
+    ).toBe(true);
+    expect(typeof body.overview?.mrr_aud_cents).toBe("number");
     // Progression must be an array; the drawer synthesises at least a signup
     // event from app_users.created_at even when the founder has zero SVI runs,
     // so an empty array would signal a route regression.
     expect(Array.isArray(body.progression)).toBe(true);
     expect((body.progression ?? []).length).toBeGreaterThan(0);
     expect(body.progression?.[0]?.kind).toBe("signup");
+    // Tick 225 — pin progression[0].ts + .label as string. Both are required
+    // fields on ProgressionEvent (customer-drawer.ts:28-39); the signup event
+    // pushed at line 122-126 always carries app_users.created_at as ts and
+    // the literal "Signed up" as label. A regression that dropped either
+    // from the row shape would break the drawer client renderer.
+    expect(typeof body.progression?.[0]?.ts).toBe("string");
+    expect(typeof body.progression?.[0]?.label).toBe("string");
     // svi_curve + reports may be empty arrays for a founder with no analyses
     // but MUST be arrays — a null here would flag the client renderer.
     expect(Array.isArray(body.svi_curve)).toBe(true);
