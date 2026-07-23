@@ -399,6 +399,38 @@ const UUID_RE =
 // resellers-family surfaces (list + detail) carry the pin
 // simultaneously, matching the tick 286-294 discipline of bringing
 // both surfaces up to parity in one pass.
+//
+// Tick 296 — primary_color text nullable wire-shape pin, rotating back
+// to the two-part guard shape (tick 294 abn) after the single-guard
+// tick 295 logo_url. resellers.primary_color declared at 0091:27 as
+// `primary_color text` (nullable) with NO DB CHECK but a format regex
+// on the application write path — HEX_COLOR_RE at web/src/lib/reseller/
+// admin-validator.ts:53 (/^#[0-9a-fA-F]{6}$/) rejects any patch.
+// primary_color that fails the 6-hex-digit +hash pattern with reason
+// 'primary_color_bad_format' (admin-validator.ts:150-158). Second
+// nullable text column on the resellers row after abn (tick 294) that
+// carries a format regex; unlike abn there is no matching DB CHECK
+// (0091:52-54 only covers abn), so the invariant lives ONLY on the
+// application write path — a validator-side regex drop would let a
+// non-hex string INSERT past PostgREST and surface here. Nullable
+// discipline with a format layer → two-part guard: (a) null-or-typeof-
+// string preserving the tick 275/294/295 posture for nullable text,
+// (b) null-or-(typeof-string AND HEX_COLOR_RE.test()) tightening onto
+// the write-path regex. Fires ONLY when primary_color is non-null so
+// the wave-5 seed-qa-reseller.mjs cohort rows (default primary_color=
+// NULL) pass cleanly on the null branch; a real production reseller
+// row with an admin-configured brand colour (INFOVISION when P1.5
+// clears H.20) would exercise the null-or-string+HEX_COLOR_RE branch.
+// A schema-side type flip from text to non-string, a PostgREST
+// serialisation regression that returned NULL as the literal string
+// "null", an admin-validator drift that stopped enforcing HEX_COLOR_RE,
+// or a projection-side drop from route.ts:41-44 select("*") would
+// each surface at a distinct assertion failure mode. Cross-surface
+// pair with the companion pin landed on admin-reseller-detail-authz.
+// spec.ts in the same tick so the two admin resellers-family surfaces
+// (list + detail) carry the pin simultaneously, matching the tick
+// 286-295 discipline of bringing both surfaces up to parity in one
+// pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -416,6 +448,13 @@ const RESELLER_CODE_RE = /^[A-Z0-9]+$/;
 // (NN NNN NNN NNN, e.g. "79 659 615 111") is legal on the wire —
 // unspaced (11-digit) or hyphenated forms are rejected on write.
 const ABN_RE = /^\d{2} \d{3} \d{3} \d{3}$/;
+// Tick 296 — hex colour regex mirroring HEX_COLOR_RE at
+// web/src/lib/reseller/admin-validator.ts:53. The application write
+// path rejects any patch.primary_color that fails this pattern with
+// reason='primary_color_bad_format' (admin-validator.ts:150-158);
+// there is no matching DB CHECK on primary_color so the invariant
+// lives ONLY on the write path.
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const BILLING_MODELS = new Set(["retail", "wholesale"]);
 const STATUSES = new Set(["active", "paused", "terminated"]);
 // Tick 288 — value set for allowed_tiers[] element membership. Matches
@@ -513,6 +552,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         collateral_approval_required?: unknown;
         abn?: unknown;
         logo_url?: unknown;
+        primary_color?: unknown;
       }>;
     };
     expect(
@@ -808,6 +848,32 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
       expect(
         row.logo_url === null || typeof row.logo_url === "string",
         `reseller.logo_url '${String(row.logo_url)}' should be null or a string (nullable text per 0091:26; NULL when no logo URL is populated, string when a reseller has uploaded/registered a branded logo URL — no DB CHECK, no admin-validator format guard). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 296 — primary_color text nullable wire-shape pin, cross-
+      // surface pair with the sibling pin landed on admin-reseller-detail-
+      // authz.spec.ts in the same tick. See module-scope doc-block (tick
+      // 296 paragraph) for the rationale. Column source 0091:27
+      // `primary_color text` (nullable) with NO DB CHECK and application
+      // write-path guard HEX_COLOR_RE at admin-validator.ts:53 (rejects
+      // patch.primary_color that fails /^#[0-9a-fA-F]{6}$/ with reason
+      // 'primary_color_bad_format' at admin-validator.ts:150-158). Two-
+      // part guard: (a) null-or-typeof-string preserving the nullable-
+      // text posture, (b) null-or-(typeof-string AND HEX_COLOR_RE.test())
+      // tightening onto the validator regex. Seed cohort rows carry
+      // primary_color=NULL by default so the null branch is exercised on
+      // every green CI run; a populated production reseller row
+      // (INFOVISION when P1.5 clears H.20) with an admin-configured
+      // brand colour would exercise the null-or-string+HEX_COLOR_RE
+      // branch.
+      expect(
+        row.primary_color === null || typeof row.primary_color === "string",
+        `reseller.primary_color '${String(row.primary_color)}' should be null or a string (nullable text per 0091:27; NULL when no brand colour is populated, string when an admin has configured a hex colour via the admin PATCH surface). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      expect(
+        row.primary_color === null ||
+          (typeof row.primary_color === "string" &&
+            HEX_COLOR_RE.test(row.primary_color as string)),
+        `reseller.primary_color '${String(row.primary_color)}' should be null or a hex colour string matching /^#[0-9a-fA-F]{6}$/ (admin-validator.ts:53 HEX_COLOR_RE rejects other shapes with reason 'primary_color_bad_format'); a drift to a 3-digit hex, unhashed hex, rgba() string, or any other shape would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
