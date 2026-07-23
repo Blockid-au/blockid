@@ -989,3 +989,4 @@
 {"ts":"2026-07-23T20:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":685,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234347500 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273313728 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-23T20:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16514,"detail":""}
 {"ts":"2026-07-23T20:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16484,"detail":""}
+{"ts":"2026-07-23T20:20:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":2200,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234993744 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (272896632 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
