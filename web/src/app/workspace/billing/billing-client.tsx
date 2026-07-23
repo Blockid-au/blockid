@@ -28,6 +28,10 @@ interface BillingClientProps {
   currentPlanId: string | null;
   planStartedAt: string | null;
   hasStripeCustomer: boolean;
+  /** D3-CISO-06: true when the founder was wholesale-provisioned — the
+   *  Stripe Customer belongs to their reseller, so the portal is blocked
+   *  server-side. Render an explanation instead of the button. */
+  isWholesaleProvisioned?: boolean;
   plans: Plan[];
   /** Stripe price ids for the Share Management add-on. Nulls when env not set. */
   shareMgmtAddonPriceIds?: {
@@ -81,6 +85,7 @@ export function BillingClient({
   currentPlanId,
   planStartedAt,
   hasStripeCustomer,
+  isWholesaleProvisioned = false,
   plans,
   shareMgmtAddonPriceIds,
 }: BillingClientProps) {
@@ -295,6 +300,27 @@ export function BillingClient({
                 <Sparkles strokeWidth={1.75} className="h-4 w-4" />
                 Upgrade
               </Link>
+            ) : isWholesaleProvisioned ? (
+              // D3-CISO-06: wholesale-provisioned founders share the reseller's
+              // Stripe Customer object. Opening the portal would surface the
+              // reseller's billing surface (payment methods + other founders'
+              // subscriptions). Render an explanation in place of the button
+              // so the user isn't left staring at an unexplained 403.
+              <div
+                role="note"
+                title="Your subscription is managed by your reseller partner"
+                className="inline-flex max-w-md items-start gap-2 rounded-[10px] border border-surface-200 bg-surface-50 px-4 py-2.5 text-xs text-ink-700"
+              >
+                <CreditCard
+                  strokeWidth={1.75}
+                  className="h-4 w-4 shrink-0 mt-0.5 text-ink-500"
+                />
+                <span>
+                  Your subscription is billed and managed by your reseller
+                  partner. Contact them directly to change plan, update
+                  payment methods, or cancel.
+                </span>
+              </div>
             ) : hasStripeCustomer ? (
               <button
                 type="button"

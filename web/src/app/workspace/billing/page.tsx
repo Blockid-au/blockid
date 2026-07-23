@@ -8,6 +8,7 @@ import { PageTracker } from "@/components/analytics/page-tracker";
 import { buildPlansFromConfig } from "@/lib/plans";
 import { getPlatformConfig } from "@/lib/platform-config";
 import { ADDON_PRICE_IDS } from "@/lib/stripe";
+import { isWholesaleProvisionedFounder } from "@/lib/stripe/portal-gate";
 import { BillingClient } from "./billing-client";
 
 export const metadata: Metadata = {
@@ -27,9 +28,14 @@ export default async function BillingPage() {
   let planStartedAt: string | null = null;
   let hasStripeCustomer = false;
 
-  const [cfg, sb] = await Promise.all([
+  const [cfg, sb, isWholesaleProvisioned] = await Promise.all([
     getPlatformConfig(),
     Promise.resolve(getSupabaseAdmin()),
+    // D3-CISO-06: wholesale-provisioned founders cannot open the Stripe
+    // portal (shared reseller Customer object). The button becomes an
+    // explanation tooltip in the client render — matches the 403 the
+    // /api/stripe/portal route would otherwise return.
+    isWholesaleProvisionedFounder(user.id),
   ]);
   const plans = buildPlansFromConfig(cfg);
 
@@ -64,6 +70,7 @@ export default async function BillingPage() {
             currentPlanId={user.plan}
             planStartedAt={planStartedAt}
             hasStripeCustomer={hasStripeCustomer}
+            isWholesaleProvisioned={isWholesaleProvisioned}
             plans={plans}
             shareMgmtAddonPriceIds={{
               monthly: ADDON_PRICE_IDS.share_management_monthly,
