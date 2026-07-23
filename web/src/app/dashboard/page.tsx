@@ -35,6 +35,7 @@ import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-act
 import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
+import { WidgetGrid } from "@/components/dashboard/widget-grid";
 import { fetchRepoStats, parseRepoInput } from "@/lib/github";
 import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
@@ -728,40 +729,7 @@ export default async function DashboardPage({
           phase6={phase}
         />
 
-        {/* ── Row 1: Metric Cards ───────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <MetricCard
-            title="Company Value"
-            value={valuation.value}
-            trend={delta && sviScore ? Math.round(delta * (valuation.raw / (sviScore || 1)) / 1000) : undefined}
-            icon={BarChart3}
-          />
-          <MetricCard
-            title="SVI Score"
-            value={sviScore ?? "--"}
-            trend={delta ?? undefined}
-            icon={TrendingUp}
-          />
-          <MetricCard
-            title="Current Phase"
-            value={phaseName}
-            subtitle={`Phase ${phase + 1} of 6`}
-            icon={Target}
-          />
-          <MetricCard
-            title="Credits"
-            value={creditBalance % 1 === 0 ? creditBalance : creditBalance.toFixed(2)}
-            subtitle="remaining"
-            icon={Zap}
-          />
-          <MetricCard
-            title="Investor Ready"
-            value={`${readiness}%`}
-            icon={ShieldCheck}
-          />
-        </div>
-
-        {/* ── Row 2: Project Context Card ───────────────────────────────────── */}
+        {/* ── Row 2: Project Context Card (sticky header, not personalizable) ─ */}
         {(analysis || projectName) && (
           <div className="rounded-2xl border border-surface-200 bg-white p-6">
             <div className="flex items-start justify-between">
@@ -786,153 +754,218 @@ export default async function DashboardPage({
           </div>
         )}
 
-        {/* ── AI Confidence + Action Plan (T0076) ──────────────────────────── */}
-        {analysis?.subs && analysis.subs.length > 0 && (
-          <AIConfidenceActionPlan subs={analysis.subs} />
-        )}
-
-        {/* ── GitHub Activity Evidence (T0079) ─────────────────────────────── */}
-        {githubEvidence && (
-          <GitHubEvidenceCard
-            repoLabel={githubEvidence.label}
-            repoUrl={githubEvidence.url}
-            commitsLast90={githubEvidence.commitsLast90}
-            stars={githubEvidence.stars}
-            pushedAt={githubEvidence.pushedAt}
-          />
-        )}
-
-        {/* ── Row 3: SCN DIRECTION — Google-Maps-style navigation ───────────── */}
-        {sviScore == null ? (
-          <div className="rounded-2xl border-2 border-brand-200 bg-brand-50/50 p-6">
-            <div className="flex items-start gap-4">
-              <Lightbulb className="h-8 w-8 text-brand-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-brand-800">Recommended Next Step</p>
-                <p className="text-sm text-brand-700 mt-1">{nextAction.text}</p>
-                <Link
-                  href={nextAction.url}
-                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
-                >
-                  {nextAction.label}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
+        {/* ── Personalizable widget grid (iteration-12 T2) ──────────────────
+            Each child MUST carry a stable `data-widget-id`; WidgetGrid reads
+            it to persist per-founder pin + reorder in localStorage. Wrapping
+            conditionals inline so absent widgets disappear from the grid
+            entirely (sanitizeStoredIds self-heals older saved orders). */}
+        <WidgetGrid>
+          {/* Row 1 metric cards — pinned by many founders for quick vitals. */}
+          <div
+            data-widget-id="metrics"
+            className="grid grid-cols-2 lg:grid-cols-5 gap-4"
+          >
+            <MetricCard
+              title="Company Value"
+              value={valuation.value}
+              trend={delta && sviScore ? Math.round(delta * (valuation.raw / (sviScore || 1)) / 1000) : undefined}
+              icon={BarChart3}
+            />
+            <MetricCard
+              title="SVI Score"
+              value={sviScore ?? "--"}
+              trend={delta ?? undefined}
+              icon={TrendingUp}
+            />
+            <MetricCard
+              title="Current Phase"
+              value={phaseName}
+              subtitle={`Phase ${phase + 1} of 6`}
+              icon={Target}
+            />
+            <MetricCard
+              title="Credits"
+              value={creditBalance % 1 === 0 ? creditBalance : creditBalance.toFixed(2)}
+              subtitle="remaining"
+              icon={Zap}
+            />
+            <MetricCard
+              title="Investor Ready"
+              value={`${readiness}%`}
+              icon={ShieldCheck}
+            />
           </div>
-        ) : (
-          <ScnDirectionNavigator
-            stageLabel={directionStageLabel}
-            weakestLayer={weakestLayer}
-            steps={directionSteps}
-          />
-        )}
 
-        {/* ── Row 4: Recent Reports + Quick Actions ─────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Reports */}
-          <div className="rounded-2xl border border-surface-200 bg-white p-6">
-            <h3 className="text-sm font-bold text-ink-800 mb-4">Recent Reports</h3>
-            {displayReports.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-surface-200 px-4 py-8 text-center">
-                <FileText className="h-6 w-6 mx-auto text-ink-300 mb-2" />
-                <p className="text-sm text-ink-500">No reports yet.</p>
-                <p className="text-xs text-ink-400 mt-1">
-                  Run your first SVI analysis to generate a report.
-                </p>
+          {/* SVI radar / sub-score confidence (T0076). */}
+          {analysis?.subs && analysis.subs.length > 0 && (
+            <div data-widget-id="svi-radar">
+              <AIConfidenceActionPlan subs={analysis.subs} />
+            </div>
+          )}
+
+          {/* GitHub product-activity evidence (T0079). */}
+          {githubEvidence && (
+            <div data-widget-id="github-evidence">
+              <GitHubEvidenceCard
+                repoLabel={githubEvidence.label}
+                repoUrl={githubEvidence.url}
+                commitsLast90={githubEvidence.commitsLast90}
+                stars={githubEvidence.stars}
+                pushedAt={githubEvidence.pushedAt}
+              />
+            </div>
+          )}
+
+          {/* Guide-next — SCN direction navigator (or first-run CTA). */}
+          <div data-widget-id="guide-next">
+            {sviScore == null ? (
+              <div className="rounded-2xl border-2 border-brand-200 bg-brand-50/50 p-6">
+                <div className="flex items-start gap-4">
+                  <Lightbulb className="h-8 w-8 text-brand-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-brand-800">Recommended Next Step</p>
+                    <p className="text-sm text-brand-700 mt-1">{nextAction.text}</p>
+                    <Link
+                      href={nextAction.url}
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+                    >
+                      {nextAction.label}
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="space-y-0">
-                {displayReports.map((r) => (
-                  <Link key={r.id} href={`/workspace/reports/${r.id}`}>
-                    <div className="flex items-center gap-3 py-3 border-b border-surface-100 last:border-0 hover:bg-surface-50/50 -mx-2 px-2 rounded-lg transition-colors">
-                      <FileText className="h-4 w-4 text-ink-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ink-800 truncate">
-                          {r.raw_input
-                            ? r.raw_input.slice(0, 60) + (r.raw_input.length > 60 ? "..." : "")
-                            : `Analysis ${new Date(r.created_at).toLocaleDateString("en-AU")}`}
-                        </p>
-                        <p className="text-xs text-ink-500">
-                          {new Date(r.created_at).toLocaleDateString("en-AU")} · SVI {r.total_svi}
-                        </p>
+              <ScnDirectionNavigator
+                stageLabel={directionStageLabel}
+                weakestLayer={weakestLayer}
+                steps={directionSteps}
+              />
+            )}
+          </div>
+
+          {/* Recent Reports + Quick Actions (kept together — same visual row). */}
+          <div
+            data-widget-id="reports-actions"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
+            <div className="rounded-2xl border border-surface-200 bg-white p-6">
+              <h3 className="text-sm font-bold text-ink-800 mb-4">Recent Reports</h3>
+              {displayReports.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-surface-200 px-4 py-8 text-center">
+                  <FileText className="h-6 w-6 mx-auto text-ink-300 mb-2" />
+                  <p className="text-sm text-ink-500">No reports yet.</p>
+                  <p className="text-xs text-ink-400 mt-1">
+                    Run your first SVI analysis to generate a report.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-0">
+                  {displayReports.map((r) => (
+                    <Link key={r.id} href={`/workspace/reports/${r.id}`}>
+                      <div className="flex items-center gap-3 py-3 border-b border-surface-100 last:border-0 hover:bg-surface-50/50 -mx-2 px-2 rounded-lg transition-colors">
+                        <FileText className="h-4 w-4 text-ink-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-ink-800 truncate">
+                            {r.raw_input
+                              ? r.raw_input.slice(0, 60) + (r.raw_input.length > 60 ? "..." : "")
+                              : `Analysis ${new Date(r.created_at).toLocaleDateString("en-AU")}`}
+                          </p>
+                          <p className="text-xs text-ink-500">
+                            {new Date(r.created_at).toLocaleDateString("en-AU")} · SVI {r.total_svi}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-ink-400 shrink-0" />
                       </div>
-                      <ChevronRight className="h-4 w-4 text-ink-400 shrink-0" />
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-            {recentReports.length > 5 && (
-              <Link
-                href="/workspace/reports"
-                className="mt-3 block text-center text-xs font-medium text-brand-600 hover:text-brand-700"
-              >
-                View all reports
-              </Link>
-            )}
-          </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {recentReports.length > 5 && (
+                <Link
+                  href="/workspace/reports"
+                  className="mt-3 block text-center text-xs font-medium text-brand-600 hover:text-brand-700"
+                >
+                  View all reports
+                </Link>
+              )}
+            </div>
 
-          {/* Quick Actions */}
-          <div className="rounded-2xl border border-surface-200 bg-white p-6">
-            <h3 className="text-sm font-bold text-ink-800 mb-4">Quick Actions</h3>
-            <QuickActionsList hasAnalysis={!!analysis} phase={phase} />
-          </div>
-        </div>
-
-        {/* ── Row 5: Status Cards ───────────────────────────────────────────── */}
-        <StatusCards
-          sviScore={sviScore}
-          evidenceCount={evidenceCount}
-          phase={phase}
-          phaseName={phaseName}
-          hasCapTable={shareholders.length > 0}
-          hasEquity={shareholders.length > 1}
-        />
-
-        {/* ── Row 5b: Data Room Readiness Card (T0110) ─────────────────────── */}
-        <DataRoomReadinessCard />
-
-        {/* ── Row 5c: SVI Score History Chart (T0081) ──────────────────────── */}
-        {sviHistory.length > 0 && (
-          <ScoreHistoryChart
-            history={sviHistory}
-            startupName={projectName ?? undefined}
-          />
-        )}
-
-        {/* ── Row 5c: Cohort Benchmark CTA (T0090) ─────────────────────────── */}
-        <Link
-          href="/dashboard/benchmark"
-          className="flex items-center justify-between gap-4 rounded-2xl border border-surface-200 bg-white p-5 hover:border-brand-300 hover:shadow-sm transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <BarChart3 className="h-5 w-5 text-brand-600" />
-            <div>
-              <p className="text-sm font-semibold text-ink-900">
-                See your cohort percentile
-              </p>
-              <p className="text-xs text-ink-500">
-                Compare your SVI against anonymised AU pre-seed/seed startups.
-              </p>
+            <div className="rounded-2xl border border-surface-200 bg-white p-6">
+              <h3 className="text-sm font-bold text-ink-800 mb-4">Quick Actions</h3>
+              <QuickActionsList hasAnalysis={!!analysis} phase={phase} />
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-ink-400" />
-        </Link>
 
-        {/* ── Row 6: Cap Table + Activity Feed ─────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CapTableMini shareholders={shareholders} totalShares={totalShareCount} />
-          <ActivityFeed rawActions={
-            userActions.map(a => ({ action_type: a.action_type, description: a.action_label, created_at: a.completed_at }))
-          } />
-        </div>
+          {/* Status cards row. */}
+          <div data-widget-id="status-cards">
+            <StatusCards
+              sviScore={sviScore}
+              evidenceCount={evidenceCount}
+              phase={phase}
+              phaseName={phaseName}
+              hasCapTable={shareholders.length > 0}
+              hasEquity={shareholders.length > 1}
+            />
+          </div>
 
-        {/* ── Row 7: Growth Roadmap ────────────────────────────────────────── */}
-        <GrowthRoadmap currentPhase={phase} />
+          {/* Data-room readiness (T0110) — evidence family. */}
+          <div data-widget-id="data-room">
+            <DataRoomReadinessCard />
+          </div>
 
-        {/* ── Row 7b: Growth Phase Progress Dashboard ─────────────────────── */}
-        <GrowthProgressDashboard />
+          {/* SVI trend-line history (T0081). */}
+          {sviHistory.length > 0 && (
+            <div data-widget-id="svi-trend">
+              <ScoreHistoryChart
+                history={sviHistory}
+                startupName={projectName ?? undefined}
+              />
+            </div>
+          )}
+
+          {/* Cohort benchmark CTA (T0090). */}
+          <div data-widget-id="cohort-benchmark">
+            <Link
+              href="/dashboard/benchmark"
+              className="flex items-center justify-between gap-4 rounded-2xl border border-surface-200 bg-white p-5 hover:border-brand-300 hover:shadow-sm transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <BarChart3 className="h-5 w-5 text-brand-600" />
+                <div>
+                  <p className="text-sm font-semibold text-ink-900">
+                    See your cohort percentile
+                  </p>
+                  <p className="text-xs text-ink-500">
+                    Compare your SVI against anonymised AU pre-seed/seed startups.
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-ink-400" />
+            </Link>
+          </div>
+
+          {/* Cap Table + Activity Feed row. */}
+          <div
+            data-widget-id="cap-activity"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
+            <CapTableMini shareholders={shareholders} totalShares={totalShareCount} />
+            <ActivityFeed rawActions={
+              userActions.map(a => ({ action_type: a.action_type, description: a.action_label, created_at: a.completed_at }))
+            } />
+          </div>
+
+          {/* Growth roadmap. */}
+          <div data-widget-id="growth-roadmap">
+            <GrowthRoadmap currentPhase={phase} />
+          </div>
+
+          {/* Growth phase progress dashboard. */}
+          <div data-widget-id="growth-progress">
+            <GrowthProgressDashboard />
+          </div>
+        </WidgetGrid>
 
         {/* ── Row 8: Living SVI Dashboard ───────────────────────────────────── */}
         {analysisWithDelta && (
