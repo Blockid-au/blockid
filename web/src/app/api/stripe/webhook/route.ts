@@ -250,6 +250,11 @@ export async function POST(request: Request) {
       return;
     }
 
+    // NOTE (D3-CISO-07): checkout now also writes `blockid_user_hash` (SHA-256
+    // via hashUserId) alongside the raw `blockid_user_id`. This handler still
+    // reads the raw UUID during the phase-1 transition window; a follow-up
+    // ticket migrates the resolution path to hash + customer_email/customer_id
+    // lookup so the raw UUID can be dropped from Stripe metadata entirely.
     let userId = session.metadata?.blockid_user_id;
     const planId = session.metadata?.blockid_plan;
 

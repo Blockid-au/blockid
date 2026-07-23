@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeR01, analyzeR03 } from "./reseller-lints";
+import { analyzeR01, analyzeR03, analyzeR04 } from "./reseller-lints";
 
 const F = "web/src/app/api/reseller/example/route.ts";
 
@@ -211,5 +211,117 @@ describe("analyzeR03", () => {
       `}`,
     ].join("\n");
     expect(analyzeR03(G, src, "share_management")).toEqual([]);
+  });
+});
+
+const S = "web/src/app/api/stripe/checkout/route.ts";
+const NON_STRIPE = "web/src/app/api/reseller/foo/route.ts";
+
+describe("analyzeR04", () => {
+  it("ignores files outside web/src/app/api/stripe/", () => {
+    const src = [
+      `metadata: {`,
+      `  blockid_user_id: user.id,`,
+      `}`,
+    ].join("\n");
+    expect(analyzeR04(NON_STRIPE, src)).toEqual([]);
+  });
+
+  it("passes when the raw UUID value is wrapped in hashUserId()", () => {
+    const src = [
+      `sessionParams.metadata = {`,
+      `  blockid_user_id: hashUserId(user.id),`,
+      `  blockid_plan: planId,`,
+      `};`,
+    ].join("\n");
+    expect(analyzeR04(S, src)).toEqual([]);
+  });
+
+  it("passes when a peer `_hash` field accompanies the raw entry (transition)", () => {
+    const src = [
+      `metadata: {`,
+      `  blockid_user_id: user.id,`,
+      `  blockid_user_hash: hashUserId(user.id),`,
+      `  blockid_plan: planId,`,
+      `};`,
+    ].join("\n");
+    expect(analyzeR04(S, src)).toEqual([]);
+  });
+
+  it("flags a raw `.id` write with no hash sibling and no exempt pragma", () => {
+    const src = [
+      `sessionParams.metadata = {`,
+      `  blockid_user_id: user.id,`,
+      `  blockid_plan: planId,`,
+      `};`,
+    ].join("\n");
+    const findings = analyzeR04(S, src);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+    expect(findings[0].message).toMatch(/R-04/);
+    expect(findings[0].message).toMatch(/hashUserId/);
+  });
+
+  it("flags a raw `.reseller_id` write with no hash sibling", () => {
+    const src = [
+      `metadata: {`,
+      `  reseller_id: promo.reseller_id,`,
+      `  reseller_code: promo.code,`,
+      `};`,
+    ].join("\n");
+    const findings = analyzeR04(S, src);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+  });
+
+  it("honours an r-04-exempt pragma with a non-empty reason", () => {
+    const src = [
+      `// r-04-exempt: transition — raw kept for webhook back-compat`,
+      `metadata: {`,
+      `  blockid_user_id: user.id,`,
+      `};`,
+    ].join("\n");
+    const findings = analyzeR04(S, src);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("exempt");
+    expect(findings[0].reason).toBe(
+      "transition — raw kept for webhook back-compat",
+    );
+  });
+
+  it("rejects an r-04-exempt pragma without a reason", () => {
+    const src = [
+      `// r-04-exempt:`,
+      `metadata: {`,
+      `  blockid_user_id: user.id,`,
+      `};`,
+    ].join("\n");
+    const findings = analyzeR04(S, src);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+    expect(findings[0].message).toMatch(/non-empty reason/);
+  });
+
+  it("ignores non-id string-literal metadata entries", () => {
+    const src = [
+      `metadata: {`,
+      `  blockid_plan: "growth",`,
+      `  blockid_email: email,`,
+      `  blockid_type: "svi_analysis",`,
+      `};`,
+    ].join("\n");
+    expect(analyzeR04(S, src)).toEqual([]);
+  });
+
+  it("handles nested object literals inside the metadata block", () => {
+    const src = [
+      `subscription_data: {`,
+      `  metadata: {`,
+      `    blockid_user_id: hashUserId(user.id),`,
+      `    nested: { note: "safe" },`,
+      `  },`,
+      `};`,
+    ].join("\n");
+    expect(analyzeR04(S, src)).toEqual([]);
   });
 });

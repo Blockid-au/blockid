@@ -269,3 +269,175 @@ export function analyzeR03(
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+// ---------------------------------------------------------------------------
+// R-04 — no raw UUID references inside Stripe `metadata:` object literals.
+//
+// Per docs/plans/plan-delta-2026-07-23.md § D.3 D3-CISO-07: user / reseller
+// UUIDs written to Stripe metadata must be hashed via `hashUserId()` before
+// leaving our process so a metadata dump can't be joined against app_users
+// directly. The rule fires on any `<key>_id: <var>.id` (or `<key>_id: <var>.<..>_id`)
+// entry inside a `metadata: { ... }` object literal in files under
+// `web/src/app/api/stripe/**`, UNLESS:
+//   - the same block contains a peer `<something>_hash:` key (transition
+//     window — raw + hash together is acceptable), OR
+//   - the value is wrapped in `hashUserId(...)` on the same line, OR
+//   - the block is opted out with `// r-04-exempt: <reason>` directly
+//     above the `metadata: {` opener.
+// ---------------------------------------------------------------------------
+
+export type R04Severity = "error" | "exempt";
+
+export interface R04Finding {
+  file: string;
+  line: number;
+  severity: R04Severity;
+  message: string;
+  reason?: string;
+}
+
+const R04_EXEMPT_PRAGMA = /\/\/\s*r-04-exempt:\s*(.*)$/;
+const STRIPE_ROUTE_PATH = /(^|\/)app\/api\/stripe\//;
+// Matches `<some_id_or_something>: <ident>.id` or `.<..>_id` — raw UUID refs.
+// Excludes matches where the whole value is wrapped in hashUserId(...).
+const RAW_UUID_ENTRY =
+  /(\b\w*(?:user|reseller|subject|paying|blockid)\w*_id)\s*:\s*([^,\n}]+)/i;
+
+/**
+ * Locate every `metadata: {` … `}` object literal in a source file. Uses
+ * brace-matching so nested objects don't confuse the scanner. Returns
+ * (openLine, closeLine, opener-preceding line) triples, 1-indexed.
+ */
+function locateMetadataBlocks(
+  content: string,
+): Array<{ openLine: number; closeLine: number; openOffset: number; closeOffset: number }> {
+  const out: Array<{
+    openLine: number;
+    closeLine: number;
+    openOffset: number;
+    closeOffset: number;
+  }> = [];
+  // Matches both object-property syntax (`metadata: {`) and assignment syntax
+  // (`sessionParams.metadata = {`) so R-04 covers every stripe metadata write.
+  const re = /\bmetadata\s*[:=]\s*\{/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(content)) !== null) {
+    const openOffset = m.index + m[0].length - 1; // position of `{`
+    let depth = 0;
+    let closeOffset = -1;
+    for (let i = openOffset; i < content.length; i++) {
+      const ch = content[i];
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          closeOffset = i;
+          break;
+        }
+      }
+    }
+    if (closeOffset === -1) continue;
+    out.push({
+      openLine: lineFromOffset(content, openOffset),
+      closeLine: lineFromOffset(content, closeOffset),
+      openOffset,
+      closeOffset,
+    });
+  }
+  return out;
+}
+
+export function analyzeR04(file: string, content: string): R04Finding[] {
+  if (!STRIPE_ROUTE_PATH.test(file)) return [];
+
+  const findings: R04Finding[] = [];
+  const lines = content.split("\n");
+  const blocks = locateMetadataBlocks(content);
+
+  for (const block of blocks) {
+    const bodyText = content.slice(block.openOffset + 1, block.closeOffset);
+
+    // Find raw UUID entries inside the block body.
+    const offenders: Array<{ line: number; snippet: string }> = [];
+    let searchFrom = 0;
+    while (searchFrom < bodyText.length) {
+      const sub = bodyText.slice(searchFrom);
+      const match = RAW_UUID_ENTRY.exec(sub);
+      if (!match) break;
+      const value = match[2].trim();
+      // Skip if wrapped with hashUserId(...) or if the key already ends in _hash.
+      const isHashed = /\bhashUserId\s*\(/.test(value);
+      const isHashKey = /_hash\b/.test(match[1]);
+      // Only flag entries whose value references a `.id` (or `_id` prop) —
+      // pure string literals, numbers, and non-UUID values are unrelated.
+      const isRawIdRef = /\.\s*(id|[a-zA-Z_]*_id)\b/.test(value);
+      if (isRawIdRef && !isHashed && !isHashKey) {
+        const absOffset = block.openOffset + 1 + searchFrom + match.index;
+        offenders.push({
+          line: lineFromOffset(content, absOffset),
+          snippet: `${match[1]}: ${value.split(/\s*,/)[0].slice(0, 60)}`,
+        });
+      }
+      searchFrom += match.index + match[0].length;
+    }
+
+    if (offenders.length === 0) continue;
+
+    // Check for a peer `_hash:` key anywhere in the block — accepts the
+    // transition pattern where raw + hash are written side-by-side.
+    const hasPeerHash = /\b\w*(?:user|reseller|subject|paying|blockid)\w*_hash\s*:/i.test(
+      bodyText,
+    );
+
+    // Check for r-04-exempt pragma on any of the ~3 lines above the opener.
+    let exemptReason: string | null = null;
+    for (let back = 1; back <= 3; back++) {
+      const idx = block.openLine - 1 - back;
+      if (idx < 0) break;
+      const pm = lines[idx].match(R04_EXEMPT_PRAGMA);
+      if (pm) {
+        exemptReason = (pm[1] ?? "").trim();
+        break;
+      }
+    }
+
+    if (exemptReason !== null) {
+      if (exemptReason === "") {
+        findings.push({
+          file,
+          line: block.openLine,
+          severity: "error",
+          message:
+            "R-04: `// r-04-exempt:` pragma above `metadata:` requires a non-empty reason.",
+        });
+      } else {
+        findings.push({
+          file,
+          line: block.openLine,
+          severity: "exempt",
+          message: "R-04 exemption",
+          reason: exemptReason,
+        });
+      }
+      continue;
+    }
+
+    if (hasPeerHash) continue; // transition-compatible: raw + hash together
+
+    for (const off of offenders) {
+      findings.push({
+        file,
+        line: off.line,
+        severity: "error",
+        message:
+          `R-04: raw UUID reference \`${off.snippet}\` written into Stripe ` +
+          `\`metadata:\` — wrap the value with \`hashUserId(...)\` from ` +
+          `\`@/lib/reseller/hash\`, add a peer \`_hash\` key next to the raw ` +
+          `field, or place \`// r-04-exempt: <reason>\` immediately above ` +
+          `the \`metadata: {\` opener. Per D3-CISO-07 (plan-delta 2026-07-23).`,
+      });
+    }
+  }
+
+  return findings;
+}
