@@ -4,6 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, FlaskConical, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import { getTopHypothesisForStep, type ABTestHypothesis } from "@/lib/agents/cro-experiments";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+// D3-CISO-05: sandbox scope chip is display-only on /admin/funnel — the
+// funnel_events aggregation used by /api/funnel does not carry a sandbox
+// flag; wholesale-sandbox traffic and live traffic are commingled.
+// no sandbox column on funnel_events — chip is display-only for future consistency
 
 const STEP_LABELS: Record<string, string> = {
   landing_visit: "Landing Page Visit",
@@ -109,6 +114,11 @@ export default function FunnelPage() {
           <h1 className="text-xl font-bold text-ink-800">Funnel Analytics</h1>
           <p className="text-sm text-ink-500">Conversion drop-off across assessment steps</p>
         </div>
+
+        <SandboxScopeChip
+          scope="all"
+          note="Chip-only — funnel aggregation has no sandbox column; live + sandbox traffic are commingled."
+        />
 
         <div className="flex items-center gap-2">
           {RANGES.map(({ label, value }) => (

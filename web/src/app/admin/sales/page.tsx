@@ -3,6 +3,10 @@
 import * as React from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Download, RefreshCw } from "lucide-react";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+// D3-CISO-05: sandbox scope chip is display-only on /admin/sales — leads
+// captured from the marketing site have no sandbox flag; a lead is a lead.
+// no sandbox column on leads — chip is display-only for future consistency
 
 // ---------------------------------------------------------------------------
 // Types
@@ -260,6 +264,13 @@ export default function AdminSalesPage() {
             </div>
           ))}
         </div>
+
+        {/* Sandbox scope chip (D3-CISO-05) */}
+        <SandboxScopeChip
+          scope="all"
+          theme="dark"
+          note="Chip-only — leads table has no sandbox column."
+        />
 
         {/* Filter Tabs */}
         <div className="flex items-center gap-1 border-b border-gray-700">

@@ -19,6 +19,10 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+// D3-CISO-05: sandbox scope chip is display-only on /admin/growth — the
+// growth_insights materialised view aggregates across live+sandbox.
+// no sandbox column on growth_insights — chip is display-only for future consistency
 
 export const metadata: Metadata = {
   title: "Growth Intelligence — Admin",
@@ -168,6 +172,12 @@ export default async function GrowthPage() {
           <p className="text-sm text-ink-700 mt-1">
             AI-powered funnel analysis and revenue recommendations — updated daily.
           </p>
+          <div className="mt-3">
+            <SandboxScopeChip
+              scope="all"
+              note="Chip-only — growth_insights view aggregates across live + sandbox."
+            />
+          </div>
         </div>
 
         {/* Live Stats Bar */}

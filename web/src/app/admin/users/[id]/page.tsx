@@ -24,6 +24,8 @@ import {
   type ResellerAdminMembershipRow,
   type RolesPermissionsPanel,
 } from "@/lib/admin/user-panels";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+import { parseScope, type SandboxScope } from "@/lib/admin/sandbox-scope";
 import { UserActionsClient } from "./user-actions-client";
 
 export const dynamic = "force-dynamic";
@@ -285,14 +287,25 @@ function truncate(v: string | null, n: number): string {
 
 export default async function AdminUserDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ scope?: string }>;
 }) {
   const { id } = await params;
 
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect(`/auth/login?next=/admin/users/${id}`);
   if (!isAdmin(currentUser)) redirect("/dashboard/svi");
+
+  // D3-CISO-05: sandbox scope. Chip-only — credit_transactions has no
+  // sandbox column (sandbox spend is routed to reseller_credit_grants
+  // instead, see web/src/lib/credits.ts § trySpendSandboxCredits).
+  // no sandbox column on credit_transactions — chip is display-only for future consistency
+  const sp = searchParams ? await searchParams : {};
+  const scope: SandboxScope = parseScope(sp);
+  const buildScopeHref = (next: SandboxScope) =>
+    next === "all" ? `/admin/users/${id}` : `/admin/users/${id}?scope=${next}`;
 
   const result = await loadDetail(id);
 
@@ -664,9 +677,16 @@ export default async function AdminUserDetailPage({
 
         <section className="mb-6 rounded-lg border border-surface-200 bg-white">
           <div className="border-b border-surface-100 p-3">
-            <h2 className="text-sm font-semibold text-ink-900">
-              Recent credit transactions (last {transactions.length})
-            </h2>
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h2 className="text-sm font-semibold text-ink-900">
+                Recent credit transactions (last {transactions.length})
+              </h2>
+              <SandboxScopeChip
+                scope={scope}
+                buildHref={buildScopeHref}
+                note="Chip-only — sandbox spend never touches credit_transactions."
+              />
+            </div>
           </div>
           {transactions.length === 0 ? (
             <div className="p-4 text-sm text-ink-500">No transactions yet.</div>
