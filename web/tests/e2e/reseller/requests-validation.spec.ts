@@ -306,6 +306,47 @@ test.describe("Reseller requests — P10 wave-3 happy GET", () => {
       expect(typeof row.status).toBe("string");
       expect(["pending", "approved", "denied", "cancelled"]).toContain(row.status);
       expect(typeof row.created_at).toBe("string");
+      // tick 224 option (b) — symmetrise the tick 223 row 161 sibling pins
+      // onto this file so the twin discipline established at rows 155/156/
+      // 161 stays coherent across the reseller-requests spec pair. Tick
+      // 223 extended reseller-requests-list-authz.spec.ts row 161 with
+      // three nullable/jsonb shape pins; this tick lands the same three
+      // pins on requests-validation.spec.ts row 156 so a route SELECT
+      // regression at web/src/app/api/reseller/requests/route.ts:169-173
+      // that dropped any of payload / decision_at / decision_reason
+      // surfaces across both spec files simultaneously (matching the
+      // "twin posture" comment on line 180 of the authz sibling).
+      //   payload — jsonb NOT NULL DEFAULT '{}' per 0095:33 so every row
+      //   carries a plain object (never null, never array). Object-plain
+      //   guard mirrors admin-requests-list-authz.spec.ts tick 222
+      //   resellers-embed shape assertion + reseller-requests-list-authz
+      //   .spec.ts tick 223 payload assertion — three-part pattern
+      //   (`x !== null && typeof x === "object" && !Array.isArray(x)`)
+      //   chosen over expect.objectContaining(...) for spec-local
+      //   consistency across the tick 222 + tick 223 + tick 224 chain.
+      //   decision_at — timestamptz nullable per 0095:35, NULL on pending
+      //   rows per ck_decision_shape at 0095:41-45. Assertion is (null OR
+      //   typeof string), matching credit-grant-authz row 152 discipline
+      //   for nullable timestamp echoes + tick 223 row 161 assertion.
+      //   decision_reason — text nullable per 0095:36 with no CHECK tying
+      //   it to status, so may be null even on approved/denied/cancelled
+      //   rows. Assertion is (null OR typeof string). Empty-string
+      //   decision_reason is intentionally NOT forbidden — P9.3 deny-flow
+      //   may write "" when the admin submits an empty reason field.
+      expect(
+        row.payload !== null &&
+          typeof row.payload === "object" &&
+          !Array.isArray(row.payload),
+        `active_wholesale + happy GET row.payload should be a plain object (jsonb NOT NULL DEFAULT '{}' per 0095:33; a PostgREST view that mistyped the column would surface here). Row: ${JSON.stringify(row)}`,
+      ).toBe(true);
+      expect(
+        row.decision_at === null || typeof row.decision_at === "string",
+        `active_wholesale + happy GET row.decision_at should be null or a string timestamp (nullable per 0095:35; NULL on pending rows per ck_decision_shape at 0095:41-45). Row: ${JSON.stringify(row)}`,
+      ).toBe(true);
+      expect(
+        row.decision_reason === null || typeof row.decision_reason === "string",
+        `active_wholesale + happy GET row.decision_reason should be null or a string (nullable per 0095:36; no CHECK ties it to status so nullable across all row states). Row: ${JSON.stringify(row)}`,
+      ).toBe(true);
     }
   });
 });

@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.223
+version: 2026-07-23.224
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,163 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 224
+    ran_at: 2026-07-23
+    action: p10_requests_validation_row_156_twin_symmetrisation_payload_decision_at_decision_reason
+    result: |
+      Landed tick 223 "natural next pick" option (b) verbatim: symmetrised the
+      three new shape pins from tick 223 (row 161 in reseller-requests-list-
+      authz.spec.ts) onto the sibling row 156 in requests-validation.spec.ts
+      so the twin discipline established at rows 155/156/161 stays coherent
+      across the reseller-requests spec pair.
+
+      Route SELECT at web/src/app/api/reseller/requests/route.ts:169-173
+      emits id + request_type + status + payload + decision_at +
+      decision_reason + created_at scoped by reseller_id (route.ts:174).
+      Pre-tick row 156 posture pinned four primitive fields (id typeof +
+      UUID_RE, request_type typeof + enum, status typeof + enum, created_at
+      typeof) leaving three silent — the same three that tick 223 closed on
+      row 161 in the authz sibling. This tick lands the same object-plain
+      + null-or-typeof-string assertions on row 156 so a route regression
+      that dropped any of payload / decision_at / decision_reason from the
+      SELECT list would surface across both spec files simultaneously.
+
+      Twin discipline now fully symmetrised — the "twin posture" comment at
+      reseller-requests-list-authz.spec.ts:180 is honoured across both
+      rows. Purely additive — no test removed, no assertion weakened, no
+      production code touched.
+
+      Diagnostic delta of the pass:
+        - Pre-tick requests-validation.spec.ts row 156 loop body had 8
+          expects per row (id typeof + UUID_RE, request_type typeof +
+          enum, status typeof + enum, created_at typeof). Post-tick adds
+          3 expects per row: payload object-plainness (1 combined
+          expect), decision_at null-or-typeof-string (1 expect),
+          decision_reason null-or-typeof-string (1 expect). Total = 11
+          expects per row on happy path when body.requests is non-empty
+          — parity with row 161 in the authz sibling now exact.
+        - Object-plainness pattern (`x !== null && typeof x === "object"
+          && !Array.isArray(x)`) chosen over expect.objectContaining(...)
+          for spec-local consistency with the tick 222 admin-requests-
+          list-authz.spec.ts row 174 resellers-embed shape assertion +
+          the tick 223 reseller-requests-list-authz.spec.ts row 161
+          payload assertion. Three-part guard now used at three sibling
+          rows so a future refactor that changes the pattern in one file
+          would surface as a visible drift in the others.
+        - Nullable pattern (`x === null || typeof x === "string"`)
+          chosen over separate `x === null || (typeof x === "string" &&
+          x.length > 0)` so the pin does not accidentally forbid empty-
+          string decision_reason values which the P9.3 deny-flow may
+          write when the admin submits an empty reason field. Assertion
+          scope is shape only, not value cleanliness. Matches tick 223
+          row 161 discipline verbatim.
+        - Header comment block on requests-validation.spec.ts lines
+          217-227 says "Do NOT pin decision_at / decision_reason" —
+          intentionally NOT updated this tick to match the sibling
+          reseller-requests-list-authz.spec.ts:178-182 header which also
+          still carries the pre-tick 223 guidance. The new inline comment
+          block above the assertions explains the reversal. Cleaning up
+          both stale header comments in a joint follow-up is available
+          as an explicit next-pick option (e).
+        - No new spec-local constant declared — UUID_RE was already
+          hoisted at module scope in requests-validation.spec.ts per tick
+          152 preflight. Object-plainness guard is inline, matching the
+          two sibling rows.
+        - No value assertions on payload contents, decision_at format,
+          or decision_reason substring — those would require pinning to
+          specific request_type payload schemas (code_request carries
+          tier_pct + suggested_suffix; over_budget_approval carries
+          amount + target_user_id + snapshot; collateral_approval
+          carries collateral_url + purpose) which is a wider dependency
+          than the shape-pin scope. Tick 221-223 discipline of "shape
+          pins only, no VALUE assertions on fields that drift across
+          staging seed rewrites" preserved.
+        - No production code touched. Spec + goal file only. Route
+          web/src/app/api/reseller/requests/route.ts unchanged;
+          migration 0095 unchanged.
+
+      Files:
+        - web/tests/e2e/reseller/requests-validation.spec.ts (row 156
+          happy path per-row loop body extended with 3 new shape
+          assertions inserted at the end of the loop, immediately after
+          the created_at typeof pin. Inline comment block above the new
+          assertions references tick 223 row 161 rationale + the
+          route.ts:169-173 SELECT source + the migration 0095 nullability
+          + ck_decision_shape constraint semantics + the tick 222 +
+          tick 223 object-plainness pattern for spec-local consistency
+          across the three-sibling chain.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.223 → 2026-07-23.224; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Shape pins only — no VALUE assertion on payload contents or
+          decision_reason substring (payload varies per request_type;
+          decision_reason is admin free-text). Matches ticks 218-223
+          discipline of shape-pinning without arithmetic-pinning on
+          out-of-scope-state fields.
+        - Position at the end of the per-row loop preserves the
+          "primitive fields first, complex/nullable fields last"
+          convention across sibling authz specs — the four primitive
+          field pins (id, request_type, status, created_at) come first
+          because they are structurally simple; the three new pins come
+          last because they cover nullable + jsonb shapes. Same order as
+          row 161 in the authz sibling.
+        - No new spec-local constant declared — the object-plainness
+          guard is the same three-part pattern used at admin-requests-
+          list-authz.spec.ts row 174 (tick 222) + reseller-requests-list-
+          authz.spec.ts row 161 (tick 223), and the null-or-typeof-string
+          pattern is a scalar variant of the same shape family. Single-
+          source constants preserved.
+
+      Verification:
+        - `npx tsc --noEmit` in web/: clean, no diagnostics.
+        - `npm run lint:reseller` in web/: R-01 scanned 11 file(s), R-03
+          scanned 31 manifest route(s); 3 exemption(s), 0 violations —
+          unchanged from tick 223.
+        - `npx vitest run` in web/: 75 files / 954 tests passed
+          (Playwright specs are excluded from vitest by design so the
+          count is unchanged from tick 223).
+        - No DB apply this tick — no migration authored. Playwright run
+          against staging still gated on the tick 198 seed re-run per
+          P10 hardening exit criteria, not this tick.
+
+      Frontier after tick 224:
+        - Track A P8.5 STILL HUMAN-BLOCKED on
+          STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL.
+        - Track A P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20
+          ABN + GST.
+        - Track B COMPLETE.
+        - Twin discipline established at rows 155/156/161 now fully
+          symmetrised on payload + decision_at + decision_reason
+          envelope shape pins. No un-pinned fields remain in either the
+          reseller-requests-list-authz.spec.ts row 161 or the requests-
+          validation.spec.ts row 156 happy-path per-row envelope.
+
+      Natural next pick for tick 225:
+        (a) audit drawer-authz.spec.ts + drawer-validation.spec.ts happy
+            paths for parallel envelope-shape pins on the typed body
+            fields the P4.2 customer-drawer route echoes (customer_id
+            UUID, plan slug, MRR number, credits number, last-active
+            timestamp, timeline event array shape, monthly SVI curve
+            array shape). Named as option (a) at ticks 221-223 and
+            remains open. Drawer envelope is richer than requests
+            envelope so a full audit would run 5-10 new shape pins per
+            happy path — still tightly scoped as a single tick.
+        (c) mirror the row 179 shape+helper alignment onto the row 175
+            approve+deny+cancel code_request branches once P8.5
+            unblocks; today only the over_budget_approval branch of the
+            terminal handler carries the shape+helper twin coverage.
+            Still open, P8.5-blocked.
+        (e) joint clean-up of the two stale header comment blocks on
+            requests-validation.spec.ts lines 217-227 + reseller-
+            requests-list-authz.spec.ts lines 172-182 to reflect the
+            tick 223 + tick 224 pins (currently both headers say "Do NOT
+            pin decision_at / decision_reason" which contradicts the
+            inline assertions). Pure comment cleanup, no assertion or
+            production code delta.
+    commit: (this tick)
+
   - tick: 223
     ran_at: 2026-07-22
     action: p10_reseller_requests_list_authz_row_161_nullable_and_jsonb_shape_pins
