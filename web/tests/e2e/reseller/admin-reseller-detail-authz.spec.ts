@@ -719,6 +719,44 @@ const UUID_RE =
 // (nullable ISO-8601 shape, matches the promotion_codes[].stripe_coupon
 // _id nullable posture at tick 301 combined with the tick 300 ISO
 // shape helper).
+//
+// Tick 307 — admins[].revoked_at nullable ISO-8601 timestamptz wire-
+// shape pin, fourth (and closing) column pinned in the reseller_admins[]
+// child-row cluster opened at tick 304 per tick 306 next-pick option
+// (a). Closes the admins[] child-row column-pin cluster because
+// revoked_at was the last un-tightened column in the projection tuple
+// select("id, user_id, role, status, linked_at, revoked_at") at
+// route.ts:89-93. Column declared at 0091:76 as `revoked_at timestamptz`
+// (nullable — NO NOT NULL clause) on the reseller_admins table with no
+// standalone CHECK; semantically joined to status via the link-
+// lifecycle discipline (status === 'revoked' ⇔ revoked_at IS NOT NULL,
+// enforced only at the app-layer revoke code-path — no DB CHECK
+// constraint yet). Combines the tick 301 stripe_coupon_id nullable-
+// text posture (null-or-typeof-string) with the tick 300/306 ISO shape
+// assert (ISO_TIMESTAMP_RE.test on the string branch). Two-part guard:
+// (a) null-or-typeof-string preserves the nullable-timestamptz posture;
+// catches a schema-side NOT NULL addition that broke seeded null rows
+// or a PostgREST regression that returned a non-null/non-string wire
+// value; (b) conditional ISO_TIMESTAMP_RE.test() shape assert on the
+// non-null branch — a drift to a non-ISO string, a Unix epoch number
+// rendered as string, or a truncated date-only value would surface
+// here on the first offending row. The stamp captures when a
+// reseller_admins link was moved into the tombstoned state; the
+// column stays NULL for the entire active lifetime of the link and
+// only fills once the admin is revoked. Detail-surface only per the
+// same posture as ticks 299-306 — the admin-resellers-list route
+// projects the resellers-row shape only and does not fan out to
+// reseller_admins; the Promise.all leg that pulls admins rows is
+// unique to the detail route at web/src/app/api/admin/resellers/
+// [code]/route.ts:89-93. Fires on every green CI run because seed-qa-
+// reseller.mjs mints per-variant admins rows per reseller cohort; on
+// hosts without seeded admins the for-loop is a no-op so the pin
+// never fires. Closes the reseller_admins[] child-row column-pin
+// cluster — every column in the projection tuple (id, user_id, role,
+// status, linked_at, revoked_at) now carries a full wire-shape pin.
+// Next-tick frontier rotates OUT of the admins[] cluster to
+// reseller_attributions[] / reseller_commissions[] fan-outs which
+// have larger per-row column counts still to pin.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
@@ -1471,6 +1509,22 @@ test.describe("Admin reseller GET — P10 wave-5 row 167 happy path", () => {
         ISO_TIMESTAMP_RE.test(row.linked_at as string),
         `admins[].linked_at '${String(row.linked_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0091:75); a drift to a non-ISO string, a Unix epoch number rendered as string, or a truncated date-only value would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Tick 307 — admins[].revoked_at nullable timestamptz wire-shape
+      // pin. Column 0091:76 `revoked_at timestamptz` (nullable, no NOT
+      // NULL clause). Combines the tick 301 nullable-text posture
+      // (null-or-typeof-string) with the tick 300/306 ISO shape assert
+      // on the non-null branch. See module-scope doc-block above
+      // ISO_TIMESTAMP_RE (tick 307 paragraph) for the rationale.
+      expect(
+        row.revoked_at === null || typeof row.revoked_at === "string",
+        `admins[].revoked_at '${String(row.revoked_at)}' should be null or a string (nullable timestamptz per 0091:76; NULL for active links, ISO 8601 string for tombstoned links stamped by the app-layer revoke code-path; a schema-side NOT NULL addition, a PostgREST serialisation regression that returned undefined, or a projection-side drop from route.ts:89-93 select would surface here). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      if (typeof row.revoked_at === "string") {
+        expect(
+          ISO_TIMESTAMP_RE.test(row.revoked_at as string),
+          `admins[].revoked_at '${String(row.revoked_at)}' should match ISO 8601 shape when non-null (nullable timestamptz per 0091:76 serialised via PostgREST as an ISO 8601 string on the tombstoned branch); a drift to a non-ISO string, a Unix epoch number rendered as string, or a truncated date-only value would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      }
     }
 
     // Attributions summary — pins the {total, active, by_source} shape
