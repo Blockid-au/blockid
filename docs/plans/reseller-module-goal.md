@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.242
+version: 2026-07-23.243
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,167 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 243
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_auto_commit_started_conditional_pin_option_y7
+    result: |
+      Landed tick 242's "natural next pick" option (y7) as the fifth
+      conditional-by-stage schema pin on tick_history rows in admin-
+      reseller-loop-status-authz.spec.ts happy path. Symmetric one-pin
+      single-guard shape matching tick 241's idle guard — adds one
+      typeof=number pin for `dirty_files` guarded by `stage ===
+      'auto_commit_started'`.
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:332 writes
+          `log({ stage: 'auto_commit_started', dirty_files:
+          dirty.split('\n').length })` inside the safety-net commit
+          branch at mjs:328-341 that fires whenever the Claude CLI
+          subprocess landed uncommitted edits.
+        - `dirty` is the trimmed stdout of `git status --porcelain`
+          (mjs:329-330); `dirty.split('\n').length` is
+          `Array.prototype.length` on the split result so it is a
+          schema-level typeof=number guarantee (never null, never
+          string, never absent). The `if (dirty)` guard at mjs:331
+          means the branch only fires when `dirty` is a non-empty
+          string, so the split always returns ≥1 element and .length
+          is always ≥1.
+        - The log() helper at mjs:52-58 prepends tick_id/ts/human_
+          review_minutes_7d then spreads `...row` — the `dirty_files`
+          keyval flows through untouched.
+
+      Design choice — mirrors tick 241's shape:
+        - Conditional-by-stage guard (`if (tickRow.stage ===
+          'auto_commit_started')`) matches ticks 239-242's convention
+          verbatim except for the stage literal. Reads clearly inline;
+          hoisting the guard into a helper would obscure the per-writer-
+          line citation each expect message carries.
+        - Single-key single-guard pin because auto_commit_started
+          carries only one stage-specific extra (`dirty_files`) — no
+          need for two-pin amortisation.
+        - Y7 picked over Y8 / Y3 / Y6 for tick 243 because dirty_files
+          is typeof-guaranteed by the writer contract (Array.prototype.
+          length always returns a number ≥0 — no null/undefined edge)
+          unlike auto_deploy_finished's `{ head }` where head is the raw
+          output of `git rev-parse --short HEAD` and could be an empty
+          string on a repo-less host, and unlike delegated_dispatch's
+          `{ signal }` which is `string | null` on Node.js spawnSync
+          returns. Restores the one-pin / two-pin alternation cadence
+          established by ticks 239-242 (frontier_computed: 1 →
+          phase_failed: 2 → idle: 1 → auto_commit_finished: 2 →
+          auto_commit_started: 1) so the pattern continues to
+          alternate across ticks 239-243.
+        - Paired writer contract with the tick 242 auto_commit_
+          finished guard — auto_commit_started fires at mjs:332
+          immediately before the git commit+push at mjs:335-336
+          whose results feed auto_commit_finished at mjs:337, so
+          both rows land together whenever the dirty-tree branch is
+          taken. Both stage-guards therefore evaluate on the same set
+          of ticks in production.
+
+      Diagnostic delta of the pass:
+        - Added 1 new stage-guarded block (1 expect statement —
+          dirty_files typeof=number) inside the tick_history row
+          loop, immediately after the tick 242 auto_commit_finished
+          guard. Inline citation of reseller-goal-loop.mjs:332 (write
+          site) + mjs:329-330 (spawnSync source lines for dirty
+          derivation) + mjs:331 (non-empty-string branch guard).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change, no new module-scope constant. Matches ticks
+          223-242 discipline: tighten one dimension, symmetrise
+          against known invariants, single tick.
+        - One comment block added citing the tick 243 landing + the
+          writer-script line + "symmetric one-pin single-guard shape
+          matching tick 241's idle guard" rationale + the "one-pin /
+          two-pin alternation" note + the paired-writer-contract note
+          (auto_commit_started + auto_commit_finished always land
+          together per the mjs:328-341 branch shape).
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one stage-guarded one-pin block added after the tick 242
+          auto_commit_finished two-pin block, with inline writer-schema
+          comments pointing to reseller-goal-loop.mjs:329-332.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.242 → 2026-07-23.243; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Schema pin only. No new spec-local constant (the stage-guard
+          + typeof pin reads clearly inline; hoisting would obscure the
+          tie-back to the specific writer line in the expect message).
+          No fixture-file delta, no seed-script change, no P8.5-gated
+          code_request work (option (c) still blocked), no production-
+          code touch.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit in web/; no output = success).
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 manifest
+          routes scanned, 3 exemptions unchanged, 0 violations — the
+          edited file lives under web/tests/e2e/**, not in the reseller
+          manifest, so R-01/R-03 do not fire on the edited file.
+        - reseller vitest suite unchanged (no production code or lib
+          touched — Playwright specs are excluded from vitest by
+          design).
+
+      Frontier after tick 243: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 243 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20.
+
+      Natural next pick for tick 244:
+        (y8) land `error` (mjs:218) row's `{ where, error }` — where is
+             a static string literal at each call site (mjs:218 uses
+             'readGoal'); error is `String(err)` so typeof=string
+             guaranteed. Symmetric two-pin shape with ticks 240 + 242.
+             Would continue the one-pin / two-pin alternation (1 → 2 →
+             1 → 2 → 1 → 2).
+        (y9) land `human_blocked_snapshot` (mjs:228-232) row's
+             `{ count, entries }` — count is `humanBlocked.length`
+             (Array.prototype.length; typeof=number guaranteed);
+             entries is the array itself (Array.isArray guarantee).
+             Symmetric two-pin shape with ticks 240 + 242. Fires on
+             every tick unlike the branch-conditional stages, so this
+             pin executes on every green-path CI run — highest
+             coverage-per-guard of any remaining stage.
+        (y3) audit `auto_deploy_finished` (mjs:367) row's `{ status,
+             head }` — status is spawnSync `deploy.status ?? -1`
+             (number guaranteed); head is `headSha` = `getHeadSha()`
+             output. `head` is derived from a git rev-parse — could
+             be empty string on a repo-less host — so the pin should
+             be typeof-string-only (not ISO-pinned) or narrower to
+             just `status`. Deferred audit still open.
+        (y6) land `delegated_dispatch` (mjs:319) row spread of
+             dispatchToClaude() — same `{ status, elapsed_ms, signal,
+             label }` shape as phase_failed except `signal` is
+             `string | null` on Node.js `spawnSync` returns. Deferred
+             audit: signal nullability.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list +
+            admin-side patch spec) in a single bigger-diff tick.
+            Available; deferred at ticks 235-242.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235-242.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof string
+            to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235-242.
+        (x) audit format-shape pins for now_utc / next_utc (HH:MM:SS /
+            HH:MM regex) / seconds_until (0..3600 range) / tick_state
+            (enum of 4 branches) — header-rewrite option (contradicts
+            existing "typeof-string only so the value can drift" comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 242
     ran_at: 2026-07-23
     action: p10_loop_status_tick_row_auto_commit_finished_conditional_pin_option_y5
