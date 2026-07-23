@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.245
+version: 2026-07-23.246
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,158 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 246
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_tick_start_end_docs_only_option_y10
+    result: |
+      Landed tick 245's "natural next pick" option (y10) as a documentation-
+      only comment block on tick_history rows in admin-reseller-loop-status-
+      authz.spec.ts happy path. Marks the tick_start (mjs:212) and tick_end
+      (mjs:375) stages as intentionally-extra-less — no runtime expect added.
+      Restores the one-pin cadence after three consecutive two-pin additions
+      (244 error, 245 human_blocked_snapshot).
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:212 writes `log({ stage:
+          'tick_start' })` — grep-verified exactly 1 site in the loop
+          script; no stage-specific extras beyond the log() helper's
+          baseline spread (tick_id + ts + stage + human_review_minutes_7d).
+        - scripts/cron/reseller-goal-loop.mjs:375 writes `log({ stage:
+          'tick_end' })` — grep-verified exactly 1 site in the loop
+          script; same no-extras shape as tick_start.
+        - The four baseline pins landed at tick 235 (tick_id + ts + stage)
+          + tick 237 (human_review_minutes_7d) already fire on every
+          tick_history row unconditionally — a tick_start / tick_end
+          stage-guard would add an `if` block with no expect statements
+          (strictly redundant coverage).
+
+      Design choice — restores one-pin cadence:
+        - Documentation-only block per option y10 rationale from tick 245.
+          No new expect statement; the comment block records the audit
+          closure so future ticks do not re-open y10 as "still available"
+          in the natural-next-pick shortlist.
+        - Placed after the tick 245 human_blocked_snapshot guard (last
+          stage-guarded pin in the tick_history row loop) so future guards
+          land in monotonic tick-order.
+        - Cheapest possible tick per tick 245's y10 note verbatim:
+          "documentation only. Restores the one-pin cadence after two
+          consecutive two-pins". Actual cadence break was three
+          consecutive two-pins (244 error, 245 human_blocked_snapshot,
+          and this tick's y10 that would have been a two-pin if any
+          stage-specific extras existed) — the y10 landing acknowledges
+          the writer-schema reality (no extras) rather than manufacturing
+          coverage.
+
+      Diagnostic delta of the pass:
+        - Added 1 comment block (~14 lines) inside the tick_history row
+          loop, immediately after the tick 245 human_blocked_snapshot
+          two-pin guard. No new expect statements — the comment closes
+          y10 in the natural-next-pick queue.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change, no new module-scope constant. Matches ticks
+          223-245 discipline: tighten one dimension (in this case
+          audit-log-only), symmetrise against known invariants, single
+          tick.
+        - No new comment block on the guard side (there is no guard);
+          the standalone comment block IS the delta.
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one documentation-only comment block added after the tick 245
+          human_blocked_snapshot guard, citing reseller-goal-loop.mjs:212
+          + mjs:375 as the two grep-verified writer sites.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.245 → 2026-07-23.246; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Documentation-only. No new spec-local constant, no runtime
+          assertion added, no fixture-file delta, no seed-script change,
+          no P8.5-gated code_request work (option (c) still blocked),
+          no production-code touch. Consistent with tick 245's y10
+          rationale.
+
+      Verified:
+        - reseller-goal-loop.mjs:212 and :375 grepped to confirm
+          `stage: 'tick_start'` / `stage: 'tick_end'` each match
+          exactly 1 site — the writer contract for these stages is a
+          bare single-key log() call with no stage-specific extras.
+        - reseller vitest suite unchanged (no production code or lib
+          touched — Playwright specs are excluded from vitest by design).
+        - The edited spec file lives under web/tests/e2e/**, not in
+          the reseller manifest, so R-01/R-03 do not fire on the
+          edited file.
+
+      Frontier after tick 246: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 246 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20.
+
+      Natural next pick for tick 247:
+        (y3) audit `auto_deploy_finished` (mjs:367) row's `{ status,
+             head }` — status is spawnSync `deploy.status ?? -1`
+             (number guaranteed); head is `headSha` = git rev-parse
+             output. `head` is derived from a git rev-parse — could
+             be empty string on a repo-less host — so the pin should
+             be typeof-string-only (not ISO-pinned) or narrower to
+             just `status`. Deferred audit still open.
+        (y6) land `delegated_dispatch` (mjs:319) row spread of
+             dispatchToClaude() — same `{ status, elapsed_ms, signal,
+             label }` shape as phase_failed except `signal` is
+             `string | null` on Node.js `spawnSync` returns. Deferred
+             audit: signal nullability.
+        (y11) land `auto_commit_failed` (mjs:340) row's `error`
+             key — `String(err)` cast pattern identical to tick 244's
+             error stage, so a typeof=string pin is safe. Only fires
+             on the safety-net commit catch branch — very rare in
+             CI runs, so coverage-per-guard is low.
+        (y12) land `human_blocked_snapshot_failed` (mjs:234) row's
+             `error` key — `String(err)` cast pattern identical to
+             tick 244's error stage. Only fires when
+             extractHumanBlockedSnapshot throws, which is bounded by
+             the try/catch at mjs:226-235. Very rare in CI runs.
+        (y13) land `cron_removal` (mjs:257) row's `status` key —
+             spawnSync `stop.status ?? -1` (number guaranteed).
+             Only fires when the goal file's top-level status is
+             'done', which by design should be the FINAL tick of
+             the entire loop — coverage-per-guard is zero on green-
+             path CI runs, but the pin closes the writer contract
+             for the completion path.
+        (y14) land `auto_deploy_triggered` (mjs:361) row's `{ head,
+             last_deployed }` keys — both are 7-char git short-sha
+             strings; `last_deployed` may be empty string when
+             last-good-build.json is missing (typeof=string only,
+             not sha-pinned).
+        (y15) land `auto_deploy_skipped` (mjs:369) row's `{ reason,
+             head, last_deployed }` keys — reason is bare string
+             literal 'no new commits' (schema guarantee); head +
+             last_deployed same as y14.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list +
+            admin-side patch spec) in a single bigger-diff tick.
+            Available; deferred at ticks 235-245.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235-245.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof string
+            to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235-245.
+        (x) audit format-shape pins for now_utc / next_utc (HH:MM:SS /
+            HH:MM regex) / seconds_until (0..3600 range) / tick_state
+            (enum of 4 branches) — header-rewrite option (contradicts
+            existing "typeof-string only so the value can drift" comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 245
     ran_at: 2026-07-23
     action: p10_loop_status_tick_row_human_blocked_snapshot_conditional_pin_option_y9

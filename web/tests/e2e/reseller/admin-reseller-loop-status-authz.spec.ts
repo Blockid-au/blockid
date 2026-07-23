@@ -612,6 +612,23 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history human_blocked_snapshot row.entries should be Array.isArray (reseller-goal-loop.mjs:231 writes \`humanBlocked\` — the array returned by extractHumanBlockedSnapshot): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe(true);
       }
+      // tick 246 — tick_start (mjs:212) and tick_end (mjs:375) rows are
+      // intentionally NOT stage-guarded here (option y10, documentation-only
+      // pass). Both writer sites emit `log({ stage: '<literal>' })` with NO
+      // stage-specific extras beyond the log() helper's baseline spread
+      // (tick_id + ts + stage + human_review_minutes_7d, all already pinned
+      // above as unconditional row-level assertions from ticks 235 + 237).
+      // Grep-verified: `stage: 'tick_start'` matches exactly 1 site at
+      // mjs:212 and `stage: 'tick_end'` matches exactly 1 site at mjs:375,
+      // both bare single-key log() calls. Landing a conditional guard would
+      // add a no-op `if` block with no expect statements — the four baseline
+      // pins already fire on every row regardless of stage, so a tick_start /
+      // tick_end guard would be strictly redundant. Documenting the audit
+      // closure here so future ticks do not re-open y10 as "still available".
+      // Restores the one-pin cadence after three consecutive two-pin
+      // additions (244 error, 245 human_blocked_snapshot) — cheapest possible
+      // tick per tick 245's y10 note ("documentation only. Restores the one-
+      // pin cadence after two consecutive two-pins").
     }
     expect(
       typeof body.generated_at === "string" &&
