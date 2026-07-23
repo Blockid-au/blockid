@@ -298,43 +298,32 @@ test.describe("Reseller customer-drawer — P10 wave-2 happy path", () => {
     expect(typeof body.progression?.[0]?.label).toBe("string");
     // Tick 228 — option (f): extend progression[0] with shape pins on the four
     // optional fields declared on ProgressionEvent (customer-drawer.ts:32-38).
-    //   - detail: undefined on the signup push (buildProgressionTimeline at
-    //     customer-drawer.ts:122-126 sets only kind/ts/label; no detail key),
-    //     so on the wire JSON.stringify drops the field and the client reads
-    //     undefined. Other kinds set detail to string | null (first_svi_run
-    //     line 145, svi_score_update lines 153-156, report_generated line
-    //     164, plan_change line 177, credit_grant line 189). Loose `== null`
-    //     catches both null and undefined so the pin holds for whichever
-    //     shape the signup row emits.
-    //   - phase / chapterSlug / href: populated by annotateProgression
-    //     (progression-linkage.ts:57-61) which spreads linkageForEvent onto
-    //     every row. PHASE_BY_KIND[signup] = 1 (line 24) so signup resolves
-    //     to phase 1 → chapterSlug "01-vision" (startup-journey.ts:76-78) →
-    //     href "/guide/01-vision". Cross-cutting kinds (report_generated /
-    //     plan_change / credit_grant per PHASE_BY_KIND lines 28-30) return
-    //     null triple. Row 146 is the signup row (progression[0]) so we
-    //     expect the phase-1 triple in practice, but the pins stay
-    //     null-or-typeof discipline so a re-classification of signup to a
-    //     cross-cutting kind (via PHASE_BY_KIND edit) does not false-fail
-    //     the shape assertion. VALUE assertions on the "01-vision" slug and
-    //     "/guide/01-vision" href are intentionally deferred — matches the
-    //     tick 218-227 discipline of shape-pinning without content-pinning.
+    // Tick 230 — option (h): tighten the phase-1 triple to VALUE equality so
+    // a regression that mis-maps PHASE_BY_KIND[signup] (progression-linkage.ts:
+    // 24) away from 1, drops chapterSlugForPhase(1) from "01-vision" (via a
+    // startup-journey.ts:76-78 slug rename), or changes the href builder from
+    // "/guide/<slug>" surfaces as an exact miss rather than a silent shape-
+    // pin pass. detail stays null-or-typeof-string discipline: buildProgression
+    // Timeline at customer-drawer.ts:122-126 sets only kind/ts/label on the
+    // signup push (JSON.stringify drops the missing key so the client reads
+    // undefined; other kinds set detail to string | null per lines 145 / 153-
+    // 156 / 164 / 177 / 189). Loose `== null` catches both null and undefined.
+    // Trade-off called out in tick 228's diagnostic block: VALUE pins couple
+    // the spec to the "01-vision" slug so a future phase-1 rename forces a
+    // synchronised bump here + startup-journey.ts + PHASE_LABELS + guide
+    // route generateStaticParams. Accepted because the coupling is a
+    // single-source-of-truth chain that the reseller / guide / product tour
+    // surfaces all pin the same way (chapterSlugForPhase from B7 tour-state
+    // is reused in B8 progression-linkage, both citing startup-journey.ts as
+    // the sole source), so a phase-1 rename that missed this pin would have
+    // missed the tour-state + phase-distribution surfaces too.
     expect(
       body.progression?.[0]?.detail == null ||
         typeof body.progression?.[0]?.detail === "string",
     ).toBe(true);
-    expect(
-      body.progression?.[0]?.phase == null ||
-        typeof body.progression?.[0]?.phase === "number",
-    ).toBe(true);
-    expect(
-      body.progression?.[0]?.chapterSlug == null ||
-        typeof body.progression?.[0]?.chapterSlug === "string",
-    ).toBe(true);
-    expect(
-      body.progression?.[0]?.href == null ||
-        typeof body.progression?.[0]?.href === "string",
-    ).toBe(true);
+    expect(body.progression?.[0]?.phase).toBe(1);
+    expect(body.progression?.[0]?.chapterSlug).toBe("01-vision");
+    expect(body.progression?.[0]?.href).toBe("/guide/01-vision");
     // svi_curve + reports may be empty arrays for a founder with no analyses
     // but MUST be arrays — a null here would flag the client renderer.
     expect(Array.isArray(body.svi_curve)).toBe(true);

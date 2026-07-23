@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.229
+version: 2026-07-23.230
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,126 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 230
+    ran_at: 2026-07-23
+    action: p10_drawer_pair_signup_phase1_triple_value_pin_option_h
+    result: |
+      Landed tick 229 "natural next pick" option (h) verbatim: tightened
+      the progression[0] phase-1 triple across BOTH drawer-authz.spec.ts
+      row 146 AND drawer-validation.spec.ts row 147 from null-or-typeof
+      shape pins to VALUE equality pins. detail retains the null-or-
+      typeof-string discipline (signup push at customer-drawer.ts:122-126
+      does not set the detail key so JSON.stringify drops it on the wire;
+      other kinds may set string or null per lines 145 / 153-156 / 164 /
+      177 / 189). Twin symmetrisation, single tick, both rows advance
+      together — matches the tick 225 → tick 226 OverviewSummary twin
+      discipline + tick 227 → tick 228 progression[0] optional-field twin
+      discipline on the drawer spec pair.
+
+      Value pins landed:
+        expect(body.progression?.[0]?.phase).toBe(1);
+        expect(body.progression?.[0]?.chapterSlug).toBe("01-vision");
+        expect(body.progression?.[0]?.href).toBe("/guide/01-vision");
+
+      Regression coverage tightened:
+        - PHASE_BY_KIND[signup] (progression-linkage.ts:24) is now pinned
+          to the literal value 1 rather than "any number or null". A
+          route-side re-mapping of signup to phase 2 (or to a cross-cutting
+          null triple) surfaces as an exact-miss on both rows rather than
+          a silent shape-pin pass.
+        - chapterSlugForPhase(1) is pinned to "01-vision". Renaming the
+          startup-journey.ts:76-78 slug from "01-vision" to something else
+          without a synchronised update surfaces here rather than only in
+          the tour-state + phase-distribution surfaces (which read the same
+          startup-journey.ts single source).
+        - The href builder is pinned to "/guide/<slug>" shape via the
+          literal "/guide/01-vision". A regression that changed the guide
+          URL prefix (e.g. to "/workspace/guide/<slug>" or "/library/
+          <slug>") surfaces on both drawer specs at once.
+
+      Trade-off accepted (per tick 228's diagnostic block):
+        - VALUE pins couple the spec pair to the "01-vision" slug literal
+          so a phase-1 rename forces a synchronised bump across
+          drawer-authz + drawer-validation + startup-journey.ts + tour-
+          state consumers + reseller phase-distribution consumers.
+        - Accepted because the coupling reflects the same single-source-
+          of-truth discipline already enforced by chapterSlugForPhase
+          (B7 tour-state) + buildPhaseDistribution (B8 phase distribution)
+          + progression-linkage annotate (B8 progression pipeline) all
+          reading startup-journey.ts. A phase-1 rename that missed this
+          pin would have missed those surfaces too, so the coupling is a
+          feature, not a false-negative risk.
+        - Preserves the shape-pin discipline elsewhere: detail on the
+          signup row stays null-or-typeof-string because it's genuinely
+          optional per-kind (undefined on signup emit vs string | null on
+          other kinds) so a VALUE pin would be a false-positive risk.
+
+      Diagnostic delta of the pass:
+        - Replaced 3 null-or-typeof pins with 3 toBe pins on each of the
+          two spec files (6 pins tightened total).
+        - detail pin unchanged on both files (still null-or-typeof-string).
+        - No production code touched, no fixture change, no route change,
+          no new imports, no vitest / Playwright runtime posture change.
+        - Comment blocks rewritten in both files to cite the tick 230
+          landing + the coupling trade-off + the cross-surface single-
+          source-of-truth chain (chapterSlugForPhase / buildPhaseDistribution
+          / progression-linkage annotate all reading startup-journey.ts).
+
+      Files:
+        - web/tests/e2e/reseller/drawer-authz.spec.ts (row 146 progression[0]
+          phase / chapterSlug / href pins tightened at :299-326 comment
+          block + inline expects.)
+        - web/tests/e2e/reseller/drawer-validation.spec.ts (row 147
+          progression[0] phase / chapterSlug / href pins tightened with
+          twin mirror rationale at :323-345 comment block + inline expects.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.229 → 2026-07-23.230; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Value pin tightening only. No new spec-local constant, no fixture-
+          file delta, no seed-script change, no P8.5-gated code_request work
+          (option (c) still blocked), no cross-file audit (option (i) still
+          deferred — tick 229 audit already covered the drawer + requests
+          pairs).
+        - Twin-symmetrisation posture maintained — both drawer spec rows
+          advanced together, mirroring ticks 223/224, 225/226, 226/227,
+          227/228, 228/229 twin discipline.
+
+      Verified:
+        - tsc clean (npx tsc --noEmit; no output = success).
+        - npm run lint:reseller: 11 R-01 files + 31 R-03 routes scanned,
+          3 exemptions, 0 violations (both spec files live under
+          web/tests/e2e/**, not in the reseller manifest so R-01/R-03 do
+          not fire on the edited files).
+
+      Frontier after tick 230: unchanged shape — Track A HUMAN-BLOCKED on
+      P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 230 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20 (Auschain existing counsel or LegalVision AU).
+
+      Natural next pick for tick 231:
+        (j) audit whether reveal-email / requests / credit-grant spec pairs
+            carry equivalent single-source-of-truth VALUE pins that could
+            tighten from shape pins without over-coupling. For example,
+            reveal-email-authz.spec.ts already declines to pin the exact
+            email (per line 178 header) because the seeded value is env-
+            configurable — the reveal-email pair is a NON-candidate for
+            option (h)-style tightening. But other spec pairs may have
+            invariant literals (status enum values, request_type enum
+            values) that are worth pinning inline as a further tightening
+            layer.
+        (i) grep pattern "Do NOT pin" audit across web/tests/e2e/reseller/**
+            (partial audit landed inline during tick 230 planning: all 11
+            remaining "Do NOT pin" comments are accurate re: their inline
+            expects; no fresh header-vs-inline drift to purge).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 229
     ran_at: 2026-07-23
     action: p10_requests_pair_stale_header_comment_cleanup_option_e

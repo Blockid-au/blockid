@@ -324,34 +324,21 @@ test.describe("Reseller customer-drawer — P10 wave-2 uuid_in_scope happy", () 
     // shape pins (detail / phase / chapterSlug / href per ProgressionEvent
     // at customer-drawer.ts:32-38) onto row 147 so the twin discipline
     // established at rows 146/147 stays coherent across the drawer spec
-    // pair. Same posture as tick 225 → tick 226 mirror of OverviewSummary
-    // shape pins + tick 148 → tick 227 mirror of progression[0].kind
-    // literal pin. Loose `== null` catches both null and undefined so the
-    // pin holds whether detail is absent (signup push at customer-drawer.ts:
-    // 122-126 sets only kind/ts/label; JSON.stringify drops the missing
-    // detail key) or explicitly null. phase / chapterSlug / href are set by
-    // annotateProgression (progression-linkage.ts:57-61) which spreads
-    // linkageForEvent onto every event. PHASE_BY_KIND[signup]=1 so the
-    // signup row resolves to phase 1 → chapterSlug "01-vision" → href
-    // "/guide/01-vision", but the pins stay null-or-typeof discipline so
-    // a re-classification of signup to a cross-cutting kind does not
-    // false-fail the shape assertion. See drawer-authz.spec.ts:302-336 for
-    // the parallel rationale.
+    // pair. Tick 230 — option (h): twin-symmetrise the drawer-authz row 146
+    // VALUE tightening onto row 147 so the phase-1 triple pins align across
+    // the pair. See drawer-authz.spec.ts:299-326 for the parallel rationale
+    // (PHASE_BY_KIND[signup] = 1 → chapterSlugForPhase(1) = "01-vision" →
+    // href "/guide/01-vision"; detail stays null-or-typeof-string since the
+    // signup push drops the key on the wire; VALUE pins catch a regression
+    // that renamed the phase-1 slug or re-mapped signup's phase without a
+    // synchronised bump across the tour-state + phase-distribution + guide
+    // surfaces that all read startup-journey.ts as the single source).
     expect(
       body.progression?.[0]?.detail == null ||
         typeof body.progression?.[0]?.detail === "string",
     ).toBe(true);
-    expect(
-      body.progression?.[0]?.phase == null ||
-        typeof body.progression?.[0]?.phase === "number",
-    ).toBe(true);
-    expect(
-      body.progression?.[0]?.chapterSlug == null ||
-        typeof body.progression?.[0]?.chapterSlug === "string",
-    ).toBe(true);
-    expect(
-      body.progression?.[0]?.href == null ||
-        typeof body.progression?.[0]?.href === "string",
-    ).toBe(true);
+    expect(body.progression?.[0]?.phase).toBe(1);
+    expect(body.progression?.[0]?.chapterSlug).toBe("01-vision");
+    expect(body.progression?.[0]?.href).toBe("/guide/01-vision");
   });
 });
