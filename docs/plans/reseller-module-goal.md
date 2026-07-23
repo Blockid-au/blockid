@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.250
+version: 2026-07-23.251
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,183 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 251
+    ran_at: 2026-07-23
+    action: p10_loop_status_tick_row_phase_dispatched_two_pin_option_y16
+    result: |
+      Landed tick 250's "natural next pick" option (y16) as the twelfth
+      conditional-by-stage schema pin on tick_history rows in admin-
+      reseller-loop-status-authz.spec.ts happy path. Two-pin shape
+      matching tick 240's phase_failed guard verbatim except for the
+      stage literal — phase_dispatched (mjs:299) is the paired success-
+      path writer contract of phase_failed (mjs:301). Pins `label`
+      (typeof=string) + `status` (typeof=number) under the
+      `stage === 'phase_dispatched'` guard.
+
+      Writer-schema justification:
+        - scripts/cron/reseller-goal-loop.mjs:299 writes
+          `log({ stage: 'phase_dispatched', ...result })` inside the
+          per-frontier-entry for-loop at mjs:296-304 that dispatches
+          each unblocked phase sequentially. `result` is the return
+          value of dispatchToClaude() at mjs:190-205 which constructs
+          `{ status: res.status ?? -1, elapsed_ms, signal, label }`.
+        - `label` is threaded in at mjs:298 as
+          `${entry.track}:${entry.phase}` — a template literal over
+          string keys from computeFrontier() (mjs:147: `frontier.push(
+          { track: t, phase: name, ... })` where t/name come from
+          Object.keys(goal.tracks) + Object.entries(...phases)).
+          Schema-level typeof=string guarantee.
+        - `status` is `res.status ?? -1` where `res` is the spawnSync
+          result at mjs:198-202 — `.status` is `number | null` on the
+          Node.js contract, the `?? -1` fallback narrows it to a JSON
+          number every time (0 on green subprocess, non-zero on
+          subprocess failure, -1 when spawnSync itself fails to
+          launch claude). Schema-level typeof=number guarantee.
+        - The log() helper at mjs:52-58 prepends tick_id/ts/human_
+          review_minutes_7d then spreads `...row` — both keyvals flow
+          through untouched via the `...result` spread at mjs:299.
+
+      Design choice — two-pin (y16 landed as two-pin, matching tick 240):
+        - Conditional-by-stage guard (`if (tickRow.stage === 'phase_
+          dispatched')`) matches ticks 239-250's convention verbatim
+          except for the stage literal. Reads clearly inline; hoisting
+          the guard into a helper would obscure the per-writer-line
+          citation each expect message carries.
+        - Two pins in one guard because label + status share the same
+          conditional at mjs:299 — they always land together on the
+          same row, so the guard cost is amortised. Matches tick 240
+          phase_failed two-pin rationale verbatim except for the stage
+          literal + writer source line citations. The dispatchToClaude
+          return shape `{ status, elapsed_ms, signal, label }` has four
+          candidate pins; deliberately dropped `elapsed_ms` + `signal`
+          from this tick to preserve the two-pin cadence and defer the
+          nullable-signal typeof shape to a paired two-pin future tick
+          that closes the dispatchToClaude() writer contract completely.
+        - TYPEOF pin (not value) on both keys — label varies per
+          frontier entry (`A:P2`, `A:P8`, `B:B10`, etc.), status varies
+          per subprocess outcome. Value pins would either break daily
+          or force a moving-target regex, matching tick 240's
+          "typeof only so the value can drift" convention.
+        - Fires on EVERY frontier entry the loop dispatches — inverse
+          of tick 240 phase_failed which only fires on subprocess-
+          failure branches. This is one of the highest-coverage guards
+          in the file: any non-idle tick with an unblocked frontier
+          exercises it. Complements tick 240 as the success-path half
+          of the dispatch writer contract.
+        - Comes AFTER the tick 250 auto_deploy_failed guard (last
+          block in the tick_history row loop before the closing brace)
+          so future guards land in monotonic tick-order.
+
+      Diagnostic delta of the pass:
+        - Added 1 stage-guarded expect block (~50 lines: ~44 lines of
+          justifying comment + ~6 lines of guard + two expect
+          statements) inside the tick_history row loop, immediately
+          after the tick 250 auto_deploy_failed guard.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest / Playwright runtime
+          posture change, no new module-scope constant. Matches ticks
+          223-250 discipline: tighten one dimension (in this case the
+          phase_dispatched writer contract as the paired success-path
+          half of phase_failed), symmetrise against known invariants,
+          single tick.
+        - No new comment block on the guard side (the comment is
+          embedded above the guard as with all prior stage-guard
+          pins).
+
+      Files:
+        - web/tests/e2e/reseller/admin-reseller-loop-status-authz.spec.ts
+          (one conditional-by-stage two-pin guard added after the tick
+          250 auto_deploy_failed guard, citing reseller-goal-loop.mjs:
+          298-299 as the writer sites for label + status, and mjs:204
+          as the dispatchToClaude() ?? -1 fallback source.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.250 → 2026-07-23.251; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local constant, no fixture-file
+          delta, no seed-script change, no P8.5-gated code_request
+          work (option (c) still blocked), no production-code touch.
+          Consistent with ticks 239-250's stage-guard pattern.
+
+      Verified:
+        - reseller-goal-loop.mjs:299 grepped to confirm
+          `stage: 'phase_dispatched'` matches exactly 1 site and the
+          spread of dispatchToClaude() at mjs:204 threads label +
+          status through as documented.
+        - The tick 251 pin sits directly above the closing brace of
+          the tick_history row loop — matches the monotonic tick-order
+          convention.
+
+      Frontier after tick 251: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 251 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20. phase dispatch pair now COMPLETE — both
+      writer branches (dispatched success-path, failed error-path)
+      carry pinned shape guards.
+
+      Natural next pick for tick 252:
+        (y18) land `phase_dispatched` (mjs:299) elapsed_ms + signal
+             pins — paired two-pin closing the dispatchToClaude()
+             writer contract completely. elapsed_ms is
+             `Date.now() - started` at mjs:203 (typeof=number, always
+             finite integer); signal is `string | null` on the
+             Node.js spawnSync contract (null on clean exit, string
+             on kill signal like 'SIGTERM'), so needs a nullable
+             typeof guard `(signal === null || typeof signal ===
+             'string')` rather than a bare typeof pin. Two-pin
+             candidate — natural continuation of tick 251.
+        (y6) land `delegated_dispatch` (mjs:319) row spread of
+             dispatchToClaude() — same shape as phase_dispatched
+             except the label literal at mjs:318 is the bare string
+             'delegated' rather than a track:phase composition.
+             Fires only on hosts where the yaml parse fails so
+             goalObj is null (the delegate branch at mjs:305). Deferred
+             audit: is the delegate branch ever taken in production?
+             Two-pin candidate.
+        (y11) land `auto_commit_failed` (mjs:340) row's `error`
+             key — `String(err)` cast pattern identical to tick 244's
+             error stage, so a typeof=string pin is safe. Only fires
+             on the safety-net commit catch branch — very rare in
+             CI runs, so coverage-per-guard is low. One-pin candidate.
+        (y12) land `human_blocked_snapshot_failed` (mjs:234) row's
+             `error` key — `String(err)` cast pattern identical to
+             tick 244's error stage. Only fires when
+             extractHumanBlockedSnapshot throws, which is bounded by
+             the try/catch at mjs:226-235. Very rare in CI runs.
+             One-pin candidate.
+        (y13) land `cron_removal` (mjs:257) row's `status` key —
+             spawnSync `stop.status ?? -1` (number guaranteed).
+             Only fires when the goal file's top-level status is
+             'done', which by design should be the FINAL tick of
+             the entire loop — coverage-per-guard is zero on green-
+             path CI runs, but the pin closes the writer contract
+             for the completion path. One-pin candidate.
+        (u) audit whether the admin-requests-list-authz per-key content
+            pins deferred at tick 234's option (r) could land as a
+            three-surface change (reseller-side twin + admin-side list +
+            admin-side patch spec) in a single bigger-diff tick.
+            Available; deferred at ticks 235-250.
+        (r) audit whether the admin-requests-list-authz newly-pinned
+            payload plain-object guard could be extended to per-key
+            content pins for the three request_type variants. Still
+            available; deferred at ticks 235-250.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+            branch decision_at pin could be tightened from typeof string
+            to an ISO-8601 regex — header-rewrite-first option
+            (contradicts existing "assert typeof string only" header
+            comment from tick 230). Still available; deferred at 235-250.
+        (x) audit format-shape pins for now_utc / next_utc (HH:MM:SS /
+            HH:MM regex) / seconds_until (0..3600 range) / tick_state
+            (enum of 4 branches) — header-rewrite option (contradicts
+            existing "typeof-string only so the value can drift" comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+            deny+cancel code_request branches once P8.5 unblocks.
+            P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 250
     ran_at: 2026-07-23
     action: p10_loop_status_tick_row_auto_deploy_failed_one_pin_option_y17
