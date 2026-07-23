@@ -4,6 +4,8 @@ import * as React from "react";
 import { Coins, Search, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { planBadgeClass } from "@/lib/plan-badges";
+import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+import type { SandboxScope } from "@/lib/admin/sandbox-scope";
 
 interface UserCredits {
   balance: number;
@@ -25,11 +27,13 @@ interface UserRow {
 interface CreditsClientProps {
   user: { email: string; displayName: string | null };
   initialUsers: UserRow[];
+  /** D3-CISO-05 sandbox scope; display-only on this page. */
+  scope?: SandboxScope;
 }
 
 type ModalAction = "grant" | "revoke";
 
-export function CreditsClient({ user, initialUsers }: CreditsClientProps) {
+export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClientProps) {
   const [users, setUsers] = React.useState<UserRow[]>(initialUsers);
   const [search, setSearch] = React.useState("");
   const [modalOpen, setModalOpen] = React.useState(false);
@@ -153,18 +157,24 @@ export function CreditsClient({ user, initialUsers }: CreditsClientProps) {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search
-            strokeWidth={1.75}
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400"
-          />
-          <input
-            type="text"
-            placeholder="Search by email or name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+        {/* Search + sandbox scope chip (D3-CISO-05) */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="relative max-w-sm flex-1 min-w-[220px]">
+            <Search
+              strokeWidth={1.75}
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400"
+            />
+            <input
+              type="text"
+              placeholder="Search by email or name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            />
+          </div>
+          <SandboxScopeChip
+            scope={scope}
+            note="Chip-only — credit_balances rollup has no sandbox column yet."
           />
         </div>
 
