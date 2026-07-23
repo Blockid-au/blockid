@@ -797,6 +797,18 @@ if ! PW_VERSION="$(npx --no-install playwright --version 2>&1)"; then
   fail "Playwright not installed — run: npm install (and once: npx playwright install --with-deps chromium)"
 fi
 echo "  ℹ  Playwright preflight: $PW_VERSION"
+# Chromium browser preflight: idempotent install. If the binary is already
+# present in ~/.cache/ms-playwright (or $PLAYWRIGHT_BROWSERS_PATH), this exits
+# in <1s and prints nothing. If missing, downloads it once so Gate 11 doesn't
+# fail with "Executable doesn't exist at ...chromium-XXXX/chrome-linux/chrome".
+# Best-effort only — never blocks deploy. If chromium truly can't launch (missing
+# system libs), the playwright test invocation below surfaces the real error.
+# NOTE: On a fresh host, missing shared libs require a ONE-TIME manual step:
+#   cd web && sudo npx playwright install-deps chromium
+# We intentionally do NOT sudo from deploy-live.sh.
+echo "  ℹ  Ensuring Playwright chromium is installed (idempotent)..."
+npx --no-install playwright install chromium >/dev/null 2>&1 || \
+  echo "  ⚠ chromium install returned non-zero; Gate 11 test will surface real error"
 # Give Cloudflare + purge a moment to propagate before we probe the CDN.
 sleep 5
 # Capture playwright's exit code via PIPESTATUS[0] — piping to `tail` without
