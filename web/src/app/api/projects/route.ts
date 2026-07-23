@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserProjects, createProject, getProjectLimit } from "@/lib/projects";
+import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,22 @@ export async function POST(request: Request) {
       { status: 422 },
     );
   }
+
+  // SOC2-lite audit: record the successful project creation. Never throws.
+  await logUserAction({
+    userId: user.id,
+    action: "project.create",
+    subjectType: "project",
+    subjectId: result.project?.id ?? null,
+    fields: {
+      name_len: name.trim().length,
+      has_description: Boolean(description),
+      has_industry: Boolean(industry),
+    },
+    route: "/api/projects",
+    ip: extractIp(request.headers),
+    ua: extractUserAgent(request.headers),
+  });
 
   return NextResponse.json({ ok: true, project: result.project }, { status: 201 });
 }
