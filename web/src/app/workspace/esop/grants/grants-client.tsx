@@ -193,6 +193,7 @@ export function GrantsClient({ initialGrants, disclaimer }: GrantsClientProps) {
         status?: Div83AStatus;
         criteria?: Div83ACheck["criteria"];
         guidance?: string;
+        qualifying_tests?: Div83ACheck["qualifying_tests"];
         error?: string;
       };
       if (!res.ok || !json.ok || !json.status || !json.criteria) {
@@ -203,6 +204,15 @@ export function GrantsClient({ initialGrants, disclaimer }: GrantsClientProps) {
         status: json.status,
         criteria: json.criteria,
         guidance: json.guidance ?? "",
+        qualifying_tests: json.qualifying_tests ?? {
+          test_1_startup: { passed: false, reason: "" },
+          test_2_unlisted: { passed: false, reason: "" },
+          test_3_turnover_le_50m: { passed: false, reason: "" },
+          test_4_australian_resident: { passed: false, reason: "" },
+          test_5_holding_period: { passed: false, reason: "" },
+          all_passed: false,
+          concession_available: false,
+        },
       });
       await refreshGrants();
     } catch (err: unknown) {

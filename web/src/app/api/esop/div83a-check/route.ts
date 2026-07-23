@@ -99,6 +99,7 @@ export async function POST(request: Request) {
     status: result.status,
     criteria: result.criteria,
     guidance: result.guidance,
+    qualifying_tests: result.qualifying_tests,
     disclaimer: DIV83A_DISCLAIMER,
   });
 }
