@@ -839,3 +839,4 @@
 {"ts":"2026-07-23T10:18:52.253Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 276 — P10 reseller-requests-list decision_at ISO null-or-string tightening (option a) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T10:18:59.777Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T10-15-01-692Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T10:24:27Z","status":"success","gates":"8/8","pid":"3034296","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T10:28:33.956Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 277 — P10 reseller-requests-list decision_reason length ≤ REASON_MAX pin (option a) (1 commits)","source":"github-webhook"}
