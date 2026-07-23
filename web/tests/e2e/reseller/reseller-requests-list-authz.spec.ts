@@ -91,6 +91,33 @@ const HTTPS_URL_RE = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/;
 const REASON_MAX = 200;
 const PURPOSE_MAX = 500;
 
+// Tick 275 — created_at ISO-8601 wire-shape pin mirrored from the admin-side
+// tick 267 pin at admin-requests-patch-authz.spec.ts:460-461. Reseller-scoped
+// GET at /api/reseller/requests/route.ts:169-173 projects created_at as the
+// tail column of the SELECT list; reseller_requests.created_at is a
+// `timestamptz NOT NULL DEFAULT now()` column at 0095:39 populated at INSERT
+// time and never touched by any PATCH branch — so the read-back MUST carry a
+// non-null ISO-8601 string on every green-path CI run regardless of row
+// status. Pre-tick-275 posture pinned only typeof-string on created_at at
+// line 274 leaving the ISO shape silent — a route regression that stripped
+// created_at from the SELECT projection where it is the seventh column
+// would fail the typeof guard (undefined is not a string), but a column-
+// type flip from timestamptz to say a bigint created_at_ms clock migration
+// would surface as a number here and be caught by the existing typeof pin
+// too. This tick adds the ISO regex tightening so a serialisation drift
+// (e.g. PostgREST returning an epoch integer as a stringified number, or a
+// column swap to a text field that stores freeform values) also surfaces.
+// Two-part guard matches the admin-side tick 267 pattern: typeof-string
+// (already in place at line 274) + ISO_TIMESTAMP_RE match. Same regex
+// source-of-truth as the sibling hoist at admin-requests-patch-authz
+// .spec.ts:460-461. Symmetric-across-surfaces posture: the same created_at
+// ISO pin now fires on both the admin list route (via the tick 267 pin) and
+// the reseller-scoped list route (via this pin) so a projection-side or
+// serialisation-side regression surfaces on both admin and reseller lenses
+// simultaneously.
+const ISO_TIMESTAMP_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
 test.describe("Reseller requests list pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 unauthorised", async ({
     request,
@@ -272,6 +299,16 @@ test.describe("Reseller requests list — P10 wave-4 happy path", () => {
       expect(typeof row.status).toBe("string");
       expect(["pending", "approved", "denied", "cancelled"]).toContain(row.status);
       expect(typeof row.created_at).toBe("string");
+      // Tick 275 — ISO_TIMESTAMP_RE tightening on created_at. See module-
+      // scope doc-block above ISO_TIMESTAMP_RE for the rationale. Mirrors
+      // the admin-side tick 267 pin at admin-requests-patch-authz.spec.ts
+      // read-back rows onto the reseller-scoped GET surface. Fires ONLY
+      // after the typeof-string guard above passes so tighter existing
+      // pins surface first.
+      expect(
+        ISO_TIMESTAMP_RE.test(row.created_at as string),
+        `active_wholesale + happy GET row.created_at '${String(row.created_at)}' should match ISO 8601 shape (timestamptz NOT NULL DEFAULT now() per 0095:39 serialised via PostgREST); a drift to a non-ISO string, a number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
       // tick 223 option (b) — extend row 161 with the three nullable/jsonb
       // pins the sibling row 174 discipline (admin-requests-list-authz.spec
       // .ts tick 221 FK-echo + tick 222 nested-embed shape) leaves open on
