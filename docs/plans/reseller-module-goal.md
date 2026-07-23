@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.260
+version: 2026-07-23.261
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,153 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 261
+    ran_at: 2026-07-23
+    action: p10_reseller_requests_list_per_key_payload_content_pins_option_r3
+    result: |
+      Landed tick 260's "natural next pick" option (r3) as per-key payload
+      content pins on reseller-requests-list-authz.spec.ts row 161 happy
+      GET. Mirrors the tick 259 discriminated-union guard verbatim from
+      admin-requests-list-authz.spec.ts:341-432 and the tick 260 twin at
+      requests-validation.spec.ts onto this third list surface so the
+      payload jsonb per-type shape contract is now content-pinned on all
+      three surfaces (admin GET default status=pending + reseller GET
+      route + reseller happy GET twin) simultaneously. Closes the three-
+      surface symmetry cited in tick 234's next-pick option (u) and the
+      tick 260 next-pick option (r3).
+
+      Writer-schema justification:
+        - requests.ts:41-44 defines the ResellerRequestPayload
+          discriminated union: code_request | over_budget_approval |
+          collateral_approval. The POST route at
+          /api/reseller/requests/route.ts writes the validator's
+          `{...res.value}` output (requests.ts:229-233 / 243-246 /
+          253-256) into reseller_requests.payload (jsonb NOT NULL
+          DEFAULT '{}' per 0095:33). The reseller-side GET at
+          route.ts:169-173 echoes payload jsonb straight through so the
+          reseller-lens (this spec) sees the exact same per-type key
+          shape the admin lens sees — a per-key content regression at
+          either the route SELECT or the validator would surface across
+          all three list surfaces simultaneously.
+        - Per-branch key shape mirrors the tick 259/260 pin verbatim
+          (same 3 branches, same 5 module-scope constants, same source-
+          line citations):
+            - code_request → tier_pct (∈ {0,10,20,30,40}), suggested_
+              suffix (null or /^[A-Z0-9]{1,16}$/), notes (null or
+              string length ≤ 200)
+            - over_budget_approval → target_user_id (UUID), requested_
+              amount (positive integer), reason (null or string ≤ 200),
+              remaining_budget_snapshot (null or non-negative integer)
+            - collateral_approval → collateral_url (https URL),
+              purpose (string ≤ 500)
+
+      Design choice — discriminated-union guard + module-scope constants:
+        - Constants ALLOWED_TIER_PCT_VALUES / SUFFIX_RE / HTTPS_URL_RE /
+          REASON_MAX / PURPOSE_MAX hoisted to spec-level module scope
+          per the tick 259/260 precedent (which itself follows the tick
+          231 RESELLER_CODE_RE precedent). Each carries a source-line
+          citation in its doc-comment so a future validator drift
+          surfaces across every surface that echoes the column.
+        - Discriminated-union switch on row.request_type sits directly
+          after the tick 223 payload plain-object guard so the plain-
+          object precondition runs first — the per-key access is then
+          safe because we already know row.payload is a plain object.
+        - Two-part guard per nullable key: (a) `x === null` short-
+          circuit + (b) typeof-string + regex/length check. Same shape
+          as the tick 259/260 pins.
+        - TYPEOF + VALUE-tighten pins per key. Value pin uses the same
+          set/regex the validator uses so a rename OR a shape drift
+          both surface — matches tick 259/260 rationale.
+
+      Coverage-per-guard posture:
+        - The seeded QA dataset carries a pending over_budget_approval
+          row via wave-3 row 155 against the active_wholesale variant,
+          so the over_budget_approval branch is exercised by this
+          happy-path reseller GET on green-path CI runs.
+        - code_request + collateral_approval branches depend on future
+          QA seeding to fire, so coverage-per-guard is zero on those
+          two branches today. The pin still closes the writer contract
+          for both branches so a route regression that dropped a key
+          from the SELECT or a validator regression that swapped a
+          key shape at requests.ts would surface across all three
+          surfaces on the next CI pass — matches the tick 259/260 zero-
+          coverage-per-guard rationale.
+
+      Diagnostic delta of the pass:
+        - Added 5 module-scope constants (~19 lines with doc-comment).
+        - Added 1 discriminated-union guard (~95 lines: ~55 lines of
+          justifying comment + ~40 lines of switch + per-key expects)
+          inside the requests-row loop, immediately after the tick 223
+          payload plain-object guard.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no vitest/Playwright runtime posture
+          change. Matches ticks 223-260 discipline: tighten one
+          dimension (in this case extend content-pin coverage to the
+          reseller-side list surface) plus the required module-scope
+          hoist.
+
+      Files:
+        - web/tests/e2e/reseller/reseller-requests-list-authz.spec.ts
+          (5 module-scope constants added below UUID_RE; discriminated-
+          union payload guard added after tick 223 plain-object guard,
+          citing requests.ts:41-44 as the union source and requests.ts:
+          63-67 + validator body ranges as the per-key invariant source.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.260 → 2026-07-23.261; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no P8.5-gated code_request work
+          (option (c) still blocked), no production-code touch.
+          Consistent with ticks 234-260's incremental-pin pattern.
+
+      Verified:
+        - requests.ts:41-44 grepped to confirm the ResellerRequestPayload
+          union shape unchanged; requests.ts:63-67 confirms the five
+          validator-side constants match the spec-side hoist verbatim.
+        - tsc clean (npx tsc --noEmit in web/, exit 0, no output).
+        - npm run lint:reseller: R-01 scanned 11 file(s), R-03 scanned
+          31 manifest route(s); 3 exemptions, 0 violations.
+        - vitest 75 files 954/954 pass (Playwright specs are excluded
+          from vitest by design so the count is unchanged from tick 260).
+        - The tick 261 guard sits directly after the tick 223 payload
+          plain-object guard and before the decision_at/decision_reason
+          nullable pins — matches the row-envelope field-order convention.
+
+      Frontier after tick 261: unchanged shape — Track A HUMAN-BLOCKED
+      on P8.5 Stripe env vars + P1.5 InfoVision seed on H.20 ABN + GST;
+      Track B COMPLETE; P10 still blocked_by [P1..P9] until P8.5 clears.
+      What tick 261 does NOT unblock: P8.5 STRIPE_PRICE_ADDON_SHARE_MGMT_*
+      env vars still human-gated; P1.5 InfoVision ABN + GST still
+      human-gated per H.20. payload jsonb per-type shape contract now
+      pinned on ALL three list surfaces (admin GET tick 259 + reseller
+      happy GET tick 260 + reseller GET route tick 261); three-surface
+      symmetry from tick 234's option (u) is now fully closed.
+
+      Natural next pick for tick 262:
+        (s) mirror the tick 259/260/261 discriminated-union payload
+             guard onto admin-requests-patch-authz.spec.ts row that
+             reads the reseller_requests row back via a GET after the
+             PATCH flip (approve/deny/cancel) — same three branches,
+             same five module-scope constants, same source-line
+             citations, exercised against non-pending status rows so
+             coverage-per-guard shifts from over_budget_approval-only
+             to whichever request_type the seeded row carries.
+        (n) audit whether admin-requests-patch-authz.spec.ts approve
+             branch decision_at pin could be tightened from typeof
+             string to an ISO-8601 regex — header-rewrite-first option
+             (contradicts existing "assert typeof string only" header
+             comment from tick 230). Still available.
+        (x) audit format-shape pins for now_utc / next_utc / seconds_until
+             / tick_state in loop-status — header-rewrite option
+             (contradicts existing "typeof-string only so the value can
+             drift" comment).
+        (c) mirror row 179 shape+helper alignment onto row 175 approve+
+             deny+cancel code_request branches once P8.5 unblocks.
+             P8.5-blocked, no available today.
+    commit: (this tick)
+
   - tick: 260
     ran_at: 2026-07-23
     action: p10_requests_validation_per_key_payload_content_pins_option_r2
