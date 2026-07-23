@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.285
+version: 2026-07-23.286
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,177 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 286
+    ran_at: 2026-07-23
+    action: p10_commission_share_pct_wire_shape_pin_fresh_column_rotation_across_list_plus_detail_admin_resellers_family
+    result: |
+      Fresh-column rotation per tick 285 next-pick option (b) verbatim —
+      resellers.commission_share_pct numeric wire-shape + [0, 100]
+      value-tightening pin landed on BOTH admin-resellers-list-authz.spec.ts
+      AND admin-reseller-detail-authz.spec.ts in the same tick, mirroring
+      the tick 285 discipline of bringing multiple admin resellers-family
+      surfaces up to parity in one pass.
+
+      Twelfth pin in the tick 275-286 lineage; first pin to land on a
+      non-timestamp column of the resellers row and first pin to land on
+      two surfaces simultaneously as a single-tick cross-surface pair
+      (rather than list-tick-N → detail-tick-N+1 like ticks 283→285 did
+      for created_at + updated_at). Both surfaces come up to parity in
+      one tick, so a schema-side or projection-side regression on
+      commission_share_pct surfaces on BOTH admin resellers-family GETs
+      on the same CI pass rather than the usual staggered signal.
+
+      Writer-schema justification:
+        - 0091_reseller_module_foundations.sql:38 declares
+          `commission_share_pct numeric(5,2) NOT NULL DEFAULT 40.00` on
+          the resellers table — no DB CHECK, but the semantic invariant
+          (commission is a percentage share) is enforced at the write
+          layer.
+        - web/src/lib/reseller/admin-validator.ts:114-118 enforces
+          `Number.isFinite(x) && 0 <= x <= 100` on every admin PATCH
+          write, rejecting out-of-band values with
+          commission_share_pct_out_of_range. Every write path passes
+          through this gate so the wire value is bounded by the
+          validator rather than the raw numeric(5,2) column type.
+        - The two admin resellers-family GET surfaces project the
+          column via select("*"):
+            list: route.ts:41-44 select("*").order("created_at", …)
+            detail: route.ts:47-48 select("*").eq("code", code)
+        - PostgREST returns numeric columns as JS number (rather than
+          string) when they fit within the safe integer range — the
+          existing app-side consumer at
+          web/src/app/admin/resellers/page.tsx:28 and
+          web/src/app/admin/resellers/[code]/reseller-edit-client.tsx:13
+          type the field as `number` on the wire, so the typeof-number
+          pin below reflects the actual serialisation contract.
+
+      Design choice — value-tighten rather than shape-only:
+        - typeof-number assert fires first so a schema-side type flip
+          to text or a PostgREST serialisation regression that flipped
+          numeric onto the wire as a string surfaces on the typeof
+          check before the range assert runs.
+        - Number.isFinite guard fires second so NaN / Infinity /
+          undefined surface as a distinct failure mode from the range
+          guard.
+        - Range-in-[0,100] assert fires third so an admin-validator
+          drift that stopped rejecting out-of-band writes, or a
+          schema-side drift that let a bad value land in the table,
+          surfaces on the range check rather than at the wire-shape
+          layer.
+        - Non-null column → single three-part guard (typeof + finite
+          + range) rather than the null-or-typeof / null-or-finite /
+          null-or-range six-part layering used for nullable columns
+          on the admin-requests-list surface. Matches ticks 283-285's
+          NOT-NULL posture verbatim.
+
+      Coverage-per-guard posture:
+        - List surface: wave-5 row 164 admin harness iterates every
+          returned resellers row inside the per-row for-loop, so
+          seeded hosts holding ≥7 cohort rows from seed-qa-reseller.mjs
+          exercise the pin on every green CI run. Fresh CI hosts with
+          zero rows still green because the pin lives inside the
+          for-loop.
+        - Detail surface: wave-5 row 167 single-row GET fires the
+          pin ONCE per test against the QAPROBEWHOLESALEACTIVE seed
+          row (loadTempReseller('active_wholesale')) — equivalent to
+          the list surface's per-row loop iterating exactly one row.
+        - Fresh CI hosts without the QA reseller seed still green
+          because test.skip() fires when the fixture returns null.
+        - No fixture that seeds a non-default commission_share_pct
+          today (seed-qa-reseller.mjs uses the 40.00 default) — the
+          pin exercises the "default 40" branch on both surfaces; a
+          future fixture that mints resellers with 0/20/60 commission
+          shares would exercise the range branches without any spec
+          change.
+
+      Diagnostic delta of the pass:
+        - admin-resellers-list-authz.spec.ts:
+            + module-scope doc-block (tick 286 paragraph) above
+              ISO_TIMESTAMP_RE citing 0091:38 as the column source,
+              admin-validator.ts:114-118 as the [0, 100] invariant
+              source, and the same-tick cross-surface mirror rationale.
+            + row interface widened with commission_share_pct?: unknown.
+            + Three-part assertion block (typeof + finite + range)
+              inside the wave-5 row 164 per-row for-loop, immediately
+              after the tick 284 updated_at pin.
+        - admin-reseller-detail-authz.spec.ts:
+            + module-scope doc-block (tick 286 paragraph) above
+              ISO_TIMESTAMP_RE with cross-surface mirror rationale.
+            + reseller interface widened with commission_share_pct?:
+              unknown.
+            + Three-part assertion block (typeof + finite + range)
+              inside the wave-5 row 167 happy GET test, immediately
+              after the tick 285 updated_at pin.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no widening of existing guards.
+          Matches ticks 234-285 discipline: tighten one column across
+          two surfaces with zero net new imports.
+
+      Verification:
+        - tsc --noEmit: exit 0
+        - npm run lint:reseller: R-01 scanned 11 files + R-03 scanned
+          31 manifest routes, 3 exemptions, 0 violations
+        - Playwright specs excluded from vitest by design; the six
+          new asserts (3 per surface) fire when `npx playwright test
+          admin-resellers-list-authz admin-reseller-detail-authz`
+          runs on a seeded host (wave-5 row 164/167 skip on CI hosts
+          lacking loadAdminHarness / loadTempReseller seeds).
+
+      Files:
+        - web/tests/e2e/reseller/admin-resellers-list-authz.spec.ts
+          (module-scope doc-block extended with tick 286 paragraph;
+          per-row shape interface gains commission_share_pct?: unknown;
+          wave-5 row 164 for-loop body gains a typeof-number +
+          Number.isFinite + range-in-[0,100] block immediately after
+          the tick 284 updated_at pin.)
+        - web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts
+          (module-scope doc-block extended with tick 286 paragraph;
+          body.reseller row interface gains commission_share_pct?:
+          unknown; wave-5 row 167 happy GET body gains a typeof-number
+          + Number.isFinite + range-in-[0,100] block immediately after
+          the tick 285 updated_at pin.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.285 → 2026-07-23.286; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Additive-only. No new spec-local test case, no fixture-file
+          delta, no seed-script change, no production-code touch, no
+          new import, no widening of the guards on existing pins.
+          Consistent with ticks 234-285's incremental-pin pattern.
+        - Cross-surface pair rather than staggered mirror — the
+          list-surface + detail-surface pins land in the same tick so
+          the two admin resellers-family GET lenses carry the same
+          value-tightening on commission_share_pct simultaneously.
+          Matches tick 285's "two-column-in-one-tick" symmetry
+          discipline rotated onto a two-surface-in-one-tick axis.
+
+      Next natural picks on tick 287:
+        (a) mirror tick 286's commission_share_pct pin onto the
+        happy-path row inside admin-reseller-patch-authz.spec.ts if a
+        happy-path row exists there (spec currently only pins pre-
+        write branches — code_required / invalid_body / not_found —
+        so the mirror needs a new PATCH happy-path test first, which
+        exceeds the tick discipline; realistically deferred until a
+        temp-reseller PATCH fixture lands).
+        (b) rotate to a fresh non-timestamp non-numeric column pin
+        on the resellers row — gst_registered (bool NOT NULL DEFAULT
+        false at 0091:36) is the natural pick; assert typeof-boolean
+        on both the list surface and the detail surface. NOT-NULL
+        discipline, no range check needed, so the pin is a two-line
+        per-surface addition.
+        (c) rotate to the reseller-side /api/reseller/me/route.ts
+        surface if it projects reseller row commission_share_pct
+        (needs a quick route read to confirm the projection first).
+        Carried over from tick 285 option (c).
+        (d) idle — the frontier remains tight: P1.5 + P8.5 remain
+        HUMAN-BLOCKED, P11 never_completes, Track B closed. P10
+        hardening continues to accept incremental pin-tightening
+        ticks while the two HUMAN-BLOCKED leaves await external
+        unblock signals (H.20 InfoVision ABN + GST confirmation
+        OR Stripe add-on price env vars).
+    commit: (this tick)
+
   - tick: 285
     ran_at: 2026-07-23
     action: p10_admin_reseller_detail_created_at_updated_at_iso_pin_mirror_from_admin_resellers_list_283_284
