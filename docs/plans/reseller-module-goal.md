@@ -3,7 +3,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-23.226
+version: 2026-07-23.227
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -656,6 +656,126 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 227
+    ran_at: 2026-07-23
+    action: p10_drawer_validation_row_147_progression_kind_signup_literal_pin_twin_symmetrisation
+    result: |
+      Landed tick 226 "natural next pick" option (g) verbatim: mirrored the
+      row 146 progression[0].kind === "signup" literal pin onto sibling row
+      147 in drawer-validation.spec.ts so the twin kind-literal coverage
+      aligns across the drawer spec pair. Same posture as tick 226 twin
+      symmetrisation but scoped to a single expect — no dependency widening,
+      no shape type declaration change, no comment block rewrite (row 147's
+      body shape declaration already carries the full ProgressionEvent
+      shape from tick 226 landing).
+
+      Route + lib references pinned by this delta:
+        - buildProgressionTimeline at web/src/lib/reseller/customer-drawer.ts:122-126
+          always pushes the signup event first as
+          { kind: "signup", ts: input.user.created_at, label: "Signed up" }
+          — literal "signup" string on the .kind field, so `.toBe("signup")`
+          is the correct pin (not `typeof x === "string"`).
+        - Order-guarantee: the signup event is the ONLY event pushed
+          unconditionally at the top of buildProgressionTimeline, ahead of
+          the conditional onboarding_completed push (customer-drawer.ts:
+          128-134) and the subsequent svi/revenue/credit accumulators
+          (customer-drawer.ts:136+). No sort() call in the timeline body
+          moves it — the array is emitted in insertion order to the client.
+
+      Pre-tick row 147 posture pinned kind-agnostic
+      length>0 + ts/label typeof pins (from tick 226) but explicitly left
+      the .kind literal un-pinned per tick 226 result-block note "the kind
+      'signup' pin was ALREADY on row 146 pre-tick-225. Row 147's
+      progression[0] discipline stays at kind-agnostic length>0 + ts/label
+      typeof pins; a follow-up tick can lift the kind equality pin if the
+      natural-next-pick options include it." Tick 227 lifts exactly that
+      pin — single expect + inline comment block referencing tick 148
+      (row 146 kind pin landing) and tick 226 (row 147 shape pin landing).
+
+      Purely additive — no test removed, no assertion weakened, no
+      production code touched.
+
+      Diagnostic delta of the pass:
+        - Literal-equality pin `expect(x).toBe("signup")` rather than
+          `typeof x === "string"` because buildProgressionTimeline only
+          ever emits the four literal kinds ("signup" |
+          "onboarding_completed" | "first_svi_run" | "svi_progress" |
+          "plan_started" | "plan_upgraded" | "plan_downgraded" |
+          "plan_cancelled" | "credit_grant") per ProgressionEventKind at
+          customer-drawer.ts:28-30, and the signup event is guaranteed to
+          be at index 0 by the emission order documented above. A drift
+          to any other kind at index 0 would signal a route regression
+          worth failing on.
+        - Row 146 (drawer-authz.spec.ts:289) carries the same
+          `expect(body.progression?.[0]?.kind).toBe("signup")` pin as of
+          tick 148 (P10 wave-2 landing); tick 227 mirrors the pattern
+          onto row 147 verbatim so a regression in the emission order
+          surfaces in BOTH the authz spec (where it would look like a
+          fixture bug) and here (where it lands next to the ordering
+          contract asserted by the invalid_id / not_in_scope decideReveal
+          twins above).
+        - No VALUE assertion on the optional detail / phase / chapterSlug
+          / href fields — pin scope stays intentionally narrow. Same
+          discipline as ticks 221-226. Those four optional fields remain
+          the natural next pick option for a subsequent tick if the
+          symmetrisation loop wants to lift them onto both rows together
+          (tick 226 option (f) still available; tick 227 chose option (g)
+          because it is strictly smaller-scope and can ship as a single-
+          expect delta while option (f) requires a wider annotateProgression
+          dependency read + null-or-typeof-string discipline on all four
+          fields).
+        - Twin symmetry now fully established on progression[0]
+          .kind + .ts + .label pins across both rows. Optional fields
+          (detail / phase / chapterSlug / href) still un-pinned on both.
+        - drawer-authz.spec.ts row 146 posture unchanged. No production
+          code touched. Spec + goal file only.
+
+      Files:
+        - web/tests/e2e/reseller/drawer-validation.spec.ts (row 147 happy
+          path: inserted `expect(body.progression?.[0]?.kind).toBe("signup")`
+          between the length>0 pin and the ts/label typeof pins, with an
+          inline comment block above the new assertion referencing tick
+          148 row 146 rationale + customer-drawer.ts:122-126 signup emit
+          + the drawer client renderer's signup-anchor dependency.)
+        - docs/plans/reseller-module-goal.md (version bumped
+          2026-07-23.226 → 2026-07-23.227; this review_history entry
+          prepended)
+
+      Design fidelity:
+        - Literal pin only — matches tick 148 row 146 pin verbatim.
+        - No shape or type declaration widening (row 147 already carries
+          the full 5-field ProgressionEvent shape from tick 226).
+        - No changes to the invalid_id / not_in_scope decideReveal-twin
+          assertions above — the tick stays scoped to the happy path
+          row 147 body.
+
+      Natural next pick for tick 228:
+        (f) extend drawer-authz row 146 AND drawer-validation row 147
+            with progression[i] .detail / .phase / .chapterSlug / .href
+            optional-field shape pins (customer-drawer.ts:32-38).
+            progression[0].detail is null on signup events per
+            customer-drawer.ts:122-126 (no detail set on the signup push),
+            so the pin would need to be null-or-typeof-string. phase /
+            chapterSlug / href are populated by annotateProgression from
+            progression-linkage.ts (B8) so a founder with 0 SVI runs +
+            0 plan changes gets null triple on the signup row. Requires
+            a wider dependency read than option (g) so slightly wider
+            scope; landing on both rows in one tick keeps the twin
+            discipline aligned.
+        (c) mirror the row 179 shape+helper alignment onto the row 175
+            approve+deny+cancel code_request branches once P8.5
+            unblocks; today only the over_budget_approval branch of the
+            terminal handler carries the shape+helper twin coverage.
+            Still open, P8.5-blocked.
+        (e) joint clean-up of the two stale header comment blocks on
+            requests-validation.spec.ts lines 217-227 + reseller-
+            requests-list-authz.spec.ts lines 172-182 to reflect the
+            tick 223 + tick 224 pins (currently both headers say "Do NOT
+            pin decision_at / decision_reason" which contradicts the
+            inline assertions). Pure comment cleanup, no assertion or
+            production code delta.
+    commit: (this tick)
+
   - tick: 226
     ran_at: 2026-07-23
     action: p10_drawer_validation_row_147_overview_and_progression_shape_pins_twin_symmetrisation

@@ -307,6 +307,15 @@ test.describe("Reseller customer-drawer — P10 wave-2 uuid_in_scope happy", () 
     expect(typeof body.overview?.mrr_aud_cents).toBe("number");
     expect(Array.isArray(body.progression)).toBe(true);
     expect((body.progression ?? []).length).toBeGreaterThan(0);
+    // Tick 227 — mirror row 146's progression[0].kind === "signup" literal pin
+    // onto row 147 so the twin kind-literal coverage aligns across the drawer
+    // spec pair. buildProgressionTimeline at customer-drawer.ts:122-126 always
+    // pushes the signup event first with the literal string "signup" as .kind.
+    // A regression that reordered the timeline (e.g. onboarding_completed
+    // sorted before signup by ts) would break the drawer client renderer's
+    // signup-anchor and now surfaces in both the authz spec (where it landed
+    // at tick 148) and here (validation surface).
+    expect(body.progression?.[0]?.kind).toBe("signup");
     expect(typeof body.progression?.[0]?.ts).toBe("string");
     expect(typeof body.progression?.[0]?.label).toBe("string");
   });
