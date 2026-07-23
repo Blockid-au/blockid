@@ -238,6 +238,34 @@ const UUID_RE =
 // drop of decision_reason there would still let the PATCH echo the value
 // back on the write envelope but would fail the read-back here.
 //
+// Tick 272 — requested_by UUID wire-shape pin added as the eighth per-column
+// pin on the same three post-PATCH read-back rows (deny + cancel + approve).
+// reseller_requests.requested_by is a `uuid NOT NULL REFERENCES
+// public.app_users(id) ON DELETE RESTRICT` column at 0095:28 — populated at
+// INSERT time by the reseller-side POST /api/reseller/requests handler and
+// never touched by any PATCH branch (deny + cancel + approve at route.ts:305-
+// 320 stamp only status + decision_by + decision_at + decision_reason +
+// linked_credit_transaction_id + linked_promotion_code_id), so the read-back
+// MUST carry a non-null UUID string here on every green-path CI run
+// regardless of which PATCH branch fired. Two-part guard mirrors the
+// tick-266 decision_by + tick-271 reseller_id pins: typeof-string (catches a
+// column-type flip from uuid to say a bigint would surface as a number here,
+// or a route regression that stripped requested_by from the list SELECT's
+// column projection at /api/admin/resellers/requests/route.ts:43 — where
+// requested_by is the third column in the projection list — would fail the
+// guard because undefined is not a string) + UUID_RE (a drift in the uuid
+// serialisation shape from PostgREST or a route regression that returned a
+// placeholder-string value would fail the regex match). Reuses the module-
+// scope UUID_RE (line 139-140) rather than adding a ninth constant — same
+// invariant as the tick-266 decision_by + tick-271 reseller_id pins (all
+// three are uuid columns per 0095:27-28 + 0095:34; all three stamp UUID
+// strings via PostgREST serialisation). Pin fires ONLY after the tick-271
+// reseller_id UUID pin has passed on the same read-back row so tighter
+// existing pins surface first. The 0095:28 ON DELETE RESTRICT semantics
+// guarantee the app_users row this request points at cannot vanish
+// mid-fixture, so a null read-back here would surface a bona-fide route or
+// projection regression rather than a fixture race.
+//
 // Tick 271 — reseller_id UUID wire-shape pin added as the seventh per-column
 // pin on the same three post-PATCH read-back rows (deny + cancel + approve).
 // reseller_requests.reseller_id is a `uuid NOT NULL REFERENCES
@@ -628,6 +656,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       | {
           id?: unknown;
           reseller_id?: unknown;
+          requested_by?: unknown;
           request_type?: unknown;
           status?: unknown;
           payload?: unknown;
@@ -781,6 +810,26 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       UUID_RE.test(readbackRow.reseller_id as string),
       `read-back row.reseller_id '${String(readbackRow.reseller_id)}' should match UUID shape (uuid NOT NULL per 0095:27, populated at INSERT time and untouched by any PATCH branch); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 272 — requested_by UUID wire-shape pin, eighth per-column pin on
+    // the deny-branch read-back row. reseller_requests.requested_by is a
+    // `uuid NOT NULL REFERENCES public.app_users(id) ON DELETE RESTRICT`
+    // column (0095:28) populated at INSERT time by the reseller-side POST
+    // /api/reseller/requests handler and never touched by the deny PATCH
+    // branch at route.ts:305-320 — so the read-back MUST carry a non-null
+    // UUID string here. Two-part guard mirrors the tick-266 decision_by +
+    // tick-271 reseller_id pins: typeof-string (column-type flip catch, or
+    // a route regression that stripped requested_by from the list SELECT's
+    // column projection at /api/admin/resellers/requests/route.ts:43 — where
+    // requested_by is the third column in the projection list — would fail
+    // the guard because undefined is not a string) + UUID_RE (route
+    // regression that returned a placeholder-string value would fail the
+    // regex match). See the module-scope tick-272 comment for the full
+    // rationale.
+    expect(typeof readbackRow.requested_by).toBe("string");
+    expect(
+      UUID_RE.test(readbackRow.requested_by as string),
+      `read-back row.requested_by '${String(readbackRow.requested_by)}' should match UUID shape (uuid NOT NULL per 0095:28, populated at INSERT time and untouched by any PATCH branch); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
@@ -1073,6 +1122,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       | {
           id?: unknown;
           reseller_id?: unknown;
+          requested_by?: unknown;
           request_type?: unknown;
           status?: unknown;
           payload?: unknown;
@@ -1200,6 +1250,19 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       UUID_RE.test(readbackRow.reseller_id as string),
       `read-back row.reseller_id '${String(readbackRow.reseller_id)}' should match UUID shape (uuid NOT NULL per 0095:27, populated at INSERT time and untouched by any PATCH branch); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 272 — requested_by UUID wire-shape pin mirrored from the deny-
+    // block onto the cancel-block surface so the NOT NULL uuid column at
+    // 0095:28 is content-pinned on the second of the three post-PATCH read-
+    // back rows too. Same two-part guard as the deny surface: typeof-string
+    // + UUID_RE. The cancel branch does NOT touch requested_by at route.ts
+    // :305-320 (identical to deny + approve on this column) so the wire
+    // value mirrors whatever the reseller-side POST INSERTed. See the
+    // module-scope tick-272 comment for full rationale.
+    expect(typeof readbackRow.requested_by).toBe("string");
+    expect(
+      UUID_RE.test(readbackRow.requested_by as string),
+      `read-back row.requested_by '${String(readbackRow.requested_by)}' should match UUID shape (uuid NOT NULL per 0095:28, populated at INSERT time and untouched by any PATCH branch); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
@@ -1524,6 +1587,7 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
       | {
           id?: unknown;
           reseller_id?: unknown;
+          requested_by?: unknown;
           request_type?: unknown;
           status?: unknown;
           payload?: unknown;
@@ -1685,6 +1749,20 @@ test.describe("Admin reseller requests PATCH — P10 wave-5 row 175 happy path (
     expect(
       UUID_RE.test(readbackRow.reseller_id as string),
       `read-back row.reseller_id '${String(readbackRow.reseller_id)}' should match UUID shape (uuid NOT NULL per 0095:27, populated at INSERT time and untouched by any PATCH branch); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
+    ).toBe(true);
+    // Tick 272 — requested_by UUID wire-shape pin mirrored from the deny-
+    // block + cancel-block onto the approve-block surface so the NOT NULL
+    // uuid column at 0095:28 is now content-pinned on all three post-PATCH
+    // read-back rows. Same two-part guard as the deny + cancel surfaces:
+    // typeof-string + UUID_RE. The approve branch does NOT touch
+    // requested_by at route.ts:305-320 (only status + decision_* + linked_*
+    // columns are stamped in the approve fan-out at route.ts:200-320) so the
+    // wire value mirrors whatever attachApproveTarget() INSERTed. See the
+    // module-scope tick-272 comment for full rationale.
+    expect(typeof readbackRow.requested_by).toBe("string");
+    expect(
+      UUID_RE.test(readbackRow.requested_by as string),
+      `read-back row.requested_by '${String(readbackRow.requested_by)}' should match UUID shape (uuid NOT NULL per 0095:28, populated at INSERT time and untouched by any PATCH branch); a drift to a non-UUID string, a number, or null would surface here: ${JSON.stringify(readbackRow).slice(0, 200)}`,
     ).toBe(true);
     // Two-part guard per nullable key: (a) `x === null` short-circuit +
     // (b) typeof-string + regex/length check. Same shape as the tick
