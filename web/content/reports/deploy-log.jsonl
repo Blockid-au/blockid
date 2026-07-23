@@ -965,3 +965,5 @@
 {"ts":"2026-07-23T16:38:34.150Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 311 — commissions[].list_price_aud_cents int-positive pin on admin reseller detail (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T16:38:40.044Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T16-35-01-639Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T16:43:28Z","status":"success","gates":"10/10","pid":"120982","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-23T16:43:57.025Z","event":"github-push-master","detail":"Blockid-au: chore(deploy): iter-8 live deploy 089caa42 — 10/10 gates, 15/15 smoke green (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T16:44:14.009Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 312 — commissions[].discount_pct value-set enum pin on admin reseller detail (1 commits)","source":"github-webhook"}
