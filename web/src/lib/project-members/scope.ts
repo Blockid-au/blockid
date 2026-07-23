@@ -43,12 +43,15 @@ export class ProjectMemberScopeError extends Error {
       | "revoked"
       | "service_unavailable"
       | "duplicate"
-      | "invalid_role" = "not_owner",
+      | "invalid_role"
+      | "forbidden" = "not_owner",
   ) {
     super(msg);
     this.name = "ProjectMemberScopeError";
   }
 }
+
+export type ProjectPermission = "read" | "write" | "admin";
 
 const VALID_ROLES: ProjectMemberRole[] = ["viewer", "editor", "admin"];
 
@@ -117,6 +120,109 @@ export async function assertProjectOwner(
     throw new ProjectMemberScopeError(
       "caller is not the project owner",
       "not_owner",
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Member-aware permission guard
+// ---------------------------------------------------------------------------
+
+/**
+ * Role → allowed permissions map. Only applies to `accepted` member rows.
+ *
+ * - admin   → read + write + admin (can invite/revoke, mutate, view)
+ * - editor  → read + write         (can mutate but NOT invite/revoke)
+ * - viewer  → read only
+ *
+ * Any other status (invited, revoked) yields an empty set — the invite
+ * has not been consumed (or has been rescinded), so no access flows
+ * through this guard until the invitee accepts.
+ */
+const ROLE_PERMS: Record<ProjectMemberRole, Set<ProjectPermission>> = {
+  admin: new Set<ProjectPermission>(["read", "write", "admin"]),
+  editor: new Set<ProjectPermission>(["read", "write"]),
+  viewer: new Set<ProjectPermission>(["read"]),
+};
+
+/**
+ * Assert the caller has the given permission on a project.
+ *
+ * Primary path: ownership check. The project owner always has every
+ * permission — this preserves the existing owner-only fallback and must
+ * remain the first branch so a mis-configured members row can never lock
+ * an owner out of their own project.
+ *
+ * Secondary path: accepted project_members row lookup. The row's role is
+ * mapped through ROLE_PERMS and the requested permission checked against
+ * the resulting set. `invited` and `revoked` rows contribute no access.
+ *
+ * Rejection: throws ProjectMemberScopeError with `code: "forbidden"`.
+ * Missing project throws `not_found`; supabase misconfiguration throws
+ * `service_unavailable`.
+ */
+export async function assertProjectMemberCan(
+  projectId: string,
+  userId: string,
+  perm: ProjectPermission,
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    throw new ProjectMemberScopeError(
+      "supabase not configured",
+      "service_unavailable",
+    );
+  }
+
+  // ── Primary path: owner always wins ─────────────────────────────────
+  const { data: project, error: projectErr } = await supabase
+    .from("projects")
+    .select("user_id")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (projectErr) {
+    throw new ProjectMemberScopeError(
+      `assertProjectMemberCan project lookup failed: ${projectErr.message}`,
+      "service_unavailable",
+    );
+  }
+  if (!project) {
+    throw new ProjectMemberScopeError("project not found", "not_found");
+  }
+  if (project.user_id === userId) {
+    // Owner has every permission — read + write + admin.
+    return;
+  }
+
+  // ── Secondary path: accepted member row ─────────────────────────────
+  const { data: member, error: memberErr } = await supabase
+    .from("project_members")
+    .select("role,status")
+    .eq("project_id", projectId)
+    .eq("user_id", userId)
+    .eq("status", "accepted")
+    .maybeSingle();
+
+  if (memberErr) {
+    throw new ProjectMemberScopeError(
+      `assertProjectMemberCan member lookup failed: ${memberErr.message}`,
+      "service_unavailable",
+    );
+  }
+  if (!member) {
+    throw new ProjectMemberScopeError(
+      `caller ${userId} has no accepted membership on project ${projectId}`,
+      "forbidden",
+    );
+  }
+
+  const role = member.role as ProjectMemberRole;
+  const allowed = ROLE_PERMS[role];
+  if (!allowed || !allowed.has(perm)) {
+    throw new ProjectMemberScopeError(
+      `role '${role}' lacks '${perm}' permission on project ${projectId}`,
+      "forbidden",
     );
   }
 }

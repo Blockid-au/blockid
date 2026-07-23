@@ -1028,3 +1028,4 @@
 {"ts":"2026-07-23T19:51:01.709Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T19-45-02-059Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T20:05:54.886Z","event":"github-push-master","detail":"Blockid-au: feat(projects): team members — invite/accept/revoke + members page + /invites/[token] (Q4 Multi-project #3) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T20:06:28.823Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 332 (goal) — promotion_codes[] tier↔stripe-id cross-column invariant summary hoist on admin-reseller-detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T20:22:54.969Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P10 tick 333 (goal) — resellers-row ck_wholesale_gst_required cross-column invariant summary hoist on admin-reseller-detail (1 commits)","source":"github-webhook"}
