@@ -940,6 +940,114 @@ test.describe("Admin reseller-loop status — P10 wave-5 row 173 happy path", ()
           `tick_history phase_dispatched row.signal should be null OR typeof string (reseller-goal-loop.mjs:198 threads res.signal from spawnSync — Node.js child_process contract is \`string | null\`: null on clean exit, string like 'SIGTERM' on kill-signal termination → mjs:299 spread): ${JSON.stringify(row).slice(0, 200)}`,
         ).toBe(true);
       }
+      // tick 253 — delegated_dispatch stage schema pin (option y6 from
+      // tick 252's natural-next-picks — the four-pin candidate). Closes
+      // the delegated-branch writer contract COMPLETELY in a single
+      // guard because dispatchToClaude()'s return shape is identical to
+      // the phase_dispatched success path already pinned across ticks
+      // 251 (label + status) + 252 (elapsed_ms + signal). Since the
+      // shape is identical and all four keys always land together on
+      // the same row via `...result` spread, a single four-pin guard
+      // amortises the guard cost and lands the whole contract in one
+      // tick — matches tick 252's explicit y6 description "Four-pin
+      // candidate (could land all four keys in one tick since the shape
+      // is identical to phase_dispatched + phase_failed already
+      // pinned)".
+      //
+      // Writer-schema justification:
+      //   - scripts/cron/reseller-goal-loop.mjs:319 writes
+      //     `log({ stage: 'delegated_dispatch', ...result })` where
+      //     `result` is the dispatchToClaude() return object at
+      //     mjs:198-204: `{ status: res.status ?? -1, elapsed_ms,
+      //     signal, label }` — the `...result` spread threads all
+      //     four keys through the log() helper (mjs:52-58) which
+      //     prepends tick_id/ts/human_review_minutes_7d then spreads
+      //     `...row` untouched into the jsonl history line. Identical
+      //     writer shape to phase_dispatched (mjs:299) — the only
+      //     difference is the stage literal and the fact that the
+      //     `label` argument at mjs:318 is the bare string 'delegated'
+      //     rather than a `${entry.track}:${entry.phase}` composition.
+      //   - Coverage: fires on every tick where the poor-man's YAML
+      //     parse branch executes at mjs:275-283. Currently that is
+      //     EVERY tick because `goalObj = null` is hard-coded at
+      //     mjs:280 (the yaml parser dependency has not been added
+      //     per the mjs:277-279 comment). Until that hard-coded null
+      //     is replaced with a real yaml.parse() call, this guard
+      //     fires on every non-idle tick — one of the highest-
+      //     coverage guards in the file alongside tick 245
+      //     human_blocked_snapshot and tick 251-252 phase_dispatched.
+      //   - Key-by-key contract (identical to phase_dispatched, so
+      //     the same schema guarantees hold):
+      //     * `status` = `res.status ?? -1` at mjs:204 — the ??
+      //       fallback narrows the `number | null` spawnSync contract
+      //       to a JSON number every time (0 on green, non-zero on
+      //       subprocess non-zero exit, -1 when spawnSync itself
+      //       fails to launch claude or times out at 45min). Bare
+      //       typeof=number pin.
+      //     * `elapsed_ms` = `Date.now() - started` at mjs:203 where
+      //       `started` is Date.now() at mjs:197. Finite non-negative
+      //       integer delta in every case. Bare typeof=number pin.
+      //     * `signal` = `res.signal` at mjs:198. Node.js
+      //       child_process contract is `string | null` — null on
+      //       clean exit (the common case), string on kill-signal
+      //       termination. Nullable typeof guard matches tick 252.
+      //     * `label` = the second argument to dispatchToClaude() at
+      //       mjs:318 which is the bare literal string 'delegated'.
+      //       Since it's a hard-coded string literal, bare
+      //       typeof=string pin holds; a value pin `=== 'delegated'`
+      //       would also be valid and stricter, but the tick 251
+      //       phase_dispatched guard chose typeof-only for label so
+      //       the two guards stay symmetric with matching pin
+      //       tightness (drift-tolerant per tick 230's convention).
+      //
+      // Design choice — four-pin single guard closing the contract:
+      //   - Precedent: tick 251 (label + status) + tick 252
+      //     (elapsed_ms + signal) landed the phase_dispatched
+      //     contract in two two-pin ticks. This tick lands the
+      //     identical-shape delegated_dispatch contract in ONE
+      //     four-pin tick because y6 in tick 252's next-pick list
+      //     explicitly authorised the four-pin variant on grounds
+      //     that the shape has already been schema-analysed by the
+      //     preceding two ticks — no new writer-contract research
+      //     is required, only a stage-literal substitution in the
+      //     conditional guard.
+      //   - Sits in its own conditional-by-stage block matching the
+      //     tick 240-252 convention (each stage gets its own guard
+      //     for traceability). Comes AFTER the tick 252
+      //     phase_dispatched guard so future guards land in
+      //     monotonic tick-order.
+      //   - TYPEOF pins only (not value) — status varies per exit
+      //     code; elapsed_ms varies per subprocess; signal varies
+      //     per outcome; label is currently the string literal
+      //     'delegated' but pinning by value would break if the
+      //     delegate branch's brief-composition site at mjs:308-318
+      //     ever renames the label (unlikely but possible), so
+      //     typeof-only matches the tick 251 phase_dispatched label
+      //     pin's drift-tolerant convention.
+      //   - Guard body layout mirrors the phase_dispatched pair
+      //     (tick 251's guard first, then tick 252's guard) but
+      //     concatenated in one block since all four pins share the
+      //     same conditional. Pin order inside the guard: label,
+      //     status, elapsed_ms, signal — matches the source order at
+      //     mjs:204 for one-glance cross-reference.
+      if (tickRow.stage === "delegated_dispatch") {
+        expect(
+          typeof tickRow.label,
+          `tick_history delegated_dispatch row.label should be typeof string (reseller-goal-loop.mjs:318 passes bare literal 'delegated' as the second dispatchToClaude() arg → mjs:204 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("string");
+        expect(
+          typeof tickRow.status,
+          `tick_history delegated_dispatch row.status should be typeof number (reseller-goal-loop.mjs:204 dispatchToClaude returns \`res.status ?? -1\` → mjs:319 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+        expect(
+          typeof tickRow.elapsed_ms,
+          `tick_history delegated_dispatch row.elapsed_ms should be typeof number (reseller-goal-loop.mjs:203 writes \`Date.now() - started\` where started is Date.now() at mjs:197 — finite non-negative integer delta always → mjs:319 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe("number");
+        expect(
+          tickRow.signal === null || typeof tickRow.signal === "string",
+          `tick_history delegated_dispatch row.signal should be null OR typeof string (reseller-goal-loop.mjs:198 threads res.signal from spawnSync — Node.js child_process contract is \`string | null\`: null on clean exit, string like 'SIGTERM' on kill-signal termination → mjs:319 spread): ${JSON.stringify(row).slice(0, 200)}`,
+        ).toBe(true);
+      }
     }
     expect(
       typeof body.generated_at === "string" &&
