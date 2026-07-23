@@ -366,6 +366,39 @@ const UUID_RE =
 // resellers-family surfaces (list + detail) carry the pin
 // simultaneously, matching the tick 286-293 discipline of bringing
 // both surfaces up to parity in one pass.
+//
+// Tick 295 — logo_url text nullable wire-shape pin, natural next-pick
+// option (a) from tick 294. resellers.logo_url is declared at 0091:26
+// as `logo_url text` with no NOT NULL constraint (nullable) and NO DB
+// CHECK constraint — free text storing a reseller-branding logo URL
+// consumed by the topbar reseller pill at web/src/components/workspace/
+// reseller-pill.tsx and the Stripe invoice memo path at
+// web/src/app/api/stripe/checkout/route.ts (P5 co-branding). Unlike abn
+// (pinned at tick 294) there is NO application write-path regex or
+// format-validator guard on this column at web/src/lib/reseller/
+// admin-validator.ts — admin-validator.ts:81-90 only rejects the hex
+// primary_color column on format, and logo_url passes through unchecked
+// aside from the standard NULL/undefined omission. Nullable discipline
+// with no format layer → single-guard null-or-typeof-string assert,
+// looser than the tick 294 two-part null-or-string + null-or-string+
+// ABN_RE guard because there is no format regex to layer as a second
+// guard. Matches the single-guard nullable-text posture rather than the
+// two-part (tick 276/277/294) or single-guard NOT-NULL bool posture
+// (ticks 287/291/292/293). Projected via route.ts:41-44 select("*").
+// Fires ONLY when logo_url is non-null so the wave-5 cohort rows (seed-
+// qa-reseller.mjs seeds logo_url=NULL by default across all seven
+// probe variants) pass cleanly on the null branch on every green CI
+// run; a real production reseller row (INFOVISION when P1.5 clears
+// H.20) with a populated logo URL would exercise the null-or-string
+// branch instead. A schema-side type flip from text to non-string, a
+// PostgREST serialisation regression that returned NULL as the literal
+// string "null", or a projection-side drop from route.ts:41-44
+// select("*") would each surface at a distinct assertion failure
+// mode. Cross-surface pair with the companion pin landed on admin-
+// reseller-detail-authz.spec.ts in the same tick so the two admin
+// resellers-family surfaces (list + detail) carry the pin
+// simultaneously, matching the tick 286-294 discipline of bringing
+// both surfaces up to parity in one pass.
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -479,6 +512,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         can_grant_credits?: unknown;
         collateral_approval_required?: unknown;
         abn?: unknown;
+        logo_url?: unknown;
       }>;
     };
     expect(
@@ -757,6 +791,23 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         row.abn === null ||
           (typeof row.abn === "string" && ABN_RE.test(row.abn as string)),
         `reseller.abn '${String(row.abn)}' should be null or an AU ABN string in the spaced format 'NN NNN NNN NNN' (DB CHECK ck_abn_format at 0091:52-54 + admin-validator.ts:52 ABN_RE); a drift to an unspaced 11-digit string, a hyphenated form, or any other shape would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 295 — logo_url text nullable wire-shape pin, cross-surface
+      // pair with the sibling pin landed on admin-reseller-detail-authz.
+      // spec.ts in the same tick. See module-scope doc-block (tick 295
+      // paragraph) for the rationale. Column source 0091:26 `logo_url
+      // text` (nullable) with NO DB CHECK and NO application write-path
+      // format guard (admin-validator.ts:81-90 only regexes primary_color,
+      // not logo_url). Nullable discipline with no format layer →
+      // single-guard null-or-typeof-string assert, looser than the tick
+      // 294 two-part guard because there is no format regex to layer on
+      // top. Seed cohort rows carry logo_url=NULL by default so the null
+      // branch is exercised on every green CI run; a populated production
+      // reseller row (INFOVISION when P1.5 clears H.20) would exercise
+      // the null-or-string branch.
+      expect(
+        row.logo_url === null || typeof row.logo_url === "string",
+        `reseller.logo_url '${String(row.logo_url)}' should be null or a string (nullable text per 0091:26; NULL when no logo URL is populated, string when a reseller has uploaded/registered a branded logo URL — no DB CHECK, no admin-validator format guard). Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
     }
   });
