@@ -953,3 +953,5 @@
 {"ts":"2026-07-23T16:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":554,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234561596 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274152360 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-23T16:15:01Z","endpoint":"vesting","status":"ok","duration_ms":283,"detail":"{\"processed\": 1, \"completed\": 0, \"emailed\": 0}"}
 {"ts":"2026-07-23T16:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":165,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-07-23T16:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":624,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234680660 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274152412 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-23T16:20:01Z","endpoint":"lead-nurture","status":"ok","duration_ms":1794,"detail":"{\"sent\": 1, \"skipped\": 0, \"opted_out\": 0, \"policy\": \"d1_d4_d9_sequence\"}"}

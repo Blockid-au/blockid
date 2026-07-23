@@ -955,3 +955,7 @@
 {"ts":"2026-07-23T16:19:08Z","status":"success","gates":"10/10","pid":"38484","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-23T16:19:35.068Z","event":"github-push-master","detail":"Blockid-au: chore(deploy): iteration-7 live retry — release Mzzh5pwFURHvrhivSP_QQ (sha 01e3db6d) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-23T16:19:47.696Z","event":"github-push-master","detail":"Blockid-au: test(reseller): P10 tick 309 — commissions[].stripe_invoice_id text NOT NULL wire-shape pin on admin reseller detail (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T16:19:53.840Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-23T16-15-01-118Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T16:24:59.107Z","event":"github-push-master","detail":"Blockid-au: fix(pricing): reconcile accelerator SKU ids across marketing plans-v2.ts and generated CSV (accel_* -> accelerator_*) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T16:26:07.446Z","event":"github-push-master","detail":"Blockid-au: feat(pdf): thread brand_settings into SVI report renderer (Growth+/Scale/Enterprise white-label) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-23T16:27:45.482Z","event":"github-push-master","detail":"Blockid-au: chore(reseller): P3 tick 310 — ledger_webhooks sign-off done_pending_agreement (1 commits)","source":"github-webhook"}
