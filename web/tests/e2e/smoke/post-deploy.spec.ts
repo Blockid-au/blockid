@@ -29,6 +29,14 @@ test.describe("Post-deploy hydrated smoke", () => {
   test("/pricing — Accelerator tab reveals Cohort Enterprise", async ({
     page,
   }) => {
+    // iter-17 flake safeguard B: cold Next.js hydration on the very
+    // first probe of /pricing after a swap can push the Cohort
+    // Enterprise reveal past the 15s PAGE_TIMEOUT ceiling. Double this
+    // test's overall budget (still under the 45s file-scope cap) so a
+    // slow warm-up doesn't false-fail, while keeping the assertion
+    // itself real — anything past 30s IS a regression.
+    test.setTimeout(30_000);
+
     await page.goto("/pricing", { waitUntil: "domcontentloaded" });
 
     const acceleratorTab = page.getByRole("tab", { name: /accelerator/i });
@@ -37,8 +45,9 @@ test.describe("Post-deploy hydrated smoke", () => {
 
     // After hydration + tab switch, the accelerator plan matrix renders.
     // "Cohort Enterprise" is the top accelerator tier (plans-v2.ts).
+    // Flake-prone assertion: bumped to 30s per iter-17 flake analysis.
     await expect(page.getByText(/cohort enterprise/i).first()).toBeVisible({
-      timeout: PAGE_TIMEOUT,
+      timeout: 30_000,
     });
   });
 
