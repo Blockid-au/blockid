@@ -116,6 +116,27 @@ test.describe("Post-deploy hydrated smoke", () => {
     });
   }
 
+  test("/workspace/audit-log — login redirect carries exact next param", async ({
+    page,
+    context,
+  }) => {
+    // iter-18 hardening: the loop above accepts either the raw path or a
+    // percent-encoded fallback in `next=`. This narrower assertion pins
+    // the Next 16 emission shape (raw `/workspace/audit-log`) so a silent
+    // change to the redirect helper — e.g. dropping the `next` param or
+    // encoding it inconsistently — fails loudly on the audit-log surface
+    // that the compliance team relies on for deep-linking back after
+    // sign-in. Anonymous only; no auth-fixture needed.
+    await context.clearCookies();
+    await page.goto("/workspace/audit-log", { waitUntil: "domcontentloaded" });
+    await page.waitForURL(/\/auth\/login/, { timeout: PAGE_TIMEOUT });
+    const finalUrl = page.url();
+    expect(
+      finalUrl.includes("next=/workspace/audit-log"),
+      `expected exact next=/workspace/audit-log substring, got ${finalUrl}`,
+    ).toBe(true);
+  });
+
   test("/dashboard/portfolio — post-redirect login shell hydrates", async ({
     page,
     context,
