@@ -1009,3 +1009,5 @@
 {"ts":"2026-07-23T21:30:01Z","endpoint":"publish-insight","status":"ok","duration_ms":7280,"detail":"{\"published\": {\"slug\": \"startup-valuation-benchmarks-australia-2026\", \"title\": \"Startup Valuation Benchmarks Australia 2026: Founder's Guide\", \"url\": \"https://blockid.au/insights/startup-valuation-ben"}
 {"ts":"2026-07-23T21:30:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16558,"detail":""}
 {"ts":"2026-07-23T21:30:01Z","endpoint":"performance-audit","status":"fail","duration_ms":17188,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 __variable_6b9622 h-full antialiased\"><head"}
+{"ts":"2026-07-23T21:40:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":586,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234234944 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273726504 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-23T21:45:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16502,"detail":""}
