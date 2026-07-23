@@ -91,6 +91,7 @@ test.describe("Post-deploy hydrated smoke", () => {
   for (const path of [
     "/workspace/audit-log",
     "/workspace/projects",
+    "/workspace/projects/archived",
     "/dashboard/portfolio",
   ] as const) {
     test(`${path} — anonymous lands on /auth/login (hydrated)`, async ({
