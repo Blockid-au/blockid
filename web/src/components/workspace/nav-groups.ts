@@ -14,7 +14,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity, Banknote, BarChart3, Bell, BookOpen, Briefcase, Calendar, CreditCard,
+  Activity, Archive, Banknote, BarChart3, Bell, BookOpen, Briefcase, Calendar, CreditCard,
   DollarSign, DoorOpen, ExternalLink, FileText, FolderCheck, FolderOpen, Gift,
   LineChart, Link2, Map, Palette, PieChart, Rocket, Share2, Shield, Table2,
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
@@ -63,6 +63,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Overview",
     items: [
       { href: "/workspace/projects", label: "My Startups", icon: Briefcase },
+      { href: "/workspace/projects/archived", label: "Archived", icon: Archive },
       { href: "/dashboard/portfolio", label: "Portfolio", icon: LayoutDashboard, lifecycle: "beta" },
       { href: "/dashboard/svi", label: "SVI Score", icon: TrendingUp },
       { href: "/", label: "New Analysis", icon: Zap },
