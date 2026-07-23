@@ -1,6 +1,9 @@
 {
-  "updatedAt": "2026-07-22T21:05:02.736Z",
+  "updatedAt": "2026-07-23T20:01:41.120Z",
   "openrouter": [
+    "inclusionai/ling-3.0-flash:free",
+    "poolside/laguna-m.1:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
     "nvidia/nemotron-3-ultra-550b-a55b:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
     "google/gemma-4-31b-it:free",
@@ -11,6 +14,8 @@
     "poolside/laguna-s-2.1:free"
   ],
   "groq": [
+    "canopylabs/orpheus-v1-english",
+    "groq/compound-mini",
     "qwen/qwen3.6-27b",
     "openai/gpt-oss-120b",
     "llama-3.3-70b-versatile",
