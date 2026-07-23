@@ -239,6 +239,32 @@ const UUID_RE =
 // Fresh CI hosts with zero rows still green because the pin lives
 // inside the per-row for-loop; seeded hosts exercise the default 500
 // branch on every green CI run (seed-qa-reseller.mjs uses the default).
+//
+// Tick 291 — can_create_startups bool wire-shape pin, cross-surface
+// pair with the sibling pin landed on admin-reseller-detail-authz.spec.
+// ts in the same tick. resellers.can_create_startups is the sibling
+// bool column to gst_registered (pinned at tick 287) — both bool NOT
+// NULL invariants with no finite / range dimension so the same single
+// typeof-boolean guard shape applies. Column declared at 0091:31 as
+// `can_create_startups bool NOT NULL DEFAULT false` — no DB CHECK; the
+// column controls whether the reseller UI exposes the "create startup"
+// branch per the reseller U.15 module design (write-side application
+// gating, no wire-side echo distinct from the bool value itself).
+// Projected via route.ts:41-44 select("*"). NOT-NULL discipline →
+// single typeof-boolean assert; bool has no finite / range dimension
+// so no second guard is layered — matches the tick 287 gst_registered
+// posture verbatim rather than the two-part (tick 283/284 ISO), three-
+// part (tick 286 numeric range, tick 288 array element-set), or four-
+// part (tick 289/290 int + non-negative + integer) guards used for
+// scalar columns with a semantic dimension beyond raw type. Cross-
+// surface pair with the companion pin landed on admin-reseller-detail-
+// authz.spec.ts in the same tick so the two admin resellers-family
+// surfaces (list + detail) carry the pin simultaneously, matching the
+// tick 286+287+288+289+290 discipline of bringing both surfaces up to
+// parity in one pass. Fresh CI hosts with zero rows still green
+// because the pin lives inside the per-row for-loop; seeded hosts
+// exercise the DEFAULT false branch on every green CI run (seed-qa-
+// reseller.mjs uses the default).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
@@ -341,6 +367,7 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         allowed_tiers?: unknown;
         monthly_credit_budget?: unknown;
         monthly_sandbox_credits?: unknown;
+        can_create_startups?: unknown;
       }>;
     };
     expect(
@@ -546,6 +573,22 @@ test.describe("Admin resellers list — P10 wave-5 row 164 happy path", () => {
         (row.monthly_sandbox_credits as number) >= 0,
         `reseller.monthly_sandbox_credits '${String(row.monthly_sandbox_credits)}' should be >= 0 (admin-validator.ts:107-112 rejects value < 0 with reason 'sandbox_negative'); a validator drift or a schema-side drop of the non-negative invariant would surface here: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
+      // Tick 291 — can_create_startups bool wire-shape pin, cross-
+      // surface pair with the sibling pin landed on admin-reseller-
+      // detail-authz.spec.ts in the same tick. See module-scope doc-
+      // block (tick 291 paragraph) for the rationale. Column source
+      // 0091:31 `can_create_startups bool NOT NULL DEFAULT false` — no
+      // DB CHECK; sibling bool column to gst_registered (pinned at tick
+      // 287) with the same NOT-NULL discipline → single typeof-boolean
+      // assert. A schema-side type flip from bool to text/int, a
+      // PostgREST serialisation regression that returned booleans as
+      // "true"/"false" strings, or a projection-side drop from route.
+      // ts:41-44 select("*") would surface here on the next CI pass
+      // whenever any resellers row is returned.
+      expect(
+        typeof row.can_create_startups,
+        `reseller.can_create_startups '${String(row.can_create_startups)}' should be a boolean (bool NOT NULL DEFAULT false per 0091:31 serialised via PostgREST); a drift to a string, number, or null would surface here: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("boolean");
     }
   });
 });
