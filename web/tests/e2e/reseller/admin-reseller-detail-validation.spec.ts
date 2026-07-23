@@ -89,6 +89,28 @@ const ALL_PUNCT_CODE = "---";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Tick 344 — Stripe invoice ID shape regex. Cross-surface twin of the
+// STRIPE_INVOICE_ID_RE const at
+// web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts:2411
+// (introduced there on tick 309). Matches the modern Stripe
+// `in_<alphanumeric>` prefix pattern used by every invoice minted by the
+// Stripe API and stored verbatim by the webhook processor into
+// reseller_commissions.stripe_invoice_id (text NOT NULL, 0094:34), projected
+// through the reseller_commissions_current view alias rc.stripe_invoice_id
+// at 0094:139. Length lower-bound of 8 chars protects against a truncated
+// slug regression; alphanumeric-only body matches Stripe's canonical id
+// charset (no punctuation, no dashes). Kept broad enough that live-mode
+// (in_1XXXXXXXXX) and test-mode (in_1XXXtestXXX) both pass. Introduced on
+// this file to power the tick 344 commissions[].stripe_invoice_id two-part
+// typeof-string + STRIPE_INVOICE_ID_RE.test() cross-surface twin lift below —
+// second column pinned in the reseller_commissions_current[] child-row
+// cluster opened at tick 342 (commission_id UUID) + tightened at tick 343
+// (list_price_aud_cents strictly-positive int). Executes tick 343 next-pick
+// option (a) verbatim: propagate the tick 309 stripe_invoice_id text NOT
+// NULL + STRIPE_INVOICE_ID_RE shape pin from the sibling detail-authz spec.
+// This is the FIRST new module-scope const added to this file in the
+// commissions[] sweep (tick 342 reused UUID_RE, tick 343 needed none).
+const STRIPE_INVOICE_ID_RE = /^in_[A-Za-z0-9]{8,}$/;
 // Uppercase-alphanumeric invariant for promotion_codes[].code — matches the
 // buildPromoCodeName write-path guarantee at
 // web/src/lib/reseller/promotion-code-mint.ts:41-58 (uppercase + <=40 chars,
@@ -383,6 +405,7 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       };
       commissions?: Array<{
         commission_id?: unknown;
+        stripe_invoice_id?: unknown;
         list_price_aud_cents?: unknown;
       }>;
     };
@@ -645,6 +668,48 @@ test.describe("Admin reseller GET input validation — P10 wave-5 row 168 happy 
       expect(
         UUID_RE.test(row.commission_id as string),
         `commissions[].commission_id '${String(row.commission_id)}' should match UUID shape (uuid PRIMARY KEY per 0094:34); a projection-side drop from route.ts:98-105 select that replaced commission_id with a stringified integer id, a bigint-serialised-as-string sequence id, or a truncated non-UUID slug would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe(true);
+      // Tick 344 — commissions[].stripe_invoice_id two-part typeof-string +
+      // STRIPE_INVOICE_ID_RE.test() cross-surface twin wire-shape pin, third
+      // column pinned in the reseller_commissions_current[] child-row cluster
+      // on this detail-validation spec (opened tick 342 with commission_id
+      // UUID; tightened tick 343 with list_price_aud_cents strictly-positive
+      // int). Executes tick 343 next-pick option (a) verbatim: propagates the
+      // tick 309 pin already carried on the sibling admin-reseller-detail-
+      // authz.spec.ts:3535-3542. Column source: reseller_commissions.stripe_
+      // invoice_id `text NOT NULL` at web/supabase/migrations/0094_reseller_
+      // commissions_and_events.sql:34, projected verbatim through the
+      // reseller_commissions_current view alias rc.stripe_invoice_id at
+      // 0094:139 and selected on the Promise.all leg at
+      // web/src/app/api/admin/resellers/[code]/route.ts:98-105. Two-part
+      // guard mirroring the tick 309 posture on the sibling spec:
+      //   (a) typeof-string half labelled with diagnostic prose preserves
+      //       the NOT-NULL raw-type discipline — catches a schema-side NOT
+      //       NULL drop, a view-side column drop from 0094:139, a projection-
+      //       side drop from the SELECT tuple at route.ts:98-105, or a
+      //       PostgREST serialisation regression that returned null|
+      //       undefined. Separated from the STRIPE_INVOICE_ID_RE assert
+      //       below so a raw-type flip does not hide behind a shape-based
+      //       diagnostic.
+      //   (b) STRIPE_INVOICE_ID_RE.test() shape assert catches a webhook-
+      //       processor drift that stamped a non-Stripe id (e.g. a
+      //       stringified integer id from a legacy migration, a truncated
+      //       slug from a bad substring capture, or a legacy non-`in_`
+      //       prefix from a pre-Stripe billing surface). No DB CHECK on
+      //       stripe_invoice_id (0094:34 is text NOT NULL with no format
+      //       CHECK) so the write-path invariant lives ONLY on the webhook
+      //       processor honouring the canonical Stripe id shape — this
+      //       Playwright pin is the first schema-side backstop.
+      // Uses the module-scope STRIPE_INVOICE_ID_RE const introduced at row
+      // 92-113 above (first new module-scope const on this file in the
+      // commissions[] sweep — tick 342 reused UUID_RE, tick 343 needed none).
+      expect(
+        typeof row.stripe_invoice_id,
+        `commissions[].stripe_invoice_id '${String(row.stripe_invoice_id)}' should be a string (text NOT NULL per web/supabase/migrations/0094_reseller_commissions_and_events.sql:34; view alias rc.stripe_invoice_id at 0094:139; a schema-side NOT NULL drop, a view-side column drop, a projection-side drop from the SELECT tuple at web/src/app/api/admin/resellers/[code]/route.ts:98-105, or a PostgREST serialisation regression that returned null|undefined would surface here — separated from the STRIPE_INVOICE_ID_RE assert below so a raw-type flip does not hide behind a shape-based diagnostic). Row: ${JSON.stringify(row).slice(0, 200)}`,
+      ).toBe("string");
+      expect(
+        STRIPE_INVOICE_ID_RE.test(row.stripe_invoice_id as string),
+        `commissions[].stripe_invoice_id '${String(row.stripe_invoice_id)}' should match Stripe invoice id shape /^in_[A-Za-z0-9]{8,}$/ (write-path invariant: minted by the Stripe API and stored verbatim by the webhook processor from invoice.paid events; NO DB CHECK on stripe_invoice_id so the invariant lives ONLY on the webhook processor honouring the canonical Stripe id shape). A webhook-processor drift that stamped a stringified integer, a truncated slug, or a legacy non-in_ prefix would surface here. Row: ${JSON.stringify(row).slice(0, 200)}`,
       ).toBe(true);
       // Tick 343 — commissions[].list_price_aud_cents two-part typeof-number
       // + Number.isFinite + strictly-positive integer wire-shape pin, second
