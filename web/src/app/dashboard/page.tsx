@@ -19,7 +19,7 @@ import {
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { getCurrentUser } from "@/lib/auth";
 import { getBalance } from "@/lib/credits";
-import { getProjectIdFromRequest, getActiveProject, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectIdFromRequest, getActiveProject, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { JourneyBar } from "@/components/dashboard/journey-bar";
@@ -680,8 +680,11 @@ export default async function DashboardPage({
   // Recent 5 reports for the summary card
   const displayReports = recentReports.slice(0, 5);
 
+  // Reseller sandbox flag — controls the persistent AUP banner (CLO D4-CLO-06).
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <WorkspaceLayout user={user} startupName={startupName} currentPhase={phase}>
+    <WorkspaceLayout user={user} startupName={startupName} currentPhase={phase} isSandbox={isSandbox}>
       <PageTracker page="dashboard" />
 
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">

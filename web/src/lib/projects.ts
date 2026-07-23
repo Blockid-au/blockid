@@ -164,6 +164,45 @@ export async function getActiveProject(
 }
 
 /**
+ * Return true when the currently-active project (per the request's
+ * `blockid_project` cookie) has `reseller_sandbox_id` set — i.e. it was
+ * provisioned as a reseller sandbox workspace via
+ * `/api/reseller/sandbox/setup`.
+ *
+ * Used by server layouts / pages to decide whether to render the
+ * `SandboxBanner` at the top of the workspace shell (CLO D4-CLO-06).
+ *
+ * Falls back to `false` for unauthenticated users, users with no active
+ * project, or when the Supabase admin client isn't configured — the banner
+ * fails safe (hidden) rather than raising false alarms.
+ */
+export async function getCurrentProjectIsSandbox(): Promise<boolean> {
+  try {
+    const { cookies } = await import("next/headers");
+    const { getCurrentUser } = await import("@/lib/auth");
+    const store = await cookies();
+    const slug = store.get("blockid_project")?.value;
+    const user = await getCurrentUser();
+    if (!user) return false;
+
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return false;
+
+    let query = supabase
+      .from("projects")
+      .select("reseller_sandbox_id")
+      .eq("user_id", user.id)
+      .is("archived_at", null);
+    query = slug ? query.eq("slug", slug) : query.eq("is_default", true);
+
+    const { data } = await query.maybeSingle();
+    return Boolean(data?.reseller_sandbox_id);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Get the active project_id from the request cookie.
  * Used by all APIs to scope data to the correct startup.
  * Returns null for unauthenticated requests or users without projects.
