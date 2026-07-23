@@ -2,9 +2,13 @@
 //
 // Grant-Credits modal (grant-form.tsx) and Customer Drawer
 // (customer-drawer.tsx) both ship EN + VI copy tables per Customer-Success
-// advisory §24 / §25. If any future edit adds an EN key without a matching
-// VI key (or vice-versa) the UI silently falls back to `undefined`, which
-// renders as empty text. This test catches that drift at CI time.
+// advisory §24 / §25 (see docs/plans/plan-delta-2026-07-23.md § P0.3 (d)+(e)).
+// Pattern mirrors ResellerPill (tick 85): shared useLocale() hook +
+// per-locale COPY table keyed on Locale.
+//
+// If any future edit adds an EN key without a matching VI key (or
+// vice-versa) the UI silently falls back to `undefined`, which renders as
+// empty text. This test catches that drift at CI time.
 
 import { describe, it, expect } from "vitest";
 
