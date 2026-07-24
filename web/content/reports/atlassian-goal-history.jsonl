@@ -49,3 +49,5 @@
 {"tick_id":"2026-07-24T07-17-01-222Z","ts":"2026-07-24T07:17:01.222Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T07-17-01-222Z","ts":"2026-07-24T07:17:01.230Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-24T07-18-00-000Z","ts":"2026-07-24T07:19:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1b","summary":"AU-flavoured SAFE test block (4 cases) + goal-file annotation; template body already on disk from Round 5.6c; 14/14 legal-template tests green."}
+{"tick_id":"2026-07-24T07-17-01-222Z","ts":"2026-07-24T07:20:04.043Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":182811,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-24T07-17-01-222Z","ts":"2026-07-24T07:20:04.073Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
