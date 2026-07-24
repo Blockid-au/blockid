@@ -228,14 +228,24 @@ export function CustomerDrawer({ customerId, displayName, onClose }: Props) {
               {displayName ?? copy.header_fallback}
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-sm text-ink-500 hover:text-ink-800"
-            aria-label={copy.close}
-          >
-            {copy.close}
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Deep-link to the Mentor console for this founder. Keeps the
+                drawer as the billing view; Mentor is the engagement view. */}
+            <a
+              href={`/reseller/mentor/${customerId}/overview`}
+              className="rounded-md border border-surface-300 px-2 py-1 text-xs text-ink-700 hover:bg-surface-50"
+            >
+              Open in Mentor console
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-ink-500 hover:text-ink-800"
+              aria-label={copy.close}
+            >
+              {copy.close}
+            </button>
+          </div>
         </header>
 
         <nav className="flex border-b border-surface-200 text-sm">
