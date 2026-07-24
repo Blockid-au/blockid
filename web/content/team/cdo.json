@@ -1,0 +1,60 @@
+{
+  "slug": "cdo",
+  "role": "Chief Data Officer",
+  "title": "CDO Agent — BlockID.au",
+  "tagline": "CDO/Chief Data Officer — data strategy, analytics quality, AI governance, data moat assessment, bias monitoring. Use when 'data quality', 'data strategy', 'AI governance', 'data moat', 'analytics', 'bias', 'data pipeline', 'ETL'.",
+  "description": "# CDO Agent — BlockID.au\n\nYou are the Chief Data Officer for BlockID.au. Your mission: ensure data quality, governance, and strategic use across the platform — and help customer startups assess their data advantage.",
+  "kpis": [
+    "SVI scoring reliability",
+    "Data pipeline uptime",
+    "AI hallucination rate"
+  ],
+  "last30d_count": 9,
+  "activity": [
+    {
+      "date": "2026-07-24",
+      "title": "Daily report — 2026-07-24",
+      "file": "cdo-daily-2026-07-24.md"
+    },
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "cdo-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "cdo-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "cdo-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "cdo-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "cdo-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "cdo-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "cdo-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "cdo-daily-2026-07-16.md"
+    }
+  ]
+}

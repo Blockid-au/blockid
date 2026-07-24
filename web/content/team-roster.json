@@ -1,0 +1,79 @@
+[
+  {
+    "slug": "cdo",
+    "role": "Chief Data Officer",
+    "tagline": "CDO/Chief Data Officer — data strategy, analytics quality, AI governance, data moat assessment, bias monitoring. Use when 'data quality', 'data strategy', 'AI governance', 'data moat', 'analytics', 'bias', 'data pipeline', 'ETL'.",
+    "last30d_count": 9,
+    "latest_activity_date": "2026-07-24"
+  },
+  {
+    "slug": "cfo",
+    "role": "Chief Financial Officer",
+    "tagline": "CFO Agent — revenue analytics, Stripe metrics, pricing optimization, cost management, financial reporting. Use when 'revenue', 'pricing', 'costs', 'financial', 'budget', 'MRR', 'ARR', 'burn rate', 'unit economics', 'P&L'.",
+    "last30d_count": 9,
+    "latest_activity_date": "2026-07-24"
+  },
+  {
+    "slug": "chro",
+    "role": "Chief People Officer",
+    "tagline": "CHRO/Chief People Officer — team building, hiring, culture, ESOP admin, org health, performance. Use when 'team', 'hiring', 'culture', 'ESOP', 'vesting', 'org structure', 'retention', 'people', 'talent'.",
+    "last30d_count": 8,
+    "latest_activity_date": "2026-07-23"
+  },
+  {
+    "slug": "ciso",
+    "role": "Chief Information Security Officer",
+    "tagline": "CISO/Chief Information Security Officer — cybersecurity, data protection, incident response, SOC2, privacy. Use when 'security posture', 'data breach', 'incident', 'SOC2', 'encryption', 'penetration test', 'privacy', 'GDPR', 'data protection'.",
+    "last30d_count": 9,
+    "latest_activity_date": "2026-07-24"
+  },
+  {
+    "slug": "clo",
+    "role": "Chief Legal Officer",
+    "tagline": "CLO/Chief Legal Officer — IP strategy, corporate governance, contracts, legal risk, regulatory. Use when 'legal', 'IP', 'patent', 'trademark', 'contract', 'governance', 'director', 'constitution', 'SHA', 'terms'.",
+    "last30d_count": 8,
+    "latest_activity_date": "2026-07-23"
+  },
+  {
+    "slug": "cmo",
+    "role": "Chief Marketing Officer",
+    "tagline": "CMO Agent — BlockID.au growth engine. Market research, SEO content, competitor analysis, traffic optimization, and conversion funnel management. Use when the user says 'cmo', 'marketing', 'seo', 'content', 'competitor analysis', 'market research', or 'growth strategy'.",
+    "last30d_count": 9,
+    "latest_activity_date": "2026-07-24"
+  },
+  {
+    "slug": "coo",
+    "role": "Chief Operating Officer",
+    "tagline": "COO Agent — sprint planning, cross-team coordination, operational metrics, deployment management. Use when 'sprint', 'plan', 'coordinate', 'operations', 'standup', 'deploy schedule', 'blocker', 'velocity'.",
+    "last30d_count": 9,
+    "latest_activity_date": "2026-07-24"
+  },
+  {
+    "slug": "cpo",
+    "role": "Chief Product Officer",
+    "tagline": "CPO Agent — product strategy, feature prioritization, UX research, user journeys, A/B testing, onboarding. Use when 'product', 'feature request', 'user journey', 'onboarding', 'prioritize', 'roadmap'.",
+    "last30d_count": 8,
+    "latest_activity_date": "2026-07-23"
+  },
+  {
+    "slug": "cro",
+    "role": "Chief Revenue Officer",
+    "tagline": "CRO Agent — conversion optimization, funnel analysis, retention metrics, onboarding flow, A/B testing. Use when 'conversion', 'funnel', 'retention', 'churn', 'onboarding', 'A/B test', 'upsell', 'activation'.",
+    "last30d_count": 9,
+    "latest_activity_date": "2026-07-24"
+  },
+  {
+    "slug": "cto",
+    "role": "Chief Technology Officer",
+    "tagline": "CTO Agent — technical architecture, feature development, bug fixes, API design, CI/CD, security, performance. Use when 'build feature', 'fix bug', 'api', 'database', 'architecture', 'tech debt', 'refactor'.",
+    "last30d_count": 9,
+    "latest_activity_date": "2026-07-24"
+  },
+  {
+    "slug": "customer-success",
+    "role": "Customer Success Lead",
+    "tagline": "Customer Success Lead — onboarding, NPS, churn prevention, engagement, support escalation. Use when 'customer', 'onboarding', 'NPS', 'churn', 'support', 'engagement', 'satisfaction'.",
+    "last30d_count": 0,
+    "latest_activity_date": null
+  }
+]
