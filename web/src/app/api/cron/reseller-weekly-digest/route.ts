@@ -64,6 +64,11 @@ import {
   type DigestSnapshotPerResellerMetricPctChange,
 } from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change";
 import {
+  computeDigestSnapshotPerResellerMetricPctChangePerMetric,
+  formatDigestSnapshotPerResellerMetricPctChangePerMetricSection,
+  type DigestSnapshotPerResellerMetricPctChangePerMetric,
+} from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change-per-metric";
+import {
   computeDigestSnapshotTopMovers,
   formatDigestSnapshotTopMoversSection,
   type DigestSnapshotTopMovers,
@@ -1278,6 +1283,9 @@ export async function GET(req: Request) {
   let snapshotPerResellerMetricPctChange:
     | DigestSnapshotPerResellerMetricPctChange
     | null = null;
+  let snapshotPerResellerMetricPctChangePerMetric:
+    | DigestSnapshotPerResellerMetricPctChangePerMetric
+    | null = null;
   let snapshotTopMovers: DigestSnapshotTopMovers | null = null;
   let topMoversSection = "";
   let snapshotTopMoversPerMetric: DigestSnapshotTopMoversPerMetric | null = null;
@@ -1403,6 +1411,31 @@ export async function GET(req: Request) {
       );
     if (perResellerMetricPctChangeSection)
       html += perResellerMetricPctChangeSection;
+    // P11.42 — per-metric coverage spotlight for the P11.39/P11.40 per-
+    // (reseller × metric) percent-change drill-down (module P11.41).
+    // P11.39/P11.40 pool every metric into one |pct_change| leaderboard so a
+    // metric whose partners all move sharply in relative terms (an
+    // attributed_mrr sea-change week) can starve coverage for metrics whose
+    // biggest movers are smaller in |pct_change| but still material to ops
+    // (a tier_mix or attributed_churn_30d row that never surfaces even
+    // though it crossed the PCT_CHANGE_MATERIAL_THRESHOLD floor). This
+    // section guarantees every HEADLINE_METRICS spec with a computable-pct
+    // mover gets at least one row — the P11.26 → P11.41 twin on the
+    // relative axis. Consumes the SAME snapshotPerResellerRollingTrend fold
+    // as P11.40, so a metric group's spotlight row cannot diverge from the
+    // pooled drill-down above it. Rendered directly after the per-reseller
+    // pct-change drill-down so ops walks pooled per-partner |pct| →
+    // per-metric |pct| spotlight (coverage guarantee) on the same page.
+    snapshotPerResellerMetricPctChangePerMetric =
+      computeDigestSnapshotPerResellerMetricPctChangePerMetric(
+        snapshotPerResellerRollingTrend,
+      );
+    const perResellerMetricPctChangePerMetricSection =
+      formatDigestSnapshotPerResellerMetricPctChangePerMetricSection(
+        snapshotPerResellerMetricPctChangePerMetric,
+      );
+    if (perResellerMetricPctChangePerMetricSection)
+      html += perResellerMetricPctChangePerMetricSection;
     // P11.25 — top-N |delta| movers headline (module P11.24). Project the
     // per-reseller rolling trend into the biggest cross-metric shifts and
     // render a compact executive summary. Computed here so the source data
@@ -1833,6 +1866,25 @@ export async function GET(req: Request) {
             top_n: snapshotPerResellerMetricPctChange.top_n,
             threshold: snapshotPerResellerMetricPctChange.threshold,
             rows: snapshotPerResellerMetricPctChange.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_metric_pct_change_per_metric:
+      snapshotPerResellerMetricPctChangePerMetric
+        ? {
+            window_size:
+              snapshotPerResellerMetricPctChangePerMetric.window_size,
+            first_week:
+              snapshotPerResellerMetricPctChangePerMetric.first_week,
+            last_week:
+              snapshotPerResellerMetricPctChangePerMetric.last_week,
+            top_n_per_metric:
+              snapshotPerResellerMetricPctChangePerMetric.top_n_per_metric,
+            threshold:
+              snapshotPerResellerMetricPctChangePerMetric.threshold,
+            rows: snapshotPerResellerMetricPctChangePerMetric.rows,
           }
         : {
             skipped_reason:
