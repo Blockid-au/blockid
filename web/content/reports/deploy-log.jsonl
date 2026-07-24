@@ -1200,3 +1200,7 @@
 {"ts":"2026-07-24T04:54:41.381Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T04-50-01-831Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T05:00:37Z","status":"success","gates":"9/9","pid":"2562215","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T05:10:23.625Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 383 twin-lift reseller_attributions row-cluster summary onto me-attribution (cache-projection read-anchor subset opens 1/1) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T05:10:33.606Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T05-05-01-711Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T05:15:06.094Z","event":"github-push-master","detail":"Blockid-au: fix(pricing): hide Free tier + correct founder workspace copy (Bugs 1+2) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T05:17:03Z","status":"success","gates":"9/9","pid":"2616738","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-24T05:24:46.301Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 384 twin-lift reseller_attributions row-cluster summary onto scope-boundary (workspace-owner negative-space read-anchor subset opens 1/1) (1 commits)","source":"github-webhook"}
