@@ -112,3 +112,5 @@
 {"tick_id":"2026-07-24T08-57-01-475Z","ts":"2026-07-24T08:57:01.475Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T08-57-01-475Z","ts":"2026-07-24T08:57:01.482Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id": "2026-07-24T09-00-00-000Z", "ts": "2026-07-24T09:01:31.641Z", "loop_label": "atlassian-goal-loop", "stage": "phase_shipped", "phase": "P1l", "summary": "Ch10 primary-vs-secondary section (8-bullet EN+VI) + 2 vitest cases; closes \u00a71 P10 P0 gap + Q5"}
+{"tick_id":"2026-07-24T08-57-01-475Z","ts":"2026-07-24T09:01:59.270Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":297787,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-24T08-57-01-475Z","ts":"2026-07-24T09:01:59.301Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
