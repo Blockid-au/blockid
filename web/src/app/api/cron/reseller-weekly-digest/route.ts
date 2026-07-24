@@ -30,6 +30,12 @@ import {
   type BudgetUtilizationRow,
 } from "@/lib/reseller/budget-utilization";
 import {
+  computeClearedMtdByReseller,
+  formatWeeklyDigestClearedMtdSection,
+  type ClearedCommissionRow,
+  type ClearedMtdRow,
+} from "@/lib/reseller/commission-cleared-mtd";
+import {
   computeMonthlyUsage,
   monthKey as creditMonthKey,
   type ResellerCreditGrantRow,
@@ -389,6 +395,88 @@ export async function GET(req: Request) {
       }));
       const tierMixSection = formatWeeklyDigestTierMixSection(tierMixRows);
       if (tierMixSection) html += tierMixSection;
+    }
+  }
+
+  // P11.3 canonical KPI (`commission_cleared_mtd` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Per-reseller cleared-commission count + AUD total
+  // for the current UTC month. Joins reseller_commission_events(event_type=
+  // 'cleared', created_at >= start-of-month) against parent reseller_commissions
+  // for reseller_id + commission_aud_cents. Failures degrade to a skipped
+  // section so the earlier signals still ship.
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const clearedMonthKey = currentMonthKey;
+  let clearedMtdRows: ClearedMtdRow[] = [];
+  let clearedMtdSkippedReason: string | null = null;
+  const { data: clearedEventRows, error: clearedEventErr } = await supabase
+    .from("reseller_commission_events")
+    .select("commission_id, created_at")
+    .eq("event_type", "cleared")
+    .gte("created_at", monthStart.toISOString());
+  if (clearedEventErr) {
+    console.error(
+      "[reseller-weekly-digest] cleared events query failed",
+      clearedEventErr.message,
+    );
+    clearedMtdSkippedReason = "cleared_events_query_failed";
+  } else {
+    const clearedEvents = (clearedEventRows ?? []) as {
+      commission_id: string;
+      created_at: string;
+    }[];
+    const commissionIds = Array.from(
+      new Set(clearedEvents.map((e) => e.commission_id).filter(Boolean)),
+    );
+    const commissionById = new Map<
+      string,
+      { reseller_id: string; commission_aud_cents: number }
+    >();
+    if (commissionIds.length > 0) {
+      const { data: commissionRows, error: commissionErr } = await supabase
+        .from("reseller_commissions")
+        .select("id, reseller_id, commission_aud_cents")
+        .in("id", commissionIds);
+      if (commissionErr) {
+        console.error(
+          "[reseller-weekly-digest] cleared commissions query failed",
+          commissionErr.message,
+        );
+        clearedMtdSkippedReason = "cleared_commissions_query_failed";
+      } else {
+        for (const c of (commissionRows ?? []) as {
+          id: string;
+          reseller_id: string;
+          commission_aud_cents: number;
+        }[]) {
+          commissionById.set(c.id, {
+            reseller_id: c.reseller_id,
+            commission_aud_cents: c.commission_aud_cents,
+          });
+        }
+      }
+    }
+    if (!clearedMtdSkippedReason) {
+      const clearedRows: ClearedCommissionRow[] = [];
+      for (const e of clearedEvents) {
+        const parent = commissionById.get(e.commission_id);
+        if (!parent) continue;
+        clearedRows.push({
+          reseller_id: parent.reseller_id,
+          commission_aud_cents: parent.commission_aud_cents,
+        });
+      }
+      const mtdByReseller = computeClearedMtdByReseller(resellerIds, clearedRows);
+      clearedMtdRows = resellers.map((r) => ({
+        reseller_id: r.id,
+        reseller_code: r.code,
+        reseller_display_name: r.display_name ?? r.code,
+        mtd: mtdByReseller.get(r.id) ?? { cleared_count: 0, cleared_cents: 0 },
+      }));
+      const clearedMtdSection = formatWeeklyDigestClearedMtdSection(
+        clearedMtdRows,
+        clearedMonthKey,
+      );
+      if (clearedMtdSection) html += clearedMtdSection;
     }
   }
 
