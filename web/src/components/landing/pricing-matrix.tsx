@@ -22,6 +22,7 @@ import {
   type Plan,
   type Segment,
 } from "@/lib/plans-v2";
+import { TRIAL_COPY } from "@/lib/plans/trial-copy";
 
 // pricing-anchor-2026-07 (T0121/T0123). When the "with_anchor" variant is
 // active on the founder segment we synthesise a Founder+ SKU and prepend
@@ -194,8 +195,7 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
       <p className="mt-10 text-center text-xs text-brand-ink-muted">
         Prices in Australian dollars, GST-exclusive. GST added at checkout for
         Australian customers once Auschain PTY LTD (ABN 79 659 615 111) crosses
-        the A$75,000 turnover threshold. Trial ends automatically — we email
-        3 days before any charge. Cancel any time from Billing.
+        the A$75,000 turnover threshold. {TRIAL_COPY.fine_print}
       </p>
       <p className="mx-auto mt-4 max-w-2xl border-t border-white/5 pt-4 text-center text-xs text-brand-ink-muted">
         Not financial advice. Plan information is general in nature and does
