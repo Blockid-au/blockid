@@ -1453,3 +1453,4 @@
 {"ts":"2026-07-24T17:05:20.482Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T16-57-01-886Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T17:07:02.027Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T17-00-01-140Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T17:11:32Z","status":"success","gates":"9/9","pid":"880956","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-24T17:16:25.914Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.42 wire per-metric pct-change coverage spotlight into weekly digest (1 commits)","source":"github-webhook"}
