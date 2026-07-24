@@ -124,6 +124,11 @@ import {
   type DigestSnapshotPctChangeStreakCoverage,
 } from "@/lib/reseller/digest-snapshot-pct-change-streak-coverage";
 import {
+  computeDigestSnapshotPerResellerPctChangeStreakCoverage,
+  formatDigestSnapshotPerResellerPctChangeStreakCoverageSection,
+  type DigestSnapshotPerResellerPctChangeStreakCoverage,
+} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-coverage";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1349,6 +1354,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPctChangeStreakCoverage
     | null = null;
   let pctChangeStreakCoverageSection = "";
+  let snapshotPerResellerPctChangeStreakCoverage:
+    | DigestSnapshotPerResellerPctChangeStreakCoverage
+    | null = null;
+  let perResellerPctChangeStreakCoverageSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1675,6 +1684,24 @@ export async function GET(req: Request) {
       formatDigestSnapshotPctChangeStreakCoverageSection(
         snapshotPctChangeStreakCoverage,
       );
+    // P11.56 — per-reseller sustained-|pct|-material streak coverage summary
+    // (module P11.55). Per-partner topline for the P11.51/P11.52 spotlight
+    // below, mirroring how P11.54 tops P11.49/P11.50 on the portfolio axis.
+    // Consumes the SAME snapshotPerResellerRollingTrend the P11.51 detector
+    // already consumes (no extra per-reseller trend fold, no divergence risk
+    // vs. the spotlight rows this coverage summary tops). Lands directly
+    // above perResellerPctChangeStreaksSection so ops reads the per-partner
+    // topline (which partners have how many KPIs on a streak) before scanning
+    // the per-(metric × partner) detail rows — mirrors the P11.54 topline →
+    // P11.50 detail convention on the portfolio axis.
+    snapshotPerResellerPctChangeStreakCoverage =
+      computeDigestSnapshotPerResellerPctChangeStreakCoverage(
+        snapshotPerResellerRollingTrend,
+      );
+    perResellerPctChangeStreakCoverageSection =
+      formatDigestSnapshotPerResellerPctChangeStreakCoverageSection(
+        snapshotPerResellerPctChangeStreakCoverage,
+      );
   }
   if (
     topMoversSection ||
@@ -1684,6 +1711,7 @@ export async function GET(req: Request) {
     perResellerDirectionStreaksSection ||
     pctChangeStreakCoverageSection ||
     pctChangeStreaksSection ||
+    perResellerPctChangeStreakCoverageSection ||
     perResellerPctChangeStreaksSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
@@ -1710,6 +1738,7 @@ export async function GET(req: Request) {
       perResellerDirectionStreaksSection +
       pctChangeStreakCoverageSection +
       pctChangeStreaksSection +
+      perResellerPctChangeStreakCoverageSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -2220,6 +2249,22 @@ export async function GET(req: Request) {
           skipped_reason:
             previousSnapshotSkipReason ?? "no_previous_snapshot",
         },
+    snapshot_per_reseller_pct_change_streak_coverage:
+      snapshotPerResellerPctChangeStreakCoverage
+        ? {
+            window_size:
+              snapshotPerResellerPctChangeStreakCoverage.window_size,
+            first_week: snapshotPerResellerPctChangeStreakCoverage.first_week,
+            last_week: snapshotPerResellerPctChangeStreakCoverage.last_week,
+            min_streak_length:
+              snapshotPerResellerPctChangeStreakCoverage.min_streak_length,
+            threshold: snapshotPerResellerPctChangeStreakCoverage.threshold,
+            rows: snapshotPerResellerPctChangeStreakCoverage.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     ran_at: now.toISOString(),
   };
 
