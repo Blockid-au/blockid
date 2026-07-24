@@ -80,6 +80,167 @@ const NON_RESELLER_FOUNDER_EMAIL =
 
 const ROUTE = "/api/reseller/me";
 
+// Tick 383 — reseller_attributions row-cluster cross-column invariant summary
+// (option (i) from tick 382 next-picks). Cross-surface twin-lift of the tick
+// 376/377/378/379/380/381/382 module-scope summary onto me-attribution.spec.ts
+// — the EIGHTH reseller_attributions-touching surface and the FIRST NON-
+// scopedReseller read-anchor coverage on the cluster (the seven prior twin-
+// lifts all anchored at scope.ts:63-84 allowedCustomerIds(); this one anchors
+// at app_users.attribution_reseller_id + resellers.id — a DISTINCT read-path
+// node that mirrors the cluster through the cache column rather than the
+// canonical reseller_attributions SELECT). Raises 8/16 surface parity on the
+// reseller_attributions row cluster; 8 sibling touching surfaces still
+// pending (scope-boundary, credit-grant-authz, credit-grant-validation,
+// audit-log-writes, audit-anomaly-scan, sandbox-setup-authz, admin-reseller-
+// detail-authz, admin-reseller-detail-validation).
+//
+// The reseller_attributions row cluster carries FIVE invariants at
+// web/supabase/migrations/0091_reseller_module_foundations.sql:112-142
+// (IDENTICAL enumeration to tick 376/377/378/379/380/381/382):
+//   - ck_subject_fk_matches_type (0091:128-132) — CROSS-COLUMN: subject_type=
+//                                                  'user'⇒subject_user_id set
+//                                                  + subject_project_id null;
+//                                                  subject_type='project'⇒
+//                                                  inverse
+//   - subject_type CHECK          (0091:115)     — subject_type ∈ {user,
+//                                                  project}
+//   - status CHECK                (0091:118-119) — status ∈ {active, revoked}
+//                                                  (DEFAULT 'active')
+//   - source CHECK                (0091:123)     — source ∈ {code,
+//                                                  provisioned, admin_manual}
+//   - reseller_attributions_active_project_uniq  — PARTIAL-UNIQUE INDEX
+//     (0091:137-139)                              on (subject_project_id)
+//                                                  WHERE subject_type=
+//                                                  'project' AND status=
+//                                                  'active' AND opted_out=
+//                                                  false; enforces per U.15.1
+//                                                  that a project can carry
+//                                                  at most ONE active non-
+//                                                  opted-out attribution
+//                                                  regardless of reseller
+//
+// Writer-side source: IDENTICAL to tick 376/377/378/379/380/381/382 — DB CHECK
+// + partial-unique guards at 0091:112-142 wrap every reseller_attributions
+// insert; enforcement happens at DB write time. Route-side callers precompose
+// the insert payload under an always-'project' discriminator — the 'user'
+// branch of ck_subject_fk_matches_type is UNREACHABLE-BY-CONSTRUCTION from
+// EVERY current write path (grep audit: retail-attribution.ts:165-172 +
+// create-startup/route.ts:301-313 both hard-code subject_type='project' +
+// subject_project_id=<uuid> + subject_user_id=null; no code path ever inserts
+// subject_type='user').
+//
+// Application read-path anchor for THIS surface: KEY DELTA vs tick 376/377/
+// 378/379/380/381/382. me-attribution does NOT anchor at scope.ts:63-84
+// allowedCustomerIds() — the /api/reseller/me handler at web/src/app/api/
+// reseller/me/route.ts:42-46 reads app_users.attribution_reseller_id directly
+// via .eq("id", user.id).maybeSingle() and, when non-null, follows the FK to
+// resellers via a second .eq("id", resellerId).maybeSingle() at route.ts:56-
+// 60. The cache column app_users.attribution_reseller_id (0092 extension) is
+// the DENORMALISED MIRROR of the canonical reseller_attributions row — it is
+// written by processAttribution() at signup and by resolveAttributionCandidate
+// on invoice.paid webhooks. A regression that let the cache diverge from the
+// primary reseller_attributions row would surface on the pill's rendered
+// display_name (this surface) BEFORE surfacing on the drawer/reveal-email
+// SELECT-lens siblings (which read reseller_attributions directly through
+// scopedReseller). This is the ONLY reseller_attributions-touching read
+// surface across the codebase that traverses the cluster via its cache
+// projection rather than through the source-of-truth table — the r-01-exempt
+// pragma at route.ts:18 documents the design intent (any signed-in user may
+// ask about their OWN attribution, so scopedReseller would reject them by
+// design). The 'user'-branch UNREACHABLE-BY-CONSTRUCTION posture still holds
+// on THIS surface: attribution_reseller_id resolves to a reseller.id
+// regardless of the subject_type on the source row, but every write path
+// planted subject_type='project' per the write-path audit, so any hypothetical
+// subject_type='user' attribution would exist only as an out-of-band DB
+// insert.
+//
+// Runtime enforcement on THIS spec: DIFFERENT from every prior twin-lift. All
+// six harness-mode SELECT-lens surfaces (drawer-authz/drawer-validation/
+// reveal-email-authz/reveal-email-validation tick 379-382 + create-startup
+// pair tick 376-377) fire scopedReseller().allowedCustomerIds() from a
+// reseller-admin session; the two rows on THIS spec (row 1 unauthenticated
+// 401 + row 2 authenticated_no_attribution 200 reseller:null) fire the
+// app_users .eq("id", user.id).select("attribution_reseller_id") SELECT
+// from a FOUNDER session (row 2) or bail upstream at getCurrentUser (row 1
+// — route.ts:29-33 short-circuits before getSupabaseAdmin, app_users SELECT,
+// or resellers SELECT run, matching the create-startup-authz row 1 posture
+// but through a different route). Row 2 fires the SELECT and returns
+// attribution_reseller_id=null (the founder QA seed row has no attribution),
+// so the resellers SELECT at route.ts:56-60 never fires — that keeps the
+// harness-free row 2 safe against staging (no reseller_attributions row is
+// read, only the cache column projection). Wave-2 row 145 (active_wholesale
+// happy path, already landed at test.describe #2) DOES traverse the full
+// chain: app_users SELECT returns fixture.resellerId (stamped by
+// fixture.attachAttributedCustomer), resellers SELECT returns the seeded
+// reseller with status='active', and the response envelope carries the full
+// {code, display_name, billing_model} shape. That row exercises the CACHE-
+// PROJECTION read-lens on the cluster INCLUDING the positive resolution
+// branch through a read anchor that no other spec on the cluster exercises.
+//
+// Coverage-per-guard posture on this surface: ZERO-COVERAGE-PER-GUARD on
+// all five CHECK/index invariants — the /me route never touches the
+// reseller_attributions table so no DB CHECK constraint or partial-unique
+// index fires; it reads only the denormalised attribution_reseller_id cache
+// column on app_users. IDENTICAL to tick 379/380/381/382 posture on the
+// per-guard axis but DIFFERENT on the read-anchor axis: the 'project' branch
+// of ck_subject_fk_matches_type is NOT READ-side EXERCISED here because
+// subject_type is not projected through the cache column; the 'user' branch
+// remains UNREACHABLE-BY-CONSTRUCTION AND is DEAD CODE at scope.ts:73 but
+// is ALSO INVISIBLE to this surface because the cache projection collapses
+// the CROSS-COLUMN discriminator into a single FK. Status 'active' branch is
+// READ-side EXERCISED via the resellers-side filter at route.ts:62 (reseller
+// .status !== "active" ⇒ reseller:null), NOT via the reseller_attributions-
+// side .eq("status","active") filter — that means a regression that flipped
+// a reseller_attributions row from active→revoked would NOT surface on the
+// /me pill until processAttribution or resolveAttributionCandidate re-ran
+// against the stale cache column. Source CHECK all three enum branches
+// ZERO-COVERAGE-PER-GUARD on both write and read (source is not projected
+// through the cache column, so a regression that widened the source enum
+// would not surface here — same posture as every prior twin-lift but for a
+// different underlying reason: those surfaces don't project source through
+// scope.ts:65, this one doesn't project it because the entire cluster is
+// bypassed).
+//
+// Symmetric-cluster posture: THIS surface opens the CACHE-PROJECTION read-
+// anchor subset on the cluster (previously empty — 0/1 within its own
+// subset, now 1/1). Combined post-tick 383 posture: 8/16 total surfaces
+// summarised on the cluster (create-startup-authz tick 376 + create-startup-
+// validation tick 377 + attribution-timing tick 378 + drawer-authz tick 379
+// + drawer-validation tick 380 + reveal-email-authz tick 381 + reveal-email-
+// validation tick 382 + me-attribution this tick — opens the cache-projection
+// read-anchor subset while the seven prior ticks all anchored on the
+// canonical scopedReseller().allowedCustomerIds() SELECT). 8 sibling touching
+// surfaces still pending twin-lift. The 'user'-branch complement stays
+// ASYMMETRIC + UNREACHABLE-BY-CONSTRUCTION + DEAD-CODE-AT-READ across the
+// entire codebase per tick 376/377/378/379/380/381/382 posture — full 16-
+// surface × 5-invariant saturation would collate ZERO-COVERAGE-PER-GUARD ×
+// UNREACHABLE-BY-CONSTRUCTION documentation on the 'user' branch across
+// every touching spec, with the cache-projection subset carrying an
+// additional CROSS-COLUMN-INVISIBLE-BY-PROJECTION annotation that only
+// applies to surfaces that traverse the cluster through app_users
+// .attribution_reseller_id rather than through the source-of-truth table.
+//
+// Diagnostic delta of this pass: pure documentation-only doc-block hoist —
+// no new imports, no new module-scope constants, no per-column assert
+// added, no fixture change, no route change, no migration change. Doc-
+// block placed after the ROUTE const (line ~81) and before the first
+// test.describe (line ~83 pre-edit), matching the tick 376 placement on
+// create-startup-authz.spec.ts (after NON_RESELLER_FOUNDER_EMAIL const,
+// before first test.describe), the tick 377 placement on create-startup-
+// validation.spec.ts (after CASES const, before first test.describe), the
+// tick 378 placement on attribution-timing.spec.ts (after shared-fixture
+// imports, before first test.describe), the tick 379 placement on drawer-
+// authz.spec.ts (after MASKED_EMAIL_RE const, before first test.describe),
+// the tick 380 placement on drawer-validation.spec.ts (after MASKED_EMAIL_
+// RE const, before first test.describe), the tick 381 placement on reveal-
+// email-authz.spec.ts (after REVEAL_ROUTE const, before first test
+// .describe), and the tick 382 placement on reveal-email-validation.spec.ts
+// (after REVEAL_ROUTE const, before first test.describe). Twin-lift now
+// spans a heterogeneous read-anchor set — six specs anchor at scope.ts:63-
+// 84 allowedCustomerIds(), one spec (this one) anchors at the app_users
+// .attribution_reseller_id cache column, and the CROSS-COLUMN ck_subject_
+// fk_matches_type summary is now documented across both anchor subsets.
+
 test.describe("Reseller /me attribution pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 unauthenticated", async ({
     request,
