@@ -177,3 +177,7 @@
 {"tick_id":"2026-07-24T11-13-manual","ts":"2026-07-24T11:15:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5a-tile","summary":"InvestorReadinessTile switched to per-phase view via readiness_by_phase[currentPhase]; 22 vitest cases green, playwright FAKE_PAYLOAD expanded, blended fallback retained.","tests":{"vitest_files":4,"vitest_cases":47}}
 {"tick_id":"2026-07-24T11-07-01-598Z","ts":"2026-07-24T11:14:48.202Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":466590,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-24T11-07-01-598Z","ts":"2026-07-24T11:14:48.231Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
+{"tick_id":"2026-07-24T11-07-01-598Z","ts":"2026-07-24T11:14:50.284Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-24T11-07-01-598Z","ts":"2026-07-24T11:14:50.289Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"65a2c784","last_deployed":"9f7aad6"}
+{"tick_id":"2026-07-24T11-07-01-598Z","ts":"2026-07-24T11:21:01.788Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"65a2c784"}
+{"tick_id":"2026-07-24T11-07-01-598Z","ts":"2026-07-24T11:21:01.790Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}

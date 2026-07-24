@@ -3,6 +3,7 @@ import {
   DIGEST_SNAPSHOT_KPI_SECTIONS,
   buildDigestSnapshot,
   parseDigestSnapshotLine,
+  readLastDigestSnapshot,
   serialiseDigestSnapshot,
   summariseDigestSnapshot,
   type DigestSnapshotEnvelope,
@@ -234,5 +235,62 @@ describe("summariseDigestSnapshot", () => {
     expect(summary.week).toBe(WEEK);
     expect(summary.reseller_count).toBe(4);
     expect(summary.emailed).toBe(false);
+  });
+});
+
+describe("readLastDigestSnapshot", () => {
+  function makeLine(week: string): string {
+    return serialiseDigestSnapshot(
+      buildDigestSnapshot({ capturedAt: CAPTURED, week, envelope: baseEnvelope() }),
+    );
+  }
+
+  it("returns null on empty input", () => {
+    expect(readLastDigestSnapshot("")).toBeNull();
+  });
+
+  it("returns null on whitespace-only input", () => {
+    expect(readLastDigestSnapshot("\n\n   \n")).toBeNull();
+  });
+
+  it("returns null on non-string input", () => {
+    // Runtime robustness check — TS forbids this but a bad caller could reach here.
+    expect(
+      readLastDigestSnapshot(undefined as unknown as string),
+    ).toBeNull();
+  });
+
+  it("returns the only snapshot when the file has exactly one row", () => {
+    const week = "2026-W28";
+    const s = readLastDigestSnapshot(makeLine(week));
+    expect(s?.week).toBe(week);
+  });
+
+  it("returns the newest snapshot when the file has multiple rows", () => {
+    const text = makeLine("2026-W28") + makeLine("2026-W29") + makeLine("2026-W30");
+    const s = readLastDigestSnapshot(text);
+    expect(s?.week).toBe("2026-W30");
+  });
+
+  it("skips a corrupted trailing line and returns the previous good row", () => {
+    const text = makeLine("2026-W28") + makeLine("2026-W29") + "{not-json\n";
+    const s = readLastDigestSnapshot(text);
+    expect(s?.week).toBe("2026-W29");
+  });
+
+  it("skips multiple corrupted trailing lines", () => {
+    const text = makeLine("2026-W28") + "not-json\n" + "another-bad\n";
+    const s = readLastDigestSnapshot(text);
+    expect(s?.week).toBe("2026-W28");
+  });
+
+  it("handles a file with no trailing newline (mid-write truncation)", () => {
+    const line = makeLine("2026-W31").replace(/\n$/, "");
+    const s = readLastDigestSnapshot(line);
+    expect(s?.week).toBe("2026-W31");
+  });
+
+  it("returns null when every line is corrupted", () => {
+    expect(readLastDigestSnapshot("nope\nnah\n")).toBeNull();
   });
 });

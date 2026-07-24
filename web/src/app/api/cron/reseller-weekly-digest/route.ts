@@ -16,15 +16,22 @@
 //
 // Auth: shared CRON_SECRET pattern (matches sibling reseller-* cron routes).
 
-import { appendFileSync, mkdirSync } from "fs";
+import { appendFileSync, mkdirSync, readFileSync } from "fs";
 import { dirname } from "path";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
 import {
   buildDigestSnapshot,
+  readLastDigestSnapshot,
   serialiseDigestSnapshot,
+  type DigestSnapshot,
 } from "@/lib/reseller/digest-snapshot";
+import {
+  computeDigestSnapshotDelta,
+  formatDigestSnapshotDeltaSection,
+  type DigestSnapshotDelta,
+} from "@/lib/reseller/digest-snapshot-delta";
 import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
@@ -1081,6 +1088,94 @@ export async function GET(req: Request) {
   );
   if (sandboxShareSection) html += sandboxShareSection;
 
+  // P11.15 week-over-week delta section. Read the previous snapshot from the
+  // JSONL history (P11.13 persistence), diff it against the current envelope
+  // via the pure lib (P11.14), and append the resulting HTML table so ops
+  // sees which KPI sections changed shape without opening two digest emails
+  // side by side. A missing/unreadable/empty JSONL history is treated as a
+  // first-run no-op (skipped_reason='no_previous_snapshot') so the very first
+  // Monday after P11.15 ships does not fault. The delta section is deferred
+  // until AFTER every KPI section is appended so the trailing table stays
+  // adjacent to the sandbox-share row it primarily compares against.
+  const webDir =
+    process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
+  const digestJsonlPath = `${webDir}/content/reports/reseller-weekly-digest.jsonl`;
+  let previousSnapshot: DigestSnapshot | null = null;
+  let previousSnapshotSkipReason: string | null = null;
+  try {
+    const text = readFileSync(digestJsonlPath, "utf8");
+    previousSnapshot = readLastDigestSnapshot(text);
+    if (!previousSnapshot) previousSnapshotSkipReason = "no_previous_snapshot";
+  } catch (e) {
+    const errno =
+      e && typeof e === "object" && "code" in e
+        ? String((e as { code?: unknown }).code)
+        : "";
+    previousSnapshotSkipReason =
+      errno === "ENOENT" ? "no_previous_snapshot" : "history_read_failed";
+    if (errno !== "ENOENT") {
+      console.error("[reseller-weekly-digest] history read failed", e);
+    }
+  }
+
+  // Build a slim envelope shaped like the response body's KPI-section keys so
+  // computeDigestSnapshotDelta reads the same rows-length + skipped-reason
+  // signals from this run as it will from next week's persisted snapshot. Only
+  // presence + skipped_reason + rows.length are read (see readSectionState),
+  // so we omit the numeric row content here to keep the diff footprint small.
+  const currentEnvelopeForDelta: Record<string, unknown> = {
+    reseller_count: digestRows.length,
+    emailed: false,
+    budget_utilization: budgetSkippedReason
+      ? { skipped_reason: budgetSkippedReason }
+      : { rows: budgetRows },
+    tier_mix: tierMixSkippedReason
+      ? { skipped_reason: tierMixSkippedReason }
+      : { rows: tierMixRows },
+    commission_cleared_mtd: clearedMtdSkippedReason
+      ? { skipped_reason: clearedMtdSkippedReason }
+      : { rows: clearedMtdRows },
+    clawback_exposure: clawbackSkippedReason
+      ? { skipped_reason: clawbackSkippedReason }
+      : { rows: clawbackRows },
+    attributed_mrr: mrrSkippedReason
+      ? { skipped_reason: mrrSkippedReason }
+      : { rows: mrrRows },
+    attributed_net_contribution: netContributionSkippedReason
+      ? { skipped_reason: netContributionSkippedReason }
+      : { rows: netContributionRows },
+    attributed_churn_30d: churnSkippedReason
+      ? { skipped_reason: churnSkippedReason }
+      : { rows: churnRows },
+    ledger_drift_events: driftSkippedReason
+      ? { skipped_reason: driftSkippedReason }
+      : { rows: driftRows },
+    gst_reconciliation_delta: gstDeltaSkippedReason
+      ? { skipped_reason: gstDeltaSkippedReason }
+      : { rows: gstDeltaRows },
+    cohort_velocity: { rows: cohortVelocityRows },
+    ltv_cac_per_reseller: ltvCacSkippedReason
+      ? { skipped_reason: ltvCacSkippedReason }
+      : { rows: ltvCacRows },
+    sandbox_share_of_budget: budgetSkippedReason
+      ? { skipped_reason: budgetSkippedReason }
+      : { rows: sandboxShareRows },
+  };
+  const currentSnapshotForDelta = buildDigestSnapshot({
+    capturedAt: now,
+    week,
+    envelope: currentEnvelopeForDelta,
+  });
+  let snapshotDelta: DigestSnapshotDelta | null = null;
+  if (previousSnapshot) {
+    snapshotDelta = computeDigestSnapshotDelta(
+      previousSnapshot,
+      currentSnapshotForDelta,
+    );
+    const deltaSection = formatDigestSnapshotDeltaSection(snapshotDelta);
+    if (deltaSection) html += deltaSection;
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -1306,6 +1401,21 @@ export async function GET(req: Request) {
             share_of_budget_pct: r.share.share_of_budget_pct,
           })),
         },
+    snapshot_delta: snapshotDelta
+      ? {
+          previous_captured_at: snapshotDelta.previous_captured_at,
+          previous_week: snapshotDelta.previous_week,
+          current_captured_at: snapshotDelta.current_captured_at,
+          current_week: snapshotDelta.current_week,
+          previous_reseller_count: snapshotDelta.previous_reseller_count,
+          current_reseller_count: snapshotDelta.current_reseller_count,
+          reseller_count_delta: snapshotDelta.reseller_count_delta,
+          sections: snapshotDelta.sections,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
     ran_at: now.toISOString(),
   };
 
@@ -1320,15 +1430,12 @@ export async function GET(req: Request) {
       envelope: body,
     });
     const line = serialiseDigestSnapshot(snapshot);
-    const webDir =
-      process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
-    const outPath = `${webDir}/content/reports/reseller-weekly-digest.jsonl`;
     try {
-      mkdirSync(dirname(outPath), { recursive: true });
+      mkdirSync(dirname(digestJsonlPath), { recursive: true });
     } catch {
       /* ignore — parent likely exists */
     }
-    appendFileSync(outPath, line, { encoding: "utf8" });
+    appendFileSync(digestJsonlPath, line, { encoding: "utf8" });
   } catch (e) {
     console.error("[reseller-weekly-digest] snapshot append failed", e);
   }
