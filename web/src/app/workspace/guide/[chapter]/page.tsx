@@ -18,6 +18,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ChapterProgressRibbon } from "@/components/guide/chapter-progress-ribbon";
+import { AbsLookupPanel } from "@/components/guide/abs-lookup-panel";
 import {
   allChapterSlugs,
   getAdjacentChapters,
@@ -95,6 +96,10 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
           <Bullets items={list(s.body)} />
         </section>
       ))}
+
+      {c.slug === "03-market-research" ? (
+        <AbsLookupPanel locale={locale} variant="workspace" />
+      ) : null}
 
       {c.qualifyingTests ? (
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">

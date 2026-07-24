@@ -15,6 +15,7 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ChapterProgressRibbon } from "@/components/guide/chapter-progress-ribbon";
+import { AbsLookupPanel } from "@/components/guide/abs-lookup-panel";
 import {
   allChapterSlugs,
   getAdjacentChapters,
@@ -126,6 +127,10 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
           <Bullets items={list(s.body)} />
         </section>
       ))}
+
+      {c.slug === "03-market-research" ? (
+        <AbsLookupPanel locale={locale} variant="marketing" />
+      ) : null}
 
       {c.qualifyingTests ? (
         <section className="mt-10 rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-900/40 dark:bg-amber-950/20">
