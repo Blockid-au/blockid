@@ -1182,3 +1182,8 @@
 {"ts":"2026-07-24T04:26:03.386Z","event":"github-push-master","detail":"Blockid-au: feat(cron): trial-charge-warning pre-charge email endpoint (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:26:23.682Z","event":"github-push-master","detail":"Blockid-au: feat(ui): create-project button gated + upgrade CTA for at-limit founders (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:27:28.794Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 379 twin-lift reseller_attributions row-cluster summary onto drawer-authz (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:27:41.722Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T04-20-01-269Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:28:19.158Z","event":"github-push-master","detail":"Blockid-au: docs feat(ux): ux-ia-startup-flow goal (audit + IA proposal + phased plan) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:32:13.242Z","event":"github-push-master","detail":"Blockid-au: feat(nav): global DEMO menu item — /showcase/atlassian linked from every page (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:32:16.811Z","event":"github-push-master","detail":"Blockid-au: feat(pricing-copy): route pricing FAQ through TRIAL_COPY + e2e contracts (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:34:10.784Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 380 twin-lift reseller_attributions row-cluster summary onto drawer-validation (1 commits)","source":"github-webhook"}
