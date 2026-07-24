@@ -79,6 +79,12 @@ import {
   type RevenueEventDriftRow,
 } from "@/lib/reseller/ledger-drift-events";
 import {
+  computeGstReconciliationDeltaByReseller,
+  formatWeeklyDigestGstReconciliationDeltaSection,
+  type GstLedgerRow,
+  type GstReconciliationDeltaRow,
+} from "@/lib/reseller/gst-reconciliation-delta";
+import {
   computeTierMixByReseller,
   formatWeeklyDigestTierMixSection,
   type TierMixAttributionRow,
@@ -855,6 +861,52 @@ export async function GET(req: Request) {
     }
   }
 
+  // P11.9 canonical KPI (`gst_reconciliation_delta` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Per-reseller month-to-date ledger-side GST from
+  // revenue_events.gst_aud_cents scoped to the active reseller set. Positive
+  // kinds (subscribe/renewal/upgrade/downgrade/trial_convert) add to
+  // positive_gst_cents; refund/chargeback add absolute magnitude to
+  // reversal_gst_cents; net = positive − reversal. Complements the portfolio-
+  // wide P7.3 monthly reconciliation cron (which pages against Stripe's
+  // invoice.tax on an A$1 tolerance) by surfacing per-reseller attribution
+  // ahead of the monthly close. Failures degrade to a skipped section.
+  let gstDeltaRows: GstReconciliationDeltaRow[] = [];
+  let gstDeltaSkippedReason: string | null = null;
+  const { data: gstLedgerRows, error: gstLedgerErr } = await supabase
+    .from("revenue_events")
+    .select("reseller_id, kind, gst_aud_cents")
+    .in("reseller_id", resellerIds)
+    .gte("ts", monthStart.toISOString());
+  if (gstLedgerErr) {
+    console.error(
+      "[reseller-weekly-digest] gst ledger query failed",
+      gstLedgerErr.message,
+    );
+    gstDeltaSkippedReason = "gst_ledger_query_failed";
+  } else {
+    const gstDeltaByReseller = computeGstReconciliationDeltaByReseller(
+      resellerIds,
+      (gstLedgerRows ?? []) as GstLedgerRow[],
+    );
+    gstDeltaRows = resellers.map((r) => ({
+      reseller_id: r.id,
+      reseller_code: r.code,
+      reseller_display_name: r.display_name ?? r.code,
+      delta: gstDeltaByReseller.get(r.id) ?? {
+        positive_count: 0,
+        positive_gst_cents: 0,
+        reversal_count: 0,
+        reversal_gst_cents: 0,
+        net_gst_cents: 0,
+      },
+    }));
+    const gstDeltaSection = formatWeeklyDigestGstReconciliationDeltaSection(
+      gstDeltaRows,
+      currentMonthKey,
+    );
+    if (gstDeltaSection) html += gstDeltaSection;
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -1015,6 +1067,21 @@ export async function GET(req: Request) {
             commission_cost_cents: r.net.commission_cost_cents,
             credit_cogs_cents: r.net.credit_cogs_cents,
             net_contribution_cents: r.net.net_contribution_cents,
+          })),
+        },
+    gst_reconciliation_delta: gstDeltaSkippedReason
+      ? { skipped_reason: gstDeltaSkippedReason }
+      : {
+          month_key: currentMonthKey,
+          reseller_count: gstDeltaRows.length,
+          rows: gstDeltaRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            positive_count: r.delta.positive_count,
+            positive_gst_cents: r.delta.positive_gst_cents,
+            reversal_count: r.delta.reversal_count,
+            reversal_gst_cents: r.delta.reversal_gst_cents,
+            net_gst_cents: r.delta.net_gst_cents,
           })),
         },
     ran_at: now.toISOString(),
