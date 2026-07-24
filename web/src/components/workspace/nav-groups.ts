@@ -16,7 +16,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity, Archive, Banknote, BarChart3, Bell, BookOpen, Briefcase, Calendar, CreditCard,
   DollarSign, DoorOpen, ExternalLink, FileText, FolderCheck, FolderOpen, Gift,
-  LineChart, Link2, Map, Palette, PieChart, Rocket, Share2, Shield, Table2,
+  LineChart, Link2, Map, Palette, PieChart, Rocket, Share2, Shield, ShieldCheck, Table2,
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   ClipboardList, Eye, Layers, Settings2, MessageSquare, Send, Building2,
   ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins, Plug,
@@ -119,6 +119,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/dashboard/accelerator", label: "Accelerator Tracker", icon: Rocket, minPlan: "growth", lifecycle: "beta" },
       { href: "/dashboard/accelerator-criteria", label: "Accelerator Criteria", icon: BookOpen, minPlan: "growth", lifecycle: "beta" },
       { href: "/dashboard/fundraise", label: "Fundraise Readiness", icon: TrendingUp, minPlan: "starter" },
+      { href: "/workspace/esic-assessment", label: "ESIC Self-Assessment", icon: ShieldCheck, minPlan: "starter" },
       { href: "/workspace/data-room", label: "Data Room", icon: FolderCheck, minPlan: "starter" },
       { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote, minPlan: "starter" },
       { href: "/workspace/documents", label: "Documents", icon: FolderOpen, minPlan: "starter" },
