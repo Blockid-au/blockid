@@ -989,3 +989,5 @@
 {"tick_id":"2026-07-24T21-00-01-562Z","ts":"2026-07-24T21:06:31.128Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_commit_started","dirty_files":11}
 {"tick_id":"2026-07-24T21-00-01-562Z","ts":"2026-07-24T21:06:32.958Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-07-24T21-00-01-562Z","ts":"2026-07-24T21:06:32.965Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_deploy_triggered","head":"f9699723","last_deployed":"a44bdd0"}
+{"tick_id":"2026-07-24T21-00-01-562Z","ts":"2026-07-24T21:13:13.705Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_deploy_finished","status":0,"head":"f9699723"}
+{"tick_id":"2026-07-24T21-00-01-562Z","ts":"2026-07-24T21:13:13.707Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"tick_end"}

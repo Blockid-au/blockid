@@ -817,3 +817,4 @@
 {"ts":"2026-07-24T21:00:01Z","endpoint":"agent-auto-improve","status":"error","duration_ms":244698,"detail":"curl exit 52 (timeout or connection refused)"}
 {"ts":"2026-07-24T21:05:01Z","endpoint":"refresh-models","status":"ok","duration_ms":864,"detail":"{\"updatedAt\": \"2026-07-24T21:05:01.934Z\", \"discovered\": {\"openrouter\": 8, \"groq\": 8, \"cerebras\": 3, \"sambanova\": 5}, \"openrouterTop5\": [\"nvidia/nemotron-3-ultra-550b-a55b:free\", \"nvidia/nemotron-3-sup"}
 {"ts":"2026-07-24T21:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16557,"detail":""}
+{"ts":"2026-07-24T21:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2267,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234920668 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274032240 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
