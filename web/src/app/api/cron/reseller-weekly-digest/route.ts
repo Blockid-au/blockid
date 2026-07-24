@@ -69,6 +69,11 @@ import {
   type DigestSnapshotPerResellerMetricPctChangePerMetric,
 } from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change-per-metric";
 import {
+  computeDigestSnapshotPerResellerMetricPctChangeCoverage,
+  formatDigestSnapshotPerResellerMetricPctChangeCoverageSection,
+  type DigestSnapshotPerResellerMetricPctChangeCoverage,
+} from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change-coverage";
+import {
   computeDigestSnapshotTopMovers,
   formatDigestSnapshotTopMoversSection,
   type DigestSnapshotTopMovers,
@@ -1286,6 +1291,9 @@ export async function GET(req: Request) {
   let snapshotPerResellerMetricPctChangePerMetric:
     | DigestSnapshotPerResellerMetricPctChangePerMetric
     | null = null;
+  let snapshotPerResellerMetricPctChangeCoverage:
+    | DigestSnapshotPerResellerMetricPctChangeCoverage
+    | null = null;
   let snapshotTopMovers: DigestSnapshotTopMovers | null = null;
   let topMoversSection = "";
   let snapshotTopMoversPerMetric: DigestSnapshotTopMoversPerMetric | null = null;
@@ -1436,6 +1444,29 @@ export async function GET(req: Request) {
       );
     if (perResellerMetricPctChangePerMetricSection)
       html += perResellerMetricPctChangePerMetricSection;
+    // P11.44 — per-metric |pct_change| coverage summary (module P11.43).
+    // Companions the P11.41/P11.42 per-metric spotlight above: the spotlight
+    // names the biggest mover per metric; this coverage table quantifies the
+    // bucket depth behind that name (total_rows / computable_rows /
+    // material_rows / material_rate_pct + signed-pct min/median/max
+    // distribution) so ops can distinguish "one of many big movers" (crowded
+    // market — spotlight partner is representative) from "the only mover we
+    // can talk about" (thin signal — spotlight partner is the entire story).
+    // Consumes the SAME snapshotPerResellerRollingTrend fold as P11.40/P11.42,
+    // so a coverage cell cannot diverge from the spotlight row it summarises.
+    // Rendered directly after the per-metric spotlight so ops walks per-metric
+    // spotlight (who moved most in each metric) → per-metric coverage (how
+    // thin/deep the movement was in each metric) on the same page.
+    snapshotPerResellerMetricPctChangeCoverage =
+      computeDigestSnapshotPerResellerMetricPctChangeCoverage(
+        snapshotPerResellerRollingTrend,
+      );
+    const perResellerMetricPctChangeCoverageSection =
+      formatDigestSnapshotPerResellerMetricPctChangeCoverageSection(
+        snapshotPerResellerMetricPctChangeCoverage,
+      );
+    if (perResellerMetricPctChangeCoverageSection)
+      html += perResellerMetricPctChangeCoverageSection;
     // P11.25 — top-N |delta| movers headline (module P11.24). Project the
     // per-reseller rolling trend into the biggest cross-metric shifts and
     // render a compact executive summary. Computed here so the source data
@@ -1885,6 +1916,22 @@ export async function GET(req: Request) {
             threshold:
               snapshotPerResellerMetricPctChangePerMetric.threshold,
             rows: snapshotPerResellerMetricPctChangePerMetric.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_metric_pct_change_coverage:
+      snapshotPerResellerMetricPctChangeCoverage
+        ? {
+            window_size:
+              snapshotPerResellerMetricPctChangeCoverage.window_size,
+            first_week:
+              snapshotPerResellerMetricPctChangeCoverage.first_week,
+            last_week:
+              snapshotPerResellerMetricPctChangeCoverage.last_week,
+            threshold: snapshotPerResellerMetricPctChangeCoverage.threshold,
+            rows: snapshotPerResellerMetricPctChangeCoverage.rows,
           }
         : {
             skipped_reason:
