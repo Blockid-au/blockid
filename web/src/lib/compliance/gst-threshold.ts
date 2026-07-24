@@ -101,6 +101,71 @@ function daysUntilCrossing(
   return undefined;
 }
 
+export interface DailyRevenueEvent {
+  /** Any ISO-parseable date/timestamp (e.g. Stripe `created`). */
+  occurred_at: string | Date;
+  amount_aud: number;
+}
+
+/**
+ * Bucket a stream of daily/hourly revenue events into 12 trailing monthly
+ * totals ending at `now` (month index 0 = 11 months ago, index 11 =
+ * "current month"). Non-finite amounts and events outside the window are
+ * silently dropped so a founder can safely fire this off a Stripe or
+ * revenue_events feed without pre-filtering.
+ */
+export function deriveMonthlyTurnoverFromDaily(
+  events: readonly DailyRevenueEvent[],
+  now: Date = new Date(),
+): number[] {
+  const buckets = new Array(12).fill(0) as number[];
+  if (!Array.isArray(events) || events.length === 0) return buckets;
+
+  // Anchor to the first day of `now`'s month; bucket 11 = current month,
+  // bucket 0 = 11 months prior. Uses UTC so it's timezone-stable.
+  const anchorYear = now.getUTCFullYear();
+  const anchorMonth = now.getUTCMonth();
+
+  for (const ev of events) {
+    const amount = Number(ev?.amount_aud ?? 0);
+    if (!Number.isFinite(amount) || amount === 0) continue;
+    const t = ev.occurred_at instanceof Date ? ev.occurred_at : new Date(ev.occurred_at);
+    if (!(t instanceof Date) || Number.isNaN(t.getTime())) continue;
+
+    const evYear = t.getUTCFullYear();
+    const evMonth = t.getUTCMonth();
+    const monthsAgo = (anchorYear - evYear) * 12 + (anchorMonth - evMonth);
+    if (monthsAgo < 0 || monthsAgo > 11) continue;
+    const idx = 11 - monthsAgo;
+    buckets[idx] += amount;
+  }
+  return buckets;
+}
+
+/**
+ * Auto-fire GST assessment from a current MRR figure — mirrors the ATO
+ * "projected turnover" test (current + next 11 months). Callers on the
+ * founder Stripe pipeline typically know MRR but not per-month history;
+ * this shortcut treats current MRR as the projection for all 12 months.
+ * Any known trailing-12mo actuals should still go through {@link assessGST}
+ * directly.
+ */
+export function assessGSTFromMrr(
+  mrrAud: number,
+  opts: { registered_for_gst: boolean; abn?: string; registration_date?: string } = {
+    registered_for_gst: false,
+  },
+): GSTResult {
+  const monthly = Math.max(0, Number.isFinite(mrrAud) ? Number(mrrAud) : 0);
+  return assessGST({
+    monthly_turnover_last_12_months: new Array(12).fill(monthly) as number[],
+    projected_next_12_months: new Array(12).fill(monthly) as number[],
+    registered_for_gst: opts.registered_for_gst,
+    abn: opts.abn,
+    registration_date: opts.registration_date,
+  });
+}
+
 export function assessGST(input: GSTInput, now: Date = new Date()): GSTResult {
   const actual = Array.isArray(input.monthly_turnover_last_12_months)
     ? input.monthly_turnover_last_12_months
