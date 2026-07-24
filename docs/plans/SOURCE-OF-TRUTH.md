@@ -120,6 +120,7 @@
 | EXC-0012 | svi-exchange-tasks | founder-side offer | shipped | nextjs-developer | `bfd7a5bf` |
 | EXC-0013 | svi-exchange-tasks | investor EOI book | shipped | fullstack-guardian | v0.4.0 |
 | EXC-0014 | svi-exchange-tasks | institutional API tier | shipped | typescript-pro | marked_deployed |
+| SHOWCASE-ATL | atlassian-standard-mapping-goal | showcase-walkthrough | shipped | react-expert + nextjs-developer + test-master | fixture `aa2f8808`; shell test `5fed65f8`; guide `42bfad17`; summary + landing CTA `4bcd4c09` |
 
 ---
 
@@ -171,6 +172,13 @@
 ### Orchestrator
 - Platform auto-upgrade 2026-07-23 (`6b81bf40`).
 - Reports-snapshot before parallel-agent burst (`f61540fa`).
+
+### Atlassian demo walkthrough (SHOWCASE-ATL — SHIPPED)
+- **Status:** SHIPPED. Reference: [`docs/plans/atlassian-standard-mapping-goal.md`](./atlassian-standard-mapping-goal.md), user-facing guide [`docs/demos/atlassian.md`](../demos/atlassian.md).
+- **Scope:** 9-step anonymous visitor walkthrough of Atlassian's 2002–2026 journey through every BlockID surface (landing → dashboard → SVI report → 12-phase map → 7 C-Level agents → data-room → valuation → 12-chapter guide → wrap-up); typed fixture (20 milestones / 12 phase snapshots / 13 SVI scores / 7 agent reports / 65 data-room rows / 16 valuation snapshots); walkthrough shell + provider; E2E smoke covering the 9-step visitor journey.
+- **Commits (Round 1a/1b/1c/2):** fixture extraction `aa2f8808`; walkthrough shell navigation test `5fed65f8`; goal doc `72d461a4`; guide mirror page (step 8) `42bfad17`; summary mirror (step 9) + landing CTA `4bcd4c09`; E2E smoke `pending-commit`.
+- **Links:** `/showcase/atlassian?step=1` (landing) · `?step=2` (dashboard) · `?step=3` (SVI report) · `?step=4` (growth-phases) · `?step=5` (agents/ceo) · `?step=6` (data-room) · `?step=7` (valuation) · `?step=8` (guide) · `?step=9` (summary).
+- **Follow-ups (open in `atlassian-standard-mapping-goal.md`):** P3-P7 nudge engine wiring, data-room auto-populate from public disclosure feed, Xero/Canva/SafetyCulture parallel walkthroughs.
 
 ---
 
