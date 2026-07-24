@@ -182,6 +182,95 @@ describe("au-pty-ltd-constitution template", () => {
   });
 });
 
+describe("au-esop-scheme-rules template", () => {
+  const tpl = getTemplate("au-esop-scheme-rules");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-8 employment template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.category).toBe("employment");
+    expect(tpl?.phase_slug).toBe("phase-8");
+    expect(listTemplates().some((t) => t.slug === "au-esop-scheme-rules"))
+      .toBe(true);
+  });
+
+  it("declares the Div 83A anchors the checker validates against", () => {
+    // The eight-point qualifying set from startup-journey.ts:621-641 all live
+    // in Division 83A ITAA97; the scheme rules must cite the specific
+    // subsections the ATO looks for during an ESS audit.
+    expect(body).toMatch(/Division 83A/);
+    expect(body).toMatch(/Subdivision 83A-B/);
+    expect(body).toMatch(/Subdivision 83A-C/);
+    // Interest-condition anchors — Exercise Price ≥ FMV, 3-year hold, 75% test.
+    expect(body).toMatch(/s83A-33/);
+    // Company-condition anchors — unlisted, <10y old, ≤A$50m turnover, AU tax resident.
+    expect(body).toMatch(/s83A-45/);
+    // 10-year Options expiry cap (s83A-33(1)(d)) and 10% shareholding cap
+    // (s83A-45(6)) are the two hard numeric limits the checker enforces.
+    expect(body).toMatch(/10 years/);
+    expect(body).toMatch(/10%/);
+    // A$50m aggregated-turnover ceiling — the raise-blocking one investors
+    // will ask about at Phase 8-9.
+    expect(body).toMatch(/A\$50 million/);
+    // Real-risk-of-forfeiture language keys ITAA97 s83A-105(6).
+    expect(body).toMatch(/real risk of forfeiture/i);
+    // Good Leaver / Bad Leaver split is what makes this AU scheme investor-defensible.
+    expect(body).toMatch(/Good Leaver/);
+    expect(body).toMatch(/Bad Leaver/);
+    // Reserve pool + refresh mechanics — the reason we mint vs link out.
+    expect(body).toMatch(/Reserve Pool/);
+    // Corps Act disclosure relief pathway — Chapter 6D + ASIC Instrument 2022/1021.
+    expect(body).toMatch(/Chapter 6D/);
+    expect(body).toMatch(/2022\/1021/);
+    // AFSL disclaimer at top-of-doc.
+    expect(body).toMatch(/NOT LEGAL ADVICE/);
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("substitutes scheme identity fields and preserves unknown tokens", () => {
+    const rendered = applySubstitutions(body, {
+      scheme_name: "Acme ESOP 2026",
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      adoption_date: "1 July 2026",
+      reserve_pool_pct: "10",
+      default_cliff_months: "12",
+      default_vest_months: "48",
+      revision_date: "2026-07-24",
+    });
+    // Scheme identity is what investors read first on the cover page.
+    expect(rendered).toContain("Acme ESOP 2026");
+    expect(rendered).toContain("Acme Innovation Pty Ltd");
+    expect(rendered).toContain("ACN 659 615 111");
+    // Reserve-pool percentage substitutes into the clause 3.1 sentence.
+    expect(rendered).toMatch(/\*\*10%\*\*/);
+    // Cliff / vest months substitute into the definitions block.
+    expect(rendered).toContain("default 12 months");
+    // Absent value → token must be left intact so the founder can see the gap.
+    const missing = applySubstitutions(body, { company_name: "Acme" });
+    expect(missing).toContain("{{scheme_name}}");
+  });
+});
+
 describe("au-safe template", () => {
   const tpl = getTemplate("au-safe");
   const body = tpl
