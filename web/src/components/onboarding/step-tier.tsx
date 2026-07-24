@@ -124,17 +124,15 @@ export function StepTier({
         ))}
       </div>
 
-      {segment === "founder" && (
-        <div className="mt-8 text-center">
-          <button
-            type="button"
-            onClick={() => choose("founder_free")}
-            className="text-sm font-medium text-brand-ink-muted underline decoration-brand-ink-muted/40 underline-offset-4 transition-colors hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
-          >
-            Continue with Free (no trial)
-          </button>
-        </div>
-      )}
+      {/*
+        Round 5.11 (2026-07-24): the founder "Continue with Free (no trial)"
+        escape hatch is retired — every new founder signup must pick a paid
+        plan and start the 7-day trial. `founder_free` remains in
+        `plans-v2.ts` for grandfathered legacy accounts only. The advisor
+        preview link below is kept because Advisor SKUs live in a separate
+        segment and the free preview funnels them to a low-commit
+        evaluation flow.
+      */}
 
       {segment === "advisor" && (
         <div className="mt-8 text-center">

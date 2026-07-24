@@ -59,9 +59,16 @@ const FOUNDER: Plan[] = [
     trial_days: 7,
     cta_kind: "trial",
     tagline: "Solo founder",
+    // NOTE: Founder accounts are limited to 1 startup per
+    // web/src/lib/plans/startup-limit.ts (`ACCOUNT_TYPES_WITH_MULTI_STARTUP`).
+    // The `usage_limits.profiles` on the plans.csv row is a maximum enforced
+    // for non-founder account_types on this SKU; for the founder segment the
+    // marketing copy must always say "1 startup workspace". Users who need
+    // multiple startups upgrade to the Accelerator segment
+    // (see /pricing?tab=accelerator).
     features: [
       "Full SVI 13-criteria score",
-      "Up to 3 startup workspaces",
+      "1 startup workspace",
       "Unlimited DOCX + PDF export",
       "50 AI credits / month",
       "Email support (48h)",
@@ -261,6 +268,13 @@ export const PLANS_V2: Plan[] = [...FOUNDER, ...INVESTOR, ...ACCELERATOR];
 /**
  * Advisor tab reuses the investor catalogue with the Advisor SKU highlighted.
  * When the dedicated advisor SKU family lands (post-W1), replace this map.
+ *
+ * NOTE: This function preserves `founder_free` in the founder-segment list
+ * because it's still the source of truth for entitlements resolution and
+ * grandfathered legacy users. Public-facing pricing surfaces MUST route
+ * through `publicPlansForSegment()` below — which strips `founder_free`
+ * per the 2026-07-24 founder directive ("no indefinite free tier for new
+ * signups").
  */
 export function plansForSegment(segment: Segment): Plan[] {
   if (segment === "advisor") {
@@ -271,6 +285,27 @@ export function plansForSegment(segment: Segment): Plan[] {
     }));
   }
   return PLANS_V2.filter((p) => p.segment === segment);
+}
+
+/**
+ * Plan IDs that must NEVER render on a public / new-signup pricing surface.
+ * Kept in sync with `NEW_SIGNUP_TIER_IDS` in `pricing-data.ts` (which does
+ * the same job for the legacy `PRICING_TIERS` catalogue).
+ */
+export const PUBLIC_HIDDEN_PLAN_IDS: readonly string[] = ["founder_free"];
+
+/**
+ * Public / marketing variant of `plansForSegment()` — filters out any SKU
+ * we no longer offer to new signups (currently just `founder_free`, per
+ * Round 5.11 "no indefinite free tier" directive). Every marketing pricing
+ * surface (landing pricing matrix, /pricing, onboarding tier picker) MUST
+ * consume this — hitting the raw `plansForSegment()` will leak the Free
+ * tier back onto the pricing page.
+ */
+export function publicPlansForSegment(segment: Segment): Plan[] {
+  return plansForSegment(segment).filter(
+    (p) => !PUBLIC_HIDDEN_PLAN_IDS.includes(p.id),
+  );
 }
 
 /** Format AUD price. Returns "Custom" for null (contact-sales SKUs). */

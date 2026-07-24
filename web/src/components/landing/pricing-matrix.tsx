@@ -18,7 +18,7 @@ import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 import {
   annualSavingPct,
   formatAud,
-  plansForSegment,
+  publicPlansForSegment,
   type Plan,
   type Segment,
 } from "@/lib/plans-v2";
@@ -83,7 +83,10 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
   const [interval, setInterval] = useState<Interval>("monthly");
 
   const intro = SEGMENT_INTRO[segment];
-  const basePlans = useMemo(() => plansForSegment(segment), [segment]);
+  // Round 5.11: consume `publicPlansForSegment()` so the retired `founder_free`
+  // tier is stripped from every public pricing render. `plansForSegment()` is
+  // still exported for entitlement/back-office code that needs the full list.
+  const basePlans = useMemo(() => publicPlansForSegment(segment), [segment]);
 
   // A/B experiment: pricing_anchor_order.
   //   anchor_growth → surface the *_growth SKU first (current default).
