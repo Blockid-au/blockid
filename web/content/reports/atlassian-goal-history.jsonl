@@ -154,3 +154,6 @@
 {"tick_id":"2026-07-24T10-07-01-283Z","ts":"2026-07-24T10:13:08.056Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"2aa175bc","last_deployed":"9a18817"}
 {"tick_id":"2026-07-24T10-07-01-283Z","ts":"2026-07-24T10:19:17.137Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"2aa175bc"}
 {"tick_id":"2026-07-24T10-07-01-283Z","ts":"2026-07-24T10:19:17.139Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T10-27-01-261Z","ts":"2026-07-24T10:27:01.262Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T10-27-01-261Z","ts":"2026-07-24T10:27:01.269Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T10-27-01-261Z","ts":"2026-07-24T10:37:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P6a","summary":"Div 83A ESOP scheme-rules gate — shared qualifying-tests fixture + assertDiv83AEligibleOrWarn mirroring ESIC gate + wired into /api/fundraise (warn-only default, 412 on wholesaleOnly). 113/113 compliance tests green (+20). tsc green."}
