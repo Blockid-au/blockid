@@ -8,6 +8,7 @@ import "server-only";
 import { getSupabaseAdmin } from "./supabase";
 import { getPlanCached } from "./plans-db";
 import { LEGACY_PLAN_MAP } from "./plans";
+import { canCreateAnotherStartup } from "./plans/startup-limit";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -486,13 +487,39 @@ export async function createProject(
   name: string,
   plan: string,
   opts?: { description?: string; industry?: string },
-): Promise<{ ok: boolean; project?: Project; error?: string }> {
+): Promise<{ ok: boolean; project?: Project; error?: string; reason?: string }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, error: "Service unavailable" };
 
-  // Check plan limit
-  const limit = await getProjectLimit(plan);
   const existing = await getUserProjects(userId);
+
+  // Founder 1-startup guard (2026-07-24 directive). Read account_type
+  // straight from app_users so a legacy AppUser payload without the field
+  // still gets checked. Missing rows / DB blip are treated as `founder`
+  // so we fail-safe closed.
+  const { data: userRow } = await supabase
+    .from("app_users")
+    .select("account_type")
+    .eq("id", userId)
+    .maybeSingle();
+  const accountType = (userRow?.account_type as string | null | undefined) ?? "founder";
+
+  const decision = canCreateAnotherStartup({
+    account_type: accountType,
+    current_startup_count: existing.length,
+  });
+  if (!decision.allowed) {
+    return {
+      ok: false,
+      reason: decision.reason,
+      error:
+        "Founder accounts can own one startup. Upgrade to Accelerator to manage multiple.",
+    };
+  }
+
+  // Check plan limit (still applied for multi-startup account types so an
+  // accelerator on the smallest tier stops at their cohort seat cap).
+  const limit = await getProjectLimit(plan);
   if (existing.length >= limit) {
     return {
       ok: false,

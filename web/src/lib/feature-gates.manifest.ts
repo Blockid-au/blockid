@@ -46,6 +46,7 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   { route: "api/data-room/initialize/route.ts", required_feature: "share_management" },
   { route: "api/dataroom/clone/route.ts", required_feature: "share_management", note: "reconcile data-room vs dataroom folder split — P8 CTO call" },
   { route: "api/dataroom/setup/route.ts", required_feature: "share_management", note: "reconcile data-room vs dataroom folder split — P8 CTO call" },
+  { route: "api/dataroom/populate-from-template/route.ts", required_feature: "share_management", note: "round 5.4c added rate-limit wiring; keep manifest complete" },
 
   // Vesting
   { route: "api/vesting/route.ts", required_feature: "vesting.write" },
