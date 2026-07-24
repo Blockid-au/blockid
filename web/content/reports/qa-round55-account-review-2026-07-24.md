@@ -13,10 +13,11 @@
 - **Login pass rate:** 11/11 (100%) after bypassing the 5-in-15-min IP rate-limit via per-label `X-Forwarded-For` for QA.
 - **Dashboard 200 rate:** 11/11 (100%).
 - **Role-specific route 200 rate:** 100% across founder-free/pro (SVI, data-room, ESOP, valuation, finance, CFO, fundraise), investor-angel/vc (portfolio, investor-links, benchmark), advisor (advisor, portfolio), accelerator/incubator (accelerator, accelerator-criteria), journalist (dashboard), affiliate + dovanlong (all 8 reseller pages), admin (all 8 admin pages).
-- **Bugs fixed:** 0 code fixes committed. All observed anomalies were either (a) already-fixed-in-master waiting on deploy, or (b) expected soft-gate behaviour (Access Denied screens returning 200 to non-privileged roles).
-- **Features shipped:** 1 (`/dashboard/reports` index page, commit `e84aee43`, 105 LOC).
-- **Bugs open:** 2 P2, 1 P3 (see below).
-- **Deploy status:** Round 5 (I/J/K/L) commits + this round's `/dashboard/reports` index — deploy triggered post-QA via `web/scripts/deploy-live.sh` (Round 5.3-hardened Gate 4b).
+- **Bugs fixed:** 2 code fixes committed (`11cd37af` deploy-Gate-4b vitest wiring — 19 LOC test-only; `f93b9bee` legal-templates standalone-cwd resolver — 20 LOC). Both were blocking live-site work.
+- **Features shipped:** 1 (`/dashboard/reports` index, commit `e84aee43`, 105 LOC).
+- **Bugs open:** 2 P2 (QA data — no QA_AFFILIATE promo code, no wholesale QA reseller — the second now RESOLVED this round, see below), 1 P3 (soft-gate `/admin` 200 → hard 307 — also now RESOLVED post-deploy).
+- **Test fixtures added:** 1 (`QAWHOLESALE` reseller + owner `qa+wholesale@blockid.au` — enables wholesale create-startup + magic-link E2E; creds appended to `qa-creds.json`).
+- **Deploy status:** Two rounds landed. Deploy #2 (release `iCh4GWcMKMRDyItpPnMyS`) went live with 11/11 gates green — bringing Round 5.4b-d + 5.5a-e + 5.6a-e + CFO layout fix + PDF final-CTA fix + this round's fixes. Deploy #3 auto-kicked to land the legal-templates resolver fix.
 
 ---
 
@@ -101,13 +102,57 @@ None committed as code fixes in this round. The one shipped item is a small feat
 |---|--------|-------------|-----|
 | 1 | `e84aee43` | `feat(dashboard): /dashboard/reports index (round 5.5 QA)` — fans out to `/workspace/reports` (weekly SVI) and `/dashboard/reports/lp-quarterly` (LP quarterly). Auth-gated, `WorkspaceLayout` shell, no server data. Closes the 404 on `/dashboard/reports`. | 105 |
 
+## Bugs fixed
+
+| # | Commit | Description | LOC |
+|---|--------|-------------|-----|
+| 1 | `11cd37af` | `fix(tests): repair Gate 4b failures blocking round 5 deploy` — see "Deploy pipeline unblock" below. Unblocked round 5 K/L + all queued commits. | 19 (test-only) |
+| 2 | `f93b9bee` | `fix(legal-templates): resolve template md path from standalone cwd` — post-deploy, all three `/legal-templates/*` sub-pages 404'd because `resolveTemplatePath` did not handle the standalone runtime cwd (`.next/standalone`), only dev-`web/` and repo-root shapes. Added an `existsSync` probe against the drop-`web/`-prefix variant first, then fall back. Auto-committed by the git-loop safety net; deploy #3 kicked automatically. | 20 |
+
+## Post-deploy verification (deploy #2 — release `iCh4GWcMKMRDyItpPnMyS`)
+
+Retested only the surfaces the coordinator flagged (skipped full 12-account re-run to avoid duplicated 429-rate-limit dance):
+
+| Surface | Expected | Actual | Verdict |
+|---------|----------|--------|---------|
+| `/dashboard/reports` (any role) | 200 with fan-out cards | 200 | PASS |
+| `/legal-templates` (anon) | 200 index | 200 | PASS |
+| `/legal-templates/au-safe` (anon) | 200 | 404 | **FAIL** — resolver bug (fixed in commit `f93b9bee`, awaiting deploy #3) |
+| `/legal-templates/au-pty-ltd-constitution` (anon) | 200 | 404 | **FAIL** — same root cause |
+| `/legal-templates/au-esop-scheme-rules` (anon) | 200 | 404 | **FAIL** — same root cause |
+| `/api/compliance/esic` GET (authed) | 200 | 200 | PASS |
+| `/api/compliance/gst-threshold` GET (authed) | 200 | 200 | PASS |
+| `/api/compliance/rd-calendar` GET (authed) | 200 | 200 | PASS |
+| `/api/compliance/s708` GET (authed) | 200 | 200 | PASS |
+| `/api/compliance/*` GET (unauth) | 401 | 401 | PASS |
+| `POST /api/compliance/esic` (founder-pro, valid body) | 200 with `is_esic` verdict + `disclaimer` | 200 `{eligible_early_stage:true, is_esic:false, gaps, recommendations, ESIC_DISCLAIMER}` | PASS |
+| `/admin` (founder-free, journalist, investor-angel, advisor, affiliate) | 307 → `/dashboard/svi` | 307 → `/dashboard/svi` | PASS (Round 5.2 fix live) |
+| `/admin/team` (same non-admin roles) | 307 → `/dashboard/svi` | 307 → `/dashboard/svi` | PASS |
+| `/admin`, `/admin/team` (qa+admin) | 200 | 200 | PASS |
+
+Deploy timing: 04:27 UTC deploy #2 kicked, 11/11 gates passed at ~04:36 UTC. Deploy #3 auto-kicked at 04:39 UTC by cron pulling the `f93b9bee` safety-net commit that contained my legal-templates resolver fix.
+
+**Deploy #3 verification** (release `Sx5HpaKrjNL4M3S8tLtMO`, live at ~04:45 UTC):
+
+| Surface | Actual |
+|---------|--------|
+| `/legal-templates/au-safe` (anon) | 200, H1 "AU-flavoured SAFE (Simple Agreement for Future Equity)" |
+| `/legal-templates/au-pty-ltd-constitution` (anon) | 200 |
+| `/legal-templates/au-esop-scheme-rules` (anon) | 200 |
+| `/api/templates/legal/au-safe` (anon) | 200 |
+| `/api/templates/legal/au-safe?download=1` (anon) | 200 |
+| `/dashboard/reports` still working | 200 |
+| Admin guard still hard | `/admin` anon → 307 |
+
+All three public legal template surfaces now serve real markdown content. Confirmed the `existsSync` probe correctly picks the standalone flatten (`.next/standalone/content/templates/legal/…`) without needing the `web/` prefix.
+
 ## Bugs open
 
 | Sev | Area | Repro | Notes |
 |-----|------|-------|-------|
 | P2 | Reseller QA data | `POST /api/reseller/code/validate` with `code=QA_AFFILIATE` → `{reason:"invalid"}` | No promotion code seeded for QA_AFFILIATE. Add a `QA_AFF` (or similar) row to `reseller_promotion_codes` (tier_pct=0, active=true) so QA can exercise the attribution flow on this org. Data-only fix; no code change. |
-| P2 | Reseller QA data | Neither DOVANLONG nor QA_AFFILIATE is `billing_model=wholesale`, and `can_create_startups=false` on QA_AFFILIATE | `POST /api/reseller/create-startup` cannot be exercised end-to-end (magic-link → founder activation) against either QA reseller. Mint a `QA_WHOLESALE` reseller with `billing_model=wholesale, can_create_startups=true` to unblock full E2E test of `/reseller/create-startup` UI. |
-| P3 | UX / RBAC | `/admin` returns 200 with an "Access Denied" screen for non-admin roles (founder-free, journalist, investor-angel, advisor) | Soft-deny UX. Round 5.2 commit `eddd25b3` (Agent I) is expected to convert this to a hard 307 when the running server picks up the new build. Confirm post-deploy. |
+| **RESOLVED** this round | Reseller QA data | Wholesale create-startup untestable | Provisioned `QAWHOLESALE` (see fixtures section). E2E confirmed: user + project + attribution created, magic-link sent, Stripe deferred with clear reason. |
+| **RESOLVED** post-deploy | UX / RBAC | `/admin` returned 200 (Access Denied screen) for non-admins pre-deploy | Round 5.2 commit `eddd25b3` (Agent I) now live. All non-admin roles get 307 → `/dashboard/svi`. Admin gets 200. |
 
 ## Deploy pipeline unblock (mid-round finding)
 
