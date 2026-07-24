@@ -104,6 +104,40 @@ const UUID_RE =
 const NON_RESELLER_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
 
+// Tick 374 — reseller_credit_grants row-cluster cross-column invariant summary
+// (option (ii) from tick 373 next-picks). Rotates off the reseller_requests-
+// row cluster (which reached 15-summary saturation at tick 373) onto the
+// reseller_credit_grants row cluster, whose four CHECK constraints (defined
+// at web/supabase/migrations/0096_reseller_credit_grants.sql:41-56) partition
+// the kind ∈ {grant, sandbox_spend} discriminator across amount sign, target
+// shape, and credit_transactions FK link:
+//   - ck_amount_sign     (0096:41-44) — grant⇒amount>0; sandbox_spend⇒amount<0
+//   - ck_month_key_format (0096:46)   — month_key matches /^[0-9]{4}-(0[1-9]|
+//                                       1[0-2])$/ (UTC currentMonthKey())
+//   - ck_target_shape    (0096:48-51) — grant⇒target_user_id set + sandbox_
+//                                       project_id null; sandbox_spend⇒inverse
+//   - ck_ct_link         (0096:53-56) — grant⇒credit_transaction_id set;
+//                                       sandbox_spend⇒credit_transaction_id null
+// Write-path anchor: the happy-path grant mirror at web/src/app/api/reseller/
+// credits/grant/route.ts:206-218 populates kind='grant', amount=body.amount
+// (positive integer per decideGrant gate 1), month_key=currentMonthKey(),
+// target_user_id=body.target_user_id, credit_transaction_id=<row from ct
+// insert>, sandbox_project_id=null — one row per happy POST always sits on
+// the grant branch of all four CHECKs. sandbox_spend rows are exclusively
+// produced by web/src/app/api/reseller/sandbox/spend/route.ts and never
+// surface on this spec — the sandbox-spend branch of every CHECK is
+// UNREACHABLE from the credit-grant surface by construction.
+// Runtime enforcement on this spec: rows 150 (capability_disabled 403) +
+// 151 (over_budget 402) + 152 (happy 200) all send positive integer amount
+// + non-null uuid target_user_id + null sandbox_project_id, so every
+// candidate insert-payload that would have reached line 206-218 lands on
+// the grant branch of ck_amount_sign / ck_target_shape / ck_ct_link;
+// month_key is server-computed via currentMonthKey() so ck_month_key_format
+// is closed on the server, not per-request. Coverage-per-guard posture on
+// this surface: grant branch fires on every happy row (row 152 + chained
+// 156/156b/156c); sandbox_spend branch ZERO-COVERAGE-PER-GUARD (belongs to
+// the sandbox-spend spec cluster).
+
 test.describe("Reseller credit-grant pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — POST with no session returns 401", async ({ request }) => {
     const resp = await request.post(ROUTE, {
