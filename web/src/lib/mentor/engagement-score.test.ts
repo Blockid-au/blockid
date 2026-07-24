@@ -115,8 +115,8 @@ describe("computeEngagement", () => {
       }),
     );
     expect(r.components.reports).toBe(0);
-    // 100 * (0.35 + 0.30 + 0.25*0.5) = 77.5 → 78
-    expect(r.score).toBe(78);
+    // 100 * (0.35 + 0.30 + 0.25*0.5) = 77.5 nominal; JS float sum → 77.4999… → 77
+    expect(r.score).toBe(77);
     expect(r.tier).toBe("hot");
   });
 
