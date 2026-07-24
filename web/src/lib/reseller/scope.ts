@@ -8,8 +8,33 @@
 // customers + sandbox owner) that the session is allowed to read.
 
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { AppUser } from "@/lib/auth";
+import {
+  gateCheckInWrite as _gateCheckInWrite,
+  gateNoteRead as _gateNoteRead,
+  gateNoteWrite as _gateNoteWrite,
+  loadActiveTier,
+  type GateNoteInput,
+} from "@/lib/mentor/access-guards";
+import type { MentorTier, SubjectRef } from "@/lib/mentor/types";
+
+/**
+ * Mentor sub-scope — pure delegation to lib/mentor/access-guards.ts.
+ * Callers under /api/mentor/** should reach for `mentorScope(session)`
+ * rather than touching `session` directly.
+ */
+export interface MentorSubScope {
+  /** Highest live mentor tier this reseller currently holds for `subject`. */
+  tierFor(subject: SubjectRef): Promise<MentorTier>;
+  /** Throws MentorAccessDenied when the caller cannot read a note. */
+  gateNoteRead(subject: SubjectRef, input: GateNoteInput): Promise<void>;
+  /** Throws MentorAccessDenied when the caller cannot write a note. */
+  gateNoteWrite(subject: SubjectRef, input: GateNoteInput): Promise<void>;
+  /** Throws MentorAccessDenied when the caller cannot write a check-in. */
+  gateCheckInWrite(subject: SubjectRef): Promise<void>;
+}
 
 export interface ScopedResellerSession {
   reseller_id: string;
@@ -18,6 +43,45 @@ export interface ScopedResellerSession {
   allowedCustomerIds: () => Promise<string[]>;
   /** The sandbox project id owned by this reseller org, if any. */
   sandboxProjectId: () => Promise<string | null>;
+  /** Mentor console sub-scope — tier-gated per (reseller, founder|project). */
+  mentor: MentorSubScope;
+}
+
+/**
+ * Build a MentorSubScope from a supabase client + reseller_id. Exported so
+ * unit tests can exercise the sub-scope without going through the full
+ * scopedReseller() → getSupabaseAdmin() bootstrap.
+ */
+export function createMentorScope(
+  supabase: Pick<SupabaseClient, "from">,
+  resellerId: string,
+): MentorSubScope {
+  return {
+    async tierFor(subject) {
+      return loadActiveTier(supabase, resellerId, subject);
+    },
+    async gateNoteRead(subject, input) {
+      const tier = await loadActiveTier(supabase, resellerId, subject);
+      _gateNoteRead(tier, input, subject);
+    },
+    async gateNoteWrite(subject, input) {
+      const tier = await loadActiveTier(supabase, resellerId, subject);
+      _gateNoteWrite(tier, input, subject);
+    },
+    async gateCheckInWrite(subject) {
+      const tier = await loadActiveTier(supabase, resellerId, subject);
+      _gateCheckInWrite(tier, subject);
+    },
+  };
+}
+
+/**
+ * Thin accessor for /api/mentor/** routes — returns only the mentor sub-scope.
+ * Prefer this over reaching into `session.mentor` so a future refactor can
+ * layer additional cross-cutting behaviour (audit, rate-limit) in one place.
+ */
+export function mentorScope(session: ScopedResellerSession): MentorSubScope {
+  return session.mentor;
 }
 
 export class ResellerScopeError extends Error {
@@ -98,5 +162,7 @@ export async function scopedReseller(user: AppUser): Promise<ScopedResellerSessi
       cachedSandbox = (data?.id as string | undefined) ?? null;
       return cachedSandbox as string | null;
     },
+
+    mentor: createMentorScope(supabase, membership.reseller_id as string),
   };
 }
