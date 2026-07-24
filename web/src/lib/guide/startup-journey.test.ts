@@ -141,12 +141,92 @@ describe("R&D Tax Incentive section (chapter 06 P1j)", () => {
     }
   });
 
-  it("no other chapter carries sections yet (P1j + P1l — chapters 06 and 10 only)", () => {
-    const chaptersWithSections = new Set<ChapterSlug>(["06-revenue", "10-fundraise"]);
+  it("no other chapter carries sections yet (P1j + P1l + Q6/Q7 — chapters 06, 08 and 10 only)", () => {
+    const chaptersWithSections = new Set<ChapterSlug>([
+      "06-revenue",
+      "08-team",
+      "10-fundraise",
+    ]);
     for (const chapter of listChapters()) {
       if (chaptersWithSections.has(chapter.slug)) continue;
       expect(chapter.sections).toBeUndefined();
     }
+  });
+});
+
+describe("culture-rituals-shipit section (chapter 08 Q7)", () => {
+  it("chapter 08-team publishes a culture-rituals-shipit section EN + VI", () => {
+    const c = getChapter("08-team");
+    expect(c).not.toBeNull();
+    expect(c?.sections).toBeDefined();
+    const s = c?.sections?.find((x) => x.id === "culture-rituals-shipit");
+    expect(s).toBeDefined();
+    expect(s?.heading.en.length).toBeGreaterThan(0);
+    expect(s?.heading.vi.length).toBeGreaterThan(0);
+    expect(s?.body.en.length).toBeGreaterThanOrEqual(6);
+    expect(s?.body.vi.length).toBe(s?.body.en.length);
+  });
+
+  it("ShipIt section cites the anchors an AU founder needs to defend the ritual", () => {
+    const c = getChapter("08-team");
+    const s = c?.sections?.find((x) => x.id === "culture-rituals-shipit");
+    const en = (s?.body.en ?? []).join("\n");
+    for (const anchor of [
+      "24-hour",              // canonical timeframe
+      "2005",                 // ShipIt start year
+      "FedEx Day",            // original name
+      "quarterly",            // cadence
+      "Fair Work Act 2009",   // AU wage-hour anchor for paid participation
+      "IP Assignment Deed",   // ownership rider
+    ]) {
+      expect(en).toContain(anchor);
+    }
+  });
+});
+
+describe("pledge-1-percent section (chapter 08 Q6)", () => {
+  it("chapter 08-team publishes a pledge-1-percent section EN + VI", () => {
+    const c = getChapter("08-team");
+    expect(c).not.toBeNull();
+    expect(c?.sections).toBeDefined();
+    const s = c?.sections?.find((x) => x.id === "pledge-1-percent");
+    expect(s).toBeDefined();
+    expect(s?.heading.en.length).toBeGreaterThan(0);
+    expect(s?.heading.vi.length).toBeGreaterThan(0);
+    expect(s?.body.en.length).toBeGreaterThanOrEqual(6);
+    expect(s?.body.vi.length).toBe(s?.body.en.length);
+  });
+
+  it("Pledge 1% section cites the anchors an AU founder needs to defend the pledge", () => {
+    const c = getChapter("08-team");
+    const s = c?.sections?.find((x) => x.id === "pledge-1-percent");
+    const en = (s?.body.en ?? []).join("\n");
+    for (const anchor of [
+      "pledge1percent.org",   // authoritative deep-link
+      "2014",                 // Pledge 1% co-founding year
+      "Salesforce",           // co-founder attribution
+      "Rally",                // co-founder attribution (Rally Software)
+      "1% of equity",         // equity ledger
+      "1% of product",        // product ledger
+      "1% of profit",         // profit ledger
+      "1% of employee time",  // time ledger
+      "DGR",                  // Deductible Gift Recipient (ATO)
+      "ITAA 1997 s30-15",     // AU tax-deductibility anchor
+      "soft nudge only",      // guardrail language — the Q6 recommendation
+    ]) {
+      expect(en).toContain(anchor);
+    }
+  });
+
+  it("Pledge 1% section explicitly frames itself as soft-nudge, not a fundraise gate", () => {
+    const c = getChapter("08-team");
+    const s = c?.sections?.find((x) => x.id === "pledge-1-percent");
+    const en = (s?.body.en ?? []).join("\n").toLowerCase();
+    // The guardrail matters: the SVI must not read the checkbox; the platform
+    // must never opt a founder in. If either changes, Q6 needs a re-read.
+    expect(en).toContain("never opt");
+    expect(en).toContain("not a fundraise gate");
+    expect(en).toContain("not a scoring input");
   });
 });
 
