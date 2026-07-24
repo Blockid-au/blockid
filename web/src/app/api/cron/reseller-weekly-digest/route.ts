@@ -49,6 +49,11 @@ import {
   type DigestSnapshotRollingTrend,
 } from "@/lib/reseller/digest-snapshot-rolling-trend";
 import {
+  computeDigestSnapshotPerResellerRollingTrend,
+  formatDigestSnapshotPerResellerRollingTrendSection,
+  type DigestSnapshotPerResellerRollingTrend,
+} from "@/lib/reseller/digest-snapshot-per-reseller-rolling-trend";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1195,6 +1200,9 @@ export async function GET(req: Request) {
   let snapshotMetricDelta: DigestSnapshotMetricDelta | null = null;
   let snapshotPerResellerDelta: DigestSnapshotPerResellerDelta | null = null;
   let snapshotRollingTrend: DigestSnapshotRollingTrend | null = null;
+  let snapshotPerResellerRollingTrend:
+    | DigestSnapshotPerResellerRollingTrend
+    | null = null;
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1245,6 +1253,24 @@ export async function GET(req: Request) {
       snapshotRollingTrend,
     );
     if (rollingTrendSection) html += rollingTrendSection;
+    // P11.22 — per-reseller drill-down for the P11.20/P11.21 portfolio rolling
+    // trend. Names the specific partners whose per-metric total moved across
+    // the N-week window so ops does not have to open /admin/resellers/[code]
+    // per row to identify which partner drove the aggregate slide. Same
+    // trendSnapshots buffer as P11.21 (no second fs read). Rendered after the
+    // portfolio trend section so a top-to-bottom read walks structural triage
+    // → portfolio totals → per-partner drill-down → portfolio trend →
+    // per-partner trend drill-down. The pure lib suppresses its own output
+    // when window_size < 2 or every (metric × reseller) row has a zero delta,
+    // so no extra guard is needed at the call site.
+    snapshotPerResellerRollingTrend =
+      computeDigestSnapshotPerResellerRollingTrend(trendSnapshots);
+    const perResellerRollingTrendSection =
+      formatDigestSnapshotPerResellerRollingTrendSection(
+        snapshotPerResellerRollingTrend,
+      );
+    if (perResellerRollingTrendSection)
+      html += perResellerRollingTrendSection;
   }
 
   let emailed = false;
@@ -1517,6 +1543,17 @@ export async function GET(req: Request) {
           first_week: snapshotRollingTrend.first_week,
           last_week: snapshotRollingTrend.last_week,
           metrics: snapshotRollingTrend.metrics,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
+    snapshot_per_reseller_rolling_trend: snapshotPerResellerRollingTrend
+      ? {
+          window_size: snapshotPerResellerRollingTrend.window_size,
+          first_week: snapshotPerResellerRollingTrend.first_week,
+          last_week: snapshotPerResellerRollingTrend.last_week,
+          rows: snapshotPerResellerRollingTrend.rows,
         }
       : {
           skipped_reason:
