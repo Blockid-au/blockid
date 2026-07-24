@@ -4,8 +4,16 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, PlayCircle, Sparkles, X,
+  ChevronDown, ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, PlayCircle, Sparkles, X,
 } from "lucide-react";
+// PHASE_LABELS backs tooltip copy on dimmed sidebar rows — the user sees
+// exactly which canonical phase must be reached before a group unlocks
+// (see ux-ia-startup-flow-goal.md §C.5 — P5 progressive-disclosure).
+import { PHASE_LABELS } from "@/lib/showcase/gallery";
+// Role → menu overlay (hidden groups + injected groups + extra top-nav
+// CTAs). Extracted to a helper so other surfaces can reuse the same source
+// of truth. See ux-ia-startup-flow-goal.md §C.6 — P6.
+import { getMenuOverlayForRole } from "@/lib/nav/role-menu-overlay";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
 import { CreditBadge } from "@/components/workspace/credit-badge";
@@ -146,6 +154,126 @@ function resolveGroup(
   return resolved;
 }
 
+/**
+ * Render a single NAV_GROUPS entry. Extracted so both the near-phase list
+ * and the "Later phases" expander can render groups identically. When a
+ * group is a future-phase, every item shows a lock glyph and its `title`
+ * attribute tells the user which canonical phase unlocks it (§C.5 P5).
+ */
+function renderNavGroup(args: {
+  group: NavGroup;
+  currentPhase: number;
+  sidebarOpen: boolean;
+  planId: string;
+  segment: Segment | null;
+  entitlement: ReturnType<typeof useEntitlement>;
+  pathname: string;
+  setMobileOpen: (v: boolean) => void;
+}): React.ReactNode {
+  const { group, currentPhase, sidebarOpen, planId, segment, entitlement, pathname, setMobileOpen } = args;
+  const isFuturePhase = group.minPhase != null && group.minPhase > currentPhase;
+  const resolvedItems = resolveGroup(group, { planId, segment, hasFeature: entitlement.can });
+  if (resolvedItems.length === 0) return null;
+
+  // Human-readable "unlocks at" copy for tooltips on dimmed rows. When
+  // `minPhase` maps into PHASE_LABELS (1..12) we pull the canonical name,
+  // otherwise we fall back to the group's own stage/label.
+  const unlockPhase = group.minPhase ?? null;
+  const unlockLabel = unlockPhase != null && PHASE_LABELS[unlockPhase]
+    ? PHASE_LABELS[unlockPhase].en
+    : (group.stage ?? group.label);
+  const futureTitle = isFuturePhase && unlockPhase != null
+    ? `Unlocks after Phase ${unlockPhase}: ${unlockLabel}`
+    : undefined;
+
+  return (
+    <div key={group.label} className="mb-1">
+      {/* Group header */}
+      {sidebarOpen && (
+        <div
+          className="px-3 pt-4 pb-1.5 flex items-center justify-between"
+          title={futureTitle}
+        >
+          <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", isFuturePhase ? "text-ink-300" : "text-ink-400")}>{group.label}</span>
+          {group.stage && (
+            <span className={cn(
+              "text-[9px]",
+              isFuturePhase
+                ? "px-1.5 py-0.5 rounded font-semibold bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+                : "text-ink-400/60",
+            )}>
+              {isFuturePhase ? "Locked" : group.stage}
+            </span>
+          )}
+        </div>
+      )}
+      {/* Group items */}
+      {resolvedItems.map(({ item, locked }) => {
+        const { href, label, icon: Icon, lifecycle, addOnKey } = item;
+        const active = pathname === href || pathname.startsWith(href + "/");
+        const chipKind = lifecycle === "stable" ? undefined : lifecycle;
+        const lockedHref = addOnKey
+          ? `/workspace/billing?openAddon=${addOnKey}`
+          : "/workspace/billing";
+        const showAddOnPill = locked && Boolean(addOnKey) && sidebarOpen;
+        // Row-level tooltip: locked (plan) > future-phase > add-on.
+        const rowTitle = locked
+          ? (addOnKey ? "Add-on — click to purchase" : "Upgrade required — click to view plans")
+          : futureTitle;
+        return (
+          <Link
+            key={href}
+            href={locked ? lockedHref : href}
+            onClick={() => setMobileOpen(false)}
+            aria-disabled={locked || undefined}
+            title={rowTitle}
+            className={cn(
+              "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 mx-1",
+              active
+                ? "bg-brand-50 text-brand-700 font-semibold shadow-sm border border-brand-100"
+                : locked
+                  ? "text-ink-300 hover:text-ink-500 hover:bg-surface-50/50 opacity-70"
+                  : isFuturePhase
+                    ? "text-ink-300 hover:text-ink-500 hover:bg-surface-50/50 opacity-60"
+                    : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
+            )}
+          >
+            <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : (locked || isFuturePhase) ? "text-ink-300" : "")} />
+            {sidebarOpen && (
+              <>
+                <span className="truncate flex-1">{label}</span>
+                {showAddOnPill && (
+                  <span className="text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+                    Add-on
+                  </span>
+                )}
+                {locked && !showAddOnPill && (
+                  <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-ink-400" aria-label="Upgrade required" />
+                )}
+                {/* Future-phase lock glyph — visually mirrors the plan-lock
+                    icon so users learn one iconography for "not available
+                    yet". Kept aria-hidden because the row's `title` already
+                    announces "Unlocks after Phase N …" to AT users. */}
+                {!locked && isFuturePhase && (
+                  <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-ink-300" aria-hidden />
+                )}
+                {chipKind && (
+                  <span className={cn(
+                    "text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
+                    LIFECYCLE_CHIP[chipKind],
+                  )}>
+                    {chipKind}
+                  </span>
+                )}
+              </>
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export function WorkspaceLayout({ children, user, startupName, currentPhase = 0, isSandbox = false }: Omit<WorkspaceLayoutProps, "notificationCount">) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
@@ -156,7 +284,39 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
   const planId = entitlement.user?.plan ?? "free";
   const segment = (entitlement.user?.segment as Segment | undefined) ?? null;
 
-  const navGroups = isAdmin ? [...NAV_GROUPS, ADMIN_NAV_GROUP] : NAV_GROUPS;
+  // Base catalogue (+ admin group when the account is admin), then apply
+  // the role overlay so hidden groups drop and ordering respects the role's
+  // priority list. Segment gating inside `resolveGroup()` still runs.
+  const baseGroups = isAdmin ? [...NAV_GROUPS, ADMIN_NAV_GROUP] : NAV_GROUPS;
+  const overlay = getMenuOverlayForRole({
+    role: user.role ?? null,
+    segment: segment ?? null,
+    accountType: (entitlement.user as { accountType?: string } | null | undefined)?.accountType ?? null,
+  });
+  const orderedGroups = React.useMemo(() => {
+    const hidden = new Set(overlay.hiddenGroups);
+    const kept = baseGroups.filter((g) => !hidden.has(g.label));
+    if (overlay.sidebarOrder.length === 0) return kept;
+    const rank = new Map<string, number>();
+    overlay.sidebarOrder.forEach((label, i) => rank.set(label, i));
+    return [...kept].sort((a, b) => {
+      const ra = rank.has(a.label) ? rank.get(a.label)! : Number.POSITIVE_INFINITY;
+      const rb = rank.has(b.label) ? rank.get(b.label)! : Number.POSITIVE_INFINITY;
+      return ra - rb;
+    });
+  }, [baseGroups, overlay]);
+  // Split "way-in-the-future" groups (minPhase > currentPhase + 3) out of
+  // the main render pass — the sidebar collapses them under a single
+  // "Later phases" expander so a phase-0 founder doesn't scroll past 4
+  // greyed-out clusters. See §C.5 P5.
+  const laterPhaseThreshold = currentPhase + 3;
+  const nearGroups = orderedGroups.filter(
+    (g) => g.minPhase == null || g.minPhase <= laterPhaseThreshold,
+  );
+  const laterGroups = orderedGroups.filter(
+    (g) => g.minPhase != null && g.minPhase > laterPhaseThreshold,
+  );
+  const [laterOpen, setLaterOpen] = React.useState(false);
 
   return (
     <div className="min-h-svh bg-surface-100 text-ink-800 dark:bg-surface-50 dark:text-ink-800 flex">
@@ -188,94 +348,78 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 py-1 px-1 overflow-y-auto">
-          {navGroups.map((group) => {
-            const isFuturePhase = group.minPhase != null && group.minPhase > currentPhase;
-            const resolvedItems = resolveGroup(group, {
+        <nav className="flex-1 py-1 px-1 overflow-y-auto" aria-label="Workspace navigation">
+          {nearGroups.map((group) =>
+            renderNavGroup({
+              group,
+              currentPhase,
+              sidebarOpen,
               planId,
               segment,
-              hasFeature: entitlement.can,
-            });
-            // Drop groups whose items were all hidden (e.g. Investor group
-            // for a founder user). Admin group is unaffected — resolver keeps
-            // items without segment filters visible.
-            if (resolvedItems.length === 0) return null;
+              entitlement,
+              pathname,
+              setMobileOpen,
+            }),
+          )}
+          {sidebarOpen && laterGroups.length > 0 && (() => {
+            // Count *visible* items after resolve() so the count reflects
+            // what the user would actually see — hidden segment items
+            // shouldn't inflate the "unlocks 12 more" copy.
+            const resolvedLater = laterGroups.map((g) => ({
+              group: g,
+              items: resolveGroup(g, { planId, segment, hasFeature: entitlement.can }),
+            })).filter((r) => r.items.length > 0);
+            const itemCount = resolvedLater.reduce((n, r) => n + r.items.length, 0);
+            if (resolvedLater.length === 0) return null;
+            // Build a tooltip listing which phases collapse under the
+            // expander, so the user can preview what unlocks without
+            // needing to open it (hover-only hint).
+            const phaseHint = resolvedLater
+              .map((r) => {
+                const p = r.group.minPhase!;
+                const label = PHASE_LABELS[p];
+                return `Phase ${p}: ${label?.en ?? r.group.label}`;
+              })
+              .join("\n");
             return (
-            <div key={group.label} className="mb-1">
-              {/* Group header */}
-              {sidebarOpen && (
-                <div className="px-3 pt-4 pb-1.5 flex items-center justify-between">
-                  <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", isFuturePhase ? "text-ink-300" : "text-ink-400")}>{group.label}</span>
-                  {group.stage && (
-                    <span className={cn(
-                      "text-[9px]",
-                      isFuturePhase
-                        ? "px-1.5 py-0.5 rounded font-semibold bg-amber-100 text-amber-700 ring-1 ring-amber-200"
-                        : "text-ink-400/60",
-                    )}>
-                      {isFuturePhase ? "Beta" : group.stage}
-                    </span>
-                  )}
-                </div>
-              )}
-              {/* Group items */}
-              {resolvedItems.map(({ item, locked }) => {
-                const { href, label, icon: Icon, lifecycle, addOnKey } = item;
-                const active = pathname === href || pathname.startsWith(href + "/");
-                const chipKind = lifecycle === "stable" ? undefined : lifecycle;
-                // Locked items with an addOnKey deep-link to the billing
-                // page and auto-open the purchase drawer, so the user
-                // never leaves their intent — per plan § F.5.
-                const lockedHref = addOnKey
-                  ? `/workspace/billing?openAddon=${addOnKey}`
-                  : "/workspace/billing";
-                const showAddOnPill = locked && Boolean(addOnKey) && sidebarOpen;
-                return (
-                  <Link
-                    key={href}
-                    href={locked ? lockedHref : href}
-                    onClick={() => setMobileOpen(false)}
-                    aria-disabled={locked || undefined}
-                    title={locked ? (addOnKey ? "Add-on — click to purchase" : "Upgrade required — click to view plans") : undefined}
-                    className={cn(
-                      "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 mx-1",
-                      active
-                        ? "bg-brand-50 text-brand-700 font-semibold shadow-sm border border-brand-100"
-                        : locked
-                          ? "text-ink-300 hover:text-ink-500 hover:bg-surface-50/50 opacity-70"
-                          : isFuturePhase
-                            ? "text-ink-300 hover:text-ink-500 hover:bg-surface-50/50 opacity-60"
-                            : "text-ink-500 hover:text-ink-800 hover:bg-surface-50",
+              <div className="mb-1 mt-3 border-t border-surface-100 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setLaterOpen((v) => !v)}
+                  aria-expanded={laterOpen}
+                  aria-controls="later-phases-panel"
+                  title={`Unlocks after your current phase:\n${phaseHint}`}
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400 hover:text-ink-600 hover:bg-surface-50 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Lock strokeWidth={1.75} className="h-3 w-3 text-ink-300" aria-hidden />
+                    Later phases ({itemCount})
+                  </span>
+                  <ChevronDown
+                    strokeWidth={1.75}
+                    className={cn("h-3.5 w-3.5 transition-transform duration-200", laterOpen ? "rotate-180" : "")}
+                    aria-hidden
+                  />
+                </button>
+                {laterOpen && (
+                  <div id="later-phases-panel" className="mt-1">
+                    {resolvedLater.map((r) =>
+                      renderNavGroup({
+                        group: r.group,
+                        currentPhase,
+                        sidebarOpen,
+                        planId,
+                        segment,
+                        entitlement,
+                        pathname,
+                        setMobileOpen,
+                      }),
                     )}
-                  >
-                    <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-600" : (locked || isFuturePhase) ? "text-ink-300" : "")} />
-                    {sidebarOpen && (
-                      <>
-                        <span className="truncate flex-1">{label}</span>
-                        {showAddOnPill && (
-                          <span className="text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 bg-amber-100 text-amber-700 ring-1 ring-amber-200">
-                            Add-on
-                          </span>
-                        )}
-                        {locked && !showAddOnPill && (
-                          <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-ink-400" aria-label="Upgrade required" />
-                        )}
-                        {chipKind && (
-                          <span className={cn(
-                            "text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
-                            LIFECYCLE_CHIP[chipKind],
-                          )}>
-                            {chipKind}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
+                  </div>
+                )}
+              </div>
             );
-          })}
+          })()}
         </nav>
 
         {/* Bottom: credit badge + home link */}
@@ -319,6 +463,25 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
                 Live
               </span>
             </Link>
+
+            {/* Role-scoped extras — surfaces the console / admin link for
+                reseller + admin without duplicating the sidebar Reseller
+                group. See role-menu-overlay.ts. */}
+            {overlay.topNavExtras.map((extra) => (
+              <Link
+                key={extra.href}
+                href={extra.href}
+                aria-label={extra.ariaLabel ?? extra.label}
+                className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium text-ink-600 hover:text-ink-900 hover:bg-surface-100 transition-colors"
+              >
+                <span>{extra.label}</span>
+                {extra.badge && (
+                  <span className="hidden md:inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand-50 text-brand-700 ring-1 ring-brand-100">
+                    {extra.badge}
+                  </span>
+                )}
+              </Link>
+            ))}
 
             {/* Reseller co-branding pill (renders null when no attribution) */}
             <ResellerPill />
