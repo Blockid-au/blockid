@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { Shield } from "lucide-react";
-import Link from "next/link";
 import { AdminDashboardClient } from "./admin-dashboard-client";
 
 export const metadata: Metadata = {
@@ -18,18 +16,11 @@ export default async function AdminPage() {
   if (!user) redirect("/auth/login?next=/admin");
 
   const isAdmin = user.email === ADMIN_EMAIL || user.role === "admin";
-  if (!isAdmin) {
-    return (
-      <div className="min-h-svh bg-surface-100 flex items-center justify-center">
-        <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
-          <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
-          <p className="text-ink-600 text-sm mb-6">You don&apos;t have admin access to BlockID.</p>
-          <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">&larr; Back to home</Link>
-        </div>
-      </div>
-    );
-  }
+  // Non-admins: redirect to /dashboard/svi (matches pattern used by every other
+  // admin subroute — see resellers/page.tsx, affiliate/page.tsx, etc.). Previous
+  // soft-200 "Access Denied" render leaked the admin surface (200 status) to
+  // scanners and to unauth users; now returns a proper 307 redirect.
+  if (!isAdmin) redirect("/dashboard/svi");
 
   const supabase = getSupabaseAdmin();
   let stats = { users: 0, analyses: 0, accounts: 0, notifications: 0 };
