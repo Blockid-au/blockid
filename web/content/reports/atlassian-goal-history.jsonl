@@ -136,3 +136,6 @@
 {"tick_id":"2026-07-24T09-37-02-059Z","ts":"2026-07-24T09:44:20.918Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"42bea346","last_deployed":"0f24b8f"}
 {"tick_id":"2026-07-24T09-37-02-059Z","ts":"2026-07-24T09:50:43.122Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"42bea346"}
 {"tick_id":"2026-07-24T09-37-02-059Z","ts":"2026-07-24T09:50:43.123Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T09-57-01-812Z","ts":"2026-07-24T09:57:01.813Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T09-57-01-812Z","ts":"2026-07-24T09:57:01.818Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T10-00-00-000Z","ts":"2026-07-24T10:00:00.000Z","loop_label":"atlassian-goal-loop","stage":"tick_shipped","phase":"P1n-persist","summary":"WGEA + Modern Slavery persistence + dashboard wiring — migration 0112, two routes /api/compliance/{wgea|modern-slavery}-threshold, compliance-panel grows 4→6 tiles."}
