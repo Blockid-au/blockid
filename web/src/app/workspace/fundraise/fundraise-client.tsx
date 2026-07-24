@@ -56,6 +56,23 @@ interface SavedRound {
   created_at: string;
 }
 
+// Warn / block envelope shape returned by the ESIC + Div 83A gates in
+// web/src/app/api/fundraise/route.ts. Kept structural (not imported)
+// so this client stays server-boundary-free.
+interface GateWarn {
+  reason: string;
+  message: string;
+  url_to_fix: string;
+}
+
+interface GateBlock {
+  error: "esic_gate_blocked" | "div83a_gate_blocked";
+  reason: string;
+  message: string;
+  url_to_fix: string;
+  disclaimer: string;
+}
+
 interface InvestorAllocation {
   id: string;
   name: string;
@@ -180,6 +197,12 @@ export function FundraiseClient() {
   const [instrumentType, setInstrumentType] = React.useState<InstrumentType>("safe");
   const [safeDiscount, setSafeDiscount] = React.useState<number>(20);
   const [safeCap, setSafeCap] = React.useState<number>(5_000_000);
+  // P6b — wholesale-only opt-in. When true, /api/fundraise switches the
+  // ESIC + Div 83A gates from warn-mode to blocking-mode (412) because
+  // the round is being pitched under s708(8)/(11) with the ESIC tax
+  // offset or ESS start-up concession as a material claim. See goal
+  // docs/plans/atlassian-standard-mapping-goal.md P6b.
+  const [wholesaleOnly, setWholesaleOnly] = React.useState<boolean>(false);
 
   // Step 3: Investor Allocations
   const [investors, setInvestors] = React.useState<InvestorAllocation[]>([
@@ -194,6 +217,13 @@ export function FundraiseClient() {
   // Past rounds
   const [pastRounds, setPastRounds] = React.useState<SavedRound[]>([]);
   const [loadingRounds, setLoadingRounds] = React.useState(true);
+
+  // Compliance-gate feedback (P6 / P6a / P6b). `gateBlock` is set on
+  // 412 responses so the founder sees why the round was rejected +
+  // a direct link to the surface that resolves it. `gateWarns` is a
+  // list of non-blocking warnings from happy-path 200 responses.
+  const [gateBlock, setGateBlock] = React.useState<GateBlock | null>(null);
+  const [gateWarns, setGateWarns] = React.useState<GateWarn[]>([]);
 
   // Readiness v2 (checklist + AU comparables)
   const [readiness, setReadiness] = React.useState<ReadinessV2Response | null>(null);
@@ -230,6 +260,8 @@ export function FundraiseClient() {
   async function calculateDilution() {
     setLoading(true);
     setError(null);
+    setGateBlock(null);
+    setGateWarns([]);
     try {
       const res = await fetch("/api/fundraise", {
         method: "POST",
@@ -241,13 +273,28 @@ export function FundraiseClient() {
           instrumentType,
           safeDiscount: instrumentType !== "priced" ? safeDiscount : undefined,
           safeCap: instrumentType !== "priced" ? safeCap : undefined,
+          wholesaleOnly,
         }),
       });
       const data = await res.json();
+      if (res.status === 412 && !data.ok && typeof data.error === "string") {
+        setGateBlock({
+          error: data.error,
+          reason: data.reason,
+          message: data.message,
+          url_to_fix: data.url_to_fix,
+          disclaimer: data.disclaimer,
+        });
+        return;
+      }
       if (!data.ok) {
         setError(data.error ?? "Failed to calculate round");
         return;
       }
+      const warns: GateWarn[] = [];
+      if (data.esic_warn) warns.push(data.esic_warn as GateWarn);
+      if (data.div83a_warn) warns.push(data.div83a_warn as GateWarn);
+      setGateWarns(warns);
       setDilutionTable(data.dilutionTable);
       setNewCapTable(data.newCapTable);
       setSavedRound(data.round);
@@ -378,6 +425,65 @@ export function FundraiseClient() {
         </div>
       )}
 
+      {/* Compliance-gate block (P6b — 412 on wholesale-only rounds) */}
+      {gateBlock && (
+        <div
+          role="alert"
+          data-testid="fundraise-gate-block"
+          className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 space-y-2"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-red-800">
+                {gateBlock.error === "esic_gate_blocked"
+                  ? "Wholesale-only round blocked by ESIC gate"
+                  : "Wholesale-only round blocked by Div 83A ESOP gate"}
+              </p>
+              <p className="text-sm text-red-700 mt-1">{gateBlock.message}</p>
+              <p className="text-xs text-red-600 mt-1">
+                Reason: <code className="font-mono">{gateBlock.reason}</code>
+              </p>
+            </div>
+            <Link
+              href={gateBlock.url_to_fix}
+              className="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+            >
+              Fix now
+            </Link>
+          </div>
+          <p className="text-[11px] text-red-500 border-t border-red-200 pt-2">
+            {gateBlock.disclaimer}
+          </p>
+        </div>
+      )}
+
+      {/* Compliance-gate warns (200 responses — non-blocking) */}
+      {gateWarns.length > 0 && (
+        <div
+          role="status"
+          data-testid="fundraise-gate-warn"
+          className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2"
+        >
+          <p className="text-sm font-semibold text-amber-800">
+            Round saved — compliance follow-ups outstanding
+          </p>
+          <ul className="space-y-1.5">
+            {gateWarns.map((w) => (
+              <li key={w.reason} className="text-sm text-amber-700">
+                <span className="mr-1">•</span>
+                {w.message}{" "}
+                <Link
+                  href={w.url_to_fix}
+                  className="underline underline-offset-2 font-medium text-amber-800 hover:text-amber-900"
+                >
+                  Resolve
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* ── Step 0: Round Configuration ──────────────────────────────────── */}
       {step === 0 && (
         <div className="space-y-6">
@@ -499,6 +605,37 @@ export function FundraiseClient() {
                 </div>
               </div>
             )}
+
+            {/* Wholesale-only opt-in (P6b) — flips ESIC + Div 83A gates from
+                warn-mode to blocking (412). Explain the trade-off so the
+                founder knows what they're opting into. */}
+            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  data-testid="fundraise-wholesale-only"
+                  checked={wholesaleOnly}
+                  onChange={(e) => setWholesaleOnly(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-400"
+                />
+                <span className="text-sm text-ink-800">
+                  <span className="font-semibold">
+                    Wholesale-only round (s708(8) / s761G(7))
+                  </span>
+                  <span className="block text-xs text-ink-600 mt-1">
+                    Tick this if you're marketing the round only to
+                    sophisticated / professional investors and pitching
+                    the ESIC 20% offset or Div 83A ESS start-up
+                    concession as a material claim. BlockID will refuse
+                    to save the round (HTTP 412) if your ESIC
+                    self-assessment is missing / stale / negative, or
+                    if any active ESOP grant fails the Div 83A gate.
+                    Leave unticked for a normal round — you'll still
+                    see a warning banner but nothing is blocked.
+                  </span>
+                </span>
+              </label>
+            </div>
 
             {/* Quick summary */}
             <div className="grid grid-cols-3 gap-3 pt-3 border-t border-surface-200">

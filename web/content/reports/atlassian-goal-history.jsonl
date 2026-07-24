@@ -181,3 +181,6 @@
 {"tick_id":"2026-07-24T11-07-01-598Z","ts":"2026-07-24T11:14:50.289Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"65a2c784","last_deployed":"9f7aad6"}
 {"tick_id":"2026-07-24T11-07-01-598Z","ts":"2026-07-24T11:21:01.788Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"65a2c784"}
 {"tick_id":"2026-07-24T11-07-01-598Z","ts":"2026-07-24T11:21:01.790Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:27:01.081Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:27:01.087Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T11-27-manual-p6b","ts":"2026-07-24T11:30:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P6b","summary":"Wholesale-only fundraise UI toggle: opt-in checkbox in fundraise wizard Step 0 flips ESIC+Div83A gates from warn to 412-blocking; red block banner with url_to_fix + amber warn banner harvest esic_warn/div83a_warn from 200s. tsc green."}
