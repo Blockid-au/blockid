@@ -171,6 +171,7 @@ export const NAV_GROUPS: NavGroup[] = [
     defaultCollapsed: true,
     items: [
       { href: "/workspace/revenue", label: "Revenue", icon: DollarSign, minPlan: "growth" },
+      { href: "/workspace/tax-invoice-checker", label: "Tax Invoice Checker", icon: FileText, minPlan: "starter" },
       { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen, minPlan: "scale" },
       { href: "/workspace/dividends", label: "Dividends", icon: Gift, minPlan: "growth" },
       { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen, minPlan: "growth" },
