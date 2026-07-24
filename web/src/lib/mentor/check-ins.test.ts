@@ -76,8 +76,7 @@ describe("completeness", () => {
   });
 
   it("rejects invalid mood values", () => {
-    // @ts-expect-error - runtime bad input
-    expect(completeness({ mood: "ecstatic" })).toBe(0);
+    expect(completeness({ mood: "ecstatic" as never })).toBe(0);
   });
 });
 
