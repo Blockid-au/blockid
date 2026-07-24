@@ -129,6 +129,11 @@ import {
   type DigestSnapshotPerResellerPctChangeStreakCoverage,
 } from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-coverage";
 import {
+  computeDigestSnapshotDirectionStreakCoverage,
+  formatDigestSnapshotDirectionStreakCoverageSection,
+  type DigestSnapshotDirectionStreakCoverage,
+} from "@/lib/reseller/digest-snapshot-direction-streak-coverage";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1358,6 +1363,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerPctChangeStreakCoverage
     | null = null;
   let perResellerPctChangeStreakCoverageSection = "";
+  let snapshotDirectionStreakCoverage:
+    | DigestSnapshotDirectionStreakCoverage
+    | null = null;
+  let directionStreakCoverageSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1702,11 +1711,29 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerPctChangeStreakCoverageSection(
         snapshotPerResellerPctChangeStreakCoverage,
       );
+    // P11.58 — portfolio-wide sustained-direction streak coverage summary
+    // (module P11.57). Topline for the P11.30/P11.31 direction-streak
+    // spotlight, mirroring how P11.54 tops P11.49/P11.50 for |pct|-magnitude
+    // coverage on the portfolio axis. Consumes the SAME portfolio-wide
+    // snapshotRollingTrend the P11.30 detector already consumes (no extra
+    // fold, no divergence risk vs. the spotlight rows this coverage summary
+    // tops). Lands directly above directionStreaksSection so ops reads the
+    // topline (how many KPIs are on a same-direction streak, split up vs
+    // down) before scanning the per-metric detail table — a portfolio with
+    // 5 up-streaks and 0 down-streaks tells a fundamentally different story
+    // from 0 up / 5 down even at the same coverage_rate_pct.
+    snapshotDirectionStreakCoverage =
+      computeDigestSnapshotDirectionStreakCoverage(snapshotRollingTrend);
+    directionStreakCoverageSection =
+      formatDigestSnapshotDirectionStreakCoverageSection(
+        snapshotDirectionStreakCoverage,
+      );
   }
   if (
     topMoversSection ||
     topMoversPerMetricSection ||
     topMoversPerResellerSection ||
+    directionStreakCoverageSection ||
     directionStreaksSection ||
     perResellerDirectionStreaksSection ||
     pctChangeStreakCoverageSection ||
@@ -1734,6 +1761,7 @@ export async function GET(req: Request) {
       topMoversSection +
       topMoversPerMetricSection +
       topMoversPerResellerSection +
+      directionStreakCoverageSection +
       directionStreaksSection +
       perResellerDirectionStreaksSection +
       pctChangeStreakCoverageSection +
@@ -2265,6 +2293,31 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_direction_streak_coverage: snapshotDirectionStreakCoverage
+      ? {
+          window_size: snapshotDirectionStreakCoverage.window_size,
+          first_week: snapshotDirectionStreakCoverage.first_week,
+          last_week: snapshotDirectionStreakCoverage.last_week,
+          min_streak_length: snapshotDirectionStreakCoverage.min_streak_length,
+          total_metrics: snapshotDirectionStreakCoverage.total_metrics,
+          metrics_with_streak:
+            snapshotDirectionStreakCoverage.metrics_with_streak,
+          metrics_up_streak: snapshotDirectionStreakCoverage.metrics_up_streak,
+          metrics_down_streak:
+            snapshotDirectionStreakCoverage.metrics_down_streak,
+          coverage_rate_pct: snapshotDirectionStreakCoverage.coverage_rate_pct,
+          up_coverage_rate_pct:
+            snapshotDirectionStreakCoverage.up_coverage_rate_pct,
+          down_coverage_rate_pct:
+            snapshotDirectionStreakCoverage.down_coverage_rate_pct,
+          min_length: snapshotDirectionStreakCoverage.min_length,
+          max_length: snapshotDirectionStreakCoverage.max_length,
+          median_length: snapshotDirectionStreakCoverage.median_length,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
     ran_at: now.toISOString(),
   };
 
