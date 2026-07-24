@@ -342,10 +342,17 @@ fi
 if [ "${1:-}" != "--skip-build" ]; then
   gate "Unit tests (vitest)"
 
-  TEST_EXIT=0
-  npm test 2>&1 | tail -10 || TEST_EXIT=$?
+  # Capture vitest's exit via PIPESTATUS[0], NOT `$?` after the pipe — otherwise
+  # `npm test 2>&1 | tail -10 || TEST_EXIT=$?` captures tail's exit (always 0)
+  # so 6 currently-failing vitest tests were silently marked "All pass" (round
+  # 5.3 QA finding). Mirrors the Gate 11 pattern below. `set +e` inside a
+  # bounded scope so a test failure doesn't trip `set -e` before we can log it.
+  set +e
+  npm test 2>&1 | tail -10
+  TEST_EXIT=${PIPESTATUS[0]}
+  set -e
   if [ "$TEST_EXIT" -ne 0 ]; then
-    fail "Unit tests failed. Fix before deploy."
+    fail "Unit tests failed (exit $TEST_EXIT). Fix before deploy."
   fi
   pass "All unit tests pass"
 fi
