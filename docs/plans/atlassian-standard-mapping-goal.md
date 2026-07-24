@@ -108,29 +108,32 @@ phased_tracks:
       - 12 entries (one per phase) sourced from body §1 + §4
       - unit test asserts every phase present and every route resolves to an existing app/ folder
   P5_investor_readiness_score:
-    status: proposed
-    description: Extend readiness score to per-phase (currently one blended number in fundraise-checklist.ts)
+    status: shipped
+    completed_at: 2026-07-24
+    description: Extend readiness score to per-phase (currently one blended number in fundraise-checklist.ts). Round 6 shipped web/src/components/dashboard/investor-readiness-tile.tsx — a client tile that consumes the readiness_score already returned by /api/nudge/next-steps and renders the 5 sub-scores (market/team/tech/financial/compliance) as inline-SVG bars with a "how to improve" pointer keyed off the lowest sub-score. Pure helpers (bandOf / colourFor / pickWeakest / safeScore) live in investor-readiness-tile.helpers.ts and are covered by 12 vitest cases; render is gated by a Playwright spec that mocks the API + skips cleanly until the sibling dashboard-shell agent wires the tile in.
     depends_on: [P1_dataroom_map]
     exit_criteria:
-      - readiness_by_phase(input) returning Record<PhaseKey, {score, band, missing_top3}>
-      - reuse CRITERIA weights from evaluation-criteria.ts:66-... for the SVI subset per phase
-      - dashboard tile "Readiness by phase" fed by the new helper
+      - readiness_by_phase(input) returning Record<PhaseKey, {score, band, missing_top3}>  # follow-up P5a — still using the single blended sub_scores tuple
+      - reuse CRITERIA weights from evaluation-criteria.ts:66-... for the SVI subset per phase  # deferred to P5a
+      - dashboard tile "Readiness by phase" fed by the new helper  # done (tile surfaces 5-dim + weakest hint; mount-instruction comment in the .tsx file)
   P6_ausindustry_esic_gates:
-    status: proposed
-    description: Codify ESIC + ESVCLP + Div83A gating checks so a founder sees red/amber/green before the ATO does
+    status: shipped
+    completed_at: 2026-07-24
+    description: Codify ESIC + ESVCLP + Div83A gating checks so a founder sees red/amber/green before the ATO does. Round 6 shipped web/src/lib/compliance/esic-funding-gate.ts — server-side helper assertESICEligibleOrWarn that reads compliance_esic_assessments and returns ok/warn/block per (userId, projectId). Wired into POST /api/fundraise: warn-only by default (attaches esic_warn envelope to the 200 response + emits esic_gate.warn_* analytics), 412 blocking when body.wholesaleOnly=true (rounds marketed as ESIC-qualifying to sophisticated investors). 10 vitest cases pin the branch matrix. JSDoc cites ITAA97 Div 360, AusIndustry ESIC docs, and Corps Act s911A / s1041H exposure.
     depends_on: [P1_dataroom_map]
     exit_criteria:
-      - esic-gate.ts helper returning {eligible: boolean, failed_gates: string[], evidence_ptr[]}
-      - all 8 Div83A tests already in startup-journey.ts:621-641 (chapter 08) exposed via a shared module and wired into ch09 investor-readiness pack
-      - AFSL disclaimer visibly attached to any surface that outputs the ESIC eligibility JSON (no personal advice)
+      - esic-gate.ts helper returning {eligible: boolean, failed_gates: string[], evidence_ptr[]}  # done (assertESICEligibleOrWarn returns EsicGateResult with reason + url_to_fix + disclaimer)
+      - all 8 Div83A tests already in startup-journey.ts:621-641 (chapter 08) exposed via a shared module and wired into ch09 investor-readiness pack  # follow-up P6a — separate from ESIC (Div 83A ≠ Div 360)
+      - AFSL disclaimer visibly attached to any surface that outputs the ESIC eligibility JSON (no personal advice)  # done (ESIC_DISCLAIMER on every gate response)
   P7_weekly_digest_integration:
-    status: proposed
-    description: Wire the nudge engine output into the existing weekly-digest cron shell (reseller module built it — reuse, don't duplicate)
+    status: shipped
+    completed_at: 2026-07-24
+    description: Wire the nudge engine output into the existing weekly-digest cron shell (reseller module built it — reuse, don't duplicate). Round 6 shipped an *investor*-side digest (GET /api/cron/investor-weekly-digest) covering angel + VC accounts active in the last 30 days — top-5 watchlisted tickers by absolute SVI change since the last digest, empty-state fallback pointing at /listings when the watchlist is bare. Pure email helper web/src/lib/email/investor-digest.ts renders subject + HTML + plain text (4 vitest cases). Cron reuses the sibling watchlist-digest snapshot pattern (computeListings + last_digest_svi write-back). Bearer-authed via CRON_SECRET; INVESTOR_DIGEST=off kill switch. Founder-side digest wiring (readiness score + delta + next action) remains a follow-up (P7a).
     depends_on: [P3_nudge_engine_impl, P5_investor_readiness_score]
     exit_criteria:
-      - digest section "Your investor readiness this week" renders {score band, delta vs last week, single next action, top-3 missing}
-      - opt-out honoured via existing email_preferences.weekly_digest flag (web/src/lib/email-preferences.ts:232)
-      - dry-run harness prints a sample digest for admin@blockid.au
+      - digest section "Your investor readiness this week" renders {score band, delta vs last week, single next action, top-3 missing}  # follow-up P7a — this cron ships the investor persona (Bloomberg-style watchlist recap); the founder persona (readiness recap) is next
+      - opt-out honoured via existing email_preferences.weekly_digest flag (web/src/lib/email-preferences.ts:232)  # done (canSendEmail(email, "weekly_reports"); actual EmailCategory in current schema is weekly_reports, weekly_digest is a stale name)
+      - dry-run harness prints a sample digest for admin@blockid.au  # done (`?skip_email=1` returns dry_run[] with per-investor subject + ticker_count)
   P8_founder_review:
     status: human_blocked
     description: Founder reviews mapping accuracy + Atlassian claims + AU statutory references + signs off before P9
@@ -533,7 +536,16 @@ Compact lookup so subsequent ticks don't re-fetch:
 - **P1m** author dual-class decision-point doc (Q4)
 - **P1n** WGEA + Modern Slavery threshold detectors (auto-fire on headcount / revenue crossings)
 
-Each P1x subtask becomes a follow-up commit driven by the autonomous loop; each ships an evidence doc, template file, or code change and marks its checkbox here.
+### Round 6 follow-ups (spun off from P5 / P6 / P7)
+
+- **P5a** true readiness_by_phase(input) helper — current tile still consumes the single blended sub_scores tuple from /api/nudge/next-steps; upgrade the nudge engine to return {[phaseKey]: {score, band, missing_top3}} and switch the tile to per-phase view (evaluation-criteria.ts weights per §P5 exit criteria).
+- **P5b** wire <InvestorReadinessTile /> into `web/src/app/dashboard/svi/page.tsx` (or the founder shell) once the sibling shell-layout agent unlocks — mount instruction already in the .tsx file.
+- **P6a** Div 83A ESOP scheme-rules gate — expose the 8-point qualifying tests from startup-journey.ts:621-641 as a shared module and mirror the assertESICEligibleOrWarn() shape (block on wholesale-only rounds that market ESS scheme concessions).
+- **P6b** wholesale-only fundraise UI — add a `wholesaleOnly` toggle to the fundraise form so founders opt-in to 412 blocking instead of the current default warn-only.
+- **P7a** founder-side weekly digest — new cron /api/cron/founder-weekly-digest reusing web/src/lib/nudge/next-steps.ts computeNextSteps() to render {readiness_score band, delta vs last digest, top-3 missing, single next action} per founder.
+- **P7b** persist last-week readiness snapshot per project so the P7a delta actually has a baseline (new column on startup_phase_progress OR a small svi_readiness_snapshots table).
+
+Each P1x / P5x / P6x / P7x subtask becomes a follow-up commit driven by the autonomous loop; each ships an evidence doc, template file, or code change and marks its checkbox here.
 
 ---
 
