@@ -204,3 +204,7 @@
 {"tick_id":"2026-07-24T12-12-00-000Z","ts":"2026-07-24T12:12:45.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P7a","summary":"Founder-side weekly digest cron + email helper (P7a follow-up shipped) — GET /api/cron/founder-weekly-digest, buildFounderDigest() with 8 vitest cases, snapshot persistence on successful send"}
 {"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:13:58.074Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":416106,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:13:58.109Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
+{"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:13:59.599Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:13:59.605Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"e7721a5e","last_deployed":"a02a9b6"}
+{"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:20:14.986Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"e7721a5e"}
+{"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:20:14.987Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
