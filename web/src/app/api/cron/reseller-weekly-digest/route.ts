@@ -25,6 +25,12 @@ import {
   type AuditLogRow,
 } from "@/lib/reseller/audit-anomaly";
 import {
+  computeAttributedChurn30dByReseller,
+  formatWeeklyDigestAttributedChurnSection,
+  type AttributedChurnRow,
+  type ChurnCandidateRow,
+} from "@/lib/reseller/attributed-churn-30d";
+import {
   computeAttributedMrrByReseller,
   formatWeeklyDigestAttributedMrrSection,
   type AttributedMrrRow,
@@ -693,6 +699,96 @@ export async function GET(req: Request) {
     if (netSection) html += netSection;
   }
 
+  // P11.7 canonical KPI (`attributed_churn_30d` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Per-reseller count of attributed customers whose
+  // subscription_trial_state.status flipped to canceled or trial_ended_no_payment
+  // inside the last 30 days. Loss-side twin of P11.5 attributed_mrr — ops reads
+  // MRR alongside churn to see whether the running-revenue book is growing or
+  // eroding. Query is a second scoped subscription_trial_state select because
+  // the earlier P11.5 select is status='active' only; widening it with an OR on
+  // status would ripple through the mrr rollup for no gain. Failures degrade to
+  // a skipped section so the earlier signals still ship.
+  let churnRows: AttributedChurnRow[] = [];
+  let churnSkippedReason: string | null = null;
+  const attributedTotals = new Map<string, number>();
+  for (const [rid, uids] of customersByReseller.entries()) {
+    attributedTotals.set(rid, uids.size);
+  }
+  if (allUserIds.length === 0) {
+    churnRows = resellers.map((r) => ({
+      reseller_id: r.id,
+      reseller_code: r.code,
+      reseller_display_name: r.display_name ?? r.code,
+      churn: {
+        churned_count: 0,
+        canceled_count: 0,
+        trial_ended_count: 0,
+        attributed_total: attributedTotals.get(r.id) ?? 0,
+        churn_pct: 0,
+      },
+    }));
+    const churnSection = formatWeeklyDigestAttributedChurnSection(churnRows);
+    if (churnSection) html += churnSection;
+  } else {
+    const { data: churnSubRows, error: churnSubErr } = await supabase
+      .from("subscription_trial_state")
+      .select("user_id, status, updated_at")
+      .in("user_id", allUserIds)
+      .in("status", ["canceled", "trial_ended_no_payment"]);
+    if (churnSubErr) {
+      console.error(
+        "[reseller-weekly-digest] churn subs query failed",
+        churnSubErr.message,
+      );
+      churnSkippedReason = "churn_subs_query_failed";
+    } else {
+      const churnSubs = (churnSubRows ?? []) as {
+        user_id: string;
+        status: string | null;
+        updated_at: string | null;
+      }[];
+      // Reverse-lookup user_id → reseller_id from customersByReseller.
+      // First-seen wins on the exceedingly rare case of an attribution row
+      // shared across resellers so churn is never double-counted — same posture
+      // as P11.5 attributed-mrr.
+      const userToReseller = new Map<string, string>();
+      for (const [rid, uids] of customersByReseller.entries()) {
+        for (const uid of uids) {
+          if (!userToReseller.has(uid)) userToReseller.set(uid, rid);
+        }
+      }
+      const candidateRows: ChurnCandidateRow[] = [];
+      for (const s of churnSubs) {
+        const rid = userToReseller.get(s.user_id);
+        if (!rid) continue;
+        candidateRows.push({
+          reseller_id: rid,
+          status: s.status,
+          updated_at: s.updated_at,
+        });
+      }
+      const churnByReseller = computeAttributedChurn30dByReseller(
+        resellerIds,
+        candidateRows,
+        { now, attributedTotals },
+      );
+      churnRows = resellers.map((r) => ({
+        reseller_id: r.id,
+        reseller_code: r.code,
+        reseller_display_name: r.display_name ?? r.code,
+        churn: churnByReseller.get(r.id) ?? {
+          churned_count: 0,
+          canceled_count: 0,
+          trial_ended_count: 0,
+          attributed_total: attributedTotals.get(r.id) ?? 0,
+          churn_pct: 0,
+        },
+      }));
+      const churnSection = formatWeeklyDigestAttributedChurnSection(churnRows);
+      if (churnSection) html += churnSection;
+    }
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -811,6 +907,21 @@ export async function GET(req: Request) {
             active_subs: r.mrr.active_subs,
             mrr_cents: r.mrr.mrr_cents,
             arr_cents: r.mrr.mrr_cents * 12,
+          })),
+        },
+    attributed_churn_30d: churnSkippedReason
+      ? { skipped_reason: churnSkippedReason }
+      : {
+          window_days: 30,
+          reseller_count: churnRows.length,
+          rows: churnRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            attributed_total: r.churn.attributed_total,
+            canceled_count: r.churn.canceled_count,
+            trial_ended_count: r.churn.trial_ended_count,
+            churned_count: r.churn.churned_count,
+            churn_pct: r.churn.churn_pct,
           })),
         },
     attributed_net_contribution: netContributionSkippedReason
