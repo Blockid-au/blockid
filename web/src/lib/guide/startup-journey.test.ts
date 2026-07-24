@@ -188,6 +188,41 @@ describe("primary vs secondary section (chapter 10 P1l)", () => {
   });
 });
 
+describe("dual-class decision section (chapter 10 P1m)", () => {
+  it("chapter 10-fundraise publishes a dual-class-decision section EN + VI", () => {
+    const c = getChapter("10-fundraise");
+    expect(c).not.toBeNull();
+    expect(c?.sections).toBeDefined();
+    const s = c?.sections?.find((x) => x.id === "dual-class-decision");
+    expect(s).toBeDefined();
+    expect(s?.heading.en.length).toBeGreaterThan(0);
+    expect(s?.heading.vi.length).toBeGreaterThan(0);
+    // At least six substantive bullets each; both locales aligned.
+    expect(s?.body.en.length).toBeGreaterThanOrEqual(6);
+    expect(s?.body.vi.length).toBe(s?.body.en.length);
+  });
+
+  it("dual-class section cites the anchors an AU founder needs to defend the call", () => {
+    const c = getChapter("10-fundraise");
+    const s = c?.sections?.find((x) => x.id === "dual-class-decision");
+    const en = (s?.body.en ?? []).join("\n");
+    for (const anchor of [
+      "Listing Rule 6.9",         // ASX prohibition on unequal voting
+      "Class A",                   // dual-class nomenclature
+      "Class B",                   // dual-class nomenclature
+      "UK Plc",                    // Atlassian 2014 reorg path
+      "Delaware",                  // 2022 redomicile + alt path
+      "Scheme of Arrangement",     // Court-sanctioned reorg mechanism
+      "Subdiv 124-M",              // ITAA 1997 scrip-for-scrip rollover
+      "s911A",                     // Corps Act financial-services boundary
+      "sunset",                    // sunset clauses on dual-class term sheets
+      "single-class",              // AU default
+    ]) {
+      expect(en).toContain(anchor);
+    }
+  });
+});
+
 describe("getAdjacentChapters()", () => {
   it("returns null previous for the first chapter and null next for the last", () => {
     expect(getAdjacentChapters("01-vision").previous).toBeNull();
