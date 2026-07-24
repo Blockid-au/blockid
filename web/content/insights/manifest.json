@@ -1,6 +1,31 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-benchmarks-australia-2026",
+      "title": "Startup Valuation Benchmarks Australia 2026: Founder's Guide",
+      "description": "Discover current startup valuation benchmarks in Australia for 2026. Get pre-seed and seed stage ranges to negotiate confidently with investors.",
+      "keywords": [
+        "startup valuation benchmarks australia 2026",
+        "average pre-seed valuation australia",
+        "seed stage valuation ranges australia",
+        "SaaS startup valuation benchmarks au",
+        "fintech valuation multiples australia",
+        "healthtech startup valuation australia",
+        "how to value a pre-seed startup australia",
+        "startup valuation by industry au",
+        "justify startup valuation to investors",
+        "Australian startup funding trends 2026",
+        "pre-seed vs seed valuation australia"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-07-24",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Your Valuation Score",
+        "href": "/score"
+      }
+    },
+    {
       "slug": "startup-valuation-cap-table-impact-calculator",
       "title": "Startup Valuation vs Equity Dilution: Cap Table Simulator",
       "description": "Calculate dilution for your Australian startup. Use our tool to simulate pre-money vs post-money valuation impact and protect your founder equity.",
