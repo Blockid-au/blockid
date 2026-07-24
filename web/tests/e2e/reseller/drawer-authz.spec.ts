@@ -95,6 +95,133 @@ const DRAWER_ROUTE = (customerId: string) =>
 // validation) point at the same literal.
 const MASKED_EMAIL_RE = /^[^@\s]{1,2}\*\*\*@[^@\s]+$/;
 
+// Tick 379 — reseller_attributions row-cluster cross-column invariant summary
+// (option (ii) from tick 377 next-picks). Cross-surface twin-lift of the tick
+// 376/377/378 module-scope summary onto drawer-authz.spec.ts — the FIRST
+// SELECT-LENS reseller_attributions-touching surface (the customer-drawer
+// route SELECTs the cluster via scopedReseller.allowedCustomerIds() at
+// web/src/lib/reseller/scope.ts:63-84 rather than inserting into it). Raises
+// 4/16 surface parity on the reseller_attributions row cluster while the
+// create-startup write-path pair holds at 2/2 within the SYMMETRIC (project-
+// branch-only) subset per the tick 377 close-out and attribution-timing.spec
+// .ts holds the first NON-ZERO-COVERAGE surface per the tick 378 close-out.
+//
+// The reseller_attributions row cluster carries FIVE invariants at
+// web/supabase/migrations/0091_reseller_module_foundations.sql:112-142
+// (IDENTICAL enumeration to tick 376/377/378):
+//   - ck_subject_fk_matches_type (0091:128-132) — CROSS-COLUMN: subject_type=
+//                                                  'user'⇒subject_user_id set
+//                                                  + subject_project_id null;
+//                                                  subject_type='project'⇒
+//                                                  inverse
+//   - subject_type CHECK          (0091:115)     — subject_type ∈ {user,
+//                                                  project}
+//   - status CHECK                (0091:118-119) — status ∈ {active, revoked}
+//                                                  (DEFAULT 'active')
+//   - source CHECK                (0091:123)     — source ∈ {code,
+//                                                  provisioned, admin_manual}
+//   - reseller_attributions_active_project_uniq  — PARTIAL-UNIQUE INDEX
+//     (0091:137-139)                              on (subject_project_id)
+//                                                  WHERE subject_type=
+//                                                  'project' AND status=
+//                                                  'active' AND opted_out=
+//                                                  false; enforces per U.15.1
+//                                                  that a project can carry
+//                                                  at most ONE active non-
+//                                                  opted-out attribution
+//                                                  regardless of reseller
+//
+// Writer-side source: IDENTICAL to tick 376/377/378 — DB CHECK + partial-
+// unique guards at 0091:112-142 wrap every reseller_attributions insert;
+// enforcement happens at DB write time. Route-side callers precompose the
+// insert payload under an always-'project' discriminator — the 'user' branch
+// of ck_subject_fk_matches_type is UNREACHABLE-BY-CONSTRUCTION from EVERY
+// current write path (grep audit: retail-attribution.ts:165-172 + create-
+// startup/route.ts:301-313 both hard-code subject_type='project' + subject_
+// project_id=<uuid> + subject_user_id=null; no code path ever inserts
+// subject_type='user').
+//
+// Application read-path anchor for THIS surface: DIFFERENT from tick 376/
+// 377/378. Ticks 376/377 anchor at create-startup execute() route.ts:301-
+// 313 (write path, never reached because both surfaces bail upstream); tick
+// 378 anchors at retail-attribution.ts:165-172 via attributeProjectFromUser
+// Cache() (write path that DOES fire on row 3). THIS spec anchors at
+// web/src/lib/reseller/scope.ts:63-84 via scopedReseller.allowedCustomer
+// Ids() — the canonical SELECT-lens read of the reseller_attributions
+// cluster. The lazy allowedCustomerIds() query filters on (reseller_id,
+// status='active', opted_out=false) which exactly matches the WHERE clause
+// of the reseller_attributions_active_project_uniq partial-unique index at
+// 0091:137-139, then splits the rows on subject_type ∈ {user, project} —
+// the 'user' branch is DEAD CODE at line 73 of scope.ts because no write
+// path ever inserts subject_type='user' per the tick 376/377/378
+// UNREACHABLE-BY-CONSTRUCTION posture. The drawer route consumes the
+// resolved user-id set at route.ts:64-68 via decideReveal(id,
+// allowedCustomerIds) which throws 403 not_in_scope when the target id is
+// not in the set.
+//
+// Runtime enforcement on THIS spec: harness-free rows 1 (unauthenticated
+// 401) + 2 (non_reseller_admin 403 no_membership) return BEFORE scoped
+// Reseller.allowedCustomerIds() ever runs (row 1 bails in getCurrentUser
+// at route.ts:47; row 2 bails in scopedReseller at route.ts:54 which
+// throws before returning the scope object whose allowedCustomerIds
+// closure would run). Both surfaces of the reveal-email-authz pair
+// (tick 100) share this bail-before-cluster-touch semantics. Wave-2 row
+// 146 (active_wholesale happy path) DOES reach allowedCustomerIds() — the
+// SELECT fires with WHERE (reseller_id, status='active', opted_out=false)
+// and returns the seeded reseller_attributions row for fixture.attributed
+// UserId. That single SELECT exercises the READ-side lens on the cluster:
+// it validates the partial-unique index's WHERE clause matches the seeded
+// row's (status, opted_out) tuple and validates the (subject_type,
+// subject_user_id, subject_project_id) triple satisfies the runtime
+// projection at scope.ts:70-84 which folds project rows through the
+// projects.user_id lookup to also expose per-workspace attributions.
+//
+// Coverage-per-guard posture on this surface: ZERO-COVERAGE-PER-GUARD on
+// all five CHECK/index invariants — SELECT does not fire DB CHECK
+// constraints, and read-side hits on the partial-unique index only
+// validate index existence rather than uniqueness enforcement (a
+// regression that dropped the index would not surface here because the
+// SELECT would still return the same rows). The 'project' branch of ck_
+// subject_fk_matches_type is READ-side EXERCISED at row 146 via the
+// subject_type='project' filter but the CHECK itself only fires on write;
+// the 'user' branch remains UNREACHABLE-BY-CONSTRUCTION AND is DEAD CODE
+// at scope.ts:73 (users.add call for subject_type='user' rows that will
+// never exist per the write-path grep audit). Status 'active' branch is
+// READ-side EXERCISED via the .eq("status","active") filter; 'revoked'
+// branch remains UNREACHABLE from insert. Source CHECK all three enum
+// branches ZERO-COVERAGE-PER-GUARD on both write and read (the SELECT
+// projection at scope.ts:65 does not include source, so a regression that
+// widened the source enum would not surface here).
+//
+// Symmetric-cluster posture: THIS surface opens the SELECT-LENS on the
+// cluster and closes 1/1 within the drawer-authz-authz half of the drawer
+// spec pair (drawer-validation.spec.ts follows as the twin-lift target for
+// tick 380 option (ii)). Combined post-tick 379 posture: 4/16 total
+// surfaces summarised on the cluster (create-startup-authz tick 376 +
+// create-startup-validation tick 377 + attribution-timing tick 378 +
+// drawer-authz this tick — first SELECT-lens surface). 12 sibling touching
+// surfaces still pending (drawer-validation, me-attribution, scope-
+// boundary, reveal-email-authz, reveal-email-validation, credit-grant-
+// authz, credit-grant-validation, audit-log-writes, audit-anomaly-scan,
+// sandbox-setup-authz, admin-reseller-detail-authz, admin-reseller-
+// detail-validation). The 'user'-branch complement stays ASYMMETRIC +
+// UNREACHABLE-BY-CONSTRUCTION + DEAD-CODE-AT-READ across the entire
+// codebase per tick 376/377/378 posture — full 16-surface × 5-invariant
+// saturation would collate ZERO-COVERAGE-PER-GUARD × UNREACHABLE-BY-
+// CONSTRUCTION documentation on the 'user' branch across every touching
+// spec.
+//
+// Diagnostic delta of this pass: pure documentation-only doc-block hoist —
+// no new imports, no new module-scope constants, no per-column assert
+// added, no fixture change, no route change, no migration change. Doc-
+// block placed after the MASKED_EMAIL_RE const (line ~96) and before the
+// first test.describe (line ~98 pre-edit), matching the tick 376
+// placement on create-startup-authz.spec.ts (after NON_RESELLER_FOUNDER_
+// EMAIL const, before first test.describe), the tick 377 placement on
+// create-startup-validation.spec.ts (after CASES const, before first
+// test.describe), and the tick 378 placement on attribution-timing.spec
+// .ts (after shared-fixture imports, before first test.describe).
+
 test.describe("Reseller customer-drawer pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 unauthorised", async ({
     request,

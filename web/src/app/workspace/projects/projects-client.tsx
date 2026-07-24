@@ -7,6 +7,7 @@ import {
   Briefcase, Plus, Pencil, Archive, ArchiveRestore, X, Loader2, ArrowUpRight, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { canCreateAnotherStartup } from "@/lib/plans/startup-limit";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,6 +31,8 @@ interface ProjectsClientProps {
   initialArchivedProjects?: Project[];
   limit: number;
   plan: string;
+  /** app_users.account_type — drives the 2026-07-24 founder 1-startup gate. */
+  accountType?: string | null;
 }
 
 type Tab = "active" | "archived";
@@ -80,6 +83,7 @@ export function ProjectsClient({
   initialArchivedProjects = [],
   limit,
   plan,
+  accountType = null,
 }: ProjectsClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -111,7 +115,14 @@ export function ProjectsClient({
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
   const [restoreError, setRestoreError] = React.useState<string | null>(null);
 
-  const canCreate = projects.length < limit;
+  // Founder 1-startup guard runs BEFORE the plan-tier limit so a founder on
+  // a multi-project plan (grandfathered legacy) still sees the upgrade CTA.
+  const founderGateDecision = canCreateAnotherStartup({
+    account_type: accountType,
+    current_startup_count: projects.length,
+  });
+  const founderGateBlocked = !founderGateDecision.allowed;
+  const canCreate = !founderGateBlocked && projects.length < limit;
 
   // Auto-open create modal from URL param
   React.useEffect(() => {
@@ -149,6 +160,13 @@ export function ProjectsClient({
         setNewDesc("");
         setNewIndustry("");
         router.refresh();
+      } else if (json.error === "founder_one_startup_limit") {
+        // Server-side founder guard fired (e.g. someone opened the modal
+        // before the client-side gate could hydrate). Surface the same
+        // upgrade nudge inline.
+        setCreateError(
+          "Founder accounts can own one startup. Upgrade to Accelerator to manage multiple.",
+        );
       } else {
         setCreateError(json.error ?? "Failed to create project");
       }
@@ -286,6 +304,16 @@ export function ProjectsClient({
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Create New Startup
           </button>
+        ) : founderGateBlocked ? (
+          <a
+            href="/pricing?highlight=accelerator"
+            title="Founder accounts can own one startup. Upgrade to an Accelerator plan to manage multiple."
+            aria-label="Upgrade to Accelerator to manage multiple startups"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-100 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
+          >
+            <ArrowUpRight strokeWidth={1.75} className="h-4 w-4" />
+            Upgrade to Accelerator
+          </a>
         ) : (
           <a
             href="/workspace/billing"
@@ -296,6 +324,18 @@ export function ProjectsClient({
           </a>
         )}
       </div>
+
+      {/* Legacy founder soft banner — appears only when a founder is at or
+          above the 1-startup limit AND already has >1 project (i.e. they were
+          grandfathered from before the 2026-07-24 policy change). */}
+      {founderGateBlocked && projects.length > 1 && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <strong>Heads up:</strong> Founder accounts now cap at one active
+          startup. You&rsquo;re grandfathered on your existing {projects.length}
+          {" "}startups &mdash; none will be removed &mdash; but you can&rsquo;t
+          add another without upgrading to an Accelerator plan.
+        </div>
+      )}
 
       {/* Tabs — Active | Archived */}
       <div className="mb-6 border-b border-surface-200 flex items-center gap-1">
