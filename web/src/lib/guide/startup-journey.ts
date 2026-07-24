@@ -475,6 +475,47 @@ const CHAPTERS: Chapter[] = [
       en: "Book two hours this week to sit with the CFO assumption cards. Override at least three; approve the rest. The projection is only as strong as your willingness to push back on the defaults.",
       vi: "Dành hai giờ tuần này ngồi với các thẻ giả định của CFO. Ghi đè ít nhất ba; duyệt phần còn lại. Dự phóng chỉ mạnh khi bạn sẵn sàng phản biện các mặc định.",
     },
+    // Deep-dive prose sections for chapter 06. `rnd-tax-incentive` closes the
+    // atlassian-standard-mapping-goal.md P1j gap (§1 phase 6 "R&D Tax Incentive
+    // dedicated section"): the R&DTI is an AU-specific cashflow lever that
+    // returns 43.5% of eligible R&D spend as a refundable tax offset for
+    // companies with aggregated turnover < A$20M — often the single biggest
+    // cheque a pre-revenue AU startup receives. General information only, not
+    // tax advice; the AusIndustry registration + ATO Schedule 743 lodgment is
+    // a two-step process founders routinely miss the deadline on.
+    sections: [
+      {
+        id: "rnd-tax-incentive",
+        heading: {
+          en: "R&D Tax Incentive — the 43.5% refund most AU founders forget until it's too late",
+          vi: "Ưu đãi thuế R&D — khoản hoàn 43.5% mà nhiều founder Úc quên đến khi hết hạn",
+        },
+        body: {
+          en: [
+            "What it is: the R&D Tax Incentive (R&DTI) is a joint AusIndustry + ATO programme. Australian-resident R&D entities with aggregated turnover under A$20M get a refundable tax offset equal to their company tax rate + 18.5 percentage points (currently ~43.5%). Above A$20M the offset is non-refundable and tiered (8.5% or 16.5% premium above the corporate tax rate depending on R&D intensity).",
+            "Who qualifies as an R&D entity: an Australian-resident body corporate (or foreign corporation with a permanent establishment here) that self-assesses at least one eligible core R&D activity for the income year. Sole traders, partnerships and trusts do NOT qualify — you must be a Pty Ltd / Ltd.",
+            "Core vs supporting activities (this is where refunds die): a core activity is an experimental activity whose outcome cannot be known in advance, conducted for the purpose of generating new knowledge (Industry Research and Development Act 1986 s355-25). A supporting activity is directly related to a core activity. If your work is 'engineering to spec' with no experiment, it fails core — no matter how technically hard. Document the hypothesis + unknown outcome + experiment method before you start coding.",
+            "Minimum spend threshold: notional deductions must total ≥ A$20,000 in the income year to claim (some exceptions for research service provider spend). Below that, keep the records but claim next year when your total qualifies.",
+            "The 10-month deadline that catches founders out: registration is with AusIndustry via the R&DTI customer portal, and must be lodged within 10 months after the end of the company's income year. Standard 30-June year-end → registration deadline is 30 April the following year. Miss it and the entire year's claim is void — no extensions except in narrow force majeure cases.",
+            "Two-step process (both required): (1) register the R&D activities with AusIndustry (business.gov.au); (2) claim the offset in the company income tax return via Schedule 743 (Research and Development Tax Incentive schedule). Registration alone does not deliver cash; the ATO does that after the tax return is assessed.",
+            "Records you must keep contemporaneously: hypothesis / experiment design docs, technical progress notes, time-sheets or effort estimates per employee, invoices for R&D expenditure, apportionment methodology for mixed R&D + non-R&D salaries. AusIndustry can audit any registration for four years post-lodgment and demand contemporaneous evidence — after-the-fact reconstruction is a well-known audit trigger.",
+            "Common expenditure pitfalls: capital expenditure (buildings, generic laptops) is excluded; R&D on behalf of a foreign parent needs an Advance / Overseas Finding; feedstock (materials consumed in the R&D) has separate rules; interest, core-technology acquisition, and expenditure not at risk (e.g. grant-funded portions) are excluded. When in doubt, exclude and add back in next year with a private ruling.",
+            "How BlockID.au surfaces this: data-room folder 11 item 'R&D Tax Incentive Claims' (data-room-templates.ts:1256) is the artefact slot; the compliance-calendar (Chapter 11 CTA) fires the 30-April reminder 60 days out; the au-compliance agent will draft the AusIndustry activity descriptions from your product roadmap + engineering notes. For eligibility questions beyond the self-assessment, engage a registered R&D Tax Advisor (RTAA) before Chapter 9 — advisor fees are themselves usually claimable.",
+          ],
+          vi: [
+            "Là gì: R&D Tax Incentive (R&DTI) là chương trình phối hợp giữa AusIndustry và ATO. Các đơn vị R&D cư trú Úc có doanh thu hợp nhất dưới A$20 triệu được hưởng khoản bù trừ thuế hoàn lại bằng thuế suất doanh nghiệp cộng 18.5 điểm phần trăm (hiện ~43.5%). Trên A$20 triệu, khoản bù trừ không hoàn lại và phân bậc (8.5% hoặc 16.5% cao hơn thuế suất tuỳ cường độ R&D).",
+            "Ai đủ tư cách là đơn vị R&D: công ty (body corporate) cư trú Úc, hoặc công ty nước ngoài có cơ sở thường trú tại Úc, tự đánh giá có ít nhất một hoạt động R&D lõi đủ điều kiện trong năm tài chính. Cá nhân kinh doanh, hợp danh và trust KHÔNG đủ điều kiện — bạn phải là Pty Ltd / Ltd.",
+            "Hoạt động lõi vs hỗ trợ (chỗ này giết claim): hoạt động lõi là thử nghiệm mà kết quả không thể biết trước, thực hiện nhằm tạo tri thức mới (Industry Research and Development Act 1986 s355-25). Hoạt động hỗ trợ liên quan trực tiếp đến hoạt động lõi. Nếu công việc chỉ là 'kỹ thuật theo yêu cầu' không có thử nghiệm, không đủ lõi — bất kể độ khó kỹ thuật. Ghi lại giả thuyết + kết quả chưa biết + phương pháp thử nghiệm trước khi bắt tay vào code.",
+            "Ngưỡng chi tiêu tối thiểu: tổng khấu trừ danh nghĩa phải ≥ A$20,000 trong năm để được claim (một số ngoại lệ cho chi cho nhà cung cấp dịch vụ nghiên cứu). Dưới ngưỡng đó, giữ hồ sơ và claim năm sau khi đủ.",
+            "Hạn 10 tháng nhiều founder bỏ lỡ: đăng ký với AusIndustry qua cổng khách hàng R&DTI, phải nộp trong vòng 10 tháng sau khi kết thúc năm tài chính công ty. Năm tài chính 30-06 → hạn đăng ký là 30-04 năm sau. Bỏ lỡ là mất toàn bộ claim năm đó — không có gia hạn ngoài trường hợp bất khả kháng rất hẹp.",
+            "Quy trình hai bước (bắt buộc cả hai): (1) đăng ký hoạt động R&D với AusIndustry (business.gov.au); (2) khai bù trừ trong tờ khai thuế thu nhập doanh nghiệp qua Schedule 743 (Research and Development Tax Incentive schedule). Đăng ký không thôi không mang lại tiền; ATO chỉ giải ngân sau khi tờ khai thuế được xử lý.",
+            "Hồ sơ phải lưu đồng thời: tài liệu thiết kế giả thuyết / thử nghiệm, ghi chú tiến độ kỹ thuật, bảng chấm công hoặc ước lượng công sức từng nhân viên, hoá đơn chi phí R&D, phương pháp phân bổ lương R&D và không-R&D. AusIndustry có thể audit bất kỳ đăng ký nào trong 4 năm sau khi nộp và yêu cầu bằng chứng đồng thời — dựng lại hồ sơ sau này là trigger audit nổi tiếng.",
+            "Bẫy chi tiêu thường gặp: chi tiêu vốn (nhà xưởng, laptop dùng chung) bị loại; R&D làm cho công ty mẹ nước ngoài cần Advance / Overseas Finding; feedstock (nguyên liệu tiêu hao trong R&D) có quy tắc riêng; lãi vay, mua core-technology, và chi không ở rủi ro (ví dụ phần được tài trợ bởi grant) bị loại. Khi nghi ngờ, loại trừ và thêm lại năm sau qua private ruling.",
+            "BlockID.au bề mặt hoá thế nào: mục 'R&D Tax Incentive Claims' trong data-room folder 11 (data-room-templates.ts:1256) là ô artefact; compliance-calendar (CTA Chương 11) bắn nhắc 30-04 trước 60 ngày; đại lý au-compliance sẽ soạn mô tả hoạt động AusIndustry từ product roadmap + ghi chú engineering. Với các câu hỏi đủ điều kiện vượt ngoài tự đánh giá, hãy tương tác với R&D Tax Advisor đã đăng ký (RTAA) trước Chương 9 — phí tư vấn thường cũng claim được.",
+          ],
+        },
+      },
+    ],
   },
   {
     slug: "07-growth",

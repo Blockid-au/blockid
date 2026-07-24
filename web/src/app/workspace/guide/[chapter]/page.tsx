@@ -89,6 +89,13 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
         <Bullets items={list(c.commonPitfalls)} />
       </section>
 
+      {c.sections?.map((s) => (
+        <section key={s.id}>
+          <h2 className="text-lg font-semibold text-ink-800">{t(s.heading)}</h2>
+          <Bullets items={list(s.body)} />
+        </section>
+      ))}
+
       {c.qualifyingTests ? (
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">

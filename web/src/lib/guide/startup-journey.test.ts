@@ -109,6 +109,46 @@ describe("qualifyingTests (Div 83A checklist on chapter 08)", () => {
   });
 });
 
+describe("R&D Tax Incentive section (chapter 06 P1j)", () => {
+  it("chapter 06-revenue publishes a rnd-tax-incentive section EN + VI", () => {
+    const c = getChapter("06-revenue");
+    expect(c).not.toBeNull();
+    expect(c?.sections).toBeDefined();
+    const rnd = c?.sections?.find((s) => s.id === "rnd-tax-incentive");
+    expect(rnd).toBeDefined();
+    expect(rnd?.heading.en.length).toBeGreaterThan(0);
+    expect(rnd?.heading.vi.length).toBeGreaterThan(0);
+    // At least six substantive bullets each; both locales aligned.
+    expect(rnd?.body.en.length).toBeGreaterThanOrEqual(6);
+    expect(rnd?.body.vi.length).toBe(rnd?.body.en.length);
+  });
+
+  it("R&DTI section cites the anchors AU founders search for", () => {
+    const c = getChapter("06-revenue");
+    const rnd = c?.sections?.find((s) => s.id === "rnd-tax-incentive");
+    const en = (rnd?.body.en ?? []).join("\n");
+    // Statutory + programmatic anchors that make the copy auditable.
+    for (const anchor of [
+      "AusIndustry",
+      "ATO",
+      "A$20",              // A$20M turnover threshold + A$20,000 minimum spend
+      "43.5",              // refundable-offset headline rate
+      "10 month",          // registration deadline
+      "Schedule 743",      // ATO claim schedule
+      "s355-25",           // Industry Research and Development Act 1986 core-activity test
+    ]) {
+      expect(en).toContain(anchor);
+    }
+  });
+
+  it("no other chapter carries sections yet (P1j is single-chapter for now)", () => {
+    for (const chapter of listChapters()) {
+      if (chapter.slug === "06-revenue") continue;
+      expect(chapter.sections).toBeUndefined();
+    }
+  });
+});
+
 describe("getAdjacentChapters()", () => {
   it("returns null previous for the first chapter and null next for the last", () => {
     expect(getAdjacentChapters("01-vision").previous).toBeNull();
