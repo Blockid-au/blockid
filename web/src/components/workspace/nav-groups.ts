@@ -110,6 +110,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/workspace/evaluation", label: "Evaluation (13)", icon: FileText, minPlan: "starter" },
       { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText, minPlan: "starter" },
+      { href: "/dashboard/market-size", label: "Market Size", icon: PieChart, minPlan: "starter" },
       { href: "/workspace/metrics", label: "Metrics", icon: BarChart3, minPlan: "growth" },
       { href: "/workspace/reports", label: "Weekly Reports", icon: Activity },
       { href: "/workspace/knowledge-base", label: "Knowledge Base", icon: BookOpen, minPlan: "starter" },
