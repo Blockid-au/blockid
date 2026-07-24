@@ -74,6 +74,7 @@ import {
   type ResellerBillingRow,
 } from "@/lib/reseller/stripe-billing";
 import { createResellerWholesaleSubscription } from "@/lib/reseller/stripe-billing-adapter";
+import { seedDataroomTemplates } from "@/lib/dataroom/seed-templates";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -132,6 +133,8 @@ function buildCompanySlug(name: string): string {
   );
 }
 
+type DataroomSeedOutcome = "ok" | "partial" | "deferred";
+
 type StripeWiringOutcome =
   | { state: "not_configured" }
   | { state: "price_missing"; plan_id: string }
@@ -153,6 +156,7 @@ interface ExecuteResult {
   magic_link_sent: boolean;
   email_sent: boolean;
   stripe_wiring: StripeWiringOutcome;
+  dataroom_seed: DataroomSeedOutcome;
 }
 
 interface ExecuteError {
@@ -382,6 +386,40 @@ async function execute(
     }
   }
 
+  // (c.6) Seed the 10-doc Day-0 dataroom (see web/src/lib/dataroom/seed-templates.ts).
+  // Non-fatal: any failure downgrades the response envelope to 'partial' or
+  // 'deferred' — the workspace stays live and placeholder-row seeding via
+  // populateFromAtlassian (still triggered elsewhere) continues to give the
+  // founder a functional dataroom.
+  let dataroomSeed: DataroomSeedOutcome = "deferred";
+  try {
+    const seed = await seedDataroomTemplates({
+      projectId,
+      userId,
+      email: plan.founder_email,
+      supabase,
+    });
+    if (seed.ok) {
+      dataroomSeed = "ok";
+    } else if (seed.uploaded + seed.skipped > 0) {
+      dataroomSeed = "partial";
+    } else {
+      dataroomSeed = "deferred";
+    }
+    if (!seed.ok) {
+      console.warn("[reseller:create-startup] dataroom_seed_partial", {
+        projectId,
+        uploaded: seed.uploaded,
+        skipped: seed.skipped,
+        failed: seed.failed,
+      });
+    }
+  } catch (err) {
+    // Never surface — dataroom seeding is best-effort.
+    console.error("[reseller:create-startup] dataroom_seed_failed", err);
+    dataroomSeed = "deferred";
+  }
+
   // (d) magic-link — 24h TTL so the founder has a realistic window.
   const magic = await requestMagicLink({
     email: plan.founder_email,
@@ -436,6 +474,7 @@ async function execute(
         magic_link_sent: magicLinkSent,
         email_sent: emailSent,
         stripe_wiring: stripeWiring,
+        dataroom_seed: dataroomSeed,
       },
     });
   } catch (err) {
@@ -453,6 +492,7 @@ async function execute(
     magic_link_sent: magicLinkSent,
     email_sent: emailSent,
     stripe_wiring: stripeWiring,
+    dataroom_seed: dataroomSeed,
   };
 }
 
@@ -623,6 +663,7 @@ export async function POST(request: Request) {
     magic_link_sent: result.magic_link_sent,
     email_sent: result.email_sent,
     stripe_wiring: result.stripe_wiring,
+    dataroom_seed: result.dataroom_seed,
     message: `Founder workspace provisioned. Magic-link welcome email dispatched. ${wiringMessage}`,
   });
 }
