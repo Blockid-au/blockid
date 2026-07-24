@@ -20,6 +20,8 @@ import {
   Zap,
 } from "lucide-react";
 import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+import { GA4DailyTiles } from "@/components/admin/ga4-daily-tiles";
+import { Ga4RefreshButton } from "@/components/admin/ga4-refresh-button";
 // D3-CISO-05: sandbox scope chip is display-only on /admin/growth — the
 // growth_insights materialised view aggregates across live+sandbox.
 // no sandbox column on growth_insights — chip is display-only for future consistency
@@ -159,6 +161,7 @@ export default async function GrowthPage() {
         <div className="flex items-center gap-4">
           <span className="text-xs text-ink-700">{new Date().toLocaleDateString("en-AU", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</span>
           <RefreshButton />
+          <Ga4RefreshButton />
         </div>
       </header>
 
@@ -188,6 +191,9 @@ export default async function GrowthPage() {
           <StatCard label="Leads" value={liveMetrics.totalLeads} icon={Zap} color="text-amber-500" />
           <StatCard label="Paying Users" value={liveMetrics.payingUsers} icon={DollarSign} color="text-green-500" />
         </div>
+
+        {/* GA4 Daily Tiles — reads web/content/reports/ga4-daily.jsonl */}
+        <GA4DailyTiles />
 
         {/* AI Recommendations */}
         <section>
@@ -339,10 +345,16 @@ export default async function GrowthPage() {
               <p className="text-sm font-semibold text-ink-800">Manage Users</p>
               <p className="text-xs text-ink-600 mt-0.5">Plans, roles, activity</p>
             </Link>
-            <a href="https://analytics.google.com" target="_blank" rel="noopener" className="block rounded-xl border border-surface-200 bg-white px-4 py-3 hover:border-brand-500/40 transition-colors">
-              <p className="text-sm font-semibold text-ink-800">GA4 Dashboard</p>
-              <p className="text-xs text-ink-600 mt-0.5">Real-time traffic & events</p>
-            </a>
+            <div className="rounded-xl border border-surface-200 bg-white px-4 py-3 hover:border-brand-500/40 transition-colors">
+              <a href="#ga4-tiles" className="block">
+                <p className="text-sm font-semibold text-ink-800">GA4 Dashboard</p>
+              </a>
+              <p className="text-xs text-ink-600 mt-0.5">
+                <a href="#ga4-tiles" className="hover:text-ink-800">Traffic tiles above</a>
+                {" · "}
+                <a href="https://analytics.google.com" target="_blank" rel="noopener" className="text-brand-600 hover:text-brand-700">Open GA4 →</a>
+              </p>
+            </div>
             <a href="https://tagmanager.google.com" target="_blank" rel="noopener" className="block rounded-xl border border-surface-200 bg-white px-4 py-3 hover:border-brand-500/40 transition-colors">
               <p className="text-sm font-semibold text-ink-800">GTM Container</p>
               <p className="text-xs text-ink-600 mt-0.5">Tags, triggers, variables</p>
