@@ -366,6 +366,7 @@ async function execute(
             stripe_subscription_status: subResult.status,
             stripe_latest_invoice_id: subResult.latest_invoice_id,
           };
+          // r-10-exempt: post-insert follow-up by primary key attributionId minted at L302 inside this reseller-scoped session; row is already reseller_id-owned so filtering by id alone is safe
           await supabase
             .from("reseller_attributions")
             .update({ metadata: stampedMetadata })
