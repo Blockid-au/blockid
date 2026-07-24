@@ -114,4 +114,82 @@ test.describe("Menu structure — founder logged-in dashboard", () => {
     const href = await demoLink.first().getAttribute("href");
     expect(href).toContain("/showcase/atlassian");
   });
+
+  // ux-ia-startup-flow-v1 §C.6 (P6 role-menu-overlay).
+  //
+  // Founder view uses the default overlay: Overview first. The assertion
+  // pins ordering rather than exact copy so a per-item nav edit does not
+  // break this test.
+  test("founder sidebar leads with the Overview group (default role overlay)", async ({
+    page,
+  }) => {
+    let loginOk = false;
+    try {
+      await loginAs(page, FOUNDER_EMAIL);
+      loginOk = true;
+    } catch {
+      /* fixture missing on this box */
+    }
+    test.skip(
+      !loginOk,
+      `QA founder ${FOUNDER_EMAIL} not seeded — run scripts/seed-test-users.mjs`,
+    );
+
+    await page.goto("/dashboard");
+    const nav = page.locator('nav[aria-label="Workspace navigation"]');
+    await expect(nav).toBeVisible({ timeout: 15_000 });
+    const firstGroupHeader = nav.locator("span.uppercase").first();
+    await expect(firstGroupHeader).toHaveText(/overview/i);
+  });
+});
+
+// ux-ia-startup-flow-v1 §P7 — a11y contract for the workspace + marketing
+// nav landmarks and disclosure buttons.
+test.describe("Menu structure — a11y landmarks", () => {
+  test.setTimeout(30_000);
+
+  test("NavV2 dropdown triggers announce as menus (aria-haspopup=menu)", async ({
+    page,
+  }) => {
+    await page.goto("/pricing");
+    const primary = page.locator('nav[aria-label="Primary"]').first();
+    await expect(primary).toBeVisible({ timeout: 15_000 });
+    // Every dropdown trigger (Product/For/Demo/Compare/Docs) must have
+    // aria-haspopup="menu" — the WAI-ARIA APG value for menu disclosures.
+    const triggers = primary.locator('button[aria-haspopup]');
+    const n = await triggers.count();
+    expect(n).toBeGreaterThan(0);
+    for (let i = 0; i < n; i += 1) {
+      const v = await triggers.nth(i).getAttribute("aria-haspopup");
+      expect(v).toBe("menu");
+    }
+  });
+
+  test("workspace nav is a labelled landmark + later-phases collapse is a disclosure", async ({
+    page,
+  }) => {
+    let loginOk = false;
+    try {
+      await loginAs(page, FOUNDER_EMAIL);
+      loginOk = true;
+    } catch {
+      /* fixture missing on this box */
+    }
+    test.skip(
+      !loginOk,
+      `QA founder ${FOUNDER_EMAIL} not seeded — run scripts/seed-test-users.mjs`,
+    );
+
+    await page.goto("/dashboard");
+    const nav = page.locator('nav[aria-label="Workspace navigation"]');
+    await expect(nav).toBeVisible({ timeout: 15_000 });
+
+    // The "Later phases" button renders only when the founder has groups
+    // beyond currentPhase + 3. Tolerate absence; assert shape when present.
+    const laterBtn = nav.getByRole("button", { name: /later phases/i });
+    if ((await laterBtn.count()) > 0) {
+      const expanded = await laterBtn.first().getAttribute("aria-expanded");
+      expect(expanded === "true" || expanded === "false").toBe(true);
+    }
+  });
 });

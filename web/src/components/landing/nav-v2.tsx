@@ -223,9 +223,10 @@ function DesktopDropdown({
       <button
         ref={triggerRef}
         type="button"
-        aria-haspopup="true"
+        aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls={panelId}
+        aria-label={`${group.label} menu`}
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
         className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
@@ -288,8 +289,10 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
     <li>
       <button
         type="button"
+        aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={panelId}
+        aria-label={`${group.label} menu`}
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium text-brand-ink-muted hover:bg-white/5 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
       >
