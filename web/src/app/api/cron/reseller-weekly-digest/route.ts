@@ -134,6 +134,11 @@ import {
   type DigestSnapshotDirectionStreakCoverage,
 } from "@/lib/reseller/digest-snapshot-direction-streak-coverage";
 import {
+  computeDigestSnapshotPerResellerDirectionStreakCoverage,
+  formatDigestSnapshotPerResellerDirectionStreakCoverageSection,
+  type DigestSnapshotPerResellerDirectionStreakCoverage,
+} from "@/lib/reseller/digest-snapshot-per-reseller-direction-streak-coverage";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1367,6 +1372,10 @@ export async function GET(req: Request) {
     | DigestSnapshotDirectionStreakCoverage
     | null = null;
   let directionStreakCoverageSection = "";
+  let snapshotPerResellerDirectionStreakCoverage:
+    | DigestSnapshotPerResellerDirectionStreakCoverage
+    | null = null;
+  let perResellerDirectionStreakCoverageSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1728,6 +1737,28 @@ export async function GET(req: Request) {
       formatDigestSnapshotDirectionStreakCoverageSection(
         snapshotDirectionStreakCoverage,
       );
+    // P11.60 — per-reseller sustained-direction streak coverage summary
+    // (module P11.59). Per-partner topline for the P11.32/P11.33 direction
+    // spotlight, mirroring how P11.56 tops P11.51/P11.52 for |pct|-magnitude
+    // coverage on the per-partner axis and how P11.58 tops P11.30/P11.31 on
+    // the portfolio direction axis. Consumes the SAME
+    // snapshotPerResellerRollingTrend the P11.32 detector already consumes (no
+    // extra per-reseller trend fold, no divergence risk vs. the spotlight rows
+    // this coverage summary tops). Lands directly above
+    // perResellerDirectionStreaksSection so ops reads the per-partner topline
+    // (which partners have how many KPIs on a same-direction streak, split up
+    // vs down) before scanning the per-(metric × partner) detail rows — a
+    // partner with 3 up / 0 down at 100% coverage is systemically climbing,
+    // 0 up / 3 down at 100% is systemically sliding, 2 up / 2 down is
+    // oscillating internally in a way the aggregate hides.
+    snapshotPerResellerDirectionStreakCoverage =
+      computeDigestSnapshotPerResellerDirectionStreakCoverage(
+        snapshotPerResellerRollingTrend,
+      );
+    perResellerDirectionStreakCoverageSection =
+      formatDigestSnapshotPerResellerDirectionStreakCoverageSection(
+        snapshotPerResellerDirectionStreakCoverage,
+      );
   }
   if (
     topMoversSection ||
@@ -1735,6 +1766,7 @@ export async function GET(req: Request) {
     topMoversPerResellerSection ||
     directionStreakCoverageSection ||
     directionStreaksSection ||
+    perResellerDirectionStreakCoverageSection ||
     perResellerDirectionStreaksSection ||
     pctChangeStreakCoverageSection ||
     pctChangeStreaksSection ||
@@ -1763,6 +1795,7 @@ export async function GET(req: Request) {
       topMoversPerResellerSection +
       directionStreakCoverageSection +
       directionStreaksSection +
+      perResellerDirectionStreakCoverageSection +
       perResellerDirectionStreaksSection +
       pctChangeStreakCoverageSection +
       pctChangeStreaksSection +
@@ -2318,6 +2351,22 @@ export async function GET(req: Request) {
           skipped_reason:
             previousSnapshotSkipReason ?? "no_previous_snapshot",
         },
+    snapshot_per_reseller_direction_streak_coverage:
+      snapshotPerResellerDirectionStreakCoverage
+        ? {
+            window_size:
+              snapshotPerResellerDirectionStreakCoverage.window_size,
+            first_week:
+              snapshotPerResellerDirectionStreakCoverage.first_week,
+            last_week: snapshotPerResellerDirectionStreakCoverage.last_week,
+            min_streak_length:
+              snapshotPerResellerDirectionStreakCoverage.min_streak_length,
+            rows: snapshotPerResellerDirectionStreakCoverage.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     ran_at: now.toISOString(),
   };
 
