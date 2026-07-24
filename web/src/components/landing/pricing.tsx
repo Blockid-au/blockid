@@ -10,6 +10,7 @@ import { PricingCoupon } from "./pricing-coupon";
 import {
   PRICING_TIERS,
   CREDIT_PACKS,
+  NEW_SIGNUP_TIER_IDS,
   discountablePrices,
 } from "@/lib/pricing-data";
 
@@ -63,8 +64,13 @@ export function Pricing() {
     }
   };
 
-  // Filter tiers based on annual toggle — show only the matching Growth variant
+  // Filter tiers based on annual toggle — show only the matching Growth variant.
+  // Also enforce Round 5.11 "no indefinite free tier": drop any SKU that is not
+  // in `NEW_SIGNUP_TIER_IDS` (currently strips the legacy `free` tier). The
+  // `free` PRICING_TIERS row is kept in pricing-data.ts for grandfathered
+  // entitlements resolution but MUST NOT render on public pricing surfaces.
   const visibleTiers = PRICING_TIERS.filter((t) => {
+    if (!NEW_SIGNUP_TIER_IDS.includes(t.id)) return false;
     if (annual && t.id === "growth") return false;
     if (!annual && t.id === "growth_annual") return false;
     return true;
