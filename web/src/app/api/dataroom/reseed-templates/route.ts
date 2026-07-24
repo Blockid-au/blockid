@@ -11,7 +11,7 @@
 // On rate-limit hit we return 429 with Retry-After so the UI can back off.
 
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getProjectIdFromRequest } from "@/lib/projects";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { seedDataroomTemplates } from "@/lib/dataroom/seed-templates";
@@ -20,13 +20,9 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST() {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json(
-      { ok: false, reason: "auth_required" },
-      { status: 401 },
-    );
-  }
+  const gate = await gateRequireFeature("share_management");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const rl = await consumeRateLimit({
     bucket: "dataroom.reseed_templates",
