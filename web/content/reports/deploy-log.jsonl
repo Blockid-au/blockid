@@ -1341,3 +1341,4 @@
 {"ts":"2026-07-24T11:56:38.362Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.17 per-reseller headline-metric delta drill-down — 963/963 (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T11:56:49.298Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T11-50-02-008Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T11:59:34Z","status":"success","gates":"9/9","pid":"3992701","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-24T12:03:59.960Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.18 wire per-reseller metric delta into weekly digest cron — 963/963 (1 commits)","source":"github-webhook"}
