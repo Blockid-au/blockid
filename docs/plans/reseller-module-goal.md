@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.387
+version: 2026-07-24.388
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -415,12 +415,15 @@ tracks:
             "web/src/app/api/cron/reseller-manifest-drift/route.ts (walks GATED_DIRECTORIES for route.ts + detects POST/PATCH/PUT/DELETE via regex mirroring the completeness suite; feeds detectManifestDrift + emails admin@blockid.au on drift; ?skip_email=1 / ?force_email=1 dry-run knobs; CRON_SECRET bearer)",
             "web/scripts/crontab.production (30 4 * * * reseller-manifest-drift — 04:30 UTC / 14:30 AEST, one slot after weekly-digest)"
           ], note: "R-09 gate closed. Runtime companion to the feature-gates.manifest.test.ts completeness suite — catches drift merged past CI (hand server edits, out-of-band route additions, manifest entries left behind after a delete). Uses process.cwd()/src/app as APP_ROOT so it works under next-start without extra config. Follow-up landed tick 386: api/dataroom/populate-from-template/route.ts POST now calls gateRequireFeature('share_management') per manifest — npm run lint:reseller reports R-01 scanned 11, R-03 scanned 33 manifest routes, R-04 scanned 8 stripe files, 6 exemptions, 0 violations; suite (manifest + feature-gate + reseller-lints + manifest-drift) 51/51 pass."}
+          P10.R06_admin_gate_unit_test: {status: done, tick: 388, completed_at: 2026-07-24, files: [
+            "web/src/lib/reseller/require-admin.test.ts (10/10 pass — isAdmin null/undefined/role/email/non-admin branches + requireAdmin AdminGateError no_user/not_admin + admin passes + R-06 posture cases where reseller-scoped user with role='user' cannot resolve requireAdmin regardless of near-match email)"
+          ], note: "R-06 gate closed. Shared requireAdmin() middleware at web/src/lib/reseller/require-admin.ts already documents (line 36-39 doc-block) that reseller-role separation is enforced at the session issuer, but the guard itself had no unit test — a gap flagged in the tick 383+ R-01..R-09 CI-parity sweep. New test file stubs `server-only` via vi.mock so vitest can import the module without dragging Next.js server bindings, then exercises the runtime posture: (a) isAdmin(null|undefined) → false; (b) role='admin' opens the gate; (c) email===ADMIN_EMAIL opens the gate (case-insensitive); (d) plain user with non-admin email is rejected; (e) requireAdmin throws AdminGateError('no_user') for null; (f) requireAdmin throws AdminGateError('not_admin') for a plain user; (g) admin-by-role and admin-by-email both pass; (h) R-06-specific: reseller owner (role='user') is rejected even with partner-email; (i) near-match email (e.g. `not-<ADMIN_EMAIL>`) does not open the gate. The AppUser.role union in web/src/lib/auth.ts:58 (\"user\" | \"admin\") already provides the compile-time half of the guarantee; this test locks in the runtime half. Verified: npx vitest run src/lib/reseller/require-admin.test.ts → 10/10; full src/lib/reseller suite 493/493 (was 483, +10); npx tsc --noEmit clean; npm run lint:reseller unchanged (11 R-01 + 33 R-03 + 8 R-04, 6 exemptions, 0 violations)."}
         exit_criteria: [
           "Playwright E2E: full A + B walkthrough as founder, reseller, admin",
           "perf-audit: reseller console TTFB p95 < 500ms",
           "security-audit: RLS + typed wrapper enforced end-to-end",
           "au-compliance: E.1 EN + VI notice reviewed, APP 5.2 coverage confirmed",
-          "CI rules R-01..R-09 all green (R-09 runtime cron DONE P10.R09 tick 384; R-03 wiring on dataroom/populate-from-template DONE tick 386 — npm run lint:reseller now reports 6 exemptions, 0 violations across R-01/R-03/R-04)"
+          "CI rules R-01..R-09 all green (R-01/R-03/R-04 via npm run lint:reseller — 11+33+8 files scanned, 6 exemptions, 0 violations; R-02 via feature-gates.manifest.test.ts completeness suite 6/6; R-05 via credit-grants.test.ts sandbox-limit cases; R-06 via require-admin.test.ts 10/10 DONE P10.R06 tick 388; R-07 via hash.test.ts 6/6 + R-04 lint on Stripe metadata; R-08 gitleaks pre-commit — pending settings.local.json hook; R-09 runtime cron DONE P10.R09 tick 384; R-03 wiring on dataroom/populate-from-template DONE tick 386)"
         ]
       P11_ongoing:
         status: pending
