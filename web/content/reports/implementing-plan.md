@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.1.0  ·  **Updated:** 2026-07-23T14:00:01.999Z  ·  **Decided by:** ceo (2026-07-23T12:04:03.207Z)
+**Version:** v3.1.0  ·  **Updated:** 2026-07-24T12:04:07.811Z  ·  **Decided by:** ceo (2026-07-24T12:04:07.811Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -20,6 +20,9 @@
 | T0169 | CFO | Integrate Australian R&D Tax Incentive data into the Multi-Method Valuation Engine | minor | ⬜ pending |
 | T0170 | CRO | Implement Funding Readiness Scoring (CAPITAL framework) with automated recommendations | minor | ⬜ pending |
 | T0171 | RND | Add a new AI insight provider (e.g., GPT‑4o) to the AI provider chain for founder narrative generation | minor | ⬜ pending |
+| T0172 | CFO | Integrate VC valuation methods and sector ARR/revenue multiples into the Multi-Method Valuation Engine | minor | ⬜ pending |
+| T0173 | CRO | Develop and integrate the Next-Best-Action/DIRECTION engine to sequence founder actions by weakest SCN layer and stage | minor | ⬜ pending |
+| T0174 | RND | Integrate new AI tools and capabilities for founder narrative generation and startup ecosystem analysis | minor | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0236` **RND** — T0111 AI Idea Lab — sector-aware angle generator
