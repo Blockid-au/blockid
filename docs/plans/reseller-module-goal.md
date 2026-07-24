@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.374
+version: 2026-07-24.375
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,131 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 375
+    ran_at: 2026-07-24
+    action: p10_reseller_credit_grants_row_cluster_cross_column_invariant_summary_cross_surface_twin_lift_onto_credit_grant_validation
+    result: |
+      Executes tick 374 next-pick option (i) verbatim: cross-surface twin-
+      lift of the tick 374 reseller_credit_grants row-cluster module-scope
+      summary from credit-grant-authz.spec.ts (the write-path authz
+      surface) onto credit-grant-validation.spec.ts (the write-path input-
+      validation surface). CLOSES 2/2 surface parity on the credit-grant
+      write-path half of the reseller_credit_grants row cluster — mirrors
+      the tick 367 close-out posture on the reseller_requests row cluster
+      where a summary was hoisted onto both requests-authz.spec.ts and
+      requests-validation.spec.ts to close cross-surface twin parity.
+      Post-tick 375, the reseller_credit_grants row cluster spans 8
+      module-scope cross-column invariant summaries across TWO surfaces ×
+      FOUR CHECK constraints: 4 on credit-grant-authz.spec.ts (tick 374)
+      + 4 on credit-grant-validation.spec.ts (this tick) — full 2-surface
+      × 4-invariant parity on the credit-grant write-path cluster. The
+      kind ∈ {grant, sandbox_spend} XOR partition is now observable at
+      module scope on BOTH credit-grant surfaces.
+
+      Summary collates ALL FOUR CHECKs at 0096:41-56 into a single hoist
+      because they partition the same kind ∈ {grant, sandbox_spend}
+      discriminator across sign, month_key format, target shape, and
+      credit_transactions FK link:
+        - ck_amount_sign      (0096:41-44) — grant⇒amount>0; sandbox_
+                                              spend⇒amount<0
+        - ck_month_key_format (0096:46)    — /^[0-9]{4}-(0[1-9]|1[0-2])$/
+        - ck_target_shape     (0096:48-51) — grant⇒target_user_id set +
+                                              sandbox_project_id null;
+                                              sandbox_spend⇒inverse
+        - ck_ct_link          (0096:53-56) — grant⇒credit_transaction_id
+                                              set; sandbox_spend⇒null
+
+      Mirrors the tick 374 doc-block shape verbatim (writer-side source +
+      application write path + runtime enforcement + coverage-per-guard
+      posture + symmetric-cluster posture) but adapted for the second
+      credit-grant surface closing its cross-surface twin axis:
+        - Writer-side source: IDENTICAL to tick 374 — DB CHECKs at
+          0096:41-56 wrap the reseller_credit_grants insert; enforcement
+          at DB write time.
+        - Application write path: IDENTICAL to tick 374 — happy-path
+          grant mirror at /api/reseller/credits/grant/route.ts:206-218
+          populates kind='grant' + amount>0 + month_key=currentMonthKey()
+          + target_user_id set + credit_transaction_id set + sandbox_
+          project_id=null; sandbox_spend rows exclusively produced by
+          /api/reseller/sandbox/spend/route.ts and NEVER surface on this
+          spec by construction.
+        - Runtime enforcement on this spec: rows 1-4 (invalid_body /
+          missing_id / invalid_id / not_in_scope) return BEFORE the mirror
+          insert chain fires and exercise NO CHECK branch; row 5 (invalid_
+          amount) bails at decideGrant's amount>0 gate BEFORE the mirror
+          insert and also exercises no CHECK branch; only wave-3 row 152
+          (active_wholesale happy 200 at line 253-341) reaches the mirror
+          insert at route.ts:206-218 — that row sends amount=1 (positive
+          integer) + non-null uuid target_user_id + null sandbox_project_
+          id, so every candidate insert-payload that lands at line 206-218
+          sits on the grant branch of ck_amount_sign / ck_target_shape /
+          ck_ct_link; month_key is server-computed via currentMonthKey()
+          so ck_month_key_format is closed on the server, not per-request.
+        - Coverage-per-guard posture: grant branch fires on the happy
+          wave-3 row 152; sandbox_spend branch ZERO-COVERAGE-PER-GUARD
+          on this surface by construction (belongs to the sandbox-spend
+          spec cluster). Mirrors tick 374's credit-grant-authz.spec.ts
+          summary verbatim — the two credit-grant surfaces form a
+          symmetric pair on the grant-branch-only side of the XOR
+          partition.
+        - Symmetric-cluster posture: the credit-grant write-path cluster
+          is a SYMMETRIC subset (grant-branch only) of the full reseller_
+          credit_grants row cluster; the sandbox-spend write-path cluster
+          (a future spec pair) would form the ASYMMETRIC complement
+          (sandbox_spend-branch only). Once both spec pairs land 2/2
+          module-scope summaries per surface, the full reseller_credit_
+          grants row cluster would reach 16-summary saturation (4
+          surfaces × 4 CHECKs). This tick brings the credit-grant half
+          to 8/8; sandbox-spend half remains at 0/8.
+
+      Diagnostic delta of the pass:
+        - credit-grant-validation.spec.ts:
+            + new module-scope tick 375 doc-block placed after the OUT_
+              OF_SCOPE_UUID const (line 64) and before the first test.
+              describe (line 66), matching the tick 374 placement on
+              credit-grant-authz.spec.ts (after UUID_RE + NON_RESELLER_
+              FOUNDER_EMAIL constants, before the first test.describe).
+            + Documents write-path anchor at web/src/app/api/reseller/
+              credits/grant/route.ts:206-218 (mirror insert always lands
+              on the grant branch of all four CHECKs; sandbox_spend
+              branch UNREACHABLE from this surface — belongs to the
+              sandbox-spend spec cluster).
+            + Coverage-per-guard posture: grant branch fires on wave-3
+              row 152; sandbox_spend branch ZERO-COVERAGE-PER-GUARD on
+              this surface by construction.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 374 baseline).
+
+      Frontier after tick 375: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Reseller_credit_grants row cluster now carries 2/2 surface parity
+      on the credit-grant write-path half (credit-grant-authz.spec.ts
+      landed tick 374; credit-grant-validation.spec.ts landing here) —
+      8/8 module-scope summaries on the credit-grant surfaces.
+
+      Next natural picks on tick 376:
+        (i) rotate to another unhoisted row-cluster (reseller_promotion_
+        codes, reseller_attributions, reseller_audit_log) whose cross-
+        column CHECKs have not yet been hoisted at module scope on any
+        touching spec surface.
+        (ii) extend the reseller_credit_grants row-cluster coverage to
+        the sandbox-spend write-path spec pair (sandbox-setup-authz.
+        spec.ts + sandbox-setup-validation.spec.ts) to close the
+        ASYMMETRIC complement (sandbox_spend-branch only) and drive the
+        cluster toward 16/16 saturation.
+        (iii) idle — frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed, P10 continues accepting
+        incremental summary-hoist ticks).
+    commit: (this tick)
+
   - tick: 374
     ran_at: 2026-07-24
     action: p10_reseller_credit_grants_row_cluster_cross_column_invariant_summary_seed_onto_credit_grant_authz
