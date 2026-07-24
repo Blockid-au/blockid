@@ -1126,3 +1126,14 @@
 {"ts":"2026-07-24T02:20:10.045Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T02-15-01-782Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T02:29:21.795Z","event":"github-push-master","detail":"Blockid-au: fix(portfolio): webpackIgnore dynamic imports so client comparison-chart bundle omits server-only modules (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T02:29:49.129Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 370 — P10 reseller_requests ck_promo_link cross-column invariant summary cross-surface twin-lift onto requests-validation (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:29:54.883Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T02-25-01-117Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:34:56.056Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Atlassian /data-room mirror page (step 6, task 8/13) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:35:47.001Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Atlassian /summary mirror + landing CTA (steps 9 + 1, tasks 11+12/13) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:36:04Z","status":"success","gates":"9/9","pid":"2070910","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-24T02:36:06.994Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Atlassian /dashboard mirror page (step 2, task 3/13) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:37:31.689Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Atlassian /valuation mirror page (step 7, task 9/13) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:39:32.136Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Atlassian /svi-report mirror page (step 3, task 4/13) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:42:49.897Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Atlassian /growth-phases mirror page (step 4, task 5/13) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:43:11.246Z","event":"github-push-master","detail":"Blockid-au: docs(demos): Atlassian walkthrough user guide + SOURCE-OF-TRUTH audit entry (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:43:20.904Z","event":"github-push-master","detail":"Blockid-au: test(e2e): Atlassian walkthrough smoke (9-step visitor journey) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:45:25.693Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 371 — P10 reseller_requests ck_decision_shape cross-column invariant summary cross-surface twin-lift onto reseller-requests-list-authz (1 commits)","source":"github-webhook"}
