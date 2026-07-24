@@ -109,6 +109,11 @@ import {
   type DigestSnapshotPerResellerDirectionStreaks,
 } from "@/lib/reseller/digest-snapshot-per-reseller-direction-streaks";
 import {
+  computeDigestSnapshotPctChangeStreaks,
+  formatDigestSnapshotPctChangeStreaksSection,
+  type DigestSnapshotPctChangeStreaks,
+} from "@/lib/reseller/digest-snapshot-pct-change-streaks";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,

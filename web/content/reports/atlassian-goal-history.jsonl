@@ -409,3 +409,5 @@
 {"tick_id":"2026-07-24T18-37-01-071Z","ts":"2026-07-24T18:37:01.072Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T18-37-01-071Z","ts":"2026-07-24T18:37:01.076Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-24T18-44-09-070Z","ts":"2026-07-24T18:44:09.072Z","loop_label":"atlassian-goal-loop","stage":"tick_end","phase":"P11-acquisition-wizard-ui","summary":"mounted AcquisitionWizardClient below ExitReadinessTile on /dashboard/exit-readiness; new helpers acquisition-wizard.helpers.ts + acquisition-wizard-client.tsx + 11 vitest cases; runs pure assessAcquisitionPattern in-browser (no API)"}
+{"tick_id":"2026-07-24T18-37-01-071Z","ts":"2026-07-24T18:47:20.512Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":619434,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-24T18-37-01-071Z","ts":"2026-07-24T18:47:20.550Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":3}
