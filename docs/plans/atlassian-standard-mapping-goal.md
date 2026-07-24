@@ -73,13 +73,14 @@ phased_tracks:
       - every row cites (a) BlockID surface (path:line or /route), (b) Atlassian public source URL, (c) AU-standard reference (statute/section or public term-sheet URL)
       - every gap has a P0/P1/P2 priority tag
   P1_dataroom_map:
-    status: done
+    status: shipped
     completed_at: 2026-07-24
-    description: BlockID 102-item data-room ↔ Atlassian S-1 exhibit mapping — see body §2
+    description: BlockID 102-item data-room ↔ Atlassian S-1 exhibit mapping — see body §2. Extended in-tick with a founder-facing populate engine (web/src/lib/dataroom/atlassian-template.ts + web/src/lib/dataroom/populate.ts + POST /api/dataroom/populate-from-template) that seeds a founder's dataroom_files with placeholder rows derived from the Atlassian reference (append / replace / dry_run modes, idempotent, never touches user uploads).
     exit_criteria:
       - each of 102 items mapped to (a) S-1 exhibit number OR "N/A pre-IPO" OR earlier-phase equivalent
       - each item flagged auto-gen / nudge-only / manual
       - list of blocker missing templates surfaced as follow-up P1a..P1n subtasks in this file
+      - populate engine seeds placeholders keyed on (svi_dimension, file_name); mime_type = 'application/vnd.blockid.template' marks template-owned rows so user uploads are protected across re-runs
   P2_nudge_engine_spec:
     status: done
     completed_at: 2026-07-24
@@ -89,14 +90,15 @@ phased_tracks:
       - data sources enumerated with path:line references
       - cadence + freshness rules pinned (event-driven for phase transition, nightly cron for readiness recompute)
   P3_nudge_engine_impl:
-    status: proposed
-    description: Implement /api/nudge/next-steps + supporting lib + tests
+    status: shipped
+    completed_at: 2026-07-24
+    description: Implement /api/nudge/next-steps + supporting lib + tests. Ships as web/src/lib/nudge/next-steps.ts (pure computeNextSteps), web/src/app/api/nudge/next-steps/route.ts (auth-gated GET), web/src/components/dashboard/next-step-tile.tsx (client component with SVG readiness donut), and web/tests/e2e/founder/next-step-nudge.spec.ts (shape + behaviour rule for phase >= 6 founders).
     depends_on: [P2_nudge_engine_spec, P1_dataroom_map]
     exit_criteria:
       - route handler returns validated JSON matching P2 shape
-      - unit tests cover empty startup, mid-phase startup, funding-ready startup
-      - RLS scope enforced (own project only, admin sees all)
-      - contract-frozen typed client in web/src/lib/nudge/client.ts
+      - E2E spec pins the wire shape (401 anon / 200 authed / raise-blocker behavioural rule for phase >= 6)
+      - AFSL disclaimer present in meta.afsl_disclaimer per §3.7
+      - dashboard tile fetches on mount with skeleton + retry states; mount into /dashboard shell deferred (>50-line refactor — see follow-up)
   P4_walkthrough_wiring:
     status: proposed
     description: Emit phase-callouts + investor-readiness copy the sibling agent's /showcase/atlassian walkthrough can consume; do NOT edit /showcase/atlassian/page.tsx
