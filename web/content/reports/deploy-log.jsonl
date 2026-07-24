@@ -1153,3 +1153,20 @@
 {"ts":"2026-07-24T03:43:22.976Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T03-40-01-890Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T03:48:34Z","status":"success","gates":"9/9","pid":"2311219","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T03:57:16.960Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 376 — P10 reseller_attributions row-cluster cross-column invariant summary seed onto create-startup-authz (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T03:57:26.241Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T03-50-01-834Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:00:22.924Z","event":"github-push-master","detail":"Blockid-au: feat(db): 0107_rate_limits.sql migration + prune helper (round 5.4a) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:00:31.497Z","event":"github-push-master","detail":"Blockid-au: feat(dashboard): mount NextStepTile into /dashboard/svi (round 5.1) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:00:38.013Z","event":"github-push-master","detail":"Blockid-au: fix(admin): tighten /admin + /admin/team route guards (round 5.2) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:00:44.340Z","event":"github-push-master","detail":"Blockid-au: fix(deploy): capture vitest exit code, not tail's, in Gate 4b (round 5.3) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:03:15Z","status":"success","gates":"9/9","pid":"2361042","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-24T04:03:44.836Z","event":"github-push-master","detail":"Blockid-au: feat(rate-limit): persistent Postgres-backed limiter + tests (round 5.4b) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:03:50.519Z","event":"github-push-master","detail":"Blockid-au: feat(legal): AU Pty Ltd Constitution template (round 5.6a) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:04:54.480Z","event":"github-push-master","detail":"Blockid-au: refactor(dataroom): populate-from-template uses persistent rate limit (round 5.4c) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:06:08.711Z","event":"github-push-master","detail":"Blockid-au: feat(legal): AU ESOP Scheme Rules template + Div 83A citations (round 5.6b) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:06:15.204Z","event":"github-push-master","detail":"Blockid-au: feat(cron): prune-rate-limits endpoint (round 5.4d) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:06:42.603Z","event":"github-push-master","detail":"Blockid-au: feat(compliance): 0108 migration + ESIC eligibility auto-check (round 5.5a) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:06:57.855Z","event":"github-push-master","detail":"Blockid-au: fix(pdf): SVI report final CTA — remove single-child row-flex causing per-char text overflow (email PDF end-of-report) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:08:06.277Z","event":"github-push-master","detail":"Blockid-au: feat(pdf): SVI report final CTA reflects latest upgrade version (compliance + legal templates + auto-populate) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:08:08.700Z","event":"github-push-master","detail":"Blockid-au: feat(legal): AU-flavoured SAFE template (round 5.6c) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:08:23.193Z","event":"github-push-master","detail":"Blockid-au: feat(compliance): s708(8) wholesale investor cert intake + dataroom wire (round 5.5b) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:09:45.263Z","event":"github-push-master","detail":"Blockid-au: docs(reseller): tick 377 twin-lift reseller_attributions summary onto create-startup-validation (1 commits)","source":"github-webhook"}
