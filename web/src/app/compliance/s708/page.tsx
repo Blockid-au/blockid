@@ -10,6 +10,8 @@ import {
   summariseCerts,
   type S708CertRecord,
 } from "@/lib/compliance/s708-wholesale";
+import { S708_SMALL_SCALE_DISCLAIMER } from "@/lib/compliance/s708-small-scale-counter";
+import { S708CounterFormClient } from "./s708-counter-form-client";
 
 export const metadata: Metadata = {
   title: "s708(8) wholesale investor certificates | BlockID",
@@ -169,6 +171,8 @@ export default async function S708CompliancePage() {
             Read Chapter 10 — Fundraise
           </Link>
         </div>
+
+        <S708CounterFormClient disclaimer={S708_SMALL_SCALE_DISCLAIMER} />
 
         <p className="text-xs text-muted-foreground">{S708_DISCLAIMER}</p>
       </div>
