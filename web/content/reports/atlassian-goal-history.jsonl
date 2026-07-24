@@ -298,3 +298,6 @@
 {"tick_id":"2026-07-24T14-37-01-661Z","ts":"2026-07-24T14:46:45.933Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"dbe0151c","last_deployed":"0a3fd19"}
 {"tick_id":"2026-07-24T14-37-01-661Z","ts":"2026-07-24T14:52:38.073Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"dbe0151c"}
 {"tick_id":"2026-07-24T14-37-01-661Z","ts":"2026-07-24T14:52:38.075Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T14-57-01-849Z","ts":"2026-07-24T14:57:01.850Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T14-57-01-849Z","ts":"2026-07-24T14:57:01.871Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T15-02-00-000Z","ts":"2026-07-24T15:03:30.000Z","loop_label":"atlassian-goal-loop","stage":"tick_end","phase":"P3a","status":"shipped","summary":"AU industry-size lookup module — web/src/lib/market/au-market-lookup.ts (12 ANZSIC-keyed industry snapshots + lookupByAnzsic + searchByKeyword + listCoveredDivisions + estimateTamSamSom + AU_MARKET_LOOKUP_DISCLAIMER) with 19 vitest cases; closes §1 phase 3 P1 gap IBISWorld/ABS lookup"}
