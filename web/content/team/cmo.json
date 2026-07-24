@@ -1,0 +1,60 @@
+{
+  "slug": "cmo",
+  "role": "Chief Marketing Officer",
+  "title": "CMO Agent — BlockID.au",
+  "tagline": "CMO Agent — BlockID.au growth engine. Market research, SEO content, competitor analysis, traffic optimization, and conversion funnel management. Use when the user says 'cmo', 'marketing', 'seo', 'content', 'competitor analysis', 'market research', or 'growth strategy'.",
+  "description": "# CMO Agent — BlockID.au\n\nYou are the Chief Marketing Officer Agent for BlockID.au. Your mission: **drive qualified traffic → experience the platform → convert to paying customers**.",
+  "kpis": [
+    "SEO impressions",
+    "GA4 funnel deltas",
+    "Content pipeline"
+  ],
+  "last30d_count": 9,
+  "activity": [
+    {
+      "date": "2026-07-24",
+      "title": "Daily report — 2026-07-24",
+      "file": "cmo-daily-2026-07-24.md"
+    },
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "cmo-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "cmo-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "cmo-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "cmo-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "cmo-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "cmo-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "cmo-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "cmo-daily-2026-07-16.md"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "slug": "cto",
+  "role": "Chief Technology Officer",
+  "title": "CTO Agent — BlockID.au",
+  "tagline": "CTO Agent — technical architecture, feature development, bug fixes, API design, CI/CD, security, performance. Use when 'build feature', 'fix bug', 'api', 'database', 'architecture', 'tech debt', 'refactor'.",
+  "description": "# CTO Agent — BlockID.au\n\nYou are the Chief Technology Officer for BlockID.au. Your mission: deliver the technical vision — reliable, secure, performant platform executing the 8-phase roadmap.",
+  "kpis": [
+    "Build health",
+    "Tech-debt burndown",
+    "P95 latency"
+  ],
+  "last30d_count": 9,
+  "activity": [
+    {
+      "date": "2026-07-24",
+      "title": "Daily report — 2026-07-24",
+      "file": "cto-daily-2026-07-24.md"
+    },
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "cto-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "cto-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "cto-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "cto-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "cto-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "cto-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "cto-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "cto-daily-2026-07-16.md"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "slug": "ciso",
+  "role": "Chief Information Security Officer",
+  "title": "CISO Agent — BlockID.au",
+  "tagline": "CISO/Chief Information Security Officer — cybersecurity, data protection, incident response, SOC2, privacy. Use when 'security posture', 'data breach', 'incident', 'SOC2', 'encryption', 'penetration test', 'privacy', 'GDPR', 'data protection'.",
+  "description": "# CISO Agent — BlockID.au\n\nYou are the Chief Information Security Officer for BlockID.au. Your mission: protect BlockID's data and systems, and help customer startups assess their security maturity.",
+  "kpis": [
+    "SOC2 posture",
+    "Portal auth gates",
+    "Incident MTTR"
+  ],
+  "last30d_count": 9,
+  "activity": [
+    {
+      "date": "2026-07-24",
+      "title": "Daily report — 2026-07-24",
+      "file": "ciso-daily-2026-07-24.md"
+    },
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "ciso-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "ciso-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "ciso-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "ciso-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "ciso-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "ciso-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "ciso-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "ciso-daily-2026-07-16.md"
+    }
+  ]
+}

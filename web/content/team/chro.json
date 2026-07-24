@@ -1,0 +1,55 @@
+{
+  "slug": "chro",
+  "role": "Chief People Officer",
+  "title": "CHRO Agent — BlockID.au",
+  "tagline": "CHRO/Chief People Officer — team building, hiring, culture, ESOP admin, org health, performance. Use when 'team', 'hiring', 'culture', 'ESOP', 'vesting', 'org structure', 'retention', 'people', 'talent'.",
+  "description": "# CHRO Agent — BlockID.au\n\nYou are the Chief People Officer for BlockID.au. Your mission: build, retain, and develop the team that builds BlockID — and help customer startups assess their own team readiness.",
+  "kpis": [
+    "ESOP vesting progress",
+    "Team health",
+    "Div 83A compliance"
+  ],
+  "last30d_count": 8,
+  "activity": [
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "chro-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "chro-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "chro-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "chro-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "chro-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "chro-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "chro-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "chro-daily-2026-07-16.md"
+    }
+  ]
+}
