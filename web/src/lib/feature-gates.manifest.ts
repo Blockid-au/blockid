@@ -79,6 +79,15 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   { route: "api/reseller/create-startup/route.ts", required_feature: "reseller.create_startup" },
   { route: "api/reseller/billing/setup-intent/route.ts", required_feature: "reseller.console" },
   { route: "api/reseller/billing/save-default-payment-method/route.ts", required_feature: "reseller.console" },
+
+  // Mentor console (customer-success advisory) — reseller-admin scoped.
+  // /access-grant/[grantId] is intentionally NOT gated: the actor is the
+  // founder, not the mentor, so requireFeature("reseller.console") would
+  // 402 every approval. Access is enforced by (subject_user_id === user.id)
+  // inside the handler.
+  { route: "api/mentor/notes/route.ts", required_feature: "reseller.console" },
+  { route: "api/mentor/check-ins/route.ts", required_feature: "reseller.console" },
+  { route: "api/mentor/access-request/route.ts", required_feature: "reseller.console" },
 ]);
 
 /** Look up the required feature for a route path. Returns null if ungated. */
@@ -108,6 +117,9 @@ export const GATED_DIRECTORIES: readonly string[] = Object.freeze([
   "api/reseller/sandbox",
   "api/reseller/create-startup",
   "api/reseller/billing",
+  "api/mentor/notes",
+  "api/mentor/check-ins",
+  "api/mentor/access-request",
 ]);
 
 /** HTTP verbs that count as "mutation" for the completeness lens. */
