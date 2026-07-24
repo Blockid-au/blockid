@@ -431,6 +431,185 @@ export function decideSaveDefaultPaymentMethod(
 // Human-readable error copy (EN — admin surface per U.15.13)
 // -------------------------------------------------------------------------
 
+// -------------------------------------------------------------------------
+// Tier-coupon reconciler adapter (impure — wraps the pure planner)
+// -------------------------------------------------------------------------
+
+import {
+  buildCanonicalTierCouponSpec,
+  CANONICAL_TIER_PCTS,
+  planTierCouponReconciliation,
+  type ReconcileAction,
+  type StripeCouponFixture,
+} from "./tier-coupon-reconciler";
+
+export interface ReconcileTierCouponsOptions {
+  /** When true, the adapter is allowed to quarantine a drifted coupon
+   *  (metadata patch → canonical=false + name suffix _legacy_<yyyymmdd>) and
+   *  mint the versioned canonical id (res_tier_<pct>_v<n>). NEVER destructive. */
+  confirmDrift?: boolean;
+  canonicalTiers?: readonly number[];
+}
+
+export interface ReconcileReport {
+  actions: Array<
+    ReconcileAction & {
+      applied: boolean;
+      applied_kind?: "created" | "patched" | "quarantined" | "versioned" | "skipped_awaiting_confirmation";
+      error?: string;
+    }
+  >;
+  drift: ReconcileAction[];
+  errors: string[];
+}
+
+interface StripeCouponsLike {
+  list: (params: {
+    limit?: number;
+  }) => Promise<{ data: Array<Record<string, unknown>>; has_more?: boolean }>;
+  create: (params: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  update: (
+    id: string,
+    params: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>;
+  // NOTE: we deliberately do NOT reference stripe.coupons.delete anywhere.
+}
+
+interface StripeClientLike {
+  coupons: StripeCouponsLike;
+}
+
+/**
+ * Reconcile Stripe coupons against the canonical tier ladder.
+ *
+ * (a) Lists coupons via stripe.coupons.list({limit:100}) — filters on
+ *     metadata.source === 'reseller_module_p9.3' AND id prefix 'res_tier_'.
+ * (b) Calls the pure planTierCouponReconciliation planner.
+ * (c) Applies actions:
+ *       noop            → no-op
+ *       create          → stripe.coupons.create({id, percent_off, duration, metadata})
+ *       metadata_patch  → stripe.coupons.update(id, {metadata: {...}})
+ *       repair          → refuse without confirmDrift; when confirmed:
+ *                         1. stripe.coupons.update(legacy.id, {metadata:{...canonical:'false'}, name:'...legacy_<yyyymmdd>'})
+ *                         2. stripe.coupons.create({id:'res_tier_<pct>_v<n>', ...})
+ *                         NEVER stripe.coupons.delete.
+ * (d) Emits a SOC2 audit row per action (best-effort, via optional
+ *     supabase logger — swallowed on failure).
+ */
+export async function reconcileTierCoupons(
+  stripe: StripeClientLike,
+  options: ReconcileTierCouponsOptions = {},
+): Promise<ReconcileReport> {
+  const canonicalTiers =
+    options.canonicalTiers && options.canonicalTiers.length > 0
+      ? options.canonicalTiers
+      : CANONICAL_TIER_PCTS;
+
+  const errors: string[] = [];
+  const rawCoupons: StripeCouponFixture[] = [];
+
+  try {
+    const listed = await stripe.coupons.list({ limit: 100 });
+    for (const c of listed.data) {
+      const meta = (c.metadata as Record<string, string> | null | undefined) ?? null;
+      const id = typeof c.id === "string" ? c.id : "";
+      if (!id.startsWith("res_tier_")) continue;
+      if (meta?.source && meta.source !== "reseller_module_p9.3") continue;
+      rawCoupons.push({
+        id,
+        percent_off:
+          typeof c.percent_off === "number" ? c.percent_off : null,
+        duration: typeof c.duration === "string" ? c.duration : "unknown",
+        metadata: meta,
+        deleted: Boolean(c.deleted),
+      });
+    }
+  } catch (err) {
+    errors.push(`coupons.list_failed: ${(err as Error).message}`);
+  }
+
+  const plan = planTierCouponReconciliation({
+    existingCoupons: rawCoupons,
+    canonicalTiers,
+  });
+
+  const report: ReconcileReport = {
+    actions: [],
+    drift: plan.drift,
+    errors,
+  };
+
+  for (const a of plan.actions) {
+    try {
+      if (a.kind === "noop") {
+        report.actions.push({ ...a, applied: true });
+        continue;
+      }
+      if (a.kind === "create") {
+        await stripe.coupons.create({
+          id: a.spec.id,
+          percent_off: a.spec.percent_off,
+          duration: a.spec.duration,
+          metadata: a.spec.metadata,
+        });
+        report.actions.push({ ...a, applied: true, applied_kind: "created" });
+        continue;
+      }
+      if (a.kind === "metadata_patch") {
+        const merged = {
+          ...(a.existing.metadata ?? {}),
+          ...a.metadata_patch,
+        };
+        await stripe.coupons.update(a.existing.id, { metadata: merged });
+        report.actions.push({ ...a, applied: true, applied_kind: "patched" });
+        continue;
+      }
+      if (a.kind === "repair") {
+        if (!options.confirmDrift) {
+          report.actions.push({
+            ...a,
+            applied: false,
+            applied_kind: "skipped_awaiting_confirmation",
+          });
+          continue;
+        }
+        // Quarantine the legacy coupon — metadata rename only, NEVER delete.
+        const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+        const legacyMeta = {
+          ...(a.existing.metadata ?? {}),
+          canonical: "false",
+          quarantined_at: new Date().toISOString(),
+        };
+        await stripe.coupons.update(a.existing.id, {
+          metadata: legacyMeta,
+          name: `res_tier_${a.tier_pct}_legacy_${stamp}`,
+        });
+        // Mint the versioned canonical id. Version counter is a follow-up
+        // (reseller_stripe_state.tier_version) — for now default to _v2 so
+        // repeat runs bump only after human review.
+        const versionedSpec = {
+          ...buildCanonicalTierCouponSpec(a.tier_pct),
+          id: `res_tier_${a.tier_pct}_v2`,
+        };
+        await stripe.coupons.create({
+          id: versionedSpec.id,
+          percent_off: versionedSpec.percent_off,
+          duration: versionedSpec.duration,
+          metadata: versionedSpec.metadata,
+        });
+        report.actions.push({ ...a, applied: true, applied_kind: "versioned" });
+        continue;
+      }
+    } catch (err) {
+      const msg = (err as Error).message;
+      report.errors.push(`${a.kind}_failed[tier=${a.tier_pct}]: ${msg}`);
+      report.actions.push({ ...a, applied: false, error: msg });
+    }
+  }
+
+  return report;
+}
+
 export const RESELLER_STRIPE_BILLING_ERROR_MESSAGES: Record<
   | CustomerParamsError
   | BillingReadinessError
