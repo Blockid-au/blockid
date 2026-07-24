@@ -76,13 +76,15 @@
 
 ### G7 — UX information architecture (startup flow)
 - **Source:** [`docs/plans/ux-ia-startup-flow-goal.md`](./ux-ia-startup-flow-goal.md) · user note [`docs/user/menu-walkthrough.md`](../user/menu-walkthrough.md)
-- **Status:** P0 audit + P1 IA design + P2 DEMO visibility + P3-P5 (ladder + progressive disclosure) shipped; P6 role overlays doc-only; P8 founder review pending (Q1-Q4 in goal doc).
+- **Status:** P0–P7 + P9 all shipped. Only P8 (founder review of Q1–Q4) remains and is `human_blocked` — no code lane is gated on it (all four open questions are `blocking: false`).
 - **Ship commits:**
   1. `43f172f3` — goal doc with audit + IA proposal + phased plan (313 lines).
   2. `27ab1553` — global DEMO menu (NavV2 + legacy site/navbar + WorkspaceLayout topbar + both footers) linking `/showcase/atlassian?step=1`.
   3. `79672c4a` (auto-tick) — `JourneyStepLadder` 12-phase visual + dashboard mount.
   4. `a5c295e0` — E2E `web/tests/e2e/nav/menu-structure.spec.ts` pinning nav contracts per role.
-- **Next action:** founder review Q1-Q4 (top-nav phase-cluster count, DEMO placement, ladder collapse rule on mobile, returning-founder skip-tutorial). No unblocked implementation lane until founder decides Q1-Q3.
+  5. Round 5.13 — P5 progressive-disclosure polish (`Later phases (N)` collapse + lock glyph), P6 role-menu-overlay helper (`web/src/lib/nav/role-menu-overlay.ts`), P7 a11y contracts (`aria-haspopup="menu"`, workspace `aria-label`, disclosure buttons) + `docs/design/menu-a11y-audit.md`.
+  6. This tick — P9 close-out: SOURCE-OF-TRUTH + `docs/user/menu-walkthrough.md` refreshed to reflect P5–P7 shipped; goal doc `phased_tracks.P9` flipped to `shipped`.
+- **Next action:** founder review of Q1–Q4 (top-nav phase-cluster count, DEMO placement, ladder collapse rule on mobile, returning-founder skip-tutorial). No code work queued.
 - **Blocker:** founder review only. No new deps, no CI touch, tsc clean.
 
 ---

@@ -1,2 +1,3 @@
 {"tick_id":"2026-07-24T05-53-01-616Z","ts":"2026-07-24T05:53:01.617Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T05-53-01-616Z","ts":"2026-07-24T05:53:01.629Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T05-55-00-000Z","ts":"2026-07-24T05:55:00.000Z","loop_label":"ux-ia-goal-loop","stage":"phase_shipped","phase":"P9_ship_hardening","note":"E2E already at a5c295e0; refreshed SOURCE-OF-TRUTH G7 + menu-walkthrough Coming-next; flipped P9 status to shipped in goal doc (version 2026-07-24.2). Only P8 human_blocked remains; Q1-Q4 all blocking:false."}
