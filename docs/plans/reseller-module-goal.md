@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.355
+version: 2026-07-24.356
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,134 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 356
+    ran_at: 2026-07-24
+    action: p10_admins_status_revoked_at_lifecycle_plus_attributions_summary_by_source_module_scope_summary_twin_lift_onto_admin_reseller_detail_authz
+    result: |
+      Executes tick 355 next-pick option (i) verbatim as a cross-surface
+      twin lift of the two tick 355 module-scope summaries onto the
+      sibling admin-reseller-detail-authz.spec.ts. Adds a NEW module-
+      scope doc-block at web/tests/e2e/reseller/admin-reseller-detail-
+      authz.spec.ts rows 2401+ (between the tick 337 message-prose
+      refresh closing rotation candidates block and the const
+      ISO_TIMESTAMP_RE declaration) containing TWO summary sections
+      back-to-back mirroring THE TWO tick 355 summaries verbatim on the
+      sibling file:
+        (a) admins[] status ⇔ revoked_at cross-column lifecycle
+            invariant — writer-schema (0091:73-76 status + revoked_at
+            declared independently, no DB CHECK ties them), no app
+            revoke code-path currently in tree, read path (route.
+            ts:89-93 select tuple), two-branch guard shape (active ⇒
+            null; revoked ⇒ string), runtime enforcement (rows 3387-
+            3407 per tick 326), symmetric-cluster posture (sibling
+            detail-validation now carries the same summary at rows
+            534-578 per tick 355).
+        (b) attributions_summary.by_source Record<enum, number> enum-
+            tightening — writer-schema (0091:123 source text NOT NULL
+            CHECK IN ('code','provisioned','admin_manual') as sole
+            enforcement layer), read path (route.ts:116-119 reducer
+            keys accumulator directly on raw source column so rogue
+            values surface as rogue KEYs on the wire), four-part guard
+            shape (KEY ∈ ALLOWED_ATTRIBUTION_SOURCES + VALUE typeof-
+            number + Number.isInteger + >= 0), runtime enforcement
+            (for-loop rows 3467-3499 per tick 313 reusing ALLOWED_
+            ATTRIBUTION_SOURCES const declared at row 2480), symmetric-
+            cluster posture (sibling detail-validation now carries the
+            same summary at rows 580-626 per tick 355).
+
+      Rotation rationale:
+        - Executes tick 355 next-pick option (i) verbatim.
+          Documentation-only hoist matching the tick 355 posture on the
+          sibling file — no new imports, no new module-scope const, no
+          fixture change, no route change, no per-row assert added. The
+          inline pins at rows 3387-3407 (admins[] lifecycle per tick
+          326) and rows 3467-3499 (attributions_summary by_source per
+          tick 313) remain the runtime enforcement layer; this hoist is
+          a pure documentation close-out lift completing the summary-
+          lens twin symmetrisation for the third + fourth child-slot
+          clusters on this surface.
+        - Summary-lens twin sweep now closed on BOTH detail surfaces
+          across ALL five child slots: (1) resellers-row — closed on
+          detail-authz at tick 333 (sibling twin still pending on
+          detail-validation, deferred natural next-pick option (a));
+          (2) promotion_codes[] — closed on detail-authz at tick 332
+          (sibling twin still pending on detail-validation, deferred
+          natural next-pick option (b)); (3) admins[] — CLOSED THIS
+          TICK on detail-authz (twin of tick 355 summary #1 on detail-
+          validation); (4) attributions_summary — CLOSED THIS TICK on
+          detail-authz (twin of tick 355 summary #2 on detail-
+          validation); (5) commissions[] — closed on detail-authz at
+          tick 334 (twin of tick 354 summary on detail-validation).
+          Both detail surfaces now carry a module-scope invariant
+          summary for admins[] + attributions_summary + commissions[]
+          (three of five child slots covered on both surfaces); the
+          remaining resellers-row + promotion_codes[] summaries live on
+          detail-authz only, awaiting sibling mirrors on detail-
+          validation (natural next-pick options (a) + (b)).
+        - Coverage-per-guard posture: this tick adds ZERO new asserts,
+          so no new pin fires on any CI run. The doc-block gives future
+          rotation ticks a single module-scope entry to lift from
+          without re-reading tick 313 + tick 326 + the reseller_admins
+          + reseller_attributions schemas in full — matches the tick
+          355 rationale.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-authz.spec.ts:
+            + new module-scope tick 356 doc-block placed between the
+              tick 337 closing rotation candidates block (row 2400) and
+              the const ISO_TIMESTAMP_RE declaration (now shifted from
+              row 2401).
+            + Cross-references: tick 326 inline pin rows 3387-3407 on
+              this file + tick 313 inline for-loop rows 3467-3499 on
+              this file + writer-schema sources at 0091:73-76 (status +
+              revoked_at) + 0091:123 (source CHECK) + route.ts:89-93
+              (admins SELECT tuple) + route.ts:116-119 (by_source
+              reducer) + sibling detail-validation.spec.ts rows 534-578
+              (tick 355 summary #1 admins[] lifecycle) + rows 580-626
+              (tick 355 summary #2 by_source) + module-scope const
+              ALLOWED_ATTRIBUTION_SOURCES at row 2480.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 355).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 356: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Summary-lens twin sweep on admin-reseller-detail-authz NOW carries
+      FIVE module-scope summaries (resellers-row tick 333 + promotion_
+      codes[] tick 332 + commissions[] tick 334 + admins[] +
+      attributions_summary THIS TICK); sibling detail-validation carries
+      THREE (commissions[] tick 354 + admins[] + attributions_summary
+      tick 355). Detail-validation is now the trailing surface with
+      resellers-row + promotion_codes[] summaries still pending as
+      twin lifts.
+
+      Next natural picks on tick 357:
+        (a) rotate to the resellers-row summary lens on the sibling
+        detail-validation spec — the tick 333 summary lives on THIS
+        file only; would mirror it onto the validation surface,
+        completing the resellers-row summary-lens twin analogously to
+        what THIS TICK did for admins[] + attributions_summary.
+        (b) rotate to the promotion_codes[] summary lens on the
+        sibling detail-validation spec — the tick 332 summary lives on
+        THIS file only; would mirror it onto the validation surface,
+        completing the promotion_codes[] summary-lens twin.
+        (c) rotate to a wholly new cluster like reseller_requests[] on
+        admin-requests-*.spec.ts (the reseller-requests inbox cluster
+        has not yet been surface-lifted between detail-authz and its
+        validation twin).
+        (d) idle — frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed, P10 continues accepting
+        incremental pin-tightening + summary-hoist ticks).
+    commit: (this tick)
+
   - tick: 355
     ran_at: 2026-07-24
     action: p10_admins_status_revoked_at_lifecycle_plus_attributions_summary_by_source_module_scope_summary_twin_hoist_on_admin_reseller_detail_validation

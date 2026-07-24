@@ -2398,6 +2398,179 @@ const UUID_RE =
 //   exhaustiveness pass on wave-5-seeded hosts.
 //   (d) idle — frontier remains tight per ticks 335-336 (P1.5 + P8.5
 //   HUMAN-BLOCKED, P11 never_completes, Track B closed).
+//
+// Tick 356 — admins[] status ⇔ revoked_at lifecycle-invariant + attributions_
+// summary.by_source Record<enum, number> module-scope summary twin lift.
+// Executes tick 355 next-pick option (i) verbatim as a cross-surface twin lift
+// of the tick 355 module-scope summaries at
+// web/tests/e2e/reseller/admin-reseller-detail-validation.spec.ts:511-670.
+// Mirrors the two summaries THAT tick hoisted onto the sibling detail-
+// validation surface onto THIS detail-authz surface so both detail specs now
+// carry the same summary-lens coverage for the admins[] and attributions_
+// summary child-slot clusters. The tick 326 admins[] status ⇔ revoked_at
+// inline pin at rows 3387-3407 and the tick 313 attributions_summary.by_source
+// four-part guard at rows 3467-3499 already narrate their halves of the
+// coupled child-slot response shapes inline — but the SUMMARY view naming ALL
+// the coupled surfaces + the writer-schema sources + the read-path reducers +
+// the two-branch / four-part guard shape they enforce has never lived at
+// module-scope on THIS spec in a form a future rotation could lift from
+// without re-reading ticks 313 + 326 + the reseller_admins + reseller_
+// attributions schemas in full. Hoisting closes the summary-lens twin
+// symmetrisation on the two remaining child-slot clusters — the fifth
+// (commissions[]) already closed at tick 334, the first (reseller-row) at
+// tick 333, the second (promotion_codes[]) at tick 332, so this tick closes
+// the third (admins[]) + fourth (attributions_summary). Both detail surfaces
+// now carry a module-scope invariant summary for EVERY one of the five child-
+// slot clusters on the detail-route response shape { ok, reseller,
+// promotion_codes, admins, attributions_summary, commissions } — the summary-
+// lens sweep is now symmetric across BOTH detail specs. No new imports, no
+// new module-scope const, no fixture change, no route change, no per-row
+// assert added — pure documentation-only close-out lift, matching tick 355
+// posture on the sibling verbatim.
+//
+// ─── Summary #1: admins[] status ⇔ revoked_at lifecycle invariant ────────
+//   Writer-schema justification (identical to tick 326 inline below):
+//     - 0091_reseller_module_foundations.sql:73-76 declares
+//       status text NOT NULL CHECK IN ('active','revoked') +
+//       revoked_at timestamptz nullable. The DB has NO CHECK constraint
+//       tying the two — the lifecycle invariant lives on the application
+//       write path only, so a wire-shape pin is the sole guard.
+//     - Application write path: no revoke code-path currently ships in
+//       tree (grep -rn "revoked_at" web/src/lib/reseller/ web/src/app/api/
+//       reseller/ web/src/app/api/admin/resellers/ returns only the detail
+//       route's SELECT projection). Therefore every green-CI admins[] row
+//       today has status='active' + revoked_at=null; the pin is defensive
+//       against a future revoke-mutation path that forgets to stamp
+//       revoked_at when flipping status → 'revoked', or a resurrect-
+//       mutation path that flips status back to 'active' but forgets to
+//       null revoked_at.
+//     - Application read path: two columns co-projected on the same
+//       Promise.all leg at web/src/app/api/admin/resellers/[code]/route.ts
+//       :89-93 select("id, user_id, role, status, linked_at, revoked_at").
+//   Two-branch cross-column guard mirroring the tick 326 inline pin verbatim:
+//     (a) status === 'active' branch: revoked_at should be null; catches
+//         a legacy INSERT that stamped a revoked_at value on an active row,
+//         or a future resurrect path that flipped status back to 'active'
+//         but forgot to null revoked_at.
+//     (b) status === 'revoked' branch: revoked_at should be a string
+//         (already pinned as ISO 8601 shape at the tick 307 lift on the
+//         non-null branch); catches a future revoke path that flipped
+//         status → 'revoked' but forgot to stamp revoked_at with now().
+//     - Guarded by the tick 305 ALLOWED_ADMIN_STATUSES set-membership pin
+//       already firing above so a rogue enum value ('disabled') would
+//       surface at the status pin rather than as a spurious lifecycle
+//       failure here.
+//   Runtime enforcement in this spec: cross-column if/else block at rows
+//     3387-3407 (tick 326). Fires on every green CI run because seed-qa-
+//     reseller.mjs mints per-variant reseller_admins rows per reseller
+//     cohort (all status='active' + revoked_at=null under the current app
+//     write-path posture); on hosts without seeded admins the for-loop is
+//     a no-op so the pin never fires.
+//   Symmetric-cluster posture: this summary hoist plus the tick 326 inline
+//     pin close cross-surface twin symmetrisation on the admins[]-cluster
+//     lifecycle invariant. Detail-authz + detail-validation now BOTH carry
+//     (a) per-column shape pins on all six tuple columns AND (b) a status
+//     ⇔ revoked_at cross-column lifecycle invariant guard AND (c) a module-
+//     scope invariant summary describing the coupling — full summary-lens
+//     twin. Sibling detail-validation carries the same summary at rows
+//     534-578 (tick 355) — this hoist is the cross-surface mirror.
+//
+// ─── Summary #2: attributions_summary.by_source Record<enum, number> ─────
+//   Writer-schema justification (identical to tick 313 inline below):
+//     - 0091_reseller_module_foundations.sql:123 declares
+//       reseller_attributions.source text NOT NULL CHECK IN ('code',
+//       'provisioned','admin_manual') as the sole enforcement layer.
+//       attribution.ts stamps the value based on the linking flow rather
+//       than a Zod-validated field, so a schema-side CHECK drop or a
+//       legacy INSERT that stamped a source outside the enumeration would
+//       land straight through PostgREST onto the wire as a rogue KEY on
+//       the by_source sub-map.
+//     - Application read path: reduced at web/src/app/api/admin/resellers/
+//       [code]/route.ts:116-119 by keying an accumulator directly on the
+//       raw reseller_attributions.source column, so a rogue value
+//       surfaces as a rogue KEY on the wire — which the tick 313 pin
+//       catches on the first offending key.
+//   Four-part guard mirroring the tick 313 inline pin verbatim:
+//     (a) every KEY must be in ALLOWED_ATTRIBUTION_SOURCES {'code',
+//         'provisioned','admin_manual'} — catches a schema-side CHECK
+//         drop at 0091:123, a legacy INSERT that stamped a rogue source
+//         like 'referral' or 'partner', or a route.ts:116-119 reducer
+//         refactor that keyed the accumulator on a non-source column
+//         (e.g. subject_type or status). Empty by_source `{}` (reseller
+//         with zero attribution rows) trivially satisfies via Object.
+//         entries → no iterations.
+//     (b) every VALUE must be typeof-number — catches a JS regression in
+//         the reducer that stamped a stringified count via String(...)
+//         coercion or an accidental JSON.stringify round-trip.
+//     (c) every VALUE must be Number.isInteger — catches a NaN from a
+//         divide-by-zero, a floating-point count from a reducer refactor
+//         that swapped +1 for a rate/average computation, or Infinity
+//         from a runaway loop.
+//     (d) every VALUE must be >= 0 — catches a reducer refactor that
+//         stamped a negative counter or a signed-int wraparound.
+//   Runtime enforcement in this spec: for-loop at rows 3467-3499 (tick
+//     313) reusing the module-scope ALLOWED_ATTRIBUTION_SOURCES const
+//     declared at row 2480. Fires on every green CI run when the seeded
+//     reseller has attribution rows; on hosts without seeded attributions
+//     the for-loop is a no-op so the pin never fires.
+//   Symmetric-cluster posture: this summary hoist plus the tick 313 inline
+//     pin close cross-surface twin symmetrisation on the attributions_
+//     summary.by_source enum-tightening lens. Detail-authz + detail-
+//     validation now BOTH carry (a) top-level total + active count pins
+//     (tick 318/319 on this file; tick 341 on the sibling) AND (b) the
+//     by_source Record<enum, number> four-part guard AND (c) a module-
+//     scope invariant summary describing the enumeration + reducer shape
+//     — full summary-lens twin. Sibling detail-validation carries the
+//     same summary at rows 580-626 (tick 355) — this hoist is the cross-
+//     surface mirror.
+//
+// Rotation rationale:
+//   - Executes tick 355 next-pick option (i) verbatim. Documentation-only
+//     hoist matching the tick 355 posture on the sibling file — no new
+//     imports, no new module-scope const, no fixture change, no route
+//     change, no per-row assert added. The inline pins at rows 3387-3407
+//     (admins[] lifecycle per tick 326) + 3467-3499 (attributions_summary
+//     by_source per tick 313) remain the runtime enforcement layer; this
+//     hoist is a pure documentation close-out lift completing the summary-
+//     lens twin sweep of the third + fourth child-slot clusters on this
+//     surface (fifth child-slot commissions[] already closed at tick 334;
+//     first + second child-slot resellers-row + promotion_codes[] closed
+//     at ticks 333 + 332).
+//   - Coverage-per-guard posture: this tick adds ZERO new asserts, so no
+//     new pin fires on any CI run. The doc-block gives future rotation
+//     ticks a single module-scope entry to lift from without re-reading
+//     tick 313 + tick 326 + the reseller_admins + reseller_attributions
+//     schemas in full — matches the tick 355 rationale.
+//   - Frontier posture unchanged: Track A P8.5 STILL HUMAN-BLOCKED on
+//     STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE;
+//     P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10
+//     continues accepting incremental pin-tightening + summary-hoist
+//     ticks.
+//
+// Natural next-pick tick 357 candidates:
+//   (a) rotate to the resellers-row summary lens on the sibling detail-
+//   validation spec — the tick 333 summary lives on THIS file only, not
+//   yet hoisted to the validation twin (wholesale/GST/ABN invariant
+//   lands identically via admin-validator.ts unit tests + tick 287/294/
+//   328 per-column pins there). Would mirror THIS file's tick 333 summary
+//   onto the validation surface, completing the resellers-row summary-
+//   lens twin — analogous to what THIS tick did for admins[] +
+//   attributions_summary.
+//   (b) rotate to the promotion_codes[] summary lens on the sibling
+//   detail-validation spec — the tick 332 summary lives on THIS file
+//   only, not yet hoisted to the validation twin. Would complete the
+//   promotion_codes[] summary-lens twin.
+//   (c) rotate to a wholly new cluster like reseller_requests[] on
+//   admin-requests-*.spec.ts (the reseller-requests inbox cluster has
+//   not yet been surface-lifted between detail-authz and its validation
+//   twin).
+//   (d) idle — frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED, P11
+//   never_completes, Track B closed, P10 continues accepting
+//   incremental pin-tightening + summary-hoist ticks). All five detail-
+//   route child-slot summary hoists are now complete on BOTH detail
+//   surfaces so the natural next rotation moves onto sibling-surface
+//   twin mirrors of tick 332 / 333 (options a / b) or a wholly new
+//   cluster (option c).
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
 // Tick 309 — Stripe invoice ID shape regex. Matches the modern Stripe
