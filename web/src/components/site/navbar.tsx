@@ -49,11 +49,54 @@ const navItems: NavEntry[] = [
       },
     ],
   },
+  // ux-ia-startup-flow-v1 §C.2 + §C.7 — global Demo entry, mirrors NavV2.
+  {
+    label: "Demo",
+    groups: [
+      {
+        heading: "Live walkthrough",
+        items: [
+          { href: "/showcase/atlassian?step=1", label: "Atlassian journey" },
+        ],
+      },
+      {
+        heading: "More case studies",
+        items: [
+          { href: "/showcase/canva", label: "Canva" },
+          { href: "/showcase/xero", label: "Xero" },
+          { href: "/showcase/safetyculture", label: "SafetyCulture" },
+          { href: "/showcase", label: "All case studies" },
+        ],
+      },
+    ],
+  },
   { href: "/#product", label: "Product" },
   { href: "/#pricing", label: "Pricing" },
-  { href: "/benchmarks", label: "Benchmarks" },
-  { href: "/insights", label: "Insights" },
-  { href: "/version", label: "Version" },
+  // ux-ia-startup-flow-v1 §C.2 — collapse Benchmarks / Insights / Version
+  // under a single Resources dropdown so the top-nav stays at <=7 items
+  // after adding Demo.
+  {
+    label: "Resources",
+    groups: [
+      {
+        heading: "Learn",
+        items: [
+          { href: "/benchmarks", label: "AU Benchmarks" },
+          { href: "/insights", label: "Insights" },
+          { href: "/docs", label: "Docs" },
+        ],
+      },
+      {
+        heading: "Platform",
+        items: [
+          { href: "/version", label: "Version" },
+          { href: "/changelog", label: "Changelog" },
+          { href: "/roadmap", label: "Roadmap" },
+          { href: "/status", label: "Status" },
+        ],
+      },
+    ],
+  },
 ];
 
 function isDropdown(item: NavEntry): item is NavDropdown {

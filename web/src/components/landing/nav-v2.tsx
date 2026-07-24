@@ -86,6 +86,22 @@ const MENU: MenuEntry[] = [
   },
   { kind: "link", key: "pricing", label: "Pricing", href: "/pricing" },
   {
+    // ux-ia-startup-flow-v1 §C.1 + §C.7 — global Demo entry-point so a
+    // visitor can always see the platform end-to-end before signup. First
+    // sub-link is the Atlassian walkthrough (deep-linked to step 1).
+    kind: "group",
+    key: "demo",
+    label: "Demo",
+    width: "w-64",
+    items: [
+      { label: "Atlassian journey (live)", href: "/showcase/atlassian?step=1" },
+      { label: "Canva journey", href: "/showcase/canva" },
+      { label: "Xero journey", href: "/showcase/xero" },
+      { label: "SafetyCulture journey", href: "/showcase/safetyculture" },
+      { label: "All case studies", href: "/showcase" },
+    ],
+  },
+  {
     kind: "group",
     key: "compare",
     label: "Compare",

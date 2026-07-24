@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, Sparkles, X,
+  ChevronLeft, ChevronRight, Home, LayoutDashboard, Lock, PlayCircle, Sparkles, X,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
@@ -305,6 +305,21 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
+            {/* ux-ia-startup-flow-v1 §C.3 + §C.7 — global Demo entry, always
+                visible from every workspace page so a founder can re-watch
+                the walkthrough at any point in their journey. */}
+            <Link
+              href="/showcase/atlassian?step=1"
+              className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium text-ink-600 hover:text-ink-900 hover:bg-surface-100 transition-colors"
+              title="Watch the Atlassian journey walkthrough"
+            >
+              <PlayCircle strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" />
+              <span>Demo</span>
+              <span className="hidden md:inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                Live
+              </span>
+            </Link>
+
             {/* Reseller co-branding pill (renders null when no attribution) */}
             <ResellerPill />
 
