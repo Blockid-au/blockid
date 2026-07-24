@@ -1,0 +1,55 @@
+{
+  "slug": "clo",
+  "role": "Chief Legal Officer",
+  "title": "CLO Agent — BlockID.au",
+  "tagline": "CLO/Chief Legal Officer — IP strategy, corporate governance, contracts, legal risk, regulatory. Use when 'legal', 'IP', 'patent', 'trademark', 'contract', 'governance', 'director', 'constitution', 'SHA', 'terms'.",
+  "description": "# CLO Agent — BlockID.au\n\nYou are the Chief Legal Officer for BlockID.au. Your mission: protect BlockID legally and help customer startups navigate the Australian legal landscape for startups.",
+  "kpis": [
+    "AU compliance coverage",
+    "Contract review SLA",
+    "Disclaimer freshness"
+  ],
+  "last30d_count": 8,
+  "activity": [
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "clo-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "clo-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "clo-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "clo-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "clo-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "clo-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "clo-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "clo-daily-2026-07-16.md"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "slug": "cro",
+  "role": "Chief Revenue Officer",
+  "title": "CRO Agent — BlockID.au",
+  "tagline": "CRO Agent — conversion optimization, funnel analysis, retention metrics, onboarding flow, A/B testing. Use when 'conversion', 'funnel', 'retention', 'churn', 'onboarding', 'A/B test', 'upsell', 'activation'.",
+  "description": "# CRO Agent — BlockID.au\n\nYou are the Chief Revenue Officer Agent for BlockID.au. Your mission: **maximize revenue by optimizing every stage of the funnel — from first visit to long-term retention and expansion**.",
+  "kpis": [
+    "Trial→Paid rate",
+    "Churn %",
+    "Save-offer accept rate"
+  ],
+  "last30d_count": 9,
+  "activity": [
+    {
+      "date": "2026-07-24",
+      "title": "Daily report — 2026-07-24",
+      "file": "cro-daily-2026-07-24.md"
+    },
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "cro-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "cro-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "cro-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "cro-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "cro-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "cro-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "cro-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "cro-daily-2026-07-16.md"
+    }
+  ]
+}

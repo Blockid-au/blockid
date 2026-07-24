@@ -1,7 +1,58 @@
 # BlockID.au Product Roadmap
 
 > Startup Verification Intelligence for Australian founders.
-> Last updated: 2026-06-17 (v2.6 shipped)
+> Last updated: 2026-07-24 (v2.0.0-beta.10 deployed)
+
+---
+
+## Phase 2.7: Reseller / wholesale module v1 (Completed - July 2026)
+
+- [x] P0 – P10 wire-shape pins across `/admin/resellers` list + detail (~300 wire ticks)
+- [x] P11.1 – P11.48 weekly digest snapshot pipeline (delta, rolling-N-week, top-movers, per-metric %-change coverage, sustained-direction streaks, per-reseller drill-down, `contribution_margin_pct`)
+- [x] P11.40 – P11.45 per-(reseller × metric) pct-change coverage in weekly digest cron
+- [x] P12 admin user/role management (account_type enum, user detail, impersonation trail, Playwright E2E)
+- [x] CISO D3-CISO-06 — block Stripe customer portal for wholesale-provisioned founders
+- [x] SOC2-lite audit-log writes on admin reseller CRUD
+- [x] k-anon suppression + complementary-value redaction on aggregate metrics
+
+## Phase 2.8: Compliance forms (Completed - July 2026)
+
+- [x] P1n-gst-form founder-facing GST threshold form
+- [x] P1n-s708-form founder-facing s708(1) small-scale counter form
+- [x] P10-s708counter s708(1) small-scale personal-offer counter engine
+- [x] P10-s708counter-adapter share-register → S708OfferEvent normaliser
+- [x] P1n-esic-route `/compliance/{esic,s708,gst,rd}` deep-link pages
+- [x] P1n WGEA + Modern Slavery threshold detectors + detail-page forms + dashboard
+- [x] P6a Div 83A ESOP scheme-rules gate
+
+## Phase 2.9: Atlassian-goal exit-readiness tile (Completed - July 2026)
+
+- [x] P2a AU Customer Letter of Intent template
+- [x] P2b AU Customer Discovery Interview Log template
+- [x] P5a-tile per-phase `InvestorReadinessTile`
+- [x] P5b mount `InvestorReadinessTile` on `/dashboard/svi`
+- [x] P6a-ir-pack — Div 83A tests wired into ch09 investor pack
+- [x] P6b wholesale-only fundraise UI toggle + helpers + vitest
+- [x] P7a founder-side weekly digest cron
+- [x] P7b svi_readiness_snapshots table + pure delta helpers
+- [x] P11-acquisition-pattern Chapter 11 section
+- [x] P11-acquisition-wizard pure helper — 90/10 deal-shape checker
+- [x] P12a AU comparable-exits data source
+- [x] P12b wire AU exit benchmark into ch09+ investor pack + CFO valuation
+- [x] P12b-tile `/dashboard/exit-readiness` founder tile
+
+## Phase 2.10: Real-world workflow parity (In progress - July 2026)
+
+- [x] Canonical journey vocab v1.0.0 + 12↔8 bucket maps (item 1)
+- [x] Showcase 8-stage badges (item 2)
+- [x] Onboarding Step 6 wired (item 3)
+- [x] SCN → Startup Compass rename (item 4)
+- [x] 102-doc data-room shipped (item 5)
+- [x] Guide Ch8 ShipIt + Pledge 1% culture callouts (item 8)
+- [x] Traction P5-cohort retention chart auto-draw (item 9)
+- [ ] Airwallex + Culture Amp showcase (item 6 — founder review)
+- [ ] Chapter 10 callout arc (item 7 — founder review)
+- [ ] Item 10 (founder review)
 
 ---
 
@@ -176,12 +227,14 @@
 
 - [ ] SEO landing pages for each free tool
 - [ ] Referral program (earn credits)
-- [ ] Accelerator cohort dashboard
-- [ ] White-label for advisors/accountants
+- [x] Accelerator cohort dashboard (v2.13)
+- [x] White-label for advisors/accountants (Phase 2.7 reseller module v1)
 - [ ] Advanced cap table health check
-- [ ] Data room with investor tracking
+- [x] Data room with investor tracking (102-doc data-room, Phase 2.10 item 5)
 - [ ] Push notifications (in-app)
-- [ ] PDF export for all reports
+- [x] PDF export for all reports (Q3 PDF-BRAND — 3-layer gate + renderer wire-in)
+- [x] Share buttons on public shares (T0211 — LinkedIn / Tweet / Email / Copy on /s/[slug])
+- [x] Pricing A/B test infra (T0206 — 4 variants live)
 
 ## Phase 4: Scale (August - October 2026)
 

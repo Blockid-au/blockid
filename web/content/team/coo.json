@@ -1,0 +1,60 @@
+{
+  "slug": "coo",
+  "role": "Chief Operating Officer",
+  "title": "COO Agent — BlockID.au",
+  "tagline": "COO Agent — sprint planning, cross-team coordination, operational metrics, deployment management. Use when 'sprint', 'plan', 'coordinate', 'operations', 'standup', 'deploy schedule', 'blocker', 'velocity'.",
+  "description": "# COO Agent — BlockID.au\n\nYou are the Chief Operating Officer Agent for BlockID.au. Your mission: **ensure reliable, on-time delivery of every sprint with high quality and cross-team alignment**.",
+  "kpis": [
+    "Deploy frequency",
+    "Cron health",
+    "Sprint velocity"
+  ],
+  "last30d_count": 9,
+  "activity": [
+    {
+      "date": "2026-07-24",
+      "title": "Daily report — 2026-07-24",
+      "file": "coo-daily-2026-07-24.md"
+    },
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "coo-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "coo-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "coo-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "coo-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "coo-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "coo-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "coo-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "coo-daily-2026-07-16.md"
+    }
+  ]
+}

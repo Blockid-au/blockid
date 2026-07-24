@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import fs from "node:fs";
+import path from "node:path";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Version & Features — BlockID.au",
@@ -9,6 +13,46 @@ export const metadata: Metadata = {
     description: "See every feature BlockID.au offers to guide startups from Day 0 to scale.",
   },
 };
+
+// --- Live deploy manifest (read at request time) ------------------------
+
+type DeployManifest = {
+  git_sha?: string;
+  deployed_at?: string;
+  next_hash?: string;
+  task_id?: string;
+  version?: string;
+};
+
+function readDeployManifest(): DeployManifest | null {
+  const candidates = [
+    path.join(process.cwd(), "web", ".deploy-manifest.json"),
+    path.join(process.cwd(), ".deploy-manifest.json"),
+    path.join(process.cwd(), "..", "web", ".deploy-manifest.json"),
+  ];
+  for (const p of candidates) {
+    try {
+      return JSON.parse(fs.readFileSync(p, "utf-8")) as DeployManifest;
+    } catch {
+      // try next
+    }
+  }
+  return null;
+}
+
+function relativeAge(iso: string | undefined): string {
+  if (!iso) return "unknown";
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return iso;
+  const diffMs = Date.now() - then;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
 
 // ── Growth Phases ──────────────────────────────────────────────────────
 
@@ -219,6 +263,8 @@ const VERSION_HISTORY = [
 ];
 
 export default function VersionPage() {
+  const manifest = readDeployManifest();
+  const sha7 = manifest?.git_sha ? manifest.git_sha.slice(0, 7) : null;
   return (
     <div className="min-h-svh bg-surface-100">
       {/* Header */}
@@ -235,6 +281,64 @@ export default function VersionPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-12 space-y-16">
+        {/* Live deploy card */}
+        <section aria-label="Current deploy">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-3 flex items-baseline justify-between">
+              <h2 className="text-lg font-bold text-gray-900">Live deploy</h2>
+              <span className="rounded-full bg-emerald-50 px-3 py-0.5 text-xs font-mono font-bold text-emerald-700">
+                {manifest?.version ?? "unknown"}
+              </span>
+            </div>
+            {manifest ? (
+              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                <div>
+                  <dt className="text-xs uppercase tracking-wider text-gray-500">Version</dt>
+                  <dd className="mt-1 font-mono text-sm text-gray-900">{manifest.version ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-wider text-gray-500">Git SHA</dt>
+                  <dd className="mt-1 font-mono text-sm">
+                    {sha7 ? (
+                      <a
+                        href={`https://github.com/Blockid-au/blockid.au/commit/${manifest.git_sha}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-700 hover:underline"
+                      >
+                        {sha7}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-wider text-gray-500">Deployed</dt>
+                  <dd className="mt-1 font-mono text-sm text-gray-900">
+                    {relativeAge(manifest.deployed_at)}
+                  </dd>
+                  {manifest.deployed_at ? (
+                    <dd className="font-mono text-[10px] text-gray-500">
+                      {manifest.deployed_at}
+                    </dd>
+                  ) : null}
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-wider text-gray-500">Task ID</dt>
+                  <dd className="mt-1 font-mono text-sm text-gray-900">
+                    {manifest.task_id ?? "—"}
+                  </dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Deploy manifest not yet published for this environment.
+              </p>
+            )}
+          </div>
+        </section>
+
         {/* Growth Path Features */}
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Growth Path</h2>

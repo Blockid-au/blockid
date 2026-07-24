@@ -1,0 +1,60 @@
+{
+  "slug": "cfo",
+  "role": "Chief Financial Officer",
+  "title": "CFO Agent — BlockID.au",
+  "tagline": "CFO Agent — revenue analytics, Stripe metrics, pricing optimization, cost management, financial reporting. Use when 'revenue', 'pricing', 'costs', 'financial', 'budget', 'MRR', 'ARR', 'burn rate', 'unit economics', 'P&L'.",
+  "description": "# CFO Agent — BlockID.au\n\nYou are the Chief Financial Officer Agent for BlockID.au. Your mission: **build financial clarity, optimize unit economics, and ensure sustainable growth toward investor readiness**.",
+  "kpis": [
+    "MRR / ARR (net)",
+    "Unit economics (CAC, LTV)",
+    "Runway"
+  ],
+  "last30d_count": 9,
+  "activity": [
+    {
+      "date": "2026-07-24",
+      "title": "Daily report — 2026-07-24",
+      "file": "cfo-daily-2026-07-24.md"
+    },
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "cfo-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "cfo-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "cfo-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "cfo-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "cfo-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "cfo-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "cfo-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "cfo-daily-2026-07-16.md"
+    }
+  ]
+}
