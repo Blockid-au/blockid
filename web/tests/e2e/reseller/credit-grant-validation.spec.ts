@@ -63,6 +63,99 @@ import {
 // UUID shape guard, then fails the allowedCustomerIds membership check.
 const OUT_OF_SCOPE_UUID = "00000000-0000-4000-8000-000000000001";
 
+// Tick 375 — reseller_credit_grants row-cluster cross-column invariant summary
+// (option (i) from tick 374 next-picks). Cross-surface twin-lift of the tick
+// 374 module-scope summary that landed on credit-grant-authz.spec.ts (the
+// write-path authz surface) onto credit-grant-validation.spec.ts (the write-
+// path input-validation surface). CLOSES 2/2 surface parity on the reseller_
+// credit_grants row cluster — matches the tick 367 close-out posture on the
+// reseller_requests row cluster's reseller-scope surfaces where a summary
+// was hoisted onto both requests-authz.spec.ts and requests-validation.spec.
+// ts to close cross-surface twin parity. Post-tick 375, the reseller_credit_
+// grants row cluster spans 8 module-scope cross-column invariant summaries
+// across TWO surfaces × FOUR CHECK constraints: 4 on credit-grant-authz.
+// spec.ts (tick 374) + 4 on credit-grant-validation.spec.ts (this tick) —
+// full 2-surface × 4-invariant parity on the credit-grant write-path
+// cluster. The kind ∈ {grant, sandbox_spend} XOR partition is now observable
+// at module scope on BOTH credit-grant surfaces.
+//
+// The four CHECK constraints (defined at web/supabase/migrations/0096_
+// reseller_credit_grants.sql:41-56) partition the kind ∈ {grant, sandbox_
+// spend} discriminator across amount sign, month_key format, target shape,
+// and credit_transactions FK link:
+//   - ck_amount_sign      (0096:41-44) — grant⇒amount>0; sandbox_spend⇒
+//                                          amount<0
+//   - ck_month_key_format (0096:46)    — month_key matches /^[0-9]{4}-
+//                                          (0[1-9]|1[0-2])$/ (UTC
+//                                          currentMonthKey())
+//   - ck_target_shape     (0096:48-51) — grant⇒target_user_id set +
+//                                          sandbox_project_id null;
+//                                          sandbox_spend⇒inverse
+//   - ck_ct_link          (0096:53-56) — grant⇒credit_transaction_id set;
+//                                          sandbox_spend⇒credit_
+//                                          transaction_id null
+//
+// Writer-side source: IDENTICAL to tick 374 — DB CHECKs at 0096:41-56 wrap
+// the reseller_credit_grants insert; enforcement happens at DB write time,
+// not at route validation time (the route composes the insert payload
+// under decideGrant's positive-branch invariants but never emits an
+// explicit kind discriminator on the sandbox_spend side because the sandbox
+// spend path lives on /api/reseller/sandbox/spend and never touches this
+// endpoint).
+//
+// Application write path: IDENTICAL to tick 374 — the happy-path grant
+// mirror at web/src/app/api/reseller/credits/grant/route.ts:206-218
+// populates kind='grant', amount=body.amount (positive integer per decide-
+// Grant gate 1), month_key=currentMonthKey(), target_user_id=body.target_
+// user_id, credit_transaction_id=<row from ct insert>, sandbox_project_id
+// =null — one row per happy POST always sits on the grant branch of all
+// FOUR CHECKs. sandbox_spend rows are exclusively produced by web/src/app/
+// api/reseller/sandbox/spend/route.ts and never surface on this spec
+// either (same UNREACHABLE-by-construction posture as tick 374).
+//
+// Runtime enforcement on this spec: rows 1-4 (invalid_body / missing_id /
+// invalid_id / not_in_scope) all return BEFORE the decideGrant → credit_
+// balances → credit_transactions → reseller_credit_grants insert chain
+// fires, so NONE of them exercise any CHECK branch. Row 5 (invalid_amount)
+// reaches decideGrant but bails at the amount>0 gate BEFORE the mirror
+// insert, so it also does not exercise any CHECK branch. Only the wave-3
+// row 152 (active_wholesale happy 200) reaches the mirror insert at
+// route.ts:206-218 — that row sends amount=1 (positive integer) + non-
+// null uuid target_user_id + null sandbox_project_id, so every candidate
+// insert-payload that lands at line 206-218 sits on the grant branch of
+// ck_amount_sign / ck_target_shape / ck_ct_link; month_key is server-
+// computed via currentMonthKey() so ck_month_key_format is closed on the
+// server, not per-request (identical posture to tick 374's credit-grant-
+// authz.spec.ts wave-3 row).
+//
+// Coverage-per-guard posture on this surface: grant branch fires on the
+// happy wave-3 row 152 (line 253-341); sandbox_spend branch ZERO-COVERAGE-
+// PER-GUARD on this surface by construction (belongs to the sandbox-spend
+// spec cluster — sandbox-setup-authz.spec.ts + sandbox-setup-validation.
+// spec.ts + follow-up sandbox-spend-authz.spec.ts + sandbox-spend-
+// validation.spec.ts once landed). This ZERO-COVERAGE-PER-GUARD posture
+// on the sandbox_spend branch mirrors tick 374's credit-grant-authz.spec.
+// ts summary verbatim — the two credit-grant surfaces form a symmetric
+// pair on the grant-branch-only side of the XOR partition.
+//
+// Symmetric-cluster posture: the credit-grant write-path cluster is a
+// SYMMETRIC subset (grant-branch only) of the full reseller_credit_grants
+// row cluster; the sandbox-spend write-path cluster (a future spec pair)
+// would form the ASYMMETRIC complement (sandbox_spend-branch only). Once
+// both spec pairs land 2/2 module-scope summaries per surface, the full
+// reseller_credit_grants row cluster would reach 16-summary saturation
+// (4 surfaces × 4 CHECKs). This tick brings the credit-grant half of the
+// cluster to 8/8 (2 surfaces × 4 CHECKs) — the sandbox-spend half remains
+// at 0/8 until a future rotation onto that surface cluster.
+//
+// Diagnostic delta of this pass:
+//   - No production code touched, no fixture change, no route change, no
+//     new imports, no new module-scope constants.
+//   - Doc-block placed after the OUT_OF_SCOPE_UUID constant (line 64) and
+//     before the first test.describe (line 66), matching the tick 374
+//     placement on credit-grant-authz.spec.ts (after UUID_RE + NON_
+//     RESELLER_FOUNDER_EMAIL constants, before the first test.describe).
+
 test.describe("Reseller credit-grant input validation — P10 dry-run", () => {
   const harness = loadResellerHarness();
   test.skip(!harness, harnessSkipReason());
