@@ -1012,3 +1012,5 @@
 {"tick_id":"2026-07-24T07-35-01-289Z","ts":"2026-07-24T07:41:43.487Z","loop_label":"reseller-goal-loop","stage":"phase_completed","phase":"P10.perf_audit_baseline","tick":393,"suite":"src/lib/reseller vitest 565/565 (+22)","exit_criterion":"perf-audit: reseller console TTFB p95 < 500ms","status":"DONE"}
 {"tick_id":"2026-07-24T07-35-01-289Z","ts":"2026-07-24T07:42:13.059Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"delegated_dispatch","status":0,"elapsed_ms":431693,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-24T07-35-01-289Z","ts":"2026-07-24T07:42:13.095Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_commit_started","dirty_files":9}
+{"tick_id":"2026-07-24T07-35-01-289Z","ts":"2026-07-24T07:42:14.623Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-24T07-35-01-289Z","ts":"2026-07-24T07:42:14.634Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_deploy_triggered","head":"8726e9d5","last_deployed":"51ddb15"}
