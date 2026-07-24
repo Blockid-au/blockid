@@ -13,6 +13,10 @@ import {
 import { GROWTH_PHASE_IDS } from "@/lib/journey-map";
 import { PHASE_LABELS } from "@/lib/showcase/gallery";
 import { phaseToStageLabel } from "@/lib/journey-map";
+import {
+  computeReadinessByPhase,
+  type ReadinessByPhase,
+} from "./readiness-by-phase";
 
 // ---------------------------------------------------------------------------
 // Input shapes — narrow structural types so callers can pass either Supabase
@@ -144,6 +148,13 @@ export interface NudgeResult {
   next_action: NudgeNextAction;
   missing: NudgeMissingItem[];
   readiness_score: NudgeReadinessScore;
+  /**
+   * Per-phase readiness slice (P5a) — one entry per PhaseKey (1..12) with
+   * a weighted score, band, and top-3 missing artefacts scoped to that
+   * phase. Keys are stringified PhaseKey ordinals to keep the JSON valid
+   * across serializers. See web/src/lib/nudge/readiness-by-phase.ts.
+   */
+  readiness_by_phase: Record<string, ReadinessByPhase[keyof ReadinessByPhase]>;
   nudge_reason: string;
   next_step_confidence: "high" | "medium" | "low";
 }
@@ -237,6 +248,17 @@ export function computeNextSteps(input: ComputeNextStepsInput): NudgeResult {
     input.dataroomRows,
     merged.length,
   );
+  const readinessByPhaseTyped = computeReadinessByPhase({
+    sviScores: input.sviScores,
+    dataroomRows: input.dataroomRows,
+  });
+  // Re-key from the numeric PhaseKey to string ordinals so the JSON body
+  // round-trips through the API without silent number-to-string coercions
+  // on the client.
+  const readinessByPhase: NudgeResult["readiness_by_phase"] = {};
+  for (const [k, v] of Object.entries(readinessByPhaseTyped)) {
+    readinessByPhase[k] = v;
+  }
   const nextAction = pickNextAction(currentPhase, merged);
   const nudgeReason = buildNudgeReason(currentPhase, merged, readinessScore);
   const confidence = pickConfidence(input);
@@ -246,6 +268,7 @@ export function computeNextSteps(input: ComputeNextStepsInput): NudgeResult {
     next_action: nextAction,
     missing: merged.slice(0, 5),
     readiness_score: readinessScore,
+    readiness_by_phase: readinessByPhase,
     nudge_reason: nudgeReason,
     next_step_confidence: confidence,
   };
