@@ -74,6 +74,17 @@
   - **Governance & Compliance (CLO/CISO)** — APP 5 notice + reseller agreement template shipped; SOC2 lite backlog open.
   - **Team/ESOP (CHRO)** — Div 83A qualifying-tests checklist landed tick 2026-07-23; ESOP scheme placeholder in ch08.
 
+### G7 — UX information architecture (startup flow)
+- **Source:** [`docs/plans/ux-ia-startup-flow-goal.md`](./ux-ia-startup-flow-goal.md) · user note [`docs/user/menu-walkthrough.md`](../user/menu-walkthrough.md)
+- **Status:** P0 audit + P1 IA design + P2 DEMO visibility + P3-P5 (ladder + progressive disclosure) shipped; P6 role overlays doc-only; P8 founder review pending (Q1-Q4 in goal doc).
+- **Ship commits:**
+  1. `43f172f3` — goal doc with audit + IA proposal + phased plan (313 lines).
+  2. `27ab1553` — global DEMO menu (NavV2 + legacy site/navbar + WorkspaceLayout topbar + both footers) linking `/showcase/atlassian?step=1`.
+  3. `79672c4a` (auto-tick) — `JourneyStepLadder` 12-phase visual + dashboard mount.
+  4. `a5c295e0` — E2E `web/tests/e2e/nav/menu-structure.spec.ts` pinning nav contracts per role.
+- **Next action:** founder review Q1-Q4 (top-nav phase-cluster count, DEMO placement, ladder collapse rule on mobile, returning-founder skip-tutorial). No unblocked implementation lane until founder decides Q1-Q3.
+- **Blocker:** founder review only. No new deps, no CI touch, tsc clean.
+
 ---
 
 ## 2. Requirements Register
