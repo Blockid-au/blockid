@@ -250,6 +250,224 @@ test.describe("Reseller requests pre-write authorization — P10 dry-run", () =>
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Tick 365 — reseller_requests-row ck_decision_shape cross-column
+// invariant summary hoist onto requests-authz.spec.ts. Executes tick
+// 364 next-pick option (i) verbatim: rotate to a reseller-scope
+// surface (requests-authz.spec.ts) for the FIRST cross-scope hoist of
+// any of the three reseller_requests-row cross-column invariant
+// summaries — none of the three reseller_requests-cluster ck_* CHECK
+// constraints (ck_decision_shape / ck_credit_link / ck_promo_link)
+// have been narrated at module-scope on ANY reseller-scope surface
+// today (a grep of the three reseller-scope surface files —
+// requests-authz.spec.ts / requests-validation.spec.ts /
+// reseller-requests-list-authz.spec.ts — shows only inline per-column
+// mentions of ck_decision_shape from ticks 275-278; no aggregated
+// cross-column module-scope summary block exists). Opens the
+// reseller-scope summary-lens axis the same way tick 359 opened the
+// admin-scope summary-lens axis on the admin-requests-*.spec.ts
+// family. Post-tick 365, the reseller_requests-row cluster carries
+// 4 module-scope cross-column invariant summaries across the
+// admin-requests-* + reseller-scope surfaces combined: 3 on the
+// admin-requests-*.spec.ts pair (ck_decision_shape + ck_credit_link
+// + ck_promo_link at 3/3 × 2-surface = 6 module-scope observations
+// per tick 364 close-out) + 1 on the reseller-scope surface (this
+// tick — ck_decision_shape on requests-authz.spec.ts). Follow-on
+// ticks can hoist ck_credit_link + ck_promo_link companions on the
+// same file to reach 3/3 reseller-scope parity, then twin-lift the
+// three onto requests-validation.spec.ts + reseller-requests-list-
+// authz.spec.ts for full-reseller-scope × 3-surface parity mirroring
+// the admin-scope × 2-surface parity landed ticks 359-364. Pure
+// documentation-only doc-block hoist — no new imports, no new
+// module-scope const, no per-column assert added, no fixture change,
+// no route change; the existing UUID_RE constant declared adjacent
+// at line 250-251 remains the sole module-scope const on this file.
+//
+// Cross-column invariant summary — reseller_requests.{status,
+// decision_by, decision_at, decision_reason} ⇔ ck_decision_shape
+//   Writer-side source: IDENTICAL to tick 359 / 362 on the admin-
+//   requests-*.spec.ts pair — DB CHECK ck_decision_shape at
+//   web/supabase/migrations/0095_reseller_requests.sql:41-45 enforces
+//   the disjunction
+//     (status = 'pending'
+//        AND decision_by IS NULL
+//        AND decision_at IS NULL)
+//     OR
+//     (status IN ('approved','denied','cancelled')
+//        AND decision_at IS NOT NULL)
+//   i.e. pending rows MUST carry both decision columns as NULL, and
+//   any row whose status flips to a terminal enum member MUST carry
+//   decision_at as non-null (decision_by is permitted to be NULL at
+//   the DB level per the CHECK — the FK reference at 0095:34 declares
+//   ON DELETE SET NULL so a decided-then-orphaned admin row would
+//   legally sit at decision_by IS NULL / decision_at NOT NULL /
+//   status IN terminal). The sibling ck_credit_link (0095:48-51)
+//   and ck_promo_link (0095:52-55) CHECKs are orthogonal — each is
+//   its own single-column-nullness-vs-request_type-and-status
+//   disjunction governing linked_credit_transaction_id +
+//   linked_promotion_code_id respectively, and are covered by
+//   companion module-scope summaries on the admin-requests-*.spec.ts
+//   pair (ticks 360/363 + 361/364) — this reseller-scope surface
+//   carries only the ck_decision_shape summary today, matching the
+//   opening-hoist posture tick 359 landed on the admin-scope side
+//   before ticks 360 + 361 filled the two companion summaries.
+//   Application write path: DIFFERENT from tick 359 / 362 (which
+//   narrate the admin PATCH stamper). The reseller-scope POST at
+//   web/src/app/api/reseller/requests/route.ts:87-110 INSERTs a
+//   fresh reseller_requests row via
+//     .insert({
+//       reseller_id: scope.reseller_id,
+//       request_type: validation.request_type,
+//       payload: validation.payload,
+//       created_by: user.id,
+//     })
+//   and NEVER stamps decision_by, decision_at, decision_reason, or
+//   status. Those four columns take their DB defaults: status defaults
+//   to 'pending' via 0095:32 (`status text NOT NULL DEFAULT 'pending'
+//   CHECK (status IN ('pending','approved','denied','cancelled'))`);
+//   decision_by / decision_at / decision_reason default to NULL per
+//   0095:34-36 (all three nullable, no DEFAULT clause). So EVERY row
+//   produced by this INSERT path is born on the NULL branch of
+//   ck_decision_shape (status='pending' AND decision_by IS NULL AND
+//   decision_at IS NULL) — the NON-NULL branch (status IN terminal
+//   AND decision_at IS NOT NULL) is UNREACHABLE from this route
+//   because the reseller-scope POST has no update mode and no
+//   decision_by/decision_at columns in its INSERT payload. The
+//   NON-NULL branch is exclusively produced by the admin PATCH
+//   stamper narrated in the tick 359 doc-block on the sibling
+//   admin-requests-patch-authz.spec.ts surface (route.ts:305-320 on
+//   /api/admin/resellers/requests/[id] stamps decision_by:user.id +
+//   decision_at:now + status:decision.status atomically inside a
+//   single UPDATE with an .eq("status","pending") WHERE guard). This
+//   INSERT-vs-UPDATE asymmetry between the reseller-scope and
+//   admin-scope surfaces is the reason the ck_decision_shape
+//   invariant needs TWO cross-surface twins to reach full coverage
+//   observability at module scope: the reseller-scope surface (this
+//   tick) narrates the NULL/pending birth branch on the INSERT
+//   side + the admin-scope surface pair (ticks 359 + 362) narrates
+//   the NON-NULL/terminal transition branch on the UPDATE side —
+//   together the two surfaces cover both halves of the disjunction
+//   at module scope rather than one surface reconstructing both
+//   halves inline.
+//   Read path: DIFFERENT from tick 359 / 362. The reseller-scope
+//   POST response envelope at web/src/app/api/reseller/requests/
+//   route.ts:134-145 projects a narrower four-column tuple
+//     { ok: true, request: { id, created_at, request_type, status } }
+//   — omits decision_by, decision_at, decision_reason,
+//   linked_credit_transaction_id, and linked_promotion_code_id on
+//   purpose (the reseller-facing POST envelope only echoes the four
+//   columns the client needs to render a "your request has been
+//   filed" confirmation). So of the four columns coupled by
+//   ck_decision_shape, ONLY status is projected on this envelope
+//   (decision_by + decision_at + decision_reason are stripped by
+//   the route BEFORE the envelope reaches the wire). Contrast with
+//   the admin-scope PATCH envelope at
+//   /api/admin/resellers/requests/[id]/route.ts:317-319 which
+//   projects three of the four ("id, status, decision_at,
+//   decision_reason, linked_credit_transaction_id, linked_promotion
+//   _code_id" — decision_by is omitted from the PATCH envelope per
+//   tick 359's narration) AND the admin-scope list route at
+//   /api/admin/resellers/requests/route.ts:44 which projects all
+//   four (per tick 362's narration). This means the ck_decision_
+//   shape invariant is observable at three different projection
+//   granularities across the admin + reseller surfaces: (a) full
+//   four-column tuple on the admin list route (tick 362 lens);
+//   (b) three-column tuple on the admin PATCH echo (tick 359 lens
+//   — omits decision_by); (c) single-column tuple on the reseller
+//   POST envelope (this tick — projects only status). The reseller
+//   POST envelope is the narrowest of the three, matching the
+//   INSERT-side coverage (only the NULL/pending branch to observe,
+//   for which projecting status alone is sufficient).
+//   Runtime enforcement in this spec: the wave-3 row 155 happy POST
+//   at lines 253-317 pins body.request.status === "pending" at line
+//   315 (single-column NULL-branch of ck_decision_shape — asserts
+//   the birth-state status enum value), body.request.id typeof-
+//   string + UUID_RE match at lines 312-313 (FK-echo shape guard on
+//   the INSERT-returned uuid), body.request.request_type ===
+//   "over_budget_approval" at line 314 (enum-value pin on the
+//   sibling request_type CHECK at 0095:30). The wave-5 row 155-b
+//   seeder at lines 342-403 pins the same four columns on the
+//   second INSERT so the NULL/pending birth branch fires TWICE per
+//   green CI run (once per pending row seeded for wave-5 row 175's
+//   deny + cancel drains). Neither wave-3 row 155 nor wave-5 row
+//   155-b asserts decision_by / decision_at / decision_reason on
+//   the wire — because those three columns are stripped from the
+//   POST envelope (see Read path above) and therefore NOT observable
+//   on this surface. A route regression that leaked the three
+//   omitted columns onto the envelope would surface via a
+//   `body.request.decision_by` undefined → non-undefined delta on
+//   downstream consumers, but this spec deliberately does not
+//   assert their absence (a "should not exist" assertion is
+//   symmetric to a "should exist" pin — either direction couples
+//   the spec to route-envelope refactoring in a way that adds cost
+//   without adding correctness). The pending row's DB-side
+//   decision_by=NULL / decision_at=NULL / decision_reason=NULL
+//   invariant is captured by the sibling wave-3 row 156 in
+//   requests-validation.spec.ts (which enumerates the seeded
+//   pending row via the reseller-scope GET and pins the three
+//   NULL columns inline at lines 352-462 per tick 275/276/278) —
+//   this spec focuses on the write-side envelope contract instead.
+//   Coverage-per-guard posture: INVERTED relative to tick 359 / 362
+//   on the admin-scope surfaces. Those two ticks narrate the NON-
+//   NULL/terminal branch of ck_decision_shape via the admin PATCH
+//   deny + cancel + approve read-back rows (each firing status IN
+//   terminal + decision_by IS NOT NULL + decision_at IS NOT NULL
+//   on every green CI run against qa-admin-1's harness — three
+//   probes per branch × three branches = nine NON-NULL/terminal
+//   observations per pass on the admin-requests-patch-authz surface;
+//   the admin-requests-list surface adds a fourth NULL/pending
+//   observation via the default-status GET). This reseller-scope
+//   surface hits the OPPOSITE half: TWO NULL/pending observations
+//   per pass (wave-3 row 155 + wave-5 row 155-b, both INSERT paths
+//   producing the birth-state pending row), and ZERO NON-NULL/
+//   terminal observations (the reseller-scope POST route has no
+//   update mode). Together the reseller-scope surface + the admin-
+//   scope surface pair cover both branches of the ck_decision_shape
+//   disjunction at module scope on distinct surfaces — the
+//   reseller-scope surface owns the NULL/pending write-side + the
+//   admin-scope surface pair owns the NON-NULL/terminal update-side.
+//   A future decide-fixture landing tick that seeded an approved-
+//   code_request row would let the reseller-scope GET surfaces
+//   (requests-validation + reseller-requests-list-authz) observe
+//   the NON-NULL/terminal branch from the read side too, but the
+//   write-side asymmetry between INSERT (reseller) + UPDATE (admin)
+//   is a structural property of the route pair, not a fixture
+//   artefact — the reseller POST envelope will never observe the
+//   NON-NULL branch regardless of fixture depth because the write
+//   path itself cannot produce it.
+//   Symmetric-cluster posture: this hoist OPENS the reseller-scope
+//   summary-lens axis on the reseller_requests-row cluster, mirroring
+//   the opening posture tick 359 landed on the admin-scope side
+//   BEFORE ticks 360 + 361 filled the two companion summaries and
+//   ticks 362-364 cross-surface twin-lifted all three onto the
+//   admin list route. Distinct from ticks 359-364 in TWO dimensions:
+//   (a) this is the FIRST summary on the reseller-scope surface
+//   family (all three reseller-scope specs sat at 0/3 summaries
+//   entering this tick per the grep above — no ck_* CHECK constraint
+//   has been narrated at module scope on any reseller-scope spec);
+//   (b) this narrates the NULL/pending write-side of the invariant
+//   (INSERT-only route) whereas ticks 359 + 362 narrate the NON-
+//   NULL/terminal update-side (PATCH-only routes) — the two halves
+//   are mutually exclusive at the route level, so the two-surface-
+//   family axis captures a real coverage bifurcation rather than
+//   a redundant twin. Follow-on ticks can rotate along five
+//   dimensions per tick 364's rotation menu adapted for the
+//   reseller-scope opening: (i) hoist ck_credit_link summary
+//   companion onto THIS file so the reseller-scope surface reaches
+//   2/3 summary parity (matches the tick 360 companion-hoist
+//   posture on the admin-scope side); (ii) hoist ck_promo_link
+//   summary companion onto THIS file so the reseller-scope surface
+//   reaches 3/3 summary parity (matches tick 361); (iii) cross-
+//   surface twin-lift ck_decision_shape onto requests-validation.
+//   spec.ts (the reseller-scope GET surface) so the invariant
+//   reaches 2-surface parity within the reseller-scope pair
+//   (matches tick 362); (iv) cross-surface twin-lift ck_decision_
+//   shape onto reseller-requests-list-authz.spec.ts (the third
+//   reseller-scope surface) so the invariant reaches 3-surface
+//   parity across all three reseller-scope specs; (v) idle —
+//   frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED, P11
+//   never_completes, Track B closed, P10 continues accepting
+//   incremental pin-tightening + summary-hoist ticks).
+
 test.describe("Reseller requests — P10 wave-3 happy path", () => {
   test("active_wholesale — POST as reseller-admin with over_budget_approval payload returns 201 with request.id", async ({
     page,
