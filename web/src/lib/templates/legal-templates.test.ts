@@ -106,3 +106,78 @@ describe("au-employment-contract template", () => {
     expect(withoutCasual).not.toContain("NOT SHOWN");
   });
 });
+
+describe("au-pty-ltd-constitution template", () => {
+  const tpl = getTemplate("au-pty-ltd-constitution");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-1 corporate template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.category).toBe("corporate");
+    expect(tpl?.phase_slug).toBe("phase-1");
+    expect(listTemplates().some((t) => t.slug === "au-pty-ltd-constitution"))
+      .toBe(true);
+  });
+
+  it("declares the Corporations Act anchors reviewers need", () => {
+    // s136 = adoption power; s135 = displaced replaceable rules; s140 = contract effect.
+    expect(body).toMatch(/section 136|s136/i);
+    expect(body).toMatch(/s135/);
+    expect(body).toMatch(/s140/);
+    // s254T solvency test — required before dividend declarations.
+    expect(body).toMatch(/s254T/);
+    // Drag/tag + pre-emptive rights are the raise-blocking clauses investors expect.
+    expect(body).toMatch(/[Dd]rag-along/);
+    expect(body).toMatch(/[Tt]ag-along/);
+    expect(body).toMatch(/[Pp]re-emptive/);
+    // Proprietary company scope — the reason this template exists (vs Pty replaceable rules).
+    expect(body).toMatch(/[Pp]roprietary company limited by shares/);
+    // AFSL disclaimer must appear at the top.
+    expect(body).toMatch(/NOT LEGAL ADVICE/);
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("substitutes the drag threshold + honours casting-vote variant", () => {
+    const rendered = applySubstitutions(body, {
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      registered_office_address: "Sydney NSW 2000",
+      adoption_date: "1 July 2026",
+      share_classes: "Ordinary + Seed Preferred",
+      first_directors: "Alice Founder; Bob Founder",
+      first_director_signature_name: "Alice Founder",
+      drag_along_threshold: "75",
+      reserved_matter_threshold: "75",
+      debt_ceiling: "500,000",
+      casting_vote_yes: "true",
+      revision_date: "2026-07-24",
+    });
+    expect(rendered).toContain("Acme Innovation Pty Ltd");
+    expect(rendered).toContain("ACN:** 659 615 111");
+    // Drag threshold token substitutes into the drag clause.
+    expect(rendered).toMatch(/at least \*\*75%\*\*/);
+    // Casting-vote-YES variant kept; NO variant stripped.
+    // The template has two same-numbered "8.7 Casting vote" headings — one
+    // enabled variant, one disabled. Only the enabled body must survive.
+    expect(rendered).not.toMatch(/casting_vote_no/);
+  });
+});
