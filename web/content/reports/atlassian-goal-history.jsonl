@@ -307,3 +307,6 @@
 {"tick_id":"2026-07-24T14-57-01-849Z","ts":"2026-07-24T15:03:41.537Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"e3d471a2","last_deployed":"b062e7e"}
 {"tick_id":"2026-07-24T14-57-01-849Z","ts":"2026-07-24T15:10:02.415Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"e3d471a2"}
 {"tick_id":"2026-07-24T14-57-01-849Z","ts":"2026-07-24T15:10:02.417Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T15-17-01-248Z","ts":"2026-07-24T15:17:01.249Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T15-17-01-248Z","ts":"2026-07-24T15:17:01.262Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T15-17-01-248Z","ts":"2026-07-24T15:20:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P3b","summary":"public GET /api/abs/lookup route wrapper over the P3a ABS/IBISWorld anchor fixture; supports ?anzsic / ?keyword / ?sector alias, addressablePct + targetSharePct clamps, 400 on missing input, 404 on unknown ANZSIC or unmatched keyword; 7 vitest cases + typecheck green"}
