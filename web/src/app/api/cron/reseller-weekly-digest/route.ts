@@ -561,6 +561,18 @@ export async function GET(req: Request) {
             total: r.mix.total,
           })),
         },
+    commission_cleared_mtd: clearedMtdSkippedReason
+      ? { skipped_reason: clearedMtdSkippedReason }
+      : {
+          month_key: clearedMonthKey,
+          reseller_count: clearedMtdRows.length,
+          rows: clearedMtdRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            cleared_count: r.mtd.cleared_count,
+            cleared_cents: r.mtd.cleared_cents,
+          })),
+        },
     ran_at: now.toISOString(),
   });
 }
