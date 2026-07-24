@@ -1244,3 +1244,5 @@
 {"ts":"2026-07-24T07:06:52.347Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T06-57-01-069Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T07:07:51Z","status":"success","gates":"9/9","pid":"2998112","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T07:10:46.859Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal): ship P1a — AU Pty Ltd Constitution test block + annotation (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T07:10:59.248Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T07-07-01-418Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T07:15:18.427Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P10 — refresh human-blocked registry P1.5 wording + add regression test (1 commits)","source":"github-webhook"}
