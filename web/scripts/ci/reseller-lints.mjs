@@ -20,7 +20,17 @@
 // `// r-04-exempt: <reason>` immediately above the `metadata: {` opener.
 // Enforces CISO D3-CISO-07 (docs/plans/plan-delta-2026-07-23.md § D.3).
 //
-// Canonical analyzers: web/src/lib/reseller/reseller-lints.ts (unit-tested).
+// R-10 — every `.from("<reseller-scoped-table>")` inside
+// web/src/app/api/reseller/** must be visibly scoped in the same statement
+// window: either `.eq("reseller_id", …)` in the query chain, a
+// `reseller_id:` key in an insert payload, a file-level `// r-01-exempt:`
+// justification (inherited from R-01), or a per-site
+// `// r-10-exempt: <reason>` pragma. Enforces CISO D3-CISO-01 (typed-wrapper
+// end-to-end) and closes P10_hardening exit-criterion "security-audit: RLS +
+// typed wrapper enforced end-to-end".
+//
+// Canonical analyzers: web/src/lib/reseller/reseller-lints.ts +
+// web/src/lib/reseller/typed-wrapper-audit.ts (both unit-tested).
 // The regexes below duplicate those on purpose so this CLI stays plain
 // node .mjs — matches web/scripts/audit-secrets.mjs pattern (no tsx, no
 // build). Keep the two in lockstep when either changes.
@@ -357,6 +367,134 @@ function analyzeR04(file, content) {
   return findings;
 }
 
+// ---- R-10 -----------------------------------------------------------------
+
+const R10_SCOPED_TABLES = new Set([
+  "resellers",
+  "reseller_admins",
+  "reseller_attributions",
+  "reseller_promotion_codes",
+  "reseller_credit_grants",
+  "reseller_requests",
+  "reseller_report_files",
+  "reseller_report_runs",
+  "reseller_commissions",
+  "reseller_events",
+  "reseller_audit_log",
+]);
+const R10_EXEMPT_PRAGMA = /\/\/\s*r-10-exempt:\s*(.*)$/;
+const R01_FILE_EXEMPT_PRAGMA_FOR_R10 = /\/\/\s*r-01-exempt:\s*(.*)$/;
+const R10_FROM_CALL = /\.from\(\s*["'`]([a-zA-Z0-9_]+)["'`]\s*\)/g;
+const R10_RESELLER_ID_PREDICATE = /\.eq\(\s*["'`]reseller_id["'`]\s*,/;
+const R10_RESELLER_ID_INSERT_KEY = /reseller_id\s*:/;
+const R10_STATEMENT_LOOKAHEAD = 30;
+
+function analyzeR10(file, content) {
+  const findings = [];
+  const lines = content.split("\n");
+  const fileExemptIdx = lines.findIndex((l) =>
+    R01_FILE_EXEMPT_PRAGMA_FOR_R10.test(l),
+  );
+  const fileExempt =
+    fileExemptIdx !== -1
+      ? (lines[fileExemptIdx].match(R01_FILE_EXEMPT_PRAGMA_FOR_R10)?.[1] ?? "").trim()
+      : null;
+
+  R10_FROM_CALL.lastIndex = 0;
+  let m;
+  while ((m = R10_FROM_CALL.exec(content)) !== null) {
+    const table = m[1];
+    if (!R10_SCOPED_TABLES.has(table)) continue;
+    const siteLine = lineFromOffset(content, m.index);
+
+    // Per-site r-10-exempt on any of the ~3 lines above the .from(...) call.
+    let siteExempt = null;
+    for (let back = 1; back <= 3; back++) {
+      const idx = siteLine - 1 - back;
+      if (idx < 0) break;
+      const pm = lines[idx].match(R10_EXEMPT_PRAGMA);
+      if (pm) {
+        siteExempt = (pm[1] ?? "").trim();
+        break;
+      }
+    }
+
+    if (siteExempt !== null) {
+      if (siteExempt === "") {
+        findings.push({
+          rule: "R-10",
+          file,
+          line: siteLine,
+          severity: "error",
+          message:
+            "R-10: `// r-10-exempt:` pragma above `.from(...)` requires a non-empty reason.",
+        });
+        continue;
+      }
+      findings.push({
+        rule: "R-10",
+        file,
+        line: siteLine,
+        severity: "exempt",
+        message: `R-10 exemption on \`.from("${table}")\``,
+        reason: siteExempt,
+      });
+      continue;
+    }
+
+    if (fileExempt !== null) {
+      if (fileExempt === "") {
+        findings.push({
+          rule: "R-10",
+          file,
+          line: siteLine,
+          severity: "error",
+          message:
+            "R-10: file carries `// r-01-exempt:` pragma with an empty reason — R-10 inherits R-01's file-level exemption but the reason must be non-empty.",
+        });
+        continue;
+      }
+      findings.push({
+        rule: "R-10",
+        file,
+        line: siteLine,
+        severity: "exempt",
+        message: `R-10 exemption (via file-level r-01-exempt) on \`.from("${table}")\``,
+        reason: fileExempt,
+      });
+      continue;
+    }
+
+    const windowStart = siteLine - 1;
+    const windowEnd = Math.min(
+      lines.length,
+      windowStart + R10_STATEMENT_LOOKAHEAD,
+    );
+    const windowSrc = lines.slice(windowStart, windowEnd).join("\n");
+
+    if (
+      R10_RESELLER_ID_PREDICATE.test(windowSrc) ||
+      R10_RESELLER_ID_INSERT_KEY.test(windowSrc)
+    ) {
+      continue;
+    }
+
+    findings.push({
+      rule: "R-10",
+      file,
+      line: siteLine,
+      severity: "error",
+      message:
+        `R-10: direct \`.from("${table}")\` access without visible reseller_id scoping. ` +
+        `Add \`.eq("reseller_id", scope.reseller_id)\` to the query chain, ` +
+        `include a \`reseller_id:\` key in the insert payload, prefer the ` +
+        `\`resellerSupabase()\` typed wrapper, or place ` +
+        `\`// r-10-exempt: <reason>\` immediately above the \`.from(...)\` call.`,
+    });
+  }
+  return findings;
+}
+
 // ---- Manifest parser ------------------------------------------------------
 
 // Read FEATURE_GATES entries from the manifest source (plain node, no tsx).
@@ -453,6 +591,20 @@ for (const abs of r04Files) {
   }
 }
 
+// ---- R-10 pass ------------------------------------------------------------
+
+let r10Scanned = 0;
+for (const abs of r01Files) {
+  if (abs.endsWith(".test.ts") || abs.endsWith(".test.tsx")) continue;
+  const rel = relative(REPO_ROOT, abs);
+  const content = readFileSync(abs, "utf8");
+  r10Scanned++;
+  for (const f of analyzeR10(rel, content)) {
+    if (f.severity === "error") errors.push(f);
+    else exemptions.push(f);
+  }
+}
+
 // ---- Report ---------------------------------------------------------------
 
 if (exemptions.length > 0) {
@@ -470,12 +622,12 @@ if (errors.length > 0) {
     console.error(`  [${e.rule}] ${e.file}:${e.line}${tail}\n    ${e.message}`);
   }
   console.error(
-    `\nScanned ${r01Files.length} reseller file(s) for R-01 + ${r03Scanned} manifest route(s) for R-03 + ${r04Scanned} stripe file(s) for R-04. Failing.`,
+    `\nScanned ${r01Files.length} reseller file(s) for R-01 + ${r03Scanned} manifest route(s) for R-03 + ${r04Scanned} stripe file(s) for R-04 + ${r10Scanned} reseller file(s) for R-10. Failing.`,
   );
   process.exit(1);
 }
 
 console.log(
-  `\nOK — R-01 scanned ${r01Files.length} file(s), R-03 scanned ${r03Scanned} manifest route(s), R-04 scanned ${r04Scanned} stripe file(s); ` +
+  `\nOK — R-01 scanned ${r01Files.length} file(s), R-03 scanned ${r03Scanned} manifest route(s), R-04 scanned ${r04Scanned} stripe file(s), R-10 scanned ${r10Scanned} reseller file(s); ` +
     `${exemptions.length} exemption(s), 0 violations.`,
 );
