@@ -797,6 +797,64 @@ export async function GET(req: Request) {
     }
   }
 
+  // P11.8 canonical KPI (`ledger_drift_events` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Reconciles revenue_events (CFO ledger) against
+  // reseller_commissions (payout ledger) on stripe_event_id inside a rolling
+  // 7-day window scoped to the active reseller set. Two buckets per reseller:
+  //   • missing_commission — revenue-recognising events with reseller_id set
+  //     had no matching commission row (payout would silently skip).
+  //   • orphan_commission — commission rows whose stripe event has no matching
+  //     revenue_events row in the window (manual insert or handler misconfig).
+  // Failures degrade to a skipped section so the earlier signals still ship.
+  const driftWindowStart = new Date(
+    now.getTime() - LEDGER_DRIFT_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  );
+  let driftRows: LedgerDriftRow[] = [];
+  let driftSkippedReason: string | null = null;
+  const { data: driftRevenueRows, error: driftRevenueErr } = await supabase
+    .from("revenue_events")
+    .select("reseller_id, stripe_event_id, kind, ts")
+    .in("reseller_id", resellerIds)
+    .gte("ts", driftWindowStart.toISOString());
+  if (driftRevenueErr) {
+    console.error(
+      "[reseller-weekly-digest] drift revenue query failed",
+      driftRevenueErr.message,
+    );
+    driftSkippedReason = "drift_revenue_query_failed";
+  } else {
+    const { data: driftCommissionRows, error: driftCommissionErr } = await supabase
+      .from("reseller_commissions")
+      .select("reseller_id, stripe_event_id, created_at")
+      .in("reseller_id", resellerIds)
+      .gte("created_at", driftWindowStart.toISOString());
+    if (driftCommissionErr) {
+      console.error(
+        "[reseller-weekly-digest] drift commission query failed",
+        driftCommissionErr.message,
+      );
+      driftSkippedReason = "drift_commission_query_failed";
+    } else {
+      const driftByReseller = computeLedgerDriftByReseller(
+        resellerIds,
+        (driftRevenueRows ?? []) as RevenueEventDriftRow[],
+        (driftCommissionRows ?? []) as CommissionDriftRow[],
+      );
+      driftRows = resellers.map((r) => ({
+        reseller_id: r.id,
+        reseller_code: r.code,
+        reseller_display_name: r.display_name ?? r.code,
+        drift: driftByReseller.get(r.id) ?? {
+          missing_commission_count: 0,
+          orphan_commission_count: 0,
+          total_drift_count: 0,
+        },
+      }));
+      const driftSection = formatWeeklyDigestLedgerDriftSection(driftRows);
+      if (driftSection) html += driftSection;
+    }
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -930,6 +988,19 @@ export async function GET(req: Request) {
             trial_ended_count: r.churn.trial_ended_count,
             churned_count: r.churn.churned_count,
             churn_pct: r.churn.churn_pct,
+          })),
+        },
+    ledger_drift_events: driftSkippedReason
+      ? { skipped_reason: driftSkippedReason }
+      : {
+          window_days: LEDGER_DRIFT_WINDOW_DAYS,
+          reseller_count: driftRows.length,
+          rows: driftRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            missing_commission_count: r.drift.missing_commission_count,
+            orphan_commission_count: r.drift.orphan_commission_count,
+            total_drift_count: r.drift.total_drift_count,
           })),
         },
     attributed_net_contribution: netContributionSkippedReason
