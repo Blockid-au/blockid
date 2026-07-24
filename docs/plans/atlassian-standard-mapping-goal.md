@@ -525,7 +525,7 @@ Compact lookup so subsequent ticks don't re-fetch:
 
 - **P1a** mint default AU Pty Ltd Constitution template (Folder 1 item 4)
 - **P1b** decide + implement Q1 (SAFE mint vs LawPath link)
-- **P1c** mint Fair Work Award-compliant Employment Contract (Folder 6 item 5)
+- **P1c** mint Fair Work Award-compliant Employment Contract (Folder 6 item 5) — **shipped 2026-07-24**. `web/content/templates/legal/au-employment-contract.md` (13 sections: position + Modern-Award slot, employment-type toggle incl. s66A–66M casual conversion, NES leave table, Div-8 IP assignment with s195AV moral-rights consent, NSW *Restraints of Trade Act 1976* severance clause, s117 notice + s119 redundancy, WHS + APP + s7B(3) employee-records-exemption disclosure, s86 casual-loading toggle, execution + Annexures A/B). Registered in `web/src/lib/templates/legal-templates.ts` (26 placeholders, 4 statutory sources — Fair Work Act 2009, FWO Modern Awards list, SG Admin Act 1992, NSW ROT Act 1976). Test at `web/src/lib/templates/legal-templates.test.ts` (6 vitest cases: registry-file-existence, unique slugs + known categories + disclaimer, AU-anchor grep for NES/Award/Fair Work Act/Super Guarantee/moral rights, declared-placeholder-superset-of-body-tokens, applySubstitutions section-toggle branch matrix). Auto-served via existing `GET /api/templates/legal/[slug]` route + rendered on the `/legal-templates` grid. Closes §2 Folder 6 item 5 (Employment Contract Templates — AUTO). Founder still must confirm the correct Award (of the 121 modern awards); the template hard-codes the FWO award-viewer URL for self-serve.
 - **P1d** mint ESOP Scheme Rules body (Folder 6 item 6)
 - **P1e** build ESIC Self-Assessment worksheet UI (Folder 11 item 6)
 - **P1f** wire AU IP Assignment Deed e-signing (Folder 2 item 5, Folder 7 item 1)
@@ -551,4 +551,4 @@ Each P1x / P5x / P6x / P7x subtask becomes a follow-up commit driven by the auto
 
 ---
 
-*Last updated: 2026-07-24 by autonomous loop (tick shipping P1g — ABR ABN-lookup probe). This file survives `git reset --hard` because it is committed + pushed on every tick.*
+*Last updated: 2026-07-24 by autonomous loop (tick shipping P1c — Fair Work-compliant AU Employment Contract template). This file survives `git reset --hard` because it is committed + pushed on every tick.*
