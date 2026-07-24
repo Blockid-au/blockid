@@ -33,9 +33,6 @@ export function HeroV2() {
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-gold">
             AI-powered startup verification · Sydney AU
-            <span className="ml-2 inline-flex items-center rounded-full border border-brand-cyan/40 bg-brand-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-cyan align-middle">
-              Beta
-            </span>
           </p>
 
           <h1
