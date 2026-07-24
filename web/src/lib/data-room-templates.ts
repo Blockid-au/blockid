@@ -37,6 +37,14 @@ export interface DataRoomDocument {
    * Uses plain strings until Task 1 lands the canonical StageKey vocabulary.
    */
   required_for_stage?: "seed" | "series_a" | "series_b_plus";
+  /**
+   * Optional slug pointing at a template maintained under
+   * `web/content/templates/legal/*.md` and served at
+   * `/legal-templates/<slug>` and `/api/templates/legal/<slug>`. When set,
+   * consuming UIs can render a direct "Use BlockID template" CTA next to
+   * the item instead of asking founders to draft from scratch.
+   */
+  template_slug?: string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -462,6 +470,9 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         format: "pdf",
         priority: "P0",
         description: "Company constitution or confirmation of replaceable rules",
+        template_slug: "au-pty-ltd-constitution",
+        dueDiligenceNotes:
+          "Investors typically prefer a written constitution over s135 replaceable rules. See /legal-templates/au-pty-ltd-constitution for a BlockID starting point.",
       },
       {
         name: "Pitch Deck",
@@ -570,7 +581,9 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         format: "pdf",
         priority: "P0",
         description: "All outstanding SAFEs, convertible notes, and warrants",
-        dueDiligenceNotes: "Must include: cap, discount, pro-rata rights, MFN clause",
+        template_slug: "au-safe",
+        dueDiligenceNotes:
+          "Must include: cap, discount, pro-rata rights, MFN clause. See /legal-templates/au-safe for the AU-flavoured post-money SAFE (NSW law, Corps Act refs).",
       },
       {
         name: "IP Assignment Deeds (Founders)",
@@ -586,7 +599,9 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         format: "pdf",
         priority: "P1",
         description: "Employee Share Option Plan documentation and trust deed",
-        dueDiligenceNotes: "ESOP pool size, eligibility, and exercise conditions key for investors",
+        template_slug: "au-esop-scheme-rules",
+        dueDiligenceNotes:
+          "ESOP pool size, eligibility, and exercise conditions key for investors. See /legal-templates/au-esop-scheme-rules for a Div 83A-calibrated starting point.",
       },
       {
         name: "Option / Warrant Register",
@@ -963,6 +978,7 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         priority: "P1",
         description: "Employee-facing ESOP plan summary, vesting rules, and exercise mechanics (as distributed to staff)",
         required_for_stage: "seed",
+        template_slug: "au-esop-scheme-rules",
       },
       {
         name: "Key-Person Insurance Policy",

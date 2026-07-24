@@ -60,6 +60,27 @@ export interface NudgeEvidenceItem {
   confidence_level?: string | null;
 }
 
+export interface NudgeComplianceStatus {
+  /** True if the founder has POSTed at least one ESIC assessment. */
+  hasEsicAssessment: boolean;
+  /** True if the latest ESIC assessment returned is_esic=true. */
+  isEsic?: boolean;
+  /** True if the founder has at least one non-expired s708(8) cert on file. */
+  hasValidOrExpiringS708: boolean;
+  /** True if the founder has POSTed any GST assessment. */
+  hasGstAssessment: boolean;
+  /** Latest GST urgency ('ok'|'warning'|'critical'). */
+  gstUrgency?: "ok" | "warning" | "critical";
+  /** True if the founder is registered for GST per the latest submission. */
+  gstRegistered?: boolean;
+  /** Smallest days-until-deadline across the R&D calendar (null when none). */
+  rdMinDaysUntilDeadline?: number | null;
+  /** FY label for the row that produced rdMinDaysUntilDeadline. */
+  rdMinDeadlineFy?: string | null;
+  /** True if any R&D row is overdue. */
+  rdHasOverdue?: boolean;
+}
+
 export interface ComputeNextStepsInput {
   user: NudgeUser;
   project: NudgeProject | null;
@@ -67,6 +88,14 @@ export interface ComputeNextStepsInput {
   sviScores: NudgeSviScoreRow[];
   dataroomRows: NudgeDataroomRow[];
   evidenceItems: NudgeEvidenceItem[];
+  /**
+   * Optional AU compliance snapshot (see
+   * web/src/lib/nudge/compliance-status.ts). When present, missing[]
+   * is enriched with raise-blocker items for the founder's phase
+   * (ESIC / s708(8) / GST / R&D). Optional so unit tests + legacy
+   * callers keep working.
+   */
+  complianceStatus?: NudgeComplianceStatus;
 }
 
 // ---------------------------------------------------------------------------
@@ -184,28 +213,155 @@ const CRITERION_TO_SUBSCORE: Record<string, keyof NudgeReadinessScore["sub_score
 
 export function computeNextSteps(input: ComputeNextStepsInput): NudgeResult {
   const currentPhase = detectCurrentPhase(input.project, input.phaseProgress);
-  const missing = computeMissing(
+  const dataroomMissing = computeMissing(
     currentPhase,
     input.dataroomRows,
     input.evidenceItems,
   );
+  const complianceMissing = deriveComplianceMissing(
+    currentPhase,
+    input.complianceStatus,
+  );
+  // Prepend compliance items — they're all raise-blockers and belong at
+  // the top of the founder's queue. Dedupe against dataroom-template
+  // items with overlapping titles so we don't double-surface (e.g. the
+  // template already has an "ESIC" line).
+  const dedupedDataroom = dataroomMissing.filter((m) => {
+    const l = m.title.toLowerCase();
+    return !complianceMissing.some((c) => l.includes(c.title.toLowerCase()));
+  });
+  const merged = [...complianceMissing, ...dedupedDataroom];
+
   const readinessScore = computeReadiness(
     input.sviScores,
     input.dataroomRows,
-    missing.length,
+    merged.length,
   );
-  const nextAction = pickNextAction(currentPhase, missing);
-  const nudgeReason = buildNudgeReason(currentPhase, missing, readinessScore);
+  const nextAction = pickNextAction(currentPhase, merged);
+  const nudgeReason = buildNudgeReason(currentPhase, merged, readinessScore);
   const confidence = pickConfidence(input);
 
   return {
     current_phase: currentPhase,
     next_action: nextAction,
-    missing: missing.slice(0, 5),
+    missing: merged.slice(0, 5),
     readiness_score: readinessScore,
     nudge_reason: nudgeReason,
     next_step_confidence: confidence,
   };
+}
+
+// ---------------------------------------------------------------------------
+// AU compliance → missing items
+// ---------------------------------------------------------------------------
+//
+// Phase gates per docs/plans/atlassian-standard-mapping-goal.md §6/§9/§10:
+//   - Phase 5+ → R&D deadline within 60 days must surface as a raise
+//                blocker (cash-flow lever).
+//   - Phase 6+ → GST-threshold check must exist; if action_required > 'none'
+//                and not registered, surface as raise blocker.
+//   - Phase 9+ → ESIC self-assessment must exist.
+//   - Phase 9+ → at least one valid or expiring-soon s708(8) cert on file.
+
+const COMPLIANCE_PHASE_GATES = {
+  rd: 5,
+  gst: 6,
+  esic: 9,
+  s708: 9,
+} as const;
+
+function deriveComplianceMissing(
+  phase: NudgeCurrentPhase,
+  status: NudgeComplianceStatus | undefined,
+): NudgeMissingItem[] {
+  if (!status) return [];
+  const out: NudgeMissingItem[] = [];
+  const phaseOrder = phase.phase_order;
+
+  if (phaseOrder >= COMPLIANCE_PHASE_GATES.rd) {
+    if (status.rdHasOverdue) {
+      out.push({
+        category: "11. Tax (AU)",
+        title: "R&D registration overdue",
+        phase_slug: String(phaseOrder),
+        why_it_matters:
+          "R&D Tax Incentive registration window closed — file an extension of time under s 27J IR&D Act 1986 to recover the refundable tax offset.",
+        raise_blocker: true,
+        cta_url: "/compliance/rd",
+      });
+    } else if (
+      typeof status.rdMinDaysUntilDeadline === "number" &&
+      status.rdMinDaysUntilDeadline >= 0 &&
+      status.rdMinDaysUntilDeadline <= 60
+    ) {
+      out.push({
+        category: "11. Tax (AU)",
+        title: "R&D registration deadline",
+        phase_slug: String(phaseOrder),
+        why_it_matters: `AusIndustry R&D registration for ${status.rdMinDeadlineFy ?? "the current FY"} is due in ${status.rdMinDaysUntilDeadline} days — miss it and the tax offset for that year is forfeited.`,
+        raise_blocker: true,
+        cta_url: "/compliance/rd",
+      });
+    }
+  }
+
+  if (phaseOrder >= COMPLIANCE_PHASE_GATES.gst) {
+    if (!status.hasGstAssessment) {
+      out.push({
+        category: "11. Tax (AU)",
+        title: "GST-threshold check",
+        phase_slug: String(phaseOrder),
+        why_it_matters:
+          "Track your rolling 12-month turnover — ATO gives 21 days to register once the A$75,000 GST threshold is (or will be) crossed.",
+        raise_blocker: true,
+        cta_url: "/compliance/gst",
+      });
+    } else if (
+      (status.gstUrgency === "warning" || status.gstUrgency === "critical") &&
+      status.gstRegistered === false
+    ) {
+      out.push({
+        category: "11. Tax (AU)",
+        title: "GST registration",
+        phase_slug: String(phaseOrder),
+        why_it_matters:
+          status.gstUrgency === "critical"
+            ? "Turnover already at or above A$75,000 — register for GST within 21 days or face backdated liability + penalties."
+            : "Projected turnover will cross A$75,000 — line up ABN + GST registration before the 21-day window opens.",
+        raise_blocker: true,
+        cta_url: "/compliance/gst",
+      });
+    }
+  }
+
+  if (phaseOrder >= COMPLIANCE_PHASE_GATES.esic && !status.hasEsicAssessment) {
+    out.push({
+      category: "12. AU Compliance",
+      title: "ESIC eligibility assessment",
+      phase_slug: String(phaseOrder),
+      why_it_matters:
+        "Run the Div 360 ITAA97 self-check — ESIC status unlocks a 20% carry-forward tax offset for your angels and a 10-year CGT exemption.",
+      raise_blocker: true,
+      cta_url: "/compliance/esic",
+    });
+  }
+
+  if (
+    phaseOrder >= COMPLIANCE_PHASE_GATES.s708 &&
+    !status.hasValidOrExpiringS708
+  ) {
+    out.push({
+      category: "12. AU Compliance",
+      title: "Wholesale investor cert (s708(8))",
+      phase_slug: String(phaseOrder),
+      why_it_matters:
+        "Corporations Act s708(8): accountant certificate (net assets ≥A$2.5M or gross income ≥A$250k) required BEFORE accepting wholesale investment; valid 2 years.",
+      raise_blocker: true,
+      cta_url: "/compliance/s708",
+    });
+  }
+
+  return out;
 }
 
 // ---------------------------------------------------------------------------
