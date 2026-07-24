@@ -1175,3 +1175,4 @@
 {"ts":"2026-07-24T04:17:17.485Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T04-10-00-137Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:18:04.125Z","event":"github-push-master","detail":"Blockid-au: feat(dataroom): wire legal templates into data-room-templates.ts (round 5.6e) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:18:25.185Z","event":"github-push-master","detail":"Blockid-au: feat(compliance): panel component + nudge engine integration (round 5.5e) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:21:58.744Z","event":"github-push-master","detail":"Blockid-au: feat(plans): solo=50 grow=200 credit re-price (canonical source-of-truth update) (1 commits)","source":"github-webhook"}

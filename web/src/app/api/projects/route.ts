@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserProjects, createProject, getProjectLimit } from "@/lib/projects";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { FOUNDER_ONE_STARTUP_ERROR } from "@/lib/plans/startup-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,14 @@ export async function POST(request: Request) {
   });
 
   if (!result.ok) {
+    // Founder 1-startup guard — surface as a distinct 403 so the client
+    // can render the upgrade CTA instead of a generic form error.
+    if (result.reason === "founder_one_startup_limit") {
+      return NextResponse.json(
+        { ok: false, ...FOUNDER_ONE_STARTUP_ERROR },
+        { status: 403 },
+      );
+    }
     return NextResponse.json(
       { ok: false, error: result.error },
       { status: 422 },
