@@ -165,7 +165,9 @@ export async function POST(request: Request) {
     tier_pct: number;
     stripe_promotion_code_id: string | null;
   } | null = null;
+  let resellerLookupAttempted = false;
   if (resellerCode) {
+    resellerLookupAttempted = true;
     try {
       const supabase = getSupabaseAdmin();
       if (supabase) {
@@ -201,6 +203,41 @@ export async function POST(request: Request) {
     } catch {
       // Attribution is opportunistic — never block checkout on a lookup miss.
     }
+  }
+
+  // Observability: when a caller supplied a normalised reseller code but we
+  // could not resolve it (typo, inactive promo, terminated reseller), emit a
+  // best-effort audit row so the CFO can spot broken links in analytics.
+  if (resellerLookupAttempted && resellerCode && !resellerAttribution) {
+    try {
+      await logUserAction({
+        userId: user.id,
+        action: "reseller.code.miss",
+        subjectType: "reseller_code",
+        subjectId: null,
+        fields: { reseller_code: resellerCode },
+        route: "/api/stripe/checkout",
+        ip: extractIp(request.headers),
+        ua: extractUserAgent(request.headers),
+      });
+    } catch {
+      // Never block checkout on an audit-log failure.
+    }
+  }
+
+  // Build the reseller metadata block ONCE so session.metadata and
+  // subscription_data.metadata can never drift.
+  // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
+  function buildSessionResellerMetadata(
+    a: NonNullable<typeof resellerAttribution>,
+  ): Record<string, string> {
+    return {
+      reseller_code: a.code,
+      reseller_id: a.reseller_id,
+      reseller_id_hash: hashUserId(a.reseller_id),
+      reseller_display_name: a.display_name,
+      tier_at_signup: String(a.tier_pct),
+    };
   }
 
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
@@ -265,16 +302,22 @@ export async function POST(request: Request) {
       ];
       delete sessionParams.allow_promotion_codes;
     }
-    // Also stamp session-level metadata so checkout.session.completed sees it.
+    // Stamp session-level metadata AND (when recurring) subscription_data
+    // metadata from the same helper so the two surfaces can never drift.
+    // Regression-guarded: reseller_id + reseller_code MUST land on the Stripe
+    // session whenever a reseller code resolves. See § D.3.
     // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
+    const resellerMetadata = buildSessionResellerMetadata(resellerAttribution);
     sessionParams.metadata = {
       ...(sessionParams.metadata ?? {}),
-      reseller_code: resellerAttribution.code,
-      reseller_id: resellerAttribution.reseller_id,
-      reseller_id_hash: hashUserId(resellerAttribution.reseller_id),
-      reseller_display_name: resellerAttribution.display_name,
-      tier_at_signup: String(resellerAttribution.tier_pct),
+      ...resellerMetadata,
     };
+    if (isRecurring && sessionParams.subscription_data) {
+      sessionParams.subscription_data.metadata = {
+        ...(sessionParams.subscription_data.metadata ?? {}),
+        ...resellerMetadata,
+      };
+    }
 
     // Co-branding: surface the reseller name on the Stripe invoice PDF.
     // Stripe caps custom_fields at 4 entries; name ≤ 30 chars, value ≤ 30
