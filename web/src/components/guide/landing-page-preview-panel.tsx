@@ -13,10 +13,14 @@
 import * as React from "react";
 import type { Locale } from "@/lib/i18n";
 import {
+  applyCmoDraft,
+  canApplyCmoDraft,
   canSubmitPreview,
+  makeEmptyCmoDraftFormState,
   makeEmptyLandingPagePreviewFormState,
   reasonCopy,
   toLandingPageInput,
+  type CmoDraftFormState,
   type LandingPagePreviewError,
   type LandingPagePreviewFormState,
   type LandingPagePreviewSuccess,
@@ -40,6 +44,22 @@ const COPY = {
     heading: "Draft your Chapter 4 landing page",
     subheading:
       "Type the copy a first-time visitor should see, then preview the HTML a founder can paste into Vercel, Netlify, Framer, or GitHub Pages. Analytics IDs are optional — stamp one before publishing.",
+    autoDraftToggleShow: "Auto-draft from CMO deep-pass",
+    autoDraftToggleHide: "Hide auto-draft",
+    autoDraftHint:
+      "Paste your Chapter 3 CMO output (product name, one-liner, ICP persona, top objections, top benefits). We turn it into a starter draft — only empty fields below get filled, so anything you've already typed stays put.",
+    autoDraftProductLabel: "Product / company name",
+    autoDraftOneLinerLabel: "One-line pitch",
+    autoDraftPersonaLabel: "ICP persona (Chapter 3)",
+    autoDraftObjectionsLabel: "Top persona objections",
+    autoDraftObjectionsHint:
+      "One per line. Each becomes a 'No more X' bullet if we haven't already filled the benefit slot.",
+    autoDraftBenefitsLabel: "Top benefits (positive-frame)",
+    autoDraftBenefitsHint:
+      "One per line. Positive-frame benefits read better on a landing page than negations — used first.",
+    autoDraftApply: "Fill empty fields",
+    autoDraftEmptyHint:
+      "Type at least a one-liner or a benefit / objection line to enable auto-draft.",
     headlineLabel: "Headline",
     headlineHint: "The single promise. Keep it under 120 characters.",
     subheadlineLabel: "Sub-headline",
@@ -72,6 +92,22 @@ const COPY = {
     heading: "Soạn landing page Chương 4",
     subheading:
       "Nhập nội dung mà người truy cập lần đầu nên thấy, sau đó xem trước HTML để founder dán vào Vercel, Netlify, Framer, hoặc GitHub Pages. ID phân tích là tuỳ chọn — hãy gắn trước khi công bố.",
+    autoDraftToggleShow: "Tự động từ CMO deep-pass",
+    autoDraftToggleHide: "Ẩn auto-draft",
+    autoDraftHint:
+      "Dán output Chương 3 (tên sản phẩm, câu one-liner, ICP persona, phản đối chính, lợi ích chính). Chúng tôi biến thành bản nháp — chỉ điền vào ô trống bên dưới, giữ nguyên phần bạn đã gõ.",
+    autoDraftProductLabel: "Tên sản phẩm / công ty",
+    autoDraftOneLinerLabel: "Câu pitch một dòng",
+    autoDraftPersonaLabel: "ICP persona (Chương 3)",
+    autoDraftObjectionsLabel: "Phản đối chính của persona",
+    autoDraftObjectionsHint:
+      "Mỗi dòng một phản đối. Trở thành gạch đầu dòng 'No more X' nếu slot lợi ích chưa được điền.",
+    autoDraftBenefitsLabel: "Lợi ích chính (positive-frame)",
+    autoDraftBenefitsHint:
+      "Mỗi dòng một lợi ích. Positive-frame đọc tốt hơn phủ định trên landing page — dùng trước.",
+    autoDraftApply: "Điền các ô trống",
+    autoDraftEmptyHint:
+      "Gõ ít nhất một one-liner hoặc một dòng lợi ích / phản đối để bật auto-draft.",
     headlineLabel: "Tiêu đề chính",
     headlineHint: "Một lời hứa duy nhất. Dưới 120 ký tự.",
     subheadlineLabel: "Tiêu đề phụ",
@@ -151,9 +187,19 @@ export function LandingPagePreviewPanel({
     status: "idle",
   });
   const [copied, setCopied] = React.useState(false);
+  const [cmoDraftOpen, setCmoDraftOpen] = React.useState(false);
+  const [cmoDraft, setCmoDraft] = React.useState<CmoDraftFormState>(() =>
+    makeEmptyCmoDraftFormState(),
+  );
 
   const submittable = canSubmitPreview(state);
   const disabled = !submittable || fetchState.status === "loading";
+  const cmoDraftReady = canApplyCmoDraft(cmoDraft);
+
+  const applyDraft = React.useCallback(() => {
+    if (!cmoDraftReady) return;
+    setState((prev) => applyCmoDraft(prev, cmoDraft));
+  }, [cmoDraft, cmoDraftReady]);
 
   const runPreview = React.useCallback(async () => {
     setFetchState({ status: "loading" });
@@ -219,6 +265,107 @@ export function LandingPagePreviewPanel({
     >
       <h2 className={headingClasses(variant)}>{copy.heading}</h2>
       <p className={subheadingClasses(variant)}>{copy.subheading}</p>
+
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={() => setCmoDraftOpen((v) => !v)}
+          className="text-xs font-semibold uppercase tracking-wide text-emerald-700 hover:text-emerald-800 dark:text-emerald-400"
+          data-testid="landing-page-preview-cmo-toggle"
+          aria-expanded={cmoDraftOpen}
+        >
+          {cmoDraftOpen ? copy.autoDraftToggleHide : copy.autoDraftToggleShow}
+        </button>
+        {cmoDraftOpen ? (
+          <div
+            className="mt-3 rounded-md border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20"
+            data-testid="landing-page-preview-cmo-panel"
+          >
+            <p className={`${hintTextClass}`}>{copy.autoDraftHint}</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="block">
+                <div className={labelClasses(variant)}>{copy.autoDraftProductLabel}</div>
+                <input
+                  type="text"
+                  value={cmoDraft.productName}
+                  onChange={(e) =>
+                    setCmoDraft((prev) => ({ ...prev, productName: e.target.value }))
+                  }
+                  className={inputClasses(variant)}
+                  data-testid="landing-page-preview-cmo-product"
+                  autoComplete="off"
+                />
+              </label>
+              <label className="block">
+                <div className={labelClasses(variant)}>{copy.autoDraftPersonaLabel}</div>
+                <input
+                  type="text"
+                  value={cmoDraft.personaName}
+                  onChange={(e) =>
+                    setCmoDraft((prev) => ({ ...prev, personaName: e.target.value }))
+                  }
+                  className={inputClasses(variant)}
+                  data-testid="landing-page-preview-cmo-persona"
+                  autoComplete="off"
+                />
+              </label>
+            </div>
+            <label className="mt-3 block">
+              <div className={labelClasses(variant)}>{copy.autoDraftOneLinerLabel}</div>
+              <input
+                type="text"
+                value={cmoDraft.oneLiner}
+                onChange={(e) =>
+                  setCmoDraft((prev) => ({ ...prev, oneLiner: e.target.value }))
+                }
+                className={inputClasses(variant)}
+                data-testid="landing-page-preview-cmo-oneliner"
+                autoComplete="off"
+              />
+            </label>
+            <label className="mt-3 block">
+              <div className={labelClasses(variant)}>{copy.autoDraftBenefitsLabel}</div>
+              <div className={hintTextClass}>{copy.autoDraftBenefitsHint}</div>
+              <textarea
+                value={cmoDraft.benefitsText}
+                onChange={(e) =>
+                  setCmoDraft((prev) => ({ ...prev, benefitsText: e.target.value }))
+                }
+                className={inputClasses(variant)}
+                data-testid="landing-page-preview-cmo-benefits"
+                rows={3}
+              />
+            </label>
+            <label className="mt-3 block">
+              <div className={labelClasses(variant)}>{copy.autoDraftObjectionsLabel}</div>
+              <div className={hintTextClass}>{copy.autoDraftObjectionsHint}</div>
+              <textarea
+                value={cmoDraft.personaObjectionsText}
+                onChange={(e) =>
+                  setCmoDraft((prev) => ({ ...prev, personaObjectionsText: e.target.value }))
+                }
+                className={inputClasses(variant)}
+                data-testid="landing-page-preview-cmo-objections"
+                rows={3}
+              />
+            </label>
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={applyDraft}
+                disabled={!cmoDraftReady}
+                className={submitClasses(variant)}
+                data-testid="landing-page-preview-cmo-apply"
+              >
+                {copy.autoDraftApply}
+              </button>
+              {!cmoDraftReady ? (
+                <span className={hintTextClass}>{copy.autoDraftEmptyHint}</span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       <form onSubmit={onSubmit} className="mt-5 space-y-4">
         <label className="block">
