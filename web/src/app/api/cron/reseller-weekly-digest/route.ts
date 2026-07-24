@@ -139,6 +139,11 @@ import {
   type DigestSnapshotPerResellerDirectionStreakCoverage,
 } from "@/lib/reseller/digest-snapshot-per-reseller-direction-streak-coverage";
 import {
+  computeDigestSnapshotPerMetricDirectionStreakCoverage,
+  formatDigestSnapshotPerMetricDirectionStreakCoverageSection,
+  type DigestSnapshotPerMetricDirectionStreakCoverage,
+} from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-coverage";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1376,6 +1381,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerDirectionStreakCoverage
     | null = null;
   let perResellerDirectionStreakCoverageSection = "";
+  let snapshotPerMetricDirectionStreakCoverage:
+    | DigestSnapshotPerMetricDirectionStreakCoverage
+    | null = null;
+  let perMetricDirectionStreakCoverageSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1759,12 +1768,36 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerDirectionStreakCoverageSection(
         snapshotPerResellerDirectionStreakCoverage,
       );
+    // P11.62 — per-metric sustained-direction streak coverage summary
+    // (module P11.61). Metric-anchored topline for the P11.30/P11.31 direction
+    // spotlight, pivoting the P11.59/P11.60 per-partner coverage shape onto
+    // the metric axis. Delegates to computeDigestSnapshotPerResellerDirectionStreaks
+    // through the pure lib so the per-KPI up/down partner counts cannot
+    // diverge from the P11.32 spotlight rows this coverage summary tops.
+    // Consumes the SAME snapshotPerResellerRollingTrend the P11.32 detector
+    // already consumes (no extra fold, no divergence risk). Lands directly
+    // ABOVE directionStreaksSection (P11.31 portfolio spotlight) so ops reads
+    // the metric-anchored topline (for THIS KPI, how many partners are on a
+    // streak, up vs down) before scanning the per-metric spotlight — a KPI
+    // with 5/5 partners on a downward streak is under systemic pressure that
+    // justifies a product/pricing/retention response, a KPI with 3 up / 2
+    // down is idiosyncratic noise that the composite P11.58 portfolio topline
+    // above it would collapse into a single "streak on/off" signal.
+    snapshotPerMetricDirectionStreakCoverage =
+      computeDigestSnapshotPerMetricDirectionStreakCoverage(
+        snapshotPerResellerRollingTrend,
+      );
+    perMetricDirectionStreakCoverageSection =
+      formatDigestSnapshotPerMetricDirectionStreakCoverageSection(
+        snapshotPerMetricDirectionStreakCoverage,
+      );
   }
   if (
     topMoversSection ||
     topMoversPerMetricSection ||
     topMoversPerResellerSection ||
     directionStreakCoverageSection ||
+    perMetricDirectionStreakCoverageSection ||
     directionStreaksSection ||
     perResellerDirectionStreakCoverageSection ||
     perResellerDirectionStreaksSection ||
@@ -1794,6 +1827,7 @@ export async function GET(req: Request) {
       topMoversPerMetricSection +
       topMoversPerResellerSection +
       directionStreakCoverageSection +
+      perMetricDirectionStreakCoverageSection +
       directionStreaksSection +
       perResellerDirectionStreakCoverageSection +
       perResellerDirectionStreaksSection +
@@ -2362,6 +2396,20 @@ export async function GET(req: Request) {
             min_streak_length:
               snapshotPerResellerDirectionStreakCoverage.min_streak_length,
             rows: snapshotPerResellerDirectionStreakCoverage.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_direction_streak_coverage:
+      snapshotPerMetricDirectionStreakCoverage
+        ? {
+            window_size: snapshotPerMetricDirectionStreakCoverage.window_size,
+            first_week: snapshotPerMetricDirectionStreakCoverage.first_week,
+            last_week: snapshotPerMetricDirectionStreakCoverage.last_week,
+            min_streak_length:
+              snapshotPerMetricDirectionStreakCoverage.min_streak_length,
+            rows: snapshotPerMetricDirectionStreakCoverage.rows,
           }
         : {
             skipped_reason:
