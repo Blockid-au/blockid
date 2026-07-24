@@ -101,8 +101,13 @@ function readResellerCode(row: unknown): string | null {
  *
  * Cohort-velocity is unrolled one level deeper (rows[].cohorts[]) so a
  * partner's per-reseller total sums every cohort month they own.
+ *
+ * Exported so the P11.22 per-reseller rolling-trend module can reuse the
+ * identical shape-aware walker (cohort_velocity unroll + nested-vs-flat path
+ * fallback + reseller_code guard) rather than duplicating it. Mirrors how
+ * P11.20 reused readSectionTotal from P11.16.
  */
-function readPerResellerTotals(
+export function readPerResellerTotals(
   envelope: Record<string, unknown>,
   key: KnownKpiSection,
   paths: readonly (readonly string[])[],
