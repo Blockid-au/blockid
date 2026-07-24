@@ -16,6 +16,7 @@ import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ChapterProgressRibbon } from "@/components/guide/chapter-progress-ribbon";
 import { AbsLookupPanel } from "@/components/guide/abs-lookup-panel";
+import { LandingPagePreviewPanel } from "@/components/guide/landing-page-preview-panel";
 import {
   allChapterSlugs,
   getAdjacentChapters,
@@ -130,6 +131,10 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
 
       {c.slug === "03-market-research" ? (
         <AbsLookupPanel locale={locale} variant="marketing" />
+      ) : null}
+
+      {c.slug === "04-mvp" ? (
+        <LandingPagePreviewPanel locale={locale} variant="marketing" />
       ) : null}
 
       {c.qualifyingTests ? (
