@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.359
+version: 2026-07-24.360
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,192 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 360
+    ran_at: 2026-07-24
+    action: p10_reseller_requests_ck_credit_link_cross_column_invariant_summary_companion_hoist_onto_admin_requests_patch_authz
+    result: |
+      Executes tick 359 next-pick option (a) verbatim: hoists the
+      ck_credit_link CHECK-constraint companion summary onto
+      web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts as the
+      second of three possible reseller_requests-cluster module-scope
+      cross-column invariant summaries this surface can carry
+      (ck_decision_shape landed at tick 359; ck_promo_link pending at
+      follow-on tick). Extends the tick 359 axis rather than opening a
+      new one — same surface, same row-cluster, different CHECK — so
+      the doc-block cross-references the tick 359 header and the tick
+      273 inline per-column pin narration rather than re-deriving the
+      reseller_requests column-set discovery from scratch.
+
+      Mirrors the tick 359 doc-block shape verbatim (writer-side
+      source + application write path + read path + runtime
+      enforcement + coverage-per-guard posture + symmetric-cluster
+      posture) but adapted for the ck_credit_link disjunction at
+      0095:48-51 which couples reseller_requests.{request_type, status,
+      linked_credit_transaction_id}:
+        - Writer-side source: 0095:48-51 permits linked_credit_
+          transaction_id NON-NULL ONLY when request_type='over_budget_
+          approval' AND status='approved'; all other (request_type,
+          status) permutations MUST leave it null. The sibling ck_
+          promo_link (0095:52-55) is the mirror constraint on
+          linked_promotion_code_id (permits non-null ONLY on
+          request_type='code_request' AND status='approved') — the
+          two link-column CHECKs form an emergent XOR partition
+          across the request_type dimension. No single CHECK enforces
+          the XOR directly; a schema regression that widened either
+          ck_*_link to permit both link columns non-null on the same
+          row would slip past the individual CHECKs but would surface
+          on the deny + cancel null pins downstream.
+        - Application write path: PATCH route at requests/[id]/route.
+          ts:99 declares linkedCreditTransactionId as `let ... :
+          string | null = null` (null default). Only the over_budget_
+          approval approve branch at route.ts:209-303 stamps a non-
+          null UUID via the four-step ledger fan-out (credit_balances
+          read → upsert → credit_transactions INSERT → txRow.id
+          assigned to linkedCreditTransactionId at route.ts:278 →
+          reseller_credit_grants mirror INSERT). code_request +
+          collateral_approval approve branches and ALL deny + cancel
+          branches leave the null default in place, matching exactly
+          the enum permutation ck_credit_link permits. Single UPDATE
+          at route.ts:305-320 stamps status + decision_by + decision_
+          at + decision_reason + linked_credit_transaction_id +
+          linked_promotion_code_id atomically so all three ck_*
+          constraints (ck_decision_shape + ck_credit_link + ck_promo_
+          link) move together.
+        - Read path: list route at admin/resellers/requests/route.ts:
+          44 projects linked_credit_transaction_id as column 10 of the
+          twelve-column SELECT; PATCH response envelope at route.ts:
+          317-319 projects it as column 5 of the five-column tuple.
+          Invariant observable on both admin surfaces per PATCH.
+        - Runtime enforcement: three per-branch pins across deny +
+          cancel + approve PATCH-branch read-back rows —
+            (i)  deny branch (line ~1214 header + line 575 inline
+                 null pin per the tick 273 doc-block cross-ref) pins
+                 ck_credit_link NULL branch on request_type='over_
+                 budget_approval' AND status='denied'.
+            (ii) cancel branch (line ~1038 inline null pin per the
+                 same cross-ref) pins the NULL branch on request_
+                 type='over_budget_approval' AND status='cancelled'.
+            (iii) approve branch (line 1810-1812 typeof-string +
+                  UUID_RE on PATCH-response envelope + line 2105 on
+                  list-route read-back per the tick 273 doc-block)
+                  pins the NON-NULL branch on request_type='over_
+                  budget_approval' AND status='approved'.
+          Together the three pins cover all four (request_type,
+          status) permutations on the over_budget_approval fixture
+          path (pending covered on the sibling admin-requests-list-
+          authz.spec.ts wave-3 seed).
+        - Coverage-per-guard posture: matches tick 359 in shape (deny
+          + cancel + approve probes cover the three terminal-status
+          enum members on every green CI run). Distinct from tick 359
+          in ONE dimension: ck_credit_link is ASYMMETRIC — only the
+          approve branch fires the NON-NULL branch, deny + cancel
+          fire the NULL branch — so this summary inherits the tick
+          273 asymmetric-fixture posture rather than the tick 359
+          symmetric-fixture posture. code_request + collateral_
+          approval enum branches remain zero-coverage-per-guard today
+          per the tick 273 note at line 326-330 (green-path fixtures
+          only seed over_budget_approval; code_request approve blocked
+          on Stripe test-mode wiring per line 72-74) — the ck_credit_
+          link CHECK is the last line of defence for those two enum
+          branches until P8.5 unblocks.
+        - Symmetric-cluster posture: extends the tick 359 reseller_
+          requests-row summary sweep on THIS surface (2/3 possible
+          summaries now landed; ck_promo_link pending). Distinct from
+          tick 359 in TWO dimensions: (i) opens the second summary on
+          the SAME surface rather than a new surface — matches the
+          tick 354/355 detail-authz double-summary posture rather
+          than the tick 357/358 detail-{authz,validation} cross-
+          surface twin posture; (ii) the invariant couples three
+          columns across TWO dimensions of the enum space (3-way
+          request_type × 4-way status = 12 permutations, only 1 of
+          which permits non-null) rather than one dimension (4-way
+          status only).
+
+      Rotation rationale:
+        - Executes tick 359 next-pick option (a) verbatim. Pure
+          documentation-only summary hoist — no new imports, no new
+          module-scope const, no fixture change, no route change, no
+          per-column assert added.
+        - Extends the summary-lens axis tick 359 opened on the admin-
+          requests-*.spec.ts family. Post-tick 360, admin-requests-
+          patch-authz.spec.ts now carries TWO module-scope reseller_
+          requests-cluster summaries (ck_decision_shape from tick 359
+          + ck_credit_link from this tick); one more (ck_promo_link)
+          fits as a follow-on hoist to reach the same three-summary
+          parity the resellers-cluster reached on the detail-* pair
+          at ticks 354 + 355 + 357.
+        - Coverage-per-guard posture: this tick adds ZERO new asserts,
+          so no new pin fires on any CI run. The doc-block gives
+          future rotation ticks a single module-scope entry to lift
+          from without re-reading tick 273 + the ck_credit_link
+          schema + the PATCH route's over_budget_approval fan-out in
+          full.
+
+      Diagnostic delta of the pass:
+        - admin-requests-patch-authz.spec.ts:
+            + new module-scope tick 360 doc-block placed immediately
+              after the tick 359 ck_decision_shape summary (previously
+              at row 483-641, unchanged) and before the first test.
+              describe (previously at row 643, now shifted downward
+              by the new block).
+            + Cross-references: writer-side source 0095:48-51 (ck_
+              credit_link) + 0095:37 (linked_credit_transaction_id FK)
+              + 0095:52-55 (sibling ck_promo_link) + route.ts:99 (null
+              default) + route.ts:209-303 (over_budget_approval
+              approve fan-out) + route.ts:278 (linkedCreditTransactionId
+              := txRow.id) + route.ts:305-320 (single UPDATE stamper)
+              + route.ts:317-319 (PATCH envelope projection) + admin/
+              resellers/requests/route.ts:44 (list projection) + tick
+              273 doc-block at line 293-330 (inline per-column pin
+              rationale).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 359).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 360: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Summary-lens sweep on the admin-requests-*.spec.ts family now
+      carries 2/3 possible reseller_requests-row cross-column
+      invariant summaries on admin-requests-patch-authz.spec.ts (ck_
+      decision_shape + ck_credit_link landed; ck_promo_link pending).
+      Detail-* pair still complete on all five slots per tick 358
+      close-out.
+
+      Next natural picks on tick 361:
+        (a) hoist ck_promo_link companion summary onto admin-requests-
+        patch-authz.spec.ts (couples reseller_requests.linked_
+        promotion_code_id + request_type + status per 0095:52-55 —
+        permits non-null ONLY on request_type='code_request' AND
+        status='approved'; would close the reseller_requests-cluster
+        three-summary parity on this surface and complete the ck_*
+        constraint triple).
+        (b) cross-surface twin hoist of THIS tick's ck_credit_link
+        summary onto admin-requests-list-authz.spec.ts (mirrors the
+        tick 357 + 358 twin-hoist posture from detail-authz onto
+        detail-validation; would give the admin-requests-* pair a
+        second summary on both list + patch surfaces once combined
+        with a matching ck_decision_shape twin on the list surface).
+        (c) cross-surface twin hoist of tick 359's ck_decision_shape
+        summary onto admin-requests-list-authz.spec.ts (per tick 359
+        next-pick option (c)).
+        (d) rotate to reseller-side surfaces (requests-authz.spec.ts
+        + requests-validation.spec.ts + reseller-requests-list-authz.
+        spec.ts) for cross-scope twin hoists — reseller-scope
+        surfaces have not yet carried any module-scope cross-column
+        invariant summary either.
+        (e) idle — frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed, P10 continues accepting
+        incremental pin-tightening + summary-hoist ticks).
+    commit: (this tick)
+
   - tick: 359
     ran_at: 2026-07-24
     action: p10_reseller_requests_ck_decision_shape_cross_column_invariant_summary_hoist_onto_admin_requests_patch_authz
