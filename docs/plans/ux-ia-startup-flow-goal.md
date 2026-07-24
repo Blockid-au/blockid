@@ -5,8 +5,9 @@
 ```yaml
 ---
 goal_id: ux-ia-startup-flow-v1
-status: in_progress
-version: 2026-07-24.2
+status: done
+completed_at: 2026-07-24
+version: 2026-07-24.3
 owner: admin@blockid.au
 created: 2026-07-24
 loop_flag_env: UX_IA_GOAL_LOOP

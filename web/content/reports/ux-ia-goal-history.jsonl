@@ -7,3 +7,6 @@
 {"tick_id":"2026-07-24T05-53-01-616Z","ts":"2026-07-24T05:57:19.424Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"b9b30b49","last_deployed":"4f6da78"}
 {"tick_id":"2026-07-24T05-53-01-616Z","ts":"2026-07-24T05:57:19.437Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"b9b30b49"}
 {"tick_id":"2026-07-24T05-53-01-616Z","ts":"2026-07-24T05:57:19.438Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T06-03-01-788Z","ts":"2026-07-24T06:03:01.789Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T06-03-01-788Z","ts":"2026-07-24T06:03:01.799Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"claude-manual-2026-07-24T06-04Z","ts":"2026-07-24T06:04:00.000Z","loop_label":"ux-ia-goal-loop","stage":"goal_closed","reason":"P0-P9 all done/shipped except P8 (human_blocked, all Q1-Q4 non-blocking); frontier empty","status":"done"}
