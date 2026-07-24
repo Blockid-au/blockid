@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.377
+version: 2026-07-24.378
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,105 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 378
+    ran_at: 2026-07-24
+    action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_attribution_timing
+    result: |
+      Executes tick 377 next-pick option (i) verbatim: cross-surface twin-lift
+      of the tick 376/377 module-scope summary from the create-startup write-
+      path pair (create-startup-authz.spec.ts + create-startup-validation
+      .spec.ts) onto attribution-timing.spec.ts — the FIRST non-write-path
+      reseller_attributions-touching surface and the FIRST surface on the
+      cluster with NON-ZERO coverage of any invariant branch. Raises 3/16
+      surface parity on the reseller_attributions row cluster; 13 sibling
+      touching surfaces still pending (drawer-authz, drawer-validation, me-
+      attribution, scope-boundary, reveal-email-authz, reveal-email-
+      validation, credit-grant-authz, credit-grant-validation, audit-log-
+      writes, audit-anomaly-scan, sandbox-setup-authz, admin-reseller-detail-
+      authz, admin-reseller-detail-validation).
+
+      Pure documentation-only doc-block hoist — no new imports, no new
+      module-scope const, no per-column assert added, no fixture change, no
+      route change, no migration change. Adapted for the attribution-timing
+      read-with-write surface:
+        - Writer-side source: IDENTICAL to tick 376/377 (DB CHECK + partial-
+          unique guards at 0091:112-142 wrap every reseller_attributions
+          insert; 'user' branch of ck_subject_fk_matches_type UNREACHABLE-
+          BY-CONSTRUCTION from every current route write path across the
+          codebase per grep audit of retail-attribution.ts:165-172 + create-
+          startup/route.ts:301-313).
+        - Application write path anchor: DIFFERENT from tick 376/377. Tick
+          376/377 anchor at create-startup execute() route.ts:301-313
+          (wholesale provisioning); THIS spec anchors at web/src/lib/reseller/
+          retail-attribution.ts:165-172 via attributeProjectFromUserCache() —
+          the second of two documented write paths for reseller_attributions
+          rows. Row 3 POSTs /api/projects; createProject() side-effect
+          INSERTs on the 'project'/'active'/'code' triple.
+        - Runtime enforcement: DIFFERENT — FIRST NON-ZERO coverage on the
+          cluster. Rows 1 (/me flip) + 2 (count=0 pre-project) READ only.
+          Row 3 (project creation + count assertions) DOES fire the insert
+          and the count=1 read-back at row 179-182 ratifies both the CHECK
+          constraints AND the partial-unique index accepted exactly one row.
+          Wave-5 row 178 tail describes (rows 255-368) only reads /me.
+        - Coverage-per-guard posture: FIRST NON-ZERO surface on the cluster.
+          Row 3 exercises the following invariant branches once per pass:
+          ck_subject_fk_matches_type 'project' branch COVERED; subject_type
+          CHECK 'project' enum value COVERED; status CHECK 'active' default
+          branch COVERED; source CHECK 'code' enum value COVERED; reseller_
+          attributions_active_project_uniq COVERED. 'user' branch of ck_
+          subject_fk_matches_type + subject_type CHECK remains UNREACHABLE-
+          BY-CONSTRUCTION on every insert path; row 3 belt-and-braces
+          count=0 assertion at rows 190-196 pins the UNREACHABLE-BY-
+          CONSTRUCTION posture at the read layer. Status 'revoked' branch
+          UNREACHABLE from insert; source enum {provisioned, admin_manual}
+          branches NOT exercised on this surface (retail-attribution.ts
+          hard-codes source='code').
+        - Symmetric-cluster posture: this surface opens the READ-PATH lens
+          on the cluster and simultaneously delivers the cluster's FIRST
+          NON-ZERO-COVERAGE documentation. Combined post-tick 378 posture:
+          3/16 total surfaces summarised on the cluster. The 'user'-branch
+          complement stays ASYMMETRIC + UNREACHABLE-BY-CONSTRUCTION across
+          the entire codebase per tick 376/377 posture.
+
+      Diagnostic delta of the pass:
+        - attribution-timing.spec.ts:
+            + new module-scope tick 378 doc-block placed after the shared-
+              fixture imports (line 60) and before the first test.describe
+              (line ~62 pre-edit), matching the tick 376 placement on
+              create-startup-authz.spec.ts (after NON_RESELLER_FOUNDER_
+              EMAIL const, before first test.describe) and the tick 377
+              placement on create-startup-validation.spec.ts (after the
+              CASES const, before first test.describe).
+            + Documents write-path anchor at web/src/lib/reseller/retail-
+              attribution.ts:165-172 (attributeProjectFromUserCache — the
+              second of two documented write paths for reseller_attributions
+              rows; project branch of ck_subject_fk_matches_type + default
+              status='active' + source='code' hard-coded).
+            + Coverage-per-guard posture: FIRST NON-ZERO surface on the
+              cluster; row 3 exercises all five invariants on the project/
+              active/code triple; 'user' branch remains UNREACHABLE-BY-
+              CONSTRUCTION and belt-and-braces asserted count=0 at rows
+              190-196.
+        - No production code touched, no fixture change, no route change,
+          no migration change, no new imports, no new module-scope
+          constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: pre-existing errors in web/src/lib/
+          nudge/next-steps.ts unrelated to this test-file edit; no new
+          errors introduced by the doc-block addition.
+        - lint:reseller unchanged from tick 377 baseline (test files are
+          not in the R-01/R-03/R-04 manifests so no new lint signal).
+
+      Frontier after tick 378: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Reseller_attributions row cluster now carries 3/16 surface parity
+      (create-startup-authz tick 376 + create-startup-validation tick 377
+      + attribution-timing this tick — first NON-ZERO-COVERAGE surface).
+      13 sibling touching surfaces still pending twin-lift.
+
   - tick: 377
     ran_at: 2026-07-24
     action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_create_startup_validation
@@ -41398,6 +41497,9 @@ next_action:
    17) DONE tick 50 — Track B B4_guide_ch_9_to_12 shipped. Chapters 9-12 (09-funding, 10-fundraise, 11-scale, 12-exit) authored EN+VI as four new entries appended to web/src/lib/guide/startup-journey.ts; ChapterSlug union extended to 12 entries; module doc-comment updated to reflect the B2+B3+B4 arc. VI is complete parity, not machine translation. Chapter 10 honours U.15.11 wording supersession — blockchain hash described as "immutable record for later verification" and explicitly NOT as legal notarisation. phaseLabel for each new chapter is a direct reference to PHASE_LABELS[9..12] from @/lib/showcase/gallery so /guide, /workspace/guide, /guide/reports and /showcase/blockid share one canonical phase-label taxonomy. Both surface routes SSG the four new slugs automatically via generateStaticParams reading allChapterSlugs() — zero route-file edits required. "Chapter 9 unlocks with B4" placeholder text flipped on both surfaces to arc-complete wording (marketing: "You've reached the final chapter. After exit, open a new workspace at Chapter 1 or move into the reseller/accelerator role."; workspace: "Final chapter. After exit: new workspace or reseller role."; VI parity on both). Test suite: EXPECTED_SLUGS bumped to 12, order + phase arrays extended to [1..12], allChapterSlugs assertion updated, unknown-slug case bumped to "13-post-exit", last-slot adjacent assertion flipped to 12-exit ↔ 11-scale, plus a new boundary assertion for the B3/B4 stitch (08-team ↔ 09-funding) so future reorderings can't silently break the chain. Docs mirror at docs/guides/startup-journey/chapter-{09..12}.md ships EN copy for offline reading + contributor PRs (header comment states runtime pages read the TS module — .md files are documentation-only). Verified: 10/10 pass in startup-journey.test.ts (was 9/9); 65/65 combined guide+showcase (was 64/64); tsc clean; npm run lint:reseller unchanged 8 files / 3 exemptions / 0 violations. Chapters 9-12 copy references B4-scoped integrations from plan §299 by name (investor NDA workflow, term-sheet AI review UI, blockchain sync activation, LP-report bundling) but the actual UI wiring for those integrations is a follow-up tick — matches the B2/B3 precedent where chapter copy referenced integrations before the capture UI shipped. Frontier after tick 50: (a) Track A HUMAN-BLOCKED on P8.5 Stripe env vars. (b) Track B B9_reviews_surface (deps: B4 now done) unblocked — the showcase_reviews table + Phase-9 investor-review capture surface; migration 0100 slot already reserved. (c) B7 product tour + B8 reseller linkage remain unblocked from earlier ticks. (d) P0.3 advisory reviews still pending. (e) P1.5 InfoVision seed still HUMAN-BLOCKED on H.20. The 12-chapter content-authoring arc is now closed.
   authorised: true
   on_success: |
+    Frontier after tick 378: shape unchanged — Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What tick 378 unblocks: cross-surface twin-lift of the tick 376/377 reseller_attributions row-cluster cross-column invariant summary from the create-startup write-path pair onto attribution-timing.spec.ts — the FIRST non-write-path reseller_attributions-touching surface AND the FIRST surface on the cluster with NON-ZERO coverage of any invariant branch. Executes tick 377 next-pick option (i) verbatim. Raises the reseller_attributions row cluster to 3/16 surface parity — 1 on create-startup-authz.spec.ts (tick 376) + 1 on create-startup-validation.spec.ts (tick 377) + 1 on attribution-timing.spec.ts (this tick). Pure documentation-only doc-block hoist — no new imports, no new module-scope const, no per-column assert added, no fixture change, no route change, no migration change. Adapted for the attribution-timing read-with-write surface: writer-side source IDENTICAL to tick 376/377 (DB CHECK + partial-unique guards at 0091:112-142 wrap every reseller_attributions insert; 'user' branch UNREACHABLE-BY-CONSTRUCTION from every current write path); application write path anchor DIFFERENT (this surface anchors at web/src/lib/reseller/retail-attribution.ts:165-172 via attributeProjectFromUserCache — the second of two documented write paths for reseller_attributions rows; row 3 POSTs /api/projects and the createProject side-effect INSERTs on the 'project'/'active'/'code' triple); runtime enforcement DIFFERENT (FIRST NON-ZERO coverage on the cluster — rows 1-2 read only, row 3 fires the insert and the count=1 read-back at row 179-182 ratifies both CHECK constraints and the partial-unique index accepted exactly one row); coverage-per-guard posture DIFFERENT (project/active/code triple COVERED once per pass; 'user' branch belt-and-braces asserted count=0 at rows 190-196 which pins UNREACHABLE-BY-CONSTRUCTION at the read layer; status 'revoked' UNREACHABLE from insert; source enum {provisioned, admin_manual} branches NOT exercised because retail-attribution hard-codes source='code'); symmetric-cluster posture DIFFERENT (this surface opens the READ-PATH lens and simultaneously delivers the cluster's FIRST NON-ZERO-COVERAGE documentation, versus tick 376/377's ZERO-COVERAGE-PER-GUARD posture across both write-path pair surfaces). Post-tick 378 the cluster carries 3/16 total surfaces summarised; 13 sibling touching surfaces still pending (drawer-authz, drawer-validation, me-attribution, scope-boundary, reveal-email-authz, reveal-email-validation, credit-grant-authz, credit-grant-validation, audit-log-writes, audit-anomaly-scan, sandbox-setup-authz, admin-reseller-detail-authz, admin-reseller-detail-validation). tsc pre-existing errors in web/src/lib/nudge/next-steps.ts unrelated to this test-file edit; lint:reseller unchanged from tick 377 baseline (test files not in R-01/R-03/R-04 manifests). Next autonomous tick options: (i) rotate to drawer-authz.spec.ts / drawer-validation.spec.ts pair (customer drawer surfaces that project attribution rows via the reseller-side SELECT lens) for a FOURTH + FIFTH surface companion; (ii) rotate to admin-reseller-detail-authz.spec.ts / admin-reseller-detail-validation.spec.ts pair (admin-scope attribution projection) for a FOURTH + FIFTH surface companion; (iii) rotate to reveal-email-authz.spec.ts / reveal-email-validation.spec.ts pair (customer-drawer reveal surfaces that touch attribution provenance); (iv) rotate to another unhoisted row cluster (reseller_promotion_codes ck_stripe_objects_by_tier at 0091:98-102, or resellers ck_wholesale_gst_required at 0091:47-51 / ck_abn_format at 0091:52); (v) idle until human unblock arrives on P8.5 or P1.5.
+
+    (superseded — for tick 377 detail see the tick-377 log entry above)
     Frontier after tick 377: shape unchanged — Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears. What tick 377 unblocks: cross-surface twin-lift of the tick 376 reseller_attributions row-cluster cross-column invariant summary from create-startup-authz.spec.ts (write-path pre-auth surface) onto create-startup-validation.spec.ts (write-path input-validation surface). Executes tick 376 next-pick option (i) verbatim. Raises the reseller_attributions row cluster to 2/16 surface parity — 1 on create-startup-authz.spec.ts (tick 376) + 1 on create-startup-validation.spec.ts (this tick). Post-tick 377 the create-startup write-path pair reaches 2/2 surface parity within the SYMMETRIC (project-branch-only) subset of the reseller_attributions row cluster — mirrors the tick 374/375 close-out shape on the credit-grant write-path pair. Pure documentation-only doc-block hoist — no new imports, no new module-scope const, no per-column assert added, no fixture change, no route change. Adapted for the validation surface's bail-before-DB semantics: writer-side source IDENTICAL to tick 376 (DB CHECK + partial-unique guards at 0091:112-142 wrap every reseller_attributions insert; 'user' branch of ck_subject_fk_matches_type UNREACHABLE-BY-CONSTRUCTION from every current route write path); application write path anchor IDENTICAL to tick 376 (execute() at route.ts:301-313 always lands on the project branch + status='active' + one of three source enum values); runtime enforcement DIFFERENT bail-layer from tick 376 (tick 376 rows 1-2 bail at gateRequireFeature / scopedReseller auth layer BEFORE normalise even runs; this spec's rows 1-4 all reach normalise via the shared reseller harness but bail AT the normaliseCreateStartupInput gate at web/src/lib/reseller/create-startup.ts BEFORE decideCreateStartup → execute() → reseller_attributions insert chain fires — both surfaces sit strictly UPSTREAM of the DB write path so zero rows reach line 301-313); coverage-per-guard posture IDENTICAL to tick 376 (ZERO-COVERAGE-PER-GUARD across all 5 invariants × both branches; 'user' branch also carries UNREACHABLE-BY-CONSTRUCTION); symmetric-cluster posture IDENTICAL to tick 376 (SYMMETRIC subset + ASYMMETRIC UNREACHABLE-BY-CONSTRUCTION complement). Post-tick 377 both surfaces of the create-startup write-path pair now carry ZERO-COVERAGE-PER-GUARD × UNREACHABLE-BY-CONSTRUCTION documentation for the reseller_attributions row cluster at module scope, mirroring the tick 374/375 credit-grant pair on the grant-branch subset. tsc clean; lint:reseller 11 R-01 + 32 R-03 + 8 R-04, 6 exemptions, 0 violations (unchanged from tick 376 baseline). Next autonomous tick options: (i) rotate to attribution-timing.spec.ts (the first NON-write-path reseller_attributions-touching surface) for a THIRD-surface companion of the tick 376/377 summary; (ii) rotate to drawer-authz.spec.ts / drawer-validation.spec.ts pair (customer drawer surfaces that project attribution rows via the reseller-side SELECT lens) for a THIRD + FOURTH surface companion; (iii) rotate to admin-reseller-detail-authz.spec.ts / admin-reseller-detail-validation.spec.ts pair (admin-scope attribution projection) for a THIRD + FOURTH surface companion; (iv) rotate to another unhoisted row cluster (reseller_promotion_codes ck_stripe_objects_by_tier at 0091:98-102, or resellers ck_wholesale_gst_required at 0091:47-51 / ck_abn_format at 0091:52); (v) idle until human unblock arrives on P8.5 or P1.5.
 
     (superseded — for tick 366 detail see the tick-366 log entry above)

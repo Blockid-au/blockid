@@ -59,6 +59,151 @@ import {
   supabaseAdminSkipReason,
 } from "../fixtures/supabase-admin";
 
+// Tick 378 — reseller_attributions row-cluster cross-column invariant summary
+// (option (i) from tick 377 next-picks). Cross-surface twin-lift of the tick
+// 376/377 module-scope summary from the create-startup write-path pair (both
+// ZERO-COVERAGE-PER-GUARD authz + validation surfaces) onto attribution-timing
+// .spec.ts — the FIRST non-write-path reseller_attributions-touching surface
+// AND the FIRST surface on the cluster with NON-ZERO COVERAGE of any invariant
+// branch. Raises 3/16 surface parity on the reseller_attributions row cluster
+// while the create-startup write-path pair holds at 2/2 within the SYMMETRIC
+// (project-branch-only) subset per the tick 377 close-out.
+//
+// The reseller_attributions row cluster carries FIVE invariants at
+// web/supabase/migrations/0091_reseller_module_foundations.sql:112-142
+// (IDENTICAL enumeration to tick 376/377):
+//   - ck_subject_fk_matches_type (0091:128-132) — CROSS-COLUMN: subject_type=
+//                                                  'user'⇒subject_user_id set
+//                                                  + subject_project_id null;
+//                                                  subject_type='project'⇒
+//                                                  inverse
+//   - subject_type CHECK          (0091:115)     — subject_type ∈ {user,
+//                                                  project}
+//   - status CHECK                (0091:118-119) — status ∈ {active, revoked}
+//                                                  (DEFAULT 'active')
+//   - source CHECK                (0091:123)     — source ∈ {code,
+//                                                  provisioned, admin_manual}
+//   - reseller_attributions_active_project_uniq  — PARTIAL-UNIQUE INDEX
+//     (0091:137-139)                              on (subject_project_id)
+//                                                  WHERE subject_type=
+//                                                  'project' AND status=
+//                                                  'active' AND opted_out=
+//                                                  false; enforces per U.15.1
+//                                                  that a project can carry
+//                                                  at most ONE active non-
+//                                                  opted-out attribution
+//                                                  regardless of reseller
+//
+// Writer-side source: IDENTICAL to tick 376/377 — DB CHECK + partial-unique
+// guards at 0091:112-142 wrap every reseller_attributions insert; enforcement
+// happens at DB write time. Route-side callers precompose the insert payload
+// under an always-'project' discriminator — the 'user' branch of ck_subject_
+// fk_matches_type is UNREACHABLE-BY-CONSTRUCTION from EVERY current write
+// path across the codebase (grep audit: web/src/lib/reseller/retail-
+// attribution.ts:165-172 + web/src/app/api/reseller/create-startup/route.ts:
+// 301-313 both hard-code subject_type='project' + subject_project_id=<uuid>
+// + subject_user_id=null; no code path ever inserts subject_type='user').
+//
+// Application write path anchor for THIS surface: DIFFERENT from tick 376/377.
+// Tick 376/377 anchor at create-startup execute() route.ts:301-313 (the
+// wholesale-provisioning path never fires on either write-path surface because
+// both bail upstream at auth or normalise). THIS spec anchors at web/src/lib/
+// reseller/retail-attribution.ts:165-172 via attributeProjectFromUserCache()
+// — the second of two documented write paths for reseller_attributions rows.
+// Row 3 (test "reseller_attributions row appears with subject_type='project'
+// after createProject()") POSTs /api/projects; the workspace createProject()
+// side-effect calls attributeProjectFromUserCache which INSERTs the row on
+// the 'project' branch of ck_subject_fk_matches_type, defaults status to
+// 'active' at the DB, and stamps source='code' unconditionally (the retail-
+// attribution path derives from the app_users.attribution_reseller_id cache
+// column populated by the P2.5 login-form.tsx / google/route.ts / auth.ts
+// signup hooks off the blockid_via cookie chain).
+//
+// Runtime enforcement on THIS spec: DIFFERENT from tick 376/377 — FIRST
+// NON-ZERO coverage on the cluster. Row 1 (/api/reseller/me cache-flip) +
+// row 2 (count=0 pre-project) READ from the cluster (via /api/reseller/me
+// and countResellerAttributionsFor respectively) without firing any insert.
+// Row 3 (project creation + count assertions) DOES fire the insert; it lands
+// on the 'project'/'active'/'code' triple and the count=1 read-back at row
+// 179-182 ratifies both the CHECK constraints AND the partial-unique index
+// accepted exactly one such row per project. The wave-5 row 178 tail
+// describes (rows 255-368) only reads /api/reseller/me — no insert. Bail-
+// layer differs from BOTH tick 376 surfaces (which bail upstream of the DB
+// write) — this surface REACHES the write path via the retail adapter.
+//
+// Coverage-per-guard posture on this surface: FIRST NON-ZERO surface on the
+// cluster. Row 3 exercises the following invariant branches once per pass:
+//   - ck_subject_fk_matches_type 'project' branch:  COVERED (count=1 assertion
+//                                                    at row 179-182 requires
+//                                                    the branch fired without
+//                                                    error)
+//   - subject_type CHECK 'project' enum value:      COVERED (count=1 read-back
+//                                                    via countResellerAttri
+//                                                    butionsForProject pins
+//                                                    the enum value)
+//   - status CHECK 'active' default branch:         COVERED (retail-
+//                                                    attribution.ts:165-172
+//                                                    lets DB DEFAULT stamp
+//                                                    status='active'; the
+//                                                    count=1 read-back
+//                                                    accepts only active rows
+//                                                    per U.15.1's partial-
+//                                                    unique index scope)
+//   - source CHECK 'code' enum value:               COVERED (retail-
+//                                                    attribution.ts writes
+//                                                    source='code' when the
+//                                                    cache was populated via
+//                                                    the blockid_via cookie
+//                                                    chain from P2.5)
+//   - reseller_attributions_active_project_uniq:    COVERED (single-insert
+//                                                    happy path — a
+//                                                    regression that fired
+//                                                    twice per createProject
+//                                                    would trip the index
+//                                                    and the count=1
+//                                                    assertion would fail
+//                                                    with count=2)
+// The 'user' branch of ck_subject_fk_matches_type + subject_type CHECK
+// remains UNREACHABLE-BY-CONSTRUCTION on every insert path in the codebase;
+// row 3 belt-and-braces asserts count=0 for subject_type='user' at rows 190-
+// 196 — that assertion pins the UNREACHABLE-BY-CONSTRUCTION posture at the
+// read layer, so a future write path that started emitting subject_type=
+// 'user' rows (e.g. an admin backfill script) would surface here as
+// count!=0. Status 'revoked' branch remains UNREACHABLE from insert (only
+// settable via /api/admin/affiliate/attributions/[attributionId]/revoke
+// which flips an existing row rather than inserting one). Source enum
+// {provisioned, admin_manual} branches are NOT exercised on this surface
+// (retail-attribution.ts hard-codes source='code'); the provisioned +
+// admin_manual branches remain reachable only via wholesale create-startup
+// + admin-manual paths respectively, both of which are ZERO-COVERAGE-PER-
+// GUARD on tick 376/377's surfaces.
+//
+// Symmetric-cluster posture: THIS surface opens the READ-PATH lens on the
+// cluster and simultaneously delivers the cluster's FIRST NON-ZERO-COVERAGE
+// documentation. The create-startup write-path pair (tick 376/377) carries
+// 2/2 parity within the SYMMETRIC (project-branch-only) subset with ZERO-
+// COVERAGE-PER-GUARD posture on all five invariants. Combined post-tick 378
+// posture: 3/16 total surfaces summarised on the cluster; 13 sibling
+// touching surfaces still pending (drawer-authz, drawer-validation, me-
+// attribution, scope-boundary, reveal-email-authz, reveal-email-validation,
+// credit-grant-authz, credit-grant-validation, audit-log-writes, audit-
+// anomaly-scan, sandbox-setup-authz, admin-reseller-detail-authz, admin-
+// reseller-detail-validation). The 'user'-branch complement stays
+// ASYMMETRIC + UNREACHABLE-BY-CONSTRUCTION across the entire codebase per
+// tick 376/377 posture — full 16-surface × 5-invariant saturation would
+// collate ZERO-COVERAGE-PER-GUARD × UNREACHABLE-BY-CONSTRUCTION
+// documentation on the 'user' branch across every touching spec.
+//
+// Diagnostic delta of this pass: pure documentation-only doc-block hoist —
+// no new imports, no new module-scope constants, no per-column assert
+// added, no fixture change, no route change, no migration change. Doc-
+// block placed after the shared-fixture imports (line 60) and before the
+// first test.describe (line ~62 pre-edit), matching the tick 376 placement
+// on create-startup-authz.spec.ts (after NON_RESELLER_FOUNDER_EMAIL const,
+// before first test.describe) and the tick 377 placement on create-
+// startup-validation.spec.ts (after the CASES const, before first
+// test.describe).
+
 test.describe("Reseller attribution timing — P10 dry-run", () => {
   const harness = loadAttributionTimingHarness();
   test.skip(!harness, attributionTimingSkipReason());
