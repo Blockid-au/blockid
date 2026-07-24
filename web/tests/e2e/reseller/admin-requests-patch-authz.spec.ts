@@ -640,6 +640,152 @@ const RESELLER_CODE_RE = /^[A-Z0-9]+$/;
 //   reseller-requests-list-authz.spec.ts + requests-authz.spec.ts +
 //   requests-validation.spec.ts for reseller-scope twins.
 
+// Tick 360 — reseller_requests-row ck_credit_link cross-column invariant
+// summary hoist. Executes tick 359 next-pick option (a) verbatim:
+// hoist the companion summary for the sibling ck_credit_link CHECK on
+// the SAME admin-requests-patch-authz.spec.ts surface tick 359 opened
+// the ck_decision_shape summary on. Second of three reseller_requests-
+// cluster invariant summaries this surface can carry (ck_decision_shape
+// landed at tick 359; ck_promo_link pending at follow-on tick). Extends
+// the tick 359 axis rather than opening a new one — same surface, same
+// row-cluster, different CHECK constraint — so the doc-block cross-
+// references the tick 359 header and its writer-side / write-path /
+// read-path anchors rather than re-deriving the reseller_requests
+// column-set discovery from scratch.
+//
+// Cross-column invariant summary — reseller_requests.{request_type,
+// status, linked_credit_transaction_id} ⇔ ck_credit_link
+//   Writer-side source: reseller_requests table DB CHECK
+//   ck_credit_link at
+//   web/supabase/migrations/0095_reseller_requests.sql:48-51 enforces
+//   the disjunction
+//     linked_credit_transaction_id IS NULL
+//     OR (request_type = 'over_budget_approval' AND status = 'approved')
+//   i.e. only over_budget_approval requests that reached the approved
+//   terminal state may carry a non-null linked_credit_transaction_id
+//   (uuid REFERENCES credit_transactions(id) ON DELETE SET NULL at
+//   0095:37). The other two request_type enum values (code_request +
+//   collateral_approval per the CHECK at 0095:30) and the other three
+//   status enum values (pending + denied + cancelled per the CHECK at
+//   0095:32) MUST leave linked_credit_transaction_id null on the wire.
+//   The sibling ck_promo_link (0095:52-55) is the mirror constraint
+//   on linked_promotion_code_id: permits non-null ONLY on
+//   request_type='code_request' AND status='approved'. Together the
+//   two link-column CHECKs form an XOR partition across the
+//   request_type dimension — an over_budget_approval approval can
+//   only stamp linked_credit_transaction_id (never linked_promotion_
+//   code_id), and a code_request approval can only stamp linked_
+//   promotion_code_id (never linked_credit_transaction_id). This is
+//   an emergent property of the two orthogonal CHECKs; there is no
+//   single CHECK enforcing the XOR directly, so a schema-side
+//   regression that widened either ck_*_link to permit both link
+//   columns non-null on the same request row would slip past the
+//   individual CHECKs but would surface here via the deny + cancel
+//   null pins (see runtime enforcement below).
+//   Application write path: the PATCH route at
+//   web/src/app/api/admin/resellers/requests/[id]/route.ts:99 declares
+//   linkedCreditTransactionId as `let ... : string | null = null` so
+//   the default is null. The over_budget_approval approve branch at
+//   route.ts:209-303 (a) reads credit_balances for the payload target,
+//   (b) upserts the balance + lifetime_earned, (c) INSERTs a
+//   credit_transactions row with reason='reseller_grant_over_budget'
+//   and returns the new id, (d) writes txRow.id into
+//   linkedCreditTransactionId at route.ts:278, (e) INSERTs the
+//   reseller_credit_grants mirror row (kind=grant, over_budget=true).
+//   The single UPDATE at route.ts:305-320 stamps
+//   linked_credit_transaction_id: linkedCreditTransactionId alongside
+//   status + decision_by + decision_at + decision_reason inside the
+//   same PATCH so ck_decision_shape and ck_credit_link (and the null
+//   ck_promo_link on the other side of the XOR) all move atomically.
+//   The code_request approve branch at route.ts:102-207 leaves
+//   linkedCreditTransactionId at its null default (only touches
+//   linkedPromotionCodeId); the collateral_approval approve branch
+//   leaves BOTH link columns null; the deny + cancel branches skip
+//   ALL side-effect blocks and leave both link columns null. So the
+//   only application code path that produces a non-null linked_
+//   credit_transaction_id is the over_budget_approval approve branch,
+//   matching exactly the enum permutation ck_credit_link permits.
+//   Read path: projected via
+//   "..., linked_credit_transaction_id, linked_promotion_code_id, ..."
+//   on the admin list route at
+//   web/src/app/api/admin/resellers/requests/route.ts:44 as columns
+//   10 + 11 of the twelve-column SELECT projection. The PATCH
+//   response envelope at route.ts:317-319 projects the same two link
+//   columns alongside id + status + decision_at + decision_reason so
+//   the invariant is observable on TWO admin surfaces per PATCH: the
+//   PATCH-write echo (five-column tuple including both link columns)
+//   AND the list-route follow-up GET (twelve-column tuple including
+//   both link columns).
+//   Runtime enforcement in this spec: three per-branch pins on
+//   linked_credit_transaction_id across the deny + cancel + approve
+//   PATCH-branch read-back rows —
+//     - deny branch (line ~1214): asserts linked_credit_transaction_id
+//       is null on the PATCH-response envelope AND the follow-up read-
+//       back row (see the tick block header at line 705-709 — "Do NOT
+//       pin linked_credit_transaction_id / linked_promotion_code_id
+//       — both are null for the deny branch"). Pins the ck_credit_
+//       link NULL branch: request_type='over_budget_approval' AND
+//       status='denied' → linked_credit_transaction_id MUST be null.
+//     - cancel branch (line ~1038 per the tick-273 doc block
+//       reference): mirror null pin on the cancelled read-back. Pins
+//       the same NULL branch: request_type='over_budget_approval' AND
+//       status='cancelled' → linked_credit_transaction_id MUST be null.
+//     - approve branch (line 1810-1812 on PATCH-response envelope +
+//       line 2105 on list-route read-back): typeof-string + UUID_RE
+//       pin per tick 273 doc-block. Pins the ck_credit_link NON-NULL
+//       branch: request_type='over_budget_approval' AND
+//       status='approved' → linked_credit_transaction_id MUST be a
+//       UUID string.
+//   The three pins together cover ALL FOUR permutations of the
+//   coupled columns on the over_budget_approval fixture path (pending
+//   read-back covered by the wave-3 row 155 seed on admin-requests-
+//   list-authz.spec.ts before the PATCH lands; the pending-side null
+//   pin lives on the list surface per the tick 273 coverage-per-guard
+//   note). code_request + collateral_approval enum branches are
+//   zero-coverage-per-guard today (green-path fixtures only seed
+//   over_budget_approval per the tick 273 coverage-per-guard note at
+//   line 326-330 — "green-path fixtures only seed over_budget_
+//   approval approve targets today (code_request approve is blocked
+//   on Stripe test-mode wiring per line 72-74)"); the ck_credit_link
+//   CHECK is the last line of defence for those two enum branches
+//   until P8.5 unblocks and Stripe test-mode fixtures land.
+//   Coverage-per-guard posture: matches the tick 359 ck_decision_
+//   shape summary posture in shape — deny + cancel + approve probes
+//   exercise the three terminal-status branches on every green CI
+//   run; pending branch covered by the wave-3 seed on the sibling
+//   list surface. Distinct from tick 359 in ONE dimension: the ck_
+//   decision_shape invariant is symmetric across all three terminal
+//   status enum values (each fires the same NON-NULL branch), while
+//   ck_credit_link is ASYMMETRIC — only the approve branch fires the
+//   NON-NULL branch; deny + cancel fire the NULL branch (same
+//   asymmetry the tick 273 doc-block already narrates inline for the
+//   per-column pin). So this summary hoist inherits the tick 273
+//   asymmetric-fixture posture rather than the tick 359 symmetric-
+//   fixture posture.
+//   Symmetric-cluster posture: this summary hoist extends the tick
+//   359 reseller_requests-row cross-column-invariant sweep on THIS
+//   file — the row-cluster now carries 2/3 possible summaries (ck_
+//   decision_shape landed at tick 359; ck_credit_link landing at
+//   this tick 360; ck_promo_link pending at follow-on tick). Distinct
+//   from tick 359 in TWO dimensions: (i) opens the second summary
+//   on the SAME surface rather than a new surface — matches the tick
+//   354/355 detail-authz double-summary rather than the tick 357/358
+//   detail-{authz,validation} cross-surface twin; (ii) the invariant
+//   couples three columns (request_type + status + linked_credit_
+//   transaction_id) across two dimensions of the enum space (the
+//   3-way request_type enum + the 4-way status enum) rather than
+//   the tick 359 three-column shape across one dimension (the 4-way
+//   status enum only) — so the CHECK's null branch surfaces on 11
+//   of 12 (request_type, status) permutations while the non-null
+//   branch surfaces on 1 of 12. Follow-on ticks can extend along
+//   the same two dimensions as tick 359's next-pick options:
+//   (i) hoist the ck_promo_link companion summary on this same file
+//   to close the reseller_requests-cluster three-summary parity;
+//   (ii) cross-surface twin hoist onto admin-requests-list-authz.
+//   spec.ts so the ck_credit_link summary reaches two-surface parity
+//   with the detail-* pair; (iii) rotate to reseller-side surfaces
+//   for reseller-scope twins.
+
 test.describe("Admin reseller requests PATCH pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — PATCH with no session returns 401 no_user", async ({
     request,
