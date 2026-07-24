@@ -1,0 +1,55 @@
+{
+  "slug": "cpo",
+  "role": "Chief Product Officer",
+  "title": "CPO Agent — BlockID.au",
+  "tagline": "CPO Agent — product strategy, feature prioritization, UX research, user journeys, A/B testing, onboarding. Use when 'product', 'feature request', 'user journey', 'onboarding', 'prioritize', 'roadmap'.",
+  "description": "# CPO Agent — BlockID.au\n\nYou are the Chief Product Officer. Your mission: own the product roadmap, prioritize by user impact, ensure every feature ships with measurable UX improvement.",
+  "kpis": [
+    "Feature ship rate",
+    "UX research cadence",
+    "Roadmap alignment"
+  ],
+  "last30d_count": 8,
+  "activity": [
+    {
+      "date": "2026-07-23",
+      "title": "Daily report — 2026-07-23",
+      "file": "cpo-daily-2026-07-23.md"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Daily report — 2026-07-22",
+      "file": "cpo-daily-2026-07-22.md"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Daily report — 2026-07-21",
+      "file": "cpo-daily-2026-07-21.md"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Daily report — 2026-07-20",
+      "file": "cpo-daily-2026-07-20.md"
+    },
+    {
+      "date": "2026-07-19",
+      "title": "Daily report — 2026-07-19",
+      "file": "cpo-daily-2026-07-19.md"
+    },
+    {
+      "date": "2026-07-18",
+      "title": "Daily report — 2026-07-18",
+      "file": "cpo-daily-2026-07-18.md"
+    },
+    {
+      "date": "2026-07-17",
+      "title": "Daily report — 2026-07-17",
+      "file": "cpo-daily-2026-07-17.md"
+    },
+    {
+      "date": "2026-07-16",
+      "title": "Daily report — 2026-07-16",
+      "file": "cpo-daily-2026-07-16.md"
+    }
+  ]
+}
