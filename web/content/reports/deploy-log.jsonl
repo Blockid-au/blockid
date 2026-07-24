@@ -1430,3 +1430,4 @@
 {"ts":"2026-07-24T15:57:45.115Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.36 register contribution_margin_pct in snapshot registry (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T16:03:45Z","status":"success","gates":"9/9","pid":"646790","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T16:05:52.699Z","event":"github-push-master","detail":"Blockid-au: feat(investor-pack): P5-cohort-wire traction cohort section (2 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T16:11:53.697Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.37 metric percent-change delta pure lib (2 commits)","source":"github-webhook"}
