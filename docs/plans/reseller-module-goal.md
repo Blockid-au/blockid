@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.389
+version: 2026-07-24.391
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -409,6 +409,10 @@ tracks:
       P10_hardening:
         status: blocked_by: [P1..P9]
         sub_phases:
+          P10.human_blocked_registry_freshness: {status: done, tick: 391, completed_at: 2026-07-24, files: [
+            "web/src/lib/reseller/human-blocked-registry.ts (P1.5 blocker/action_required rewritten to reflect the current authored-but-unapplied state — H.20 gst_registered=true confirmed 2026-07-23; migration 0106_infovision_seed.sql landed with ABN + contact_email placeholders that must be swapped before docker exec psql apply + NOTIFY pgrst; file header COO-advisory rec #1 comment updated to match)",
+            "web/src/lib/reseller/human-blocked-registry.test.ts (9/9 pass — registry carries exactly the two open escalations by id, no dup ids, phase prefix matches id parent, every row has non-empty title/blocker/action_required/owner, owner is a human email (no bot/loop/cron/autonomous labels), P1.5 wording references 0106 + docker exec + NOTIFY pgrst, P8.5 wording names both STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars, buildHumanBlockedSnapshot emits count + item shape {id,owner,phase} in registry order)"
+          ], note: "Digest-freshness gap closed. The weekly-digest cron already invoked formatWeeklyDigestHumanBlockedSection(HUMAN_BLOCKED_ITEMS) at web/src/app/api/cron/reseller-weekly-digest/route.ts:261 (shipped as part of the COO-advisory rec #1 wiring), but the P1.5 entry text pre-dated the H.20 unblock (2026-07-23) and the 0106_infovision_seed.sql authoring (tick 289) — it still told the operator to 'Confirm Auschain's InfoVision ABN + GST status per H.20' even though gst_registered=true was already confirmed. The Monday digest was therefore emitting stale ask-text to admin@blockid.au. This tick rewrites the P1.5 blocker + action_required to name the concrete follow-through work (swap the two placeholders in 0106; run the exact docker exec psql + NOTIFY pgrst command; note that tier 20/40 Stripe coupon/promo IDs are minted separately in P8.5) so the operator can act on the digest row without cross-referencing the goal file. Also introduces a dedicated registry test (previously the registry had no vitest coverage — the digest formatter tests used inline HumanBlockedItem stubs so registry drift would go undetected). The nine cases lock in the invariants a future edit could break: id-set stability, no dupes, phase↔id coherence, non-empty required fields, human-only owners, and the P1.5/P8.5-specific wording anchors that make the digest actionable. Verified: npx vitest run src/lib/reseller/human-blocked-registry.test.ts → 9/9; full src/lib/reseller suite 527/527 (was 518, +9); npx tsc --noEmit clean; npm run lint:reseller unchanged (11 R-01 + 33 R-03 + 8 R-04, 6 exemptions, 0 violations)."}
           P10.au_compliance_notice_review: {status: done, tick: 390, completed_at: 2026-07-24, files: [
             "web/src/lib/reseller/consent-notice.ts (pure module — CONSENT_NOTICE_STRINGS EN+VI extracted from reseller-consent-modal.tsx; APP_5_2_CLAUSES + auditApp52Coverage helper marks each of the ten (a)–(j) clauses)",
             "web/src/lib/reseller/consent-notice.test.ts (11/11 pass — EN/VI shape parity, undefined-fall-through guard, parametric reseller name, APP 5.2 (a)–(j) coverage on both locales, sanity-check that a stripped notice fails audit, Auschain/ACN identity, OAIC complaint path, overseas-processing disclosure)",

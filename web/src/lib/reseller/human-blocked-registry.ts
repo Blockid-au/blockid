@@ -3,8 +3,9 @@
 // COO advisory §h (docs/plans/reviews/plan-review-coo.md rec #1) asked that the
 // two open escalations surface in the weekly digest so admin@blockid.au sees
 // them without having to grep the goal file. The autonomous loop cannot resolve
-// these — they need a human to (a) confirm InfoVision's ABN + GST status per
-// H.20 and (b) mint the Stripe add-on price env vars for share management.
+// these — they need a human to (a) swap the ABN + contact_email placeholders in
+// migration 0106_infovision_seed.sql and apply it via docker exec psql, and
+// (b) mint the Stripe add-on price env vars for share management.
 //
 // Keeping this as a hand-maintained const array (not a goal-file parser) is
 // deliberate: the two entries have been stable since P0 sign-off (tick 43) and
@@ -42,9 +43,9 @@ export const HUMAN_BLOCKED_ITEMS: readonly HumanBlockedItem[] = [
     phase: "P1",
     title: "InfoVision reseller seed",
     blocker:
-      "resellers_seeded_intent.gst_registered + abn are both TBD_verify_at_creation; wholesale row requires both before the INSERT can fire.",
+      "SQL authored at web/supabase/migrations/0106_infovision_seed.sql (gst_registered=true confirmed 2026-07-23) but the resellers.abn '00 000 000 000' and contact_email 'partnerships@infovision.example' placeholders must be replaced with real values before the migration can be applied.",
     action_required:
-      "Confirm Auschain's InfoVision ABN + GST status per H.20 (Auschain existing counsel or LegalVision AU) so a single SQL INSERT can seed the first wholesale reseller row.",
+      "Swap the ABN + contact_email placeholders in 0106_infovision_seed.sql with InfoVision's real 11-digit ABN and partnership contact, then run `docker exec -i supabase-db psql -U postgres -d postgres < web/supabase/migrations/0106_infovision_seed.sql` and issue `NOTIFY pgrst, 'reload schema'`. Tier 20/40 Stripe coupon/promo IDs are separately minted in P8.5.",
     owner: "admin@blockid.au",
   },
   {
