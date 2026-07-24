@@ -113,6 +113,11 @@ import {
   type ExposedCommissionRow,
 } from "@/lib/reseller/clawback-exposure";
 import {
+  computeContributionMargins,
+  formatWeeklyDigestContributionMarginSection,
+  type ContributionMargins,
+} from "@/lib/reseller/contribution-margin";
+import {
   COHORT_MONTHS_WINDOW,
   computeCohortVelocityByReseller,
   formatWeeklyDigestCohortVelocitySection,
@@ -800,6 +805,29 @@ export async function GET(req: Request) {
     if (netSection) html += netSection;
   }
 
+  // P11.34 canonical KPI (`contribution_margin_pct` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Dedicated margin projection folded from the P11.6
+  // NetContributionRow list — sorted by margin desc so most-profitable partners
+  // land first (opposite of P11.6's code-alphabetical sort). Skipped when the
+  // upstream net-contribution feeder itself was skipped so a partial digest
+  // never emits a stale margin section against zero-input. Cron-route wiring
+  // for the P11.34 pure lib (mirrors the P11.14→P11.15 / P11.17→P11.18 /
+  // P11.20→P11.21 / P11.22→P11.23 / P11.24→P11.25 / P11.26→P11.27 /
+  // P11.28→P11.29 / P11.30→P11.31 / P11.32→P11.33 pure-lib-first pattern).
+  let contributionMargins: ContributionMargins | null = null;
+  let contributionMarginSkippedReason: string | null = null;
+  if (netContributionSkippedReason) {
+    contributionMarginSkippedReason = `net_upstream_${netContributionSkippedReason}`;
+  } else {
+    contributionMargins = computeContributionMargins(
+      netContributionRows,
+      currentMonthKey,
+    );
+    const marginSection =
+      formatWeeklyDigestContributionMarginSection(contributionMargins);
+    if (marginSection) html += marginSection;
+  }
+
   // P11.7 canonical KPI (`attributed_churn_30d` from reseller-module-goal.md
   // `weekly_digest_kpis`). Per-reseller count of attributed customers whose
   // subscription_trial_state.status flipped to canceled or trial_ended_no_payment
@@ -1204,6 +1232,9 @@ export async function GET(req: Request) {
     attributed_net_contribution: netContributionSkippedReason
       ? { skipped_reason: netContributionSkippedReason }
       : { rows: netContributionRows },
+    contribution_margin_pct: contributionMarginSkippedReason
+      ? { skipped_reason: contributionMarginSkippedReason }
+      : { rows: contributionMargins?.rows ?? [] },
     attributed_churn_30d: churnSkippedReason
       ? { skipped_reason: churnSkippedReason }
       : { rows: churnRows },
@@ -1580,6 +1611,24 @@ export async function GET(req: Request) {
             commission_cost_cents: r.net.commission_cost_cents,
             credit_cogs_cents: r.net.credit_cogs_cents,
             net_contribution_cents: r.net.net_contribution_cents,
+          })),
+        },
+    contribution_margin_pct: contributionMarginSkippedReason
+      ? { skipped_reason: contributionMarginSkippedReason }
+      : {
+          month_key: currentMonthKey,
+          reseller_count: contributionMargins?.reseller_count ?? 0,
+          portfolio_revenue_cents:
+            contributionMargins?.portfolio_revenue_cents ?? 0,
+          portfolio_net_cents: contributionMargins?.portfolio_net_cents ?? 0,
+          portfolio_margin_pct:
+            contributionMargins?.portfolio_margin_pct ?? null,
+          rows: (contributionMargins?.rows ?? []).map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            revenue_cents: r.revenue_cents,
+            net_contribution_cents: r.net_contribution_cents,
+            margin_pct: r.margin_pct,
           })),
         },
     gst_reconciliation_delta: gstDeltaSkippedReason
