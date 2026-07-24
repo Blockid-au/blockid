@@ -59,6 +59,11 @@ import {
   type DigestSnapshotPerResellerRollingTrend,
 } from "@/lib/reseller/digest-snapshot-per-reseller-rolling-trend";
 import {
+  computeDigestSnapshotPerResellerMetricPctChange,
+  formatDigestSnapshotPerResellerMetricPctChangeSection,
+  type DigestSnapshotPerResellerMetricPctChange,
+} from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change";
+import {
   computeDigestSnapshotTopMovers,
   formatDigestSnapshotTopMoversSection,
   type DigestSnapshotTopMovers,
@@ -1270,6 +1275,9 @@ export async function GET(req: Request) {
   let snapshotPerResellerRollingTrend:
     | DigestSnapshotPerResellerRollingTrend
     | null = null;
+  let snapshotPerResellerMetricPctChange:
+    | DigestSnapshotPerResellerMetricPctChange
+    | null = null;
   let snapshotTopMovers: DigestSnapshotTopMovers | null = null;
   let topMoversSection = "";
   let snapshotTopMoversPerMetric: DigestSnapshotTopMoversPerMetric | null = null;
@@ -1370,6 +1378,31 @@ export async function GET(req: Request) {
       );
     if (perResellerRollingTrendSection)
       html += perResellerRollingTrendSection;
+    // P11.40 — per-(reseller × metric) percent-change drill-down (module
+    // P11.39). Companion to the P11.38 portfolio-scale pct-change section —
+    // guarantees a small partner doubling attributed_mrr at low scale (a
+    // +100% signal worth investigating) surfaces even when a bigger partner
+    // nudging the same metric by 1% wins the raw absolute-cents ranking that
+    // drowns the relative signal in the aggregate denominator. Consumes the
+    // SAME snapshotPerResellerRollingTrend fold P11.29 top-movers-per-
+    // reseller / P11.33 per-reseller direction-streaks read from (no second
+    // per-reseller trend fold, no divergence risk on how first_total /
+    // last_total are computed), and reuses the P11.37 PCT_CHANGE_MATERIAL_
+    // THRESHOLD constant so the "material" band is one source of truth
+    // across the portfolio + per-partner percent-change surfaces. Rendered
+    // directly after the per-reseller rolling trend drill-down (P11.22/
+    // P11.23) so ops walks per-partner absolute trend → per-partner
+    // percent-change drill-down on the same page.
+    snapshotPerResellerMetricPctChange =
+      computeDigestSnapshotPerResellerMetricPctChange(
+        snapshotPerResellerRollingTrend,
+      );
+    const perResellerMetricPctChangeSection =
+      formatDigestSnapshotPerResellerMetricPctChangeSection(
+        snapshotPerResellerMetricPctChange,
+      );
+    if (perResellerMetricPctChangeSection)
+      html += perResellerMetricPctChangeSection;
     // P11.25 — top-N |delta| movers headline (module P11.24). Project the
     // per-reseller rolling trend into the biggest cross-metric shifts and
     // render a compact executive summary. Computed here so the source data
@@ -1791,6 +1824,20 @@ export async function GET(req: Request) {
           skipped_reason:
             previousSnapshotSkipReason ?? "no_previous_snapshot",
         },
+    snapshot_per_reseller_metric_pct_change:
+      snapshotPerResellerMetricPctChange
+        ? {
+            window_size: snapshotPerResellerMetricPctChange.window_size,
+            first_week: snapshotPerResellerMetricPctChange.first_week,
+            last_week: snapshotPerResellerMetricPctChange.last_week,
+            top_n: snapshotPerResellerMetricPctChange.top_n,
+            threshold: snapshotPerResellerMetricPctChange.threshold,
+            rows: snapshotPerResellerMetricPctChange.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     snapshot_top_movers: snapshotTopMovers
       ? {
           window_size: snapshotTopMovers.window_size,
