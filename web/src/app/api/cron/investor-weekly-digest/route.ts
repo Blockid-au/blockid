@@ -26,7 +26,11 @@ import {
   type InvestorDigestTickerRow,
 } from "@/lib/email/investor-digest";
 import { computeListings } from "@/lib/startup-index-listings";
-import { getUnsubscribeUrl } from "@/lib/email-preferences";
+import {
+  canSendEmail,
+  ensureEmailPreferences,
+  getUnsubscribeUrl,
+} from "@/lib/email-preferences";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -213,10 +217,24 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     const name = investor.display_name || investor.email.split("@")[0];
     const isEmpty = top.length === 0;
-    const unsubscribeUrl = getUnsubscribeUrl({
-      email: investor.email,
-      preference: "weekly_summary",
-    });
+
+    // Honour weekly_summary opt-out (docs/plans/atlassian-standard-mapping
+    // -goal.md §P7 exit criteria — reuse email_preferences.weekly_summary
+    // flag). If the investor unsubscribed, skip silently.
+    const allowed = await canSendEmail(investor.email, "weekly_reports");
+    if (!allowed) continue;
+
+    let unsubscribeUrl: string | undefined;
+    try {
+      const token = await ensureEmailPreferences(investor.email);
+      unsubscribeUrl = getUnsubscribeUrl(token, "weekly_reports");
+    } catch (err) {
+      console.warn(
+        "[investor-weekly-digest] unsubscribe url prep failed",
+        investor.email,
+        err,
+      );
+    }
 
     const digest = buildInvestorDigest({
       name,
@@ -243,7 +261,6 @@ export async function GET(req: Request): Promise<NextResponse> {
         to: investor.email,
         subject: digest.subject,
         html: digest.html,
-        preferenceKey: "weekly_summary",
         unsubscribeUrl,
       });
       if (res && (res as { ok?: boolean }).ok !== false) {
