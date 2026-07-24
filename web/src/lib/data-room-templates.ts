@@ -591,7 +591,9 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         format: "pdf",
         priority: "P0",
         description: "Signed IP assignment from each founder to the company",
-        dueDiligenceNotes: "Missing IP assignment = major red flag. Must predate company existence work.",
+        template_slug: "au-ip-assignment-deed-founder",
+        dueDiligenceNotes:
+          "Missing IP assignment = major red flag. Must predate company existence work. See /legal-templates/au-ip-assignment-deed-founder for a deed-form template with retrospective effect and Electronic Transactions Act e-signing block.",
       },
       {
         name: "ESOP Plan Rules",
@@ -1023,6 +1025,9 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         format: "pdf",
         priority: "P0",
         description: "Contracts with all contractors confirming IP assigned to company",
+        template_slug: "au-ip-assignment-deed-contractor",
+        dueDiligenceNotes:
+          "Under s35(6) Copyright Act 1968 (Cth) contractor IP defaults to the contractor, not the company. See /legal-templates/au-ip-assignment-deed-contractor for a deed-form assignment covering Foreground IP, moral rights consent, and Background IP licence.",
       },
       {
         name: "Trademark / Patent Register",

@@ -26,7 +26,7 @@ describe("LEGAL_TEMPLATES registry", () => {
     const slugs = LEGAL_TEMPLATES.map((t) => t.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
     for (const tpl of LEGAL_TEMPLATES) {
-      expect(["corporate", "employment", "fundraising"]).toContain(
+      expect(["corporate", "employment", "fundraising", "ip"]).toContain(
         tpl.category,
       );
       expect(tpl.disclaimer).toMatch(/NOT LEGAL ADVICE/i);
@@ -353,5 +353,219 @@ describe("au-safe template", () => {
     // Section-toggle tokens must not leak into rendered output.
     expect(rendered).not.toMatch(/variant_cap_only/);
     expect(rendered).not.toMatch(/variant_discount_only/);
+  });
+});
+
+
+describe("au-ip-assignment-deed-founder template", () => {
+  const tpl = getTemplate("au-ip-assignment-deed-founder");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-1 ip template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.category).toBe("ip");
+    expect(tpl?.phase_slug).toBe("phase-1");
+    expect(listTemplates().some((t) => t.slug === "au-ip-assignment-deed-founder"))
+      .toBe(true);
+  });
+
+  it("declares the AU IP-statute anchors reviewers need", () => {
+    // Executed-as-deed is what makes the founder→own-company assignment
+    // enforceable without consideration; must appear on the doc.
+    expect(body).toMatch(/[Ee]xecuted as a deed/);
+    // Copyright + Patents + Designs + Trade Marks + Circuit Layouts + PBR —
+    // the six-statute stack that gives an AU company complete IP coverage.
+    expect(body).toMatch(/Copyright Act 1968/);
+    expect(body).toMatch(/Patents Act 1990/);
+    expect(body).toMatch(/Designs Act 2003/);
+    expect(body).toMatch(/Trade Marks Act 1995/);
+    expect(body).toMatch(/Circuit Layouts Act 1989/);
+    expect(body).toMatch(/Plant Breeder's Rights Act 1994/);
+    // Retrospective-effect + trust-until-perfected — the two mechanics
+    // investors' lawyers look for to close pre-incorporation IP gaps.
+    expect(body).toMatch(/[Rr]etrospective/);
+    expect(body).toMatch(/on trust for the Company/);
+    // Moral-rights consent under s195AW / s195AWA — this is what a US
+    // template misses.
+    expect(body).toMatch(/section 195AW|s195AW/);
+    expect(body).toMatch(/moral rights/i);
+    // s127 Corporations Act execution block — the AU-standard signing convention.
+    expect(body).toMatch(/section 127|s127/);
+    // Electronic Transactions Act e-signing anchor — closes the "not e-signable" gap.
+    expect(body).toMatch(/Electronic Transactions Act 1999/);
+    // PPSR consent for any Foreground IP that is personal property.
+    expect(body).toMatch(/Personal Property Securities Act 2009/);
+    // AFSL disclaimer must appear at the top.
+    expect(body).toMatch(/NOT LEGAL ADVICE/);
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("substitutes party fields and strips the second-director block when solo", () => {
+    const rendered = applySubstitutions(body, {
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      registered_office_address: "Sydney NSW 2000",
+      company_business_description: "cap-table + valuation SaaS",
+      founder_name: "Alice Founder",
+      founder_address: "Sydney NSW 2000",
+      effective_date: "1 July 2026",
+      director_name: "Alice Founder",
+      excluded_ip_description: "None.",
+      annexure_a_disclosures: "None.",
+      annexure_b_ip_description: "All source code + copy in the acme/main repo.",
+      restraint_period_months: "6",
+      restraint_geography: "Australia",
+      restraint_scope: "SaaS cap-table tools",
+      governing_state: "New South Wales",
+      sole_director: "true",
+      revision_date: "2026-07-24",
+    });
+    expect(rendered).toContain("Acme Innovation Pty Ltd");
+    expect(rendered).toContain("ACN 659 615 111");
+    expect(rendered).toContain("Alice Founder");
+    // Sole-director variant kept, second-director block stripped.
+    expect(rendered).toMatch(/Sole director/);
+    expect(rendered).not.toMatch(/second_director_name/);
+    // Absent value → token stays visible so the founder sees the gap.
+    const missing = applySubstitutions(body, { founder_name: "Alice" });
+    expect(missing).toContain("{{company_name}}");
+  });
+});
+
+describe("au-ip-assignment-deed-contractor template", () => {
+  const tpl = getTemplate("au-ip-assignment-deed-contractor");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-4 ip template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.category).toBe("ip");
+    expect(tpl?.phase_slug).toBe("phase-4");
+    expect(listTemplates().some((t) => t.slug === "au-ip-assignment-deed-contractor"))
+      .toBe(true);
+  });
+
+  it("declares the contractor-specific anchors reviewers need", () => {
+    // s35(6) is the single line that explains why this deed is necessary
+    // for contractors (but not for employees).
+    expect(body).toMatch(/section 35\(6\)|s35\(6\)/);
+    expect(body).toMatch(/Copyright Act 1968/);
+    // Foreground IP / Background IP split — the reason we don't just reuse
+    // the founder template.
+    expect(body).toMatch(/Foreground IP/);
+    expect(body).toMatch(/Background IP/);
+    // Background-IP licence must be perpetual + royalty-free + sublicensable
+    // to survive the "we bought a startup that can't ship without paying its
+    // old contractor" acquirer-diligence question.
+    expect(body).toMatch(/perpetual/);
+    expect(body).toMatch(/royalty-free/);
+    expect(body).toMatch(/sublicensable/);
+    // Sham-contracting representation — the Personnel Contracting / Jamsek
+    // anchor that closes the "were they really a contractor?" risk.
+    expect(body).toMatch(/[Ss]ham.contracting/);
+    expect(body).toMatch(/Personnel Contracting|Jamsek/);
+    expect(body).toMatch(/Fair Work Act 2009/);
+    // Moral-rights procurement clause for contractor-as-entity (not just
+    // contractor-as-individual) — closes the agency / studio case.
+    expect(body).toMatch(/procure.*consent|written moral-rights consent/i);
+    // s127 + Electronic Transactions Act — e-signing anchor.
+    expect(body).toMatch(/section 127|s127/);
+    expect(body).toMatch(/Electronic Transactions Act 1999/);
+    // Deed form + AFSL disclaimer.
+    expect(body).toMatch(/[Ee]xecuted as a deed/);
+    expect(body).toMatch(/NOT LEGAL ADVICE/);
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("honours contractor-as-entity vs contractor-as-individual toggles", () => {
+    const entity = applySubstitutions(body, {
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      registered_office_address: "Sydney NSW 2000",
+      contractor_name: "Widget Studios Pty Ltd",
+      contractor_abn: "12 345 678 901",
+      contractor_address: "Melbourne VIC 3000",
+      contractor_signatory_name: "Sam Studio",
+      contractor_signatory_title: "Director",
+      services_agreement_date: "1 June 2026",
+      services_description: "Annexure B",
+      effective_date: "1 July 2026",
+      director_name: "Alice Founder",
+      annexure_a_disclosures: "None.",
+      annexure_b_deliverables_description: "Marketing site source code.",
+      governing_state: "New South Wales",
+      contractor_is_entity: "true",
+      sole_director: "true",
+      revision_date: "2026-07-24",
+    });
+    // Entity block present with ABN line; individual witness block stripped.
+    expect(entity).toContain("Widget Studios Pty Ltd");
+    expect(entity).toContain("ABN 12 345 678 901");
+    expect(entity).toContain("Sam Studio");
+    expect(entity).not.toMatch(/Witness signature/);
+
+    const individual = applySubstitutions(body, {
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      registered_office_address: "Sydney NSW 2000",
+      contractor_name: "Frida Freelancer",
+      contractor_abn: "",
+      contractor_address: "Brisbane QLD 4000",
+      contractor_signatory_name: "",
+      contractor_signatory_title: "",
+      services_agreement_date: "1 June 2026",
+      services_description: "Annexure B",
+      effective_date: "1 July 2026",
+      director_name: "Alice Founder",
+      annexure_a_disclosures: "None.",
+      annexure_b_deliverables_description: "React components.",
+      governing_state: "New South Wales",
+      contractor_is_individual: "true",
+      sole_director: "true",
+      revision_date: "2026-07-24",
+    });
+    // Individual block present with witness line; entity ABN block stripped.
+    expect(individual).toMatch(/Witness signature/);
+    expect(individual).not.toMatch(/Sam Studio/);
+    // Section-toggle tokens must never leak.
+    expect(individual).not.toMatch(/contractor_is_entity/);
+    expect(individual).not.toMatch(/contractor_is_individual/);
   });
 });
