@@ -199,3 +199,6 @@
 {"tick_id":"2026-07-24T11-47-01-791Z","ts":"2026-07-24T11:53:21.587Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"4396b0bf","last_deployed":"3d11838"}
 {"tick_id":"2026-07-24T11-47-01-791Z","ts":"2026-07-24T11:59:34.130Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"4396b0bf"}
 {"tick_id":"2026-07-24T11-47-01-791Z","ts":"2026-07-24T11:59:34.131Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:07:01.953Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:07:01.966Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T12-12-00-000Z","ts":"2026-07-24T12:12:45.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P7a","summary":"Founder-side weekly digest cron + email helper (P7a follow-up shipped) — GET /api/cron/founder-weekly-digest, buildFounderDigest() with 8 vitest cases, snapshot persistence on successful send"}
