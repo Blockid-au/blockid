@@ -2408,9 +2408,15 @@ export function SVIReportPDF({
             are all included.
           </Text>
 
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <ActionItem num={1} text="Build your Data Room" detail="Organize cap table, legal docs, pitch deck for investors" />
-          </View>
+          {/*
+            NOTE: Do NOT wrap a single ActionItem in a `flexDirection: "row"` View.
+            React-PDF sizes an outer row-flex to its natural minimum width, which
+            squeezes the inner `flex: 1` text column and forces per-word/per-syllable
+            wrapping (e.g. "Build\nyour\nData\nRoom"). Keep all ActionItems as
+            direct column-stacked children of the CTA box — actionRow already
+            carries marginBottom for spacing.
+          */}
+          <ActionItem num={1} text="Build your Data Room" detail="Organize cap table, legal docs, pitch deck for investors" />
           <ActionItem num={2} text="Create your Pitch Deck" detail="BlockID templates guide you through investor storytelling" />
           <ActionItem num={3} text="Clean your Cap Table" detail="Get investor-ready equity structure and ESOP allocation" />
         </View>
