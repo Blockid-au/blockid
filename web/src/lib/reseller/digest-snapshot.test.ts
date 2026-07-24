@@ -4,6 +4,7 @@ import {
   buildDigestSnapshot,
   parseDigestSnapshotLine,
   readLastDigestSnapshot,
+  readLastNDigestSnapshots,
   serialiseDigestSnapshot,
   summariseDigestSnapshot,
   type DigestSnapshotEnvelope,
@@ -292,5 +293,105 @@ describe("readLastDigestSnapshot", () => {
 
   it("returns null when every line is corrupted", () => {
     expect(readLastDigestSnapshot("nope\nnah\n")).toBeNull();
+  });
+});
+
+describe("readLastNDigestSnapshots", () => {
+  function makeLine(week: string): string {
+    return serialiseDigestSnapshot(
+      buildDigestSnapshot({ capturedAt: CAPTURED, week, envelope: baseEnvelope() }),
+    );
+  }
+
+  it("returns [] on empty input", () => {
+    expect(readLastNDigestSnapshots("", 4)).toEqual([]);
+  });
+
+  it("returns [] on non-string input", () => {
+    expect(
+      readLastNDigestSnapshots(undefined as unknown as string, 4),
+    ).toEqual([]);
+  });
+
+  it("returns [] when n is 0 or negative or non-finite", () => {
+    const text = makeLine("2026-W28");
+    expect(readLastNDigestSnapshots(text, 0)).toEqual([]);
+    expect(readLastNDigestSnapshots(text, -3)).toEqual([]);
+    expect(readLastNDigestSnapshots(text, Number.NaN)).toEqual([]);
+    expect(readLastNDigestSnapshots(text, Number.POSITIVE_INFINITY)).toEqual([]);
+  });
+
+  it("returns the single row when the file has exactly one snapshot", () => {
+    const rows = readLastNDigestSnapshots(makeLine("2026-W28"), 4);
+    expect(rows.map((r) => r.week)).toEqual(["2026-W28"]);
+  });
+
+  it("returns up to N newest rows in oldest → newest order", () => {
+    const text =
+      makeLine("2026-W25") +
+      makeLine("2026-W26") +
+      makeLine("2026-W27") +
+      makeLine("2026-W28") +
+      makeLine("2026-W29") +
+      makeLine("2026-W30");
+    const rows = readLastNDigestSnapshots(text, 4);
+    expect(rows.map((r) => r.week)).toEqual([
+      "2026-W27",
+      "2026-W28",
+      "2026-W29",
+      "2026-W30",
+    ]);
+  });
+
+  it("returns every row (no padding) when the file has fewer rows than N", () => {
+    const text = makeLine("2026-W28") + makeLine("2026-W29");
+    const rows = readLastNDigestSnapshots(text, 10);
+    expect(rows.map((r) => r.week)).toEqual(["2026-W28", "2026-W29"]);
+  });
+
+  it("skips corrupted trailing lines and still returns N parseable rows", () => {
+    const text =
+      makeLine("2026-W27") +
+      makeLine("2026-W28") +
+      makeLine("2026-W29") +
+      "{not-json\n" +
+      "another-bad\n";
+    const rows = readLastNDigestSnapshots(text, 2);
+    expect(rows.map((r) => r.week)).toEqual(["2026-W28", "2026-W29"]);
+  });
+
+  it("skips corrupted interior lines while collecting the newest N", () => {
+    const text =
+      makeLine("2026-W26") +
+      "garbled\n" +
+      makeLine("2026-W28") +
+      "another-bad\n" +
+      makeLine("2026-W30");
+    const rows = readLastNDigestSnapshots(text, 3);
+    expect(rows.map((r) => r.week)).toEqual([
+      "2026-W26",
+      "2026-W28",
+      "2026-W30",
+    ]);
+  });
+
+  it("handles a file with no trailing newline (mid-write truncation)", () => {
+    const text =
+      makeLine("2026-W29") +
+      serialiseDigestSnapshot(
+        buildDigestSnapshot({ capturedAt: CAPTURED, week: "2026-W30", envelope: baseEnvelope() }),
+      ).replace(/\n$/, "");
+    const rows = readLastNDigestSnapshots(text, 4);
+    expect(rows.map((r) => r.week)).toEqual(["2026-W29", "2026-W30"]);
+  });
+
+  it("returns [] when every line is corrupted", () => {
+    expect(readLastNDigestSnapshots("nope\nnah\n", 4)).toEqual([]);
+  });
+
+  it("floors a fractional N so n=2.9 caps at 2 rows", () => {
+    const text = makeLine("2026-W28") + makeLine("2026-W29") + makeLine("2026-W30");
+    const rows = readLastNDigestSnapshots(text, 2.9);
+    expect(rows.map((r) => r.week)).toEqual(["2026-W29", "2026-W30"]);
   });
 });
