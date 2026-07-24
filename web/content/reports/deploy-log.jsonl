@@ -1275,3 +1275,5 @@
 {"ts":"2026-07-24T08:43:02.132Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T08-35-01-196Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T08:45:19Z","status":"success","gates":"9/9","pid":"3330658","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T08:52:24.453Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.4 clawback_exposure KPI in weekly digest — 651/651 (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T08:52:33.392Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T08-45-01-973Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T08:54:32.564Z","event":"github-push-master","detail":"Blockid-au: feat(compliance): P1k — ship compliance-calendar.ics generator (BAS + ASIC + AusIndustry R&D) (1 commits)","source":"github-webhook"}

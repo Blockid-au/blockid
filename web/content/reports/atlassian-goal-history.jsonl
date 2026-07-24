@@ -103,3 +103,5 @@
 {"tick_id":"2026-07-24T08-47-01-444Z","ts":"2026-07-24T08:47:01.445Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T08-47-01-444Z","ts":"2026-07-24T08:47:01.451Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-24T08-53-42-239Z","ts":"2026-07-24T08:53:42.237Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase_id":"P1k","summary":"compliance-calendar.ics generator (BAS + ASIC annual review + AusIndustry R&D) with 14-day VALARMs; 14 vitest cases green"}
+{"tick_id":"2026-07-24T08-47-01-444Z","ts":"2026-07-24T08:54:36.956Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":455503,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-24T08-47-01-444Z","ts":"2026-07-24T08:54:36.991Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":5}
