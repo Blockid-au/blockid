@@ -19,7 +19,11 @@ import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-export type LegalTemplateCategory = "corporate" | "employment" | "fundraising";
+export type LegalTemplateCategory =
+  | "corporate"
+  | "employment"
+  | "fundraising"
+  | "ip";
 
 export interface LegalTemplateSource {
   label: string;
@@ -181,6 +185,112 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
       {
         label: "Restraints of Trade Act 1976 (NSW)",
         url: "https://legislation.nsw.gov.au/view/whole/html/inforce/current/act-1976-067",
+      },
+    ],
+  },
+  {
+    slug: "au-ip-assignment-deed-founder",
+    title: "AU Founder IP Assignment Deed",
+    category: "ip",
+    phase_slug: "phase-1",
+    summary:
+      "Executed as a deed (no consideration needed) — assigns all pre-incorporation and future IP from a founder to the company with retrospective effect, moral rights consent, and Electronic Transactions Act e-signing block.",
+    file_path: "web/content/templates/legal/au-ip-assignment-deed-founder.md",
+    version: "1.0",
+    revision_date: "2026-07-24",
+    disclaimer: DISCLAIMER_SHORT,
+    placeholders: [
+      "company_name",
+      "acn",
+      "registered_office_address",
+      "company_business_description",
+      "founder_name",
+      "founder_address",
+      "effective_date",
+      "director_name",
+      "second_director_name",
+      "excluded_ip_description",
+      "annexure_a_disclosures",
+      "annexure_b_ip_description",
+      "restraint_period_months",
+      "restraint_geography",
+      "restraint_scope",
+      "governing_state",
+      "revision_date",
+    ],
+    sources: [
+      {
+        label: "Copyright Act 1968 (Cth) — Part IX (moral rights) + s195AW / s195AWA",
+        url: "https://www.legislation.gov.au/C1968A00063/latest/text",
+      },
+      {
+        label: "Patents Act 1990 (Cth) + Designs Act 2003 (Cth) + Trade Marks Act 1995 (Cth)",
+        url: "https://www.ipaustralia.gov.au/",
+      },
+      {
+        label: "Corporations Act 2001 (Cth) — s127 execution",
+        url: "https://www.legislation.gov.au/C2004A00818/latest/text",
+      },
+      {
+        label: "Electronic Transactions Act 1999 (Cth) — e-signature validity",
+        url: "https://www.legislation.gov.au/C2004A00553/latest/text",
+      },
+      {
+        label: "Personal Property Securities Act 2009 (Cth)",
+        url: "https://www.legislation.gov.au/C2009A00130/latest/text",
+      },
+    ],
+  },
+  {
+    slug: "au-ip-assignment-deed-contractor",
+    title: "AU Contractor IP Assignment Deed",
+    category: "ip",
+    phase_slug: "phase-4",
+    summary:
+      "Closes the raise-blocking gap where contractor code defaults to the contractor (not the company) — assigns Foreground IP, licenses Background IP, procures moral rights consent, and includes a sham-contracting representation.",
+    file_path: "web/content/templates/legal/au-ip-assignment-deed-contractor.md",
+    version: "1.0",
+    revision_date: "2026-07-24",
+    disclaimer: DISCLAIMER_SHORT,
+    placeholders: [
+      "company_name",
+      "acn",
+      "registered_office_address",
+      "contractor_name",
+      "contractor_abn",
+      "contractor_address",
+      "contractor_signatory_name",
+      "contractor_signatory_title",
+      "services_agreement_date",
+      "services_description",
+      "effective_date",
+      "director_name",
+      "second_director_name",
+      "annexure_a_disclosures",
+      "annexure_b_deliverables_description",
+      "governing_state",
+      "revision_date",
+    ],
+    sources: [
+      {
+        label: "Copyright Act 1968 (Cth) — s35(6) (default employer/contractor rule) + Part IX",
+        url: "https://www.legislation.gov.au/C1968A00063/latest/text",
+      },
+      {
+        label: "Fair Work Act 2009 (Cth) — Part 3-1 (sham contracting)",
+        url: "https://www.legislation.gov.au/C2009A00028/latest/text",
+      },
+      {
+        label: "CFMMEU v Personnel Contracting [2022] HCA 1 (contractor vs employee test)",
+        url: "https://eresources.hcourt.gov.au/showCase/2022/HCA/1",
+      },
+      {
+        label: "Corporations Act 2001 (Cth) — s127 execution",
+        url: "https://www.legislation.gov.au/C2004A00818/latest/text",
+      },
+      {
+        label: "Electronic Transactions Act 1999 (Cth) — e-signature validity",
+        url: "https://www.legislation.gov.au/C2004A00553/latest/text",
       },
     ],
   },
