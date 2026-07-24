@@ -1,6 +1,6 @@
 {
   "version": "3.1.0",
-  "updatedAt": "2026-07-23T14:00:01.999Z",
+  "updatedAt": "2026-07-24T12:04:07.811Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-07-22T14:00:02.174Z",
@@ -32,7 +32,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-07-23T12:04:03.207Z",
+    "decidedAt": "2026-07-24T12:04:07.811Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1222,6 +1222,33 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-07-23T12:04:03.207Z"
+      },
+      {
+        "id": "T0172",
+        "agent": "cfo",
+        "title": "Integrate VC valuation methods and sector ARR/revenue multiples into the Multi-Method Valuation Engine",
+        "rationale": "Recent research on VC valuation methods and sector ARR/revenue multiples can enhance the accuracy and relevance of the Multi-Method Valuation Engine",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-24T12:04:07.811Z"
+      },
+      {
+        "id": "T0173",
+        "agent": "cro",
+        "title": "Develop and integrate the Next-Best-Action/DIRECTION engine to sequence founder actions by weakest SCN layer and stage",
+        "rationale": "Recent research on Next-Best-Action/DIRECTION engine and funding readiness scoring can improve the effectiveness of the Startup Navigation System",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-24T12:04:07.811Z"
+      },
+      {
+        "id": "T0174",
+        "agent": "rnd",
+        "title": "Integrate new AI tools and capabilities for founder narrative generation and startup ecosystem analysis",
+        "rationale": "Recent research on emerging founder pain points, new AI tools, and competitor moves can inform the development of new features and capabilities",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-24T12:04:07.811Z"
       }
     ]
   },
