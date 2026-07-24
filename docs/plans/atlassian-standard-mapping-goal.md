@@ -125,7 +125,7 @@ phased_tracks:
     depends_on: [P1_dataroom_map]
     exit_criteria:
       - esic-gate.ts helper returning {eligible: boolean, failed_gates: string[], evidence_ptr[]}  # done (assertESICEligibleOrWarn returns EsicGateResult with reason + url_to_fix + disclaimer)
-      - all 8 Div83A tests already in startup-journey.ts:621-641 (chapter 08) exposed via a shared module and wired into ch09 investor-readiness pack  # done via P6a — shared module at web/src/lib/compliance/div83a-qualifying-tests.ts, gate at web/src/lib/compliance/div83a-funding-gate.ts mirrors assertESICEligibleOrWarn shape and blocks wholesale-only fundraise rounds; ch09 investor-readiness pack import remains follow-up P6a-ir-pack
+      - all 8 Div83A tests already in startup-journey.ts:621-641 (chapter 08) exposed via a shared module and wired into ch09 investor-readiness pack  # done via P6a — shared module at web/src/lib/compliance/div83a-qualifying-tests.ts, gate at web/src/lib/compliance/div83a-funding-gate.ts mirrors assertESICEligibleOrWarn shape and blocks wholesale-only fundraise rounds; P6a-ir-pack shipped 2026-07-24 — buildEsopEligibilitySection(gateResult, locale) at web/src/lib/investor-pack/esop-eligibility-section.ts + 5 vitest cases; assemblePackData() calls assertDiv83AEligibleOrWarn (warn-only, action="investor_pack_assemble") and populates the new InvestorPackData.esopEligibility field with the 8 canonical Div 83A qualifying tests + gate status + disclaimer
       - AFSL disclaimer visibly attached to any surface that outputs the ESIC eligibility JSON (no personal advice)  # done (ESIC_DISCLAIMER on every gate response)
   P7_weekly_digest_integration:
     status: shipped
