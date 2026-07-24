@@ -1464,3 +1464,4 @@
 {"ts":"2026-07-24T17:41:49Z","status":"success","gates":"9/9","pid":"986060","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T17:43:39.142Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal): P10-s708counter-adapter share-register→S708OfferEvent normaliser (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T17:43:48.093Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T17-37-01-758Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T17:49:11.246Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.44 wire per-metric pct-change coverage into weekly digest cron (1 commits)","source":"github-webhook"}
