@@ -154,6 +154,11 @@ import {
   type DigestSnapshotDirectionStreakLeaderboard,
 } from "@/lib/reseller/digest-snapshot-direction-streak-leaderboard";
 import {
+  computeDigestSnapshotPctChangeStreakLeaderboard,
+  formatDigestSnapshotPctChangeStreakLeaderboardSection,
+  type DigestSnapshotPctChangeStreakLeaderboard,
+} from "@/lib/reseller/digest-snapshot-pct-change-streak-leaderboard";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1403,6 +1408,10 @@ export async function GET(req: Request) {
     | DigestSnapshotDirectionStreakLeaderboard
     | null = null;
   let directionStreakLeaderboardSection = "";
+  let snapshotPctChangeStreakLeaderboard:
+    | DigestSnapshotPctChangeStreakLeaderboard
+    | null = null;
+  let pctChangeStreakLeaderboardSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1863,6 +1872,34 @@ export async function GET(req: Request) {
       formatDigestSnapshotDirectionStreakLeaderboardSection(
         snapshotDirectionStreakLeaderboard,
       );
+    // P11.68 — top-of-fold sustained-|pct|-material streak leaderboard (module
+    // P11.67). |pct|-magnitude analogue of the P11.66 direction-streak
+    // leaderboard: ranks the most-volatile sustained-|pct|-material streaks
+    // across the (metric × partner) matrix by length desc primary,
+    // cumulative_abs_pct desc secondary so both persistence and total swing
+    // magnitude float to the top. Delegates to
+    // computeDigestSnapshotPerResellerPctChangeStreaks through the pure lib so
+    // leaderboard entries cannot diverge from the P11.51/P11.52 spotlight rows
+    // they summarise — an entry ranked #1 here appears in the P11.52 table
+    // below with matching length / max_abs_pct / min_abs_pct / transitions.
+    // Consumes the SAME snapshotPerResellerRollingTrend the P11.51 detector
+    // already consumes (no extra fold, no divergence risk vs. the spotlight
+    // rows this leaderboard tops). Lands directly ABOVE
+    // perResellerPctChangeStreaksSection (P11.51/P11.52) so ops reads the
+    // top-N leaderboard strip before scrolling into the full drill-down table
+    // — on a large portfolio the P11.51 spotlight is length-sorted but uncapped
+    // and can carry dozens of rows, and this leaderboard surfaces the most
+    // volatile partner × KPI runs at a glance. total_qualified is carried on
+    // the envelope so a "Top 10 of 47" caption tells ops how much detail lives
+    // in the P11.51/P11.52 spotlight below.
+    snapshotPctChangeStreakLeaderboard =
+      computeDigestSnapshotPctChangeStreakLeaderboard(
+        snapshotPerResellerRollingTrend,
+      );
+    pctChangeStreakLeaderboardSection =
+      formatDigestSnapshotPctChangeStreakLeaderboardSection(
+        snapshotPctChangeStreakLeaderboard,
+      );
   }
   if (
     topMoversSection ||
@@ -1878,6 +1915,7 @@ export async function GET(req: Request) {
     perMetricPctChangeStreakCoverageSection ||
     pctChangeStreaksSection ||
     perResellerPctChangeStreakCoverageSection ||
+    pctChangeStreakLeaderboardSection ||
     perResellerPctChangeStreaksSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
@@ -1910,6 +1948,7 @@ export async function GET(req: Request) {
       perMetricPctChangeStreakCoverageSection +
       pctChangeStreaksSection +
       perResellerPctChangeStreakCoverageSection +
+      pctChangeStreakLeaderboardSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -2518,6 +2557,24 @@ export async function GET(req: Request) {
             total_qualified:
               snapshotDirectionStreakLeaderboard.total_qualified,
             rows: snapshotDirectionStreakLeaderboard.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_pct_change_streak_leaderboard:
+      snapshotPctChangeStreakLeaderboard
+        ? {
+            window_size: snapshotPctChangeStreakLeaderboard.window_size,
+            first_week: snapshotPctChangeStreakLeaderboard.first_week,
+            last_week: snapshotPctChangeStreakLeaderboard.last_week,
+            min_streak_length:
+              snapshotPctChangeStreakLeaderboard.min_streak_length,
+            threshold: snapshotPctChangeStreakLeaderboard.threshold,
+            top_n: snapshotPctChangeStreakLeaderboard.top_n,
+            total_qualified:
+              snapshotPctChangeStreakLeaderboard.total_qualified,
+            rows: snapshotPctChangeStreakLeaderboard.rows,
           }
         : {
             skipped_reason:
