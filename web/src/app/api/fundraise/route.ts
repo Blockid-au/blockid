@@ -9,6 +9,7 @@ import {
   type CapTableData,
 } from "@/lib/fundraise";
 import { assertESICEligibleOrWarn } from "@/lib/compliance/esic-funding-gate";
+import { assertDiv83AEligibleOrWarn } from "@/lib/compliance/div83a-funding-gate";
 
 // Extra body flag — the /api/fundraise endpoint historically took only
 // FundraiseRound fields. The ESIC gate (P6) needs to know whether the
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
   // + AusIndustry ESIC + s911A/s1041H references.
   const wholesaleOnly = body.wholesaleOnly === true;
   let esicWarn: unknown = undefined;
+  let div83aWarn: unknown = undefined;
   try {
     const project = await getActiveProject(user.id);
     const gate = await assertESICEligibleOrWarn(supabase, {
@@ -117,9 +119,35 @@ export async function POST(request: NextRequest) {
       );
     }
     esicWarn = gate.warn;
+
+    // Div 83A ESOP gate (P6a). Protects the *employee*-facing ESS
+    // start-up concession story: a wholesale-only round that pitches
+    // "your options qualify for the Div 83A concession" must not go
+    // out while an active grant has div83a_status='ineligible' /
+    // 'unsure' / null. Warn-only for standard rounds.
+    const div83a = await assertDiv83AEligibleOrWarn(supabase, {
+      userId: user.id,
+      projectId: project?.id ?? null,
+      requireEligible: wholesaleOnly,
+      action: "fundraise_round_create",
+    });
+    if (!div83a.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "div83a_gate_blocked",
+          reason: div83a.reason,
+          message: div83a.message,
+          url_to_fix: div83a.url_to_fix,
+          disclaimer: div83a.disclaimer,
+        },
+        { status: 412 },
+      );
+    }
+    div83aWarn = div83a.warn;
   } catch (err) {
     // Never let the gate break a legitimate flow — log and proceed.
-    console.warn("[fundraise] esic gate errored", err);
+    console.warn("[fundraise] compliance gate errored", err);
   }
 
   // Fetch current cap table
@@ -214,6 +242,7 @@ export async function POST(request: NextRequest) {
     dilutionTable: result.dilutionTable,
     newCapTable: result.newCapTable,
     ...(esicWarn ? { esic_warn: esicWarn } : {}),
+    ...(div83aWarn ? { div83a_warn: div83aWarn } : {}),
   });
 }
 
