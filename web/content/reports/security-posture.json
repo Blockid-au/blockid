@@ -1,5 +1,5 @@
 {
-  "date": "2026-07-23",
+  "date": "2026-07-24",
   "overall": 26,
   "status": "RED",
   "dimensions": [
@@ -7,39 +7,39 @@
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "279/344 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "298/371 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
+        "Ungated: api/abr/lookup/route.ts",
+        "Ungated: api/abs/lookup/route.ts",
         "Ungated: api/actions/route.ts",
         "Ungated: api/ai/esop/route.ts",
         "Ungated: api/ai/vesting/route.ts",
         "Ungated: api/ai/vesting-review/route.ts",
-        "Ungated: api/auth/github/callback/route.ts",
-        "Ungated: api/auth/github/route.ts",
-        "Ungated: api/auth/google/route.ts"
+        "Ungated: api/asic/extract/route.ts"
       ]
     },
     {
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 1,
-      "detail": "18/344 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "19/371 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
+        "No rate-limit: api/abr/lookup/route.ts",
+        "No rate-limit: api/abs/lookup/route.ts",
         "No rate-limit: api/accelerator/cohort/route.ts",
         "No rate-limit: api/account/notify-prefs/route.ts",
         "No rate-limit: api/actions/route.ts",
         "No rate-limit: api/admin/accelerator/[id]/route.ts",
-        "No rate-limit: api/admin/accelerator/route.ts",
-        "No rate-limit: api/admin/affiliate/[resellerId]/attributions/route.ts",
-        "No rate-limit: api/admin/affiliate/attributions/[attributionId]/revoke/route.ts"
+        "No rate-limit: api/admin/accelerator/route.ts"
       ]
     },
     {
       "key": "secrets_hygiene",
       "label": "Secrets hygiene (no committed credentials)",
       "score": 0,
-      "detail": "18 suspicious lines",
+      "detail": "19 suspicious lines",
       "findings": [
         "Leak: src/app/api/cron/security-posture/route.ts:126:    \"STRIPE_SECRET_KEY=sk_\",",
         "Leak: src/app/api/cron/security-posture/route.ts:127:    \"SUPABASE_SERVICE_ROLE_KEY=ey\",",
