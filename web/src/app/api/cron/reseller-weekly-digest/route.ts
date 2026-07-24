@@ -69,6 +69,11 @@ import {
   type DigestSnapshotTopMoversPerReseller,
 } from "@/lib/reseller/digest-snapshot-top-movers-per-reseller";
 import {
+  computeDigestSnapshotDirectionStreaks,
+  formatDigestSnapshotDirectionStreaksSection,
+  type DigestSnapshotDirectionStreaks,
+} from "@/lib/reseller/digest-snapshot-direction-streaks";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1231,6 +1236,8 @@ export async function GET(req: Request) {
     | DigestSnapshotTopMoversPerReseller
     | null = null;
   let topMoversPerResellerSection = "";
+  let snapshotDirectionStreaks: DigestSnapshotDirectionStreaks | null = null;
+  let directionStreaksSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1337,25 +1344,44 @@ export async function GET(req: Request) {
       formatDigestSnapshotTopMoversPerResellerSection(
         snapshotTopMoversPerReseller,
       );
+    // P11.31 — sustained-direction streak detector (module P11.30). Projects
+    // the SAME portfolio-wide rolling trend used by P11.21 down to the longest
+    // run of consecutive same-sign point-to-point deltas per metric. Answers
+    // the persistence angle the |delta|-magnitude ranking (P11.24/P11.26/
+    // P11.28) may bury — a metric that slid every week is a fundamentally
+    // different signal from one that dropped once and stayed flat, even at
+    // equal |first→last| delta. Consumes snapshotRollingTrend directly (no
+    // second trend fold, no divergence risk vs. the drill-down trend table
+    // this streak summary sits above).
+    snapshotDirectionStreaks = computeDigestSnapshotDirectionStreaks(
+      snapshotRollingTrend,
+    );
+    directionStreaksSection = formatDigestSnapshotDirectionStreaksSection(
+      snapshotDirectionStreaks,
+    );
   }
   if (
     topMoversSection ||
     topMoversPerMetricSection ||
-    topMoversPerResellerSection
+    topMoversPerResellerSection ||
+    directionStreaksSection
   ) {
-    // Splice all three executive-summary sections above the fold, in the
-    // order P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) →
-    // P11.28 (per-reseller spotlight) so the biggest single shift lands
-    // first, the per-metric coverage table rounds out any metric whose mover
-    // was buried by unit-scale dominance, and the per-reseller spotlight
-    // guarantees every partner with any material shift gets at least one row
-    // regardless of whether they lead a metric group globally.
+    // Splice all executive-summary sections above the fold, in the order
+    // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
+    // (per-reseller spotlight) → P11.30 (sustained-direction streaks) so the
+    // biggest single shift lands first, the per-metric coverage table rounds
+    // out any metric whose mover was buried by unit-scale dominance, the
+    // per-reseller spotlight guarantees every partner with any material shift
+    // gets at least one row regardless of whether they lead a metric group
+    // globally, and the direction-streak table surfaces the persistence angle
+    // the three |delta|-magnitude sections above it may bury.
     const rest = html.slice(digestHeader.length);
     html =
       digestHeader +
       topMoversSection +
       topMoversPerMetricSection +
       topMoversPerResellerSection +
+      directionStreaksSection +
       rest;
   }
 
@@ -1676,6 +1702,18 @@ export async function GET(req: Request) {
           last_week: snapshotTopMoversPerReseller.last_week,
           top_n_per_reseller: snapshotTopMoversPerReseller.top_n_per_reseller,
           rows: snapshotTopMoversPerReseller.rows,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
+    snapshot_direction_streaks: snapshotDirectionStreaks
+      ? {
+          window_size: snapshotDirectionStreaks.window_size,
+          first_week: snapshotDirectionStreaks.first_week,
+          last_week: snapshotDirectionStreaks.last_week,
+          min_streak_length: snapshotDirectionStreaks.min_streak_length,
+          rows: snapshotDirectionStreaks.rows,
         }
       : {
           skipped_reason:
