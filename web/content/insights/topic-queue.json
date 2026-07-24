@@ -1092,6 +1092,21 @@
         "href": "/tools/valuation-calculator"
       },
       "angle": "Explain the direct relationship between a company's valuation and the resulting equity dilution for founders. Provide a step-by-step guide on how to simulate different valuation scenarios to decide the 'sweet spot' for their next funding round."
+    },
+    {
+      "slug": "startup-valuation-benchmarks-australia-2026",
+      "title": "2026 Startup Valuation Benchmarks: Australia Industry Guide",
+      "category": "valuation",
+      "keywords": [
+        "startup valuation benchmarks australia",
+        "average pre-seed valuation australia",
+        "startup valuation by industry au"
+      ],
+      "cta": {
+        "label": "Get Your Valuation Score",
+        "href": "/score"
+      },
+      "angle": "Provide a data-driven breakdown of current valuation ranges for Pre-Seed and Seed stages across different sectors (SaaS, Fintech, Healthtech) in the Australian market. Explain how founders can use these benchmarks to justify their valuation during investor negotiations."
     }
   ]
 }
