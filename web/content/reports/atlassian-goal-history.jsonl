@@ -208,3 +208,6 @@
 {"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:13:59.605Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"e7721a5e","last_deployed":"a02a9b6"}
 {"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:20:14.986Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"e7721a5e"}
 {"tick_id":"2026-07-24T12-07-01-952Z","ts":"2026-07-24T12:20:14.987Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T12-27-01-935Z","ts":"2026-07-24T12:27:01.936Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T12-27-01-935Z","ts":"2026-07-24T12:27:01.943Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T12-27-01-935Z","ts":"2026-07-24T12:30:24.076Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5b","summary":"Mounted <InvestorReadinessTile /> in web/src/app/dashboard/svi/page.tsx after <NextStepTile />. Removed deferred-mount comment. Typecheck clean. E2E spec now active."}

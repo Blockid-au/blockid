@@ -13,8 +13,8 @@
 //   five-dimension bars so the founder sees the whole journey plus their
 //   current standing at a glance.
 //
-// Mount inside <WidgetGrid /> at web/src/app/dashboard/svi/page.tsx if a
-// slot exists (P5b — deferred; the sibling agent owns the shell layout).
+// Mounted at web/src/app/dashboard/svi/page.tsx alongside <NextStepTile />
+// (P5b — shipped 2026-07-24).
 
 import { useEffect, useState } from "react";
 import Link from "next/link";

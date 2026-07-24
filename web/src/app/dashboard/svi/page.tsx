@@ -10,6 +10,7 @@ import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard"
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { NextBestActionWidget } from "@/components/dashboard/next-best-action-widget";
 import { NextStepTile } from "@/components/dashboard/next-step-tile";
+import { InvestorReadinessTile } from "@/components/dashboard/investor-readiness-tile";
 import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
 import { ScnActionPlanCard } from "@/components/dashboard/scn-action-plan-card";
 import { SviExplainerCard } from "@/components/dashboard/svi-explainer-card";
@@ -306,6 +307,11 @@ export default async function SVIDashboardPage() {
         {/* ── Next-Step nudge tile (round 5.1) — phase pill, next action,
             missing list, readiness donut. Fetches /api/nudge/next-steps. ── */}
         <NextStepTile />
+
+        {/* ── Investor readiness tile (P5b) — per-phase score + 12-phase
+            mini-series + top-3 missing. Reuses the /api/nudge/next-steps
+            payload (readiness_by_phase[currentPhase]). ── */}
+        <InvestorReadinessTile />
 
         {/* ── SVI Score History Trend Chart (T0081) ──────────────────────── */}
         {sviHistory.length > 0 && (
