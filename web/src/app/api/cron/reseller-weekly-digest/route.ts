@@ -39,6 +39,11 @@ import {
   type DigestSnapshotMetricDelta,
 } from "@/lib/reseller/digest-snapshot-metric-delta";
 import {
+  computeDigestSnapshotMetricPctChange,
+  formatDigestSnapshotMetricPctChangeSection,
+  type DigestSnapshotMetricPctChange,
+} from "@/lib/reseller/digest-snapshot-metric-pct-change";
+import {
   computeDigestSnapshotPerResellerDelta,
   formatDigestSnapshotPerResellerDeltaSection,
   type DigestSnapshotPerResellerDelta,
@@ -1259,6 +1264,7 @@ export async function GET(req: Request) {
   });
   let snapshotDelta: DigestSnapshotDelta | null = null;
   let snapshotMetricDelta: DigestSnapshotMetricDelta | null = null;
+  let snapshotMetricPctChange: DigestSnapshotMetricPctChange | null = null;
   let snapshotPerResellerDelta: DigestSnapshotPerResellerDelta | null = null;
   let snapshotRollingTrend: DigestSnapshotRollingTrend | null = null;
   let snapshotPerResellerRollingTrend:
@@ -1298,6 +1304,24 @@ export async function GET(req: Request) {
     const metricDeltaSection =
       formatDigestSnapshotMetricDeltaSection(snapshotMetricDelta);
     if (metricDeltaSection) html += metricDeltaSection;
+    // P11.38 — signed percent-change companion to the P11.16 absolute
+    // cent/count metric-delta table (module P11.37). Reuses HEADLINE_METRICS +
+    // readSectionTotal from the P11.16 lib so the two projections cannot drift
+    // on which row-level field they sum or how they walk the flat-vs-nested
+    // envelope. Consumes the same (previousSnapshot, currentSnapshotForDelta)
+    // pair — no extra fs read, no second envelope fold. Rendered directly
+    // after the P11.16 absolute-delta section so the reader walks structural
+    // triage → per-metric absolute cents → per-metric percent change and can
+    // triage a +A$500 mover as either "5000% pop on a $10 base worth
+    // investigating" or "0.05% blip on a $1M base — noise" at a glance
+    // without opening the sibling table.
+    snapshotMetricPctChange = computeDigestSnapshotMetricPctChange(
+      previousSnapshot,
+      currentSnapshotForDelta,
+    );
+    const metricPctChangeSection =
+      formatDigestSnapshotMetricPctChangeSection(snapshotMetricPctChange);
+    if (metricPctChangeSection) html += metricPctChangeSection;
     // P11.18 — per-reseller drill-down (module P11.17). Names the specific
     // partners whose per-metric total moved so ops does not have to open
     // /admin/resellers/[code] per row to identify the mover. Rendered after
@@ -1716,6 +1740,18 @@ export async function GET(req: Request) {
           current_captured_at: snapshotMetricDelta.current_captured_at,
           current_week: snapshotMetricDelta.current_week,
           metrics: snapshotMetricDelta.metrics,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
+    snapshot_metric_pct_change: snapshotMetricPctChange
+      ? {
+          previous_captured_at: snapshotMetricPctChange.previous_captured_at,
+          previous_week: snapshotMetricPctChange.previous_week,
+          current_captured_at: snapshotMetricPctChange.current_captured_at,
+          current_week: snapshotMetricPctChange.current_week,
+          metrics: snapshotMetricPctChange.metrics,
         }
       : {
           skipped_reason:
