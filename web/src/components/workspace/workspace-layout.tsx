@@ -25,6 +25,7 @@ import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { TrialBanner } from "@/components/workspace/trial-banner";
 import { ProductTour } from "@/components/workspace/product-tour";
+import { FeatureSpotlight } from "@/components/product-tour/feature-spotlight";
 import { ResellerPill } from "@/components/workspace/reseller-pill";
 import { SandboxBanner } from "@/components/workspace/sandbox-banner";
 import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
@@ -538,6 +539,9 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
 
         {/* Track B B7 — interactive product tour; hides after per-phase dismissal. */}
         <ProductTour />
+
+        {/* Product Tour v2 — per-feature spotlight; matched to route via registry. */}
+        <FeatureSpotlight />
 
         {/* Founding 50 upgrade nudge — shown when user has 1 free credit left */}
         <UpgradePrompt />
