@@ -164,6 +164,11 @@ import {
   type DigestSnapshotPerMetricDirectionStreakLeaderboard,
 } from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-leaderboard";
 import {
+  computeDigestSnapshotPerMetricPctChangeStreakLeaderboard,
+  formatDigestSnapshotPerMetricPctChangeStreakLeaderboardSection,
+  type DigestSnapshotPerMetricPctChangeStreakLeaderboard,
+} from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-leaderboard";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1421,6 +1426,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricDirectionStreakLeaderboard
     | null = null;
   let perMetricDirectionStreakLeaderboardSection = "";
+  let snapshotPerMetricPctChangeStreakLeaderboard:
+    | DigestSnapshotPerMetricPctChangeStreakLeaderboard
+    | null = null;
+  let perMetricPctChangeStreakLeaderboardSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1936,6 +1945,37 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerMetricDirectionStreakLeaderboardSection(
         snapshotPerMetricDirectionStreakLeaderboard,
       );
+    // P11.72 — per-metric top-of-fold sustained-|pct|-material streak
+    // leaderboards (module P11.71). |pct|-magnitude analogue of the P11.70
+    // per-metric direction-streak leaderboards: instead of one length-sorted
+    // top-N pool across every (metric × partner) pair (the P11.68 flat matrix
+    // leaderboard), this renders an independent top-N ranking PER metric so a
+    // partner leading on churn volatility cannot be crowded out by a partner
+    // riding a volatile attributed_mrr swing. Delegates to
+    // computeDigestSnapshotPerResellerPctChangeStreaks through the pure lib so
+    // leaderboard entries cannot diverge from the P11.51/P11.52 spotlight rows
+    // they summarise — an entry ranked #1 in a group here appears in the
+    // P11.52 table below with matching length / max_abs_pct / min_abs_pct /
+    // cumulative_abs_pct. Consumes the SAME snapshotPerResellerRollingTrend
+    // the P11.51 detector and the P11.68 flat leaderboard already consume (no
+    // extra fold, no divergence risk vs. the spotlight rows this per-metric
+    // leaderboard tops). Lands directly BETWEEN the P11.68 flat matrix
+    // leaderboard (pctChangeStreakLeaderboardSection) and the
+    // perResellerPctChangeStreaksSection (P11.51/P11.52) so ops reads matrix
+    // top-N → per-KPI top-N (equal footing across metrics) → full per-partner
+    // drill-down — structural echo of the P11.66 → P11.70 → P11.32 placement
+    // on the direction axis, mirrored on the |pct|-magnitude axis. Per-group
+    // total_qualified is carried on the envelope so a "Top 3 of 8 partners on
+    // churn" caption tells ops how much detail lives in the P11.52 spotlight
+    // below for that KPI specifically.
+    snapshotPerMetricPctChangeStreakLeaderboard =
+      computeDigestSnapshotPerMetricPctChangeStreakLeaderboard(
+        snapshotPerResellerRollingTrend,
+      );
+    perMetricPctChangeStreakLeaderboardSection =
+      formatDigestSnapshotPerMetricPctChangeStreakLeaderboardSection(
+        snapshotPerMetricPctChangeStreakLeaderboard,
+      );
   }
   if (
     topMoversSection ||
@@ -1953,6 +1993,7 @@ export async function GET(req: Request) {
     pctChangeStreaksSection ||
     perResellerPctChangeStreakCoverageSection ||
     pctChangeStreakLeaderboardSection ||
+    perMetricPctChangeStreakLeaderboardSection ||
     perResellerPctChangeStreaksSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
@@ -1987,6 +2028,7 @@ export async function GET(req: Request) {
       pctChangeStreaksSection +
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
+      perMetricPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -2631,6 +2673,26 @@ export async function GET(req: Request) {
             top_n_per_metric:
               snapshotPerMetricDirectionStreakLeaderboard.top_n_per_metric,
             groups: snapshotPerMetricDirectionStreakLeaderboard.groups,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_pct_change_streak_leaderboard:
+      snapshotPerMetricPctChangeStreakLeaderboard
+        ? {
+            window_size:
+              snapshotPerMetricPctChangeStreakLeaderboard.window_size,
+            first_week:
+              snapshotPerMetricPctChangeStreakLeaderboard.first_week,
+            last_week:
+              snapshotPerMetricPctChangeStreakLeaderboard.last_week,
+            min_streak_length:
+              snapshotPerMetricPctChangeStreakLeaderboard.min_streak_length,
+            threshold: snapshotPerMetricPctChangeStreakLeaderboard.threshold,
+            top_n_per_metric:
+              snapshotPerMetricPctChangeStreakLeaderboard.top_n_per_metric,
+            groups: snapshotPerMetricPctChangeStreakLeaderboard.groups,
           }
         : {
             skipped_reason:

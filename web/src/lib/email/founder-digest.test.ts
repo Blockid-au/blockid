@@ -2,7 +2,11 @@
 // Contract: docs/plans/atlassian-standard-mapping-goal.md §P7 exit criteria.
 
 import { describe, expect, it } from "vitest";
-import { buildFounderDigest, buildReadinessClimbSeries } from "./founder-digest";
+import {
+  buildFounderDigest,
+  buildReadinessClimbDeltaSeries,
+  buildReadinessClimbSeries,
+} from "./founder-digest";
 import type { NudgeMissingItem, NudgeNextAction } from "@/lib/nudge/next-steps";
 import type { PhaseReadinessEntry } from "@/lib/nudge/readiness-by-phase";
 
@@ -305,6 +309,166 @@ describe("buildFounderDigest — readiness climb (P7a-readiness-climb)", () => {
     expect(out.html).not.toContain("<script>");
     // The current-phase label wording uses escaped HTML output.
     expect(out.html).toContain("Your Phase 1 column is outlined in teal.");
+  });
+});
+
+describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", () => {
+  const currentClimb: Record<string, PhaseReadinessEntry> = {
+    "1": { score: 90, band: "investor-ready", missing_top3: [], criteria_used: [] },
+    "3": { score: 65, band: "warming-up", missing_top3: [], criteria_used: [] },
+    "5": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+    "9": { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
+  };
+  const previousClimb: Record<string, PhaseReadinessEntry> = {
+    "1": { score: 88, band: "investor-ready", missing_top3: [], criteria_used: [] },
+    "3": { score: 70, band: "warming-up", missing_top3: [], criteria_used: [] },
+    "5": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+    // Phase 9 absent from previous → this week's 40 is "new" for phase 9.
+  };
+
+  it("silently omits the delta section when previous snapshot is absent", () => {
+    const out = buildFounderDigest({
+      name: "Sam",
+      phaseSlug: "5",
+      phaseLabel: "PMF",
+      readinessScore: 55,
+      band: "warming-up",
+      deltaSummary: "First snapshot",
+      bandDirection: "same",
+      nextAction: null,
+      missingTop3: [],
+      dashboardUrl: "https://blockid.au/dashboard",
+      readinessByPhase: currentClimb,
+    });
+    expect(out.html).not.toContain("Week-over-week climb");
+    expect(out.text).not.toContain("Week-over-week climb");
+  });
+
+  it("renders the delta table with signed +/-, ★ new, — same, and highlights the current phase", () => {
+    const out = buildFounderDigest({
+      name: "Sam",
+      phaseSlug: "9",
+      phaseLabel: "Funding-Ready",
+      readinessScore: 40,
+      band: "not-ready",
+      deltaSummary: "Phase-9 warming",
+      bandDirection: "same",
+      nextAction: null,
+      missingTop3: [],
+      dashboardUrl: "https://blockid.au/dashboard",
+      readinessByPhase: currentClimb,
+      previousReadinessByPhase: previousClimb,
+    });
+    expect(out.html).toContain("Week-over-week climb");
+    // Phase 1 climbed +2 (▲).
+    expect(out.html).toMatch(/Phase 1[^<]*<\/td>[\s\S]*?88\/100[\s\S]*?90\/100[\s\S]*?▲ \+2/);
+    // Phase 3 slipped -5 (▼).
+    expect(out.html).toMatch(/Phase 3[^<]*<\/td>[\s\S]*?70\/100[\s\S]*?65\/100[\s\S]*?▼ -5/);
+    // Phase 5 unchanged (—).
+    expect(out.html).toMatch(/Phase 5[^<]*<\/td>[\s\S]*?55\/100[\s\S]*?55\/100[\s\S]*?— 0/);
+    // Phase 9 is new + carries the "you are here" chip.
+    expect(out.html).toMatch(/Phase 9 · you are here/);
+    expect(out.html).toMatch(/★ new/);
+    // Current row is highlighted with the cyan-50 band + bold weight.
+    expect(out.html).toMatch(/background:#ecfeff;font-weight:600/);
+    // Text mirror walks the same rows with the same arrows.
+    expect(out.text).toMatch(/Week-over-week climb/);
+    expect(out.text).toMatch(/Phase 1: 88\/100 → 90\/100 \(▲ \+2\)/);
+    expect(out.text).toMatch(/Phase 3: 70\/100 → 65\/100 \(▼ -5\)/);
+    expect(out.text).toMatch(/▶ Phase 9: 0\/100 → 40\/100 \(★ new\)/);
+  });
+
+  it("omits the delta section entirely when nothing moved (all same-band + zero delta)", () => {
+    const flat: Record<string, PhaseReadinessEntry> = {
+      "1": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] },
+    };
+    const out = buildFounderDigest({
+      name: "Sam",
+      phaseSlug: "1",
+      phaseLabel: "Vision",
+      readinessScore: 50,
+      band: "warming-up",
+      deltaSummary: "Held steady",
+      bandDirection: "same",
+      nextAction: null,
+      missingTop3: [],
+      dashboardUrl: "https://blockid.au/dashboard",
+      readinessByPhase: flat,
+      previousReadinessByPhase: flat,
+    });
+    expect(out.html).not.toContain("Week-over-week climb");
+    expect(out.text).not.toContain("Week-over-week climb");
+  });
+
+  it("buildReadinessClimbDeltaSeries — pure helper branch matrix", () => {
+    const series = buildReadinessClimbDeltaSeries(currentClimb, previousClimb, "9");
+    expect(series).toHaveLength(12);
+    const phase1 = series.find((c) => c.phase === "1")!;
+    expect(phase1).toMatchObject({
+      currScore: 90,
+      prevScore: 88,
+      delta: 2,
+      direction: "up",
+      isCurrent: false,
+    });
+    const phase3 = series.find((c) => c.phase === "3")!;
+    expect(phase3).toMatchObject({
+      currScore: 65,
+      prevScore: 70,
+      delta: -5,
+      direction: "down",
+    });
+    const phase5 = series.find((c) => c.phase === "5")!;
+    expect(phase5.direction).toBe("same");
+    expect(phase5.delta).toBe(0);
+    const phase9 = series.find((c) => c.phase === "9")!;
+    expect(phase9).toMatchObject({
+      currScore: 40,
+      prevScore: 0,
+      direction: "new",
+      isCurrent: true,
+    });
+    // Gap-filled phases still return same/0.
+    const phase12 = series.find((c) => c.phase === "12")!;
+    expect(phase12).toMatchObject({
+      currScore: 0,
+      prevScore: 0,
+      direction: "same",
+      delta: 0,
+    });
+    // Exactly one row is flagged current.
+    expect(series.filter((c) => c.isCurrent)).toHaveLength(1);
+  });
+
+  it("buildReadinessClimbDeltaSeries — non-finite previous scores fall back to 0 (no NaN leak)", () => {
+    const messyPrev: Record<string, PhaseReadinessEntry> = {
+      "1": {
+        score: Number.NaN,
+        band: "not-ready",
+        missing_top3: [],
+        criteria_used: [],
+      },
+      "2": {
+        score: 40,
+        band: "not-ready",
+        missing_top3: [],
+        criteria_used: [],
+      },
+    };
+    const curr: Record<string, PhaseReadinessEntry> = {
+      "1": { score: 30, band: "not-ready", missing_top3: [], criteria_used: [] },
+      "2": { score: 30, band: "not-ready", missing_top3: [], criteria_used: [] },
+    };
+    const series = buildReadinessClimbDeltaSeries(curr, messyPrev, "1");
+    const p1 = series.find((c) => c.phase === "1")!;
+    // NaN previous → treated as no-prior → direction "new" (curr > 0).
+    expect(p1.direction).toBe("new");
+    expect(p1.prevScore).toBe(0);
+    expect(Number.isFinite(p1.delta)).toBe(true);
+    const p2 = series.find((c) => c.phase === "2")!;
+    // Real 40 previous → -10 down.
+    expect(p2.direction).toBe("down");
+    expect(p2.delta).toBe(-10);
   });
 });
 

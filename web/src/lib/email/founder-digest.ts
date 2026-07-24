@@ -35,6 +35,17 @@ export interface BuildFounderDigestInput {
    * section is silently omitted so older callers keep the pre-P7a shape.
    */
   readinessByPhase?: Record<string, PhaseReadinessEntry>;
+  /**
+   * Previous week's per-phase readiness map (P7a-climb-delta) — sourced
+   * from the previous `svi_readiness_snapshots` row's `readiness_by_phase`
+   * jsonb column (migration 0113). When both `readinessByPhase` and
+   * `previousReadinessByPhase` are present, the digest renders a per-phase
+   * before/after chart alongside the current climb so the founder sees
+   * which phases moved this week — not just the blended overall score.
+   * When either input is absent (first digest, older callers), the delta
+   * section is silently omitted so nothing regresses.
+   */
+  previousReadinessByPhase?: Record<string, PhaseReadinessEntry>;
 }
 
 export interface FounderDigestEmail {
@@ -97,6 +108,65 @@ export function buildReadinessClimbSeries(
   });
 }
 
+/** Signed direction of a per-phase week-over-week readiness change. */
+export type ClimbDeltaDirection = "up" | "down" | "same" | "new";
+
+export interface ClimbDeltaCell {
+  phase: string;
+  currScore: number;
+  prevScore: number;
+  delta: number;
+  direction: ClimbDeltaDirection;
+  currBand: ReadinessBand;
+  prevBand: ReadinessBand;
+  isCurrent: boolean;
+}
+
+/**
+ * Walk 12 phases and pair the current readiness map with the previous
+ * digest snapshot, returning per-phase before/after with signed deltas.
+ * Direction `"new"` fires when the current tick has a real score but the
+ * previous snapshot didn't (either a new phase entering the map or the
+ * founder's first weekly digest with per-phase persistence). Pure — no
+ * I/O. Exported for the vitest fixture.
+ */
+export function buildReadinessClimbDeltaSeries(
+  currentByPhase: Record<string, PhaseReadinessEntry> | undefined,
+  previousByPhase: Record<string, PhaseReadinessEntry> | undefined,
+  currentPhaseSlug: string,
+): ClimbDeltaCell[] {
+  const curr = buildReadinessClimbSeries(currentByPhase, currentPhaseSlug);
+  return curr.map((cell) => {
+    const prevEntry = previousByPhase?.[cell.phase];
+    const prevHas =
+      prevEntry !== undefined &&
+      typeof prevEntry.score === "number" &&
+      Number.isFinite(prevEntry.score);
+    const prevScore = prevHas
+      ? Math.max(0, Math.min(100, Math.round(prevEntry!.score)))
+      : 0;
+    const prevBand: ReadinessBand = prevHas
+      ? (prevEntry!.band ?? "not-ready")
+      : "not-ready";
+    const delta = cell.score - prevScore;
+    let direction: ClimbDeltaDirection;
+    if (!prevHas) direction = cell.score > 0 ? "new" : "same";
+    else if (delta > 0) direction = "up";
+    else if (delta < 0) direction = "down";
+    else direction = "same";
+    return {
+      phase: cell.phase,
+      currScore: cell.score,
+      prevScore,
+      delta,
+      direction,
+      currBand: cell.band,
+      prevBand,
+      isCurrent: cell.isCurrent,
+    };
+  });
+}
+
 export function buildFounderDigest(
   input: BuildFounderDigestInput,
 ): FounderDigestEmail {
@@ -125,6 +195,69 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
   const climbCells = input.readinessByPhase
     ? buildReadinessClimbSeries(input.readinessByPhase, input.phaseSlug)
     : null;
+
+  const climbDeltaCells =
+    input.readinessByPhase && input.previousReadinessByPhase
+      ? buildReadinessClimbDeltaSeries(
+          input.readinessByPhase,
+          input.previousReadinessByPhase,
+          input.phaseSlug,
+        )
+      : null;
+  const climbDeltaBlock =
+    climbDeltaCells && climbDeltaCells.some((c) => c.direction !== "same")
+      ? `
+      <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
+        <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Week-over-week climb</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%">
+          <tr>
+            <th align="left" style="font-size:11px;color:#64748b;padding:4px 6px;font-weight:600">Phase</th>
+            <th align="right" style="font-size:11px;color:#64748b;padding:4px 6px;font-weight:600">Last week</th>
+            <th align="right" style="font-size:11px;color:#64748b;padding:4px 6px;font-weight:600">This week</th>
+            <th align="right" style="font-size:11px;color:#64748b;padding:4px 6px;font-weight:600">Delta</th>
+          </tr>
+          ${climbDeltaCells
+            .map((c) => {
+              const arrow =
+                c.direction === "up"
+                  ? "▲"
+                  : c.direction === "down"
+                    ? "▼"
+                    : c.direction === "new"
+                      ? "★"
+                      : "—";
+              const deltaColour =
+                c.direction === "up"
+                  ? "#047857"
+                  : c.direction === "down"
+                    ? "#be123c"
+                    : c.direction === "new"
+                      ? "#0369a1"
+                      : "#64748b";
+              const signed =
+                c.direction === "new"
+                  ? "new"
+                  : c.delta > 0
+                    ? `+${c.delta}`
+                    : c.delta < 0
+                      ? `${c.delta}`
+                      : "0";
+              const rowStyle = c.isCurrent
+                ? "background:#ecfeff;font-weight:600"
+                : "";
+              return `
+          <tr style="${rowStyle}">
+            <td style="font-size:12px;color:#0f172a;padding:4px 6px">Phase ${escapeHtml(c.phase)}${c.isCurrent ? " · you are here" : ""}</td>
+            <td align="right" style="font-size:12px;color:#475569;padding:4px 6px">${c.prevScore}/100</td>
+            <td align="right" style="font-size:12px;color:#0f172a;padding:4px 6px">${c.currScore}/100</td>
+            <td align="right" style="font-size:12px;color:${deltaColour};padding:4px 6px">${arrow} ${signed}</td>
+          </tr>`;
+            })
+            .join("")}
+        </table>
+        <p style="margin:8px 0 0;font-size:11px;color:#64748b">Compared to your last digest snapshot. ★ = a phase that entered the map this week; — = held steady.</p>
+      </div>`
+      : "";
   const climbBlock = climbCells
     ? `
       <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
@@ -195,6 +328,7 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
       </div>
     </div>
     ${climbBlock}
+    ${climbDeltaBlock}
     ${nextActionBlock}
     ${missingBlock}
     <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
@@ -222,6 +356,39 @@ function renderText(input: BuildFounderDigestInput, score: number): string {
       lines.push(`  ${marker}Phase ${c.phase}: ${c.score}/100 (${BAND_LABEL[c.band]})`);
     }
     lines.push("");
+  }
+  if (input.readinessByPhase && input.previousReadinessByPhase) {
+    const deltaCells = buildReadinessClimbDeltaSeries(
+      input.readinessByPhase,
+      input.previousReadinessByPhase,
+      input.phaseSlug,
+    );
+    if (deltaCells.some((c) => c.direction !== "same")) {
+      lines.push("Week-over-week climb (last week → this week · delta):");
+      for (const c of deltaCells) {
+        const marker = c.isCurrent ? "▶ " : "  ";
+        const arrow =
+          c.direction === "up"
+            ? "▲"
+            : c.direction === "down"
+              ? "▼"
+              : c.direction === "new"
+                ? "★"
+                : "—";
+        const signed =
+          c.direction === "new"
+            ? "new"
+            : c.delta > 0
+              ? `+${c.delta}`
+              : c.delta < 0
+                ? `${c.delta}`
+                : "0";
+        lines.push(
+          `  ${marker}Phase ${c.phase}: ${c.prevScore}/100 → ${c.currScore}/100 (${arrow} ${signed})`,
+        );
+      }
+      lines.push("");
+    }
   }
   if (input.nextAction) {
     lines.push(`Do this next: ${input.nextAction.title}`);

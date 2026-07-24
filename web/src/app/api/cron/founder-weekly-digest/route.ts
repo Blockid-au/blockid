@@ -169,6 +169,10 @@ export async function GET(req: Request): Promise<NextResponse> {
         missingTop3: snapshotRow.missing_top3,
         dashboardUrl: DASHBOARD_URL,
         readinessByPhase: nudge.result.readiness_by_phase,
+        previousReadinessByPhase:
+          (previous?.readiness_by_phase as
+            | typeof nudge.result.readiness_by_phase
+            | undefined) ?? undefined,
       });
 
       if (skipEmail) {
@@ -219,6 +223,10 @@ export async function GET(req: Request): Promise<NextResponse> {
             missingTop3: snapshotRow.missing_top3,
             dashboardUrl: DASHBOARD_URL,
             readinessByPhase: nudge.result.readiness_by_phase,
+        previousReadinessByPhase:
+          (previous?.readiness_by_phase as
+            | typeof nudge.result.readiness_by_phase
+            | undefined) ?? undefined,
             unsubscribeUrl,
           })
         : digest;
