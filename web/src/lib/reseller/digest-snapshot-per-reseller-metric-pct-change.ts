@@ -119,6 +119,11 @@ export function computeDigestSnapshotPerResellerMetricPctChange(
 
   const ranked: PerResellerMetricPctChangeRow[] = [];
   for (const r of source) {
+    // Skip rows where the trend delta is null — fewer than two non-null
+    // snapshot points means first_total === last_total (the same single
+    // observed value) which would surface as a misleading 0% row. Mirrors
+    // the P11.28 posture on null-delta rows.
+    if (r.delta === null) continue;
     const pct = computePctChange(r.first_total, r.last_total);
     if (pct === null) continue;
     ranked.push({
