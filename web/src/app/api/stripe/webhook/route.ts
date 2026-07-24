@@ -311,6 +311,45 @@ export async function POST(request: Request) {
       `[blockid:stripe] activated plan "${planId}" for user ${userId}`,
     );
 
+    // Reseller founder-attribution linker — INSERTs a reseller_attribution
+    // row keyed on stripe_session_id. Gated behind RESELLER_ATTRIBUTION_LINKER
+    // for staged rollout (migration 0111 lands the UNIQUE constraint first).
+    // Non-fatal on skip/error: Stripe retries must never storm because of a
+    // bookkeeping side-effect.
+    if (process.env.RESELLER_ATTRIBUTION_LINKER === "1") {
+      try {
+        const { linkFounderAttribution } = await import(
+          "@/lib/reseller/founder-attribution-linker"
+        );
+        const projectId =
+          (session.metadata?.project_id as string | undefined) ?? null;
+        const outcome = await linkFounderAttribution(supabase, session, {
+          projectId,
+          founderId: userId,
+          resellerRow: null,
+        });
+        if (!outcome.ok && outcome.reason === "skip") {
+          if (
+            outcome.skipReason &&
+            outcome.skipReason !== "already_attributed" &&
+            outcome.skipReason !== "no_reseller_metadata"
+          ) {
+            console.warn(
+              `[reseller] attribution_linker skipped: ${outcome.skipReason}`,
+              { session_id: session.id },
+            );
+          }
+        } else if (!outcome.ok) {
+          console.warn(
+            `[reseller] attribution_linker failed: ${outcome.reason}`,
+            { session_id: session.id },
+          );
+        }
+      } catch (err) {
+        console.warn("[reseller] attribution_linker threw", err);
+      }
+    }
+
     // Grant credits (legacy PLAN_CREDITS map — v2 will migrate to plans.usage_limits).
     const planCredits = PLAN_CREDITS[planId];
     if (planCredits && userId) {
