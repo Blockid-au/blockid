@@ -19,6 +19,13 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  buildFundraisePostBody,
+  classifyFundraiseResponse,
+  GATE_BLOCK_HEADING,
+  type GateBlock,
+  type GateWarn,
+} from "./fundraise-gate.helpers";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,23 +61,6 @@ interface SavedRound {
   dilution_pct: number;
   status: string;
   created_at: string;
-}
-
-// Warn / block envelope shape returned by the ESIC + Div 83A gates in
-// web/src/app/api/fundraise/route.ts. Kept structural (not imported)
-// so this client stays server-boundary-free.
-interface GateWarn {
-  reason: string;
-  message: string;
-  url_to_fix: string;
-}
-
-interface GateBlock {
-  error: "esic_gate_blocked" | "div83a_gate_blocked";
-  reason: string;
-  message: string;
-  url_to_fix: string;
-  disclaimer: string;
 }
 
 interface InvestorAllocation {
@@ -266,38 +256,32 @@ export function FundraiseClient() {
       const res = await fetch("/api/fundraise", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roundName,
-          targetAmount,
-          preMoneyValuation,
-          instrumentType,
-          safeDiscount: instrumentType !== "priced" ? safeDiscount : undefined,
-          safeCap: instrumentType !== "priced" ? safeCap : undefined,
-          wholesaleOnly,
-        }),
+        body: JSON.stringify(
+          buildFundraisePostBody({
+            roundName,
+            targetAmount,
+            preMoneyValuation,
+            instrumentType,
+            safeDiscount,
+            safeCap,
+            wholesaleOnly,
+          }),
+        ),
       });
       const data = await res.json();
-      if (res.status === 412 && !data.ok && typeof data.error === "string") {
-        setGateBlock({
-          error: data.error,
-          reason: data.reason,
-          message: data.message,
-          url_to_fix: data.url_to_fix,
-          disclaimer: data.disclaimer,
-        });
+      const outcome = classifyFundraiseResponse(res.status, data);
+      if (outcome.kind === "block") {
+        setGateBlock(outcome.block);
         return;
       }
-      if (!data.ok) {
-        setError(data.error ?? "Failed to calculate round");
+      if (outcome.kind === "error") {
+        setError(outcome.message);
         return;
       }
-      const warns: GateWarn[] = [];
-      if (data.esic_warn) warns.push(data.esic_warn as GateWarn);
-      if (data.div83a_warn) warns.push(data.div83a_warn as GateWarn);
-      setGateWarns(warns);
-      setDilutionTable(data.dilutionTable);
-      setNewCapTable(data.newCapTable);
-      setSavedRound(data.round);
+      setGateWarns([...outcome.warns]);
+      setDilutionTable(outcome.data.dilutionTable as DilutionRow[]);
+      setNewCapTable(outcome.data.newCapTable as NewCapTable);
+      setSavedRound(outcome.data.round as SavedRound);
       setStep(1);
     } catch {
       setError("Network error. Please try again.");
@@ -435,9 +419,7 @@ export function FundraiseClient() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-red-800">
-                {gateBlock.error === "esic_gate_blocked"
-                  ? "Wholesale-only round blocked by ESIC gate"
-                  : "Wholesale-only round blocked by Div 83A ESOP gate"}
+                {GATE_BLOCK_HEADING[gateBlock.error]}
               </p>
               <p className="text-sm text-red-700 mt-1">{gateBlock.message}</p>
               <p className="text-xs text-red-600 mt-1">
