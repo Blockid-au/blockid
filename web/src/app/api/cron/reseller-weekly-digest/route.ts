@@ -30,6 +30,12 @@ import {
   type BudgetUtilizationRow,
 } from "@/lib/reseller/budget-utilization";
 import {
+  computeClawbackExposureByReseller,
+  formatWeeklyDigestClawbackExposureSection,
+  type ClawbackExposureRow,
+  type ExposedCommissionRow,
+} from "@/lib/reseller/clawback-exposure";
+import {
   computeClearedMtdByReseller,
   formatWeeklyDigestClearedMtdSection,
   type ClearedCommissionRow,
@@ -480,6 +486,49 @@ export async function GET(req: Request) {
     }
   }
 
+  // P11.4 canonical KPI (`clawback_exposure` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Per-reseller sum of commissions still inside the
+  // clawback window — status IN ('pending_clearance','dispute_open') on
+  // reseller_commissions_current. Ops reads this alongside commission_cleared_mtd
+  // (P11.3): cleared is realised revenue, exposure is the still-at-risk pile
+  // that could be clawed back if a refund/dispute lands before pending_until.
+  // Failures degrade to a skipped section so the earlier signals still ship.
+  let clawbackRows: ClawbackExposureRow[] = [];
+  let clawbackSkippedReason: string | null = null;
+  const { data: exposedRows, error: exposedErr } = await supabase
+    .from("reseller_commissions_current")
+    .select("reseller_id, commission_aud_cents, status")
+    .in("reseller_id", resellerIds)
+    .in("status", ["pending_clearance", "dispute_open"]);
+  if (exposedErr) {
+    console.error(
+      "[reseller-weekly-digest] clawback exposure query failed",
+      exposedErr.message,
+    );
+    clawbackSkippedReason = "clawback_query_failed";
+  } else {
+    const exposed = (exposedRows ?? []) as ExposedCommissionRow[];
+    const exposureByReseller = computeClawbackExposureByReseller(
+      resellerIds,
+      exposed,
+    );
+    clawbackRows = resellers.map((r) => ({
+      reseller_id: r.id,
+      reseller_code: r.code,
+      reseller_display_name: r.display_name ?? r.code,
+      exposure: exposureByReseller.get(r.id) ?? {
+        pending_count: 0,
+        pending_cents: 0,
+        dispute_count: 0,
+        dispute_cents: 0,
+        total_count: 0,
+        total_cents: 0,
+      },
+    }));
+    const clawbackSection = formatWeeklyDigestClawbackExposureSection(clawbackRows);
+    if (clawbackSection) html += clawbackSection;
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -571,6 +620,21 @@ export async function GET(req: Request) {
             reseller_code: r.reseller_code,
             cleared_count: r.mtd.cleared_count,
             cleared_cents: r.mtd.cleared_cents,
+          })),
+        },
+    clawback_exposure: clawbackSkippedReason
+      ? { skipped_reason: clawbackSkippedReason }
+      : {
+          reseller_count: clawbackRows.length,
+          rows: clawbackRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            pending_count: r.exposure.pending_count,
+            pending_cents: r.exposure.pending_cents,
+            dispute_count: r.exposure.dispute_count,
+            dispute_cents: r.exposure.dispute_cents,
+            total_count: r.exposure.total_count,
+            total_cents: r.exposure.total_cents,
           })),
         },
     ran_at: now.toISOString(),
