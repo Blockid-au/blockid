@@ -190,8 +190,12 @@ export function startOfMonthIso(now: Date = new Date()): string {
 export async function getPortfolioRows(
   user: { id: string; email: string },
 ): Promise<PortfolioRow[]> {
-  const { getUserProjects } = await import("./projects");
-  const { getSupabaseAdmin } = await import("./supabase");
+  // webpackIgnore keeps webpack from tracing these server-only modules into the
+  // client bundle when a client component (e.g. <PortfolioComparisonChart>)
+  // pulls a pure helper from this file. Node's native import() resolves them
+  // at runtime on the server; the client bundle omits them entirely.
+  const { getUserProjects } = await import(/* webpackIgnore: true */ "./projects");
+  const { getSupabaseAdmin } = await import(/* webpackIgnore: true */ "./supabase");
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
