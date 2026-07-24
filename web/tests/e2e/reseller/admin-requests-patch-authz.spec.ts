@@ -480,6 +480,166 @@ const ALLOWED_STATUS_VALUES = new Set([
 // echoes it verbatim rather than re-deriving inline.
 const RESELLER_CODE_RE = /^[A-Z0-9]+$/;
 
+// Tick 359 — reseller_requests-row ck_decision_shape cross-column
+// invariant summary hoist. Executes tick 358 next-pick option (a)
+// verbatim: rotate to a wholly new cluster (reseller_requests[]) on
+// a wholly new surface family (admin-requests-*.spec.ts) since the
+// summary-lens sweep that tick 358 completed across both detail
+// surfaces (admin-reseller-detail-authz + admin-reseller-detail-
+// validation) did NOT touch the admin-requests-* family at all.
+// This is the FIRST module-scope cross-column invariant summary on
+// this surface — none of the reseller_requests-cluster ck_* CHECK
+// constraints (ck_decision_shape / ck_credit_link / ck_promo_link)
+// have been hoisted to a module-scope doc-block on either admin-
+// requests-list-authz or admin-requests-patch-authz today. The tick
+// 265-282 per-column pin doc-blocks above (decision_at ISO / decision_
+// by UUID / created_at ISO / decision_reason value / resellers-join
+// projection) narrate their halves of the shape inline — tick 265
+// mentions "ck_decision_shape at 0095:41-45 requires decision_at NON-
+// NULL when status ∈ approved/denied/cancelled and permits NULL only
+// when status='pending'" and tick 266 mentions "ck_decision_shape
+// permits decision_by to be null when status ∈ approved/denied/
+// cancelled — only decision_at is required to be non-null in those
+// states, but the PATCH route always stamps decision_by:user.id at
+// route.ts:309 for all three branches" — but the SUMMARY view naming
+// ALL THREE columns (status + decision_by + decision_at) + the single
+// CHECK constraint they all key off + the application write-path
+// stamper has never lived at module-scope in a form a future rotation
+// could lift from without re-reading ticks 265 + 266 + the reseller_
+// requests-row schema + the PATCH route in full. Hoisting closes the
+// reseller_requests-row cross-column-invariant cluster into its
+// symmetric summary state on THIS surface, matching the tick 358
+// promotion_codes[] tier ⇔ stripe-id disjunction summary + the tick
+// 357 resellers-row ck_wholesale_gst_required summary + the tick 355
+// admins[] lifecycle + attributions_summary by_source summaries on
+// the sibling detail-validation surface. No new imports, no new
+// module-scope const, no per-column assert added, no fixture change,
+// no route change — the inline per-column pins across the three
+// post-PATCH read-back rows (deny + cancel + approve) plus the
+// module-scope constants at rows 460-472 are already the runtime
+// enforcement; this hoist is a documentation-only close-out lift.
+//
+// Cross-column invariant summary — reseller_requests.{status,
+// decision_by, decision_at, decision_reason} ⇔ ck_decision_shape
+//   Writer-side source: reseller_requests table DB CHECK
+//   ck_decision_shape at
+//   web/supabase/migrations/0095_reseller_requests.sql:41-45 enforces
+//   the disjunction
+//     (status = 'pending'
+//        AND decision_by IS NULL
+//        AND decision_at IS NULL)
+//     OR
+//     (status IN ('approved','denied','cancelled')
+//        AND decision_at IS NOT NULL)
+//   i.e. pending rows MUST carry both decision columns as NULL, and
+//   any row whose status flips to a terminal enum member MUST carry
+//   decision_at as non-null (decision_by is permitted to be NULL at
+//   the DB level per the CHECK — the FK reference at 0095:34 declares
+//   ON DELETE SET NULL so a decided-then-orphaned admin row would
+//   legally sit at decision_by IS NULL / decision_at NOT NULL / status
+//   IN terminal). The sibling ck_credit_link (0095:48-51) and
+//   ck_promo_link (0095:52-55) CHECKs are orthogonal single-column
+//   guards on linked_credit_transaction_id + linked_promotion_code_id
+//   — each of those may only be non-null in the (request_type,status)
+//   permutation the linked artifact belongs to — and are covered by
+//   the tick-273 linked_credit_transaction_id pin on the approve
+//   read-back row here + the module-scope tick 271/272 companion pins
+//   below.
+//   Application write path: validateAdminDecision() at
+//   web/src/lib/reseller/requests.ts:276-304 rejects the mutation
+//   with reason='already_decided' whenever current.status !==
+//   'pending' (285) so the ONLY green branch through the validator
+//   is a pending → terminal transition. The PATCH route at
+//   web/src/app/api/admin/resellers/requests/[id]/route.ts:305-320
+//   then stamps decision_by:user.id + decision_at:now + status:
+//   decision.status inside a SINGLE UPDATE with an
+//   .eq("id", current.id).eq("status", "pending") WHERE guard so a
+//   concurrent second PATCH racing the same row returns 0 rows and
+//   surfaces as reason='update_failed' at HTTP 500. This is the
+//   ONLY application-layer stamper on decision_by + decision_at —
+//   the DB CHECK is the last line of defence, so a route refactor
+//   that stamped decision_at without decision_by (permitted by the
+//   CHECK) OR a direct-SQL admin action that skipped the route
+//   entirely and set status='approved' without decision_at (rejected
+//   by the CHECK) would each be caught: the CHECK at 0095:41-45
+//   rejects the second case; the .eq("status","pending") WHERE guard
+//   at route.ts:316 + the always-both-columns stamp at 309-310 give
+//   the first case a coverage floor via the pending idempotency test
+//   (once the row has flipped to terminal a re-PATCH returns
+//   already_decided at 409 before touching either column).
+//   Read path: projected via
+//   "id, reseller_id, request_type, status, payload, decision_by,
+//    decision_at, decision_reason, ..."
+//   on the admin list route at
+//   web/src/app/api/admin/resellers/requests/route.ts:44 — all four
+//   coupled columns come out on the wire on every default status=
+//   pending list GET (which returns the seeded row before the PATCH)
+//   AND on every read-back GET that a follow-on ?status=approved /
+//   ?status=denied / ?status=cancelled filter surfaces after the
+//   PATCH lands. The PATCH response envelope itself projects a
+//   narrower "id, status, decision_at, decision_reason, linked_
+//   credit_transaction_id, linked_promotion_code_id" tuple at
+//   route.ts:317-319 (omits decision_by from the PATCH envelope on
+//   purpose — the write is stamped and the reseller-facing surface
+//   doesn't need the admin's user id) so the invariant is
+//   observable on TWO admin surfaces: the PATCH-write echo (three
+//   of four columns) and the list-route follow-up GET (all four
+//   columns).
+//   Runtime enforcement in this spec: per-column pins across the
+//   THREE post-PATCH read-back rows (deny + cancel + approve) at
+//     - tick 265 (decision_at typeof-string + ISO_TIMESTAMP_RE, one
+//       pin per branch on the read-back rows below)
+//     - tick 266 (decision_by typeof-string + UUID_RE)
+//     - tick 268 (decision_reason typeof-string + length ≤ REASON_MAX
+//       + exact-string equality against the probe)
+//     - tick 271-273 discriminated-union pins on the four terminal
+//       transitions (deny + cancel branches on over_budget_approval;
+//       approve branch on over_budget_approval)
+//   fire on every green CI run where loadAdminHarness resolves + the
+//   wave-3 seed rows (155, 155-b, over_budget_approval) are
+//   available. Neither the deny nor cancel branch has an inline
+//   cross-column if/else assert (unlike the linked_credit/promo
+//   discriminated-union pin below which DOES branch on status) —
+//   because the per-column pins on decision_at + decision_by +
+//   decision_reason are sufficient to surface any single-column
+//   drift, and the terminal-status enum pin at status ∈ ALLOWED_
+//   STATUS_VALUES fires on the third column of the tuple regardless
+//   of branch.
+//   Coverage-per-guard posture: the deny + cancel + approve blocks
+//   BELOW each fire once per green CI run against qa-admin-1's
+//   harness — three probes, one per branch, so all four coupled
+//   columns exercise their NON-NULL branch (decision_at set,
+//   decision_by set, decision_reason set to the branch-specific
+//   probe, status set to the branch-specific terminal enum) on
+//   every pass. The NULL branch of the invariant (status='pending'
+//   AND decision_by IS NULL AND decision_at IS NULL) exercises via
+//   the wave-3 row 155 pending over_budget_approval seed which the
+//   list-route enumeration surfaces BEFORE the PATCH — see the tick
+//   281 module-scope doc-block on admin-requests-list-authz.spec.ts
+//   for the coverage rationale on the pending side.
+//   Symmetric-cluster posture: this summary hoist mirrors the tick
+//   357 resellers-row cross-column ck_wholesale_gst_required
+//   summary + the tick 358 promotion_codes[] cross-column ck_stripe
+//   _objects_by_tier summary — all three are per-cluster close-out
+//   summaries naming a single CHECK/write-path invariant that
+//   couples multiple projected columns. Distinct from ticks 357 +
+//   358 in ONE dimension: this invariant is on the reseller_
+//   requests-row cluster (single row per PATCH) rather than the
+//   resellers-row cluster or the promotion_codes[] child-row array,
+//   and lives on the admin-requests-* surface family which has never
+//   carried a module-scope cross-column invariant summary before —
+//   so this hoist opens a new symmetric-cluster axis rather than
+//   completing an existing one. Follow-on ticks can extend along
+//   two dimensions: (i) hoist companion summaries for ck_credit_link
+//   + ck_promo_link on this same file so the reseller_requests-row
+//   cluster reaches three-summary parity with the detail-authz
+//   detail-route slot count (five per surface); (ii) cross-surface
+//   twin hoist onto admin-requests-list-authz.spec.ts so the ck_
+//   decision_shape summary reaches two-surface parity with the
+//   detail-* pair; (iii) rotate to the reseller-side surface
+//   reseller-requests-list-authz.spec.ts + requests-authz.spec.ts +
+//   requests-validation.spec.ts for reseller-scope twins.
+
 test.describe("Admin reseller requests PATCH pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — PATCH with no session returns 401 no_user", async ({
     request,

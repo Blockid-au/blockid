@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.358
+version: 2026-07-24.359
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,185 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 359
+    ran_at: 2026-07-24
+    action: p10_reseller_requests_ck_decision_shape_cross_column_invariant_summary_hoist_onto_admin_requests_patch_authz
+    result: |
+      Executes tick 358 next-pick option (a) verbatim as a rotate-to-
+      wholly-new-cluster on a wholly-new-surface: hoists a module-scope
+      cross-column invariant summary for reseller_requests.ck_decision_
+      shape (couples status + decision_by + decision_at) onto
+      web/tests/e2e/reseller/admin-requests-patch-authz.spec.ts. This
+      is the FIRST module-scope cross-column invariant summary on any
+      admin-requests-*.spec.ts surface — the summary-lens sweep that
+      completed at tick 358 across both admin-reseller-detail-* twins
+      (five summary blocks per surface: resellers-row + promotion_codes[]
+      + commissions[] + admins[] + attributions_summary) had not
+      touched the admin-requests-* family at all.
+
+      Mirrors the tick 357 (resellers-row ck_wholesale_gst_required) +
+      tick 358 (promotion_codes[] ck_stripe_objects_by_tier) doc-block
+      shape verbatim: writer-side source (0095:41-45 ck_decision_shape
+      disjunction naming pending↔null-both-columns branch and terminal↔
+      decision_at-non-null branch), application write path
+      (validateAdminDecision at requests.ts:276-304 rejecting non-
+      pending mutations with already_decided + PATCH route at
+      requests/[id]/route.ts:305-320 stamping decision_by + decision_at
+      + status inside a SINGLE UPDATE with an .eq("status","pending")
+      WHERE guard for race safety), read path (list route at
+      admin/resellers/requests/route.ts:44 projecting all four coupled
+      columns on every ?status= filter path + PATCH-write echo at
+      route.ts:317-319 projecting a narrower three-of-four tuple),
+      runtime enforcement (per-column pins across the three post-PATCH
+      read-back rows at ticks 265 + 266 + 268 + 271-273 fire on every
+      green CI run + wave-3 row 155 pending seed exercises the NULL
+      branch on the list-route enumeration before the PATCH), coverage-
+      per-guard posture (deny + cancel + approve probes cover all
+      three terminal-status enum members on every green CI run + the
+      pending seed covers the pending branch), and symmetric-cluster
+      posture (opens a new symmetric-cluster axis on the admin-
+      requests-* surface family rather than completing an existing one
+      — follow-on ticks can hoist ck_credit_link + ck_promo_link
+      companions on the same file, twin-hoist this summary onto admin-
+      requests-list-authz.spec.ts, or rotate to reseller-scope surfaces
+      requests-authz + requests-validation + reseller-requests-list-
+      authz).
+
+      Distinct-from-tick-358 posture note:
+        - Unlike tick 358's promotion_codes[] hoist which landed on
+          admin-reseller-detail-validation.spec.ts as a cross-surface
+          twin of an existing sibling summary at admin-reseller-detail-
+          authz.spec.ts:1819-1932, THIS tick opens the axis on the
+          admin-requests-*.spec.ts family for the first time — there
+          is no sibling summary to mirror because neither list nor
+          patch surface has ever carried a module-scope cross-column
+          summary. The doc-block therefore names the invariant, source,
+          write path, read path, and enforcement posture from first
+          principles rather than referring back to a prior sibling
+          hoist.
+        - Unlike ticks 357 + 358 which sit on the detail-* surface
+          pair where all five detail-route slots (resellers-row +
+          four child projections) already carried per-column pins,
+          THIS surface's per-column pins live in the three post-PATCH
+          read-back rows (deny + cancel + approve) rather than a
+          single detail-route response — so the runtime enforcement
+          is spread across three CI blocks rather than one, matching
+          the wave-5 row 175 branch fan-out.
+        - The runtime enforcement of the ck_decision_shape invariant
+          on this surface lands via a THREE-LAYER PROXY CHAIN rather
+          than a direct row-wire assert on the ck_decision_shape
+          disjunction itself:
+            (i)   inline per-column pins on decision_at (tick 265) +
+                  decision_by (tick 266) + decision_reason (tick 268)
+                  fire on all three post-PATCH read-back rows
+                  (deny + cancel + approve) below — a projection drop
+                  or column-type flip on any of the four coupled
+                  columns surfaces here.
+            (ii)  validateAdminDecision + validateResellerRequestBody
+                  unit-test suites at web/src/lib/reseller/requests.
+                  test.ts (21/21 pass per P9.3 sign-off) exercise the
+                  pending-only-transitions gate + reason_too_long +
+                  already_decided branches directly. A validator
+                  refactor that allowed a non-pending status to flip
+                  would fail these before the PATCH route landed on
+                  the database.
+            (iii) DB CHECK ck_decision_shape at 0095:41-45 is the
+                  last line of defence — a direct-SQL admin action
+                  that skipped both the validator AND the route (e.g.
+                  a manual docker exec supabase-db psql UPDATE that
+                  set status='approved' without decision_at) would
+                  still be rejected at write-time by the CHECK.
+        - Therefore this summary hoist adds ZERO new asserts to this
+          file — the three-layer enforcement chain is already the
+          runtime enforcement layer. This is a pure documentation-
+          only close-out lift matching the tick 357 + 358 posture.
+
+      Rotation rationale:
+        - Executes tick 358 next-pick option (a) verbatim. Pure
+          documentation-only summary hoist matching the tick 357 +
+          358 posture — no new imports, no new module-scope const,
+          no fixture change, no route change, no per-column assert
+          added.
+        - Opens the summary-lens axis on the admin-requests-*.spec.
+          ts family (previously carrying tick 259 / 265 / 266 / 267 /
+          268 / 271-273 / 274 / 280 / 281 / 282 per-column pin doc-
+          blocks but ZERO module-scope cross-column invariant
+          summaries). Post-tick 359, admin-requests-patch-authz.
+          spec.ts now carries ONE summary block; two more (ck_
+          credit_link + ck_promo_link) fit as follow-on hoists on the
+          same file to reach the same five-summary parity the detail-
+          * surfaces reached at ticks 354 + 355 + 357 + 358.
+        - Coverage-per-guard posture: this tick adds ZERO new asserts,
+          so no new pin fires on any CI run. The doc-block gives
+          future rotation ticks a single module-scope entry to lift
+          from without re-reading ticks 265 + 266 + 268 + the ck_
+          decision_shape schema + the PATCH route in full.
+
+      Diagnostic delta of the pass:
+        - admin-requests-patch-authz.spec.ts:
+            + new module-scope tick 359 doc-block placed between the
+              tick 274 RESELLER_CODE_RE hoist (row 481) and the first
+              test.describe (previously at row 483, now shifted
+              downward by the new block).
+            + Cross-references: writer-side source 0095:41-45 (ck_
+              decision_shape) + 0095:34 (decision_by FK) + 0095:48-51
+              + 0095:52-55 (sibling ck_credit_link + ck_promo_link) +
+              requests.ts:276-304 (validateAdminDecision) + requests/
+              [id]/route.ts:305-320 (PATCH stamper with .eq("status",
+              "pending") race guard) + admin/resellers/requests/
+              route.ts:44 (list projection) + requests.test.ts 21/21
+              (P9.3 sign-off).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 358).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 359: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Summary-lens sweep now extends onto the admin-requests-* surface
+      family for the first time via the ck_decision_shape summary on
+      admin-requests-patch-authz.spec.ts. detail-* pair remains
+      complete on all five slots (tick 358 close-out); admin-requests-
+      * pair now carries 1/3 possible reseller_requests-row cross-
+      column invariant summaries (ck_decision_shape landed; ck_credit
+      _link + ck_promo_link pending).
+
+      Next natural picks on tick 360:
+        (a) hoist ck_credit_link companion summary onto admin-
+        requests-patch-authz.spec.ts (couples reseller_requests.
+        linked_credit_transaction_id + request_type + status per
+        0095:48-51 — permits non-null ONLY on request_type='over_
+        budget_approval' AND status='approved'; would be the second
+        of three reseller_requests-row summaries on this surface).
+        (b) hoist ck_promo_link companion summary onto admin-
+        requests-patch-authz.spec.ts (couples reseller_requests.
+        linked_promotion_code_id + request_type + status per 0095:52-
+        55 — permits non-null ONLY on request_type='code_request' AND
+        status='approved'; would be the third of three reseller_
+        requests-row summaries and would close the reseller_requests-
+        cluster invariant sweep on this file).
+        (c) cross-surface twin hoist of THIS tick's ck_decision_shape
+        summary onto admin-requests-list-authz.spec.ts (mirrors the
+        tick 357 + 358 twin-hoist posture from detail-authz onto
+        detail-validation; would give the admin-requests-* pair a
+        first summary on both list + patch surfaces).
+        (d) rotate to reseller-side surfaces (requests-authz.spec.ts
+        + requests-validation.spec.ts + reseller-requests-list-authz.
+        spec.ts) for cross-scope twin hoists — reseller-scope
+        surfaces have not yet carried any module-scope cross-column
+        invariant summary either.
+        (e) idle — frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed, P10 continues accepting
+        incremental pin-tightening + summary-hoist ticks).
+    commit: (this tick)
+
   - tick: 358
     ran_at: 2026-07-24
     action: p10_promotion_codes_tier_stripe_id_disjunction_invariant_summary_twin_hoist_onto_admin_reseller_detail_validation
