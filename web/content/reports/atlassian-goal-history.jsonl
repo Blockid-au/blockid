@@ -391,3 +391,5 @@
 {"tick_id":"2026-07-24T17-57-02-145Z","ts":"2026-07-24T17:57:02.145Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T17-57-02-145Z","ts":"2026-07-24T17:57:02.159Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-24T18-05-21-719Z","ts":"2026-07-24T18:05:21.717Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P11-acquisition-pattern","summary":"Chapter 11 acquisition-pattern section (Trello/OpsGenie/Loom 90/10 cash+RSU template + AU tax + FIRB + escrow guardrails); 2 new vitest cases; 26 tests green; typecheck green.","head_before":"5ccd7326"}
+{"tick_id":"2026-07-24T17-57-02-145Z","ts":"2026-07-24T18:05:55.094Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":532928,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-24T17-57-02-145Z","ts":"2026-07-24T18:05:55.132Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
