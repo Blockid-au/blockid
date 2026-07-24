@@ -190,3 +190,6 @@
 {"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:31:26.611Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"55bef3bd","last_deployed":"87ce701"}
 {"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:37:29.823Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"55bef3bd"}
 {"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:37:29.825Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T11-47-01-791Z","ts":"2026-07-24T11:47:01.792Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T11-47-01-791Z","ts":"2026-07-24T11:47:01.798Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T11-47-01-791Z","ts":"2026-07-24T11:55:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P7b","summary":"svi_readiness_snapshots table + pure toSnapshotRow / computeReadinessDelta helpers + I/O writeReadinessSnapshot / fetchLatestReadinessSnapshot; migration 0113 applied via docker exec psql + NOTIFY pgrst; 12 vitest green; typecheck green; unlocks P7a founder-weekly-digest delta baseline."}
