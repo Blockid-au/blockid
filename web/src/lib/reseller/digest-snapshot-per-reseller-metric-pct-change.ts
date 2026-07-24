@@ -173,9 +173,11 @@ function formatPctCell(pct: number): string {
 
 /**
  * Render an HTML section listing the top-N |pct_change| movers across every
- * (reseller × metric) pair in the window. Sits directly under the P11.38
- * portfolio percent-change section so ops reads portfolio-scale relative
- * shifts, then drills into per-partner relative shifts on the same page.
+ * (reseller × metric) pair in the window. In the P11.40 cron wiring this
+ * lands directly after the per-reseller rolling trend drill-down (P11.22 /
+ * P11.23) — the natural placement given the shared feeder — so ops walks
+ * per-partner absolute trend → per-partner percent-change drill-down on the
+ * same page.
  *
  * Returns "" when window_size < 2 (single-point window has no computable
  * delta), when the ranked-row list is empty (no partner had a computable
