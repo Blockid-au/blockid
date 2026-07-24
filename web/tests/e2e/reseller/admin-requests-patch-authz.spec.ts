@@ -786,6 +786,195 @@ const RESELLER_CODE_RE = /^[A-Z0-9]+$/;
 //   with the detail-* pair; (iii) rotate to reseller-side surfaces
 //   for reseller-scope twins.
 
+// Tick 361 — reseller_requests-row ck_promo_link cross-column invariant
+// summary hoist. Executes tick 360 next-pick option (a) verbatim:
+// hoist the companion summary for the sibling ck_promo_link CHECK on
+// the SAME admin-requests-patch-authz.spec.ts surface tick 359 opened
+// the ck_decision_shape summary + tick 360 opened the ck_credit_link
+// summary on. Third and final of three reseller_requests-cluster
+// invariant summaries this surface can carry (ck_decision_shape landed
+// at tick 359; ck_credit_link landed at tick 360; ck_promo_link
+// landing here). Closes the reseller_requests-cluster three-summary
+// parity on this surface — matches the five-per-surface detail-* pair
+// parity ticks 354 + 355 + 357 + 358 reached across both admin-
+// reseller-detail-authz + admin-reseller-detail-validation surfaces
+// (resellers-row + promotion_codes[] + commissions[] + admins[] +
+// attributions_summary), scaled to the three-CHECK-constraint width
+// the reseller_requests row has (ck_decision_shape + ck_credit_link +
+// ck_promo_link at 0095:41-45 / 48-51 / 52-55 respectively). Extends
+// the tick 359 + 360 axis rather than opening a new one — same
+// surface, same row-cluster, third and final CHECK constraint on the
+// row — so the doc-block cross-references the tick 359 header + tick
+// 360 header + the tick 271/272 inline per-column pin narration
+// rather than re-deriving the reseller_requests column-set discovery
+// from scratch.
+//
+// Cross-column invariant summary — reseller_requests.{request_type,
+// status, linked_promotion_code_id} ⇔ ck_promo_link
+//   Writer-side source: reseller_requests table DB CHECK
+//   ck_promo_link at
+//   web/supabase/migrations/0095_reseller_requests.sql:52-55 enforces
+//   the disjunction
+//     linked_promotion_code_id IS NULL
+//     OR (request_type = 'code_request' AND status = 'approved')
+//   i.e. only code_request rows that reached the approved terminal
+//   state may carry a non-null linked_promotion_code_id (uuid
+//   REFERENCES reseller_promotion_codes(id) ON DELETE SET NULL at
+//   0095:38). The other two request_type enum values (over_budget_
+//   approval + collateral_approval per the CHECK at 0095:30) and the
+//   other three status enum values (pending + denied + cancelled per
+//   the CHECK at 0095:32) MUST leave linked_promotion_code_id null on
+//   the wire. The sibling ck_credit_link (0095:48-51) is the mirror
+//   constraint on linked_credit_transaction_id: permits non-null ONLY
+//   on request_type='over_budget_approval' AND status='approved'.
+//   Together the two link-column CHECKs form an XOR partition across
+//   the request_type dimension per the tick 360 summary block above —
+//   an over_budget_approval approval can only stamp linked_credit_
+//   transaction_id (never linked_promotion_code_id), and a code_
+//   request approval can only stamp linked_promotion_code_id (never
+//   linked_credit_transaction_id). Landing this third summary makes
+//   the XOR partition observable at module scope on this surface: the
+//   tick 360 ck_credit_link block narrates the over_budget_approval
+//   half of the XOR + this tick's ck_promo_link block narrates the
+//   code_request half, so future rotations can lift the emergent XOR
+//   from a single-file read rather than reconstructing it from the
+//   two orthogonal CHECKs at 0095:48-51 + 0095:52-55.
+//   Application write path: the PATCH route at
+//   web/src/app/api/admin/resellers/requests/[id]/route.ts:100 declares
+//   linkedPromotionCodeId as `let ... : string | null = null` so the
+//   default is null. The code_request approve branch at route.ts:
+//   102-207 (a) reads reseller.code from the resellers table
+//   (route.ts:115-125), (b) calls decideCodeMint({reseller, tierPct,
+//   suggestedSuffix, resellerRequestId}) at route.ts:127-135 which
+//   dispatches attribution_only (tier 0) vs stripe_mint (tier 10/20/
+//   30/40) per the tick 336 promotion-code-mint helper, (c) checks
+//   for an existing (reseller_id, tier_pct) row on reseller_promotion_
+//   codes at route.ts:137-152 so a double-approval reuses the existing
+//   row.id (idempotent), (d) on new mints ONLY: calls ensureStripeCoupon
+//   + stripe.promotionCodes.create at route.ts:157-181 (tier 0 skips
+//   Stripe entirely per the ck_stripe_objects_by_tier CHECK on the
+//   sibling promotion_codes table narrated in the tick 358 summary
+//   block on admin-reseller-detail-* twins), (e) INSERTs the
+//   reseller_promotion_codes row at route.ts:183-194 and assigns the
+//   returned row.id into linkedPromotionCodeId at route.ts:205. The
+//   single UPDATE at route.ts:305-320 stamps linked_promotion_code_id:
+//   linkedPromotionCodeId alongside status + decision_by + decision_at
+//   + decision_reason + linked_credit_transaction_id inside the same
+//   PATCH so all three ck_* constraints (ck_decision_shape + ck_
+//   credit_link + ck_promo_link) move atomically. The over_budget_
+//   approval approve branch at route.ts:209-303 leaves
+//   linkedPromotionCodeId at its null default (only touches
+//   linkedCreditTransactionId); the collateral_approval approve
+//   branch leaves BOTH link columns null; the deny + cancel branches
+//   skip ALL side-effect blocks and leave both link columns null. So
+//   the only application code path that produces a non-null linked_
+//   promotion_code_id is the code_request approve branch, matching
+//   exactly the enum permutation ck_promo_link permits.
+//   Read path: projected via
+//   "..., linked_credit_transaction_id, linked_promotion_code_id, ..."
+//   on the admin list route at
+//   web/src/app/api/admin/resellers/requests/route.ts:44 as column 11
+//   of the twelve-column SELECT projection (immediately adjacent to
+//   the ck_credit_link column that tick 360 pinned). The PATCH
+//   response envelope at route.ts:317-319 projects the same two link
+//   columns alongside id + status + decision_at + decision_reason so
+//   the invariant is observable on TWO admin surfaces per PATCH: the
+//   PATCH-write echo (five-column tuple including both link columns)
+//   AND the list-route follow-up GET (twelve-column tuple including
+//   both link columns).
+//   Runtime enforcement in this spec: three per-branch NULL pins on
+//   linked_promotion_code_id across the deny + cancel + approve
+//   PATCH-branch read-back rows —
+//     - deny branch (line ~982 on PATCH-response envelope inside the
+//       deny happy-path assertion — "linked_promotion_code_id ===
+//       null" — plus its list-route follow-up read-back mirror per the
+//       tick 273 doc-block reference at line 705-709 — "Do NOT pin
+//       linked_credit_transaction_id / linked_promotion_code_id —
+//       both are null for the deny branch"). Pins the ck_promo_link
+//       NULL branch: request_type='over_budget_approval' AND
+//       status='denied' → linked_promotion_code_id MUST be null.
+//     - cancel branch (line ~1474 on PATCH-response envelope inside
+//       the cancel happy-path assertion — "linked_promotion_code_id
+//       === null"): mirror NULL pin on the cancelled read-back. Pins
+//       the same NULL branch: request_type='over_budget_approval'
+//       AND status='cancelled' → linked_promotion_code_id MUST be
+//       null.
+//     - approve branch (line ~1963 on PATCH-response envelope inside
+//       the over_budget_approval approve happy-path assertion —
+//       "linked_promotion_code_id === null" — see the coverage-vs-
+//       duplication call block at line 1802-1812 which explicitly
+//       notes "body.request.linked_promotion_code_id === null (over_
+//       budget_approval approve NEVER mints a promotion_code — that
+//       path is code_request only)"). Pins the ck_promo_link NULL
+//       branch on the ORTHOGONAL enum-crossing case: request_type=
+//       'over_budget_approval' AND status='approved' → linked_
+//       promotion_code_id MUST be null. This third pin is the
+//       coverage floor that catches a regression that folded
+//       promotion_code stamping into the over_budget branch — the
+//       tick 273 approve-block header at line 351-368 already narrates
+//       this exact catch inline.
+//   All three pins fire the NULL branch of the ck_promo_link CHECK on
+//   every green CI run. The NON-NULL branch (request_type=
+//   'code_request' AND status='approved' → linked_promotion_code_id
+//   MUST be a UUID string) is ZERO-COVERAGE-PER-GUARD today for the
+//   same reason the code_request enum branch is zero-coverage on the
+//   ck_credit_link summary at tick 360 — green-path fixtures only
+//   seed over_budget_approval targets per the tick 273 coverage-per-
+//   guard note at line 326-330 ("green-path fixtures only seed over_
+//   budget_approval approve targets today (code_request approve is
+//   blocked on Stripe test-mode wiring per line 72-74)"). So the ck_
+//   promo_link CHECK is the last line of defence for the code_request
+//   approve permutation until P8.5 unblocks and Stripe test-mode
+//   fixtures land — a route regression that widened the over_budget
+//   branch to stamp linked_promotion_code_id would trip the three
+//   NULL pins above, and a route regression that widened the deny +
+//   cancel branches to stamp linked_promotion_code_id on any request
+//   type would trip the same pins.
+//   Coverage-per-guard posture: matches the tick 360 ck_credit_link
+//   ASYMMETRIC-fixture posture rather than the tick 359 ck_decision_
+//   shape SYMMETRIC-fixture posture — deny + cancel + approve probes
+//   all fire the NULL branch (over_budget_approval NEVER mints a
+//   promo code), so the three pins probe the same branch of the
+//   CHECK on every green CI run. Distinct from tick 360 in ONE
+//   dimension: the ck_credit_link ASYMMETRY has the approve branch
+//   firing the NON-NULL branch of the CHECK (only 1-of-3 terminal-
+//   status probes hits NULL); the ck_promo_link ASYMMETRY here has
+//   ALL THREE terminal-status probes firing the NULL branch (0-of-3
+//   hit NON-NULL) because the fixture path is over_budget_approval
+//   and the NON-NULL branch requires request_type='code_request'.
+//   So the NULL-branch coverage on this CHECK is 3× the tick 360
+//   coverage; the NON-NULL-branch coverage is 0× the tick 360
+//   coverage (tick 360 gets the approve branch on the correct
+//   request_type). This asymmetry-of-the-asymmetry is a fixture
+//   artefact — once code_request approve fixtures land at P8.5, the
+//   coverage rebalances to the tick 360 shape (1 NON-NULL probe + 2
+//   NULL probes on this CHECK; 2 NULL probes + 1 NON-NULL probe on
+//   the tick 360 CHECK) with the XOR partition observable at
+//   fixture level rather than just the module-scope doc-block level.
+//   Symmetric-cluster posture: this summary hoist closes the tick
+//   359 + tick 360 reseller_requests-row cross-column-invariant sweep
+//   on THIS file — the row-cluster now carries 3/3 possible summaries
+//   (ck_decision_shape at tick 359 + ck_credit_link at tick 360 +
+//   ck_promo_link landing here). Distinct from ticks 359 + 360 in
+//   TWO dimensions: (i) closes the third summary on the SAME surface
+//   rather than opening a fourth — the reseller_requests row has
+//   exactly three CHECK constraints (ck_decision_shape at 0095:41-45
+//   + ck_credit_link at 0095:48-51 + ck_promo_link at 0095:52-55) so
+//   the three-summary parity IS the close-out on this cluster; (ii)
+//   makes the XOR partition observable at module scope for the first
+//   time on this surface (see the writer-side source block above —
+//   the XOR is emergent across the ck_credit_link + ck_promo_link
+//   pair and cannot be lifted from either summary alone). Follow-on
+//   ticks can extend along the same two dimensions as tick 360's
+//   next-pick options: (i) cross-surface twin hoist of ALL THREE
+//   summaries onto admin-requests-list-authz.spec.ts so the ck_*
+//   constraint triple reaches two-surface parity with the detail-*
+//   pair; (ii) rotate to reseller-side surfaces (requests-authz.
+//   spec.ts + requests-validation.spec.ts + reseller-requests-list-
+//   authz.spec.ts) for reseller-scope twins — reseller-scope
+//   surfaces have not yet carried any module-scope cross-column
+//   invariant summary either.
+
 test.describe("Admin reseller requests PATCH pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — PATCH with no session returns 401 no_user", async ({
     request,
