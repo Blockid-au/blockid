@@ -1,0 +1,28 @@
+{
+  "tourId": "onboarding",
+  "title": "Onboarding walkthrough",
+  "role": "founder",
+  "baseUrl": "http://localhost:4001",
+  "gitSha": "e1b63d74591362916f5c0aa21e27ace891a444a1",
+  "capturedAt": "2026-07-24T19:27:21.191Z",
+  "steps": [
+    {
+      "id": "01-home",
+      "path": "/",
+      "caption": "Landing page",
+      "file": "step-01-home.png"
+    },
+    {
+      "id": "02-pricing",
+      "path": "/pricing",
+      "caption": "Pricing overview",
+      "file": "step-02-pricing.png"
+    },
+    {
+      "id": "03-dashboard",
+      "path": "/dashboard",
+      "caption": "Founder dashboard",
+      "file": "step-03-dashboard.png"
+    }
+  ]
+}
