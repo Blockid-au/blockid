@@ -1119,3 +1119,5 @@
 {"ts":"2026-07-24T02:03:27.034Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): extract Atlassian demo fixture (task 1/13) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T02:03:47.031Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): admin end-to-end affiliate provisioning (API + UI + E2E) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T02:05:15.558Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 367 — P10 reseller_requests ck_promo_link cross-column invariant summary reseller-scope closing hoist onto requests-authz (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:12:38.489Z","event":"github-push-master","detail":"Blockid-au: test(showcase): walkthrough shell navigation (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T02:14:22.096Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 368 — P10 reseller_requests ck_decision_shape cross-column invariant summary cross-surface twin-lift onto requests-validation (1 commits)","source":"github-webhook"}
