@@ -1098,3 +1098,4 @@
 {"ts":"2026-07-24T00:25:11.817Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T00-20-01-481Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T00:35:13.968Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 358 — P10 promotion_codes[] tier ⇔ stripe-id disjunction invariant summary twin hoist onto admin-reseller-detail-validation (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T00:35:22.484Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T00-30-01-385Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T00:46:08.511Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 359 — P10 reseller_requests ck_decision_shape cross-column invariant summary hoist onto admin-requests-patch-authz (1 commits)","source":"github-webhook"}
