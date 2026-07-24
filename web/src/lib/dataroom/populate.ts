@@ -32,12 +32,39 @@ export const TEMPLATE_MIME_MARKER = "application/vnd.blockid.template";
 
 export type PopulateMode = "append" | "replace" | "dry_run";
 
+/**
+ * Optional per-row overrides used by the storage-backed template seeder
+ * (`seed-templates.ts`). When present, the inserted row is stamped with
+ * `status='present'` (rather than the default 'missing' placeholder), the
+ * caller-provided `mime_type`, and the storage / template metadata columns
+ * added in migration 0114_dataroom_storage_path.sql.
+ *
+ * The Atlassian placeholder path does NOT set these — its rows continue to
+ * insert with `status='missing'` + `mime_type=TEMPLATE_MIME_MARKER` so the
+ * natural-key (svi_dimension, file_name) dedupe still holds and the two
+ * seed paths never double-count.
+ */
+export interface TemplateRowOverride {
+  storage_path?: string | null;
+  template_slug?: string | null;
+  template_version?: string | null;
+  mime_type?: string | null;
+  status?: "present" | "missing";
+}
+
 export interface PopulateParams {
   userId: string;
   email: string;
   projectId?: string | null;
   template: DataRoomTemplateRow[];
   mode: PopulateMode;
+  /**
+   * Optional per-row storage / template overrides, keyed by the same
+   * `(category, title)` natural key used elsewhere in this module. Set by
+   * `seed-templates.ts` so the 10 storage-backed templates land as
+   * `status='present'` rows.
+   */
+  overrides?: Map<string, TemplateRowOverride>;
   /** Injected in tests. Falls back to the shared admin client. */
   supabase?: SupabaseClient;
 }
@@ -156,15 +183,20 @@ export async function populateFromTemplate(
       phaseSlug: tpl.phaseSlug,
     });
 
-    toInsert.push({
+    const override = params.overrides?.get(key);
+    const row: Record<string, unknown> = {
       user_id: params.userId,
       email: params.email,
       svi_dimension: tpl.category,
       file_name: tpl.title,
-      status: "missing",
+      status: override?.status ?? "missing",
       drive_file_url: tpl.sourceUrl ?? null,
-      mime_type: TEMPLATE_MIME_MARKER,
-    });
+      mime_type: override?.mime_type ?? TEMPLATE_MIME_MARKER,
+    };
+    if (override?.storage_path) row.storage_path = override.storage_path;
+    if (override?.template_slug) row.template_slug = override.template_slug;
+    if (override?.template_version) row.template_version = override.template_version;
+    toInsert.push(row);
   }
 
   if (params.mode === "dry_run") {
