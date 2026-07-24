@@ -87,3 +87,5 @@
 {"tick_id":"2026-07-24T08-07-01-668Z","ts":"2026-07-24T08:11:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1j","summary":"Chapter 6 R&D Tax Incentive section (rnd-tax-incentive, 9 bullets EN+VI) authored in startup-journey.ts + rendered in /guide + /workspace/guide + 3 new vitest cases (all 15 green)"}
 {"tick_id":"2026-07-24T08-07-01-668Z","ts":"2026-07-24T08:12:18.186Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":316510,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-24T08-07-01-668Z","ts":"2026-07-24T08:12:18.220Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":12}
+{"tick_id":"2026-07-24T08-07-01-668Z","ts":"2026-07-24T08:12:19.799Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-24T08-07-01-668Z","ts":"2026-07-24T08:12:19.805Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"c40c6e4a","last_deployed":"f04951a"}
