@@ -1043,3 +1043,5 @@
 {"tick_id":"2026-07-24T22-30-01-485Z","ts":"2026-07-24T22:33:59.688Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_commit_started","dirty_files":20}
 {"tick_id":"2026-07-24T22-30-01-485Z","ts":"2026-07-24T22:34:01.261Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-07-24T22-30-01-485Z","ts":"2026-07-24T22:34:01.268Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_deploy_triggered","head":"a0ff4428","last_deployed":"0abf77c"}
+{"tick_id":"2026-07-24T22-30-01-485Z","ts":"2026-07-24T22:40:17.263Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_deploy_finished","status":0,"head":"a0ff4428"}
+{"tick_id":"2026-07-24T22-30-01-485Z","ts":"2026-07-24T22:40:17.264Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"tick_end"}
