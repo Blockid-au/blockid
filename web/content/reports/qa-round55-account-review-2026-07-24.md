@@ -109,9 +109,34 @@ None committed as code fixes in this round. The one shipped item is a small feat
 | P2 | Reseller QA data | Neither DOVANLONG nor QA_AFFILIATE is `billing_model=wholesale`, and `can_create_startups=false` on QA_AFFILIATE | `POST /api/reseller/create-startup` cannot be exercised end-to-end (magic-link → founder activation) against either QA reseller. Mint a `QA_WHOLESALE` reseller with `billing_model=wholesale, can_create_startups=true` to unblock full E2E test of `/reseller/create-startup` UI. |
 | P3 | UX / RBAC | `/admin` returns 200 with an "Access Denied" screen for non-admin roles (founder-free, journalist, investor-angel, advisor) | Soft-deny UX. Round 5.2 commit `eddd25b3` (Agent I) is expected to convert this to a hard 307 when the running server picks up the new build. Confirm post-deploy. |
 
+## Deploy pipeline unblock (mid-round finding)
+
+`deploy-live.sh` was **silently failing at Gate 4b (vitest) since round 5.4c landed**, so every subsequent commit (5.4d cron, all of 5.5 compliance, all of 5.6 legal templates, this round's `/dashboard/reports` index, the CFO card layout fix, the PDF final-CTA fix, and Agents I-J-K-L's user-visible surfaces) sat undeployed. Two independent test-side gaps:
+
+1. **`feature-gates.manifest.test.ts`** — round 5.4c wired the persistent rate-limit into `api/dataroom/populate-from-template`, making it a mutation route inside the `api/dataroom` gated directory, but the FEATURE_GATES manifest was not updated. Manifest-completeness test failed. Fixed by adding the route with `share_management` feature (matches sibling `dataroom/clone` and `dataroom/setup`). Landed on origin in commit `7bf5c17a` by a parallel agent picking up the same failure.
+2. **`api/projects/[id]/archive/route.test.ts`** — commit `591a2548` swapped the plain `project.userId === user.id` ownership check for `assertProjectMemberCan(id, user.id, "write")` but never added the mock. 6 happy-path tests turned 403 under the un-mocked helper. Fixed in commit `11cd37af` (round 5.5 QA) — mock `@/lib/project-members/scope` with a resolving default; the two "Forbidden when not owner" cases override with `mockRejectedValueOnce` so the 403 branch stays covered.
+
+Post-fix: `1305/1305` vitest pass, `tsc --noEmit` clean, deploy #2 progressed past Gate 5 into Gate 6 (build) at time of writing.
+
+## Pricing / credits anomalies (passthrough — user decision required)
+
+The Pricing agent's earlier flag is verified in code. Left in place — this is a strategic decision, not a QA bug:
+
+1. **`src/lib/credits.ts::PLAN_CREDITS`** references only the legacy plan IDs `free / founding50 / growth / growth_annual`. It has **no entry** for the canonical v2 IDs `founder_starter / founder_growth / founder_scale / founder_enterprise` defined in `src/lib/plans-v2.ts`. Any code path that reads `PLAN_CREDITS[user.plan]` for a Scale (founder_scale) user gets `undefined` — the "3,000 AI credits / month" advertised in `plans-v2.ts` features string is not backed by a credit assignment.
+2. **`founder_starter`** advertises "50 AI credits / month" (plans-v2.ts line ~48) but likewise has no `PLAN_CREDITS` row.
+3. Legacy `growth` PLAN_CREDITS is 200/mo — matches the current `founder_growth` advertised copy, so Growth tier users may be attributed via a `growth → founder_growth` alias elsewhere (`plans.ts` shows `growth: { id: "founder_growth" }`). Confirm the reverse lookup exists or migrate `PLAN_CREDITS` to canonical IDs.
+4. Reseller-tier alignment (solo=50 / growth=200 canonical vs older 200/800 numbers) — reseller commissions + wholesale pricing tables should be audited for legacy numbers; not in this round's scope.
+
+**Recommendation:** migrate `PLAN_CREDITS` to canonical v2 IDs in a single commit that touches only `credits.ts` + tests, so audit trail is clear. Do NOT bundle with plan migration or Stripe wiring.
+
+## Parallel-agent coordination notes
+
+- **UX/IA (round 5.12)** in flight — restructuring nav/menus + adding DEMO menu item + journey step ladder. Owns `web/src/components/nav/**`, `nav-groups.ts`. QA deliberately did NOT ship empty-state/role-banner UI (previously scoped as Phase 3 candidates) to avoid clash with the step-ladder work.
+- **Trial (round 5.11)** in flight — removing free tier, every plan gets 7-day trial with card required at signup, migration 0110. Post-5.11 land, the current `qa+founder@blockid.au` (plan=free) and `qa+journalist@blockid.au` (plan=free) become "legacy" accounts. If Round 6 QA assertions still expect `plan="free"` on those rows, either update the assertions or gate on `LEGACY_FREE_USER=1`.
+
 ## Follow-ups for Round 6
 
-1. **Seed a `QA_WHOLESALE` reseller** and a matching promotion code so the create-startup magic-link flow is testable end-to-end without touching DOVANLONG (owned by a real user).
+1. **Seed a `QA_WHOLESALE` reseller** — DONE this round. Provisioned via `POST /api/admin/affiliate/provision` with `billing_model=wholesale, abn="11 111 111 111", gst_registered=true, can_create_startups=true, can_grant_credits=true, monthly_credit_budget=100`. Reseller code lands as `QAWHOLESALE` (underscore stripped by `normaliseResellerCode`). Tier-0 promo code `QAWHOLESALE`. Login: `qa+wholesale@blockid.au` / temp password stored in `/tmp/.../scratchpad/round55/wholesale-prov.json`. Create-startup E2E verified: `POST /api/reseller/create-startup` for `plan_tier=founder_growth, discount_tier=0` → 200 with `user_id`, `project_id`, `attribution_id`, `magic_link_sent:true`, `email_sent:true`, `stripe_wiring:{state:"not_ready", reason:"stripe_customer_missing"}` (expected — no Stripe wired for QA fixture). Test founder rows deleted; app_users row orphaned with display_name `(orphaned test founder)` because `reseller_audit_log` FK prevents hard-delete.
 2. **Auto-refresh idempotent QA data seeder** — add `web/scripts/qa-seed.sh` (or similar) that reproduces the current QA account set + promo codes + reseller variants on demand. The provision route already handles idempotency.
 3. **Admin route hardening — retest post-deploy.** Confirm Round 5.2 hard redirect lands. If any `/admin/*` returns 200 body to a non-admin post-deploy, escalate as P0.
 4. **Deploy debounce (`DEPLOY_MIN_INTERVAL=90`)** blocks same-commit rebuilds. Verify Gate 4b vitest exit-code fix (5.3) once the running server rev'd — the earlier `next build` had aborted at Gate 3 (5 TS errors in `demo-walkthrough-shell.test.ts`), which a subsequent Round-5 commit already resolved (my `npx tsc --noEmit` is clean).

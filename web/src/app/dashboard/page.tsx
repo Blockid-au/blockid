@@ -23,6 +23,7 @@ import { getProjectIdFromRequest, getActiveProject, findOrCreateSVIAccount, getC
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { JourneyBar } from "@/components/dashboard/journey-bar";
+import { JourneyStepLadder } from "@/components/dashboard/journey-step-ladder";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
 import { GrowthRoadmap } from "@/components/dashboard/growth-roadmap";
 import { GrowthProgressDashboard } from "@/components/dashboard/growth-progress-dashboard";
@@ -719,6 +720,9 @@ export default async function DashboardPage({
 
         {/* ── Journey Progress Bar ──────────────────────────────────────────── */}
         <JourneyBar currentPhase={phase} sviScore={sviScore ?? 0} />
+
+        {/* ── ux-ia-startup-flow-v1 §C.4 — full 12-phase step ladder ────────── */}
+        <JourneyStepLadder currentPhase={phase} mode="coarse" />
 
         {/* ── SCN POSITION hero — "Where am I?" above valuation ─────────────── */}
         <ScnPositionHero
