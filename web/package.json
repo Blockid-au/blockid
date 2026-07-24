@@ -27,6 +27,7 @@
     "@remotion/cli": "^4.0.463",
     "@remotion/player": "^4.0.463",
     "@remotion/renderer": "^4.0.463",
+    "@stripe/react-stripe-js": "^6.8.0",
     "@stripe/stripe-js": "^9.6.0",
     "@supabase/supabase-js": "^2.105.3",
     "@types/bcryptjs": "^2.4.6",
