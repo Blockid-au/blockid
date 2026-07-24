@@ -48,6 +48,27 @@ export interface NavItem {
   addOnKey?: "share_management";
 }
 
+/**
+ * Pillar bucket used by workspace-layout's pillar-aware renderer.
+ *
+ *   overview   — always expanded, first pillar. Landing surfaces.
+ *   now        — founder-facing groups tied to phase progression. Only the
+ *                pillar that brackets `currentPhase` auto-expands.
+ *   coming_up  — reserved for the next-phase preview slot (mapped to the
+ *                "Later phases" P5 expander today).
+ *   later      — later-phase groups collapsed under P5 disclosure.
+ *   role       — audience overlays (investor/advisor/…); only the role
+ *                matching the user's segment renders.
+ *   account    — utility group; collapsed by default.
+ */
+export type NavPillar =
+  | "overview"
+  | "now"
+  | "coming_up"
+  | "later"
+  | "role"
+  | "account";
+
 export interface NavGroup {
   label: string;
   stage?: string;
@@ -55,12 +76,22 @@ export interface NavGroup {
   minPlan?: PlanTier;
   segments?: Segment[];
   collapsible?: boolean;
+  /**
+   * Progressive-disclosure default. When true the pillar renders collapsed
+   * on first paint. workspace-layout overrides this for the pillar whose
+   * `minPhase` brackets the founder's current phase.
+   */
+  defaultCollapsed?: boolean;
+  /** Sidebar pillar bucket — see NavPillar. */
+  pillar?: NavPillar;
   items: NavItem[];
 }
 
 export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Overview",
+    pillar: "overview",
+    defaultCollapsed: false,
     items: [
       { href: "/workspace/projects", label: "My Startups", icon: Briefcase },
       { href: "/workspace/projects/archived", label: "Archived", icon: Archive },
@@ -74,6 +105,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Build & Validate",
     stage: "Idea → MVP",
     minPhase: 0,
+    pillar: "now",
+    defaultCollapsed: true,
     items: [
       { href: "/workspace/evaluation", label: "Evaluation (13)", icon: FileText, minPlan: "starter" },
       { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText, minPlan: "starter" },
@@ -86,6 +119,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Ownership & Equity",
     stage: "MVP → Launch",
     minPhase: 2,
+    pillar: "now",
+    defaultCollapsed: true,
     items: [
       { href: "/workspace/equity-setup", label: "Equity Setup", icon: Wand2, minPlan: "starter", addOnKey: "share_management" },
       { href: "/workspace/equity", label: "Equity Split", icon: PieChart, minPlan: "starter", addOnKey: "share_management" },
@@ -110,6 +145,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Fundraise",
     stage: "Pre-seed → Series A",
     minPhase: 3,
+    pillar: "now",
+    defaultCollapsed: true,
     items: [
       { href: "/dashboard/valuation", label: "VC Valuation", icon: Target, minPlan: "starter" },
       { href: "/dashboard/cfo", label: "CFO Advisor", icon: LineChart, minPlan: "starter" },
@@ -129,6 +166,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Grow & Scale",
     stage: "Revenue → Scale",
     minPhase: 4,
+    pillar: "now",
+    defaultCollapsed: true,
     items: [
       { href: "/workspace/revenue", label: "Revenue", icon: DollarSign, minPlan: "growth" },
       { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen, minPlan: "scale" },
@@ -142,6 +181,8 @@ export const NAV_GROUPS: NavGroup[] = [
     stage: "Deal flow → Portfolio",
     segments: ["investor_angel", "investor_vc"],
     collapsible: true,
+    pillar: "role",
+    defaultCollapsed: true,
     items: [
       { href: "/workspace/deal-flow", label: "Deal Flow", icon: Layers, segments: ["investor_angel", "investor_vc"] },
       { href: "/workspace/watchlist", label: "Watchlist", icon: Eye, segments: ["investor_angel", "investor_vc"] },
@@ -160,6 +201,8 @@ export const NAV_GROUPS: NavGroup[] = [
     stage: "Clients → Insights",
     segments: ["advisor"],
     collapsible: true,
+    pillar: "role",
+    defaultCollapsed: true,
     items: [
       { href: "/workspace/client-roster", label: "Client Roster", icon: Users, segments: ["advisor"] },
       { href: "/workspace/advisor-notes", label: "Notes", icon: MessageSquare, segments: ["advisor"] },
@@ -171,6 +214,8 @@ export const NAV_GROUPS: NavGroup[] = [
     stage: "Cohort → LP Report",
     segments: ["accelerator"],
     collapsible: true,
+    pillar: "role",
+    defaultCollapsed: true,
     items: [
       { href: "/workspace/cohort", label: "Cohort", icon: Building2, segments: ["accelerator"] },
       { href: "/workspace/applications", label: "Applications", icon: ClipboardCheck, segments: ["accelerator"] },
@@ -187,6 +232,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Reseller",
     stage: "Partners → Payout",
     collapsible: true,
+    pillar: "role",
+    defaultCollapsed: true,
     items: [
       { href: "/reseller", label: "Dashboard", icon: LayoutDashboard, feature: "reseller.console" },
       { href: "/reseller/customers", label: "Customers", icon: Users, feature: "reseller.console" },
@@ -199,6 +246,8 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Account",
+    pillar: "account",
+    defaultCollapsed: true,
     items: [
       { href: "/workspace/profile", label: "My Profile", icon: User },
       { href: "/workspace/founder-profile", label: "Founder Profile", icon: User, lifecycle: "beta" },

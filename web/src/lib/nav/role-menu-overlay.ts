@@ -57,6 +57,14 @@ export interface RoleMenuOverlay {
    * NAV_GROUPS are ignored — makes the overlay safe to edit standalone.
    */
   sidebarOrder: string[];
+  /**
+   * Sidebar groups that start collapsed on first paint for this role.
+   * Consumers merge these on top of `NavGroup.defaultCollapsed` so per-role
+   * defaults can override the catalogue-level default (e.g. an investor
+   * account keeps "Investor" expanded while collapsing Fundraise).
+   * Groups not listed here fall back to `NavGroup.defaultCollapsed`.
+   */
+  defaultCollapsedGroups: string[];
 }
 
 /**
@@ -70,6 +78,16 @@ const DEFAULT_OVERLAY: RoleMenuOverlay = Object.freeze({
   sidebarOrder: [
     "Overview",
     "Build & Validate",
+    "Ownership & Equity",
+    "Fundraise",
+    "Grow & Scale",
+    "Account",
+  ],
+  // Founder default: collapse everything except Overview + the phase-matching
+  // Now group (workspace-layout re-expands the group whose minPhase brackets
+  // the founder's currentPhase, so from the founder's POV two pillars are
+  // open on first paint).
+  defaultCollapsedGroups: [
     "Ownership & Equity",
     "Fundraise",
     "Grow & Scale",
@@ -90,12 +108,15 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
     hiddenGroups: ["Build & Validate", "Ownership & Equity", "Grow & Scale"],
     topNavExtras: [],
     sidebarOrder: ["Overview", "Investor", "Fundraise", "Account"],
+    // Angel: keep Investor expanded, collapse the rest.
+    defaultCollapsedGroups: ["Fundraise", "Account"],
   },
   investor_vc: {
     roleLabel: "VC investor",
     hiddenGroups: ["Build & Validate", "Ownership & Equity", "Grow & Scale"],
     topNavExtras: [],
     sidebarOrder: ["Overview", "Investor", "Fundraise", "Account"],
+    defaultCollapsedGroups: ["Fundraise", "Account"],
   },
 
   advisor: {
@@ -103,6 +124,7 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
     hiddenGroups: ["Build & Validate", "Grow & Scale"],
     topNavExtras: [],
     sidebarOrder: ["Overview", "Advisor", "Ownership & Equity", "Fundraise", "Account"],
+    defaultCollapsedGroups: ["Ownership & Equity", "Fundraise", "Account"],
   },
 
   accelerator: {
@@ -110,6 +132,7 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
     hiddenGroups: ["Build & Validate", "Ownership & Equity"],
     topNavExtras: [],
     sidebarOrder: ["Overview", "Accelerator", "Fundraise", "Grow & Scale", "Account"],
+    defaultCollapsedGroups: ["Fundraise", "Grow & Scale", "Account"],
   },
   // Incubators use the same shape as accelerators for now — the app has no
   // dedicated Incubator NAV_GROUP yet, so we alias to the accelerator layout
@@ -119,6 +142,7 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
     hiddenGroups: ["Build & Validate", "Ownership & Equity"],
     topNavExtras: [],
     sidebarOrder: ["Overview", "Accelerator", "Fundraise", "Grow & Scale", "Account"],
+    defaultCollapsedGroups: ["Fundraise", "Grow & Scale", "Account"],
   },
 
   reseller: {
@@ -131,6 +155,7 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
       { href: "/reseller", label: "Reseller", badge: "Console" },
     ],
     sidebarOrder: ["Overview", "Reseller", "Account"],
+    defaultCollapsedGroups: ["Account"],
   },
 
   journalist: {
@@ -142,6 +167,7 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
     hiddenGroups: ["Build & Validate", "Ownership & Equity", "Fundraise", "Grow & Scale"],
     topNavExtras: [],
     sidebarOrder: ["Overview", "Account"],
+    defaultCollapsedGroups: ["Account"],
   },
   // affiliate + investor (legacy) — inherit default.
   affiliate: DEFAULT_OVERLAY,
@@ -165,6 +191,19 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
       "Accelerator",
       "Reseller",
       "Admin",
+      "Account",
+    ],
+    // Admins scan, they don't onboard — everything except Overview and
+    // Admin starts collapsed.
+    defaultCollapsedGroups: [
+      "Build & Validate",
+      "Ownership & Equity",
+      "Fundraise",
+      "Grow & Scale",
+      "Investor",
+      "Advisor",
+      "Accelerator",
+      "Reseller",
       "Account",
     ],
   },
@@ -212,4 +251,32 @@ export function applySidebarOverlay<G extends { label: string }>(
     const rb = rank.has(b.label) ? rank.get(b.label)! : Number.POSITIVE_INFINITY;
     return ra - rb;
   });
+}
+
+/**
+ * Resolve the initial collapse state (label → collapsed?) for the given
+ * overlay + catalogue. Callers merge this on top of user-persisted state
+ * (localStorage). Kept alongside `applySidebarOverlay()` so consumers
+ * don't have to re-derive it from `defaultCollapsedGroups` + the catalogue.
+ *
+ * Precedence:
+ *   1. `overlay.defaultCollapsedGroups.includes(label)` → collapsed.
+ *   2. Else `group.defaultCollapsed` from the catalogue (falls back to
+ *      `false` when unset, matching the pre-pillar behaviour).
+ */
+export function resolveInitialCollapse<
+  G extends { label: string; defaultCollapsed?: boolean },
+>(groups: G[], overlay: RoleMenuOverlay): Record<string, boolean> {
+  const roleCollapsed = new Set(overlay.defaultCollapsedGroups ?? []);
+  const out: Record<string, boolean> = {};
+  for (const g of groups) {
+    if (roleCollapsed.has(g.label)) {
+      out[g.label] = true;
+    } else if (g.defaultCollapsed !== undefined) {
+      out[g.label] = g.defaultCollapsed;
+    } else {
+      out[g.label] = false;
+    }
+  }
+  return out;
 }
