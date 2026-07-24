@@ -59,6 +59,7 @@ const KNOWN_KPI_SECTIONS = [
   "cohort_velocity",
   "ltv_cac_per_reseller",
   "sandbox_share_of_budget",
+  "contribution_margin_pct",
 ] as const;
 
 export type KnownKpiSection = (typeof KNOWN_KPI_SECTIONS)[number];

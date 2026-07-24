@@ -138,6 +138,18 @@ export const HEADLINE_METRICS: readonly HeadlineMetricSpec[] = [
     unit: "count",
     paths: [["sandbox_credits_used"], ["share", "sandbox_credits_used"]],
   },
+  {
+    // P11.34 renders margin_pct per row (a rate, not sum-able) — headline the
+    // sum-able net_contribution_cents so the metric-delta table reads the same
+    // shape as attributed_net_contribution.net_contribution_cents on the same
+    // ladder. Cross-check by design: the two rows should agree on portfolio
+    // net every week; a divergence in the metric-delta table signals margin
+    // projection drift from its P11.6 net-contribution feeder.
+    key: "contribution_margin_pct",
+    metric_name: "net_contribution_cents",
+    unit: "signed_cents",
+    paths: [["net_contribution_cents"]],
+  },
 ];
 
 /**

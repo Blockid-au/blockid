@@ -32,6 +32,7 @@ function fullEnvelope(overrides: Partial<Record<string, unknown>> = {}): DigestS
     cohort_velocity: { window_months: 3, cohort_months: [], reseller_count: 2, rows: [{}, {}] },
     ltv_cac_per_reseller: { reseller_count: 2, rows: [{}, {}] },
     sandbox_share_of_budget: { month_key: "2026-07", reseller_count: 2, rows: [{}, {}] },
+    contribution_margin_pct: { month_key: "2026-07", reseller_count: 2, rows: [{}, {}] },
   };
   for (const [k, v] of Object.entries(overrides)) {
     base[k] = v;

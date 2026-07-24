@@ -36,10 +36,78 @@ describe("HEADLINE_METRICS", () => {
     expect(new Set(pairs).size).toBe(pairs.length);
   });
 
-  it("net-contribution + gst-delta use signed_cents", () => {
+  it("net-contribution + gst-delta + contribution-margin use signed_cents", () => {
     const byKey = new Map(HEADLINE_METRICS.map((m) => [m.key, m]));
     expect(byKey.get("attributed_net_contribution")?.unit).toBe("signed_cents");
     expect(byKey.get("gst_reconciliation_delta")?.unit).toBe("signed_cents");
+    expect(byKey.get("contribution_margin_pct")?.unit).toBe("signed_cents");
+  });
+
+  it("contribution_margin_pct headlines net_contribution_cents as its sum-able cross-check", () => {
+    const byKey = new Map(HEADLINE_METRICS.map((m) => [m.key, m]));
+    const spec = byKey.get("contribution_margin_pct");
+    expect(spec).toBeDefined();
+    expect(spec!.metric_name).toBe("net_contribution_cents");
+    expect(spec!.paths).toEqual([["net_contribution_cents"]]);
+  });
+});
+
+describe("computeDigestSnapshotMetricDelta — contribution_margin_pct", () => {
+  it("sums net_contribution_cents across rows and preserves negatives", () => {
+    const prev = snapshot(WEEK_A, CAPTURED_A, {
+      contribution_margin_pct: {
+        rows: [
+          { net_contribution_cents: 12000 },
+          { net_contribution_cents: -5000 },
+        ],
+      },
+    });
+    const curr = snapshot(WEEK_B, CAPTURED_B, {
+      contribution_margin_pct: {
+        rows: [
+          { net_contribution_cents: 8000 },
+          { net_contribution_cents: -9000 },
+        ],
+      },
+    });
+    const d = computeDigestSnapshotMetricDelta(prev, curr);
+    const cm = d.metrics.find((m) => m.key === "contribution_margin_pct")!;
+    expect(cm.previous_total).toBe(7000);
+    expect(cm.current_total).toBe(-1000);
+    expect(cm.total_delta).toBe(-8000);
+  });
+
+  it("mirrors attributed_net_contribution total when both sections agree per reseller", () => {
+    // P11.34 folds P11.6 rows so portfolio net should match across the two
+    // sections. When they diverge, the metric-delta table surfaces the drift.
+    const rows = [
+      { net_contribution_cents: 3000 },
+      { net_contribution_cents: -700 },
+      { net_contribution_cents: 100 },
+    ];
+    const snap = snapshot(WEEK_B, CAPTURED_B, {
+      attributed_net_contribution: { rows },
+      contribution_margin_pct: { rows },
+    });
+    const d = computeDigestSnapshotMetricDelta(snap, snap);
+    const nc = d.metrics.find((m) => m.key === "attributed_net_contribution")!;
+    const cm = d.metrics.find((m) => m.key === "contribution_margin_pct")!;
+    expect(nc.current_total).toBe(cm.current_total);
+    expect(nc.current_total).toBe(2400);
+  });
+
+  it("null total when contribution_margin_pct is skipped", () => {
+    const prev = snapshot(WEEK_A, CAPTURED_A, {
+      contribution_margin_pct: { rows: [{ net_contribution_cents: 100 }] },
+    });
+    const curr = snapshot(WEEK_B, CAPTURED_B, {
+      contribution_margin_pct: { skipped_reason: "net_upstream_mrr_query_failed" },
+    });
+    const d = computeDigestSnapshotMetricDelta(prev, curr);
+    const cm = d.metrics.find((m) => m.key === "contribution_margin_pct")!;
+    expect(cm.previous_total).toBe(100);
+    expect(cm.current_total).toBeNull();
+    expect(cm.total_delta).toBeNull();
   });
 });
 
