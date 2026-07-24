@@ -23,6 +23,7 @@ import {
   type PopulateMode,
 } from "@/lib/dataroom/populate";
 import { ATLASSIAN_DATAROOM_TEMPLATE } from "@/lib/dataroom/atlassian-template";
+import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 
 export const dynamic = "force-dynamic";
 
@@ -41,24 +42,11 @@ const BodySchema = z.object({
   project_id: z.string().uuid().optional(),
 });
 
-// Simple per-user rate limit — 5 populates per hour. Uses a module-scope
-// Map so it survives across requests inside a single Node process (good
-// enough for MVP; a persistent rate-limit table can be layered later).
+// Per-user rate limit — 5 populates per hour. Backed by the persistent
+// endpoint_rate_limits table so it survives restarts and works across
+// containers (round 5.4). See web/src/lib/rate-limit/persistent.ts.
 const RATE_LIMIT = 5;
-const WINDOW_MS = 60 * 60 * 1000;
-const hits = new Map<string, number[]>();
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const arr = (hits.get(userId) ?? []).filter((t) => now - t < WINDOW_MS);
-  if (arr.length >= RATE_LIMIT) {
-    hits.set(userId, arr);
-    return false;
-  }
-  arr.push(now);
-  hits.set(userId, arr);
-  return true;
-}
+const WINDOW_SECONDS = 60 * 60;
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -112,14 +100,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!checkRateLimit(user.id)) {
+  const rl = await consumeRateLimit({
+    bucket: "dataroom.populate",
+    actorId: user.id,
+    limit: RATE_LIMIT,
+    windowSeconds: WINDOW_SECONDS,
+  });
+  if (!rl.allowed) {
+    const retryAfter = rl.retry_after_seconds ?? WINDOW_SECONDS;
     return NextResponse.json(
       {
         ok: false,
         error: "rate_limited",
+        limit: rl.limit,
+        retry_after_seconds: retryAfter,
         detail: `max ${RATE_LIMIT} populates per hour`,
       },
-      { status: 429 },
+      {
+        status: 429,
+        headers: { "Retry-After": String(retryAfter) },
+      },
     );
   }
 
