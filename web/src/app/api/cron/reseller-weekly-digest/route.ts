@@ -94,6 +94,14 @@ import {
   type GstReconciliationDeltaRow,
 } from "@/lib/reseller/gst-reconciliation-delta";
 import {
+  LTV_REVENUE_KINDS,
+  computeLtvCacByReseller,
+  formatWeeklyDigestLtvCacSection,
+  type CacCommissionRow,
+  type LtvCacRow,
+  type LtvRevenueRow,
+} from "@/lib/reseller/ltv-cac";
+import {
   computeTierMixByReseller,
   formatWeeklyDigestTierMixSection,
   type TierMixAttributionRow,
@@ -971,6 +979,68 @@ export async function GET(req: Request) {
   const cohortSection = formatWeeklyDigestCohortVelocitySection(cohortVelocityRows);
   if (cohortSection) html += cohortSection;
 
+  // P11.11 canonical KPI (`ltv_cac_per_reseller` from reseller-module-goal.md
+  // `weekly_digest_kpis`, D2-CFO-07). Channel-health golden ratio per reseller:
+  //   LTV  = Σ revenue_events.net_aud_cents scoped to reseller_id (all-time)
+  //   CAC  = Σ reseller_commissions_current.commission_aud_cents WHERE status='cleared'
+  //   ratio = LTV / CAC (rendered as N.NN×)
+  // GST-net revenue is used on the LTV side because the GST portion is remitted
+  // to the ATO and never lands as BlockID take-home — so the ratio compares
+  // BlockID's realised revenue against realised commission cost. Pending +
+  // disputed commissions are excluded because P11.4 clawback_exposure already
+  // surfaces the still-at-risk pile. Failures degrade to a skipped section
+  // (skipped_reason='ltv_revenue_query_failed' | 'ltv_commission_query_failed')
+  // so the earlier signals still ship.
+  let ltvCacRows: LtvCacRow[] = [];
+  let ltvCacSkippedReason: string | null = null;
+  const { data: ltvRevenueData, error: ltvRevenueErr } = await supabase
+    .from("revenue_events")
+    .select("reseller_id, net_aud_cents, kind")
+    .in("reseller_id", resellerIds)
+    .in("kind", LTV_REVENUE_KINDS as unknown as string[]);
+  if (ltvRevenueErr) {
+    console.error(
+      "[reseller-weekly-digest] ltv revenue query failed",
+      ltvRevenueErr.message,
+    );
+    ltvCacSkippedReason = "ltv_revenue_query_failed";
+  } else {
+    const { data: ltvCommissionData, error: ltvCommissionErr } = await supabase
+      .from("reseller_commissions_current")
+      .select("reseller_id, commission_aud_cents")
+      .in("reseller_id", resellerIds)
+      .eq("status", "cleared");
+    if (ltvCommissionErr) {
+      console.error(
+        "[reseller-weekly-digest] ltv commission query failed",
+        ltvCommissionErr.message,
+      );
+      ltvCacSkippedReason = "ltv_commission_query_failed";
+    } else {
+      const ltvCacByReseller = computeLtvCacByReseller(
+        resellerIds,
+        (ltvRevenueData ?? []) as LtvRevenueRow[],
+        (ltvCommissionData ?? []) as CacCommissionRow[],
+        attributedTotals,
+      );
+      ltvCacRows = resellers.map((r) => ({
+        reseller_id: r.id,
+        reseller_code: r.code,
+        reseller_display_name: r.display_name ?? r.code,
+        ltv_cac: ltvCacByReseller.get(r.id) ?? {
+          lifetime_revenue_cents: 0,
+          cumulative_cleared_commission_cents: 0,
+          attributed_customers: attributedTotals.get(r.id) ?? 0,
+          ltv_per_customer_cents: 0,
+          cac_per_customer_cents: 0,
+          ltv_cac_ratio_hundredths: null,
+        },
+      }));
+      const ltvCacSection = formatWeeklyDigestLtvCacSection(ltvCacRows);
+      if (ltvCacSection) html += ltvCacSection;
+    }
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -1164,6 +1234,22 @@ export async function GET(req: Request) {
         })),
       })),
     },
+    ltv_cac_per_reseller: ltvCacSkippedReason
+      ? { skipped_reason: ltvCacSkippedReason }
+      : {
+          reseller_count: ltvCacRows.length,
+          rows: ltvCacRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            attributed_customers: r.ltv_cac.attributed_customers,
+            lifetime_revenue_cents: r.ltv_cac.lifetime_revenue_cents,
+            cumulative_cleared_commission_cents:
+              r.ltv_cac.cumulative_cleared_commission_cents,
+            ltv_per_customer_cents: r.ltv_cac.ltv_per_customer_cents,
+            cac_per_customer_cents: r.ltv_cac.cac_per_customer_cents,
+            ltv_cac_ratio_hundredths: r.ltv_cac.ltv_cac_ratio_hundredths,
+          })),
+        },
     ran_at: now.toISOString(),
   });
 }
