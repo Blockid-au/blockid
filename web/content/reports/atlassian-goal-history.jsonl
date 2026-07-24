@@ -471,3 +471,4 @@
 {"tick_id":"2026-07-24T20-17-01-790Z","ts":"2026-07-24T20:26:09.245Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-24T20-27-01-337Z","ts":"2026-07-24T20:27:01.338Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T20-27-01-337Z","ts":"2026-07-24T20:27:01.360Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T20-37-33-000Z","ts":"2026-07-24T20:37:33.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1n-calendar-events","summary":"Fold WGEA + Modern Slavery detector snapshots into compliance-calendar .ics generator; 8 new vitest cases across 2 describe blocks; typecheck green."}
