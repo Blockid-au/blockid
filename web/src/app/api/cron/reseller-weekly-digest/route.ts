@@ -71,6 +71,14 @@ import {
   type AttributedReportRow,
 } from "@/lib/reseller/leading-signals";
 import {
+  LEDGER_DRIFT_WINDOW_DAYS,
+  computeLedgerDriftByReseller,
+  formatWeeklyDigestLedgerDriftSection,
+  type CommissionDriftRow,
+  type LedgerDriftRow,
+  type RevenueEventDriftRow,
+} from "@/lib/reseller/ledger-drift-events";
+import {
   computeTierMixByReseller,
   formatWeeklyDigestTierMixSection,
   type TierMixAttributionRow,
