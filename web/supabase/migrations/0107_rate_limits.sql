@@ -116,4 +116,33 @@ $$;
 REVOKE ALL ON FUNCTION public.prune_rate_limits(interval) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.prune_rate_limits(interval) TO service_role;
 
+-- ---------------------------------------------------------------------------
+-- consume_rate_limit() — atomic upsert+increment used by
+-- web/src/lib/rate-limit/persistent.ts. Returns the post-increment count
+-- so the caller can decide allowed/denied without a follow-up SELECT.
+--
+-- The ON CONFLICT branch runs inside a single statement, so two concurrent
+-- hits against the same (bucket_key, window_start) row cannot both read a
+-- stale count and both come in under-limit.
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.consume_rate_limit(
+  p_bucket_key   text,
+  p_window_start timestamptz
+)
+RETURNS integer
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  INSERT INTO public.endpoint_rate_limits (bucket_key, window_start, count)
+  VALUES (p_bucket_key, p_window_start, 1)
+  ON CONFLICT (bucket_key, window_start)
+  DO UPDATE SET count = public.endpoint_rate_limits.count + 1
+  RETURNING count;
+$$;
+
+REVOKE ALL ON FUNCTION public.consume_rate_limit(text, timestamptz) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.consume_rate_limit(text, timestamptz) TO service_role;
+
 COMMIT;
