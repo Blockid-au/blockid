@@ -480,6 +480,7 @@ export async function assemblePackData(
     },
     comparables,
     esopEligibility,
+    exitBenchmark,
     team: members,
     capTable,
     ask: {
