@@ -79,6 +79,11 @@ import {
   type DigestSnapshotPerResellerPctChangeCoverage,
 } from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-coverage";
 import {
+  computeDigestSnapshotPerResellerMetricPctChangePerReseller,
+  formatDigestSnapshotPerResellerMetricPctChangePerResellerSection,
+  type DigestSnapshotPerResellerMetricPctChangePerReseller,
+} from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change-per-reseller";
+import {
   computeDigestSnapshotTopMovers,
   formatDigestSnapshotTopMoversSection,
   type DigestSnapshotTopMovers,
@@ -1302,6 +1307,9 @@ export async function GET(req: Request) {
   let snapshotPerResellerPctChangeCoverage:
     | DigestSnapshotPerResellerPctChangeCoverage
     | null = null;
+  let snapshotPerResellerMetricPctChangePerReseller:
+    | DigestSnapshotPerResellerMetricPctChangePerReseller
+    | null = null;
   let snapshotTopMovers: DigestSnapshotTopMovers | null = null;
   let topMoversSection = "";
   let snapshotTopMoversPerMetric: DigestSnapshotTopMoversPerMetric | null = null;
@@ -1499,6 +1507,27 @@ export async function GET(req: Request) {
       );
     if (perResellerPctChangeCoverageSection)
       html += perResellerPctChangeCoverageSection;
+    // P11.48 — per-reseller |pct_change| spotlight (module P11.47). Mirror of
+    // the P11.41/P11.42 per-metric |pct_change| spotlight on the per-reseller
+    // axis: guarantees every partner surfaces its own biggest relative mover
+    // regardless of how the pooled P11.39 leaderboard OR the per-metric
+    // P11.41 spotlight shakes out. Coverage-per-partner rather than
+    // depth-per-partner (DEFAULT_TOP_N_PER_RESELLER_PCT_CHANGE=1). Consumes
+    // the SAME snapshotPerResellerRollingTrend fold as P11.40/P11.42/P11.44/
+    // P11.46 — no second per-reseller trend fold, no divergence risk. Ops
+    // walks per-reseller coverage summary (P11.46: how thin/deep each partner
+    // moved) → per-reseller |pct| spotlight (P11.48: which single metric
+    // moved the most in relative terms for each partner) on the same page.
+    snapshotPerResellerMetricPctChangePerReseller =
+      computeDigestSnapshotPerResellerMetricPctChangePerReseller(
+        snapshotPerResellerRollingTrend,
+      );
+    const perResellerMetricPctChangePerResellerSection =
+      formatDigestSnapshotPerResellerMetricPctChangePerResellerSection(
+        snapshotPerResellerMetricPctChangePerReseller,
+      );
+    if (perResellerMetricPctChangePerResellerSection)
+      html += perResellerMetricPctChangePerResellerSection;
     // P11.25 — top-N |delta| movers headline (module P11.24). Project the
     // per-reseller rolling trend into the biggest cross-metric shifts and
     // render a compact executive summary. Computed here so the source data
@@ -1977,6 +2006,25 @@ export async function GET(req: Request) {
             last_week: snapshotPerResellerPctChangeCoverage.last_week,
             threshold: snapshotPerResellerPctChangeCoverage.threshold,
             rows: snapshotPerResellerPctChangeCoverage.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_metric_pct_change_per_reseller:
+      snapshotPerResellerMetricPctChangePerReseller
+        ? {
+            window_size:
+              snapshotPerResellerMetricPctChangePerReseller.window_size,
+            first_week:
+              snapshotPerResellerMetricPctChangePerReseller.first_week,
+            last_week:
+              snapshotPerResellerMetricPctChangePerReseller.last_week,
+            top_n_per_reseller:
+              snapshotPerResellerMetricPctChangePerReseller.top_n_per_reseller,
+            threshold:
+              snapshotPerResellerMetricPctChangePerReseller.threshold,
+            rows: snapshotPerResellerMetricPctChangePerReseller.rows,
           }
         : {
             skipped_reason:
