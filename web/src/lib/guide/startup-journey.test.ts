@@ -141,11 +141,12 @@ describe("R&D Tax Incentive section (chapter 06 P1j)", () => {
     }
   });
 
-  it("no other chapter carries sections yet (P1j + P1l + Q6/Q7 — chapters 06, 08 and 10 only)", () => {
+  it("no other chapter carries sections yet (P1j + P1l + Q6/Q7 + P11 — chapters 06, 08, 10 and 11 only)", () => {
     const chaptersWithSections = new Set<ChapterSlug>([
       "06-revenue",
       "08-team",
       "10-fundraise",
+      "11-scale",
     ]);
     for (const chapter of listChapters()) {
       if (chaptersWithSections.has(chapter.slug)) continue;
@@ -297,6 +298,46 @@ describe("dual-class decision section (chapter 10 P1m)", () => {
       "s911A",                     // Corps Act financial-services boundary
       "sunset",                    // sunset clauses on dual-class term sheets
       "single-class",              // AU default
+    ]) {
+      expect(en).toContain(anchor);
+    }
+  });
+});
+
+describe("acquisition-pattern section (chapter 11 P11-acquisition-pattern)", () => {
+  it("chapter 11-scale publishes an acquisition-pattern section EN + VI", () => {
+    const c = getChapter("11-scale");
+    expect(c).not.toBeNull();
+    expect(c?.sections).toBeDefined();
+    const s = c?.sections?.find((x) => x.id === "acquisition-pattern");
+    expect(s).toBeDefined();
+    expect(s?.heading.en.length).toBeGreaterThan(0);
+    expect(s?.heading.vi.length).toBeGreaterThan(0);
+    // At least six substantive bullets each; both locales aligned.
+    expect(s?.body.en.length).toBeGreaterThanOrEqual(6);
+    expect(s?.body.vi.length).toBe(s?.body.en.length);
+  });
+
+  it("acquisition-pattern section cites the anchors an AU founder needs to defend the template", () => {
+    const c = getChapter("11-scale");
+    const s = c?.sections?.find((x) => x.id === "acquisition-pattern");
+    const en = (s?.body.en ?? []).join("\n");
+    // Atlassian precedent + AU statutory + regulatory anchors.
+    for (const anchor of [
+      "Trello",                    // 2017 US$425M
+      "OpsGenie",                  // 2018 US$295M
+      "Loom",                      // 2023 US$975M
+      "US$425M",                   // Trello headline
+      "US$295M",                   // OpsGenie headline
+      "US$975M",                   // Loom headline
+      "RSU",                       // retention consideration form
+      "90%",                       // cash tranche share of the 90/10 template
+      "Subdiv 124-M",              // ITAA 1997 scrip-for-scrip rollover boundary
+      "scrip-for-scrip",           // rollover shorthand
+      "escrow",                    // hold-back pattern
+      "FIRB",                      // Foreign Investment Review Board
+      "CGT event A1",              // ITAA 1997 s104-10 seller-side tax event
+      "change-of-control",         // disclosure-schedule anchor
     ]) {
       expect(en).toContain(anchor);
     }
