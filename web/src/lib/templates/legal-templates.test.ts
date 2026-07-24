@@ -26,9 +26,13 @@ describe("LEGAL_TEMPLATES registry", () => {
     const slugs = LEGAL_TEMPLATES.map((t) => t.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
     for (const tpl of LEGAL_TEMPLATES) {
-      expect(["corporate", "employment", "fundraising", "ip"]).toContain(
-        tpl.category,
-      );
+      expect([
+        "corporate",
+        "employment",
+        "fundraising",
+        "ip",
+        "commercial",
+      ]).toContain(tpl.category);
       expect(tpl.disclaimer).toMatch(/NOT LEGAL ADVICE/i);
       expect(tpl.sources.length).toBeGreaterThan(0);
     }
@@ -567,5 +571,133 @@ describe("au-ip-assignment-deed-contractor template", () => {
     // Section-toggle tokens must never leak.
     expect(individual).not.toMatch(/contractor_is_entity/);
     expect(individual).not.toMatch(/contractor_is_individual/);
+  });
+});
+
+describe("au-customer-loi template", () => {
+  const tpl = getTemplate("au-customer-loi");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-2 commercial template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.category).toBe("commercial");
+    expect(tpl?.phase_slug).toBe("phase-2");
+    expect(listTemplates().some((t) => t.slug === "au-customer-loi")).toBe(
+      true,
+    );
+  });
+
+  it("declares the AU misleading-conduct anchors an investor's lawyer looks for", () => {
+    // s18 ACL + s1041H Corps Act are the two statutes that make it unsafe to
+    // dress a soft LOI up as committed revenue in a data room; both must be
+    // named on the face of the doc.
+    expect(body).toMatch(/s18/);
+    expect(body).toMatch(/Australian Consumer Law/);
+    expect(body).toMatch(/s1041H/);
+    // Explicit non-binding + which paragraphs are binding — the reason the
+    // whole document is safe to circulate.
+    expect(body).toMatch(/[Nn]on-binding/);
+    expect(body).toMatch(/Confidentiality/);
+    // s127 execution block for the Supplier side is what makes this LOI
+    // signable by an AU Pty Ltd without needing a common seal.
+    expect(body).toMatch(/section 127|s127/);
+    // GST tax-invoice anchor — the "amounts are exclusive of GST" clause
+    // that stops the founder accidentally overstating ACV net-of-GST.
+    expect(body).toMatch(/s29-70/);
+    // Electronic Transactions Act — e-signing.
+    expect(body).toMatch(/Electronic Transactions Act 1999/);
+    // AFSL disclaimer must appear at the top of the doc.
+    expect(body).toMatch(/NOT LEGAL ADVICE/);
+    // Confirms binding vs non-binding paragraph split is spelled out.
+    expect(body).toMatch(/legally binding/);
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("substitutes party + commercial fields and honours signatory toggles", () => {
+    const withCoSignatory = applySubstitutions(body, {
+      customer_name: "Big Bank AU",
+      customer_abn_line: "ABN 12 345 678 901",
+      customer_address: "Sydney NSW 2000",
+      customer_signatory_name: "Charlie Buyer",
+      customer_signatory_title: "Head of Procurement",
+      customer_stakeholders: "Head of Procurement; CTO; Legal Counsel",
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      registered_office_address: "Sydney NSW 2000",
+      director_name: "Alice Founder",
+      second_signatory_name: "Bob Founder",
+      second_signatory_title: "Director",
+      product_name: "Acme Cap Table Cloud",
+      loi_date: "1 July 2026",
+      intended_use_case: "Replace legacy spreadsheet cap-table workflow.",
+      indicative_acv_aud: "180,000",
+      indicative_seats: "50 seats",
+      preferred_start_date: "1 October 2026",
+      preferred_payment_terms: "Net 30",
+      target_definitive_date: "1 September 2026",
+      governing_state: "New South Wales",
+      acceptance_criteria: "See attached technical scope.",
+      statutory_approvals: "None identified.",
+      second_signatory: "true",
+      revision_date: "2026-07-24",
+    });
+    // Commercial figures render into the ACV table.
+    expect(withCoSignatory).toContain("A$180,000");
+    expect(withCoSignatory).toContain("50 seats");
+    expect(withCoSignatory).toContain("Big Bank AU");
+    expect(withCoSignatory).toContain("Acme Innovation Pty Ltd");
+    // Co-signatory block kept; sole-director block stripped.
+    expect(withCoSignatory).toContain("Bob Founder");
+    expect(withCoSignatory).not.toMatch(/Sole director and sole company secretary/);
+
+    const soleDirector = applySubstitutions(body, {
+      customer_name: "Small SME",
+      customer_abn_line: "",
+      customer_address: "Melbourne VIC 3000",
+      customer_signatory_name: "Dee Owner",
+      customer_signatory_title: "Owner",
+      customer_stakeholders: "Owner",
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      registered_office_address: "Sydney NSW 2000",
+      director_name: "Alice Founder",
+      product_name: "Acme Cap Table Cloud",
+      loi_date: "1 July 2026",
+      intended_use_case: "Track founder equity.",
+      indicative_acv_aud: "6,000",
+      indicative_seats: "3 seats",
+      preferred_start_date: "1 August 2026",
+      preferred_payment_terms: "Annual up-front",
+      target_definitive_date: "1 August 2026",
+      governing_state: "New South Wales",
+      acceptance_criteria: "Standard onboarding.",
+      statutory_approvals: "None identified.",
+      sole_director: "true",
+      revision_date: "2026-07-24",
+    });
+    // Sole-director variant kept; co-signatory block stripped.
+    expect(soleDirector).toMatch(/Sole director and sole company secretary/);
+    expect(soleDirector).not.toMatch(/second_signatory_name/);
+    // Section-toggle names must never leak.
+    expect(soleDirector).not.toMatch(/\{\{#sole_director\}\}/);
   });
 });
