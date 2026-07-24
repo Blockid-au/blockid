@@ -24,6 +24,7 @@ import { sendEmail } from "@/lib/email";
 import {
   buildDigestSnapshot,
   readLastDigestSnapshot,
+  readLastNDigestSnapshots,
   serialiseDigestSnapshot,
   type DigestSnapshot,
 } from "@/lib/reseller/digest-snapshot";
@@ -42,6 +43,11 @@ import {
   formatDigestSnapshotPerResellerDeltaSection,
   type DigestSnapshotPerResellerDelta,
 } from "@/lib/reseller/digest-snapshot-per-reseller-delta";
+import {
+  computeDigestSnapshotRollingTrend,
+  formatDigestSnapshotRollingTrendSection,
+  type DigestSnapshotRollingTrend,
+} from "@/lib/reseller/digest-snapshot-rolling-trend";
 import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
@@ -1110,12 +1116,21 @@ export async function GET(req: Request) {
   const webDir =
     process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
   const digestJsonlPath = `${webDir}/content/reports/reseller-weekly-digest.jsonl`;
+  // P11.20 rolling trend window — 4 weeks total including the current run, so
+  // read the last 3 historical snapshots off disk and prepend them to the
+  // current envelope before folding via computeDigestSnapshotRollingTrend.
+  const ROLLING_TREND_WINDOW_SIZE = 4;
   let previousSnapshot: DigestSnapshot | null = null;
   let previousSnapshotSkipReason: string | null = null;
+  let priorTrendSnapshots: readonly DigestSnapshot[] = [];
   try {
     const text = readFileSync(digestJsonlPath, "utf8");
     previousSnapshot = readLastDigestSnapshot(text);
     if (!previousSnapshot) previousSnapshotSkipReason = "no_previous_snapshot";
+    priorTrendSnapshots = readLastNDigestSnapshots(
+      text,
+      ROLLING_TREND_WINDOW_SIZE - 1,
+    );
   } catch (e) {
     const errno =
       e && typeof e === "object" && "code" in e
@@ -1179,6 +1194,7 @@ export async function GET(req: Request) {
   let snapshotDelta: DigestSnapshotDelta | null = null;
   let snapshotMetricDelta: DigestSnapshotMetricDelta | null = null;
   let snapshotPerResellerDelta: DigestSnapshotPerResellerDelta | null = null;
+  let snapshotRollingTrend: DigestSnapshotRollingTrend | null = null;
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1211,6 +1227,24 @@ export async function GET(req: Request) {
     const perResellerDeltaSection =
       formatDigestSnapshotPerResellerDeltaSection(snapshotPerResellerDelta);
     if (perResellerDeltaSection) html += perResellerDeltaSection;
+    // P11.20 — N-week rolling trend across HEADLINE_METRICS. Fold the last
+    // ROLLING_TREND_WINDOW_SIZE-1 historical snapshots off disk plus the
+    // current run into computeDigestSnapshotRollingTrend so ops sees a compact
+    // portfolio-wide trend table sorted by |first→last delta| desc. Rendered
+    // after the per-reseller drill-down so a top-to-bottom read walks
+    // structural triage → portfolio totals → per-partner drill-down →
+    // multi-week trend. The pure lib suppresses its own output when
+    // window_size < 2 or every metric has a null delta, so no extra guard is
+    // needed at the call site.
+    const trendSnapshots: readonly DigestSnapshot[] = [
+      ...priorTrendSnapshots,
+      currentSnapshotForDelta,
+    ];
+    snapshotRollingTrend = computeDigestSnapshotRollingTrend(trendSnapshots);
+    const rollingTrendSection = formatDigestSnapshotRollingTrendSection(
+      snapshotRollingTrend,
+    );
+    if (rollingTrendSection) html += rollingTrendSection;
   }
 
   let emailed = false;
@@ -1472,6 +1506,17 @@ export async function GET(req: Request) {
           current_captured_at: snapshotPerResellerDelta.current_captured_at,
           current_week: snapshotPerResellerDelta.current_week,
           rows: snapshotPerResellerDelta.rows,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
+    snapshot_rolling_trend: snapshotRollingTrend
+      ? {
+          window_size: snapshotRollingTrend.window_size,
+          first_week: snapshotRollingTrend.first_week,
+          last_week: snapshotRollingTrend.last_week,
+          metrics: snapshotRollingTrend.metrics,
         }
       : {
           skipped_reason:
