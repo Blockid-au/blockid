@@ -529,7 +529,7 @@ Compact lookup so subsequent ticks don't re-fetch:
 - **P1d** mint ESOP Scheme Rules body (Folder 6 item 6)
 - **P1e** build ESIC Self-Assessment worksheet UI (Folder 11 item 6)
 - **P1f** wire AU IP Assignment Deed e-signing (Folder 2 item 5, Folder 7 item 1)
-- **P1g** wire ABR ABN-lookup probe (`/api/abr/lookup`)
+- **P1g** wire ABR ABN-lookup probe (`/api/abr/lookup`) — **shipped 2026-07-24**. `web/src/lib/compliance/abn.ts` (normalize + modulus-89 checksum + optional live ABR AbnDetails probe gated on `ABR_GUID`), `web/src/lib/compliance/abn.test.ts` (12 vitest cases: normaliser boundaries, real ABN 79 659 615 111 checksum passes, obvious-invalid rejections, no-guid path, successful ABR parse, JSONP unwrap, ABR Message → live_error, non-200 → HTTP error), `web/src/app/api/abr/lookup/route.ts` (public GET, 400 on malformed input, checksum-only path when live guid absent, 1 h edge cache). Chapter 1 CTA can consume this to give founders the 60-second trust signal §1 phase 1 flagged as P0 raise-blocking.
 - **P1h** wire ASIC Connect extract probe (`/api/asic/extract`)
 - **P1i** build GST-threshold-crossing detector (auto-fires when trailing-12mo Stripe MRR × 12 ≥ A$75k)
 - **P1j** author R&D Tax Incentive Chapter 6 section
@@ -551,4 +551,4 @@ Each P1x / P5x / P6x / P7x subtask becomes a follow-up commit driven by the auto
 
 ---
 
-*Last updated: 2026-07-24 by autonomous loop. This file survives `git reset --hard` because it is committed + pushed on every tick.*
+*Last updated: 2026-07-24 by autonomous loop (tick shipping P1g — ABR ABN-lookup probe). This file survives `git reset --hard` because it is committed + pushed on every tick.*
