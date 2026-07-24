@@ -1375,3 +1375,5 @@
 {"tick_id":"2026-07-24T16-45-01-143Z","ts":"2026-07-24T16:50:05.634Z","loop_label":"reseller-goal-loop","phase":"P11.40_per_reseller_metric_pct_change_cron_wiring","status":"done","tick":434,"stage":"phase_done"}
 {"tick_id":"2026-07-24T16-45-01-143Z","ts":"2026-07-24T16:50:29.289Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"delegated_dispatch","status":0,"elapsed_ms":328075,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-24T16-45-01-143Z","ts":"2026-07-24T16:50:29.327Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_commit_started","dirty_files":13}
+{"tick_id":"2026-07-24T16-45-01-143Z","ts":"2026-07-24T16:50:31.337Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-24T16-45-01-143Z","ts":"2026-07-24T16:50:31.345Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_deploy_triggered","head":"5587841a","last_deployed":"6b955ea"}
