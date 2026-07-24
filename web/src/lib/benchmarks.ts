@@ -198,14 +198,19 @@ export const SVI_STAGE_BENCHMARKS: SVIStageBenchmark[] = [
 ];
 
 export function getSVIBenchmark(stage: number): SVIStageBenchmark {
-  return SVI_STAGE_BENCHMARKS[Math.min(stage, SVI_STAGE_BENCHMARKS.length - 1)];
+  // Clamp to a valid index — negative/NaN/out-of-range stages previously
+  // returned undefined and crashed getSVIPercentile downstream.
+  const last = SVI_STAGE_BENCHMARKS.length - 1;
+  const idx = Number.isFinite(stage) ? Math.max(0, Math.min(last, Math.floor(stage))) : 0;
+  return SVI_STAGE_BENCHMARKS[idx];
 }
 
 export function getSVIPercentile(svi: number, stage: number): number {
   const b = getSVIBenchmark(stage);
+  if (!Number.isFinite(svi) || svi <= 0) return 5;
   if (svi >= b.topDecile) return 95;
-  if (svi >= b.p75) return 75 + ((svi - b.p75) / (b.topDecile - b.p75)) * 20;
-  if (svi >= b.medianSVI) return 50 + ((svi - b.medianSVI) / (b.p75 - b.medianSVI)) * 25;
-  if (svi >= b.p25) return 25 + ((svi - b.p25) / (b.medianSVI - b.p25)) * 25;
+  if (svi >= b.p75) return Math.round(75 + ((svi - b.p75) / (b.topDecile - b.p75)) * 20);
+  if (svi >= b.medianSVI) return Math.round(50 + ((svi - b.medianSVI) / (b.p75 - b.medianSVI)) * 25);
+  if (svi >= b.p25) return Math.round(25 + ((svi - b.p25) / (b.medianSVI - b.p25)) * 25);
   return Math.max(5, Math.round((svi / b.p25) * 25));
 }
