@@ -38,6 +38,11 @@ import {
   type DigestSnapshotMetricDelta,
 } from "@/lib/reseller/digest-snapshot-metric-delta";
 import {
+  computeDigestSnapshotPerResellerDelta,
+  formatDigestSnapshotPerResellerDeltaSection,
+  type DigestSnapshotPerResellerDelta,
+} from "@/lib/reseller/digest-snapshot-per-reseller-delta";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1173,6 +1178,7 @@ export async function GET(req: Request) {
   });
   let snapshotDelta: DigestSnapshotDelta | null = null;
   let snapshotMetricDelta: DigestSnapshotMetricDelta | null = null;
+  let snapshotPerResellerDelta: DigestSnapshotPerResellerDelta | null = null;
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1193,6 +1199,18 @@ export async function GET(req: Request) {
     const metricDeltaSection =
       formatDigestSnapshotMetricDeltaSection(snapshotMetricDelta);
     if (metricDeltaSection) html += metricDeltaSection;
+    // P11.18 — per-reseller drill-down (module P11.17). Names the specific
+    // partners whose per-metric total moved so ops does not have to open
+    // /admin/resellers/[code] per row to identify the mover. Rendered after
+    // the portfolio table so the aggregate lands first and the drill-down
+    // reads as a follow-up.
+    snapshotPerResellerDelta = computeDigestSnapshotPerResellerDelta(
+      previousSnapshot,
+      currentSnapshotForDelta,
+    );
+    const perResellerDeltaSection =
+      formatDigestSnapshotPerResellerDeltaSection(snapshotPerResellerDelta);
+    if (perResellerDeltaSection) html += perResellerDeltaSection;
   }
 
   let emailed = false;
@@ -1442,6 +1460,18 @@ export async function GET(req: Request) {
           current_captured_at: snapshotMetricDelta.current_captured_at,
           current_week: snapshotMetricDelta.current_week,
           metrics: snapshotMetricDelta.metrics,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
+    snapshot_per_reseller_delta: snapshotPerResellerDelta
+      ? {
+          previous_captured_at: snapshotPerResellerDelta.previous_captured_at,
+          previous_week: snapshotPerResellerDelta.previous_week,
+          current_captured_at: snapshotPerResellerDelta.current_captured_at,
+          current_week: snapshotPerResellerDelta.current_week,
+          rows: snapshotPerResellerDelta.rows,
         }
       : {
           skipped_reason:
