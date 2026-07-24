@@ -32,6 +32,11 @@ import {
   getComparableRaises,
   type ComparableRaise,
 } from "@/lib/au-comparable-raises";
+import { assertDiv83AEligibleOrWarn } from "@/lib/compliance/div83a-funding-gate";
+import {
+  buildEsopEligibilitySection,
+  type EsopEligibilitySection,
+} from "@/lib/investor-pack/esop-eligibility-section";
 
 /* ─── Public types ──────────────────────────────────────────────────────── */
 
@@ -57,6 +62,10 @@ export interface InvestorPackData {
     groupedItems: Record<string, Array<{ label: string; status: string }>>;
   };
   comparables: ComparableRaise[];
+  // ch09 investor-readiness pack — Div 83A ESS start-up concession
+  // eligibility (P6a-ir-pack). Populated via the div83a-funding-gate in
+  // warn-only mode; renders in the PDF as the "ESOP eligibility" section.
+  esopEligibility: EsopEligibilitySection;
   team: Array<{ name: string; role: string }>;
   capTable: Array<{ holder: string; pctFullyDiluted: number }>;
   ask: {
@@ -402,6 +411,18 @@ export async function assemblePackData(
     limit: 6,
   });
 
+  // ch09 investor-readiness pack — Div 83A ESS start-up concession section.
+  // Warn-only mode: the pack surfaces the check status but never blocks
+  // pack generation (a founder should be able to see the pack even when
+  // an ESOP grant needs a re-check). Blocking behaviour lives in the
+  // fundraise API, not here.
+  const div83aGate = await assertDiv83AEligibleOrWarn(supabase, {
+    projectId,
+    userId,
+    action: "investor_pack_assemble",
+  });
+  const esopEligibility = buildEsopEligibilitySection(div83aGate, "en");
+
   // Team + cap-table + ask.
   const { members, founderName } = await loadTeam(userId);
   const capTable = await loadCapTable(userId, projectId);
@@ -444,6 +465,7 @@ export async function assemblePackData(
       groupedItems,
     },
     comparables,
+    esopEligibility,
     team: members,
     capTable,
     ask: {
