@@ -1191,3 +1191,9 @@
 {"ts":"2026-07-24T04:34:44Z","status":"success","gates":"11/11","pid":"2475010","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T04:38:10.242Z","event":"github-push-master","detail":"Blockid-au: test(e2e): menu structure per role (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:39:33.517Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 381 twin-lift reseller_attributions row-cluster summary onto reveal-email-authz (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:39:43.857Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T04-35-01-544Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:41:20.262Z","event":"github-push-master","detail":"Blockid-au: docs(user): menu walkthrough for existing users + SOURCE-OF-TRUTH G7 entry (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:42:23.961Z","event":"github-push-master","detail":"Blockid-au: feat(brand): remove \"Beta\" label from BlockID product-name surfaces (hero eyebrow + BSI-AU index chip) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:46:03Z","status":"success","gates":"9/9","pid":"2514317","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-24T04:46:37.092Z","event":"github-push-master","detail":"Blockid-au: docs(qa): round 5.5 account review — 12-account full-journey audit + deploy unblock (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:54:28.964Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 382 twin-lift reseller_attributions row-cluster summary onto reveal-email-validation (1 commits)","source":"github-webhook"}
