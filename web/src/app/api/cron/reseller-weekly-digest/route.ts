@@ -102,6 +102,11 @@ import {
   type LtvRevenueRow,
 } from "@/lib/reseller/ltv-cac";
 import {
+  computeSandboxShare,
+  formatWeeklyDigestSandboxShareSection,
+  type SandboxShareRow,
+} from "@/lib/reseller/sandbox-share-of-budget";
+import {
   computeTierMixByReseller,
   formatWeeklyDigestTierMixSection,
   type TierMixAttributionRow,
@@ -1041,6 +1046,35 @@ export async function GET(req: Request) {
     }
   }
 
+  // P11.12 canonical KPI (`sandbox_share_of_budget` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Complementary to P11.1 credit-budget utilization
+  // which reports sandbox_used vs monthly_sandbox_credits (sandbox against its
+  // OWN cap). This section reports two different ratios: (a) sandbox as a
+  // fraction of TOTAL consumption (sandbox / (sandbox + grants)) — channel-
+  // health signal for "experimentation vs delivery"; and (b) sandbox as a
+  // fraction of the primary monthly_credit_budget dial (H.15) — capacity
+  // signal for "how much of the customer budget is sandbox eating." Reuses
+  // budgetRows already computed for P11.1 so no additional supabase query
+  // fires; when P11.1 skipped (budget_query_failed) this section skips too
+  // via the same skipped_reason so ops sees a single upstream failure.
+  const sandboxShareRows: SandboxShareRow[] = budgetSkippedReason
+    ? []
+    : budgetRows.map((r) => ({
+        reseller_id: r.reseller_id,
+        reseller_code: r.reseller_code,
+        reseller_display_name: r.reseller_display_name,
+        share: computeSandboxShare({
+          sandbox_credits_used: r.utilization.sandbox_used,
+          grant_credits_used: r.utilization.grant_used,
+          monthly_credit_budget: r.utilization.grant_budget,
+        }),
+      }));
+  const sandboxShareSection = formatWeeklyDigestSandboxShareSection(
+    sandboxShareRows,
+    currentMonthKey,
+  );
+  if (sandboxShareSection) html += sandboxShareSection;
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -1248,6 +1282,22 @@ export async function GET(req: Request) {
             ltv_per_customer_cents: r.ltv_cac.ltv_per_customer_cents,
             cac_per_customer_cents: r.ltv_cac.cac_per_customer_cents,
             ltv_cac_ratio_hundredths: r.ltv_cac.ltv_cac_ratio_hundredths,
+          })),
+        },
+    sandbox_share_of_budget: budgetSkippedReason
+      ? { skipped_reason: budgetSkippedReason }
+      : {
+          month_key: currentMonthKey,
+          reseller_count: sandboxShareRows.length,
+          rows: sandboxShareRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            sandbox_credits_used: r.share.sandbox_credits_used,
+            grant_credits_used: r.share.grant_credits_used,
+            total_credits_used: r.share.total_credits_used,
+            monthly_credit_budget: r.share.monthly_credit_budget,
+            share_of_consumption_pct: r.share.share_of_consumption_pct,
+            share_of_budget_pct: r.share.share_of_budget_pct,
           })),
         },
     ran_at: now.toISOString(),
