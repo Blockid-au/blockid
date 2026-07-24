@@ -118,3 +118,6 @@
 {"tick_id":"2026-07-24T08-57-01-475Z","ts":"2026-07-24T09:02:00.826Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"3e928f41","last_deployed":"9da5038"}
 {"tick_id":"2026-07-24T08-57-01-475Z","ts":"2026-07-24T09:08:19.572Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"3e928f41"}
 {"tick_id":"2026-07-24T08-57-01-475Z","ts":"2026-07-24T09:08:19.573Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T09-17-01-547Z","ts":"2026-07-24T09:17:01.548Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T09-17-01-547Z","ts":"2026-07-24T09:17:01.553Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T09-17-01-547Z","ts":"2026-07-24T09:22:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1m","summary":"Chapter 10 dual-class decision-point section (Q4) — 8 EN + 8 VI bullets, 2 vitest cases green (19/19), covers ASX LR 6.9, UK Plc + Delaware paths, Atlassian 2014/2022 redomicile precedent, s911A boundary, single-class-with-founder-protections alternative"}
