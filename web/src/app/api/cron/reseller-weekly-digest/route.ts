@@ -1329,6 +1329,8 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerDirectionStreaks
     | null = null;
   let perResellerDirectionStreaksSection = "";
+  let snapshotPctChangeStreaks: DigestSnapshotPctChangeStreaks | null = null;
+  let pctChangeStreaksSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1605,13 +1607,29 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerDirectionStreaksSection(
         snapshotPerResellerDirectionStreaks,
       );
+    // P11.50 — sustained-|pct|-material streak detector (module P11.49).
+    // Companion to the P11.31 sign-of-delta streak table above. Consumes the
+    // SAME portfolio-wide snapshotRollingTrend the P11.21/P11.31 sections
+    // already read (no second trend fold, no divergence risk vs. the trend
+    // table this streak summary sits beside). Surfaces metrics whose |pct|
+    // stayed ≥ 25% for 2+ consecutive point-to-point transitions — a
+    // sustained-volatility signal invisible to the P11.31 direction filter
+    // when a metric's sign flips week over week but its magnitude keeps
+    // swinging materially.
+    snapshotPctChangeStreaks = computeDigestSnapshotPctChangeStreaks(
+      snapshotRollingTrend,
+    );
+    pctChangeStreaksSection = formatDigestSnapshotPctChangeStreaksSection(
+      snapshotPctChangeStreaks,
+    );
   }
   if (
     topMoversSection ||
     topMoversPerMetricSection ||
     topMoversPerResellerSection ||
     directionStreaksSection ||
-    perResellerDirectionStreaksSection
+    perResellerDirectionStreaksSection ||
+    pctChangeStreaksSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -1635,6 +1653,7 @@ export async function GET(req: Request) {
       topMoversPerResellerSection +
       directionStreaksSection +
       perResellerDirectionStreaksSection +
+      pctChangeStreaksSection +
       rest;
   }
 
@@ -2097,6 +2116,19 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_pct_change_streaks: snapshotPctChangeStreaks
+      ? {
+          window_size: snapshotPctChangeStreaks.window_size,
+          first_week: snapshotPctChangeStreaks.first_week,
+          last_week: snapshotPctChangeStreaks.last_week,
+          min_streak_length: snapshotPctChangeStreaks.min_streak_length,
+          threshold: snapshotPctChangeStreaks.threshold,
+          rows: snapshotPctChangeStreaks.rows,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
     ran_at: now.toISOString(),
   };
 
