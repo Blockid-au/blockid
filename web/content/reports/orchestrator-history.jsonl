@@ -65,3 +65,4 @@
 {"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":346,"timestamp":"2026-07-23T14:00:15.176Z"}
 {"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240002,"timestamp":"2026-07-24T12:04:01.391Z"}
 {"stage":"plan","ok":true,"message":"CEO implementing plan updated — 3 new task(s), 16 pending","aiCalls":1,"durationMs":6421,"timestamp":"2026-07-24T12:04:07.813Z"}
+{"stage":"deploy","ok":false,"message":"Deploy failed: ❌ Another deploy is already running (lock: /tmp/blockid-deploy.lock).\n   Aborting to avoid a build race. Retry after it finishes.","aiCalls":0,"durationMs":359,"timestamp":"2026-07-24T12:06:15.132Z"}
