@@ -10,3 +10,5 @@
 {"tick_id":"2026-07-24T06-03-01-788Z","ts":"2026-07-24T06:03:01.789Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T06-03-01-788Z","ts":"2026-07-24T06:03:01.799Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"claude-manual-2026-07-24T06-04Z","ts":"2026-07-24T06:04:00.000Z","loop_label":"ux-ia-goal-loop","stage":"goal_closed","reason":"P0-P9 all done/shipped except P8 (human_blocked, all Q1-Q4 non-blocking); frontier empty","status":"done"}
+{"tick_id":"2026-07-24T06-03-01-788Z","ts":"2026-07-24T06:03:40.011Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":38209,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-24T06-03-01-788Z","ts":"2026-07-24T06:03:40.042Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":6}
