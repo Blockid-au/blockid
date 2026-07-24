@@ -2,11 +2,21 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getActiveProject } from "@/lib/projects";
 import {
   calculateRound,
   type FundraiseRound,
   type CapTableData,
 } from "@/lib/fundraise";
+import { assertESICEligibleOrWarn } from "@/lib/compliance/esic-funding-gate";
+
+// Extra body flag — the /api/fundraise endpoint historically took only
+// FundraiseRound fields. The ESIC gate (P6) needs to know whether the
+// caller is configuring a wholesale-only round so we treat this optional
+// boolean as an additive body slot. Unknown values fall back to false.
+interface FundraisePostBody extends Partial<FundraiseRound> {
+  wholesaleOnly?: boolean;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +41,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: Partial<FundraiseRound> = {};
+  let body: FundraisePostBody = {};
   try {
-    body = await request.json();
+    body = (await request.json()) as FundraisePostBody;
   } catch {
     return NextResponse.json(
       { ok: false, error: "Invalid JSON body" },
@@ -73,6 +83,44 @@ export async function POST(request: NextRequest) {
   }
 
   const accountId = user.id;
+
+  // ---- ESIC funding gate (P6, atlassian-standard-mapping goal) ----
+  //
+  // Warn-only for standard rounds, blocking (412) for wholesale-only
+  // rounds where the founder is likely to market the ESIC tax offset.
+  // The gate reads the latest `compliance_esic_assessments` row and
+  // fires `esic_gate.*` analytics events so CS can see who starts a
+  // fundraise without a fresh ESIC self-assessment. See
+  // web/src/lib/compliance/esic-funding-gate.ts for the ITAA97 Div 360
+  // + AusIndustry ESIC + s911A/s1041H references.
+  const wholesaleOnly = body.wholesaleOnly === true;
+  let esicWarn: unknown = undefined;
+  try {
+    const project = await getActiveProject(user.id);
+    const gate = await assertESICEligibleOrWarn(supabase, {
+      userId: user.id,
+      projectId: project?.id ?? null,
+      requireEligible: wholesaleOnly,
+      action: "fundraise_round_create",
+    });
+    if (!gate.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "esic_gate_blocked",
+          reason: gate.reason,
+          message: gate.message,
+          url_to_fix: gate.url_to_fix,
+          disclaimer: gate.disclaimer,
+        },
+        { status: 412 },
+      );
+    }
+    esicWarn = gate.warn;
+  } catch (err) {
+    // Never let the gate break a legitimate flow — log and proceed.
+    console.warn("[fundraise] esic gate errored", err);
+  }
 
   // Fetch current cap table
   const [holdersRes, esopRes] = await Promise.all([
@@ -165,6 +213,7 @@ export async function POST(request: NextRequest) {
     round: savedRound,
     dilutionTable: result.dilutionTable,
     newCapTable: result.newCapTable,
+    ...(esicWarn ? { esic_warn: esicWarn } : {}),
   });
 }
 
