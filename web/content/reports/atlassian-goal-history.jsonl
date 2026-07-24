@@ -474,3 +474,9 @@
 {"tick_id":"2026-07-24T20-37-33-000Z","ts":"2026-07-24T20:37:33.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1n-calendar-events","summary":"Fold WGEA + Modern Slavery detector snapshots into compliance-calendar .ics generator; 8 new vitest cases across 2 describe blocks; typecheck green."}
 {"tick_id":"2026-07-24T20-27-01-337Z","ts":"2026-07-24T20:38:55.195Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":713832,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-24T20-27-01-337Z","ts":"2026-07-24T20:38:55.223Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":5}
+{"tick_id":"2026-07-24T20-27-01-337Z","ts":"2026-07-24T20:38:56.700Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-24T20-27-01-337Z","ts":"2026-07-24T20:38:56.705Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"537b2aa1","last_deployed":"cc586c8"}
+{"tick_id":"2026-07-24T20-27-01-337Z","ts":"2026-07-24T20:38:56.715Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"537b2aa1"}
+{"tick_id":"2026-07-24T20-27-01-337Z","ts":"2026-07-24T20:38:56.716Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T20-47-01-573Z","ts":"2026-07-24T20:47:01.574Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T20-47-01-573Z","ts":"2026-07-24T20:47:01.579Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
