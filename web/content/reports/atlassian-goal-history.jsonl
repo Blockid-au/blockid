@@ -1,3 +1,5 @@
 {"tick_id":"2026-07-24T05-48-18-626Z","ts":"2026-07-24T05:48:18.630Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start","dry_run":true}
 {"tick_id":"2026-07-24T05-48-18-626Z","ts":"2026-07-24T05:48:18.631Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T05-48-41-185Z","ts":"2026-07-24T05:48:41.186Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start","dry_run":true}
+{"tick_id":"2026-07-24T05-57-01-596Z","ts":"2026-07-24T05:57:01.597Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T05-57-01-596Z","ts":"2026-07-24T05:57:01.604Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
