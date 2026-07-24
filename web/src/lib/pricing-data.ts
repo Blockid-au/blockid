@@ -4,6 +4,28 @@
 // import from here so credit counts, plan names, and prices never diverge.
 //
 // Underlying plan IDs, cent-prices, and billing helpers live in `@/lib/plans`.
+//
+// TRIAL MODEL (2026-07-24, founder decision):
+//   Every new signup starts a 7-day trial with a card required upfront.
+//   BlockID no longer offers an indefinite $0 tier. Grandfathered legacy
+//   `free`-plan users keep access; the marketing "Free" row below is
+//   preserved for legacy referrers but hidden by NEW_SIGNUP_TIER_IDS
+//   from every user-facing surface. Trial + billing copy MUST come from
+//   TRIAL_COPY in `@/lib/plans/trial-copy`.
+
+import { TRIAL_COPY, TRIAL_DAYS } from "./plans/trial-copy";
+
+/** Plan IDs offered to *new* signups. Free tier deliberately excluded. */
+export const NEW_SIGNUP_TIER_IDS: readonly string[] = [
+  "founding50",
+  "growth",
+  "growth_annual",
+];
+
+/** Filter PRICING_TIERS down to the plans a new signup may pick. */
+export function tiersForNewSignup(tiers: PricingTier[]): PricingTier[] {
+  return tiers.filter((t) => NEW_SIGNUP_TIER_IDS.includes(t.id));
+}
 
 // ---------------------------------------------------------------------------
 // Plan tiers
@@ -243,7 +265,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Is there a free trial?",
-    a: "Every new account starts with 2 free credits, enough for about 4 standard SVI analyses. No credit card required. If you need more, grab a credit pack or upgrade to a plan.",
+    a: `Yes — every new signup starts with a ${TRIAL_DAYS}-day free trial of the plan you choose. ${TRIAL_COPY.card_required_reason} We email you ${TRIAL_COPY.fine_print.match(/(\d+)h/)?.[1] ?? "48"}h before we charge so you can cancel if it's not right.`,
   },
   {
     q: "How does billing work?",
@@ -256,6 +278,10 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     q: "Do you offer refunds?",
     a: "Growth plan includes a 30-day money-back guarantee. For Founding 100, we assess refund requests on a case-by-case basis within 14 days of purchase. Credit packs are non-refundable once used.",
+  },
+  {
+    q: "Do you have a permanent free plan?",
+    a: TRIAL_COPY.no_free_forever + " " + TRIAL_COPY.legacy_free_grandfathered,
   },
   {
     q: "Is my data secure?",
