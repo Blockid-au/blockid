@@ -37,6 +37,10 @@ import {
   buildEsopEligibilitySection,
   type EsopEligibilitySection,
 } from "@/lib/investor-pack/esop-eligibility-section";
+import {
+  buildExitBenchmarkSection,
+  type ExitBenchmarkSection,
+} from "@/lib/investor-pack/exit-benchmark-section";
 
 /* ─── Public types ──────────────────────────────────────────────────────── */
 

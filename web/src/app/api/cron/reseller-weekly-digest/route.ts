@@ -59,6 +59,11 @@ import {
   type DigestSnapshotTopMovers,
 } from "@/lib/reseller/digest-snapshot-top-movers";
 import {
+  computeDigestSnapshotTopMoversPerMetric,
+  formatDigestSnapshotTopMoversPerMetricSection,
+  type DigestSnapshotTopMoversPerMetric,
+} from "@/lib/reseller/digest-snapshot-top-movers-per-metric";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1215,6 +1220,8 @@ export async function GET(req: Request) {
     | null = null;
   let snapshotTopMovers: DigestSnapshotTopMovers | null = null;
   let topMoversSection = "";
+  let snapshotTopMoversPerMetric: DigestSnapshotTopMoversPerMetric | null = null;
+  let topMoversPerMetricSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1293,9 +1300,28 @@ export async function GET(req: Request) {
       snapshotPerResellerRollingTrend,
     );
     topMoversSection = formatDigestSnapshotTopMoversSection(snapshotTopMovers);
+    // P11.27 — per-metric top-N |delta| spotlight (module P11.26). Projects the
+    // SAME per-reseller rolling trend down to at least one row per
+    // HEADLINE_METRICS spec that has any mover, so count-unit metrics
+    // (attributed_churn_30d, cohort_velocity, ledger_drift_events, tier_mix,
+    // sandbox_share_of_budget, budget_utilization) surface alongside the
+    // cents-scale movers that dominate the P11.24 portfolio-wide ranking. No
+    // second rolling-trend fold, no divergence risk.
+    snapshotTopMoversPerMetric = computeDigestSnapshotTopMoversPerMetric(
+      snapshotPerResellerRollingTrend,
+    );
+    topMoversPerMetricSection = formatDigestSnapshotTopMoversPerMetricSection(
+      snapshotTopMoversPerMetric,
+    );
   }
-  if (topMoversSection) {
-    html = digestHeader + topMoversSection + html.slice(digestHeader.length);
+  if (topMoversSection || topMoversPerMetricSection) {
+    // Splice both executive-summary sections above the fold, in the order
+    // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) so the
+    // biggest single shift lands first and the per-metric coverage table
+    // rounds out any metric whose mover was buried by unit-scale dominance.
+    const rest = html.slice(digestHeader.length);
+    html =
+      digestHeader + topMoversSection + topMoversPerMetricSection + rest;
   }
 
   let emailed = false;
@@ -1591,6 +1617,18 @@ export async function GET(req: Request) {
           last_week: snapshotTopMovers.last_week,
           top_n: snapshotTopMovers.top_n,
           rows: snapshotTopMovers.rows,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
+    snapshot_top_movers_per_metric: snapshotTopMoversPerMetric
+      ? {
+          window_size: snapshotTopMoversPerMetric.window_size,
+          first_week: snapshotTopMoversPerMetric.first_week,
+          last_week: snapshotTopMoversPerMetric.last_week,
+          top_n_per_metric: snapshotTopMoversPerMetric.top_n_per_metric,
+          rows: snapshotTopMoversPerMetric.rows,
         }
       : {
           skipped_reason:
