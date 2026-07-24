@@ -41,6 +41,10 @@ import {
   buildExitBenchmarkSection,
   type ExitBenchmarkSection,
 } from "@/lib/investor-pack/exit-benchmark-section";
+import {
+  buildTractionCohortSection,
+  type TractionCohortSection,
+} from "@/lib/investor-pack/traction-cohort-section";
 
 /* ─── Public types ──────────────────────────────────────────────────────── */
 
@@ -74,6 +78,13 @@ export interface InvestorPackData {
   // sliced to the project sector when known, else the full fixture with
   // usedFallback=true so the PDF copy can explain the widening.
   exitBenchmark: ExitBenchmarkSection;
+  // ch05 traction anchor (P5-cohort-wire). Weekly cohort retention
+  // matrix + SVG. When the founder has no signup / activity events on
+  // file the pack renders the empty-state hint from cohort-chart.ts
+  // rather than fabricating retention numbers. Live data ingestion
+  // (Stripe / product-analytics OAuth → signup+activity streams) is a
+  // follow-up under P5-cohort-ingest.
+  tractionCohort: TractionCohortSection;
   team: Array<{ name: string; role: string }>;
   capTable: Array<{ holder: string; pctFullyDiluted: number }>;
   ask: {
@@ -437,6 +448,11 @@ export async function assemblePackData(
     sector: sector ?? svi?.sector ?? null,
   });
 
+  // ch05 traction cohort anchor — empty-state until the founder wires a
+  // signup / activity event source. The pack renders the empty-state
+  // SVG hint so the section slot never leaves a gap.
+  const tractionCohort = buildTractionCohortSection();
+
   // Team + cap-table + ask.
   const { members, founderName } = await loadTeam(userId);
   const capTable = await loadCapTable(userId, projectId);
@@ -481,6 +497,7 @@ export async function assemblePackData(
     comparables,
     esopEligibility,
     exitBenchmark,
+    tractionCohort,
     team: members,
     capTable,
     ask: {
