@@ -193,6 +193,138 @@ export function resellerSupabase(scope: ScopedResellerSession) {
       }));
     },
 
+    // -----------------------------------------------------------------
+    // Mentor console — reads/writes for the reseller-mentor surface.
+    // Tables (mentor_consent / mentor_notes / mentor_checkins /
+    // mentor_goals) are gated by their own RLS + a CTO migration; helpers
+    // degrade gracefully to [] / null while the schema lands so the UI
+    // ships behind a feature flag without runtime errors.
+    // -----------------------------------------------------------------
+
+    /** Consent tier for a single mentee: 'basic' | 'reports' | 'full' | null. */
+    async mentorConsent(subjectUserId: string): Promise<{
+      tier: "basic" | "reports" | "full";
+      granted_at: string | null;
+    } | null> {
+      try {
+        const { data } = await supabase
+          .from("mentor_consent")
+          .select("tier, granted_at")
+          .eq("reseller_id", scope.reseller_id)
+          .eq("subject_user_id", subjectUserId)
+          .maybeSingle();
+        if (!data) return null;
+        const tier = (data as { tier?: string }).tier;
+        if (tier === "basic" || tier === "reports" || tier === "full") {
+          return { tier, granted_at: (data as { granted_at: string | null }).granted_at };
+        }
+        return { tier: "basic", granted_at: (data as { granted_at: string | null }).granted_at };
+      } catch {
+        return null;
+      }
+    },
+
+    /** All mentor notes for a mentee, mentor-visible only. */
+    async mentorNotes(subjectUserId: string): Promise<
+      Array<{ id: string; body: string; tags: string[]; created_at: string }>
+    > {
+      try {
+        const { data } = await supabase
+          .from("mentor_notes")
+          .select("id, body, tags, created_at")
+          .eq("reseller_id", scope.reseller_id)
+          .eq("subject_user_id", subjectUserId)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as Array<{ id: string; body: string; tags: string[]; created_at: string }>;
+      } catch {
+        return [];
+      }
+    },
+
+    /** Upcoming + past check-ins for a mentee. */
+    async mentorCheckins(subjectUserId: string): Promise<
+      Array<{ id: string; scheduled_at: string; status: string; agenda: string | null; next_step: string | null }>
+    > {
+      try {
+        const { data } = await supabase
+          .from("mentor_checkins")
+          .select("id, scheduled_at, status, agenda, next_step")
+          .eq("reseller_id", scope.reseller_id)
+          .eq("subject_user_id", subjectUserId)
+          .order("scheduled_at", { ascending: false });
+        return (data ?? []) as Array<{ id: string; scheduled_at: string; status: string; agenda: string | null; next_step: string | null }>;
+      } catch {
+        return [];
+      }
+    },
+
+    /** Mentor-set goals with target dates + status. */
+    async mentorGoals(subjectUserId: string): Promise<
+      Array<{ id: string; title: string; target_date: string | null; status: string }>
+    > {
+      try {
+        const { data } = await supabase
+          .from("mentor_goals")
+          .select("id, title, target_date, status")
+          .eq("reseller_id", scope.reseller_id)
+          .eq("subject_user_id", subjectUserId)
+          .order("target_date", { ascending: true });
+        return (data ?? []) as Array<{ id: string; title: string; target_date: string | null; status: string }>;
+      } catch {
+        return [];
+      }
+    },
+
+    /** Days-since-last-mentor-activity per mentee (checkin or note). */
+    async mentorActivityDays(subjectUserIds: string[]): Promise<Map<string, number | null>> {
+      const out = new Map<string, number | null>();
+      for (const id of subjectUserIds) out.set(id, null);
+      if (subjectUserIds.length === 0) return out;
+      const now = Date.now();
+      try {
+        const [{ data: cRows }, { data: nRows }] = await Promise.all([
+          supabase
+            .from("mentor_checkins")
+            .select("subject_user_id, scheduled_at")
+            .eq("reseller_id", scope.reseller_id)
+            .in("subject_user_id", subjectUserIds),
+          supabase
+            .from("mentor_notes")
+            .select("subject_user_id, created_at")
+            .eq("reseller_id", scope.reseller_id)
+            .in("subject_user_id", subjectUserIds),
+        ]);
+        const latest = new Map<string, number>();
+        for (const r of (cRows ?? []) as Array<{ subject_user_id: string; scheduled_at: string }>) {
+          const t = new Date(r.scheduled_at).getTime();
+          if (!Number.isNaN(t) && (latest.get(r.subject_user_id) ?? 0) < t) latest.set(r.subject_user_id, t);
+        }
+        for (const r of (nRows ?? []) as Array<{ subject_user_id: string; created_at: string }>) {
+          const t = new Date(r.created_at).getTime();
+          if (!Number.isNaN(t) && (latest.get(r.subject_user_id) ?? 0) < t) latest.set(r.subject_user_id, t);
+        }
+        for (const [id, t] of latest) {
+          out.set(id, Math.max(0, Math.floor((now - t) / 86_400_000)));
+        }
+      } catch {
+        // degrade to nulls
+      }
+      return out;
+    },
+
+    /** Cohort rows this reseller owns (accelerator overlap). */
+    async ownedCohorts(): Promise<Array<{ id: string; name: string; created_at: string }>> {
+      try {
+        const { data } = await supabase
+          .from("accelerator_cohorts")
+          .select("id, name, created_at, reseller_id")
+          .eq("reseller_id", scope.reseller_id);
+        return (data ?? []) as Array<{ id: string; name: string; created_at: string }>;
+      } catch {
+        return [];
+      }
+    },
+
     /**
      * Insert a reseller-audit-log row. Every reseller-console read of a
      * customer surface calls this via a middleware; see D.3 (E.3).
