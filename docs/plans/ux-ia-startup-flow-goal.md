@@ -9,8 +9,9 @@ status: in_progress
 version: 2026-07-24.1
 owner: admin@blockid.au
 created: 2026-07-24
-loop_flag_env: UX_IA_AUTONOMOUS_LOOP
-kill_switch: env UX_IA_AUTONOMOUS_LOOP=off
+loop_flag_env: UX_IA_GOAL_LOOP
+kill_switch: env UX_IA_GOAL_LOOP=off
+autonomous_loop: enabled  # scripts/cron/ux-ia-goal-loop.mjs — every 10 min via crontab.production
 
 success_criteria:
   - Top nav has <=7 items; each item is either a phase-of-journey cluster or a global surface (Demo / Pricing / Login).

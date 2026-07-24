@@ -13,8 +13,9 @@ goal_id: atlassian-standard-mapping-v1
 status: in_progress
 owner: admin@blockid.au
 created: 2026-07-24
-loop_flag_env: ATLASSIAN_MAPPING_LOOP
-kill_switch: env ATLASSIAN_MAPPING_LOOP=off
+loop_flag_env: ATLASSIAN_GOAL_LOOP
+kill_switch: env ATLASSIAN_GOAL_LOOP=off
+autonomous_loop: enabled  # scripts/cron/atlassian-goal-loop.mjs — every 10 min via crontab.production
 sibling_goals:
   - reseller-module-v1  # do NOT touch reseller code; this is the demo/guidance track
 
