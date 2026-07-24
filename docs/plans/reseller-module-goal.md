@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.369
+version: 2026-07-24.370
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,181 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 370
+    ran_at: 2026-07-24
+    action: p10_reseller_requests_ck_promo_link_cross_column_invariant_summary_cross_surface_twin_lift_onto_requests_validation
+    result: |
+      Executes tick 369 next-pick option (i) verbatim: cross-surface
+      twin hoist of tick 367's ck_promo_link module-scope summary
+      from requests-authz.spec.ts (the reseller-scope POST surface)
+      onto requests-validation.spec.ts (the reseller-scope GET
+      surface). Third and final of three reseller-scope cross-surface
+      companion ticks per tick 367 close-out; closes the reseller-
+      scope GET-surface three-summary parity (ck_decision_shape at
+      tick 368 + ck_credit_link at tick 369 + ck_promo_link landing
+      here). Matches the tick 367 close-out posture on the sibling
+      reseller-scope POST surface (which closed the three-summary
+      parity at tick 365 + 366 + 367) and the tick 361 + 364 close-
+      out postures on the admin-requests-*.spec.ts pair. Post-tick
+      370, the reseller_requests-row cluster spans 12 module-scope
+      cross-column invariant summaries across four surfaces × three
+      CHECK constraints: 3 on requests-authz.spec.ts + 3 on requests-
+      validation.spec.ts + 3 on admin-requests-list-authz.spec.ts +
+      3 on admin-requests-patch-authz.spec.ts, at 3/3 summary parity
+      per surface — the maximum module-scope summary coverage the
+      four-surface cluster can carry at doc-block resolution.
+
+      Mirrors the tick 369 doc-block shape verbatim (writer-side
+      source + application write path + read path + runtime
+      enforcement + coverage-per-guard posture + symmetric-cluster
+      posture) but adapted for the reseller-scope GET-surface lens
+      on the third and final CHECK constraint (ck_promo_link):
+        - Writer-side source: IDENTICAL to tick 367 — DB CHECK
+          ck_promo_link at 0095:52-55 enforces the disjunction
+          (linked_promotion_code_id IS NULL) OR (request_type=
+          'code_request' AND status='approved'). Sibling
+          ck_credit_link (0095:48-51) is the mirror on
+          linked_credit_transaction_id. Together the two link-column
+          CHECKs form an XOR partition across request_type per the
+          tick 361 + 367 summary blocks.
+        - Application write path: IDENTICAL to tick 367 — reseller
+          POST at /api/reseller/requests/route.ts:87-97 INSERTs
+          with reseller_id + request_type + payload + status:pending
+          + requested_by only; linked_promotion_code_id defaults to
+          NULL per 0095:38 (nullable, no DEFAULT). Every born row
+          sits on the NULL branch of ck_promo_link; NON-NULL branch
+          UNREACHABLE from this route. NON-NULL branch is exclusively
+          produced by admin PATCH code_request approve branch at
+          /api/admin/resellers/requests/[id]/route.ts:102-207
+          narrated in the tick 361 doc-block on admin-requests-
+          patch-authz.spec.ts.
+        - Read path: DIFFERENT from tick 367. The reseller-scope
+          GET at route.ts:169-176 projects seven columns "id,
+          request_type, status, payload, decision_at,
+          decision_reason, created_at" scoped via
+          .eq("reseller_id", scope.reseller_id) with .order + .limit
+          (100). Of the three ck_promo_link-coupled columns
+          (request_type + status + linked_promotion_code_id), TWO
+          are projected (request_type + status) — the link column
+          is stripped (privacy narrowing: leaking a ledger-internal
+          reseller_promotion_codes row id onto the reseller-facing
+          wire would expose an internal identifier the reseller
+          consumes indirectly via /reseller/codes rather than inline
+          on the request history row). This is the same stripping
+          the reseller-scope POST envelope applies per tick 367's
+          narration — both reseller-scope envelopes carry an
+          identical wire shape for ck_promo_link's coupled columns.
+          Four-surface granularity ladder: (a) full three-column
+          tuple on admin list (tick 364 lens); (b) three-column
+          tuple on admin PATCH echo (tick 361 lens); (c) two-column
+          tuple on reseller POST envelope (tick 367 lens); (d) two-
+          column tuple on reseller GET envelope (this tick —
+          projects request_type + status, omits linked_promotion_
+          code_id). IDENTICAL granularity ladder to tick 369's
+          ck_credit_link narration, matching the symmetric wire-
+          shape treatment of the two link columns as a pair on the
+          reseller-scope surfaces.
+        - Runtime enforcement: wave-3 row 156 happy GET at lines
+          268-469 iterates body.requests[] and pins per-row
+          request_type ∈ three-value enum at lines 496-499 + status
+          ∈ four-value enum at lines 500-501. Wave-3 row 155 seeder
+          in requests-authz.spec.ts lands ≥1 pending over_budget_
+          approval row per green CI run against active_wholesale
+          which is ORTHOGONAL to the NON-NULL branch requirement
+          request_type='code_request' — so every observed row
+          forces the NULL branch of ck_promo_link via request_type
+          orthogonality; status='pending' is ALSO orthogonal to the
+          NON-NULL branch requirement status='approved', doubling
+          the orthogonality force. linked_promotion_code_id NOT
+          observable on this surface — stripped from GET envelope.
+        - Coverage-per-guard posture: DEGENERATE-SYMMETRIC relative
+          to tick 367 — same shape as tick 369's relationship to
+          tick 366. Tick 367 narrates the reseller-scope POST INSERT
+          envelope hitting the NULL/pending branch TWICE per pass
+          (wave-3 row 155 + wave-5 row 155-b). This tick narrates
+          the reseller-scope GET envelope observing the SAME NULL/
+          pending branch on the READ side. NON-NULL branch coverage
+          on this GET surface is currently ZERO because P8.5 code_
+          request approve flows are HUMAN-BLOCKED. Together the
+          reseller-scope surface pair (this tick + tick 367) covers
+          the NULL/pending branch on BOTH write-side INSERT + read-
+          side GET envelopes at module scope on the two coupled
+          non-link columns; the admin-scope surface pair (tick 361 +
+          tick 364) covers BOTH the NULL/pending branch AND the
+          NON-NULL/approved branch on the full three-column tuple.
+        - Symmetric-cluster posture: this hoist CLOSES the reseller-
+          scope GET-surface three-summary parity axis on
+          ck_decision_shape + ck_credit_link + ck_promo_link. Post-
+          tick 370, the reseller_requests-row cluster sits at four-
+          surface × three-invariant × three-of-three summary parity
+          per surface — the maximum module-scope summary coverage
+          the four-surface cluster can carry at doc-block
+          resolution.
+
+      Rotation rationale:
+        - Executes tick 369 next-pick option (i) verbatim. Pure
+          documentation-only summary hoist — no new imports, no new
+          module-scope const, no fixture change, no route change,
+          no per-column assert added.
+        - Closes the reseller-scope GET-surface three-summary parity
+          axis, matching the tick 367 close-out posture on the
+          sibling reseller-scope POST surface.
+
+      Diagnostic delta of the pass:
+        - requests-validation.spec.ts:
+            + new module-scope tick 370 doc-block placed
+              immediately after the tick 369 doc-block closing (line
+              ~557) and before the first test.describe.
+            + Cross-references: writer-side source 0095:52-55
+              (ck_promo_link) + 0095:38 (linked_promotion_code_id
+              nullable) + 0095:30 (request_type enum CHECK) +
+              0095:32 (status enum + DEFAULT) + 0095:48-51 (sibling
+              ck_credit_link) + reseller POST route.ts:87-97 (INSERT
+              payload) + reseller GET route.ts:169-176 (SELECT
+              projection) + admin PATCH route.ts:102-207 (code_
+              request approve branch) + admin PATCH route.ts:305-320
+              (stamper) + lines 496-499 (request_type enum pin) +
+              lines 500-501 (status enum pin) + lines 268-469
+              (wave-3 row 156 happy GET).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 369 baseline).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 370: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. Reseller-scope GET-surface three-summary parity closed
+      (ck_decision_shape at tick 368 + ck_credit_link at tick 369 +
+      ck_promo_link at this tick). Cluster now spans 12 module-scope
+      cross-column invariant summaries across four surfaces × three
+      CHECK constraints — the maximum module-scope summary coverage
+      the four-surface cluster can carry at doc-block resolution.
+
+      Next natural picks on tick 371:
+        (i) cross-surface twin-lift ck_decision_shape or ck_credit_
+        link or ck_promo_link onto reseller-requests-list-authz.
+        spec.ts (the third reseller-scope surface) so any invariant
+        reaches 3-surface parity across the reseller-scope triple —
+        first opening on the third reseller-scope surface, matches
+        the tick 368 opening posture on requests-validation.spec.ts
+        which lifted ck_decision_shape as the first of three
+        summaries.
+        (ii) rotate to /admin/resellers/requests/[id] detail surface
+        for a THIRD-surface companion of any of the three admin
+        summaries the admin-scope cluster now carries at 3/3 ×
+        2-surface parity.
+        (iii) idle — frontier remains tight (P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed, P10 continues
+        accepting incremental pin-tightening + summary-hoist ticks).
+    commit: (this tick)
+
   - tick: 369
     ran_at: 2026-07-24
     action: p10_reseller_requests_ck_credit_link_cross_column_invariant_summary_cross_surface_twin_lift_onto_requests_validation
