@@ -1226,3 +1226,5 @@
 {"ts":"2026-07-24T17:00:01Z","endpoint":"agent-upgrade","status":"ok","duration_ms":1643,"detail":"{\"timestamp\": \"2026-07-24T17:00:01.208Z\", \"offPeak\": true, \"budget\": {\"month\": \"2026-07\", \"spent\": 0.96, \"limit\": 100, \"percent\": 1, \"calls\": 1015}, \"tasksRun\": 10, \"tasksSkipped\": 0, \"tasksFailed\": 0"}
 {"ts":"2026-07-24T17:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16597,"detail":""}
 {"ts":"2026-07-24T17:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16515,"detail":""}
+{"ts":"2026-07-24T17:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2243,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234517180 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274052348 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-24T17:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16494,"detail":""}
