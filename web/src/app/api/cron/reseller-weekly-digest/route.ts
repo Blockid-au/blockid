@@ -16,9 +16,15 @@
 //
 // Auth: shared CRON_SECRET pattern (matches sibling reseller-* cron routes).
 
+import { appendFileSync, mkdirSync } from "fs";
+import { dirname } from "path";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
+import {
+  buildDigestSnapshot,
+  serialiseDigestSnapshot,
+} from "@/lib/reseller/digest-snapshot";
 import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
@@ -1095,7 +1101,7 @@ export async function GET(req: Request) {
     emailed = Boolean((result as { ok?: boolean }).ok);
   }
 
-  return NextResponse.json({
+  const body = {
     ok: true,
     week,
     reseller_count: digestRows.length,
@@ -1301,7 +1307,33 @@ export async function GET(req: Request) {
           })),
         },
     ran_at: now.toISOString(),
-  });
+  };
+
+  // P11.13 snapshot persistence — append one JSONL row so future ticks can
+  // compute week-over-week deltas without re-running every Supabase query. A
+  // fs failure MUST NOT break the digest response since the email + numeric
+  // envelope are the authoritative product; the JSONL is an aid, not a gate.
+  try {
+    const snapshot = buildDigestSnapshot({
+      capturedAt: now,
+      week,
+      envelope: body,
+    });
+    const line = serialiseDigestSnapshot(snapshot);
+    const webDir =
+      process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
+    const outPath = `${webDir}/content/reports/reseller-weekly-digest.jsonl`;
+    try {
+      mkdirSync(dirname(outPath), { recursive: true });
+    } catch {
+      /* ignore — parent likely exists */
+    }
+    appendFileSync(outPath, line, { encoding: "utf8" });
+  } catch (e) {
+    console.error("[reseller-weekly-digest] snapshot append failed", e);
+  }
+
+  return NextResponse.json(body);
 }
 
 export { GET as POST };
