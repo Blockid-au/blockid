@@ -144,6 +144,11 @@ import {
   type DigestSnapshotPerMetricDirectionStreakCoverage,
 } from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-coverage";
 import {
+  computeDigestSnapshotPerMetricPctChangeStreakCoverage,
+  formatDigestSnapshotPerMetricPctChangeStreakCoverageSection,
+  type DigestSnapshotPerMetricPctChangeStreakCoverage,
+} from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-coverage";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1385,6 +1390,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricDirectionStreakCoverage
     | null = null;
   let perMetricDirectionStreakCoverageSection = "";
+  let snapshotPerMetricPctChangeStreakCoverage:
+    | DigestSnapshotPerMetricPctChangeStreakCoverage
+    | null = null;
+  let perMetricPctChangeStreakCoverageSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1791,6 +1800,34 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerMetricDirectionStreakCoverageSection(
         snapshotPerMetricDirectionStreakCoverage,
       );
+    // P11.64 — per-metric sustained-|pct|-material streak coverage summary
+    // (module P11.63). Metric-anchored topline for the P11.49/P11.50 portfolio
+    // |pct|-material spotlight, pivoting the P11.55/P11.56 per-partner coverage
+    // shape onto the metric axis and mirroring P11.62's per-metric direction
+    // coverage on the |pct|-magnitude axis. Delegates to
+    // computeDigestSnapshotPerResellerPctChangeStreaks through the pure lib so
+    // the per-KPI streaking-partner counts cannot diverge from the P11.51
+    // spotlight rows this coverage summary tops. Consumes the SAME
+    // snapshotPerResellerRollingTrend the P11.51 detector already consumes (no
+    // extra fold, no divergence risk). Lands directly ABOVE pctChangeStreaksSection
+    // (P11.50 portfolio |pct| spotlight) so ops reads the metric-anchored
+    // topline (for THIS KPI, how many partners are swinging materially this
+    // window) before scanning the per-metric spotlight — a KPI with 5/5
+    // partners on a length-3+ |pct|-material streak is under systemic
+    // portfolio-wide volatility that justifies a product/pricing/retention
+    // response, a KPI with 1/5 streaking is a single-partner idiosyncratic
+    // outlier that the composite P11.54 portfolio topline above it collapses
+    // into a single "streak on/off" signal. No up/down split because |pct| is
+    // signless-material (unlike P11.62 which carries the split on the direction
+    // axis).
+    snapshotPerMetricPctChangeStreakCoverage =
+      computeDigestSnapshotPerMetricPctChangeStreakCoverage(
+        snapshotPerResellerRollingTrend,
+      );
+    perMetricPctChangeStreakCoverageSection =
+      formatDigestSnapshotPerMetricPctChangeStreakCoverageSection(
+        snapshotPerMetricPctChangeStreakCoverage,
+      );
   }
   if (
     topMoversSection ||
@@ -1802,6 +1839,7 @@ export async function GET(req: Request) {
     perResellerDirectionStreakCoverageSection ||
     perResellerDirectionStreaksSection ||
     pctChangeStreakCoverageSection ||
+    perMetricPctChangeStreakCoverageSection ||
     pctChangeStreaksSection ||
     perResellerPctChangeStreakCoverageSection ||
     perResellerPctChangeStreaksSection
@@ -1832,6 +1870,7 @@ export async function GET(req: Request) {
       perResellerDirectionStreakCoverageSection +
       perResellerDirectionStreaksSection +
       pctChangeStreakCoverageSection +
+      perMetricPctChangeStreakCoverageSection +
       pctChangeStreaksSection +
       perResellerPctChangeStreakCoverageSection +
       perResellerPctChangeStreaksSection +
@@ -2410,6 +2449,21 @@ export async function GET(req: Request) {
             min_streak_length:
               snapshotPerMetricDirectionStreakCoverage.min_streak_length,
             rows: snapshotPerMetricDirectionStreakCoverage.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_pct_change_streak_coverage:
+      snapshotPerMetricPctChangeStreakCoverage
+        ? {
+            window_size: snapshotPerMetricPctChangeStreakCoverage.window_size,
+            first_week: snapshotPerMetricPctChangeStreakCoverage.first_week,
+            last_week: snapshotPerMetricPctChangeStreakCoverage.last_week,
+            min_streak_length:
+              snapshotPerMetricPctChangeStreakCoverage.min_streak_length,
+            threshold: snapshotPerMetricPctChangeStreakCoverage.threshold,
+            rows: snapshotPerMetricPctChangeStreakCoverage.rows,
           }
         : {
             skipped_reason:
