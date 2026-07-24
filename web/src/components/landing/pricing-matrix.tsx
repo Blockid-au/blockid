@@ -300,7 +300,7 @@ function PlanCard({
   const ctaHref = isContact
     ? `/contact?plan=${plan.id}`
     : `/onboarding?trial=1&plan=${plan.id}`;
-  const ctaLabel = isContact ? "Contact sales" : plan.monthly_aud === 0 ? "Start free" : "Start trial";
+  const ctaLabel = isContact ? "Contact sales" : "Start trial";
   const handleCtaClick = () => {
     if (!onSelect) return;
     // Report the monthly AUD price as the conversion value. `null` (contact
@@ -339,7 +339,7 @@ function PlanCard({
           <span className="text-5xl font-semibold text-brand-ink tabular-nums">
             {priceLabel}
           </span>
-          {!isCustom && price !== 0 && (
+          {!isCustom && (
             <span className="text-sm text-brand-ink-muted">
               /{interval === "annual" ? "yr" : "mo"}
             </span>
@@ -348,9 +348,7 @@ function PlanCard({
         <p className="mt-1 text-xs text-brand-ink-muted">
           {isCustom
             ? "Volume pricing on request"
-            : price === 0
-              ? "Forever free · no card required"
-              : `AUD · ex-GST · billed ${interval === "annual" ? "annually" : "monthly"}`}
+            : `AUD · ex-GST · billed ${interval === "annual" ? "annually" : "monthly"}`}
         </p>
         {interval === "annual" && saving !== null && saving > 0 && (
           <p className="mt-1 text-xs font-medium text-brand-cyan">
