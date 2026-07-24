@@ -22,6 +22,18 @@ const columns = [
       { href: "/score", label: "Free Score" },
     ],
   },
+  // ux-ia-startup-flow-v1 §C.7 — Case Studies footer column so the Demo
+  // walkthrough is discoverable even without the top-nav.
+  {
+    title: "Case Studies",
+    items: [
+      { href: "/showcase/atlassian?step=1", label: "Atlassian (live demo)" },
+      { href: "/showcase/canva", label: "Canva" },
+      { href: "/showcase/xero", label: "Xero" },
+      { href: "/showcase/safetyculture", label: "SafetyCulture" },
+      { href: "/showcase", label: "All case studies" },
+    ],
+  },
   {
     title: "Company",
     items: [
@@ -66,7 +78,7 @@ export function Footer() {
       {/* Main footer links */}
       <div className="border-t border-ink-700 bg-gradient-to-b from-ink-900 to-ink-950">
         <div className="mx-auto max-w-7xl px-6 py-20">
-          <div className="grid grid-cols-2 gap-10 md:grid-cols-6">
+          <div className="grid grid-cols-2 gap-10 md:grid-cols-7">
             <div className="col-span-2">
               <Logo variant="dark" />
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-300">

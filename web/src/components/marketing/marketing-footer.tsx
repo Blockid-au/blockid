@@ -60,6 +60,18 @@ const COLUMNS: FooterColumn[] = [
       { href: "/for/accelerator", label: "Accelerators" },
     ],
   },
+  // ux-ia-startup-flow-v1 §C.7 — Case Studies column so the Demo walkthrough
+  // is discoverable from every marketing footer, not just the top-nav.
+  {
+    title: "Case Studies",
+    items: [
+      { href: "/showcase/atlassian?step=1", label: "Atlassian (live demo)" },
+      { href: "/showcase/canva", label: "Canva" },
+      { href: "/showcase/xero", label: "Xero" },
+      { href: "/showcase/safetyculture", label: "SafetyCulture" },
+      { href: "/showcase", label: "All case studies" },
+    ],
+  },
   {
     title: "Docs",
     items: [
@@ -90,7 +102,7 @@ export function MarketingFooter() {
       <h2 id="marketing-footer-heading" className="sr-only">
         Site footer
       </h2>
-      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-16 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-16 sm:grid-cols-2 lg:grid-cols-5">
         {COLUMNS.map((col) => (
           <div key={col.title}>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fintech-accent)]">
