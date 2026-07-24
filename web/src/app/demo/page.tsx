@@ -17,6 +17,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { GrowthPhaseStrip } from "@/components/marketing/growth-phase-strip";
 
 const SITE_URL = "https://blockid.au";
 
@@ -39,6 +40,18 @@ const HIGHLIGHTS = [
 export default function DemoPage() {
   return (
     <MarketingShell>
+      {/*
+       * Phase-progress indicator — mirrors the new startup-growth-phase menu
+       * shipped in the workspace sidebar restructure (menu-ia design). The
+       * demo covers the full 12-phase journey end-to-end, so we render the
+       * neutral `menu` variant here (no highlighted phase). See
+       * `web/src/components/marketing/growth-phase-strip.tsx` for the pillar
+       * grouping.
+       */}
+      <GrowthPhaseStrip
+        variant="menu"
+        eyebrow="What the demo covers — 12-phase startup journey"
+      />
       <MarketingHero
         eyebrow="20-minute walk-through"
         title="Book a live demo"
