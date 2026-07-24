@@ -34,6 +34,8 @@ import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
 import { UpgradeModal } from "@/components/upsell/upgrade-modal";
 import { UpgradeBanner } from "@/components/upsell/upgrade-banner";
 import { NAV_GROUPS, ADMIN_NAV_GROUP, type NavGroup, type NavItem } from "@/components/workspace/nav-groups";
+import { PaywallProvider } from "@/components/sales/paywall-nudge";
+import { TrialCountdownBanner } from "@/components/sales/trial-countdown-banner";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { meetsMinPlan, type Segment } from "@/lib/segments";
 import { cn } from "@/lib/utils";
@@ -445,6 +447,7 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
   }, [isMobile, collapseState, orderedGroups]);
 
   return (
+    <PaywallProvider>
     <div className="min-h-svh bg-surface-100 text-ink-800 dark:bg-surface-50 dark:text-ink-800 flex">
       {/* Mobile overlay */}
       {mobileOpen && (
@@ -693,6 +696,11 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
             (above the nav), keeping upgrade nudges next to the recommendation
             tile rather than below the fold. */}
 
+        {/* CRO trial countdown — self-hides when >3 days remain or user
+            dismisses. Rendered immediately above <main> so the paywall
+            provider (see wrapper) can trigger contextual nudges below. */}
+        <TrialCountdownBanner />
+
         {/* Page content */}
         <main className="flex-1 overflow-auto">
           {children}
@@ -702,5 +710,6 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
       {/* Floating feedback FAB */}
       <FeedbackWidget page={pathname} />
     </div>
+    </PaywallProvider>
   );
 }
