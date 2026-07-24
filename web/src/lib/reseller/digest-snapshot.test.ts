@@ -31,11 +31,12 @@ function baseEnvelope(): DigestSnapshotEnvelope {
     cohort_velocity: { window_months: 3, cohort_months: [], reseller_count: 1, rows: [] },
     ltv_cac_per_reseller: { reseller_count: 1, rows: [] },
     sandbox_share_of_budget: { month_key: "2026-07", reseller_count: 1, rows: [] },
+    contribution_margin_pct: { month_key: "2026-07", reseller_count: 1, rows: [] },
   };
 }
 
 describe("DIGEST_SNAPSHOT_KPI_SECTIONS", () => {
-  it("locks the 12 canonical KPI section keys in declared order", () => {
+  it("locks the 13 canonical KPI section keys in declared order", () => {
     expect(DIGEST_SNAPSHOT_KPI_SECTIONS).toEqual([
       "budget_utilization",
       "tier_mix",
@@ -49,6 +50,7 @@ describe("DIGEST_SNAPSHOT_KPI_SECTIONS", () => {
       "cohort_velocity",
       "ltv_cac_per_reseller",
       "sandbox_share_of_budget",
+      "contribution_margin_pct",
     ]);
   });
 
