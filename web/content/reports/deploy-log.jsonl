@@ -1204,3 +1204,7 @@
 {"ts":"2026-07-24T05:15:06.094Z","event":"github-push-master","detail":"Blockid-au: fix(pricing): hide Free tier + correct founder workspace copy (Bugs 1+2) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T05:17:03Z","status":"success","gates":"9/9","pid":"2616738","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T05:24:46.301Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 384 twin-lift reseller_attributions row-cluster summary onto scope-boundary (workspace-owner negative-space read-anchor subset opens 1/1) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T05:38:57.121Z","event":"github-push-master","detail":"Blockid-au: feat(compliance): ESIC funding gate — warn-only + wholesale-block (goal P6) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T05:39:28.497Z","event":"github-push-master","detail":"Blockid-au: feat(a11y): menu tap-not-hover + ARIA + audit doc (goal P7) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T05:40:01.599Z","event":"github-push-master","detail":"Blockid-au: docs(goal): flip ux-ia-startup-flow P5/P6/P7 to shipped (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T05:42:28.581Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P10.R09 manifest-drift cron — runtime CI-rules R-09 gate (1 commits)","source":"github-webhook"}
