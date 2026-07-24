@@ -168,6 +168,7 @@ export async function GET(req: Request): Promise<NextResponse> {
             : nudge.result.next_action,
         missingTop3: snapshotRow.missing_top3,
         dashboardUrl: DASHBOARD_URL,
+        readinessByPhase: nudge.result.readiness_by_phase,
       });
 
       if (skipEmail) {
@@ -217,6 +218,7 @@ export async function GET(req: Request): Promise<NextResponse> {
                 : nudge.result.next_action,
             missingTop3: snapshotRow.missing_top3,
             dashboardUrl: DASHBOARD_URL,
+            readinessByPhase: nudge.result.readiness_by_phase,
             unsubscribeUrl,
           })
         : digest;

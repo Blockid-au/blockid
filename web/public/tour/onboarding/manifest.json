@@ -1,28 +1,40 @@
 {
   "tourId": "onboarding",
-  "title": "Onboarding walkthrough",
+  "title": "First-time onboarding",
   "role": "founder",
   "baseUrl": "http://localhost:4001",
-  "gitSha": "e1b63d74591362916f5c0aa21e27ace891a444a1",
-  "capturedAt": "2026-07-24T19:27:21.191Z",
+  "gitSha": "d1be277368d6e67e180127ff855112882b862efe",
+  "capturedAt": "2026-07-24T23:03:00.890Z",
   "steps": [
     {
-      "id": "01-home",
-      "path": "/",
-      "caption": "Landing page",
-      "file": "step-01-home.png"
+      "id": "welcome",
+      "path": "/onboarding",
+      "caption": "Welcome to BlockID",
+      "file": "step-welcome.png"
     },
     {
-      "id": "02-pricing",
-      "path": "/pricing",
-      "caption": "Pricing overview",
-      "file": "step-02-pricing.png"
+      "id": "segment",
+      "path": "/onboarding",
+      "caption": "Pick your segment",
+      "file": "step-segment.png"
     },
     {
-      "id": "03-dashboard",
-      "path": "/dashboard",
-      "caption": "Founder dashboard",
-      "file": "step-03-dashboard.png"
+      "id": "first-startup",
+      "path": "/onboarding",
+      "caption": "Name your first startup",
+      "file": "step-first-startup.png"
+    },
+    {
+      "id": "goal",
+      "path": "/onboarding",
+      "caption": "Set a 90-day goal",
+      "file": "step-goal.png"
+    },
+    {
+      "id": "trial",
+      "path": "/onboarding",
+      "caption": "Claim your trial credits",
+      "file": "step-trial.png"
     }
   ]
 }

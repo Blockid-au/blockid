@@ -1,0 +1,34 @@
+{
+  "tourId": "svi",
+  "title": "SVI — Startup Valuation Index",
+  "role": "founder",
+  "baseUrl": "http://localhost:4001",
+  "gitSha": "d1be277368d6e67e180127ff855112882b862efe",
+  "capturedAt": "2026-07-24T23:03:15.197Z",
+  "steps": [
+    {
+      "id": "score",
+      "path": "/dashboard/svi",
+      "caption": "Your headline score",
+      "file": "step-score.png"
+    },
+    {
+      "id": "pillars",
+      "path": "/dashboard/svi",
+      "caption": "13 criteria",
+      "file": "step-pillars.png"
+    },
+    {
+      "id": "trend",
+      "path": "/dashboard/svi",
+      "caption": "Trend chart",
+      "file": "step-trend.png"
+    },
+    {
+      "id": "actions",
+      "path": "/dashboard/svi",
+      "caption": "Move the needle",
+      "file": "step-actions.png"
+    }
+  ]
+}

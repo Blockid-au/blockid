@@ -399,6 +399,12 @@ TOURS.forEach((t) => {
   Object.freeze(t.steps);
 });
 
+/**
+ * Named export the tour-capture driver (scripts/tour-capture.mjs) imports
+ * to discover which tours to shoot. Keep the identifier stable.
+ */
+export const FEATURE_TOURS: readonly FeatureTour[] = TOURS;
+
 /** Return every registered feature tour, in registration order. */
 export function listFeatureTours(): readonly FeatureTour[] {
   return TOURS;

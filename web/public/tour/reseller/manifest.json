@@ -1,0 +1,28 @@
+{
+  "tourId": "reseller",
+  "title": "Reseller portal",
+  "role": "founder",
+  "baseUrl": "http://localhost:4001",
+  "gitSha": "d1be277368d6e67e180127ff855112882b862efe",
+  "capturedAt": "2026-07-24T23:03:39.956Z",
+  "steps": [
+    {
+      "id": "codes",
+      "path": "/reseller",
+      "caption": "Reseller codes",
+      "file": "step-codes.png"
+    },
+    {
+      "id": "customers",
+      "path": "/reseller",
+      "caption": "Customer roster",
+      "file": "step-customers.png"
+    },
+    {
+      "id": "goals",
+      "path": "/reseller",
+      "caption": "Cohort goals",
+      "file": "step-goals.png"
+    }
+  ]
+}

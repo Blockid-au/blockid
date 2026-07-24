@@ -1,0 +1,28 @@
+{
+  "tourId": "dashboard-nav",
+  "title": "Dashboard navigation",
+  "role": "founder",
+  "baseUrl": "http://localhost:4001",
+  "gitSha": "d1be277368d6e67e180127ff855112882b862efe",
+  "capturedAt": "2026-07-24T23:03:51.001Z",
+  "steps": [
+    {
+      "id": "quadrants",
+      "path": "/dashboard",
+      "caption": "Five quadrants",
+      "file": "step-quadrants.png"
+    },
+    {
+      "id": "spotlight",
+      "path": "/dashboard",
+      "caption": "Today's spotlight",
+      "file": "step-spotlight.png"
+    },
+    {
+      "id": "goal",
+      "path": "/dashboard",
+      "caption": "Goal ribbon",
+      "file": "step-goal.png"
+    }
+  ]
+}

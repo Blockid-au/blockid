@@ -1,0 +1,28 @@
+{
+  "tourId": "exit-readiness",
+  "title": "Exit Readiness",
+  "role": "founder",
+  "baseUrl": "http://localhost:4001",
+  "gitSha": "cb921b21e94efa9044dd3feb4e53102cdcf2498b",
+  "capturedAt": "2026-07-24T23:04:02.142Z",
+  "steps": [
+    {
+      "id": "lenses",
+      "path": "/dashboard/exit-readiness",
+      "caption": "Six lenses",
+      "file": "step-lenses.png"
+    },
+    {
+      "id": "founder-tile",
+      "path": "/dashboard/exit-readiness",
+      "caption": "Founder tile",
+      "file": "step-founder-tile.png"
+    },
+    {
+      "id": "history",
+      "path": "/dashboard/exit-readiness",
+      "caption": "Historical trend",
+      "file": "step-history.png"
+    }
+  ]
+}

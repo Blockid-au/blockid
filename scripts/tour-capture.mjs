@@ -88,6 +88,34 @@ const FALLBACK_TOURS = [
   },
 ];
 
+function pickText(v, fallback = '') {
+  if (typeof v === 'string') return v;
+  if (v && typeof v === 'object') return v.en ?? v.vi ?? fallback;
+  return fallback;
+}
+
+// Normalize the app's FeatureTour shape ({slug, route, name:{en,vi}, steps:[{id, title:{en,vi}, anchor?}]})
+// into the driver's shape ({id, title, requiresAuth, role, steps:[{id, path, waitFor, caption, hover?}]}).
+// App tours are single-route with per-step anchors — the driver captures the route once per step,
+// scrolls the anchor into view when present, and names the file after the step id.
+function normalizeAppTour(t) {
+  if (t && t.id && Array.isArray(t.steps) && t.steps[0]?.path) return t; // already driver-shaped
+  const route = t.route || '/';
+  return {
+    id: t.slug || t.id,
+    title: pickText(t.name, t.slug || 'tour'),
+    requiresAuth: Boolean(t.requiresAuth),
+    role: t.role || 'founder',
+    steps: (t.steps || []).map((s) => ({
+      id: s.id,
+      path: s.path || route,
+      waitFor: s.waitFor || 'body',
+      caption: pickText(s.title, s.id),
+      hover: s.anchor || undefined,
+    })),
+  };
+}
+
 async function loadFeatureTours() {
   const candidates = [
     join(WEB_ROOT, 'src', 'lib', 'product-tour', 'feature-tours.ts'),
@@ -104,7 +132,7 @@ async function loadFeatureTours() {
       }
       const mod = await import(pathToFileURL(file).href);
       if (Array.isArray(mod.FEATURE_TOURS) && mod.FEATURE_TOURS.length > 0) {
-        return mod.FEATURE_TOURS;
+        return mod.FEATURE_TOURS.map(normalizeAppTour);
       }
     } catch (err) {
       console.warn(`[tour-capture] could not load ${file}: ${err.message}`);
