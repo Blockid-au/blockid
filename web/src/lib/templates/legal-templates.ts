@@ -16,6 +16,7 @@
  */
 import "server-only";
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 export type LegalTemplateCategory = "corporate" | "employment" | "fundraising";
@@ -180,15 +181,25 @@ export function listTemplates(): LegalTemplate[] {
 
 /**
  * Resolves a template file path against the current working directory.
- * The Next.js server runs from `web/` in dev and prod, so we accept both
- * repo-root-relative (`web/content/…`) and `web/`-relative paths.
+ * The Next.js server runs from three shapes depending on how it was booted:
+ *   - dev:                  cwd = `web/`             → `<cwd>/content/templates/…`
+ *   - `npm start` at repo:  cwd = repo root          → `<cwd>/web/content/templates/…`
+ *   - standalone (prod):    cwd = `.next/standalone` → `<cwd>/content/templates/…`
+ * Round 5.5 QA fix: previously only the first two were handled; the standalone
+ * runtime saw `<cwd>/web/content/…` which does not exist under the standalone
+ * output (it copies `content/` at the root, not under a `web/` prefix). Now we
+ * try both, in order.
  */
 function resolveTemplatePath(filePath: string): string {
   const cwd = process.cwd();
-  // If cwd already ends with 'web', strip the leading 'web/' from filePath.
-  if (path.basename(cwd) === "web" && filePath.startsWith("web/")) {
-    return path.join(cwd, filePath.slice("web/".length));
-  }
+  const stripped = filePath.startsWith("web/")
+    ? filePath.slice("web/".length)
+    : filePath;
+  // Dev and standalone both work when the `web/` prefix is dropped and
+  // resolved relative to cwd (the standalone output already flattens `web/`).
+  const dropWebPrefix = path.join(cwd, stripped);
+  if (existsSync(dropWebPrefix)) return dropWebPrefix;
+  // Fall back to preserving the full repo-relative path (repo-root cwd).
   return path.join(cwd, filePath);
 }
 

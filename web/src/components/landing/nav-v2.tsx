@@ -8,8 +8,6 @@
  * content moves out of the homepage fold and into the primary nav.
  *
  *  - Sticky top bar, semantic <header>/<nav aria-label="Primary">.
- *  - "Beta" badge next to the wordmark so early users know this is the
- *    v2.0-beta surface.
  *  - Desktop: hover-open dropdown with 150ms open + 200ms close delay
  *    (no flicker on cursor pass-through). Also click-to-toggle for
  *    keyboard/touch users.
@@ -456,9 +454,6 @@ export function NavV2() {
           />
           <span className="flex items-baseline gap-1 text-base font-semibold text-brand-ink">
             BlockID<span className="text-brand-cyan">.au</span>
-          </span>
-          <span className="inline-flex items-center rounded-full border border-brand-cyan/40 bg-brand-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-cyan">
-            Beta
           </span>
         </Link>
 
