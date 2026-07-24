@@ -138,6 +138,132 @@ const NON_RESELLER_FOUNDER_EMAIL =
 // 156/156b/156c); sandbox_spend branch ZERO-COVERAGE-PER-GUARD (belongs to
 // the sandbox-spend spec cluster).
 
+// Tick 385 — reseller_attributions row-cluster cross-column invariant summary
+// (option (i) from tick 384 next-picks). Cross-surface twin-lift of the tick
+// 376/377/378/379/380/381/382/383/384 module-scope summary onto credit-grant-
+// authz.spec.ts — the TENTH reseller_attributions-touching surface and the
+// FIRST HYBRID-ANCHOR coverage on the cluster (this spec exercises TWO
+// distinct read-anchor subsets on a single file: the auth-chain rows
+// (unauthenticated 401 + non_reseller_admin 402) open a FOURTH DISTINCT
+// anchor subset PRE-SCOPE-AUTH/ENTITLEMENT-GATE, while the wave-3 rows
+// 150/151/152 sit on the pre-existing scopedReseller allowedCustomerIds()
+// subset via decideReveal at credits/grant/route.ts:82-87). Raises 10/16
+// surface parity on the reseller_attributions row cluster; 6 sibling
+// touching surfaces still pending (credit-grant-validation, audit-log-
+// writes, audit-anomaly-scan, sandbox-setup-authz, admin-reseller-detail-
+// authz, admin-reseller-detail-validation).
+//
+// The reseller_attributions row cluster carries FIVE invariants at
+// web/supabase/migrations/0091_reseller_module_foundations.sql:112-142
+// (IDENTICAL enumeration to tick 376/377/378/379/380/381/382/383/384):
+//   - ck_subject_fk_matches_type (0091:128-132) — CROSS-COLUMN: subject_type=
+//                                                  'user'⇒subject_user_id set
+//                                                  + subject_project_id null;
+//                                                  subject_type='project'⇒
+//                                                  inverse
+//   - subject_type CHECK          (0091:115)     — subject_type ∈ {user,
+//                                                  project}
+//   - status CHECK                (0091:118-119) — status ∈ {active, revoked}
+//   - source CHECK                (0091:123)     — source ∈ {code,
+//                                                  provisioned, admin_manual}
+//   - reseller_attributions_active_project_uniq (0091:137-139) — PARTIAL-
+//                                                  UNIQUE INDEX on
+//                                                  subject_project_id WHERE
+//                                                  subject_type='project'
+//                                                  AND status='active' AND
+//                                                  opted_out=false
+//
+// Writer-side source: IDENTICAL to tick 376-384 — DB CHECK + partial-unique
+// guards at 0091:112-142 wrap every reseller_attributions insert; the 'user'
+// branch of ck_subject_fk_matches_type is UNREACHABLE-BY-CONSTRUCTION from
+// every current write path (grep audit: retail-attribution.ts:165-172 +
+// create-startup/route.ts:301-313 both hard-code subject_type='project' +
+// subject_project_id=<uuid> + subject_user_id=null).
+//
+// Application read-path anchor for THIS surface: KEY DELTA vs tick 376-384
+// — this spec is HYBRID and opens the FOURTH DISTINCT read-anchor subset:
+//   - Rows 1+2 (auth-chain: unauthenticated 401 + non_reseller_admin 402)
+//     bail at gateRequireFeature("reseller.grant_credits") at credits/
+//     grant/route.ts:53-54 BEFORE scopedReseller(user) runs, BEFORE
+//     allowedCustomerIds() is called, BEFORE decideReveal reads
+//     reseller_attributions. The cluster is COMPLETELY BYPASSED at the
+//     auth/entitlement gate — a fourth annotation dimension, CROSS-
+//     BOUNDARY-INVISIBLE-BY-AUTH-GATE (unauth) + CROSS-BOUNDARY-INVISIBLE-
+//     BY-ENTITLEMENT-GATE (non_reseller_admin), that only applies to pre-
+//     scope refusal probes. Distinct from tick 384's workspace-owner
+//     anchor because those routes NEVER read the cluster in ANY branch of
+//     ANY session (structural non-read); here the same route READS the
+//     cluster on later rows but the auth/entitlement gate short-circuits
+//     the read on this specific session-shape.
+//   - Rows 150/151/152 (wave-3 harness-required rows) sit on the pre-
+//     existing scopedReseller allowedCustomerIds() subset (tick 376-382
+//     anchor) via decideReveal(target_user_id, allowed) at credits/grant/
+//     route.ts:82-87 which resolves allowed = scopedReseller(user)
+//     .allowedCustomerIds() from scope.ts:63-84. Positively consumes the
+//     (reseller_id, status='active', opted_out=false) set to authorize
+//     the target_user_id against the reseller's attributed customer list
+//     BEFORE decideGrant fires.
+//
+// Runtime enforcement on THIS spec: HYBRID from every prior twin-lift.
+// The two auth-chain rows fire session-less / founder-QA session against
+// the reseller-scoped endpoint AND the refusal at 401/402 must fire
+// REGARDLESS of any reseller_attributions row that may or may not exist
+// for the placeholder target_user_id (which is all-zeros and won't match
+// any real row anyway). The three wave-3 rows fire a reseller-admin
+// session against the fixture-seeded reseller_attributions(reseller_id,
+// subject_user_id=fixture.attributedUserId, status='active', opted_out=
+// false) row via decideReveal so that decideGrant reaches its gate 2/5
+// discriminator without bailing at 'not_in_scope' first — the
+// fixture.attributionExists guard skips the wave-3 rows cleanly when the
+// seed script has not run on this host.
+//
+// Coverage-per-guard posture on this surface: HYBRID.
+//   - Auth-chain rows: ZERO-COVERAGE-PER-GUARD on all five CHECK/index
+//     invariants (route never touches the cluster on this session-shape);
+//     'user' branch of ck_subject_fk_matches_type carries UNREACHABLE-BY-
+//     CONSTRUCTION + DEAD-CODE-AT-READ + CROSS-COLUMN-INVISIBLE-BY-
+//     PROJECTION (tick 383) + CROSS-BOUNDARY-INVISIBLE-BY-ROUTE-CHOICE
+//     (tick 384) + now also CROSS-BOUNDARY-INVISIBLE-BY-AUTH-GATE (this
+//     tick) posture on the new pre-scope-auth-gate subset.
+//   - Wave-3 rows: positively consumes the 'project' branch of
+//     ck_subject_fk_matches_type via decideReveal's allowed set (subject_
+//     type='project' filter in allowedCustomerIds); status='active' AND
+//     opted_out=false filters both fire; source enum branches ZERO-
+//     COVERAGE-PER-GUARD (source is not projected here, only reseller_id
+//     + subject_user_id + status + opted_out).
+//
+// Symmetric-cluster posture: THIS surface OPENS the PRE-SCOPE-AUTH/
+// ENTITLEMENT-GATE negative-space read-anchor subset on the cluster
+// (previously empty — 0/1 within its own subset, now 1/1). Combined post-
+// tick 385 posture: 10/16 total surfaces summarised on the cluster
+// (create-startup-authz tick 376 + create-startup-validation tick 377 +
+// attribution-timing tick 378 + drawer-authz tick 379 + drawer-validation
+// tick 380 + reveal-email-authz tick 381 + reveal-email-validation tick
+// 382 + me-attribution tick 383 + scope-boundary tick 384 + credit-grant-
+// authz this tick — opens the pre-scope-auth/entitlement-gate hybrid
+// anchor subset). Four distinct read-anchor subsets now co-exist under
+// a single cluster's cross-column invariant summary: (a) scopedReseller
+// .allowedCustomerIds() [8 surfaces incl. this tick's wave-3 rows], (b)
+// app_users.attribution_reseller_id cache projection [1 surface], (c)
+// workspace-owner non-cluster refusal [1 surface], (d) pre-scope-auth/
+// entitlement-gate short-circuit [1 surface — this tick's auth-chain
+// rows].
+//
+// Diagnostic delta of the pass: pure documentation-only doc-block hoist —
+// no new imports, no new module-scope constants, no per-column assert
+// added, no fixture change, no route change, no migration change. Doc-
+// block placed after the tick 374 reseller_credit_grants cluster summary
+// (line ~139 pre-edit) and before the first test.describe (line ~141
+// pre-edit), matching the tick 376-384 placement discipline (last
+// module-scope const or prior cluster summary immediately preceding the
+// first test.describe). Twin-lift now spans a heterogeneous read-anchor
+// set — eight surfaces anchor at scope.ts:63-84 allowedCustomerIds()
+// (incl. this tick's wave-3 rows), one at the app_users.attribution_
+// reseller_id cache column, one at the workspace-owner non-cluster
+// refusal, and one at the pre-scope-auth/entitlement-gate short-circuit
+// (this tick's auth-chain rows) — four distinct anchor subsets now
+// documented under a single cluster's cross-column invariant summary.
+
 test.describe("Reseller credit-grant pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — POST with no session returns 401", async ({ request }) => {
     const resp = await request.post(ROUTE, {

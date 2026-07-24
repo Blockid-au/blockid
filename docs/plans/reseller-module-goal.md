@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.386
+version: 2026-07-24.387
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -661,6 +661,123 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 385
+    ran_at: 2026-07-24
+    action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_credit_grant_authz
+    result: |
+      Executes tick 384 next-pick option (i): cross-surface twin-lift of the
+      tick 376/377/378/379/380/381/382/383/384 module-scope summary onto
+      credit-grant-authz.spec.ts — the TENTH reseller_attributions-touching
+      surface and the FIRST HYBRID-ANCHOR coverage on the cluster (this spec
+      exercises TWO distinct read-anchor subsets on a single file: the auth-
+      chain rows (unauthenticated 401 + non_reseller_admin 402) open a
+      FOURTH DISTINCT anchor subset PRE-SCOPE-AUTH/ENTITLEMENT-GATE, while
+      the wave-3 rows 150/151/152 sit on the pre-existing scopedReseller
+      .allowedCustomerIds() subset via decideReveal at credits/grant/route
+      .ts:82-87). Raises 10/16 surface parity on the reseller_attributions
+      row cluster; 6 sibling touching surfaces still pending (credit-grant-
+      validation, audit-log-writes, audit-anomaly-scan, sandbox-setup-authz,
+      admin-reseller-detail-authz, admin-reseller-detail-validation).
+
+      Pure documentation-only doc-block hoist — no new imports, no new
+      module-scope const, no per-column assert added, no fixture change,
+      no route change, no migration change. Adapted for credit-grant-authz's
+      HYBRID posture with KEY deltas vs every prior twin-lift:
+        - Writer-side source: IDENTICAL to tick 376-384 (DB CHECK + partial-
+          unique guards at 0091:112-142 wrap every reseller_attributions
+          insert; 'user' branch of ck_subject_fk_matches_type UNREACHABLE-
+          BY-CONSTRUCTION from every current route write path).
+        - Application read-path anchor: HYBRID. Rows 1+2 bail at gate
+          Require Feature("reseller.grant_credits") at credits/grant/route
+          .ts:53-54 BEFORE scopedReseller runs, BEFORE allowedCustomerIds
+          is called, BEFORE decideReveal reads the cluster — cluster is
+          COMPLETELY BYPASSED at the auth/entitlement gate on this session-
+          shape (fourth anchor: PRE-SCOPE-AUTH-GATE / PRE-SCOPE-ENTITLEMENT-
+          GATE). Rows 150/151/152 sit on the pre-existing scopedReseller
+          anchor via decideReveal(target_user_id, allowed) where allowed =
+          scopedReseller(user).allowedCustomerIds() from scope.ts:63-84 —
+          positively consumes the (reseller_id, status='active', opted_out=
+          false) set. Distinct from tick 384's workspace-owner anchor
+          because those routes NEVER read the cluster in ANY branch of
+          ANY session (structural non-read); here the same route READS
+          the cluster on later rows but the auth/entitlement gate short-
+          circuits the read on this specific session-shape.
+        - Coverage-per-guard posture: HYBRID. Auth-chain rows carry ZERO-
+          COVERAGE-PER-GUARD on all five CHECK/index invariants with the
+          new CROSS-BOUNDARY-INVISIBLE-BY-AUTH-GATE annotation stacked on
+          top of the existing UNREACHABLE-BY-CONSTRUCTION + DEAD-CODE-AT-
+          READ + CROSS-COLUMN-INVISIBLE-BY-PROJECTION (tick 383) + CROSS-
+          BOUNDARY-INVISIBLE-BY-ROUTE-CHOICE (tick 384) posture. Wave-3
+          rows positively consume the 'project' branch of ck_subject_fk_
+          matches_type via decideReveal's allowed set (subject_type=
+          'project' + status='active' + opted_out=false filters fire);
+          source enum branches ZERO-COVERAGE-PER-GUARD (source is not
+          projected on this surface, only reseller_id + subject_user_id +
+          status + opted_out).
+        - Symmetric-cluster posture: THIS surface OPENS the PRE-SCOPE-AUTH/
+          ENTITLEMENT-GATE hybrid anchor subset on the cluster (previously
+          empty — 0/1 within its own subset, now 1/1). Combined post-tick
+          385 posture: 10/16 total surfaces summarised on the cluster.
+          Four distinct read-anchor subsets now co-exist under a single
+          cluster's cross-column invariant summary: (a) scopedReseller
+          .allowedCustomerIds() [8 surfaces incl. this tick's wave-3
+          rows], (b) app_users.attribution_reseller_id cache projection
+          [1 surface], (c) workspace-owner non-cluster refusal [1
+          surface], (d) pre-scope-auth/entitlement-gate short-circuit
+          [1 surface — this tick's auth-chain rows].
+
+      Diagnostic delta of the pass:
+        - credit-grant-authz.spec.ts:
+            + new module-scope tick 385 doc-block placed after the tick 374
+              reseller_credit_grants cluster summary (line ~139 pre-edit)
+              and before the first test.describe (line ~141 pre-edit),
+              matching the tick 376-384 placement discipline (last module-
+              scope const or prior cluster summary immediately preceding
+              the first test.describe).
+            + Documents that the same route serves TWO distinct anchor
+              subsets on the same cluster depending on session-shape —
+              a HYBRID posture unique so far to this surface among the
+              10 twin-lifted specs.
+        - No production code touched, no fixture change, no route change,
+          no migration change, no new imports, no new module-scope
+          constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 scanned 11 file(s),
+          R-03 scanned 33 manifest route(s), R-04 scanned 8 stripe
+          file(s); 6 exemption(s), 0 violations. IDENTICAL baseline to
+          tick 386 post-populate-from-template gating (last recorded
+          clean baseline).
+
+      Frontier after tick 385: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Reseller_attributions row cluster now carries 10/16 surface parity;
+      6 sibling touching surfaces still pending twin-lift, distributed
+      across the remaining read-anchor subsets: scopedReseller.allowed
+      CustomerIds (credit-grant-validation, audit-log-writes, audit-
+      anomaly-scan, sandbox-setup-authz) and admin-scope raw supabase
+      (admin-reseller-detail-authz, admin-reseller-detail-validation).
+
+      Next natural picks on tick 386:
+        (i) rotate to credit-grant-validation.spec.ts to close the
+        credit-grant twin-pair (same file cluster; validation surface
+        anchors at scopedReseller like tick 376-382).
+        (ii) rotate to admin-reseller-detail-authz.spec.ts / admin-
+        reseller-detail-validation.spec.ts pair (opens a FIFTH DISTINCT
+        read-anchor subset: admin-scope raw supabase reads reseller_
+        attributions via a raw admin client without scopedReseller).
+        (iii) rotate to audit-log-writes.spec.ts / audit-anomaly-scan
+        .spec.ts pair (reseller_audit_log-scoped surfaces that also
+        project reseller_attributions via the reveal-email + drawer
+        audit rows — joins the two clusters on the audit-projection axis).
+        (iv) rotate to sandbox-setup-authz.spec.ts (reseller_sandbox_
+        setup cluster with a reseller_attributions touch through the
+        sandbox seed path).
+        (v) idle until human unblock arrives on P8.5 or P1.5.
+
   - tick: 384
     ran_at: 2026-07-24
     action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_scope_boundary
