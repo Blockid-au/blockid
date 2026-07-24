@@ -181,3 +181,88 @@ describe("au-pty-ltd-constitution template", () => {
     expect(rendered).not.toMatch(/casting_vote_no/);
   });
 });
+
+describe("au-safe template", () => {
+  const tpl = getTemplate("au-safe");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-9 fundraising template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.category).toBe("fundraising");
+    expect(tpl?.phase_slug).toBe("phase-9");
+    expect(listTemplates().some((t) => t.slug === "au-safe")).toBe(true);
+  });
+
+  it("declares the AU-specific anchors that differentiate it from a US YC SAFE", () => {
+    // Governing law is NSW, not Delaware — the whole point of this mint vs a link-out.
+    expect(body).toMatch(/New South Wales/);
+    // Corporations Act refs replace Delaware GCL — sophisticated + professional investor tests.
+    expect(body).toMatch(/s708\(8\)/);
+    expect(body).toMatch(/s708\(11\)/);
+    // s254T solvency test guards the Dissolution Event payout.
+    expect(body).toMatch(/s254T/);
+    // s127 execution block — investors expect this signing convention on AU deeds.
+    expect(body).toMatch(/s127/);
+    // Chapter 6D disclosure regime (the reason wholesale-only reps matter).
+    expect(body).toMatch(/Chapter 6D/);
+    // GST + stamp-duty clauses — the two AU tax carve-outs absent from a YC SAFE.
+    expect(body).toMatch(/GST/);
+    expect(body).toMatch(/[Ss]tamp duty/);
+    // Electronic Transactions Act — AU e-signing anchor.
+    expect(body).toMatch(/Electronic Transactions Act/);
+    // AFSL disclaimer must be prominent (the top-of-doc warning).
+    expect(body).toMatch(/NOT LEGAL ADVICE/);
+    // ACICA / mediation-first dispute resolution seated in Sydney.
+    expect(body).toMatch(/ACICA/);
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("substitutes purchase + cap fields and keeps only the selected variant", () => {
+    const rendered = applySubstitutions(body, {
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      registered_office_address: "Sydney NSW 2000",
+      investor_name: "Angel Alice",
+      investor_address: "Melbourne VIC 3000",
+      investor_abn: "12 345 678 901",
+      purchase_amount_aud: "250,000",
+      valuation_cap_aud: "5,000,000",
+      discount_rate: "20",
+      issue_date: "1 July 2026",
+      governing_state: "New South Wales",
+      variant_cap_and_discount: "true",
+      revision_date: "2026-07-24",
+    });
+    // Header + parties render with concrete amounts, not raw tokens.
+    expect(rendered).toContain("A$250,000");
+    expect(rendered).toContain("A$5,000,000");
+    expect(rendered).toContain("Acme Innovation Pty Ltd");
+    // Only the cap+discount variant heading survives — cap-only and
+    // discount-only variant bodies must be stripped.
+    expect(rendered).toMatch(/Variant selected: \*\*Valuation Cap and Discount\*\*/);
+    expect(rendered).not.toMatch(/Variant selected: \*\*Valuation Cap Only\*\*/);
+    expect(rendered).not.toMatch(/Variant selected: \*\*Discount Only\*\*/);
+    // Section-toggle tokens must not leak into rendered output.
+    expect(rendered).not.toMatch(/variant_cap_only/);
+    expect(rendered).not.toMatch(/variant_discount_only/);
+  });
+});
