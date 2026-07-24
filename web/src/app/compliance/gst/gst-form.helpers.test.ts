@@ -74,14 +74,13 @@ describe("toGstInput", () => {
 
 describe("fromGstInput ↔ toGstInput", () => {
   it("round-trips a fully-populated wire body without drift", () => {
-    const wire = {
+    const state = fromGstInput({
       monthly_turnover_last_12_months: [500, 600, 700, 800],
       projected_next_12_months: [900, 1000, 1100],
       registered_for_gst: true,
       registration_date: "2024-07-01",
       abn: "79 659 615 111",
-    } as const;
-    const state = fromGstInput({ ...wire });
+    });
     const round = toGstInput(state);
     expect(round.monthly_turnover_last_12_months).toEqual([500, 600, 700, 800]);
     expect(round.projected_next_12_months).toEqual([900, 1000, 1100]);
