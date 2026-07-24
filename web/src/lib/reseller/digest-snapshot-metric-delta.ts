@@ -216,7 +216,17 @@ function readMetric(spec: HeadlineMetricSpec, row: unknown): number {
  * deeper for that key. Adding another nested-shape section in the future
  * would need a similar unroll case.
  */
-function readSectionTotal(
+/**
+ * Read the total for one HEADLINE_METRICS section against a raw envelope
+ * (the persisted digest body). Exported so downstream trend modules (P11.20)
+ * can reuse the identical shape-aware walker rather than duplicating the
+ * cohort-velocity unroll + nested-vs-flat path fallback that make the delta
+ * output symmetric across disk/in-memory shapes. Returns null when the
+ * section is missing/skipped/non-array; a finite non-negative sum otherwise
+ * (signed_cents metrics may return negative totals — net-contribution can be
+ * legitimately negative for a loss-leader partner).
+ */
+export function readSectionTotal(
   envelope: Record<string, unknown>,
   spec: HeadlineMetricSpec,
 ): number | null {
