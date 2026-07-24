@@ -24,6 +24,16 @@ import {
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
 } from "@/lib/reseller/audit-anomaly";
+import {
+  computeBudgetUtilization,
+  formatWeeklyDigestBudgetSection,
+  type BudgetUtilizationRow,
+} from "@/lib/reseller/budget-utilization";
+import {
+  computeMonthlyUsage,
+  monthKey as creditMonthKey,
+  type ResellerCreditGrantRow,
+} from "@/lib/reseller/credit-grants";
 import { HUMAN_BLOCKED_ITEMS } from "@/lib/reseller/human-blocked-registry";
 import {
   buildLeadingSignalSummary,
@@ -47,6 +57,8 @@ interface ResellerMetaRow {
   id: string;
   code: string;
   display_name: string | null;
+  monthly_credit_budget: number | null;
+  monthly_sandbox_credits: number | null;
 }
 
 interface AppUserRow {
@@ -87,7 +99,7 @@ export async function GET(req: Request) {
 
   const { data: resellersData, error: resellersErr } = await supabase
     .from("resellers")
-    .select("id, code, display_name")
+    .select("id, code, display_name, monthly_credit_budget, monthly_sandbox_credits")
     .eq("status", "active");
   if (resellersErr) {
     return NextResponse.json(
@@ -261,6 +273,51 @@ export async function GET(req: Request) {
   const humanBlockedSection = formatWeeklyDigestHumanBlockedSection(HUMAN_BLOCKED_ITEMS);
   if (humanBlockedSection) html += humanBlockedSection;
 
+  // P11 canonical KPI (`credit_budget_utilization` + `sandbox_share_of_budget`
+  // from reseller-module-goal.md `weekly_digest_kpis`). Roll monthly grants
+  // per reseller for the current UTC month_key so ops sees each partner's
+  // month-to-date share of monthly_credit_budget + monthly_sandbox_credits
+  // without hand-hitting /admin/resellers. Failures degrade to a skipped
+  // section so the leading-signal digest still ships.
+  const currentMonthKey = creditMonthKey(now);
+  let budgetRows: BudgetUtilizationRow[] = [];
+  const { data: grantRows, error: grantErr } = await supabase
+    .from("reseller_credit_grants")
+    .select("reseller_id, kind, amount, month_key, over_budget, created_at, sandbox_project_id, target_user_id")
+    .in("reseller_id", resellerIds)
+    .eq("month_key", currentMonthKey);
+  let budgetSkippedReason: string | null = null;
+  if (grantErr) {
+    console.error("[reseller-weekly-digest] budget grant query failed", grantErr.message);
+    budgetSkippedReason = "budget_query_failed";
+  } else {
+    const grantsByReseller = new Map<string, ResellerCreditGrantRow[]>();
+    for (const g of (grantRows ?? []) as ResellerCreditGrantRow[]) {
+      const list = grantsByReseller.get(g.reseller_id) ?? [];
+      list.push(g);
+      grantsByReseller.set(g.reseller_id, list);
+    }
+    budgetRows = resellers.map((r) => {
+      const usage = computeMonthlyUsage(
+        grantsByReseller.get(r.id) ?? [],
+        currentMonthKey,
+      );
+      return {
+        reseller_id: r.id,
+        reseller_code: r.code,
+        reseller_display_name: r.display_name ?? r.code,
+        utilization: computeBudgetUtilization({
+          monthly_credit_budget: r.monthly_credit_budget ?? 0,
+          monthly_sandbox_credits: r.monthly_sandbox_credits ?? 0,
+          grant_credits_used: usage.grant_credits_used,
+          sandbox_credits_used: usage.sandbox_credits_used,
+        }),
+      };
+    });
+    const budgetSection = formatWeeklyDigestBudgetSection(budgetRows, currentMonthKey);
+    if (budgetSection) html += budgetSection;
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -310,6 +367,22 @@ export async function GET(req: Request) {
       count: HUMAN_BLOCKED_ITEMS.length,
       ids: HUMAN_BLOCKED_ITEMS.map((i) => i.id),
     },
+    budget_utilization: budgetSkippedReason
+      ? { skipped_reason: budgetSkippedReason }
+      : {
+          month_key: currentMonthKey,
+          reseller_count: budgetRows.length,
+          rows: budgetRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            grant_used: r.utilization.grant_used,
+            grant_budget: r.utilization.grant_budget,
+            grant_pct: r.utilization.grant_pct,
+            sandbox_used: r.utilization.sandbox_used,
+            sandbox_cap: r.utilization.sandbox_cap,
+            sandbox_pct: r.utilization.sandbox_pct,
+          })),
+        },
     ran_at: now.toISOString(),
   });
 }
