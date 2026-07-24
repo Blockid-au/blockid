@@ -701,3 +701,188 @@ describe("au-customer-loi template", () => {
     expect(soleDirector).not.toMatch(/\{\{#sole_director\}\}/);
   });
 });
+
+describe("au-customer-discovery-interview-log template", () => {
+  const tpl = getTemplate("au-customer-discovery-interview-log");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-2 commercial template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.category).toBe("commercial");
+    expect(tpl?.phase_slug).toBe("phase-2");
+    expect(
+      listTemplates().some(
+        (t) => t.slug === "au-customer-discovery-interview-log",
+      ),
+    ).toBe(true);
+  });
+
+  it("declares the APP + misleading-conduct anchors an investor's lawyer looks for", () => {
+    // Privacy Act 1988 + APPs — informed-consent block sits on top of the
+    // interview capture, so an investor / OAIC auditor can trace the chain.
+    expect(body).toMatch(/Privacy Act 1988/);
+    expect(body).toMatch(/Australian Privacy Principles/);
+    // The specific APPs the log invokes (collection notice, use, storage,
+    // access, correction).
+    expect(body).toMatch(/APP\s?1/);
+    expect(body).toMatch(/APP\s?5/);
+    expect(body).toMatch(/APP\s?11/);
+    expect(body).toMatch(/APP\s?12/);
+    expect(body).toMatch(/APP\s?13/);
+    // Misleading-conduct guardrails: this is the difference between a
+    // discovery log and a raise-safe evidence artefact.
+    expect(body).toMatch(/s18/);
+    expect(body).toMatch(/Australian Consumer Law/);
+    expect(body).toMatch(/s1041H/);
+    // Mom-Test past-behaviour discipline — the reason we mint this rather
+    // than let founders freestyle a Google Doc.
+    expect(body).toMatch(/[Mm]om.?[Tt]est/);
+    expect(body).toMatch(/past.?behaviour|past behaviour|past-behaviour/i);
+    // AFSL / not-legal-advice disclaimer at the top of the doc.
+    expect(body).toMatch(/NOT LEGAL ADVICE/);
+    // Compensation-disclosure guardrail — if founder paid the interviewee
+    // they must disclose that alongside every quote used in an investor
+    // pack, or the artefact becomes misleading under s18 ACL.
+    expect(body).toMatch(/[Cc]ompensation offered/);
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("renders the recording-consent branch matrix and never leaks section-toggle tokens", () => {
+    const base: Record<string, string> = {
+      interviewer_name: "Alice Founder",
+      interviewer_email: "alice@example.com.au",
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      product_hypothesis:
+        "AU seed-stage founders will pay A$99/mo to auto-generate raise-ready data rooms.",
+      interview_number: "3 of 5",
+      interview_date: "12 July 2026",
+      interview_channel: "Zoom video call",
+      current_workflow_short: "cap-table + investor updates",
+      consent_written_log: "Yes — verbal consent recorded 00:00-00:45",
+      consent_named_reference: "Yes — attributed as name + role",
+      consent_verbatim_quote: "Yes — with approval before publication",
+      consent_recording_response: "Yes",
+      recording_storage_location: "Google Drive — Founders/Discovery/2026Q3",
+      interviewee_name: "Charlie Buyer",
+      interviewee_role: "Head of Ops",
+      interviewee_company: "Big Bank AU",
+      interviewee_company_abn_line: "ABN 12 345 678 901",
+      interviewee_email: "charlie@bigbank.example",
+      sourcing_channel: "Warm intro via mutual investor",
+      prior_relationship: "None",
+      compensation_offered: "None",
+      last_time_prompt: "prepare a monthly investor update for your board",
+      answer_past_behaviour:
+        "Two Sundays ago I spent 4 hours copying numbers from Xero into Google Slides.",
+      answer_current_workflow: "Xero export → Google Sheets → Google Slides.",
+      pain_frequency_words: "Every month, right before the board meeting.",
+      pain_frequency_normalised: "Monthly",
+      pain_time_words: "Half a Sunday, so 4 hours.",
+      pain_time_hours: "4",
+      pain_cost_words: "About my Sunday afternoon, times twelve.",
+      pain_cost_estimate_aud: "12,000",
+      pain_rating_words: "It's a 7 — annoying but survivable.",
+      pain_rating: "7",
+      answer_prior_attempts:
+        "Tried Fathom last year — cancelled after 3 months because setup was too heavy.",
+      answer_purchase_authority: "Me plus the CFO; no procurement below A$5k.",
+      answer_willingness_to_test:
+        "Happy to try a 2-week pilot with real Xero data.",
+      pilot_scope: "2-week Xero-live pilot",
+      pilot_start_date: "1 August 2026",
+      pricing_unit: "user per month",
+      answer_price_indication: "A$50/user/month feels fair for a team of 8.",
+      quote_1:
+        "I would pay real money to never open Google Slides for the board pack again.",
+      quote_1_context: "Answering 3.6, unprompted",
+      quote_2: "The blocker is Xero categorisation, not the slide design.",
+      quote_2_context: "Answering 3.2",
+      quote_3: "Yes I'd pilot it — send me a Calendly.",
+      quote_3_context: "End of interview, on record",
+      signal_specific_past: "Present",
+      signal_specific_past_evidence: "Named a specific Sunday two weeks ago.",
+      signal_prior_spend: "Present",
+      signal_prior_spend_evidence: "Paid for Fathom for 3 months.",
+      signal_introduction: "Present",
+      signal_introduction_evidence:
+        "Volunteered to intro CFO at Big Bank + peer at Small Bank.",
+      signal_budget_line: "Present",
+      signal_budget_line_evidence:
+        "Named delegated authority up to A$5k without procurement.",
+      red_flag_hypothetical: "Absent",
+      red_flag_hypothetical_evidence:
+        "Every answer referenced a specific past event.",
+      red_flag_leading: "Absent",
+      red_flag_leading_evidence:
+        "Open past-behaviour questions only; no product features named until 3.6.",
+      confidence_level: "Partially validated",
+      followup_evidence_needed:
+        "2 more interviews with founders running >A$1M ARR to test upmarket boundary",
+      pivot_direction: "n/a",
+      followup_commitment: "Send pilot proposal + Calendly link",
+      followup_date: "18 July 2026",
+      storage_location: "Google Drive — Founders/Discovery/2026Q3 (RBAC)",
+      retention_period_days: "365",
+      access_control_list:
+        "Alice Founder (interviewer); Bob Founder (co-founder); Legal Counsel",
+      sample_size_context: "n = 5 discovery interviews to date",
+      reviewer_name: "Bob Founder",
+      reviewer_date: "13 July 2026",
+      governing_state: "New South Wales",
+      revision_date: "2026-07-24",
+      recording_consent_yes: "true",
+      willing_to_pilot: "true",
+    };
+    const withRecording = applySubstitutions(body, base);
+    // Recording-yes branch kept; recording-no branch stripped.
+    expect(withRecording).toMatch(/verifiable consent to\s+audio recording/);
+    expect(withRecording).not.toMatch(/No audio or video recording was made/);
+    // Verbatim commercial + party fields render into the body.
+    expect(withRecording).toContain("Charlie Buyer");
+    expect(withRecording).toContain("Big Bank AU");
+    expect(withRecording).toContain("Acme Innovation Pty Ltd");
+    expect(withRecording).toContain("A$12,000");
+    expect(withRecording).toContain("7 / 10");
+    expect(withRecording).toContain("2-week Xero-live pilot");
+    // Section-toggle names must never leak into the rendered doc.
+    expect(withRecording).not.toMatch(/\{\{#recording_consent_yes\}\}/);
+    expect(withRecording).not.toMatch(/\{\{#willing_to_pilot\}\}/);
+
+    // Flip to the no-recording branch and confirm the language flips too.
+    const noRecording = applySubstitutions(body, {
+      ...base,
+      recording_consent_yes: "false",
+      recording_consent_no: "true",
+      willing_to_pilot: "false",
+      disconfirmed_hypothesis: "true",
+    });
+    expect(noRecording).toMatch(/No audio or video recording was made/);
+    expect(noRecording).not.toMatch(/verifiable consent to\s+audio recording/);
+    // Pilot block stripped; disconfirmation block kept.
+    expect(noRecording).not.toMatch(/Pilot commitment captured/);
+    expect(noRecording).toMatch(/Disconfirmation note/);
+    // Confirm section-toggle tokens never appear either way.
+    expect(noRecording).not.toMatch(/\{\{#recording_consent_no\}\}/);
+    expect(noRecording).not.toMatch(/\{\{#disconfirmed_hypothesis\}\}/);
+  });
+});
