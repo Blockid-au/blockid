@@ -1251,3 +1251,4 @@
 {"ts":"2026-07-24T19:00:01Z","endpoint":"svi-review","status":"ok","duration_ms":1215,"detail":"{\"reviewed\": 0, \"milestones\": 0, \"skipped\": 44, \"totalUsers\": 44, \"weekKey\": \"2026_w30\"}"}
 {"ts":"2026-07-24T19:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16469,"detail":""}
 {"ts":"2026-07-24T19:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":613,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234903840 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274047128 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-24T19:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16440,"detail":""}
