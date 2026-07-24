@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.381
+version: 2026-07-24.382
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,168 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 382
+    ran_at: 2026-07-24
+    action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_reveal_email_validation
+    result: |
+      Executes tick 381 next-pick option (i) verbatim: cross-surface twin-
+      lift of the tick 376/377/378/379/380/381 module-scope summary from the
+      create-startup write-path pair + attribution-timing.spec.ts + drawer-
+      authz.spec.ts + drawer-validation.spec.ts + reveal-email-authz.spec.ts
+      onto reveal-email-validation.spec.ts — the SEVENTH reseller_attributions
+      -touching surface and the close-out of the reveal-email spec pair to
+      2/2 parity within the shared decideReveal chokepoint (mirroring the
+      drawer pair close-out at tick 380 + create-startup pair close-out at
+      tick 377 + credit-grant pair close-out at tick 375). Raises 7/16
+      surface parity on the reseller_attributions row cluster; 9 sibling
+      touching surfaces still pending (me-attribution, scope-boundary,
+      credit-grant-authz, credit-grant-validation, audit-log-writes, audit-
+      anomaly-scan, sandbox-setup-authz, admin-reseller-detail-authz,
+      admin-reseller-detail-validation).
+
+      Pure documentation-only doc-block hoist — no new imports, no new
+      module-scope const, no per-column assert added, no fixture change, no
+      route change, no migration change. Adapted for the reveal-email-
+      validation surface's harness-mode-rows-fire-SELECT posture with a KEY
+      delta vs tick 381:
+        - Writer-side source: IDENTICAL to tick 376/377/378/379/380/381 (DB
+          CHECK + partial-unique guards at 0091:112-142 wrap every reseller_
+          attributions insert; 'user' branch of ck_subject_fk_matches_type
+          UNREACHABLE-BY-CONSTRUCTION from every current route write path
+          across the codebase per grep audit of retail-attribution.ts:165-
+          172 + create-startup/route.ts:301-313).
+        - Application read-path anchor: IDENTICAL to tick 379/380/381.
+          Anchors at web/src/lib/reseller/scope.ts:63-84 via scopedReseller
+          .allowedCustomerIds() — the canonical SELECT-lens read of the
+          cluster, SHARED VERBATIM with the drawer route AND with the
+          reveal-email-authz twin at tick 381 because all three handlers
+          import the same decideReveal helper from web/src/lib/reseller/
+          customer-reveal.ts. A regression in the id → scope → decideReveal
+          ordering surfaces on both POST reveal-email and GET drawer lenses
+          in lockstep. The 'user' branch remains DEAD CODE at scope.ts:73.
+        - Runtime enforcement: IDENTICAL to tick 380 (harness-mode-rows-
+          fire-SELECT) — DIFFERENT from tick 381 (harness-mode-rows-bail-
+          upstream). Both reveal-email-validation rows (row 1 invalid_id
+          400 + row 2 not_in_scope 403) run under loadResellerHarness()
+          with the reseller-admin session established — that means BOTH
+          reach route.ts:47 which awaits scope.allowedCustomerIds() BEFORE
+          decideReveal fires the shape/scope check. Contrast with reveal-
+          email-authz.spec.ts (tick 381) where rows 1 (unauthenticated 401)
+          + 2 (non_reseller_admin 403 no_membership) BAIL upstream at
+          route.ts:32 (getCurrentUser null) or route.ts:37 (scopedReseller
+          throws), so the SELECT never runs on the reveal-email-authz
+          harness-mode rows. Consequently, reveal-email-validation carries
+          the SECOND harness-mode SELECT-lens coverage on the cluster
+          (after drawer-validation tick 380): BOTH rows fire the (reseller_
+          id, status='active', opted_out=false) SELECT filter, then diverge
+          on the decideReveal check — row 1 returns 400 invalid_id because
+          "not-a-uuid" fails UUID_RE at customer-reveal.ts:20; row 2 returns
+          403 not_in_scope because the well-formed OUT_OF_SCOPE_UUID passes
+          UUID_RE but fails allowedIds.includes() at customer-reveal.ts:23.
+          Wave-2 row 149 (active_wholesale happy path) DOES reach decide
+          Reveal's POSITIVE uuid_in_scope branch — the SELECT fires and
+          returns the seeded reseller_attributions row for fixture
+          .attributedUserId, then decideReveal passes because fixture
+          .attributedUserId lives in the resolved allowedCustomerIds set.
+        - Coverage-per-guard posture: ZERO-COVERAGE-PER-GUARD on all five
+          CHECK/index invariants — SELECT does not fire DB CHECK
+          constraints, and read-side hits on the partial-unique index only
+          validate index existence rather than uniqueness enforcement.
+          IDENTICAL to tick 379/380/381 posture. The 'project' branch of
+          ck_subject_fk_matches_type is READ-side EXERCISED at rows 1 + 2
+          + wave-2 row 149 via the subject_type='project' filter but the
+          CHECK itself only fires on write; the 'user' branch remains
+          UNREACHABLE-BY-CONSTRUCTION AND is DEAD CODE at scope.ts:73.
+          Status 'active' branch is READ-side EXERCISED via the .eq(
+          "status","active") filter; 'revoked' branch remains UNREACHABLE
+          from insert. Source CHECK all three enum branches ZERO-COVERAGE-
+          PER-GUARD on both write and read.
+        - Symmetric-cluster posture: THIS surface CLOSES the reveal-email
+          spec pair to 2/2 parity within the reveal-email-authz-and-
+          validation subset — both reveal-email-authz (SELECT-lens,
+          harness-mode-rows-bail-upstream, tick 381) and reveal-email-
+          validation (SELECT-lens, harness-mode-rows-fire-SELECT, this
+          tick) now carry the same tick 376/377/378/379/380/381/382 module-
+          scope invariant summary pinned to the same 0091:112-142 line
+          anchor. Combined post-tick 382 posture: 7/16 total surfaces
+          summarised on the cluster. The 'user'-branch complement stays
+          ASYMMETRIC + UNREACHABLE-BY-CONSTRUCTION + DEAD-CODE-AT-READ
+          across the entire codebase per tick 376/377/378/379/380/381
+          posture.
+
+      Diagnostic delta of the pass:
+        - reveal-email-validation.spec.ts:
+            + new module-scope tick 382 doc-block placed after the
+              REVEAL_ROUTE const (line ~90) and before the first
+              test.describe (line ~92 pre-edit), matching the tick 376/
+              377/378/379/380/381 placements verbatim.
+            + Documents read-path anchor at web/src/lib/reseller/scope.ts:
+              63-84 (scopedReseller.allowedCustomerIds SELECT with WHERE
+              matching the partial-unique index scope; 'user' branch is
+              DEAD CODE at scope.ts:73 per UNREACHABLE-BY-CONSTRUCTION
+              write-path posture) — IDENTICAL to tick 379/380/381 anchor.
+            + Documents route consumption at reveal-email/route.ts:47-52
+              via decideReveal(id, allowedCustomerIds) — twin of drawer/
+              route.ts:63-68 consumption per the shared decideReveal
+              chokepoint at customer-reveal.ts. Twin-lift symmetry across
+              the reveal-email spec pair now literal — the two doc-blocks
+              share verbatim structure adjusted for the harness-mode-rows-
+              fire-SELECT delta.
+            + Coverage-per-guard posture: ZERO-COVERAGE-PER-GUARD on all
+              five CHECK/index invariants (SELECT does not fire DB CHECKs);
+              'user' branch of ck_subject_fk_matches_type carries UNREACH
+              ABLE-BY-CONSTRUCTION + DEAD-CODE-AT-READ posture across all
+              touching surfaces.
+        - No production code touched, no fixture change, no route change,
+          no migration change, no new imports, no new module-scope
+          constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: pre-existing R-03 violation on
+          web/src/app/api/dataroom/populate-from-template/route.ts:51 (from
+          commit a82478ca — round 5.4c refactor); unrelated to this test-
+          file edit; no new lint signal introduced by the doc-block
+          addition. IDENTICAL baseline to tick 379/380/381.
+
+      Frontier after tick 382: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Reseller_attributions row cluster now carries 7/16 surface parity
+      (create-startup-authz tick 376 + create-startup-validation tick 377
+      + attribution-timing tick 378 + drawer-authz tick 379 + drawer-
+      validation tick 380 + reveal-email-authz tick 381 + reveal-email-
+      validation this tick — closes reveal-email spec pair to 2/2 within
+      the shared decideReveal chokepoint). 9 sibling touching surfaces
+      still pending twin-lift.
+
+      Next natural picks on tick 383:
+        (i) rotate to me-attribution.spec.ts (single surface, hits the
+        /api/reseller/me route which does NOT use scopedReseller and
+        instead reads app_users.attribution_reseller_id + resellers row
+        directly — DIFFERENT read anchor, closes a distinct read-path
+        anchor within the cluster).
+        (ii) rotate to admin-reseller-detail-authz.spec.ts / admin-
+        reseller-detail-validation.spec.ts pair (the admin-scope
+        attribution projection which mirrors the reseller-scope drawer/
+        reveal-email pairs but with different authz gates).
+        (iii) rotate to credit-grant-authz.spec.ts / credit-grant-
+        validation.spec.ts pair (different cluster — reseller_credit_
+        grants — but same harness/validation split pattern; credit-grant
+        pair also touches reseller_attributions via decideReveal on the
+        customer picker path).
+        (iv) rotate to scope-boundary.spec.ts (the canonical scopedReseller
+        boundary spec — probes ResellerScopeError propagation across all
+        four throw sites at scope.ts and closes a distinct read-anchor
+        node within the cluster).
+        (v) rotate to another unhoisted row cluster (reseller_promotion_
+        codes ck_stripe_objects_by_tier at 0091:98-102, or resellers ck_
+        wholesale_gst_required at 0091:47-51 / ck_abn_format at 0091:52)
+        whose cross-column CHECKs have not yet been hoisted at module
+        scope on any touching spec.
+        (vi) idle until human unblock arrives on P8.5 or P1.5.
+
   - tick: 381
     ran_at: 2026-07-24
     action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_reveal_email_authz
