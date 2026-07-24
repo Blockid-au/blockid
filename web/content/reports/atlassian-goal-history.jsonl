@@ -184,3 +184,5 @@
 {"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:27:01.081Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:27:01.087Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-24T11-27-manual-p6b","ts":"2026-07-24T11:30:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P6b","summary":"Wholesale-only fundraise UI toggle: opt-in checkbox in fundraise wizard Step 0 flips ESIC+Div83A gates from warn to 412-blocking; red block banner with url_to_fix + amber warn banner harvest esic_warn/div83a_warn from 200s. tsc green."}
+{"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:31:25.027Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":263938,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:31:25.057Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
