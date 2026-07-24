@@ -7,6 +7,7 @@ import {
   getProjectLimit,
   getCurrentProjectIsSandbox,
 } from "@/lib/projects";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProjectsClient } from "./projects-client";
 
@@ -30,6 +31,20 @@ export default async function ProjectsPage() {
     getProjectLimit(user.plan ?? "free"),
   ]);
 
+  // Load account_type separately — AppUser doesn't carry it and the client
+  // needs it to gate the "Create New Startup" button per the 2026-07-24
+  // founder 1-startup directive.
+  let accountType: string | null = null;
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    const { data } = await supabase
+      .from("app_users")
+      .select("account_type")
+      .eq("id", user.id)
+      .maybeSingle();
+    accountType = (data?.account_type as string | null | undefined) ?? null;
+  }
+
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <ProjectsClient
@@ -37,6 +52,7 @@ export default async function ProjectsPage() {
         initialArchivedProjects={archivedProjects}
         limit={limit}
         plan={user.plan ?? "free"}
+        accountType={accountType}
       />
     </WorkspaceLayout>
   );

@@ -1176,3 +1176,7 @@
 {"ts":"2026-07-24T04:18:04.125Z","event":"github-push-master","detail":"Blockid-au: feat(dataroom): wire legal templates into data-room-templates.ts (round 5.6e) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:18:25.185Z","event":"github-push-master","detail":"Blockid-au: feat(compliance): panel component + nudge engine integration (round 5.5e) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:21:58.744Z","event":"github-push-master","detail":"Blockid-au: feat(plans): solo=50 grow=200 credit re-price (canonical source-of-truth update) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:22:56.446Z","event":"github-push-master","detail":"Blockid-au: feat(plans): founder 1-startup limit — helper + enforcement at write path (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:23:20.632Z","event":"github-push-master","detail":"Blockid-au: feat(db): 0110 trial warning columns migration + canonical TRIAL_COPY (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:25:49.800Z","event":"github-push-master","detail":"Blockid-au: fix(tests): repair Gate 4b failures blocking round 5 deploy (round 5.5 QA) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:26:03.386Z","event":"github-push-master","detail":"Blockid-au: feat(cron): trial-charge-warning pre-charge email endpoint (1 commits)","source":"github-webhook"}
