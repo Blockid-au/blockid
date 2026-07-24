@@ -1478,3 +1478,5 @@
 {"ts":"2026-07-24T18:16:31.355Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T18-10-01-194Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T18:22:19Z","status":"success","gates":"9/9","pid":"1132180","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T18:23:47.311Z","event":"github-push-master","detail":"Blockid-au: feat(exits): P11-acquisition-wizard pure helper — 90/10 deal-shape checker (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T18:23:58.918Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T18-17-01-129Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T18:28:48.985Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.48 cron wiring for per-reseller |pct| spotlight (1 commits)","source":"github-webhook"}
