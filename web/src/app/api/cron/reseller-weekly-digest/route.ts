@@ -41,6 +41,12 @@ import {
   type AttributedReportRow,
 } from "@/lib/reseller/leading-signals";
 import {
+  computeTierMixByReseller,
+  formatWeeklyDigestTierMixSection,
+  type TierMixAttributionRow,
+  type TierMixRow,
+} from "@/lib/reseller/tier-mix";
+import {
   formatWeeklyDigestAnomaliesSection,
   formatWeeklyDigestCsv,
   formatWeeklyDigestEmail,
@@ -318,6 +324,74 @@ export async function GET(req: Request) {
     if (budgetSection) html += budgetSection;
   }
 
+  // P11.2 canonical KPI (`tier_mix` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Distribution of active attributed customers across
+  // the 0/10/20/30/40 wholesale-tier ladder (U.15.1). Query resolves promo
+  // codes via reseller_promotion_codes so the digest never leaks per-customer
+  // rows — only the aggregate counts land in the section. Failures degrade to
+  // a skipped section so the earlier signals still ship.
+  let tierMixRows: TierMixRow[] = [];
+  let tierMixSkippedReason: string | null = null;
+  // Re-issue a scoped attribution query with promotion_code_id — the earlier
+  // attribution select is a hot path shared with the leading-signal rollup and
+  // widening it with a nullable column would ripple through the customer-set
+  // typing for no gain (the tier-mix section only needs reseller_id + promo_id).
+  const { data: tierAttribData, error: tierAttribErr } = await supabase
+    .from("reseller_attributions")
+    .select("reseller_id, promotion_code_id")
+    .in("reseller_id", resellerIds)
+    .eq("status", "active")
+    .eq("opted_out", false);
+  if (tierAttribErr) {
+    console.error("[reseller-weekly-digest] tier-mix attribs query failed", tierAttribErr.message);
+    tierMixSkippedReason = "tier_attribs_query_failed";
+  } else {
+    const tierAttribs = (tierAttribData ?? []) as {
+      reseller_id: string;
+      promotion_code_id: string | null;
+    }[];
+    const promoIdSet = new Set<string>();
+    for (const a of tierAttribs) {
+      if (a.promotion_code_id) promoIdSet.add(a.promotion_code_id);
+    }
+    const tierByPromo = new Map<string, number>();
+    if (promoIdSet.size > 0) {
+      const { data: promoRows, error: promoErr } = await supabase
+        .from("reseller_promotion_codes")
+        .select("id, tier_pct")
+        .in("id", Array.from(promoIdSet));
+      if (promoErr) {
+        console.error("[reseller-weekly-digest] tier-mix promo query failed", promoErr.message);
+        tierMixSkippedReason = "tier_promo_query_failed";
+      } else {
+        for (const p of (promoRows ?? []) as { id: string; tier_pct: number }[]) {
+          tierByPromo.set(p.id, p.tier_pct);
+        }
+      }
+    }
+    if (!tierMixSkippedReason) {
+      const rows: TierMixAttributionRow[] = tierAttribs.map((a) => ({
+        reseller_id: a.reseller_id,
+        tier_pct: a.promotion_code_id
+          ? (tierByPromo.get(a.promotion_code_id) ?? null)
+          : null,
+      }));
+      const mixByReseller = computeTierMixByReseller(resellerIds, rows);
+      tierMixRows = resellers.map((r) => ({
+        reseller_id: r.id,
+        reseller_code: r.code,
+        reseller_display_name: r.display_name ?? r.code,
+        mix: mixByReseller.get(r.id) ?? {
+          counts: { 0: 0, 10: 0, 20: 0, 30: 0, 40: 0 },
+          none: 0,
+          total: 0,
+        },
+      }));
+      const tierMixSection = formatWeeklyDigestTierMixSection(tierMixRows);
+      if (tierMixSection) html += tierMixSection;
+    }
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -381,6 +455,22 @@ export async function GET(req: Request) {
             sandbox_used: r.utilization.sandbox_used,
             sandbox_cap: r.utilization.sandbox_cap,
             sandbox_pct: r.utilization.sandbox_pct,
+          })),
+        },
+    tier_mix: tierMixSkippedReason
+      ? { skipped_reason: tierMixSkippedReason }
+      : {
+          reseller_count: tierMixRows.length,
+          rows: tierMixRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            tier_0: r.mix.counts[0],
+            tier_10: r.mix.counts[10],
+            tier_20: r.mix.counts[20],
+            tier_30: r.mix.counts[30],
+            tier_40: r.mix.counts[40],
+            none: r.mix.none,
+            total: r.mix.total,
           })),
         },
     ran_at: now.toISOString(),
