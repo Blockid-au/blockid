@@ -1,12 +1,14 @@
 "use client";
 
-// Compliance panel — 4-tile summary of the P0 AU raise-blocker checks:
+// Compliance panel — 6-tile summary of AU compliance checks:
 //   ESIC (Div 360 ITAA97), s708(8) wholesale certs, GST A$75k threshold,
-//   R&D Tax Incentive 10-month registration deadline.
+//   R&D Tax Incentive 10-month registration deadline, WGEA 100-employee
+//   threshold (WGE Act 2012 (Cth) s3), Modern Slavery A$100M consolidated-
+//   revenue threshold (MSA 2018 (Cth) s5).
 //
-// Fetches all four endpoints in parallel and deep-links each tile to a
-// detail route (/compliance/{esic|s708|gst|rd}) that a follow-up
-// milestone will build out.
+// Fetches all six endpoints in parallel and deep-links each tile to a
+// detail route (/compliance/{esic|s708|gst|rd|wgea|modern-slavery}) that a
+// follow-up milestone will build out.
 
 import * as React from "react";
 import Link from "next/link";
@@ -58,6 +60,38 @@ interface RdPayload {
   calendar: RdEntry[];
 }
 
+interface WgeaPayload {
+  ok: boolean;
+  result: {
+    is_relevant_employer?: boolean;
+    is_above_threshold?: boolean;
+    urgency?: "ok" | "warning" | "critical";
+    action_required?: string;
+    result_json?: {
+      urgency?: "ok" | "warning" | "critical";
+      action_required?: string;
+      current_headcount_au?: number;
+      peak_headcount_last_12_months?: number;
+    };
+  } | null;
+}
+
+interface ModernSlaveryPayload {
+  ok: boolean;
+  result: {
+    is_reporting_entity?: boolean;
+    is_above_threshold?: boolean;
+    urgency?: "ok" | "warning" | "critical";
+    action_required?: string;
+    result_json?: {
+      urgency?: "ok" | "warning" | "critical";
+      action_required?: string;
+      days_until_statement_due?: number;
+      statement_due_iso?: string;
+    };
+  } | null;
+}
+
 type LoadState = "loading" | "ready" | "error";
 
 interface PanelState {
@@ -65,6 +99,8 @@ interface PanelState {
   s708: S708Payload | null;
   gst: GstPayload | null;
   rd: RdPayload | null;
+  wgea: WgeaPayload | null;
+  modernSlavery: ModernSlaveryPayload | null;
   state: LoadState;
 }
 
@@ -254,23 +290,118 @@ function RdTile({ data }: { data: RdPayload | null }) {
   );
 }
 
+function WgeaTile({ data }: { data: WgeaPayload | null }) {
+  const r = data?.result;
+  const derived = r?.result_json ?? {
+    urgency: r?.urgency,
+    action_required: r?.action_required,
+    current_headcount_au: undefined,
+    peak_headcount_last_12_months: undefined,
+  };
+  let status: React.ReactNode;
+  let body: React.ReactNode;
+  if (!r) {
+    status = pill("slate", "Not tracked");
+    body = "Log your Australian headcount to detect the 100-employee WGEA trigger.";
+  } else if (derived.action_required === "report_required") {
+    status = pill("red", "Report due");
+    body = "Headcount at or above 100 — register with WGEA and lodge by 31-May-following.";
+  } else if (derived.action_required === "statement_overdue") {
+    status = pill("red", "Overdue");
+    body = "WGEA report window has passed — lodge immediately.";
+  } else if (derived.urgency === "warning") {
+    status = pill("amber", derived.action_required === "grace_period" ? "Grace period" : "Approaching");
+    body =
+      derived.action_required === "grace_period"
+        ? "Dropped below 100 employees — WGEA s3B(2) keeps you reporting for 2 more periods."
+        : "Within striking distance of the 100-employee WGEA trigger — start the six-indicator dataset now.";
+  } else if (derived.action_required === "already_reporting") {
+    status = pill("emerald", "Lodging");
+    body = "Report on file — keep lodging annually.";
+  } else {
+    status = pill("emerald", "Under threshold");
+    body = "Headcount well below the 100-employee WGEA trigger.";
+  }
+  return (
+    <Tile
+      href="/compliance/wgea"
+      title="WGEA reporting"
+      subtitle="WGE Act 2012 (Cth) s3 — 100 employees"
+      status={status}
+    >
+      {body}
+    </Tile>
+  );
+}
+
+function ModernSlaveryTile({ data }: { data: ModernSlaveryPayload | null }) {
+  const r = data?.result;
+  const derived = r?.result_json ?? {
+    urgency: r?.urgency,
+    action_required: r?.action_required,
+    days_until_statement_due: undefined,
+    statement_due_iso: undefined,
+  };
+  let status: React.ReactNode;
+  let body: React.ReactNode;
+  if (!r) {
+    status = pill("slate", "Not tracked");
+    body = "Log consolidated revenue to detect the A$100M Modern Slavery trigger.";
+  } else if (derived.action_required === "statement_overdue") {
+    status = pill("red", "Overdue");
+    body = "Modern Slavery statement window closed — lodge with the AG's register immediately.";
+  } else if (derived.action_required === "statement_due_soon") {
+    const days = derived.days_until_statement_due;
+    status = pill(typeof days === "number" && days <= 30 ? "red" : "amber", "Due soon");
+    body = derived.statement_due_iso
+      ? `Statement due ${derived.statement_due_iso} — governing-body approval + signature required (s13(2)).`
+      : "Statement due within 6 months of FY end — governing-body approval required.";
+  } else if (derived.action_required === "statement_required") {
+    status = pill("amber", "Prepare");
+    body = "Projected revenue at or above A$100M — start building the seven mandatory reporting criteria (s16).";
+  } else if (derived.urgency === "warning") {
+    status = pill("amber", "Approaching");
+    body = "Revenue nearing the A$100M threshold — voluntary opt-in (s6) shows well to acquirers.";
+  } else if (derived.action_required === "already_lodged") {
+    status = pill("emerald", "Lodged");
+    body = "Statement on file — keep lodging annually within 6 months of FY end.";
+  } else {
+    status = pill("emerald", "Under threshold");
+    body = "Consolidated revenue well below the A$100M Modern Slavery trigger.";
+  }
+  return (
+    <Tile
+      href="/compliance/modern-slavery"
+      title="Modern Slavery"
+      subtitle="MSA 2018 (Cth) s5 — A$100M revenue"
+      status={status}
+    >
+      {body}
+    </Tile>
+  );
+}
+
 function CompliancePanelInner() {
   const [state, setState] = React.useState<PanelState>({
     esic: null,
     s708: null,
     gst: null,
     rd: null,
+    wgea: null,
+    modernSlavery: null,
     state: "loading",
   });
 
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [esic, s708, gst, rd] = await Promise.all([
+      const [esic, s708, gst, rd, wgea, modernSlavery] = await Promise.all([
         fetchJson<EsicPayload>("/api/compliance/esic"),
         fetchJson<S708Payload>("/api/compliance/s708"),
         fetchJson<GstPayload>("/api/compliance/gst-threshold"),
         fetchJson<RdPayload>("/api/compliance/rd-calendar"),
+        fetchJson<WgeaPayload>("/api/compliance/wgea-threshold"),
+        fetchJson<ModernSlaveryPayload>("/api/compliance/modern-slavery-threshold"),
       ]);
       if (cancelled) return;
       setState({
@@ -278,6 +409,8 @@ function CompliancePanelInner() {
         s708,
         gst,
         rd,
+        wgea,
+        modernSlavery,
         state: "ready",
       });
     })();
@@ -305,11 +438,13 @@ function CompliancePanelInner() {
           <span className="text-xs text-muted-foreground">Loading…</span>
         ) : null}
       </header>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <EsicTile data={state.esic} />
         <S708Tile data={state.s708} />
         <GstTile data={state.gst} />
         <RdTile data={state.rd} />
+        <WgeaTile data={state.wgea} />
+        <ModernSlaveryTile data={state.modernSlavery} />
       </div>
     </section>
   );
