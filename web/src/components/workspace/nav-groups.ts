@@ -20,7 +20,7 @@ import {
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   ClipboardList, Eye, Layers, Settings2, MessageSquare, Send, Building2,
   ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins, Plug,
-  Inbox,
+  Inbox, GraduationCap, LayoutGrid,
 } from "lucide-react";
 
 import type { PlanTier, Segment } from "@/lib/segments";
@@ -238,11 +238,25 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/reseller", label: "Dashboard", icon: LayoutDashboard, feature: "reseller.console" },
       { href: "/reseller/customers", label: "Customers", icon: Users, feature: "reseller.console" },
+      { href: "/reseller/mentor", label: "Mentor", icon: GraduationCap, feature: "reseller.console" },
       { href: "/reseller/codes", label: "Codes", icon: Tag, feature: "reseller.console" },
       { href: "/reseller/credits", label: "Credits", icon: Coins, feature: "reseller.console" },
       { href: "/reseller/requests", label: "Requests", icon: Inbox, feature: "reseller.console" },
       { href: "/reseller/reports", label: "Reports", icon: FileText, feature: "reseller.console" },
       { href: "/reseller/settings", label: "Settings", icon: Settings2, feature: "reseller.console" },
+    ],
+  },
+  {
+    label: "Mentor",
+    stage: "Mentees → Growth",
+    collapsible: true,
+    pillar: "role",
+    defaultCollapsed: true,
+    items: [
+      { href: "/reseller/mentor", label: "Roster", icon: Users, feature: "reseller.console" },
+      { href: "/reseller/mentor?filter=overdue", label: "Check-in Inbox", icon: Inbox, feature: "reseller.console" },
+      { href: "/reseller/mentor?tab=reports", label: "Reports Feed", icon: FileText, feature: "reseller.console" },
+      { href: "/reseller/mentor/cohort", label: "Cohort View", icon: LayoutGrid, feature: "reseller.console" },
     ],
   },
   {
