@@ -1110,3 +1110,5 @@
 {"ts":"2026-07-24T01:24:00.864Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T01-20-01-116Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T01:34:28.554Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 364 — P10 reseller_requests ck_promo_link cross-column invariant summary cross-surface twin lift onto admin-requests-list-authz (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T01:34:33.947Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T01-30-01-203Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T01:35:41.647Z","event":"github-push-master","detail":"Blockid-au: chore(reports): persist reseller monitor + goal history + deploy log ticks (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T01:47:28.849Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 365 — P10 reseller_requests ck_decision_shape cross-column invariant summary reseller-scope opening hoist onto requests-authz (1 commits)","source":"github-webhook"}
