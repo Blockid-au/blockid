@@ -2403,9 +2403,9 @@ export function SVIReportPDF({
             Keep Building. We Are Here to Help.
           </Text>
           <Text style={{ fontSize: 9, color: C.ink600, lineHeight: 1.6, marginBottom: 10 }}>
-            Your dashboard at blockid.au is ready. Upload evidence as you complete each step
-            and watch your score grow. The Evidence Vault, cap table tools, and weekly tracking
-            are all included.
+            Your dashboard at blockid.au is ready. Auto-populate your Data Room from an
+            Atlassian-grade playbook, and grab AU-jurisdiction legal templates alongside
+            your cap table and pitch tools — the Pty Ltd Constitution is live now.
           </Text>
 
           {/*
@@ -2416,9 +2416,10 @@ export function SVIReportPDF({
             direct column-stacked children of the CTA box — actionRow already
             carries marginBottom for spacing.
           */}
-          <ActionItem num={1} text="Build your Data Room" detail="Organize cap table, legal docs, pitch deck for investors" />
+          <ActionItem num={1} text="Build your Data Room" detail="Organize cap table, legal docs, pitch deck — or auto-populate from a proven playbook" />
           <ActionItem num={2} text="Create your Pitch Deck" detail="BlockID templates guide you through investor storytelling" />
           <ActionItem num={3} text="Clean your Cap Table" detail="Get investor-ready equity structure and ESOP allocation" />
+          <ActionItem num={4} text="Grab AU Legal Templates" detail="Pty Ltd Constitution reviewed for AU jurisdiction (ESOP Scheme & AU SAFE coming soon)" />
         </View>
 
         {!isPaid && (
