@@ -249,6 +249,170 @@ const PURPOSE_MAX = 500;
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
+// Tick 362 — reseller_requests-row ck_decision_shape cross-column
+// invariant summary cross-surface twin lift onto admin-requests-list-
+// authz.spec.ts. Executes tick 361 next-pick option (a) verbatim:
+// cross-surface twin hoist of tick 359's ck_decision_shape module-scope
+// summary from admin-requests-patch-authz.spec.ts onto THIS list
+// surface so the reseller_requests-row cross-column invariant reaches
+// TWO-SURFACE parity on the admin-requests-* spec family, matching the
+// two-surface parity ticks 354 + 355 + 357 + 358 reached across both
+// admin-reseller-detail-authz + admin-reseller-detail-validation
+// surfaces (resellers-row + promotion_codes[] + commissions[] +
+// admins[] + attributions_summary). Pre-tick posture: this surface
+// carries the per-column pins for the three coupled columns already
+// (status === "pending" at line ~431, decision_by null-or-UUID at line
+// ~393-398, decision_at ISO tightening at line ~469-474 landed by
+// tick 281, decision_reason length ≤ REASON_MAX at line ~493-498
+// landed by tick 282), but has never carried the module-scope SUMMARY
+// naming the SINGLE CHECK constraint (ck_decision_shape at 0095:41-45)
+// that couples all four columns — a future rotation reading this file
+// alone would have to re-derive the coupling from the four per-column
+// pin doc-blocks + the reseller_requests-row schema. Hoisting closes
+// the cross-surface twin-lift axis tick 361 opened on the reseller_
+// requests-* summary-lens sweep, and mirrors the tick 359 doc-block
+// shape verbatim (writer-side source + application write path + read
+// path + runtime enforcement + coverage-per-guard posture + symmetric-
+// cluster posture) but adapted for the list-surface lens rather than
+// the PATCH-write-echo lens tick 359 landed on:
+//   - Writer-side source: IDENTICAL to tick 359 — DB CHECK ck_
+//     decision_shape at web/supabase/migrations/0095_reseller_
+//     requests.sql:41-45 enforces the disjunction
+//       (status = 'pending' AND decision_by IS NULL AND decision_at IS NULL)
+//       OR
+//       (status IN ('approved','denied','cancelled') AND decision_at IS NOT NULL)
+//     i.e. pending rows MUST carry both decision columns as NULL and
+//     any row whose status flips to a terminal enum member MUST carry
+//     decision_at as non-null (decision_by is permitted to be NULL at
+//     the DB level per the CHECK — the FK reference at 0095:34 declares
+//     ON DELETE SET NULL so a decided-then-orphaned admin row would
+//     legally sit at decision_by IS NULL / decision_at NOT NULL /
+//     status IN terminal). The sibling ck_credit_link (0095:48-51) and
+//     ck_promo_link (0095:52-55) CHECKs are orthogonal single-column
+//     guards on linked_credit_transaction_id + linked_promotion_code_id
+//     respectively; per-column pins for those FK columns already live
+//     at line ~402-407 (linked_credit_transaction_id null-or-UUID) and
+//     line ~411-416 (linked_promotion_code_id null-or-UUID) on this
+//     surface via the tick 221 FK-echo pass. The tick 360/361 sibling
+//     ck_credit_link + ck_promo_link summary hoists on the patch surface
+//     narrate those two CHECKs; this tick focuses on ck_decision_shape
+//     alone per the tick 359 header shape.
+//   - Application write path: IDENTICAL to tick 359 (this list surface
+//     reads back rows written by the same PATCH stamper) —
+//     validateAdminDecision() at web/src/lib/reseller/requests.ts:276-
+//     304 rejects the mutation with reason='already_decided' whenever
+//     current.status !== 'pending' (285) so the ONLY green branch
+//     through the validator is a pending → terminal transition. The
+//     PATCH route at
+//     web/src/app/api/admin/resellers/requests/[id]/route.ts:305-320
+//     then stamps decision_by:user.id + decision_at:now + status:
+//     decision.status inside a SINGLE UPDATE with an
+//     .eq("id", current.id).eq("status", "pending") WHERE guard so a
+//     concurrent second PATCH racing the same row returns 0 rows and
+//     surfaces as reason='update_failed' at HTTP 500. This is the
+//     ONLY application-layer stamper on decision_by + decision_at —
+//     the DB CHECK is the last line of defence, so a route refactor
+//     that stamped decision_at without decision_by (permitted by the
+//     CHECK) OR a direct-SQL admin action that skipped the route
+//     entirely and set status='approved' without decision_at (rejected
+//     by the CHECK) would each be caught: the CHECK at 0095:41-45
+//     rejects the second case; the .eq("status","pending") WHERE guard
+//     at route.ts:316 + the always-both-columns stamp at 309-310 give
+//     the first case a coverage floor via the pending idempotency test
+//     on the patch surface.
+//   - Read path: DIFFERENT from tick 359. The admin list route at
+//     web/src/app/api/admin/resellers/requests/route.ts:44 projects
+//     ALL FOUR coupled columns as columns 4 (status), 6 (decision_
+//     by), 7 (decision_at), 8 (decision_reason) of the twelve-column
+//     SELECT — full ck_decision_shape observability on the wire on
+//     every default status=pending list GET (which returns the seeded
+//     row before any PATCH lands) AND on every follow-up ?status=
+//     approved / ?status=denied / ?status=cancelled filter GET that a
+//     future decide-fixture surfaces. Contrast with the tick 359
+//     patch-surface lens which projects a narrower "id, status,
+//     decision_at, decision_reason, linked_credit_transaction_id,
+//     linked_promotion_code_id" tuple at route.ts:317-319 (omits
+//     decision_by from the PATCH envelope on purpose — the write is
+//     stamped and the reseller-facing surface doesn't need the admin's
+//     user id). Post-tick 362 the ck_decision_shape invariant is now
+//     observable at module scope on BOTH admin surfaces: the PATCH-
+//     write echo (three of four columns, tick 359) and the list-route
+//     GET (all four columns, this tick).
+//   - Runtime enforcement in this spec: per-column pins across the
+//     SINGLE default status='pending' happy-path row inside the for-
+//     loop below:
+//       - status === "pending" pin at line ~431 (a route regression
+//         that dropped .eq("status", status) at route.ts:46 would
+//         surface here as a non-pending row leaking into the default
+//         envelope)
+//       - decision_by null-or-UUID pin at line ~393-398 (tick 221 FK-
+//         echo — pending rows MUST have decision_by IS NULL per ck_
+//         decision_shape, and this pin's null branch fires on every
+//         green CI run)
+//       - decision_at null-or-ISO_TIMESTAMP_RE pin at line ~469-474
+//         (tick 281 ISO tightening — pending rows carry decision_at
+//         IS NULL per ck_decision_shape and this pin's null branch
+//         fires on every green CI run)
+//       - decision_reason null-or-(typeof string AND length ≤ REASON_
+//         MAX) pin at line ~493-498 (tick 282 length tightening —
+//         pending rows carry decision_reason=NULL per validator +
+//         ck_decision_shape and this pin's null branch fires on every
+//         green CI run)
+//     fire on every green CI run where loadAdminHarness resolves + the
+//     wave-3 row 155 seed (pending over_budget_approval against the
+//     active_wholesale variant) is available. Fresh CI hosts with zero
+//     pending rows still green cleanly because the for-loop skips over
+//     an empty envelope.
+//   - Coverage-per-guard posture: INVERTED relative to tick 359. On
+//     the patch surface (tick 359), the deny + cancel + approve
+//     branches all fire the NON-NULL branch of ck_decision_shape
+//     (decision_at set, decision_by set, decision_reason set, status
+//     ∈ terminal enum) on every pass; the NULL branch is exercised
+//     via the wave-3 row 155 pending list-route seed pre-PATCH. On
+//     this list surface, the coverage is inverted: the wave-3 row 155
+//     seeded pending over_budget_approval row exercises the NULL
+//     branch (status='pending' AND decision_by IS NULL AND decision_
+//     at IS NULL AND decision_reason IS NULL) on every green CI run
+//     where the harness is provisioned; the NON-NULL branch has
+//     zero-coverage on the wire today because no approve/deny/cancel
+//     fixture seeds a decided reseller_requests row that this default
+//     status='pending' GET would return. This inversion is a fixture
+//     artefact — once a decide-fixture seeds a row AND a future
+//     ?status= filter change surfaces the decided rows via this spec,
+//     the coverage rebalances so this surface fires BOTH branches on
+//     the same CI pass (unlike the patch surface which will always
+//     fire only the NON-NULL branch on approve/deny/cancel probes
+//     because a pre-PATCH pending row is never in the PATCH response
+//     envelope).
+//   - Symmetric-cluster posture: this hoist opens the cross-surface
+//     twin-lift axis on the admin-requests-*.spec.ts family — first
+//     of three possible companion ticks per tick 361 next-pick options
+//     (a) + (b) + (c). Post-tick 362, admin-requests-list-authz.spec.
+//     ts carries 1/3 possible reseller_requests-cluster module-scope
+//     summaries (ck_decision_shape landed here; ck_credit_link + ck_
+//     promo_link cross-surface twins pending at follow-on ticks). No
+//     new imports, no new module-scope const, no per-column assert
+//     added, no fixture change, no route change — the inline per-
+//     column pins across the four coupled columns plus the constants
+//     block above are already the runtime enforcement; this hoist is
+//     a documentation-only cross-surface close-out lift.
+//
+// Rotation rationale:
+//   Executes tick 361 next-pick option (a) verbatim. Pure documentation-
+//   only summary hoist — no new imports, no new module-scope const, no
+//   fixture change, no route change, no per-column assert added.
+//   Extends the summary-lens axis tick 359 + 360 + 361 opened on the
+//   admin-requests-*.spec.ts family from ONE surface (patch) to TWO
+//   surfaces (patch + list). Follow-on ticks can extend along the same
+//   axis: (i) hoist tick 360's ck_credit_link summary onto this same
+//   list surface so the second summary reaches two-surface parity;
+//   (ii) hoist tick 361's ck_promo_link summary onto this same list
+//   surface so the third summary reaches two-surface parity; (iii)
+//   rotate to reseller-side surfaces (requests-authz.spec.ts +
+//   requests-validation.spec.ts + reseller-requests-list-authz.spec.
+//   ts) for cross-scope twin hoists of all three reseller_requests-row
+//   cross-column invariant summaries.
+
 test.describe("Admin reseller-requests list pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 no_user", async ({
     request,
