@@ -31,6 +31,12 @@ import {
   type AttributedSubscriptionRow,
 } from "@/lib/reseller/attributed-mrr";
 import {
+  computeNetContributionByReseller,
+  formatWeeklyDigestNetContributionSection,
+  type NetContributionInput,
+  type NetContributionRow,
+} from "@/lib/reseller/attributed-net-contribution";
+import {
   computeBudgetUtilization,
   formatWeeklyDigestBudgetSection,
   type BudgetUtilizationRow,
@@ -633,6 +639,60 @@ export async function GET(req: Request) {
     }
   }
 
+  // P11.6 canonical KPI (`attributed_net_contribution` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Composite bottom-line per reseller:
+  //   net = attributed_mrr − commission_cleared_mtd − credit_cogs_mtd
+  // Sourced by folding the three earlier sections' aggregates so no extra
+  // Supabase round-trip is needed. Skipped when any of the three feeder
+  // sections was itself skipped (so a partial digest never emits a misleading
+  // margin column against zero-input).
+  let netContributionRows: NetContributionRow[] = [];
+  let netContributionSkippedReason: string | null = null;
+  if (budgetSkippedReason) {
+    netContributionSkippedReason = `budget_upstream_${budgetSkippedReason}`;
+  } else if (clearedMtdSkippedReason) {
+    netContributionSkippedReason = `cleared_upstream_${clearedMtdSkippedReason}`;
+  } else if (mrrSkippedReason) {
+    netContributionSkippedReason = `mrr_upstream_${mrrSkippedReason}`;
+  } else {
+    const mrrById = new Map(mrrRows.map((r) => [r.reseller_id, r.mrr.mrr_cents]));
+    const clearedById = new Map(
+      clearedMtdRows.map((r) => [r.reseller_id, r.mtd.cleared_cents]),
+    );
+    // Total monthly credit consumption = grant_used + sandbox_used from P11.1
+    // budgetRows. Both dimensions draw on the same AI provider bill so both
+    // count against COGS.
+    const creditsUsedById = new Map(
+      budgetRows.map((r) => [
+        r.reseller_id,
+        r.utilization.grant_used + r.utilization.sandbox_used,
+      ]),
+    );
+    const inputs: NetContributionInput[] = resellers.map((r) => ({
+      reseller_id: r.id,
+      mrr_cents: mrrById.get(r.id) ?? 0,
+      commission_cleared_mtd_cents: clearedById.get(r.id) ?? 0,
+      credits_used_mtd: creditsUsedById.get(r.id) ?? 0,
+    }));
+    const netByReseller = computeNetContributionByReseller(resellerIds, inputs);
+    netContributionRows = resellers.map((r) => ({
+      reseller_id: r.id,
+      reseller_code: r.code,
+      reseller_display_name: r.display_name ?? r.code,
+      net: netByReseller.get(r.id) ?? {
+        revenue_cents: 0,
+        commission_cost_cents: 0,
+        credit_cogs_cents: 0,
+        net_contribution_cents: 0,
+      },
+    }));
+    const netSection = formatWeeklyDigestNetContributionSection(
+      netContributionRows,
+      currentMonthKey,
+    );
+    if (netSection) html += netSection;
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -751,6 +811,20 @@ export async function GET(req: Request) {
             active_subs: r.mrr.active_subs,
             mrr_cents: r.mrr.mrr_cents,
             arr_cents: r.mrr.mrr_cents * 12,
+          })),
+        },
+    attributed_net_contribution: netContributionSkippedReason
+      ? { skipped_reason: netContributionSkippedReason }
+      : {
+          month_key: currentMonthKey,
+          reseller_count: netContributionRows.length,
+          rows: netContributionRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            revenue_cents: r.net.revenue_cents,
+            commission_cost_cents: r.net.commission_cost_cents,
+            credit_cogs_cents: r.net.credit_cogs_cents,
+            net_contribution_cents: r.net.net_contribution_cents,
           })),
         },
     ran_at: now.toISOString(),
