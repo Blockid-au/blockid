@@ -11,6 +11,7 @@ import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { NextBestActionWidget } from "@/components/dashboard/next-best-action-widget";
 import { NextStepTile } from "@/components/dashboard/next-step-tile";
 import { InvestorReadinessTile } from "@/components/dashboard/investor-readiness-tile";
+import { CohortRetentionTile } from "@/components/dashboard/cohort-retention-tile";
 import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
 import { ScnActionPlanCard } from "@/components/dashboard/scn-action-plan-card";
 import { SviExplainerCard } from "@/components/dashboard/svi-explainer-card";
@@ -312,6 +313,13 @@ export default async function SVIDashboardPage() {
             mini-series + top-3 missing. Reuses the /api/nudge/next-steps
             payload (readiness_by_phase[currentPhase]). ── */}
         <InvestorReadinessTile />
+
+        {/* ── Chapter 5 cohort retention tile (P5-cohort-svi) — client-side
+            paste-your-own-CSV live preview around the pure
+            computeWeeklyCohortRetention + renderCohortRetentionSvg helpers.
+            No API, no persistence — durable Stripe / product-analytics
+            ingest lives on the R&D roadmap (P5-cohort-ingest). ── */}
+        <CohortRetentionTile />
 
         {/* ── SVI Score History Trend Chart (T0081) ──────────────────────── */}
         {sviHistory.length > 0 && (
