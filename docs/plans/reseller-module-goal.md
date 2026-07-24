@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.373
+version: 2026-07-24.374
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,76 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 374
+    ran_at: 2026-07-24
+    action: p10_reseller_credit_grants_row_cluster_cross_column_invariant_summary_seed_onto_credit_grant_authz
+    result: |
+      Executes tick 373 next-pick option (ii) verbatim: rotates off the
+      reseller_requests-row cluster (which reached 15-summary saturation
+      at tick 373 — 5 surfaces × 3 CHECKs) onto the reseller_credit_
+      grants-row cluster, whose four CHECK constraints (0096:41-56) have
+      not yet been hoisted as module-scope summaries on any of the two
+      reseller_credit_grants-touching Playwright surfaces (credit-grant-
+      authz.spec.ts + credit-grant-validation.spec.ts).
+
+      Seeds the reseller_credit_grants row-cluster module-scope summary
+      onto credit-grant-authz.spec.ts (the write-path surface). Summary
+      collates ALL FOUR CHECKs into a single hoist because they partition
+      the same kind ∈ {grant, sandbox_spend} discriminator across sign,
+      target shape, credit_transactions FK link, and month_key format:
+        - ck_amount_sign      (0096:41-44) — grant⇒amount>0; sandbox_
+                                              spend⇒amount<0
+        - ck_month_key_format (0096:46)    — /^[0-9]{4}-(0[1-9]|1[0-2])$/
+        - ck_target_shape     (0096:48-51) — grant⇒target_user_id set +
+                                              sandbox_project_id null;
+                                              sandbox_spend⇒inverse
+        - ck_ct_link          (0096:53-56) — grant⇒credit_transaction_id
+                                              set; sandbox_spend⇒null
+
+      Diagnostic delta of the pass:
+        - credit-grant-authz.spec.ts:
+            + new module-scope tick 374 doc-block placed after the tick-
+              216 UUID_RE + NON_RESELLER_FOUNDER_EMAIL constants (line
+              ~106) and before the first test.describe (line ~107).
+            + Documents write-path anchor at web/src/app/api/reseller/
+              credits/grant/route.ts:206-218 (mirror insert always
+              lands on the grant branch of all four CHECKs; sandbox_
+              spend branch UNREACHABLE from this surface — belongs to
+              the sandbox-spend spec cluster).
+            + Coverage-per-guard posture: grant branch fires on every
+              happy row (row 152 + chained 156/156b/156c); sandbox_
+              spend branch ZERO-COVERAGE-PER-GUARD on this surface by
+              construction.
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 373 baseline).
+
+      Frontier after tick 374: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Reseller_credit_grants-row cluster now carries 1/2 module-scope
+      summary parity (credit-grant-authz.spec.ts landed here; credit-
+      grant-validation.spec.ts pending).
+
+      Next natural picks on tick 375:
+        (i) cross-surface twin-lift the reseller_credit_grants row-
+        cluster summary from credit-grant-authz.spec.ts (this tick)
+        onto credit-grant-validation.spec.ts to close 2/2 surface
+        parity on the row cluster.
+        (ii) rotate to another unhoisted row-cluster (reseller_
+        promotion_codes, reseller_attributions, reseller_audit_log)
+        whose cross-column CHECKs have not yet been hoisted.
+        (iii) idle — frontier remains tight (P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed, P10 continues
+        accepting incremental summary-hoist ticks).
+    commit: (this tick)
+
   - tick: 373
     ran_at: 2026-07-24
     action: p10_reseller_requests_ck_promo_link_cross_column_invariant_summary_cross_surface_twin_lift_onto_reseller_requests_list_authz
