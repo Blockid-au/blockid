@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.383
+version: 2026-07-24.384
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,171 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 384
+    ran_at: 2026-07-24
+    action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_scope_boundary
+    result: |
+      Executes tick 383 next-pick option (i): cross-surface twin-lift of the
+      tick 376/377/378/379/380/381/382/383 module-scope summary from the
+      create-startup pair + attribution-timing.spec.ts + drawer pair +
+      reveal-email pair + me-attribution.spec.ts onto scope-boundary.spec.ts
+      — the NINTH reseller_attributions-touching surface and the FIRST
+      NEGATIVE-SPACE / WORKSPACE-OWNER read-anchor coverage on the cluster
+      (the seven ticks 376-382 all anchored at scope.ts:63-84 allowedCustomer
+      Ids(); tick 383 opened the CACHE-PROJECTION subset at app_users
+      .attribution_reseller_id; this one opens a THIRD DISTINCT anchor
+      subset — the WORKSPACE-OWNER refusal lens where the probed routes
+      /api/svi/*, /api/dataroom/*, /api/cap-table/* NEVER READ the reseller_
+      attributions cluster AT ALL, so the cluster's presence for the
+      attributed customer must NOT leak into the refusal decision). Raises
+      9/16 surface parity on the reseller_attributions row cluster; 7 sibling
+      touching surfaces still pending (credit-grant-authz, credit-grant-
+      validation, audit-log-writes, audit-anomaly-scan, sandbox-setup-authz,
+      admin-reseller-detail-authz, admin-reseller-detail-validation).
+
+      Pure documentation-only doc-block hoist — no new imports, no new
+      module-scope const, no per-column assert added, no fixture change, no
+      route change, no migration change. Adapted for the scope-boundary
+      surface's NEGATIVE-SPACE / WORKSPACE-OWNER read-anchor posture with
+      KEY deltas vs every prior twin-lift:
+        - Writer-side source: IDENTICAL to tick 376/377/378/379/380/381/
+          382/383 (DB CHECK + partial-unique guards at 0091:112-142 wrap
+          every reseller_attributions insert; 'user' branch of ck_subject_
+          fk_matches_type UNREACHABLE-BY-CONSTRUCTION from every current
+          route write path per grep audit of retail-attribution.ts:165-172
+          + create-startup/route.ts:301-313).
+        - Application read-path anchor: KEY DELTA. scope-boundary does NOT
+          anchor at scope.ts:63-84 allowedCustomerIds() (like tick 376-382)
+          NOR at app_users.attribution_reseller_id (like tick 383). The
+          four probed routes ALL LIVE OUTSIDE the /api/reseller/** tree
+          (/api/svi/latest, /api/svi/history, /api/dataroom/clone, /api/
+          cap-table) and NONE OF THEM read the reseller_attributions
+          cluster at ANY point in their handler. Their authorization is
+          anchored at WORKSPACE-OWNER ownership: getCurrentUser() →
+          projects.user_id === session.user.id (or similar app_users-side
+          owner check depending on the endpoint). The reseller_attributions
+          row that links reseller ↔ customer is COMPLETELY INVISIBLE to
+          these routes; the cluster's presence does NOT grant the reseller-
+          admin session ACCESS to the attributed founder's SVI/dataroom/
+          cap-table endpoints. This is the ONLY reseller_attributions-
+          touching surface across the entire codebase that verifies the
+          NEGATIVE-SPACE lens — i.e., that non-reseller-scoped workspace
+          routes stay INSENSITIVE to the cluster.
+        - Runtime enforcement: DIFFERENT from every prior twin-lift. The
+          four probes in each of the two describes fire a reseller-admin
+          session (loadResellerHarness admin OR fixture.adminEmail for
+          wave-5 row 181) against the workspace-owner endpoints AND the
+          seed fixture attach.attachAttributedCustomer() has already
+          stamped app_users.attribution_reseller_id to the reseller (wave-
+          5 row 181) OR the QA harness has pre-seeded the (reseller ↔
+          attributed_customer) relationship (pre-existing describe). The
+          refusal set [401, 402, 403, 404] must fire on EACH probe DESPITE
+          that stamp — that's the negative-space assertion. If a workspace-
+          owner route regressed to accept a reseller-admin session on the
+          basis of the reseller_attributions row's existence, the probe
+          would return 200 and both describes would fail on the toContain
+          ([401, 402, 403, 404]) assertion.
+        - Coverage-per-guard posture: ZERO-COVERAGE-PER-GUARD on all five
+          CHECK/index invariants (the probed routes never touch the
+          cluster). IDENTICAL to tick 383's ZERO-COVERAGE-PER-GUARD
+          verdict on the per-guard axis, but through a THIRD DISTINCT
+          mechanism: tick 379-382 anchor at scope.ts and don't fire the
+          CHECK because SELECT doesn't fire CHECKs; tick 383 anchors at
+          the cache column and doesn't fire the CHECK because the cache
+          projection collapses the CROSS-COLUMN discriminator into a
+          single FK; THIS surface doesn't fire the CHECK because the
+          entire cluster is BYPASSED at the route level — a fourth
+          annotation dimension, CROSS-BOUNDARY-INVISIBLE-BY-ROUTE-CHOICE,
+          that only applies to negative-space surfaces which verify the
+          cluster's presence does not leak into non-scoped routes.
+        - Symmetric-cluster posture: THIS surface OPENS the WORKSPACE-
+          OWNER negative-space read-anchor subset on the cluster
+          (previously empty — 0/1 within its own subset, now 1/1).
+          Combined post-tick 384 posture: 9/16 total surfaces summarised
+          on the cluster (create-startup-authz tick 376 + create-startup-
+          validation tick 377 + attribution-timing tick 378 + drawer-authz
+          tick 379 + drawer-validation tick 380 + reveal-email-authz tick
+          381 + reveal-email-validation tick 382 + me-attribution tick 383
+          + scope-boundary this tick — opens the workspace-owner negative-
+          space read-anchor subset). Three distinct read-anchor subsets
+          now co-exist under a single cluster's cross-column invariant
+          summary: (a) scopedReseller.allowedCustomerIds() [7 surfaces],
+          (b) app_users.attribution_reseller_id cache projection [1
+          surface], (c) workspace-owner non-cluster refusal [1 surface].
+
+      Diagnostic delta of the pass:
+        - scope-boundary.spec.ts:
+            + new module-scope tick 384 doc-block placed after the PROBES
+              const (line ~69) and before the first test.describe (line
+              ~71 pre-edit), matching the tick 376/377/378/379/380/381/
+              382/383 placements verbatim.
+            + Documents that the probed routes /api/svi/*, /api/dataroom/*,
+              /api/cap-table/* never read the reseller_attributions
+              cluster — the workspace-owner refusal on these endpoints
+              stays INSENSITIVE to the cluster's presence.
+            + Coverage-per-guard posture: ZERO-COVERAGE-PER-GUARD on all
+              five CHECK/index invariants (the probed routes never touch
+              the cluster); 'user' branch of ck_subject_fk_matches_type
+              carries UNREACHABLE-BY-CONSTRUCTION + DEAD-CODE-AT-READ +
+              CROSS-COLUMN-INVISIBLE-BY-PROJECTION (tick 383) + now also
+              CROSS-BOUNDARY-INVISIBLE-BY-ROUTE-CHOICE (this tick)
+              posture on the new workspace-owner subset.
+        - No production code touched, no fixture change, no route change,
+          no migration change, no new imports, no new module-scope
+          constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: pre-existing R-03 violation
+          on web/src/app/api/dataroom/populate-from-template/route.ts:51
+          (from commit a82478ca — round 5.4c refactor); unrelated to this
+          test-file edit; no new lint signal introduced by the doc-block
+          addition. IDENTICAL baseline to tick 379/380/381/382/383.
+
+      Frontier after tick 384: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Reseller_attributions row cluster now carries 9/16 surface parity
+      (create-startup-authz tick 376 + create-startup-validation tick 377
+      + attribution-timing tick 378 + drawer-authz tick 379 + drawer-
+      validation tick 380 + reveal-email-authz tick 381 + reveal-email-
+      validation tick 382 + me-attribution tick 383 + scope-boundary this
+      tick — opens the workspace-owner negative-space read-anchor subset).
+      7 sibling touching surfaces still pending twin-lift, distributed
+      across the remaining read-anchor subsets: scopedReseller.allowed
+      CustomerIds (credit-grant-authz, credit-grant-validation, audit-
+      log-writes, audit-anomaly-scan, sandbox-setup-authz) and admin-
+      scope raw supabase (admin-reseller-detail-authz, admin-reseller-
+      detail-validation).
+
+      Next natural picks on tick 385:
+        (i) rotate to credit-grant-authz.spec.ts / credit-grant-
+        validation.spec.ts pair (reseller_credit_grants cluster with a
+        secondary reseller_attributions touch through decideReveal on
+        the customer picker path; twin-pair pattern mirrors the drawer
+        + reveal-email pair close-outs at tick 380/382).
+        (ii) rotate to admin-reseller-detail-authz.spec.ts / admin-
+        reseller-detail-validation.spec.ts pair (opens a FOURTH DISTINCT
+        read-anchor subset: admin-scope raw supabase reads reseller_
+        attributions via a raw admin client without scopedReseller — a
+        distinct read-path anchor after (a) scopedReseller.allowedCustomer
+        Ids, (b) app_users.attribution_reseller_id cache projection, (c)
+        workspace-owner non-cluster refusal).
+        (iii) rotate to audit-log-writes.spec.ts / audit-anomaly-scan
+        .spec.ts pair (reseller_audit_log-scoped surfaces that also
+        project reseller_attributions via the reveal-email + drawer
+        audit rows — joins the two clusters on the audit-projection axis).
+        (iv) rotate to sandbox-setup-authz.spec.ts (reseller_sandbox_
+        setup cluster with a reseller_attributions touch through the
+        sandbox seed path).
+        (v) rotate to another unhoisted row cluster (reseller_promotion_
+        codes ck_stripe_objects_by_tier at 0091:98-102, or resellers ck_
+        wholesale_gst_required at 0091:47-51 / ck_abn_format at 0091:52)
+        whose cross-column CHECKs have not yet been hoisted at module
+        scope on any touching spec.
+        (vi) idle until human unblock arrives on P8.5 or P1.5.
+
   - tick: 383
     ran_at: 2026-07-24
     action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_me_attribution
