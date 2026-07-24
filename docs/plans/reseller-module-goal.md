@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.367
+version: 2026-07-24.368
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,176 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 368
+    ran_at: 2026-07-24
+    action: p10_reseller_requests_ck_decision_shape_cross_column_invariant_summary_cross_surface_twin_lift_onto_requests_validation
+    result: |
+      Executes tick 367 next-pick option (i) verbatim: cross-surface
+      twin hoist of tick 365's ck_decision_shape module-scope summary
+      from requests-authz.spec.ts (the reseller-scope write surface)
+      onto requests-validation.spec.ts (the reseller-scope GET
+      surface). First of three possible reseller-scope cross-surface
+      companion ticks per tick 367 next-pick options (i) + (ii) +
+      (iii). Post-tick 368, the reseller_requests-row cluster reaches
+      2-surface parity within the reseller-scope pair on
+      ck_decision_shape alone (requests-authz.spec.ts carries 3/3 per
+      tick 367 close-out; requests-validation.spec.ts now carries
+      1/3 with ck_decision_shape landing here; ck_credit_link +
+      ck_promo_link cross-surface twins pending at follow-on ticks —
+      matches the tick 362 opening posture on admin-requests-list-
+      authz.spec.ts which landed the first cross-surface
+      ck_decision_shape twin before ticks 363 + 364 filled the two
+      companion twins).
+
+      Mirrors the tick 365 doc-block shape verbatim (writer-side
+      source + application write path + read path + runtime
+      enforcement + coverage-per-guard posture + symmetric-cluster
+      posture) but adapted for the reseller-scope GET-surface lens
+      rather than the reseller-scope POST-surface lens tick 365
+      landed on:
+        - Writer-side source: IDENTICAL to tick 365 — DB CHECK
+          ck_decision_shape at 0095:41-45 enforces the disjunction
+          (status='pending' AND decision_by IS NULL AND decision_at
+          IS NULL) OR (status IN terminal AND decision_at IS NOT
+          NULL). Siblings ck_credit_link (0095:48-51) + ck_promo_link
+          (0095:52-55) remain orthogonal; those companion twins are
+          pending at follow-on ticks per tick 367 next-pick options
+          (ii) + (iii).
+        - Application write path: IDENTICAL to tick 365 — reseller
+          POST at /api/reseller/requests/route.ts:87-97 INSERTs with
+          reseller_id + request_type + payload + created_by only;
+          status defaults to 'pending' via 0095:32; decision_by /
+          decision_at / decision_reason default to NULL per
+          0095:34-36. Every born row sits on the NULL branch of
+          ck_decision_shape; NON-NULL branch UNREACHABLE from this
+          route (no update mode). NON-NULL branch is exclusively
+          produced by admin PATCH at /api/admin/resellers/requests/
+          [id]/route.ts:305-320.
+        - Read path: DIFFERENT from tick 365. The reseller-scope
+          GET at route.ts:169-176 projects seven columns "id,
+          request_type, status, payload, decision_at,
+          decision_reason, created_at" scoped via
+          .eq("reseller_id", scope.reseller_id) with .order + .limit
+          (100). Of the four ck_decision_shape-coupled columns,
+          THREE are projected (status + decision_at + decision_reason)
+          — only decision_by is stripped (privacy narrowing: leaking
+          which admin decided the request would let a reseller
+          correlate admin activity patterns across their history).
+          Four-surface granularity ladder now: (a) full four-column
+          tuple on admin list (tick 362 lens); (b) three-column
+          tuple on admin PATCH echo (tick 359 lens — omits
+          decision_by); (c) single-column tuple on reseller POST
+          envelope (tick 365 lens — projects only status); (d)
+          three-column tuple on reseller GET envelope (this tick —
+          projects status + decision_at + decision_reason, omits
+          decision_by).
+        - Runtime enforcement: wave-3 row 156 happy GET at lines 268-
+          469 iterates body.requests[] and pins per-row status ∈
+          four-value enum at line 331 + decision_at null-or-typeof-
+          string at lines 460-463 with ck_decision_shape 0095:41-45
+          cross-reference in failure message + decision_reason null-
+          or-typeof-string at lines 464-467. Wave-3 row 155 seeder
+          in requests-authz.spec.ts lands ≥1 pending row per green CI
+          run against active_wholesale so this GET observes ≥1
+          pending row per pass (bounded above by 100 per .limit(100)
+          in route.ts:176). decision_by NOT observable on this
+          surface — stripped from GET envelope.
+        - Coverage-per-guard posture: DEGENERATE-SYMMETRIC relative
+          to tick 365. Tick 365 narrates the reseller-scope POST
+          INSERT envelope hitting the NULL/pending branch TWICE per
+          pass (wave-3 row 155 + wave-5 row 155-b, both write-side
+          observations). This tick narrates the reseller-scope GET
+          envelope observing the SAME NULL/pending branch on the
+          READ side — wave-3 row 156 happy GET iterates the row 155/
+          155-b seeded pending rows and pins their coupled columns.
+          NON-NULL branch coverage on this GET surface is currently
+          ZERO because no decide-fixture lands a reseller-visible
+          terminal-status row. Together the reseller-scope surface
+          pair covers the NULL/pending branch on BOTH write-side
+          INSERT + read-side GET envelopes at module scope, matching
+          the admin-scope surface pair (ticks 359 + 362) covering
+          NON-NULL/terminal on BOTH write-side UPDATE + read-side
+          list envelopes.
+        - Symmetric-cluster posture: this hoist CLOSES the reseller-
+          scope 2-surface parity axis on ck_decision_shape (matches
+          the tick 362 admin-scope 2-surface parity close-out for
+          the same invariant). Post-tick 368, the reseller_requests-
+          row cluster sits at four-surface × one-invariant × two-
+          scope-family × two-read/write-axis parity for
+          ck_decision_shape.
+
+      Rotation rationale:
+        - Executes tick 367 next-pick option (i) verbatim. Pure
+          documentation-only summary hoist — no new imports, no new
+          module-scope const, no fixture change, no route change, no
+          per-column assert added.
+        - Opens the reseller-scope 2-surface axis on
+          ck_decision_shape at 1/1 invariant × 2/2 surfaces within
+          the reseller-scope pair, mirroring the tick 362 opening
+          posture on the admin-scope side before ticks 363 + 364
+          filled the two companion twins.
+
+      Diagnostic delta of the pass:
+        - requests-validation.spec.ts:
+            + new module-scope tick 368 doc-block placed immediately
+              after the CASES const closing `];` and before the
+              first test.describe (line ~158).
+            + Cross-references: writer-side source 0095:41-45 (ck_
+              decision_shape) + 0095:32 (status DEFAULT 'pending') +
+              0095:34-36 (decision_* nullable) + 0095:48-51 (sibling
+              ck_credit_link) + 0095:52-55 (sibling ck_promo_link)
+              + reseller POST route.ts:87-97 (INSERT payload) +
+              reseller GET route.ts:169-176 (SELECT projection) +
+              admin PATCH route.ts:305-320 (stamper) + line 331
+              (status enum pin) + lines 460-463 (decision_at null-
+              or-string pin) + lines 464-467 (decision_reason null-
+              or-string pin) + lines 268-469 (wave-3 row 156 happy
+              GET).
+        - No production code touched, no fixture change, no route
+          change, no new imports, no new module-scope constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 367 baseline).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 368: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5
+      clears. Reseller-scope 2-surface parity on ck_decision_shape
+      alone reached (requests-authz.spec.ts 3/3 per tick 367 + this
+      tick opens 1/3 on requests-validation.spec.ts). Cluster now
+      spans four surfaces at module scope for ck_decision_shape:
+      admin-requests-patch-authz.spec.ts (tick 359) + admin-
+      requests-list-authz.spec.ts (tick 362) + requests-authz.spec.
+      ts (tick 365) + requests-validation.spec.ts (this tick).
+
+      Next natural picks on tick 369:
+        (i) cross-surface twin-lift ck_credit_link onto requests-
+        validation.spec.ts so the reseller-scope GET surface reaches
+        2/3 summary parity (matches tick 366 companion-hoist posture
+        on requests-authz.spec.ts + tick 363 twin-lift posture on
+        admin-requests-list-authz.spec.ts).
+        (ii) cross-surface twin-lift ck_promo_link onto requests-
+        validation.spec.ts so the reseller-scope GET surface reaches
+        3/3 summary parity (matches tick 367 + tick 364 close-out
+        postures).
+        (iii) cross-surface twin-lift ck_decision_shape onto
+        reseller-requests-list-authz.spec.ts (the third reseller-
+        scope surface) so the invariant reaches 3-surface parity
+        across the reseller-scope triple.
+        (iv) rotate to /admin/resellers/requests/[id] detail surface
+        for a THIRD-surface companion of any of the three admin
+        summaries the admin-scope cluster now carries at 3/3 × 2-
+        surface parity.
+        (v) idle — frontier remains tight (P1.5 + P8.5 HUMAN-
+        BLOCKED, P11 never_completes, Track B closed, P10 continues
+        accepting incremental pin-tightening + summary-hoist ticks).
+    commit: (this tick)
+
   - tick: 367
     ran_at: 2026-07-24
     action: p10_reseller_requests_ck_promo_link_cross_column_invariant_summary_reseller_scope_closing_hoist_onto_requests_authz
