@@ -3,7 +3,91 @@
 // and uses React hooks). No I/O, no imports beyond types.
 //
 // Contract: docs/plans/atlassian-standard-mapping-goal.md
-//   §P5_investor_readiness_score.
+//   §P5_investor_readiness_score (blended sub-scores — legacy view)
+//   §P5a per-phase readiness (readiness_by_phase[currentPhase] — new view)
+
+export type ReadinessBand = "not-ready" | "warming-up" | "investor-ready";
+
+export type PhaseSlug =
+  | "1" | "2" | "3" | "4" | "5" | "6"
+  | "7" | "8" | "9" | "10" | "11" | "12";
+
+export const ALL_PHASE_SLUGS: readonly PhaseSlug[] = [
+  "1", "2", "3", "4", "5", "6",
+  "7", "8", "9", "10", "11", "12",
+] as const;
+
+export interface PhaseMissingItem {
+  category: string;
+  title: string;
+  phase_slug: string;
+  why_it_matters: string;
+  raise_blocker: boolean;
+  cta_url: string;
+}
+
+export interface PhaseReadinessLike {
+  score: number;
+  band: ReadinessBand;
+  missing_top3?: readonly PhaseMissingItem[];
+  criteria_used?: readonly string[];
+}
+
+export interface PhaseSeriesPoint {
+  slug: PhaseSlug;
+  score: number;
+  band: ReadinessBand;
+  isCurrent: boolean;
+}
+
+/** Tailwind class pack per phase-readiness band (matches tile UX contract). */
+export const PHASE_BAND_CLASS: Record<ReadinessBand, string> = {
+  "investor-ready":
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200",
+  "warming-up":
+    "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+  "not-ready":
+    "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
+};
+
+/**
+ * Pick the per-phase readiness entry for the caller's current phase.
+ * Returns null when the slug is missing or the map is empty — callers
+ * fall back to the blended readiness_score in that case.
+ */
+export function pickPhaseEntry(
+  byPhase: Record<string, PhaseReadinessLike> | undefined | null,
+  currentPhaseSlug: string | undefined | null,
+): PhaseReadinessLike | null {
+  if (!byPhase || !currentPhaseSlug) return null;
+  const entry = byPhase[currentPhaseSlug];
+  if (!entry || typeof entry.score !== "number") return null;
+  return entry;
+}
+
+/**
+ * Project the readiness_by_phase map into a stable 12-point series for the
+ * inline SVG mini-chart. Missing phase entries render as score=0 / not-ready
+ * so the chart never shows a hole.
+ */
+export function buildPhaseSeries(
+  byPhase: Record<string, PhaseReadinessLike> | undefined | null,
+  currentPhaseSlug: string | undefined | null,
+): PhaseSeriesPoint[] {
+  return ALL_PHASE_SLUGS.map((slug) => {
+    const entry = byPhase?.[slug];
+    const score = entry && typeof entry.score === "number"
+      ? safeScore(entry.score)
+      : 0;
+    const band: ReadinessBand = entry?.band ?? "not-ready";
+    return {
+      slug,
+      score,
+      band,
+      isCurrent: currentPhaseSlug === slug,
+    };
+  });
+}
 
 export type SubScoreKey =
   | "market"
