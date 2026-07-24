@@ -9,6 +9,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { NextBestActionWidget } from "@/components/dashboard/next-best-action-widget";
+import { NextStepTile } from "@/components/dashboard/next-step-tile";
 import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
 import { ScnActionPlanCard } from "@/components/dashboard/scn-action-plan-card";
 import { SviExplainerCard } from "@/components/dashboard/svi-explainer-card";
@@ -302,6 +303,10 @@ export default async function SVIDashboardPage() {
   return (
     <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox}>
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
+        {/* ── Next-Step nudge tile (round 5.1) — phase pill, next action,
+            missing list, readiness donut. Fetches /api/nudge/next-steps. ── */}
+        <NextStepTile />
+
         {/* ── SVI Score History Trend Chart (T0081) ──────────────────────── */}
         {sviHistory.length > 0 && (
           <ScoreHistoryChart
