@@ -25,6 +25,12 @@ import {
   type AuditLogRow,
 } from "@/lib/reseller/audit-anomaly";
 import {
+  computeAttributedMrrByReseller,
+  formatWeeklyDigestAttributedMrrSection,
+  type AttributedMrrRow,
+  type AttributedSubscriptionRow,
+} from "@/lib/reseller/attributed-mrr";
+import {
   computeBudgetUtilization,
   formatWeeklyDigestBudgetSection,
   type BudgetUtilizationRow,
@@ -529,6 +535,104 @@ export async function GET(req: Request) {
     if (clawbackSection) html += clawbackSection;
   }
 
+  // P11.5 canonical KPI (`attributed_mrr` from reseller-module-goal.md
+  // `weekly_digest_kpis`). Per-reseller sum of monthly recurring revenue from
+  // attributed customers whose subscription_trial_state.status='active'. Ops
+  // reads this alongside clawback_exposure (P11.4): MRR is the running-revenue
+  // book, exposure is the still-at-risk pile that could reverse. Yearly plans
+  // normalise ÷12 to match the v_mrr_active view from migration 0083. Reuses
+  // the customersByReseller map built for leading-signals so no extra
+  // attribution round-trip is needed. Failures degrade to a skipped section so
+  // the earlier signals still ship.
+  let mrrRows: AttributedMrrRow[] = [];
+  let mrrSkippedReason: string | null = null;
+  if (allUserIds.length === 0) {
+    mrrRows = resellers.map((r) => ({
+      reseller_id: r.id,
+      reseller_code: r.code,
+      reseller_display_name: r.display_name ?? r.code,
+      mrr: { active_subs: 0, mrr_cents: 0 },
+    }));
+    const mrrSection = formatWeeklyDigestAttributedMrrSection(mrrRows);
+    if (mrrSection) html += mrrSection;
+  } else {
+    const { data: subRows, error: subErr } = await supabase
+      .from("subscription_trial_state")
+      .select("user_id, plan_id, status")
+      .in("user_id", allUserIds)
+      .eq("status", "active");
+    if (subErr) {
+      console.error("[reseller-weekly-digest] mrr subs query failed", subErr.message);
+      mrrSkippedReason = "mrr_subs_query_failed";
+    } else {
+      const subs = (subRows ?? []) as {
+        user_id: string;
+        plan_id: string | null;
+        status: string;
+      }[];
+      const planIds = Array.from(
+        new Set(subs.map((s) => s.plan_id).filter((id): id is string => Boolean(id))),
+      );
+      const planById = new Map<
+        string,
+        { interval: string | null; price_aud_cents: number }
+      >();
+      if (planIds.length > 0) {
+        const { data: planRows, error: planErr } = await supabase
+          .from("plans")
+          .select("id, interval, price_aud_cents")
+          .in("id", planIds);
+        if (planErr) {
+          console.error("[reseller-weekly-digest] mrr plans query failed", planErr.message);
+          mrrSkippedReason = "mrr_plans_query_failed";
+        } else {
+          for (const p of (planRows ?? []) as {
+            id: string;
+            interval: string | null;
+            price_aud_cents: number | null;
+          }[]) {
+            planById.set(p.id, {
+              interval: p.interval,
+              price_aud_cents: p.price_aud_cents ?? 0,
+            });
+          }
+        }
+      }
+      if (!mrrSkippedReason) {
+        // Reverse-lookup user_id → reseller_id from customersByReseller.
+        // First-seen wins on the exceedingly rare case of an attribution row
+        // shared across resellers so MRR is never double-counted.
+        const userToReseller = new Map<string, string>();
+        for (const [rid, uids] of customersByReseller.entries()) {
+          for (const uid of uids) {
+            if (!userToReseller.has(uid)) userToReseller.set(uid, rid);
+          }
+        }
+        const attributedSubs: AttributedSubscriptionRow[] = [];
+        for (const s of subs) {
+          const rid = userToReseller.get(s.user_id);
+          if (!rid) continue;
+          const plan = s.plan_id ? planById.get(s.plan_id) : null;
+          attributedSubs.push({
+            reseller_id: rid,
+            plan_id: s.plan_id,
+            price_aud_cents: plan?.price_aud_cents ?? 0,
+            interval: plan?.interval ?? null,
+          });
+        }
+        const mrrByReseller = computeAttributedMrrByReseller(resellerIds, attributedSubs);
+        mrrRows = resellers.map((r) => ({
+          reseller_id: r.id,
+          reseller_code: r.code,
+          reseller_display_name: r.display_name ?? r.code,
+          mrr: mrrByReseller.get(r.id) ?? { active_subs: 0, mrr_cents: 0 },
+        }));
+        const mrrSection = formatWeeklyDigestAttributedMrrSection(mrrRows);
+        if (mrrSection) html += mrrSection;
+      }
+    }
+  }
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -635,6 +739,18 @@ export async function GET(req: Request) {
             dispute_cents: r.exposure.dispute_cents,
             total_count: r.exposure.total_count,
             total_cents: r.exposure.total_cents,
+          })),
+        },
+    attributed_mrr: mrrSkippedReason
+      ? { skipped_reason: mrrSkippedReason }
+      : {
+          reseller_count: mrrRows.length,
+          rows: mrrRows.map((r) => ({
+            reseller_id: r.reseller_id,
+            reseller_code: r.reseller_code,
+            active_subs: r.mrr.active_subs,
+            mrr_cents: r.mrr.mrr_cents,
+            arr_cents: r.mrr.mrr_cents * 12,
           })),
         },
     ran_at: now.toISOString(),
