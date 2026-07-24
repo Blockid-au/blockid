@@ -147,8 +147,14 @@ function buildUserPrompt(criterion: CriterionKey, context: ReportContext): strin
   if (criterion === "website" && gr.techAudit) {
     parts.push(`## Technical Audit\n${JSON.stringify(gr.techAudit, null, 2)}`);
   }
-  if (criterion === "market" && gr.competitiveResearch) {
-    parts.push(`## Competitive Research\n${JSON.stringify(gr.competitiveResearch, null, 2)}`);
+  if (criterion === "market") {
+    const anchor = buildAuMarketAnchorBlock({
+      rawText: `${context.rawText}\n${criterionData?.textInput ?? ""}`,
+    });
+    if (anchor) parts.push(anchor);
+    if (gr.competitiveResearch) {
+      parts.push(`## Competitive Research\n${JSON.stringify(gr.competitiveResearch, null, 2)}`);
+    }
   }
   if (gr.scrapedData && (criterion === "website" || criterion === "idea")) {
     parts.push(`## Scraped Website Data\n${JSON.stringify(gr.scrapedData, null, 2)}`);
