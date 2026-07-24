@@ -72,7 +72,7 @@ export const MentorGrantRowZ = z.object({
   expires_at: z.string().nullable(),
   revoked_at: z.string().nullable(),
   source: MentorGrantSourceZ,
-  metadata: z.record(z.unknown()).default({}),
+  metadata: z.record(z.string(), z.unknown()).default({}),
   created_at: z.string(),
 });
 
@@ -132,7 +132,7 @@ export const MentorEngagementSnapshotRowZ = z.object({
   phase_slug: z.string().nullable(),
   last_login_at: z.string().nullable(),
   engagement_score: z.number().int().min(0).max(100).nullable(),
-  metrics: z.record(z.unknown()).default({}),
+  metrics: z.record(z.string(), z.unknown()).default({}),
   created_at: z.string(),
 });
 
