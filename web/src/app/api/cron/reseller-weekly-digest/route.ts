@@ -33,6 +33,11 @@ import {
   type DigestSnapshotDelta,
 } from "@/lib/reseller/digest-snapshot-delta";
 import {
+  computeDigestSnapshotMetricDelta,
+  formatDigestSnapshotMetricDeltaSection,
+  type DigestSnapshotMetricDelta,
+} from "@/lib/reseller/digest-snapshot-metric-delta";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1167,6 +1172,7 @@ export async function GET(req: Request) {
     envelope: currentEnvelopeForDelta,
   });
   let snapshotDelta: DigestSnapshotDelta | null = null;
+  let snapshotMetricDelta: DigestSnapshotMetricDelta | null = null;
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1174,6 +1180,19 @@ export async function GET(req: Request) {
     );
     const deltaSection = formatDigestSnapshotDeltaSection(snapshotDelta);
     if (deltaSection) html += deltaSection;
+    // P11.16 — per-metric numeric delta. The previous snapshot carries the
+    // full response body (see appendFileSync below at `envelope: body`) so its
+    // rows[] arrays hold the numeric fields HEADLINE_METRICS sums. The current
+    // slim envelope holds numeric row content too (each section's rows[] are
+    // the same shape the response body publishes), so this diff is
+    // symmetrical whether previous OR current came off disk.
+    snapshotMetricDelta = computeDigestSnapshotMetricDelta(
+      previousSnapshot,
+      currentSnapshotForDelta,
+    );
+    const metricDeltaSection =
+      formatDigestSnapshotMetricDeltaSection(snapshotMetricDelta);
+    if (metricDeltaSection) html += metricDeltaSection;
   }
 
   let emailed = false;
@@ -1411,6 +1430,18 @@ export async function GET(req: Request) {
           current_reseller_count: snapshotDelta.current_reseller_count,
           reseller_count_delta: snapshotDelta.reseller_count_delta,
           sections: snapshotDelta.sections,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
+    snapshot_metric_delta: snapshotMetricDelta
+      ? {
+          previous_captured_at: snapshotMetricDelta.previous_captured_at,
+          previous_week: snapshotMetricDelta.previous_week,
+          current_captured_at: snapshotMetricDelta.current_captured_at,
+          current_week: snapshotMetricDelta.current_week,
+          metrics: snapshotMetricDelta.metrics,
         }
       : {
           skipped_reason:

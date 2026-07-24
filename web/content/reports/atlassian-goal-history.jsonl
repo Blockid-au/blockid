@@ -186,3 +186,7 @@
 {"tick_id":"2026-07-24T11-27-manual-p6b","ts":"2026-07-24T11:30:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P6b","summary":"Wholesale-only fundraise UI toggle: opt-in checkbox in fundraise wizard Step 0 flips ESIC+Div83A gates from warn to 412-blocking; red block banner with url_to_fix + amber warn banner harvest esic_warn/div83a_warn from 200s. tsc green."}
 {"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:31:25.027Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":263938,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:31:25.057Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
+{"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:31:26.606Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:31:26.611Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"55bef3bd","last_deployed":"87ce701"}
+{"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:37:29.823Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"55bef3bd"}
+{"tick_id":"2026-07-24T11-27-01-081Z","ts":"2026-07-24T11:37:29.825Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
