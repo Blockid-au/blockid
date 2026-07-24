@@ -9,6 +9,7 @@
 
 import Link from "next/link";
 
+import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
 import {
   ATLASSIAN_DEMO,
@@ -22,11 +23,19 @@ export default function AtlassianShowcasePage() {
   const grouped = groupMilestonesByPhase();
 
   return (
+    <AtlassianWalkthroughProvider stepNumber={1}>
     <div className="min-h-screen bg-surface-50">
       <div className="mx-auto max-w-5xl p-6">
-        <nav className="mb-4 text-sm">
+        <nav className="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm">
           <Link href="/showcase" className="text-brand-700 hover:underline">
             ← Showcase library
+          </Link>
+          <Link
+            href="/showcase/atlassian/dashboard?step=2"
+            data-testid="start-walkthrough-cta"
+            className="rounded-md border border-brand-500 bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+          >
+            Start walkthrough →
           </Link>
         </nav>
 
@@ -148,6 +157,7 @@ export default function AtlassianShowcasePage() {
         </footer>
       </div>
     </div>
+    </AtlassianWalkthroughProvider>
   );
 }
 
