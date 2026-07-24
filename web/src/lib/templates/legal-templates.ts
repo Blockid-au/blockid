@@ -23,7 +23,8 @@ export type LegalTemplateCategory =
   | "corporate"
   | "employment"
   | "fundraising"
-  | "ip";
+  | "ip"
+  | "commercial";
 
 export interface LegalTemplateSource {
   label: string;
@@ -334,6 +335,75 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
       {
         label: "Corporations Act 2001 (Cth) — ss708(8), 708(11), 254T, 127",
         url: "https://www.legislation.gov.au/Details/C2024C00278",
+      },
+    ],
+  },
+  {
+    slug: "au-customer-loi",
+    title: "AU Customer Letter of Intent (non-binding)",
+    category: "commercial",
+    phase_slug: "phase-2",
+    summary:
+      "Non-binding customer Letter of Intent — anchors indicative ACV, use case, and PoV acceptance criteria for a raise data room, while forcing s18 ACL / s1041H Corporations Act misleading-conduct guardrails so the founder can safely disclose it to investors.",
+    file_path: "web/content/templates/legal/au-customer-loi.md",
+    version: "1.0",
+    revision_date: "2026-07-24",
+    disclaimer: DISCLAIMER_SHORT,
+    placeholders: [
+      "customer_name",
+      "customer_abn_line",
+      "customer_address",
+      "customer_signatory_name",
+      "customer_signatory_title",
+      "customer_stakeholders",
+      "company_name",
+      "acn",
+      "registered_office_address",
+      "director_name",
+      "second_signatory_name",
+      "second_signatory_title",
+      "product_name",
+      "loi_date",
+      "intended_use_case",
+      "indicative_acv_aud",
+      "indicative_seats",
+      "preferred_start_date",
+      "preferred_payment_terms",
+      "target_definitive_date",
+      "governing_state",
+      "acceptance_criteria",
+      "statutory_approvals",
+      "revision_date",
+    ],
+    sources: [
+      {
+        label:
+          "Australian Consumer Law s18 (misleading and deceptive conduct) — Schedule 2 to the Competition and Consumer Act 2010 (Cth)",
+        url: "https://www.legislation.gov.au/C2010A00148/latest/text",
+      },
+      {
+        label:
+          "Corporations Act 2001 (Cth) — s1041H (misleading conduct in financial products) + s769C + s127 (execution)",
+        url: "https://www.legislation.gov.au/C2004A00818/latest/text",
+      },
+      {
+        label:
+          "Privacy Act 1988 (Cth) — Australian Privacy Principles (Schedule 1)",
+        url: "https://www.legislation.gov.au/C2004A03712/latest/text",
+      },
+      {
+        label:
+          "A New Tax System (Goods and Services Tax) Act 1999 (Cth) — s29-70 (tax invoice requirements)",
+        url: "https://www.legislation.gov.au/C2004A00446/latest/text",
+      },
+      {
+        label: "Electronic Transactions Act 1999 (Cth) — e-signature validity",
+        url: "https://www.legislation.gov.au/C2004A00553/latest/text",
+      },
+      {
+        label:
+          "Australian Disputes Centre — Guidelines for Commercial Mediation",
+        url: "https://disputescentre.com.au/",
       },
     ],
   },
