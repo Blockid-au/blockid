@@ -23,6 +23,17 @@ vi.mock("@/lib/projects", () => ({
     unarchiveProjectMock(id, userId, plan),
 }));
 
+// Member-aware write guard added in commit 591a2548 — mock it to succeed
+// by default; individual tests can override to simulate a Forbidden throw.
+const assertProjectMemberCanMock = vi.fn();
+vi.mock("@/lib/project-members/scope", () => ({
+  assertProjectMemberCan: (
+    projectId: string,
+    userId: string,
+    action: string,
+  ) => assertProjectMemberCanMock(projectId, userId, action),
+}));
+
 import { POST, DELETE } from "./route";
 
 function params(id: string) {
@@ -34,6 +45,10 @@ beforeEach(() => {
   getProjectByIdMock.mockReset();
   archiveProjectMock.mockReset();
   unarchiveProjectMock.mockReset();
+  // Default: caller is authorised (owner or accepted admin/editor).
+  // Tests that need Forbidden override with mockRejectedValueOnce.
+  assertProjectMemberCanMock.mockReset();
+  assertProjectMemberCanMock.mockResolvedValue(undefined);
 });
 
 describe("POST /api/projects/[id]/archive", () => {
@@ -58,6 +73,8 @@ describe("POST /api/projects/[id]/archive", () => {
       userId: "other-user",
       archivedAt: null,
     });
+    // assertProjectMemberCan throws for non-member / non-owner callers.
+    assertProjectMemberCanMock.mockRejectedValueOnce(new Error("forbidden"));
     const res = await POST(new Request("http://x/y"), params("proj-1"));
     expect(res.status).toBe(403);
     expect(archiveProjectMock).not.toHaveBeenCalled();
@@ -135,6 +152,8 @@ describe("DELETE /api/projects/[id]/archive (unarchive)", () => {
       userId: "other-user",
       archivedAt: "2026-01-01T00:00:00Z",
     });
+    // assertProjectMemberCan throws for non-member / non-owner callers.
+    assertProjectMemberCanMock.mockRejectedValueOnce(new Error("forbidden"));
     const res = await DELETE(new Request("http://x/y"), params("proj-1"));
     expect(res.status).toBe(403);
     expect(unarchiveProjectMock).not.toHaveBeenCalled();
