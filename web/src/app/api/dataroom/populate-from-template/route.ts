@@ -15,7 +15,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
+import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getActiveProject } from "@/lib/projects";
 import {
@@ -49,13 +49,9 @@ const RATE_LIMIT = 5;
 const WINDOW_SECONDS = 60 * 60;
 
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json(
-      { ok: false, error: "unauthenticated" },
-      { status: 401 },
-    );
-  }
+  const gate = await gateRequireFeature("share_management");
+  if (!gate.ok) return gate.response;
+  const user = gate.user;
 
   const supabase = getSupabaseAdmin();
   if (!supabase) {

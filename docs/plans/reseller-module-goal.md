@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.385
+version: 2026-07-24.386
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -414,13 +414,13 @@ tracks:
             "web/src/lib/reseller/manifest-drift.test.ts (11/11 pass — clean-vs-drift shapes, singular/plural finding count, HTML escape)",
             "web/src/app/api/cron/reseller-manifest-drift/route.ts (walks GATED_DIRECTORIES for route.ts + detects POST/PATCH/PUT/DELETE via regex mirroring the completeness suite; feeds detectManifestDrift + emails admin@blockid.au on drift; ?skip_email=1 / ?force_email=1 dry-run knobs; CRON_SECRET bearer)",
             "web/scripts/crontab.production (30 4 * * * reseller-manifest-drift — 04:30 UTC / 14:30 AEST, one slot after weekly-digest)"
-          ], note: "R-09 gate closed. Runtime companion to the feature-gates.manifest.test.ts completeness suite — catches drift merged past CI (hand server edits, out-of-band route additions, manifest entries left behind after a delete). Uses process.cwd()/src/app as APP_ROOT so it works under next-start without extra config. Pre-existing R-03 violation on api/dataroom/populate-from-template/route.ts (POST lacks gateRequireFeature call despite being in the manifest since round 5.4c) surfaced by npm run lint:reseller and MUST land in a follow-up tick before the P10 'CI rules R-01..R-09 all green' exit_criterion can flip — R-09 lib+cron itself is complete and green."}
+          ], note: "R-09 gate closed. Runtime companion to the feature-gates.manifest.test.ts completeness suite — catches drift merged past CI (hand server edits, out-of-band route additions, manifest entries left behind after a delete). Uses process.cwd()/src/app as APP_ROOT so it works under next-start without extra config. Follow-up landed tick 386: api/dataroom/populate-from-template/route.ts POST now calls gateRequireFeature('share_management') per manifest — npm run lint:reseller reports R-01 scanned 11, R-03 scanned 33 manifest routes, R-04 scanned 8 stripe files, 6 exemptions, 0 violations; suite (manifest + feature-gate + reseller-lints + manifest-drift) 51/51 pass."}
         exit_criteria: [
           "Playwright E2E: full A + B walkthrough as founder, reseller, admin",
           "perf-audit: reseller console TTFB p95 < 500ms",
           "security-audit: RLS + typed wrapper enforced end-to-end",
           "au-compliance: E.1 EN + VI notice reviewed, APP 5.2 coverage confirmed",
-          "CI rules R-01..R-09 all green (R-09 runtime cron DONE P10.R09 tick 384; R-03 wiring on dataroom/populate-from-template still pending — surfaces in npm run lint:reseller)"
+          "CI rules R-01..R-09 all green (R-09 runtime cron DONE P10.R09 tick 384; R-03 wiring on dataroom/populate-from-template DONE tick 386 — npm run lint:reseller now reports 6 exemptions, 0 violations across R-01/R-03/R-04)"
         ]
       P11_ongoing:
         status: pending
