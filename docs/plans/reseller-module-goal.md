@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.375
+version: 2026-07-24.376
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,154 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 376
+    ran_at: 2026-07-24
+    action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_seed_onto_create_startup_authz
+    result: |
+      Executes tick 375 next-pick option (i) verbatim: rotates off the
+      reseller_credit_grants row cluster (which reached 2/2 surface parity
+      on the credit-grant write-path half at tick 375 — 8/8 module-scope
+      summaries) onto the reseller_attributions row cluster, whose five
+      cross-column + single-column CHECK + partial-unique-index invariants
+      (0091:112-142) have not yet been hoisted as a module-scope summary
+      on ANY of the sixteen reseller_attributions-touching Playwright
+      surfaces. SEEDS 1/N surface parity on the reseller_attributions row
+      cluster — mirrors the tick 374 seed posture on credit-grant-authz.
+      spec.ts where a fresh cluster's first summary landed on the write-
+      path authz surface first, before cross-surface twin-lift onto the
+      validation surface.
+
+      Summary collates FIVE invariants at 0091:112-142 into a single hoist
+      because they partition the same subject_type ∈ {user, project}
+      discriminator across FK shape, plus three single-column enum CHECKs
+      and one partial-unique index:
+        - ck_subject_fk_matches_type (0091:128-132) — CROSS-COLUMN:
+                                                       subject_type='user'
+                                                       ⇒ subject_user_id
+                                                       set + subject_
+                                                       project_id null;
+                                                       'project' ⇒ inverse
+        - subject_type CHECK          (0091:115)     — ∈ {user, project}
+        - status CHECK                (0091:118-119) — ∈ {active, revoked}
+                                                       (DEFAULT 'active')
+        - source CHECK                (0091:123)     — ∈ {code,
+                                                       provisioned,
+                                                       admin_manual}
+        - reseller_attributions_active_project_uniq — PARTIAL-UNIQUE INDEX
+          (0091:137-139)                              on subject_project_id
+                                                       WHERE subject_type=
+                                                       'project' AND
+                                                       status='active' AND
+                                                       opted_out=false
+
+      Mirrors the tick 374 doc-block shape (writer-side source + application
+      write path + runtime enforcement + coverage-per-guard posture +
+      symmetric-cluster posture) but adapted for the fresh-seed baseline on
+      an unhoisted row cluster with a fully UNREACHABLE-BY-CONSTRUCTION
+      complement branch:
+        - Writer-side source: DB CHECK + partial-unique guards at 0091:112-
+          142 wrap every reseller_attributions insert; enforcement at DB
+          write time. Route-side callers precompose the insert payload
+          under an always-'project' discriminator — the 'user' branch of
+          ck_subject_fk_matches_type is UNREACHABLE-BY-CONSTRUCTION from
+          EVERY current write path (grep audit: retail-attribution.ts:165-
+          172 + create-startup/route.ts:301-313 both hard-code subject_
+          type='project' + subject_project_id=<uuid> + subject_user_id=
+          null; no code path ever inserts subject_type='user').
+        - Application write path anchor for this surface: create-startup
+          execute() at route.ts:301-313 populates subject_type='project',
+          subject_project_id=<projects.id from step (b)>, subject_user_id=
+          null, source=plan.attribution.source, status defaults to 'active'
+          at the DB — one row per happy POST always sits on the project
+          branch of ck_subject_fk_matches_type, the 'active' branch of
+          status CHECK, and one of the three allowed source enum values.
+        - Runtime enforcement on this spec: rows 1 (unauthenticated 401) +
+          2 (non_reseller_admin 402) return BEFORE the gateRequireFeature
+          → scopedReseller → normaliseCreateStartupInput → db.selfReseller
+          → getSupabaseAdmin → decideCreateStartup → execute() chain fires.
+          Wave-1 downstream rows 141-144 all reach decideCreateStartup but
+          bail at gates 1-4 BEFORE execute() touches the insert at line
+          301-313. Zero rows on this surface reach the insert.
+        - Coverage-per-guard posture: 'project' branch of ck_subject_fk_
+          matches_type has ZERO-COVERAGE-PER-GUARD (no row reaches insert);
+          'user' branch has ZERO-COVERAGE-PER-GUARD AND UNREACHABLE-BY-
+          CONSTRUCTION from all write paths; status 'active' branch has
+          ZERO-COVERAGE-PER-GUARD; status 'revoked' branch is UNREACHABLE
+          from insert (only settable via admin revoke endpoint at
+          /api/admin/affiliate/attributions/[attributionId]/revoke/route.ts
+          which flips existing rows); source CHECK all three enum branches
+          ZERO-COVERAGE-PER-GUARD; partial-unique index ZERO-COVERAGE-PER-
+          GUARD (no insert contention on this surface).
+        - Symmetric-cluster posture: the create-startup write-path cluster
+          is a SYMMETRIC subset (project-branch only) of the full reseller_
+          attributions row cluster. The 'user'-branch complement is
+          ASYMMETRIC AND UNREACHABLE-BY-CONSTRUCTION across the entire
+          codebase — no spec pair could ever cover it without a synthetic
+          DB-level backfill test that plan §J.2 forbids. Full 16-surface ×
+          5-invariant saturation (80 module-scope summaries) would collate
+          ZERO-COVERAGE-PER-GUARD × UNREACHABLE-BY-CONSTRUCTION docs
+          across every touching spec, matching the asymmetric-complement
+          posture the credit-grant cluster carries for its sandbox_spend
+          branch.
+
+      Diagnostic delta of the pass:
+        - create-startup-authz.spec.ts:
+            + new module-scope tick 376 doc-block placed after the ROUTE
+              + NON_RESELLER_FOUNDER_EMAIL const (line ~91) and before the
+              first test.describe (line ~92), matching the tick 374 +
+              tick 375 placement on the credit-grant spec pair (after
+              module-scope constants, before first test.describe).
+            + Documents write-path anchor at web/src/app/api/reseller/
+              create-startup/route.ts:301-313 (insert always lands on the
+              project branch of ck_subject_fk_matches_type + defaults to
+              status='active'; user branch UNREACHABLE-BY-CONSTRUCTION
+              across the entire codebase).
+            + Coverage-per-guard posture: ZERO-COVERAGE-PER-GUARD across
+              all 5 invariants × both branches from this surface;
+              'user' branch of ck_subject_fk_matches_type also carries
+              UNREACHABLE-BY-CONSTRUCTION posture across all touching
+              surfaces.
+        - No production code touched, no fixture change, no route change,
+          no migration change, no new imports, no new module-scope
+          constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 375 baseline).
+
+      Frontier after tick 376: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Reseller_attributions row cluster now carries 1/16 surface parity
+      seeded (create-startup-authz.spec.ts landed here; 15 sibling
+      surfaces pending: create-startup-validation.spec.ts, attribution-
+      timing.spec.ts, drawer-authz.spec.ts, drawer-validation.spec.ts,
+      me-attribution.spec.ts, scope-boundary.spec.ts, reveal-email-
+      authz.spec.ts, reveal-email-validation.spec.ts, credit-grant-
+      authz.spec.ts, credit-grant-validation.spec.ts, audit-log-writes.
+      spec.ts, audit-anomaly-scan.spec.ts, sandbox-setup-authz.spec.ts,
+      admin-reseller-detail-authz.spec.ts, admin-reseller-detail-
+      validation.spec.ts).
+
+      Next natural picks on tick 377:
+        (i) cross-surface twin-lift the tick 376 module-scope summary
+        onto create-startup-validation.spec.ts (the write-path input-
+        validation surface) — same posture as tick 375's twin-lift of
+        tick 374 onto credit-grant-validation.spec.ts, closing 2/16
+        surface parity on the reseller_attributions row cluster.
+        (ii) rotate to another unhoisted row cluster (reseller_
+        promotion_codes ck_stripe_objects_by_tier at 0091:98-102, or
+        resellers ck_wholesale_gst_required at 0091:47-51 / ck_abn_
+        format at 0091:52) whose cross-column CHECKs have not yet been
+        hoisted at module scope on any touching spec.
+        (iii) idle — frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed, P10 continues accepting
+        incremental summary-hoist ticks).
+    commit: (this tick)
+
   - tick: 375
     ran_at: 2026-07-24
     action: p10_reseller_credit_grants_row_cluster_cross_column_invariant_summary_cross_surface_twin_lift_onto_credit_grant_validation

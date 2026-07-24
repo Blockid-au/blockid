@@ -89,6 +89,116 @@ const ROUTE = "/api/reseller/create-startup";
 const NON_RESELLER_FOUNDER_EMAIL =
   process.env.QA_UNATTRIBUTED_FOUNDER_EMAIL ?? "qa-founder-1@blockid.au";
 
+// Tick 376 — reseller_attributions row-cluster cross-column invariant summary
+// (option (i) from tick 375 next-picks). Rotates off the reseller_credit_
+// grants row cluster (which reached 2/2 surface parity on the credit-grant
+// write-path half at tick 375 — 8/8 module-scope summaries across credit-
+// grant-authz.spec.ts + credit-grant-validation.spec.ts) onto the reseller_
+// attributions row cluster, whose cross-column CHECK + single-column CHECKs +
+// partial-unique-index invariants (defined at web/supabase/migrations/0091_
+// reseller_module_foundations.sql:112-142) have not yet been hoisted as a
+// module-scope summary on ANY of the sixteen reseller_attributions-touching
+// Playwright surfaces. SEEDS 1/N surface parity on the reseller_attributions
+// row cluster — mirrors the tick 374 seed posture on credit-grant-authz.spec.
+// ts where a fresh cluster's first summary landed on the write-path authz
+// surface first, before cross-surface twin-lift onto the validation surface.
+//
+// The reseller_attributions row cluster carries FIVE invariants that
+// partition the subject_type ∈ {user, project} discriminator across FK
+// shape, plus three single-column enum CHECKs and one partial-unique index:
+//   - ck_subject_fk_matches_type (0091:128-132) — CROSS-COLUMN: subject_type=
+//                                                  'user'⇒subject_user_id set
+//                                                  + subject_project_id null;
+//                                                  subject_type='project'⇒
+//                                                  inverse
+//   - subject_type CHECK          (0091:115)     — subject_type ∈ {user,
+//                                                  project}
+//   - status CHECK                (0091:118-119) — status ∈ {active, revoked}
+//                                                  (DEFAULT 'active')
+//   - source CHECK                (0091:123)     — source ∈ {code,
+//                                                  provisioned, admin_manual}
+//   - reseller_attributions_active_project_uniq  — PARTIAL-UNIQUE INDEX
+//     (0091:137-139)                              on (subject_project_id)
+//                                                  WHERE subject_type=
+//                                                  'project' AND status=
+//                                                  'active' AND opted_out=
+//                                                  false; enforces per U.15.1
+//                                                  that a project can carry
+//                                                  at most ONE active non-
+//                                                  opted-out attribution
+//                                                  regardless of reseller
+//
+// Writer-side source: DB CHECK + partial-unique guards at 0091:112-142 wrap
+// every reseller_attributions insert; enforcement happens at DB write time.
+// Route-side callers precompose the insert payload under an always-'project'
+// discriminator — the 'user' branch of ck_subject_fk_matches_type is
+// UNREACHABLE-by-construction from EVERY current write path across the
+// codebase (grep audit: web/src/lib/reseller/retail-attribution.ts:165-172
+// + web/src/app/api/reseller/create-startup/route.ts:301-313 both hard-code
+// subject_type='project' + subject_project_id=<uuid> + subject_user_id=null;
+// no code path ever inserts subject_type='user'). The 'user' branch remains
+// enforceable at the DB layer (e.g. against a hypothetical admin manual
+// backfill via /admin/affiliate) but never fires from user-space route code.
+//
+// Application write path anchor for THIS surface: the create-startup
+// execute() at web/src/app/api/reseller/create-startup/route.ts:301-313
+// populates subject_type='project', subject_project_id=<projects.id from
+// step (b)>, subject_user_id=null, source=plan.attribution.source (∈ {code,
+// provisioned, admin_manual} per decideCreateStartup normalisation), status
+// defaults to 'active' at the DB — one row per happy POST always sits on the
+// project branch of ck_subject_fk_matches_type, the 'active' branch of the
+// status CHECK, and one of the three allowed source enum values.
+//
+// Runtime enforcement on this spec: rows 1 (unauthenticated 401) + 2 (non_
+// reseller_admin 402) return BEFORE gateRequireFeature → scopedReseller →
+// normaliseCreateStartupInput → db.selfReseller → getSupabaseAdmin →
+// decideCreateStartup → execute() chain fires, so NEITHER row exercises any
+// CHECK branch or the partial-unique index. Wave-1 downstream rows 141
+// (billing_model_not_wholesale 400), 142 (reseller_not_active 400), 143
+// (capability_disabled 400), 144 (tier_not_allowed 400) all reach
+// decideCreateStartup but bail at gates 1-4 BEFORE the execute() sequence
+// touches the reseller_attributions insert at line 301-313 — the plan is
+// never handed to execute() until decideCreateStartup returns ok. Zero rows
+// on this surface reach line 301-313; happy-path 200 (fires the insert +
+// magic-link + welcome email + wholesale subscription) is deliberately out-
+// of-scope per the top-of-file comment (folded into the temp-reseller mint
+// fixture follow-up alongside ticks 94/95/96/97/98).
+//
+// Coverage-per-guard posture on this surface: 'project' branch of ck_
+// subject_fk_matches_type has ZERO-COVERAGE-PER-GUARD (no row reaches the
+// insert); 'user' branch has ZERO-COVERAGE-PER-GUARD AND is UNREACHABLE-
+// BY-CONSTRUCTION from all write paths; status CHECK 'active' branch has
+// ZERO-COVERAGE-PER-GUARD (defaults on insert); status 'revoked' branch is
+// UNREACHABLE from insert (only settable via the admin revoke endpoint at
+// web/src/app/api/admin/affiliate/attributions/[attributionId]/revoke/
+// route.ts which flips an existing row rather than inserting one); source
+// CHECK all three enum branches have ZERO-COVERAGE-PER-GUARD (all three
+// remain reachable via {code, provisioned, admin_manual} routing on the
+// happy path); partial-unique index has ZERO-COVERAGE-PER-GUARD (no insert
+// contends against it on this surface). Symmetric to the tick 374 credit-
+// grant-authz seed posture: this is the fresh-seed baseline before cross-
+// surface twin-lift onto sibling reseller_attributions-touching surfaces
+// (create-startup-validation.spec.ts, attribution-timing.spec.ts, drawer-
+// authz.spec.ts, drawer-validation.spec.ts, me-attribution.spec.ts, scope-
+// boundary.spec.ts, reveal-email-authz.spec.ts, reveal-email-validation.
+// spec.ts, credit-grant-authz.spec.ts, credit-grant-validation.spec.ts,
+// audit-log-writes.spec.ts, audit-anomaly-scan.spec.ts, sandbox-setup-
+// authz.spec.ts, admin-reseller-detail-authz.spec.ts, admin-reseller-detail
+// -validation.spec.ts) as cross-surface twin parity is closed out over
+// future ticks.
+//
+// Symmetric-cluster posture: the create-startup write-path cluster is a
+// SYMMETRIC subset (project-branch only) of the full reseller_attributions
+// row cluster. The 'user'-branch complement is ASYMMETRIC AND UNREACHABLE-
+// BY-CONSTRUCTION across the entire codebase — no spec pair could ever
+// cover it without a synthetic DB-level backfill test that plan §J.2
+// forbids. Full 16-surface × 5-invariant saturation (80 module-scope
+// summaries) would collate ZERO-COVERAGE-PER-GUARD × UNREACHABLE-BY-
+// CONSTRUCTION documentation across every touching spec, matching the
+// asymmetric-complement posture the credit-grant cluster carries for its
+// sandbox_spend branch (2-surface half already at 8/8, sandbox-spend half
+// remains at 0/8 pending future ticks).
+
 test.describe("Reseller create-startup pre-write authorization — P10 dry-run", () => {
   test("unauthenticated — POST with no session returns 401", async ({ request }) => {
     const resp = await request.post(ROUTE);
