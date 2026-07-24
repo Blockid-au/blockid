@@ -1059,6 +1059,51 @@ export async function sendPaymentFailed(args: { to: string }): Promise<SendResul
   return sendEmail({ to: args.to, subject: "Payment Failed \u2014 Please Update Your Payment Method", html, unsubscribeUrl });
 }
 
+// ---------- Trial pre-charge warning (48h before auto-convert) ------------------
+
+/**
+ * Sent by /api/cron/trial-charge-warning ~48h before Stripe auto-converts a
+ * trial to paid. Founder-facing, transparent, links to /settings/billing for
+ * cancel. Do NOT hard-code trial length here — reads TRIAL_COPY constants.
+ */
+export async function sendTrialChargeWarning(args: {
+  to: string;
+  planName: string;
+  priceDisplay: string; // e.g. "A$29"
+  chargeDate: string; // ISO
+  hoursUntilCharge: number;
+  billingUrl?: string;
+}): Promise<SendResult> {
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
+  const billingUrl = args.billingUrl ?? `${siteUrl()}/settings/billing`;
+  const dateFormatted = new Date(args.chargeDate).toLocaleDateString("en-AU", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const hoursText = `${Math.max(1, Math.round(args.hoursUntilCharge))}`;
+  const subject = `Your BlockID trial ends in ${hoursText} hours — you'll be charged ${args.priceDisplay} on ${dateFormatted}`;
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Trial Ending Soon</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your ${escapeHtml(args.planName)} trial ends in ~${hoursText} hours</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">On <strong>${escapeHtml(dateFormatted)}</strong> we will charge <strong>${escapeHtml(args.priceDisplay)}</strong> to the card you added at signup. You'll continue with full access to <strong>${escapeHtml(args.planName)}</strong>.</p>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Not ready? You can cancel anytime — no questions asked — from your billing settings before the charge.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Manage or Cancel Trial</a></p>
+          <p style="margin:0 0 16px 0;color:#64748B;font-size:12px;line-height:1.6;">This email is not tax, legal or financial advice. All prices are in AUD and inclusive of GST where applicable.</p>
+          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
+  return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
+}
+
 // ---------- Payment receipt (recurring) -----------------------------------------
 
 export async function sendPaymentReceipt(args: { to: string; amountCents: number; currency?: string }): Promise<SendResult> {
