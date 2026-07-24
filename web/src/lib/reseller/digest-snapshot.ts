@@ -115,6 +115,25 @@ export function serialiseDigestSnapshot(snapshot: DigestSnapshot): string {
 }
 
 /**
+ * Walk a raw JSONL file contents string and return the newest parseable
+ * snapshot row (scanning bottom-up so a corrupted trailing line does not
+ * mask an older good row). Returns null when every line is empty or
+ * corrupted. The route reads the file via fs.readFileSync and hands the
+ * text in here; keeping the walker pure lets vitest exercise it without
+ * touching disk. Handles both trailing-newline and no-trailing-newline
+ * shapes for defensive reads against a mid-write truncation.
+ */
+export function readLastDigestSnapshot(text: string): DigestSnapshot | null {
+  if (typeof text !== "string" || text.length === 0) return null;
+  const lines = text.split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const parsed = parseDigestSnapshotLine(lines[i]);
+    if (parsed) return parsed;
+  }
+  return null;
+}
+
+/**
  * Reverse of serialiseDigestSnapshot. Returns null on any parse failure so
  * a corrupted line (partial write, hand-edit, non-JSON row) does not throw
  * inside a consumer's for-loop — the consumer skips and continues.
