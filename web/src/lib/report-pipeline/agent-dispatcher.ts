@@ -12,6 +12,7 @@ import type {
 } from "./types";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { buildAgentPrompt } from "./agent-prompts";
+import { buildAuMarketAnchorBlock } from "./au-market-anchor";
 import { REPORT_TIER_CONFIG } from "./types";
 
 // ── Wave Definitions ────────────────────────────────────────────────────────

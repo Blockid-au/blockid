@@ -32,12 +32,8 @@ CREATE INDEX IF NOT EXISTS dataroom_files_template_slug_idx
   WHERE template_slug IS NOT NULL;
 
 COMMENT ON COLUMN public.dataroom_files.storage_path IS
-  'Supabase storage bucket-relative path when this row is backed by an ' ||
-  'uploaded file. NULL for placeholder rows (see mime_type=' ||
-  '''application/vnd.blockid.template'').';
+  'Supabase storage bucket-relative path when this row is backed by an uploaded file. NULL for placeholder rows (see mime_type=''application/vnd.blockid.template'').';
 COMMENT ON COLUMN public.dataroom_files.template_slug IS
-  'Stable manifest slug from web/src/lib/dataroom/template-manifest.ts. ' ||
-  'NULL for user-uploaded and Atlassian-placeholder rows.';
+  'Stable manifest slug from web/src/lib/dataroom/template-manifest.ts. NULL for user-uploaded and Atlassian-placeholder rows.';
 COMMENT ON COLUMN public.dataroom_files.template_version IS
-  'Manifest version at the time of seeding. Bumped when the source-of-truth ' ||
-  '.docx/.xlsx changes; scheduled re-seed job diffs on this column.';
+  'Manifest version at the time of seeding. Bumped when the source-of-truth .docx/.xlsx changes; scheduled re-seed job diffs on this column.';
