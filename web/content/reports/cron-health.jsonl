@@ -1093,3 +1093,4 @@
 {"ts":"2026-07-24T04:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16465,"detail":""}
 {"ts":"2026-07-24T04:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16443,"detail":""}
 {"ts":"2026-07-24T04:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":111,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-07-24T04:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":723,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235118216 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274123380 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}

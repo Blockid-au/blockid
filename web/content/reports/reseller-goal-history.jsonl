@@ -890,3 +890,9 @@
 {"tick_id":"2026-07-24T04-05-01-630Z","ts":"2026-07-24T04:09:48.956Z","human_review_minutes_7d":0.5,"stage":"auto_commit_started","dirty_files":9}
 {"tick_id":"2026-07-24T04-10-00-137Z","ts":"2026-07-24T04:17:15.082Z","human_review_minutes_7d":0.5,"stage":"delegated_dispatch","status":0,"elapsed_ms":434891,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-24T04-10-00-137Z","ts":"2026-07-24T04:17:15.118Z","human_review_minutes_7d":0.5,"stage":"auto_commit_started","dirty_files":12}
+{"tick_id":"2026-07-24T04-10-00-137Z","ts":"2026-07-24T04:17:16.586Z","human_review_minutes_7d":0.5,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-24T04-10-00-137Z","ts":"2026-07-24T04:17:16.595Z","human_review_minutes_7d":0.5,"stage":"auto_deploy_triggered","head":"f8bd8105","last_deployed":"f9af62a"}
+{"tick_id":"2026-07-24T04-10-00-137Z","ts":"2026-07-24T04:17:28.300Z","human_review_minutes_7d":0.5,"stage":"auto_deploy_finished","status":1,"head":"f8bd8105"}
+{"tick_id":"2026-07-24T04-10-00-137Z","ts":"2026-07-24T04:17:28.301Z","human_review_minutes_7d":0.5,"stage":"tick_end"}
+{"tick_id":"2026-07-24T04-20-01-269Z","ts":"2026-07-24T04:20:01.274Z","human_review_minutes_7d":0.5,"stage":"tick_start"}
+{"tick_id":"2026-07-24T04-20-01-269Z","ts":"2026-07-24T04:20:01.349Z","human_review_minutes_7d":0.5,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
