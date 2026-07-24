@@ -273,6 +273,196 @@ const ALLOWED_REQUEST_TYPES = new Set([
   "collateral_approval",
 ]);
 
+// Tick 371 — reseller_requests-row ck_decision_shape cross-column
+// invariant summary cross-surface twin-lift onto reseller-requests-
+// list-authz.spec.ts. Executes tick 370 next-pick option (i) verbatim:
+// opens the third reseller-scope surface's cross-surface twin axis by
+// hoisting the ck_decision_shape module-scope summary from requests-
+// authz.spec.ts (tick 365 — reseller-scope POST surface) and
+// requests-validation.spec.ts (tick 368 — reseller-scope GET wire-
+// shape surface) onto this file (the reseller-scope GET auth surface).
+// First of three possible reseller-scope cross-surface companion
+// ticks per tick 370 next-pick option (i). Post-tick 371, the
+// reseller_requests-row cluster reaches 3-surface parity on
+// ck_decision_shape alone across the reseller-scope triple: 1/3 on
+// this file with ck_decision_shape landing here, 3/3 on requests-
+// authz.spec.ts per tick 367 close-out, 3/3 on requests-validation.
+// spec.ts per tick 370 close-out. Follow-on ticks 372/373 can lift
+// ck_credit_link + ck_promo_link onto this file to bring it to 3/3
+// summary parity, matching the tick 366+367 companion-hoist posture
+// on requests-authz.spec.ts and the tick 369+370 companion-hoist
+// posture on requests-validation.spec.ts. Pure documentation-only
+// doc-block hoist — no new imports, no new module-scope const, no
+// fixture change, no route change, no per-column assert added; the
+// existing UUID_RE + ALLOWED_TIER_PCT_VALUES + SUFFIX_RE +
+// HTTPS_URL_RE + REASON_MAX + PURPOSE_MAX + ISO_TIMESTAMP_RE +
+// ALLOWED_STATUS_VALUES + ALLOWED_REQUEST_TYPES module-scope consts
+// declared adjacent at lines 73-274 remain the sole module-scope
+// consts on this file.
+//
+// Cross-column invariant summary — reseller_requests.{status,
+// decision_by, decision_at, decision_reason} ⇔ ck_decision_shape
+//   Writer-side source: IDENTICAL to tick 365 on the sibling
+//   requests-authz.spec.ts surface and tick 368 on the sibling
+//   requests-validation.spec.ts surface — DB CHECK
+//   ck_decision_shape at web/supabase/migrations/0095_reseller_
+//   requests.sql:41-45 enforces the disjunction
+//     (status = 'pending'
+//        AND decision_by IS NULL
+//        AND decision_at IS NULL)
+//     OR
+//     (status IN ('approved','denied','cancelled')
+//        AND decision_at IS NOT NULL)
+//   Pending rows MUST carry both decision columns as NULL; any row
+//   whose status flips to a terminal enum member MUST carry
+//   decision_at as non-null. The sibling ck_credit_link (0095:48-51)
+//   and ck_promo_link (0095:52-55) are orthogonal — each governs a
+//   single link column across request_type + status; those two
+//   companion twins are pending at follow-on ticks 372/373 per tick
+//   370 next-pick option (i) chain. This tick's summary opens the
+//   cross-surface twin axis on reseller-requests-list-authz.spec.ts
+//   with ck_decision_shape alone, mirroring the tick 362 opening
+//   posture on the admin-requests-list-authz.spec.ts surface and
+//   the tick 368 opening posture on the requests-validation.spec.ts
+//   surface (both opened their cross-surface twin axis with
+//   ck_decision_shape as the first of the three summary companions).
+//   Application write path: IDENTICAL to tick 365 and tick 368 — the
+//   reseller-scope POST at web/src/app/api/reseller/requests/route.
+//   ts:87-97 INSERTs a fresh reseller_requests row with only
+//   reseller_id + request_type + payload + created_by (status takes
+//   its DB default 'pending' via 0095:32; decision_by / decision_at
+//   / decision_reason default to NULL per 0095:34-36). Every row
+//   born on this route sits on the NULL branch of ck_decision_shape
+//   (status='pending' AND decision_by IS NULL AND decision_at IS
+//   NULL); the NON-NULL branch is UNREACHABLE from the reseller-
+//   scope POST route because it has no update mode. The NON-NULL
+//   branch is exclusively produced by the admin PATCH stamper at
+//   /api/admin/resellers/requests/[id]/route.ts:305-320 narrated in
+//   the tick 359 doc-block on admin-requests-patch-authz.spec.ts.
+//   Read path: IDENTICAL to tick 368 — the reseller-scope GET at
+//   web/src/app/api/reseller/requests/route.ts:169-176 projects a
+//   seven-column tuple
+//     "id, request_type, status, payload, decision_at,
+//      decision_reason, created_at"
+//   scoped via .eq("reseller_id", scope.reseller_id) with
+//   .order("created_at", {ascending: false}).limit(100). Of the
+//   four columns coupled by ck_decision_shape, THREE are projected
+//   on this envelope (status + decision_at + decision_reason) —
+//   only decision_by is stripped by the route (route.ts:172 omits
+//   it from the SELECT list on purpose; the reseller-facing GET
+//   envelope only echoes fields the client renders in the request
+//   history table). Same wire granularity as the sibling
+//   requests-validation.spec.ts surface (tick 368 lens): both
+//   reseller-scope GET surfaces observe the SAME three-column
+//   projection of ck_decision_shape (status + decision_at +
+//   decision_reason with decision_by stripped) because they hit
+//   the SAME route.ts:169-176 SELECT list. Four-surface granularity
+//   ladder unchanged from tick 368: (a) full four-column tuple on
+//   the admin list route (tick 362 lens); (b) three-column tuple
+//   on the admin PATCH echo (tick 359 lens — omits decision_by);
+//   (c) single-column tuple on the reseller POST envelope (tick
+//   365 lens — projects only status); (d) three-column tuple on
+//   the reseller GET envelope surfaced BOTH from requests-
+//   validation.spec.ts (tick 368 lens) AND this file (THIS tick
+//   lens — same route, twin observability across the two GET
+//   spec files that share the wire). Granularity (d) matches
+//   granularity (b) at the column-count level (three of four)
+//   with the SAME omission (decision_by) for the same privacy-
+//   narrowing rationale narrated at tick 368: the reseller
+//   boundary MUST not surface which admin decided the request
+//   (leaking decision_by would let a reseller correlate admin
+//   activity patterns across their own request history — a
+//   privacy narrowing separate from ck_decision_shape itself but
+//   which happens to land on the same column). So the
+//   ck_decision_shape invariant is observable at three DIFFERENT
+//   projection granularities across the four surfaces the cluster
+//   now spans, with decision_by only surfacing on the admin-list
+//   surface (tick 362 lens).
+//   Runtime enforcement in this spec: the wave-4 row 161 happy GET
+//   at lines 392-540 iterates body.requests ?? [] and pins per-row
+//   status ∈ ALLOWED_STATUS_VALUES via the tick 278 hoist (four-
+//   value enum guard on the ck_decision_shape status column),
+//   decision_at null-or-typeof-string via the tick 224 pin at lines
+//   ~615 + null-or-ISO_TIMESTAMP_RE via the tick 276 tightening at
+//   lines ~628 with the ck_decision_shape at 0095:41-45 cross-
+//   reference in the failure message (two-part guard — asserts the
+//   birth-state timestamp column is null on the pending row +
+//   observably-typed on any post-decision row a future decide-
+//   fixture surfaces), decision_reason null-or-typeof-string via
+//   the tick 224 pin + null-or-(typeof-string-AND-length ≤
+//   REASON_MAX) via the tick 277 tightening (nullable across all
+//   row states per 0095:36 with no CHECK tying it to status). The
+//   per-row shape pins fire once per row in body.requests[]; with
+//   the wave-3 row 155 seeder in requests-authz.spec.ts landing a
+//   fresh pending over_budget_approval row per green CI run against
+//   the active_wholesale variant, this GET observes ≥1 pending row
+//   per pass (fresh hosts hit 1; hosts where row 155 has run in
+//   prior CI passes have ≥N cumulative). Neither wave-4 row 161
+//   nor any sibling row asserts decision_by on the wire — because
+//   that column is stripped from the GET envelope (see Read path
+//   above) and therefore NOT observable on this surface. A route
+//   regression that leaked decision_by onto the envelope would
+//   surface via a `row.decision_by` undefined → non-undefined
+//   delta on downstream consumers, but this spec deliberately does
+//   not assert its absence (symmetric-to-presence "should not
+//   exist" pin adds cost without adding correctness, same posture
+//   as tick 365's + tick 368's narration of the reseller POST +
+//   validation-spec GET envelope's projection lists).
+//   Coverage-per-guard posture: DEGENERATE-SYMMETRIC relative to
+//   tick 368. Tick 368 narrates the reseller-scope GET wire-shape
+//   surface observing the SAME NULL/pending branch on the READ
+//   side. This tick narrates the reseller-scope GET authz surface
+//   observing the SAME NULL/pending branch via the SAME route on
+//   the SAME wave-4 row 161 fixture — the two GET spec files share
+//   the wire envelope so the per-row pins fire in parallel across
+//   both specs on the same CI pass. So the read-side probe count
+//   is ≥1 per pass per spec (bounded above by 100 per the .limit(
+//   100) in route.ts:176); the ck_decision_shape NULL branch fires
+//   on every projected row + every green CI run across both GET
+//   surfaces. NON-NULL branch coverage on this GET surface is
+//   currently ZERO because no decide-fixture has landed a terminal-
+//   status row visible to the reseller-scope GET (P8.5 approve
+//   flows are blocked; P9.3 deny + cancel flows land at a future
+//   wave but the QA harness doesn't seed a terminal row on the
+//   active_wholesale variant today). Together the reseller-scope
+//   surface triple (this tick + tick 365 + tick 368) covers the
+//   NULL/pending branch on ALL THREE reseller-scope surfaces (POST
+//   INSERT + GET wire-shape + GET authz) at module scope, matching
+//   the admin-scope surface pair (ticks 359 + 362) which cover
+//   the NON-NULL/terminal branch on BOTH write-side UPDATE + read-
+//   side list envelopes. Post-tick 371, the four-surface cluster
+//   observes both halves of the ck_decision_shape disjunction
+//   across both read+write axes at module scope on distinct scoped
+//   surfaces, with reseller-scope side now at three-surface parity
+//   on the NULL/pending branch — the maximum observability
+//   granularity the cluster can carry without landing a decide-
+//   fixture that produces a reseller-visible terminal-status row.
+//   Symmetric-cluster posture: this hoist OPENS the reseller-scope
+//   3-surface parity axis on ck_decision_shape (matches the tick
+//   368 opening posture on the reseller-scope 2-surface parity
+//   axis which reached 2-surface parity for the same invariant
+//   before ticks 369+370 filled the ck_credit_link + ck_promo_link
+//   companion twins on requests-validation.spec.ts). Post-tick 371,
+//   the reseller_requests-row cluster sits at three-surface + one-
+//   invariant × two-scope-family × three-axis parity for
+//   ck_decision_shape on the reseller-scope side (POST INSERT +
+//   GET wire-shape + GET authz all carry the invariant summary).
+//   Follow-on ticks can rotate along four dimensions per tick 370's
+//   rotation menu adapted for this cross-surface opening: (a)
+//   cross-surface twin-lift ck_credit_link onto THIS file so this
+//   reseller-scope GET-authz surface reaches 2/3 summary parity
+//   (matches the tick 366+369 companion-hoist posture on requests-
+//   authz.spec.ts + requests-validation.spec.ts); (b) cross-surface
+//   twin-lift ck_promo_link onto THIS file so this reseller-scope
+//   GET-authz surface reaches 3/3 summary parity (matches the tick
+//   367+370 closing posture on the sibling reseller-scope
+//   surfaces); (c) rotate to /admin/resellers/requests/[id] detail
+//   surface for a THIRD-surface companion of any admin summary the
+//   admin-scope cluster now carries at 3/3 × 2-surface parity; (d)
+//   idle — frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED, P11
+//   never_completes, Track B closed, P10 continues accepting
+//   incremental pin-tightening + summary-hoist ticks).
+
 test.describe("Reseller requests list pre-read authorization — P10 dry-run", () => {
   test("unauthenticated — GET with no session returns 401 unauthorised", async ({
     request,
