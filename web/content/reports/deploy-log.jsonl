@@ -1253,3 +1253,6 @@
 {"ts":"2026-07-24T07:26:04Z","status":"success","gates":"9/9","pid":"3061524","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T07:29:44.034Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal): ship P1d — AU ESOP Scheme Rules test block + annotation (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T07:29:51.656Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T07-27-01-201Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T07:30:49.939Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T07-20-01-441Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T07:35:43Z","status":"success","gates":"9/9","pid":"3095416","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-24T07:42:04.303Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P10.perf_audit_baseline — TTFB p95<=500ms pure-lib gate (1 commits)","source":"github-webhook"}
