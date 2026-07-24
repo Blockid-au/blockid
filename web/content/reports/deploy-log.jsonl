@@ -1258,3 +1258,5 @@
 {"ts":"2026-07-24T07:42:04.303Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P10.perf_audit_baseline — TTFB p95<=500ms pure-lib gate (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T07:42:15.498Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T07-35-01-289Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T07:47:32.092Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal): ship P1e — ESIC self-assessment workspace worksheet (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T07:48:18Z","status":"success","gates":"9/9","pid":"3137882","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-24T07:57:48.137Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): ship P10.full_walkthrough_e2e_scaffold — composite Playwright walkthrough (1 commits)","source":"github-webhook"}
