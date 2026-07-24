@@ -70,6 +70,10 @@ export interface InvestorPackData {
   // eligibility (P6a-ir-pack). Populated via the div83a-funding-gate in
   // warn-only mode; renders in the PDF as the "ESOP eligibility" section.
   esopEligibility: EsopEligibilitySection;
+  // ch12 exit-readiness anchor (P12b). AU comparable-exits benchmark
+  // sliced to the project sector when known, else the full fixture with
+  // usedFallback=true so the PDF copy can explain the widening.
+  exitBenchmark: ExitBenchmarkSection;
   team: Array<{ name: string; role: string }>;
   capTable: Array<{ holder: string; pctFullyDiluted: number }>;
   ask: {
@@ -426,6 +430,12 @@ export async function assemblePackData(
     action: "investor_pack_assemble",
   });
   const esopEligibility = buildEsopEligibilitySection(div83aGate, "en");
+
+  // ch12 exit-benchmark anchor — sector-scoped, falls back to full
+  // fixture when the founder's sector matches zero rows.
+  const exitBenchmark = buildExitBenchmarkSection({
+    sector: sector ?? svi?.sector ?? null,
+  });
 
   // Team + cap-table + ask.
   const { members, founderName } = await loadTeam(userId);
