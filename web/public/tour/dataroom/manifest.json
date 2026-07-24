@@ -1,0 +1,34 @@
+{
+  "tourId": "dataroom",
+  "title": "Data Room",
+  "role": "founder",
+  "baseUrl": "http://localhost:4001",
+  "gitSha": "d1be277368d6e67e180127ff855112882b862efe",
+  "capturedAt": "2026-07-24T23:03:29.280Z",
+  "steps": [
+    {
+      "id": "folders",
+      "path": "/workspace/data-room",
+      "caption": "Standard folders",
+      "file": "step-folders.png"
+    },
+    {
+      "id": "upload",
+      "path": "/workspace/data-room",
+      "caption": "Upload & watermark",
+      "file": "step-upload.png"
+    },
+    {
+      "id": "invite",
+      "path": "/workspace/data-room",
+      "caption": "Invite investors",
+      "file": "step-invite.png"
+    },
+    {
+      "id": "activity",
+      "path": "/workspace/data-room",
+      "caption": "Activity log",
+      "file": "step-activity.png"
+    }
+  ]
+}
