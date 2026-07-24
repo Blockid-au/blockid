@@ -1,31 +1,48 @@
-// /workspace/lp-report — nav-linked stub while the full page is built.
-// Ships a minimal header + coming-soon message so the nav never 404s.
+// /workspace/lp-report — founder-facing composer for accelerator LP-report
+// contribution slots. Runs the pure `assessLpReportSlot()` policy library
+// (P12c-lp-report-anon-policy) in-browser via `LpReportComposerClient`
+// (P12c-lp-report-ui) so a founder can preview redactions + warnings before
+// approving the slot for the reseller bundle. No API route, no persistence
+// yet — the composer is a stateless preview tool while the sibling
+// IR-portfolio-bundling agent finishes the durable slot-lock schema.
 import type { Metadata } from "next";
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { LpReportComposerClient } from "./lp-report-composer-client";
 
 export const metadata: Metadata = {
   title: "LP Quarterly Report | Workspace | BlockID",
-  description: "Composer for LP quarterly updates. In the interim, use /dashboard/reports/lp-quarterly.",
+  description:
+    "Preview an anonymised founder-contribution slot for your accelerator's LP-report bundle before you commit to it.",
   robots: { index: false, follow: false },
 };
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/auth/login?next=/workspace/lp-report");
+
+  const isSandbox = await getCurrentProjectIsSandbox();
+
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16 text-center">
-      <h1 className="text-3xl font-semibold text-ink-900">LP Quarterly Report</h1>
-      <p className="mt-4 text-ink-600">Composer for LP quarterly updates. In the interim, use /dashboard/reports/lp-quarterly.</p>
-      <p className="mt-6 text-sm text-ink-500">
-        This surface is under active build. In the meantime, jump back to your
-        workspace overview.
-      </p>
-      <div className="mt-8">
-        <Link
-          href="/workspace"
-          className="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          Back to Workspace
-        </Link>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
+      <div className="p-6 max-w-4xl mx-auto">
+        <header className="mb-6">
+          <h1 className="text-3xl font-semibold text-ink-900">
+            LP Quarterly Report
+          </h1>
+          <p className="mt-2 text-sm text-ink-600">
+            You still control what fields surface — this preview shows what
+            the reseller receives before your slot locks. Anonymisation
+            enforces k-anonymity (default k=5) plus APP 6 + s766B Corps Act
+            hedges. Withdraw the slot at any time before the bundle locks.
+          </p>
+        </header>
+        <LpReportComposerClient />
       </div>
-    </main>
+    </WorkspaceLayout>
   );
 }
