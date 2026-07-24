@@ -516,3 +516,4 @@
 {"tick_id":"2026-07-24T21-27-01-846Z","ts":"2026-07-24T21:44:59.570Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-24T21-47-01-903Z","ts":"2026-07-24T21:47:01.904Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T21-47-01-903Z","ts":"2026-07-24T21:47:01.910Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T21-47-01-903Z","ts":"2026-07-24T21:53:33.567Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P4a-publish-route","summary":"public POST /api/landing-page/preview route wrapping the pure landing-page/preview.ts renderer — 7 vitest cases green, typecheck green"}
