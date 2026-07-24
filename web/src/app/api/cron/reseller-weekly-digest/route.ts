@@ -54,6 +54,11 @@ import {
   type DigestSnapshotPerResellerRollingTrend,
 } from "@/lib/reseller/digest-snapshot-per-reseller-rolling-trend";
 import {
+  computeDigestSnapshotTopMovers,
+  formatDigestSnapshotTopMoversSection,
+  type DigestSnapshotTopMovers,
+} from "@/lib/reseller/digest-snapshot-top-movers";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -345,7 +350,12 @@ export async function GET(req: Request) {
   }
 
   const csv = formatWeeklyDigestCsv(week, digestRows);
-  let html = formatWeeklyDigestEmail(week, digestRows);
+  // Preserve the header block separately so P11.25 can splice the top-movers
+  // executive summary (computed later, once the rolling-trend fold lands) right
+  // after the header without touching any of the drill-down sections appended
+  // to `html` in between.
+  const digestHeader = formatWeeklyDigestEmail(week, digestRows);
+  let html = digestHeader;
 
   // Fold in audit-log anomaly hotspots (P10 dry-run per plan Verification #5).
   // Scope the query to the active reseller set so a stale terminated reseller
@@ -1203,6 +1213,8 @@ export async function GET(req: Request) {
   let snapshotPerResellerRollingTrend:
     | DigestSnapshotPerResellerRollingTrend
     | null = null;
+  let snapshotTopMovers: DigestSnapshotTopMovers | null = null;
+  let topMoversSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1271,6 +1283,19 @@ export async function GET(req: Request) {
       );
     if (perResellerRollingTrendSection)
       html += perResellerRollingTrendSection;
+    // P11.25 — top-N |delta| movers headline (module P11.24). Project the
+    // per-reseller rolling trend into the biggest cross-metric shifts and
+    // render a compact executive summary. Computed here so the source data
+    // (snapshotPerResellerRollingTrend) is guaranteed populated; spliced right
+    // after digestHeader below so it lands above the fold in the email preview
+    // pane rather than at the bottom of the drill-down ladder.
+    snapshotTopMovers = computeDigestSnapshotTopMovers(
+      snapshotPerResellerRollingTrend,
+    );
+    topMoversSection = formatDigestSnapshotTopMoversSection(snapshotTopMovers);
+  }
+  if (topMoversSection) {
+    html = digestHeader + topMoversSection + html.slice(digestHeader.length);
   }
 
   let emailed = false;
@@ -1554,6 +1579,18 @@ export async function GET(req: Request) {
           first_week: snapshotPerResellerRollingTrend.first_week,
           last_week: snapshotPerResellerRollingTrend.last_week,
           rows: snapshotPerResellerRollingTrend.rows,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
+    snapshot_top_movers: snapshotTopMovers
+      ? {
+          window_size: snapshotTopMovers.window_size,
+          first_week: snapshotTopMovers.first_week,
+          last_week: snapshotTopMovers.last_week,
+          top_n: snapshotTopMovers.top_n,
+          rows: snapshotTopMovers.rows,
         }
       : {
           skipped_reason:
