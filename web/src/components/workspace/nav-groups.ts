@@ -134,6 +134,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen, minPlan: "scale" },
       { href: "/workspace/dividends", label: "Dividends", icon: Gift, minPlan: "growth" },
       { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen, minPlan: "growth" },
+      { href: "/dashboard/exit-readiness", label: "Exit Benchmark", icon: BarChart3, minPlan: "starter" },
     ],
   },
   {
