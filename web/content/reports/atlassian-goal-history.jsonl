@@ -370,3 +370,6 @@
 {"tick_id":"2026-07-24T16-57-01-886Z","ts":"2026-07-24T17:05:19.711Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"ae16d575","last_deployed":"2af45cb"}
 {"tick_id":"2026-07-24T16-57-01-886Z","ts":"2026-07-24T17:11:32.712Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"ae16d575"}
 {"tick_id":"2026-07-24T16-57-01-886Z","ts":"2026-07-24T17:11:32.714Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T17-17-01-580Z","ts":"2026-07-24T17:17:01.581Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T17-17-01-580Z","ts":"2026-07-24T17:17:01.588Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T17-17-01-580Z","ts":"2026-07-24T17:26:14.397Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"phase_shipped","phase":"P12b-tile","summary":"/dashboard/exit-readiness founder tile — server RSC + <ExitReadinessTile /> RSC + pure helpers (12 vitest cases) + Grow & Scale nav entry"}
