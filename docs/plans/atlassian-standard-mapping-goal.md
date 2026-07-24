@@ -101,13 +101,14 @@ phased_tracks:
       - AFSL disclaimer present in meta.afsl_disclaimer per §3.7
       - dashboard tile fetches on mount with skeleton + retry states; mount into /dashboard shell deferred (>50-line refactor — see follow-up)
   P4_walkthrough_wiring:
-    status: proposed
-    description: Emit phase-callouts + investor-readiness copy the sibling agent's /showcase/atlassian walkthrough can consume; do NOT edit /showcase/atlassian/page.tsx
+    status: shipped
+    completed_at: 2026-07-24
+    description: Emit phase-callouts + investor-readiness copy the sibling agent's /showcase/atlassian walkthrough can consume; do NOT edit /showcase/atlassian/page.tsx. Round 7 shipped web/src/lib/showcase/atlassian/investor-readiness-callouts.ts (data-only fixture, 12 phase entries with EN+VI copy sourced from goal §1 + §4) plus a colocated vitest that pins presence, canonical phase-key coverage, App Router route resolution (direct + [dynamic] segment), and a coarse AFSL trigger-phrase guard. Sibling agent still owns the /showcase/atlassian UI wiring.
     depends_on: [P0_gap_matrix]
     exit_criteria:
-      - copy fixture at web/src/lib/showcase/atlassian/investor-readiness-callouts.ts (add if absent) exporting phase→{atlassian_moment, blockid_route, callout_copy_en, callout_copy_vi}
-      - 12 entries (one per phase) sourced from body §1 + §4
-      - unit test asserts every phase present and every route resolves to an existing app/ folder
+      - copy fixture at web/src/lib/showcase/atlassian/investor-readiness-callouts.ts (add if absent) exporting phase→{atlassian_moment, blockid_route, callout_copy_en, callout_copy_vi}  # done (with phase_label_en/vi mirrored from PHASE_LABELS for the shell)
+      - 12 entries (one per phase) sourced from body §1 + §4  # done
+      - unit test asserts every phase present and every route resolves to an existing app/ folder  # done (investor-readiness-callouts.test.ts — 6 cases, all green)
   P5_investor_readiness_score:
     status: shipped
     completed_at: 2026-07-24
