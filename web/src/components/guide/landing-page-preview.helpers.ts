@@ -12,6 +12,10 @@ import type {
   LandingPageInput,
   LandingPageInvalidReason,
 } from "@/lib/landing-page/preview";
+import {
+  buildCmoLandingDraft,
+  type CmoLandingDraftInput,
+} from "@/lib/landing-page/cmo-draft";
 
 export interface LandingPagePreviewFormState {
   headline: string;
@@ -136,4 +140,96 @@ export function reasonCopy(
 ): string {
   const table = locale === "vi" ? REASON_COPY_VI : REASON_COPY_EN;
   return table[reason];
+}
+
+// -- P4a-cmo-draft-wire -----------------------------------------------------
+// UI-side glue for the pure `buildCmoLandingDraft(...)` builder from
+// `web/src/lib/landing-page/cmo-draft.ts` (P4a-cmo-draft). Lets a founder feed
+// the panel a Chapter 3 seed (product name + one-liner + persona + objections +
+// benefits) and pre-fills the main form via `applyCmoDraft(...)` — non-
+// destructive: only empty form fields get overwritten so a founder who already
+// started typing does not lose their work.
+
+export interface CmoDraftFormState {
+  productName: string;
+  oneLiner: string;
+  personaName: string;
+  /** One objection per line — same split rule as `parseBullets`. */
+  personaObjectionsText: string;
+  /** One benefit per line — same split rule as `parseBullets`. */
+  benefitsText: string;
+}
+
+export function makeEmptyCmoDraftFormState(): CmoDraftFormState {
+  return {
+    productName: "",
+    oneLiner: "",
+    personaName: "",
+    personaObjectionsText: "",
+    benefitsText: "",
+  };
+}
+
+/** Split a newline / semicolon separated block into a trimmed non-empty array.
+ * Reuses `parseBullets` so objections + benefits round-trip identically to the
+ * main bullets textarea (commas inside a single line are preserved). */
+export function parseCmoDraftLines(raw: string): string[] {
+  return parseBullets(raw);
+}
+
+/** Convert the CMO-draft form state into the `CmoLandingDraftInput` shape the
+ * pure builder consumes. Blank optional fields collapse to omitted keys so
+ * `buildCmoLandingDraft` sees them as unsupplied (same convention as
+ * `toLandingPageInput` above). */
+export function toCmoDraftInput(state: CmoDraftFormState): CmoLandingDraftInput {
+  const input: CmoLandingDraftInput = {};
+  const productName = state.productName.trim();
+  if (productName) input.productName = productName;
+  const oneLiner = state.oneLiner.trim();
+  if (oneLiner) input.oneLiner = oneLiner;
+  const personaName = state.personaName.trim();
+  if (personaName) input.personaName = personaName;
+  const objections = parseCmoDraftLines(state.personaObjectionsText);
+  if (objections.length > 0) input.personaObjections = objections;
+  const benefits = parseCmoDraftLines(state.benefitsText);
+  if (benefits.length > 0) input.benefits = benefits;
+  return input;
+}
+
+/** True when the founder has typed enough into the CMO-draft form to produce
+ * a usable starter draft — needs at least a one-liner OR a benefit / objection
+ * line, otherwise `buildCmoLandingDraft` would return an all-blank draft. */
+export function canApplyCmoDraft(state: CmoDraftFormState): boolean {
+  if (state.oneLiner.trim().length > 0) return true;
+  if (state.productName.trim().length > 0) return true;
+  if (parseCmoDraftLines(state.benefitsText).length > 0) return true;
+  if (parseCmoDraftLines(state.personaObjectionsText).length > 0) return true;
+  return false;
+}
+
+/** Non-destructive merge: run `buildCmoLandingDraft(...)` and overwrite only
+ * the empty fields on the existing preview form state. Keeps whatever the
+ * founder has already typed so hitting "Auto-draft" never stomps their work.
+ * Bullets are joined with newlines so the textarea keeps its line-per-bullet
+ * shape. */
+export function applyCmoDraft(
+  existing: LandingPagePreviewFormState,
+  draftState: CmoDraftFormState,
+): LandingPagePreviewFormState {
+  const draft = buildCmoLandingDraft(toCmoDraftInput(draftState));
+  const bulletsText = (draft.bullets ?? []).join("\n");
+  const fill = (current: string, next: string | undefined): string => {
+    if (current.trim().length > 0) return current;
+    return typeof next === "string" ? next : "";
+  };
+  return {
+    headline: fill(existing.headline, draft.headline),
+    subheadline: fill(existing.subheadline, draft.subheadline),
+    bulletsText: fill(existing.bulletsText, bulletsText),
+    cta_label: fill(existing.cta_label, draft.cta_label),
+    cta_href: fill(existing.cta_href, draft.cta_href),
+    ga4_measurement_id: fill(existing.ga4_measurement_id, draft.ga4_measurement_id),
+    plausible_domain: fill(existing.plausible_domain, draft.plausible_domain),
+    brand_name: fill(existing.brand_name, draft.brand_name),
+  };
 }
