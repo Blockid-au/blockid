@@ -3,6 +3,7 @@ import { Founding50Form } from "./founding-50-form";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
+import { StickyCta } from "@/components/sales/sticky-cta";
 import { Founding50Spots } from "@/components/ui/founding50-spots";
 import { Founding50Waitlist } from "@/components/ui/founding50-waitlist";
 import { FoundingCountdown } from "@/components/ui/founding-countdown";
@@ -375,6 +376,12 @@ export default async function Founding50Page() {
         </div>
       </main>
       <Footer />
+      {/* Secondary conversion pill — CRO §06. Dismiss cooldown = 7d. */}
+      <StickyCta
+        variant="founding50"
+        phase="vision"
+        location="founding-50"
+      />
     </>
   );
 }
