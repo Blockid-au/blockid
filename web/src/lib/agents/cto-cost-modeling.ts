@@ -1,6 +1,7 @@
 /**
  * CTO Domain Module: Cost Modeling & Tech Stack Evaluation
  * Enhanced with 2026 Australian Market Research Data
+ * Focus: Infrastructure trends, Essential Eight compliance, and Next.js 16 optimizations
  */
 
 export interface TechStackCost {
@@ -71,141 +72,134 @@ export interface TechBudgetProjection {
 export interface TechBudgetMonth {
   /** Month index (1‑based) */
   month: number;
-  /** Human‑readable label (e.g., "Jan 2026") */
-  label: string;
-  /** Infra cost for the month */
-  infra: number;
-  /** Development cost for the month */
-  development: number;
-  /** AI costs for the month */
-  ai: number;
-  /** Tools cost for the month */
-  tools: number;
-  /** Security cost for the month */
-  security: number;
+  /** Monthly cost breakdown */
+  costs: TechStackCost[];
+  /** Total spend for this month */
+  total: number;
 }
 
 /**
- * 2026 Australian Market Benchmarks for Tech Stack Evaluation
+ * 2026 Australian Market Benchmarks for CTO Decision Making
  */
 export const AU_TECH_BENCHMARKS_2026 = {
   infrastructure: {
-    kubernetesAdoptionRate: 0.78,
-    serverlessProductionRate: 0.34,
-    recommendedSSRStrategy: 'Streaming SSR',
-    apacLatencyOptimization: 'Required for mobile performance'
+    kubernetesAdoption: 0.78,
+    serverlessAdoption: 0.34,
+    recommendedSSR: 'Streaming SSR',
+    targetBundleReduction: 0.42,
   },
-  frontendMarketShare: {
+  frameworks: {
     react: 0.62,
     vue: 0.14,
     angular: 0.11,
-    svelte: 0.09
+    svelte: 0.09,
   },
-  securityCompliance: {
+  security: {
     essentialEightSmeCompliance: 0.38,
-    essentialEightPatchLevel3Rate: 0.71,
-    owaspTop10AdoptionRate: 0.45
+    patchingMaturityLevel3: 0.71,
+    owaspTop10Adoption: 0.45,
   },
-  codeQuality: {
+  quality: {
     sastAdoptionRate: 0.72,
     cicdQualityGateIntegration: 0.68,
-    averageMaintainabilityIndex: 68,
-    staticAnalysisCoverage: 0.85
+    avgMaintainabilityIndex: 68,
+    staticAnalysisCoverage: 0.85,
   },
-  developerExperience: {
-    aiAssistantWeeklyUsage: 0.48
-  }
-};
+  productivity: {
+    aiAssistantUsage: 0.48,
+  },
+} as const;
 
-export interface ComplianceScore {
-  /** Score from 0 to 100 */
-  score: number;
-  /** Gap analysis notes */
-  gap: string;
-  /** Recommended action to reach Level 3 */
-  recommendation: string;
+/**
+ * Evaluates if a tech stack aligns with 2026 AU market standards
+ * @param stack Current stack configuration
+ * @returns Compliance and alignment score
+ */
+export function evaluateStackAlignment(stack: TechItem[]): { score: number; gaps: string[] } {
+  const gaps: string[] = [];
+  let score = 0;
+
+  const hasK8s = stack.some(i => i.name.toLowerCase().includes('kubernetes'));
+  const hasSast = stack.some(i => i.type === 'security' && i.name.toLowerCase().includes('sast'));
+  const hasAI = stack.some(i => i.type === 'ai_model');
+
+  if (hasK8s) score += 25; else gaps.push('Missing Kubernetes (Industry standard: 78%)');
+  if (hasSast) score += 25; else gaps.push('Missing SAST tools (Industry standard: 72%)');
+  if (hasAI) score += 25; else gaps.push('No AI productivity tools integrated (Industry standard: 48%)');
+  if (stack.some(i => i.type === 'security')) score += 25; else gaps.push('No dedicated security tooling');
+
+  return { score, gaps };
 }
 
 /**
- * Calculates a security compliance gap based on ACSC Essential Eight 2026 data
- * @param currentControls Number of controls currently implemented (0-10)
- * @returns ComplianceScore object
+ * Calculates estimated performance gain for upgrading to Next.js 16 based on 2026 research
+ * @param currentBundleSize Current JS bundle size in KB
+ * @param currentTtfb Current Time to First Byte in ms
+ * @returns Projected improvements
  */
-export function calculateSecurityGap(currentControls: number): ComplianceScore {
-  const benchmark = AU_TECH_BENCHMARKS_2026.securityCompliance.owaspTop10AdoptionRate;
-  const score = (currentControls / 10) * 100;
-  
+export function projectNextJs16Gains(currentBundleSize: number, currentTtfb: number): {
+  projectedBundleSize: number;
+  projectedTtfb: number;
+  improvementPercentage: number;
+} {
+  const bundleReduction = AU_TECH_BENCHMARKS_2026.infrastructure.targetBundleReduction;
+  const ttfbImprovement = 0.60;
+
   return {
-    score,
-    gap: score < 45 ? 'Below Australian startup average' : 'Above average adoption',
-    recommendation: score < 71 ? 'Prioritize Patch Applications to reach Maturity Level 3' : 'Maintain current security posture'
+    projectedBundleSize: currentBundleSize * (1 - bundleReduction),
+    projectedTtfb: currentTtfb * (1 - ttfbImprovement),
+    improvementPercentage: (bundleReduction + ttfbImprovement) / 2 * 100,
   };
 }
 
 /**
- * Evaluates the maintainability of a codebase against AU Startup benchmarks
- * @param currentMaintainabilityIndex Current index (0-100)
- * @returns Boolean indicating if the code is within top-tier maintainability
+ * Calculates the "Security Debt" based on ACSC Essential Eight and OWASP benchmarks
+ * @param controlsImplemented Number of Essential Eight controls implemented
+ * @param owaspControlsImplemented Number of OWASP Top 10 controls implemented
+ * @returns Debt score where 0 is fully compliant
  */
-export function isMaintainabilityCompetitive(currentMaintainabilityIndex: number): boolean {
-  return currentMaintainabilityIndex >= AU_TECH_BENCHMARKS_2026.codeQuality.averageMaintainabilityIndex;
+export function calculateSecurityDebt(controlsImplemented: number, owaspControlsImplemented: number): number {
+  const e8Gap = 8 - controlsImplemented;
+  const owaspGap = 10 - owaspControlsImplemented;
+  const auSmeAvg = (1 - AU_TECH_BENCHMARKS_2026.security.essentialEightSmeCompliance) * 8;
+
+  const totalGap = e8Gap + owaspGap;
+  const relativeDebt = totalGap / (auSmeAvg + 5.5);
+
+  return Math.max(0, Math.round(relativeDebt * 100));
 }
 
 /**
- * Estimates the potential JS bundle reduction when migrating to Next.js 16 Server Components
- * @param currentBundleSizeKB Current bundle size in KB
- * @returns Estimated new bundle size in KB
+ * Projects 12-month budget based on monthly burn and scaling factors
+ * @param initialMonth TechBudgetMonth
+ * @param monthlyGrowth Scaling factor (e.g., 1.1 for 10% growth)
+ * @returns Full 12-month projection
  */
-export function estimateNextJs16Optimization(currentBundleSizeKB: number): number {
-  const reductionFactor = 0.42;
-  return currentBundleSizeKB * (1 - reductionFactor);
-}
-
-/**
- * Calculates the monthly burn rate for a development phase
- * @param team Team composition
- * @returns Total weekly burn in AUD
- */
-export function calculateWeeklyBurn(team: TeamMember[]): number {
-  return team.reduce((acc, member) => acc + (member.weeklyRate * member.count), 0);
-}
-
-/**
- * Generates a 12-month budget projection based on monthly costs
- * @param monthlyCosts Initial costs per category
- * @param growthRate Monthly growth multiplier (e.g., 1.05 for 5% growth)
- * @returns TechBudgetProjection
- */
-export function projectAnnualBudget(
-  monthlyCosts: Record<string, number>, 
-  growthRate: number = 1.0
-): TechBudgetProjection {
+export function projectAnnualBudget(initialMonth: TechBudgetMonth, monthlyGrowth: number = 1.05): TechBudgetProjection {
   const months: TechBudgetMonth[] = [];
-  const totals = { infra: 0, dev: 0, ai: 0, tools: 0, security: 0 };
+  let totals = { infra: 0, dev: 0, ai: 0, tools: 0, security: 0 };
 
   for (let i = 1; i <= 12; i++) {
-    const multiplier = Math.pow(growthRate, i - 1);
-    const mInfra = (monthlyCosts.infra || 0) * multiplier;
-    const mDev = (monthlyCosts.dev || 0) * multiplier;
-    const mAi = (monthlyCosts.ai || 0) * multiplier;
-    const mTools = (monthlyCosts.tools || 0) * multiplier;
-    const mSecurity = (monthlyCosts.security || 0) * multiplier;
+    const growthFactor = Math.pow(monthlyGrowth, i - 1);
+    const monthlyCosts = initialMonth.costs.map(cat => ({
+      ...cat,
+      monthlyCost: cat.monthlyCost * growthFactor,
+      items: cat.items.map(item => ({
+        ...item,
+        monthlyCost: item.monthlyCost * growthFactor,
+      })),
+    }));
 
-    months.push({
-      month: i,
-      label: `Month ${i}`,
-      infra: mInfra,
-      development: mDev,
-      ai: mAi,
-      tools: mTools,
-      security: mSecurity
+    const monthTotal = monthlyCosts.reduce((sum, cat) => sum + cat.monthlyCost, 0);
+    months.push({ month: i, costs: monthlyCosts, total: monthTotal });
+
+    monthlyCosts.forEach(cat => {
+      if (cat.category === 'infra') totals.infra += cat.monthlyCost;
+      if (cat.category === 'dev') totals.dev += cat.monthlyCost;
+      if (cat.category === 'ai') totals.ai += cat.monthlyCost;
+      if (cat.category === 'tools') totals.tools += cat.monthlyCost;
+      if (cat.category === 'security') totals.security += cat.monthlyCost;
     });
-
-    totals.infra += mInfra;
-    totals.dev += mDev;
-    totals.ai += mAi;
-    totals.tools += mTools;
-    totals.security += mSecurity;
   }
 
   return {
@@ -215,6 +209,6 @@ export function projectAnnualBudget(
     totalAI12: totals.ai,
     totalTools12: totals.tools,
     totalSecurity12: totals.security,
-    grandTotal12: totals.infra + totals.dev + totals.ai + totals.tools + totals.security
+    grandTotal12: totals.infra + totals.dev + totals.ai + totals.tools + totals.security,
   };
 }
