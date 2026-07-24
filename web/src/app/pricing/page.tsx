@@ -9,6 +9,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { StickyCta } from "@/components/sales/sticky-cta";
 import type { Segment } from "@/lib/plans-v2";
 
 export const dynamic = "force-dynamic";
@@ -109,11 +110,32 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
       <FAQJsonLd items={FAQ_JSONLD} />
       <PageViewTracker event="pricing_viewed" params={{}} />
 
+      {/* Above-the-fold hero — ONE primary CTA + text-link secondary, per
+          CRO §06. Height reserved with min-h to keep CLS < 0.02 across the
+          hydration boundary. */}
       <MarketingHero
         eyebrow="Pricing v2.0"
         title="Get fundable in 7 days. Then choose your plan."
         subtitle="Every monthly plan includes a 7-day free trial. Card required at signup, charged only on Day 8. Cancel anytime before with no charge."
+        primaryCta={{
+          href: "/signup?plan=founder-starter&trial=1",
+          label: "Start 7-day free trial",
+        }}
       />
+
+      <section
+        aria-label="Pricing hero secondary"
+        className="mx-auto -mt-4 max-w-5xl px-6 pb-2"
+      >
+        <div className="min-h-[24px]">
+          <a
+            href="#pricing-matrix"
+            className="text-sm font-medium text-[var(--fintech-accent)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)] rounded"
+          >
+            See all 12 plans below ↓
+          </a>
+        </div>
+      </section>
 
       <section
         aria-label="Pricing guarantees"
@@ -135,10 +157,13 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         </div>
       </section>
 
-      {/* Segment tabs + pricing matrix — client interactivity kept intact */}
+      {/* Segment tabs + pricing matrix — client interactivity kept intact.
+          `id="pricing-matrix"` is the anchor target for the hero's
+          secondary text link. */}
       <section
+        id="pricing-matrix"
         aria-label="Pricing matrix"
-        className="mx-auto max-w-7xl px-6 py-8 sm:py-12"
+        className="mx-auto max-w-7xl px-6 py-8 sm:py-12 scroll-mt-24"
       >
         <SegmentTabs defaultSegment={initialSegment}>
           <PricingMatrix />
@@ -183,6 +208,10 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         Not financial advice. Equity arrangements require independent legal
         and tax review. Auschain PTY LTD · Sydney NSW.
       </p>
+
+      {/* Persistent bottom CTA — hidden 7 days after dismissal. Marketing
+          surface only. */}
+      <StickyCta variant="pricing" phase="validation" location="pricing" />
     </MarketingShell>
   );
 }
