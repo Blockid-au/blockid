@@ -39,16 +39,42 @@ function fmtAud(v: number): string {
   return `A$${v.toLocaleString()}`;
 }
 
-/* ─── Financial Health Gauge ─────────────────────────────────────────────── */
+/* ─── Financial Health Score band helpers ────────────────────────────────── */
 
-function HealthGauge({ score }: { score: number }) {
+type ScoreBand = { color: string; label: string; pillClasses: string };
+
+function scoreBand(score: number): ScoreBand {
+  const s = Math.max(0, Math.min(100, score));
+  if (s < 40) return {
+    color: "#EF4444",
+    label: "Critical",
+    pillClasses: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200 ring-1 ring-red-300/60 dark:ring-red-400/30",
+  };
+  if (s < 65) return {
+    color: "#F59E0B",
+    label: "At Risk",
+    pillClasses: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200 ring-1 ring-amber-300/60 dark:ring-amber-400/30",
+  };
+  if (s < 80) return {
+    color: "#3B82F6",
+    label: "Fair",
+    pillClasses: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200 ring-1 ring-blue-300/60 dark:ring-blue-400/30",
+  };
+  return {
+    color: "#10B981",
+    label: "Healthy",
+    pillClasses: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200 ring-1 ring-emerald-300/60 dark:ring-emerald-400/30",
+  };
+}
+
+/* ─── Financial Health Gauge (compact arc, no embedded text) ─────────────── */
+
+function HealthGauge({ score, color }: { score: number; color: string }) {
   const clamped = Math.max(0, Math.min(100, score));
-  // SVG arc gauge: 180-degree semicircle
-  const radius = 60;
-  const cx = 80;
-  const cy = 80;
-  const startAngle = Math.PI; // left
-  const endAngle = 0; // right
+  // 180-degree semicircle arc, no text — number renders in adjacent flex row
+  const radius = 46;
+  const cx = 60;
+  const cy = 60;
   const angle = Math.PI - (clamped / 100) * Math.PI;
   const x = cx + radius * Math.cos(angle);
   const y = cy + radius * Math.sin(angle);
@@ -56,28 +82,27 @@ function HealthGauge({ score }: { score: number }) {
   const trackPath = `M ${cx - radius},${cy} A ${radius},${radius} 0 0,1 ${cx + radius},${cy}`;
   const fillPath = `M ${cx - radius},${cy} A ${radius},${radius} 0 0,1 ${x},${y}`;
 
-  let color = "#10B981"; // green
-  let label = "Healthy";
-  if (clamped < 40) { color = "#EF4444"; label = "Critical"; }
-  else if (clamped < 65) { color = "#F59E0B"; label = "At Risk"; }
-  else if (clamped < 80) { color = "#3B82F6"; label = "Fair"; }
-
   return (
-    <div className="flex flex-col items-center">
-      <svg width="160" height="90" viewBox="0 0 160 90" className="overflow-visible">
-        <path d={trackPath} fill="none" stroke="#E5E7EB" strokeWidth="14" strokeLinecap="round" />
-        {clamped > 0 && (
-          <path d={fillPath} fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" />
-        )}
-        <text x={cx} y={cy - 4} textAnchor="middle" className="font-bold" style={{ fontSize: 26, fill: color, fontWeight: 700 }}>
-          {clamped}
-        </text>
-        <text x={cx} y={cy + 14} textAnchor="middle" style={{ fontSize: 11, fill: "#6B7280" }}>
-          / 100
-        </text>
-      </svg>
-      <span className="text-sm font-semibold mt-1" style={{ color }}>{label}</span>
-    </div>
+    <svg
+      width="120"
+      height="66"
+      viewBox="0 0 120 66"
+      preserveAspectRatio="xMidYMid meet"
+      className="overflow-visible shrink-0"
+      role="img"
+      aria-label={`Score ${clamped} of 100`}
+    >
+      <path
+        d={trackPath}
+        fill="none"
+        className="stroke-surface-200 dark:stroke-white/10"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
+      {clamped > 0 && (
+        <path d={fillPath} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round" />
+      )}
+    </svg>
   );
 }
 
@@ -122,10 +147,10 @@ function Widget({ title, icon: Icon, children, className }: {
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-2xl border border-surface-200 bg-white p-6", className)}>
+    <div className={cn("rounded-2xl border border-surface-200 dark:border-white/10 bg-white dark:bg-black/40 p-6 min-w-0", className)}>
       <div className="flex items-center gap-2 mb-4">
         <Icon className="h-4 w-4 text-brand-500 shrink-0" />
-        <h2 className="text-sm font-bold text-ink-800 uppercase tracking-wider">{title}</h2>
+        <h2 className="text-sm font-bold text-ink-800 dark:text-ink-100 uppercase tracking-wider">{title}</h2>
       </div>
       {children}
     </div>
@@ -225,7 +250,17 @@ export function CFODashboardClient({
     return Math.max(0, Math.min(100, score));
   }
 
+  // Fresh-user empty state: no financial inputs have been entered yet.
+  // Without this guard the base score computes to 60 ("At Risk") on first paint,
+  // which is misleading before the user has typed anything.
+  const noInputsYet =
+    input.mrr === 0 &&
+    input.burn_rate === 0 &&
+    input.cash_balance === 0 &&
+    !result;
+
   const displayScore = result?.health_score ?? localHealthScore();
+  const band = scoreBand(displayScore);
 
   async function generateCommentary() {
     setLoading(true);
@@ -272,12 +307,67 @@ export function CFODashboardClient({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Financial Health Score */}
         <Widget title="Financial Health Score" icon={BarChart3}>
-          <div className="flex flex-col items-center py-2">
-            <HealthGauge score={displayScore} />
-            <p className="text-xs text-ink-400 mt-3 text-center max-w-[180px]">
-              Score updates live as you enter your numbers. Click &ldquo;Generate AI Commentary&rdquo; for the full analysis.
-            </p>
-          </div>
+          {noInputsYet ? (
+            <div className="flex flex-col items-center justify-center text-center py-6 space-y-2">
+              <div className="h-14 w-14 rounded-full border-2 border-dashed border-surface-300 dark:border-white/15 flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-ink-300 dark:text-ink-500" aria-hidden />
+              </div>
+              <p className="text-sm font-medium text-ink-700 dark:text-ink-200">
+                Enter your numbers to see your score
+              </p>
+              <p className="text-xs text-ink-500 dark:text-ink-400 leading-relaxed max-w-[220px]">
+                Add your MRR, burn rate, and cash balance below to compute your live financial health score.
+              </p>
+            </div>
+          ) : loading && !result ? (
+            <div className="space-y-4 py-2" aria-busy="true" aria-live="polite">
+              <div className="flex items-baseline justify-between gap-4 flex-wrap">
+                <div className="space-y-2">
+                  <div className="h-3 w-32 rounded bg-surface-200 dark:bg-white/10 animate-pulse" />
+                  <div className="h-10 w-24 rounded bg-surface-200 dark:bg-white/10 animate-pulse" />
+                </div>
+                <div className="h-6 w-16 rounded-full bg-surface-200 dark:bg-white/10 animate-pulse" />
+              </div>
+              <div className="h-16 rounded bg-surface-100 dark:bg-white/5 animate-pulse" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-baseline justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-widest text-ink-500 dark:text-ink-400">
+                    Current Score
+                  </p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span
+                      className="text-5xl font-bold tabular-nums leading-none"
+                      style={{ color: band.color }}
+                    >
+                      {Math.round(displayScore)}
+                    </span>
+                    <span className="text-lg text-ink-500 dark:text-ink-400 leading-none">/ 100</span>
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap",
+                    band.pillClasses,
+                  )}
+                >
+                  {band.label}
+                </span>
+              </div>
+              <div className="flex items-center justify-center pt-1">
+                <HealthGauge score={displayScore} color={band.color} />
+              </div>
+              <p className="text-xs text-ink-500 dark:text-ink-400 leading-relaxed">
+                Score updates live as you enter your numbers. Click{" "}
+                <span className="font-medium text-ink-700 dark:text-ink-200">
+                  &ldquo;Generate AI Commentary&rdquo;
+                </span>{" "}
+                for the full analysis.
+              </p>
+            </div>
+          )}
         </Widget>
 
         {/* Burn Rate & Runway */}
