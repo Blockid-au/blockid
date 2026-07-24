@@ -289,7 +289,9 @@ export async function linkFounderAttribution(
   }
 
   try {
-    const { error } = await sb.from("reseller_attribution").insert(decision.row);
+    const { error } = await sb
+      .from("reseller_attribution")
+      .insert(decision.row as unknown as Record<string, unknown>);
     if (error) {
       if (error.code === "23505") {
         return { ok: true, kind: "already_attributed" };

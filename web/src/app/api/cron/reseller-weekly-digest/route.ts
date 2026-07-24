@@ -114,6 +114,11 @@ import {
   type DigestSnapshotPctChangeStreaks,
 } from "@/lib/reseller/digest-snapshot-pct-change-streaks";
 import {
+  computeDigestSnapshotPerResellerPctChangeStreaks,
+  formatDigestSnapshotPerResellerPctChangeStreaksSection,
+  type DigestSnapshotPerResellerPctChangeStreaks,
+} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streaks";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1331,6 +1336,10 @@ export async function GET(req: Request) {
   let perResellerDirectionStreaksSection = "";
   let snapshotPctChangeStreaks: DigestSnapshotPctChangeStreaks | null = null;
   let pctChangeStreaksSection = "";
+  let snapshotPerResellerPctChangeStreaks:
+    | DigestSnapshotPerResellerPctChangeStreaks
+    | null = null;
+  let perResellerPctChangeStreaksSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1622,6 +1631,26 @@ export async function GET(req: Request) {
     pctChangeStreaksSection = formatDigestSnapshotPctChangeStreaksSection(
       snapshotPctChangeStreaks,
     );
+    // P11.52 — per-reseller sustained-|pct|-material streak detector (module
+    // P11.51). Drills the P11.50 portfolio |pct|-material streak table above
+    // down to (metric × reseller_code) so ops can name the specific partner
+    // whose subscriber mix keeps churning materially week over week even when
+    // direction flips. Consumes the SAME snapshotPerResellerRollingTrend the
+    // P11.22/P11.33 sections already read (no second per-reseller trend fold,
+    // no divergence risk vs. the per-reseller sign-streak table it sits
+    // beside). Surfaces counter-balanced volatility invisible to P11.50 —
+    // partner A churns +35/-30/+40/-32% while partner B swings the opposite
+    // direction by the same magnitude, leaving the portfolio total flat every
+    // week so P11.50 stays silent yet both partners ran material length-3
+    // streaks.
+    snapshotPerResellerPctChangeStreaks =
+      computeDigestSnapshotPerResellerPctChangeStreaks(
+        snapshotPerResellerRollingTrend,
+      );
+    perResellerPctChangeStreaksSection =
+      formatDigestSnapshotPerResellerPctChangeStreaksSection(
+        snapshotPerResellerPctChangeStreaks,
+      );
   }
   if (
     topMoversSection ||
@@ -1629,7 +1658,8 @@ export async function GET(req: Request) {
     topMoversPerResellerSection ||
     directionStreaksSection ||
     perResellerDirectionStreaksSection ||
-    pctChangeStreaksSection
+    pctChangeStreaksSection ||
+    perResellerPctChangeStreaksSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -1654,6 +1684,7 @@ export async function GET(req: Request) {
       directionStreaksSection +
       perResellerDirectionStreaksSection +
       pctChangeStreaksSection +
+      perResellerPctChangeStreaksSection +
       rest;
   }
 
@@ -2129,6 +2160,21 @@ export async function GET(req: Request) {
           skipped_reason:
             previousSnapshotSkipReason ?? "no_previous_snapshot",
         },
+    snapshot_per_reseller_pct_change_streaks:
+      snapshotPerResellerPctChangeStreaks
+        ? {
+            window_size: snapshotPerResellerPctChangeStreaks.window_size,
+            first_week: snapshotPerResellerPctChangeStreaks.first_week,
+            last_week: snapshotPerResellerPctChangeStreaks.last_week,
+            min_streak_length:
+              snapshotPerResellerPctChangeStreaks.min_streak_length,
+            threshold: snapshotPerResellerPctChangeStreaks.threshold,
+            rows: snapshotPerResellerPctChangeStreaks.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     ran_at: now.toISOString(),
   };
 
