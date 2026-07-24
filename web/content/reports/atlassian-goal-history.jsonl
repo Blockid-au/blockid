@@ -213,3 +213,5 @@
 {"tick_id":"2026-07-24T12-27-01-935Z","ts":"2026-07-24T12:30:24.076Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5b","summary":"Mounted <InvestorReadinessTile /> in web/src/app/dashboard/svi/page.tsx after <NextStepTile />. Removed deferred-mount comment. Typecheck clean. E2E spec now active."}
 {"tick_id":"2026-07-24T12-27-01-935Z","ts":"2026-07-24T12:30:43.537Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":221593,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-24T12-27-01-935Z","ts":"2026-07-24T12:30:43.570Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
+{"tick_id":"2026-07-24T12-27-01-935Z","ts":"2026-07-24T12:30:45.030Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-24T12-27-01-935Z","ts":"2026-07-24T12:30:45.035Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"2802e107","last_deployed":"ae9e3ef"}
