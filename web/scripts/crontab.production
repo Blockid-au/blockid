@@ -368,6 +368,12 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # time-to-first-report leading indicators so CS can act before churn fires.
 15 4 * * 1 bash $RUN reseller-weekly-digest --timeout 300
 
+# Feature-gate manifest drift (R-09) — nightly 04:30 UTC (14:30 AEST). Runtime
+# check that on-disk mutation routes still match feature-gates.manifest.ts;
+# any missing or phantom entry emails admin@blockid.au. Catches drift merged
+# past the vitest completeness suite (hand edits, out-of-band route adds).
+30 4 * * * bash $RUN reseller-manifest-drift --timeout 120
+
 # Reseller loop monitor — every minute, snapshots loop state to
 #   /tmp/blockid-reseller-monitor.txt (human)
 #   web/content/reports/reseller-monitor.jsonl (machine)
