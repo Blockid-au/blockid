@@ -1045,3 +1045,4 @@
 {"ts":"2026-07-24T00:00:01Z","endpoint":"ceo-daily-summary","status":"ok","duration_ms":6763,"detail":"{\"date\": \"2026-07-24\", \"status\": \"YELLOW\", \"agents\": {\"green\": 0, \"yellow\": 14, \"red\": 0, \"missing\": 0}, \"deploys\": 0, \"budget\": {\"month\": \"2026-07\", \"spent\": 0.81, \"limit\": 100, \"percent\": 1, \"calls\""}
 {"ts":"2026-07-24T00:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16460,"detail":""}
 {"ts":"2026-07-24T00:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16435,"detail":""}
+{"ts":"2026-07-24T00:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":495,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (235656152 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (272465896 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
