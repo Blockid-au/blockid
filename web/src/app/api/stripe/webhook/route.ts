@@ -333,6 +333,21 @@ export async function POST(request: Request) {
       try {
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
         await upsertTrialState(userId, planId, sub);
+        // Mirror trial_start/end onto app_users for the dashboard banner
+        // + pre-charge cron (see /api/cron/trial-charge-warning).
+        if (sub.status === "trialing") {
+          const trialStart = sub.trial_start ? new Date(sub.trial_start * 1000).toISOString() : new Date().toISOString();
+          const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
+          await supabase
+            .from("app_users")
+            .update({
+              trial_started_at: trialStart,
+              trial_end_at: trialEnd,
+              trial_warning_sent_at: null,
+              trial_converted_at: null,
+            })
+            .eq("id", userId);
+        }
       } catch (err) {
         console.error(
           "[blockid:stripe] failed to seed trial state from checkout",
@@ -442,7 +457,13 @@ export async function POST(request: Request) {
     const newStatus = subscription.status;
 
     if (userId && prevStatus === "trialing" && newStatus === "active") {
-      // Trial converted → paid.
+      // Trial converted → paid. Mirror onto app_users for dashboard banner
+      // + reporting; subscription_trial_state stays the Stripe-mirrored
+      // source of truth.
+      await supabase
+        .from("app_users")
+        .update({ trial_converted_at: new Date().toISOString() })
+        .eq("id", userId);
       await recordRevenueEvent({
         userId,
         planId: subscription.items?.data?.[0]?.price?.id
@@ -601,6 +622,13 @@ export async function POST(request: Request) {
         );
       });
     }
+
+    // Soft-mark on app_users — dashboard shows a banner but the plan stays
+    // active. Hard cancel is driven by dunning-retry after MAX_ATTEMPTS.
+    await supabase
+      .from("app_users")
+      .update({ payment_failed_at: new Date().toISOString() })
+      .eq("stripe_customer_id", customerId);
 
     console.log(`[blockid:stripe] payment failed for customer ${customerId}`);
   }
