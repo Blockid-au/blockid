@@ -6,7 +6,7 @@
 ---
 goal_id: ux-ia-startup-flow-v1
 status: in_progress
-version: 2026-07-24.1
+version: 2026-07-24.2
 owner: admin@blockid.au
 created: 2026-07-24
 loop_flag_env: UX_IA_GOAL_LOOP
@@ -100,8 +100,18 @@ phased_tracks:
     status: human_blocked
     description: Founder reviews §C new IA proposal (esp. Q1..Q4) before P9 ship-hardening
   P9_ship_hardening:
-    status: proposed
-    description: E2E test, docs push, SOURCE-OF-TRUTH entry, menu-walkthrough.md
+    status: shipped
+    completed_at: 2026-07-24
+    description: |
+      E2E `web/tests/e2e/nav/menu-structure.spec.ts` (commit `a5c295e0`)
+      pins anonymous NavV2 Demo trigger + <=7 top-nav items, legacy
+      site/navbar Demo dropdown, founder dashboard JourneyStepLadder
+      (12 nodes), founder workspace Demo top-bar link, and P7 a11y
+      contracts (aria-haspopup="menu", workspace aria-label, later-phases
+      disclosure aria-expanded). SOURCE-OF-TRUTH G7 entry refreshed to
+      list Round 5.13 ship + P9 close-out; `docs/user/menu-walkthrough.md`
+      Coming-next section rewritten to reflect P5–P7 shipped and only
+      Q1–Q4 founder review outstanding (all non-blocking).
 
 open_questions:
   Q1:

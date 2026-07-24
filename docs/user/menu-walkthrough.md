@@ -28,16 +28,22 @@ Why: menu bars over 7 items force the eye to slow-scan. Miller's Law is real —
 - **Your muscle memory works.** The sidebar groups (Overview, Build & Validate, Ownership & Equity, Fundraise, Grow & Scale, Account) are unchanged. Only the top-nav grouping and the dashboard visual moved.
 - **The "Next step" tile is untouched.** The single-next-action card that tells you exactly what to do next is exactly where it was.
 
+## Also shipped in Round 5.13 (July 2026)
+
+- **Sidebar: progressive disclosure got quieter.** Groups more than +3 phases ahead of your current phase now collapse into a single **"Later phases (N)"** disclosure — click to expand. Every locked row shows a small lock glyph + a `Unlocks after Phase N: <phase name>` tooltip so you always know when it opens up. Nothing is hidden.
+- **Sidebar order follows your role.** Founders see Overview → Build → Ownership → Fundraise → Grow. Investors, advisors, accelerators, resellers, and journalists each get their own priority order + relevant top-bar extras (e.g. the Reseller Console link surfaces automatically for resellers, Admin gear for admins). The overlay logic lives in `web/src/lib/nav/role-menu-overlay.ts`.
+- **A11y hardened.** NavV2 dropdown triggers now expose `aria-haspopup="menu"` + `aria-label="<group> menu"`; the workspace `<nav>` is a labelled landmark (`aria-label="Workspace navigation"`); the Later-phases collapse is a real disclosure button with `aria-expanded`/`aria-controls`. E2E tests pin all three contracts.
+
 ## Coming next (waiting on your review)
 
-We flagged four questions in the goal doc that shape the next round:
+Only one thing is still open: your call on the four IA questions below. All four are marked `blocking: false` — nothing in the code path is gated on your answer; we'll adjust once you decide.
 
 - **Q1** — How many phase-clusters should appear as top-nav CTAs vs. collapsed under a single "My Startup" menu? (Recommendation: 5 visible.)
 - **Q2** — Should "Demo" always be a top-nav link, or a floating CTA on landing pages? (Recommendation: top-nav for now.)
 - **Q3** — Should the mobile step ladder show all 12 phases or just current + next 2 with a "Show all" toggle? (Recommendation: current + next 2 on mobile.)
 - **Q4** — For returning founders at phase 6+, should we render a "Skip to current phase" shortcut? (Recommendation: yes — anchor at first sight of the ladder.)
 
-Reply on the goal doc PR or send admin@blockid.au your call — we ship P6-P9 as soon as you decide.
+Reply on the goal doc PR or send admin@blockid.au your call.
 
 ## Where the change lives (for engineers)
 
