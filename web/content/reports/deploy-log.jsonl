@@ -1170,3 +1170,5 @@
 {"ts":"2026-07-24T04:08:08.700Z","event":"github-push-master","detail":"Blockid-au: feat(legal): AU-flavoured SAFE template (round 5.6c) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:08:23.193Z","event":"github-push-master","detail":"Blockid-au: feat(compliance): s708(8) wholesale investor cert intake + dataroom wire (round 5.5b) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:09:45.263Z","event":"github-push-master","detail":"Blockid-au: docs(reseller): tick 377 twin-lift reseller_attributions summary onto create-startup-validation (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:16:25.844Z","event":"github-push-master","detail":"Blockid-au: feat(dashboard): /dashboard/reports index (round 5.5 QA) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:17:10.137Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 378 twin-lift reseller_attributions row-cluster summary onto attribution-timing (1 commits)","source":"github-webhook"}

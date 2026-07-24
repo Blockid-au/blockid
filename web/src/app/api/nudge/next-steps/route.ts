@@ -22,7 +22,9 @@ import {
   type NudgeDataroomRow,
   type NudgeEvidenceItem,
   type NudgeProject,
+  type NudgeComplianceStatus,
 } from "@/lib/nudge/next-steps";
+import { computeComplianceMissing } from "@/lib/nudge/compliance-status";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +136,19 @@ export async function GET() {
       }
     : null;
 
+  // AU compliance snapshot — reads the 4 compliance_* tables and injects
+  // raise-blocker items into `missing[]` (see nudge/compliance-status.ts).
+  let complianceStatus: NudgeComplianceStatus | undefined;
+  try {
+    complianceStatus = await computeComplianceMissing(
+      supabase,
+      user.id,
+      projectId,
+    );
+  } catch (err) {
+    console.warn("[blockid:nudge] compliance snapshot failed", err);
+  }
+
   const result = computeNextSteps({
     user: { id: user.id, email: user.email },
     project: nudgeProject,
@@ -141,6 +156,7 @@ export async function GET() {
     sviScores,
     dataroomRows,
     evidenceItems,
+    complianceStatus,
   });
 
   return NextResponse.json(
