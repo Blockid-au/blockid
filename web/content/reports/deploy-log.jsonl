@@ -1094,3 +1094,4 @@
 {"ts":"2026-07-24T00:06:11.403Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T00-00-01-703Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T00:14:33.722Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 356 — P10 admins[] status ⇔ revoked_at + attributions_summary.by_source module-scope summary twin lift onto admin-reseller-detail-authz (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T00:14:42.330Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T00-10-01-607Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T00:25:04.385Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 357 — P10 resellers-row ck_wholesale_gst_required cross-column invariant summary twin hoist onto admin-reseller-detail-validation (1 commits)","source":"github-webhook"}
