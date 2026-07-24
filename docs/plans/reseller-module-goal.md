@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.379
+version: 2026-07-24.380
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,164 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 380
+    ran_at: 2026-07-24
+    action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_drawer_validation
+    result: |
+      Executes tick 379 next-pick option (i) verbatim: cross-surface twin-
+      lift of the tick 376/377/378/379 module-scope summary from the create-
+      startup write-path pair + attribution-timing.spec.ts + drawer-authz.spec
+      .ts onto drawer-validation.spec.ts — the SECOND SELECT-LENS reseller_
+      attributions-touching surface and the close-out of the drawer spec pair
+      to 2/2 parity within the drawer-authz-authz-and-validation subset
+      (mirrors the tick 377 close-out of the create-startup pair + tick 375
+      close-out of the credit-grant pair). Raises 5/16 surface parity on the
+      reseller_attributions row cluster; 11 sibling touching surfaces still
+      pending (me-attribution, scope-boundary, reveal-email-authz, reveal-
+      email-validation, credit-grant-authz, credit-grant-validation, audit-
+      log-writes, audit-anomaly-scan, sandbox-setup-authz, admin-reseller-
+      detail-authz, admin-reseller-detail-validation).
+
+      Pure documentation-only doc-block hoist — no new imports, no new
+      module-scope const, no per-column assert added, no fixture change, no
+      route change, no migration change. Adapted for the drawer-validation
+      surface's SELECT-lens read semantics with a KEY delta vs tick 379:
+        - Writer-side source: IDENTICAL to tick 376/377/378/379 (DB CHECK +
+          partial-unique guards at 0091:112-142 wrap every reseller_
+          attributions insert; 'user' branch of ck_subject_fk_matches_type
+          UNREACHABLE-BY-CONSTRUCTION from every current route write path
+          across the codebase per grep audit of retail-attribution.ts:165-
+          172 + create-startup/route.ts:301-313).
+        - Application read-path anchor: IDENTICAL to tick 379. Anchors at
+          web/src/lib/reseller/scope.ts:63-84 via scopedReseller.allowed
+          CustomerIds() — the canonical SELECT-lens read of the cluster.
+          The lazy query filters on (reseller_id, status='active', opted_
+          out=false) which exactly matches the WHERE clause of the reseller_
+          attributions_active_project_uniq partial-unique index at 0091:
+          137-139, then splits on subject_type ∈ {user, project}. The 'user'
+          branch is DEAD CODE at scope.ts:73 because no write path ever
+          inserts subject_type='user'.
+        - Runtime enforcement: DIFFERENT from tick 379 — FIRST SELECT-LENS
+          surface where the HARNESS-MODE rows DO fire the allowedCustomer
+          Ids() SELECT. Both drawer-validation rows (row 1 invalid_id 400 +
+          row 2 not_in_scope 403) run under loadResellerHarness() with the
+          reseller-admin session established — that means BOTH reach
+          route.ts:63 which awaits scope.allowedCustomerIds() BEFORE decide
+          Reveal fires the shape/scope check. Contrast with drawer-authz
+          .spec.ts (tick 379) where rows 1 (unauthenticated 401) + 2
+          (non_reseller_admin 403 no_membership) BAIL upstream at route.ts:
+          47 (getCurrentUser null) or route.ts:54 (scopedReseller throws),
+          so the SELECT never runs on the drawer-authz harness-mode rows.
+          Consequently, drawer-validation carries the FIRST harness-mode
+          SELECT-lens coverage on the cluster: BOTH rows fire the (reseller
+          _id, status='active', opted_out=false) SELECT filter, then diverge
+          on the decideReveal check — row 1 returns 400 invalid_id because
+          "not-a-uuid" fails UUID_RE at customer-reveal.ts:20; row 2 returns
+          403 not_in_scope because the well-formed OUT_OF_SCOPE_UUID passes
+          UUID_RE but fails allowedIds.includes() at customer-reveal.ts:23.
+          Wave-2 row 147 (active_wholesale happy path) DOES reach decide
+          Reveal's POSITIVE uuid_in_scope branch — the SELECT fires and
+          returns the seeded reseller_attributions row for fixture
+          .attributedUserId, then decideReveal passes because fixture
+          .attributedUserId lives in the resolved allowedCustomerIds set.
+        - Coverage-per-guard posture: ZERO-COVERAGE-PER-GUARD on all five
+          CHECK/index invariants — SELECT does not fire DB CHECK
+          constraints, and read-side hits on the partial-unique index only
+          validate index existence rather than uniqueness enforcement.
+          IDENTICAL to tick 379 posture. The 'project' branch of ck_
+          subject_fk_matches_type is READ-side EXERCISED at rows 1 + 2 +
+          147 via the subject_type='project' filter but the CHECK itself
+          only fires on write; the 'user' branch remains UNREACHABLE-BY-
+          CONSTRUCTION AND is DEAD CODE at scope.ts:73. Status 'active'
+          branch is READ-side EXERCISED via the .eq("status","active")
+          filter; 'revoked' branch remains UNREACHABLE from insert. Source
+          CHECK all three enum branches ZERO-COVERAGE-PER-GUARD on both
+          write and read.
+        - Symmetric-cluster posture: THIS surface closes the drawer spec
+          pair to 2/2 parity within the drawer-authz-authz-and-validation
+          subset — both drawer-authz (SELECT-lens, harness-mode-rows-bail-
+          upstream) and drawer-validation (SELECT-lens, harness-mode-rows-
+          fire-SELECT) now carry the same tick 376/377/378/379/380 module-
+          scope invariant summary pinned to the same 0091:112-142 line
+          anchor. Combined post-tick 380 posture: 5/16 total surfaces
+          summarised on the cluster. The 'user'-branch complement stays
+          ASYMMETRIC + UNREACHABLE-BY-CONSTRUCTION + DEAD-CODE-AT-READ
+          across the entire codebase per tick 376/377/378/379 posture.
+
+      Diagnostic delta of the pass:
+        - drawer-validation.spec.ts:
+            + new module-scope tick 380 doc-block placed after the
+              MASKED_EMAIL_RE const (line ~125) and before the first
+              test.describe (line ~127 pre-edit), matching the tick 376
+              placement on create-startup-authz.spec.ts (after NON_
+              RESELLER_FOUNDER_EMAIL const, before first test.describe),
+              the tick 377 placement on create-startup-validation.spec
+              .ts (after the CASES const, before first test.describe),
+              the tick 378 placement on attribution-timing.spec.ts (after
+              shared-fixture imports, before first test.describe), and
+              the tick 379 placement on drawer-authz.spec.ts (after
+              MASKED_EMAIL_RE const, before first test.describe). Twin-
+              lift symmetry across the drawer spec pair now literal — the
+              two doc-blocks share verbatim structure adjusted for the
+              harness-mode-rows-fire-SELECT delta.
+            + Documents read-path anchor at web/src/lib/reseller/scope.ts:
+              63-84 (scopedReseller.allowedCustomerIds SELECT with WHERE
+              matching the partial-unique index scope; 'user' branch is
+              DEAD CODE at scope.ts:73 per UNREACHABLE-BY-CONSTRUCTION
+              write-path posture) — IDENTICAL to tick 379 anchor.
+            + Coverage-per-guard posture: ZERO-COVERAGE-PER-GUARD on all
+              five CHECK/index invariants (SELECT does not fire DB CHECKs);
+              'user' branch of ck_subject_fk_matches_type carries UNREACH
+              ABLE-BY-CONSTRUCTION + DEAD-CODE-AT-READ posture across all
+              touching surfaces.
+        - No production code touched, no fixture change, no route change,
+          no migration change, no new imports, no new module-scope
+          constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: pre-existing R-03 violation on
+          web/src/app/api/dataroom/populate-from-template/route.ts:51 (from
+          commit a82478ca — round 5.4c refactor); unrelated to this test-
+          file edit; no new lint signal introduced by the doc-block
+          addition. IDENTICAL baseline to tick 379.
+
+      Frontier after tick 380: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Reseller_attributions row cluster now carries 5/16 surface parity
+      (create-startup-authz tick 376 + create-startup-validation tick 377
+      + attribution-timing tick 378 + drawer-authz tick 379 + drawer-
+      validation this tick — closes drawer spec pair to 2/2 within the
+      SELECT-lens subset). 11 sibling touching surfaces still pending
+      twin-lift.
+
+      Next natural picks on tick 381:
+        (i) rotate to reveal-email-authz.spec.ts / reveal-email-
+        validation.spec.ts pair (same scopedReseller.allowedCustomerIds()
+        SELECT-lens anchor as drawer, different route handler shape) for
+        a sixth + seventh surface companion — this is the natural next
+        step because reveal-email is the twin of drawer per the tick
+        21+117 comments that already call out the shared decideReveal
+        chokepoint.
+        (ii) rotate to admin-reseller-detail-authz.spec.ts / admin-
+        reseller-detail-validation.spec.ts pair (the admin-scope
+        attribution projection which mirrors the reseller-scope drawer
+        pair but with different authz gates) for a sixth + seventh surface
+        companion.
+        (iii) rotate to me-attribution.spec.ts (single surface, hits the
+        /api/reseller/me route which does NOT use scopedReseller and
+        instead reads app_users.attribution_reseller_id + resellers row
+        directly — DIFFERENT read anchor, closes a distinct read-path
+        anchor within the cluster).
+        (iv) rotate to another unhoisted row cluster (reseller_
+        promotion_codes ck_stripe_objects_by_tier at 0091:98-102, or
+        resellers ck_wholesale_gst_required at 0091:47-51 / ck_abn_
+        format at 0091:52) whose cross-column CHECKs have not yet been
+        hoisted at module scope on any touching spec.
+        (v) idle until human unblock arrives on P8.5 or P1.5.
+
   - tick: 379
     ran_at: 2026-07-24
     action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_drawer_authz
