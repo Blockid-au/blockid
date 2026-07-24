@@ -348,6 +348,14 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # picks up the following phase.
 */5 * * * * flock -n /tmp/blockid-reseller-loop.lock -c 'cd /home/dovanlong/blockid.au && RESELLER_AUTONOMOUS_LOOP=on node scripts/cron/reseller-goal-loop.mjs' >> /tmp/blockid-reseller-loop.log 2>&1
 
+# Atlassian mapping goal loop — every 10 min, off-peak safe (staggered from reseller).
+# Kill switch: ATLASSIAN_GOAL_LOOP=off (or comment out this line to permanently disable).
+7,17,27,37,47,57 * * * * flock -n /tmp/blockid-atlassian-loop.lock -c 'cd /home/dovanlong/blockid.au && ATLASSIAN_GOAL_LOOP=on node scripts/cron/atlassian-goal-loop.mjs' >> /tmp/blockid-atlassian-loop.log 2>&1
+
+# UX/IA startup flow goal loop — every 10 min, offset from atlassian.
+# Kill switch: UX_IA_GOAL_LOOP=off (or comment out this line to permanently disable).
+3,13,23,33,43,53 * * * * flock -n /tmp/blockid-ux-ia-loop.lock -c 'cd /home/dovanlong/blockid.au && UX_IA_GOAL_LOOP=on node scripts/cron/ux-ia-goal-loop.mjs' >> /tmp/blockid-ux-ia-loop.log 2>&1
+
 # Monthly credit reset (H.11) — 1st of each month at 02:15 UTC (12:15 AEST)
 15 2 1 * * bash $RUN credit-reset --timeout 300
 
