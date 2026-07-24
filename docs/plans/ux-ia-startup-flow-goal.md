@@ -66,14 +66,35 @@ phased_tracks:
     status: done
     description: 12-phase visual ladder on dashboard; horizontal desktop / vertical mobile
   P5_progressive_disclosure:
-    status: done
-    description: Confirmed baseline already exists in workspace-layout (opacity-60 for isFuturePhase); ladder tooltips reinforce "not yet"
+    status: shipped
+    description: |
+      Round 5.13 polish — sidebar rows now carry a `title="Unlocks after
+      Phase N: <PHASE_LABELS>"` tooltip + a lock glyph; group-header badge
+      switches from "Beta" to "Locked" when ahead of currentPhase; groups
+      more than +3 phases ahead collapse into a single "Later phases (X)"
+      disclosure button rather than dimming each row individually.
+      File: web/src/components/workspace/workspace-layout.tsx.
   P6_role_specific_menus:
-    status: partial
-    description: Segment-filter already applied via NAV_GROUPS[].segments — ships as-is; MENU_STRUCTURE_BY_ROLE doc-only for now
+    status: shipped
+    description: |
+      Round 5.13 — extracted role-menu-overlay helper to
+      web/src/lib/nav/role-menu-overlay.ts. Returns
+      { hiddenGroups, topNavExtras, sidebarOrder } per RoleKey (founder,
+      investor_angel, investor_vc, advisor, accelerator, incubator,
+      reseller, journalist, admin). workspace-layout consumes it: hidden
+      groups drop pre-render; remaining groups sort by role priority;
+      topNavExtras render alongside Demo (Reseller Console + Admin gear
+      surface here now). Segment-gating in resolveGroup() still runs.
   P7_a11y_and_mobile:
-    status: done
-    description: All new nav items keyboard-navigable (Tab/Enter/Escape) + mobile hamburger renders same structure via existing NavV2 mobile disclosure
+    status: shipped
+    description: |
+      Round 5.13 — NavV2 dropdown triggers now use aria-haspopup="menu"
+      (was "true") + aria-label="<group> menu"; workspace <nav> gains
+      aria-label="Workspace navigation"; Later-phases collapse is a
+      button with aria-expanded/aria-controls; E2E pins these contracts.
+      Full audit: docs/design/menu-a11y-audit.md. Tap-vs-hover verified —
+      NavV2 + ToolsDropdown already had onClick alongside onMouseEnter,
+      so no data-open shim was needed.
   P8_founder_review:
     status: human_blocked
     description: Founder reviews §C new IA proposal (esp. Q1..Q4) before P9 ship-hardening
