@@ -134,6 +134,34 @@ export function readLastDigestSnapshot(text: string): DigestSnapshot | null {
 }
 
 /**
+ * Walk a raw JSONL file contents string and return up to the newest N
+ * parseable snapshots ordered oldest → newest (natural time flow, so a
+ * downstream trend consumer can iterate left → right for chronological
+ * folds). Bottom-up scan collects parseable rows until N accumulate, then
+ * reverses so the caller does not have to. Corrupted lines (partial write,
+ * non-JSON, missing envelope) are silently skipped — a mid-write truncation
+ * on the trailing row yields the previous N good rows rather than throwing.
+ * Returns [] on empty input, non-string input, n ≤ 0, or when every line is
+ * corrupted. Passing n larger than the row count returns every parseable
+ * row (up to that count) rather than padding — the caller checks .length.
+ */
+export function readLastNDigestSnapshots(
+  text: string,
+  n: number,
+): DigestSnapshot[] {
+  if (typeof text !== "string" || text.length === 0) return [];
+  if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) return [];
+  const cap = Math.floor(n);
+  const collected: DigestSnapshot[] = [];
+  const lines = text.split("\n");
+  for (let i = lines.length - 1; i >= 0 && collected.length < cap; i--) {
+    const parsed = parseDigestSnapshotLine(lines[i]);
+    if (parsed) collected.push(parsed);
+  }
+  return collected.reverse();
+}
+
+/**
  * Reverse of serialiseDigestSnapshot. Returns null on any parse failure so
  * a corrupted line (partial write, hand-edit, non-JSON row) does not throw
  * inside a consumer's for-loop — the consumer skips and continues.
