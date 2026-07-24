@@ -54,6 +54,15 @@ import {
   type ExposedCommissionRow,
 } from "@/lib/reseller/clawback-exposure";
 import {
+  COHORT_MONTHS_WINDOW,
+  computeCohortVelocityByReseller,
+  formatWeeklyDigestCohortVelocitySection,
+  recentCohortKeys,
+  type ActivationEventRow,
+  type AttributionCohortRow,
+  type CohortVelocityRow,
+} from "@/lib/reseller/cohort-velocity";
+import {
   computeClearedMtdByReseller,
   formatWeeklyDigestClearedMtdSection,
   type ClearedCommissionRow,
@@ -128,6 +137,7 @@ interface AttributionRow {
   subject_type: "user" | "project";
   subject_user_id: string | null;
   subject_project_id: string | null;
+  attributed_at: string;
 }
 
 export async function GET(req: Request) {
@@ -165,7 +175,7 @@ export async function GET(req: Request) {
   const resellerIds = resellers.map((r) => r.id);
   const { data: attribData, error: attribErr } = await supabase
     .from("reseller_attributions")
-    .select("reseller_id, subject_type, subject_user_id, subject_project_id")
+    .select("reseller_id, subject_type, subject_user_id, subject_project_id, attributed_at")
     .in("reseller_id", resellerIds)
     .eq("status", "active")
     .eq("opted_out", false);
@@ -907,6 +917,60 @@ export async function GET(req: Request) {
     if (gstDeltaSection) html += gstDeltaSection;
   }
 
+  // P11.10 canonical KPI (`cohort_velocity` from reseller-module-goal.md
+  // `weekly_digest_kpis`, D2-CFO-07 cohort_velocity_median_days). Per-reseller
+  // × per-cohort (last COHORT_MONTHS_WINDOW UTC months) funnel-speed aggregate:
+  // how many customers were attributed in the cohort, how many have their first
+  // svi_analysis on record, and the median days from attribution_ts →
+  // first_report_ts across activated customers. Reuses the projectToUser +
+  // reportsByUser structures already resolved above for the leading-signal
+  // section so no extra Supabase round-trip is needed. Failures degrade to a
+  // skipped section (skipped_reason='cohort_upstream_empty_reports') only when
+  // the reports pipeline itself skipped upstream — the reseller_attributions
+  // read above already errors out early if it fails so this section inherits
+  // that gate.
+  const cohortMonths = recentCohortKeys(now, COHORT_MONTHS_WINDOW);
+  const cohortAttribRows: AttributionCohortRow[] = [];
+  for (const a of attributions) {
+    let uid: string | null = null;
+    if (a.subject_type === "user") uid = a.subject_user_id;
+    else if (a.subject_type === "project" && a.subject_project_id) {
+      uid = projectToUser.get(a.subject_project_id) ?? null;
+    }
+    if (!uid) continue;
+    cohortAttribRows.push({
+      reseller_id: a.reseller_id,
+      subject_user_id: uid,
+      attributed_at: a.attributed_at,
+    });
+  }
+  const cohortActivationRows: ActivationEventRow[] = [];
+  for (const [uid, reports] of reportsByUser.entries()) {
+    for (const r of reports) {
+      cohortActivationRows.push({ user_id: uid, generated_at: r.generated_at });
+    }
+  }
+  const cohortByReseller = computeCohortVelocityByReseller(
+    resellerIds,
+    cohortMonths,
+    cohortAttribRows,
+    cohortActivationRows,
+  );
+  const cohortVelocityRows: CohortVelocityRow[] = resellers.map((r) => ({
+    reseller_id: r.id,
+    reseller_code: r.code,
+    reseller_display_name: r.display_name ?? r.code,
+    cohorts: cohortByReseller.get(r.id)?.cohorts ?? cohortMonths.map((m) => ({
+      cohort_month: m,
+      attributed_count: 0,
+      activated_count: 0,
+      activation_pct: 0,
+      median_days_to_activation: null,
+    })),
+  }));
+  const cohortSection = formatWeeklyDigestCohortVelocitySection(cohortVelocityRows);
+  if (cohortSection) html += cohortSection;
+
   let emailed = false;
   if (!skipEmail && digestRows.length > 0) {
     const result = await sendEmail({
@@ -1084,6 +1148,22 @@ export async function GET(req: Request) {
             net_gst_cents: r.delta.net_gst_cents,
           })),
         },
+    cohort_velocity: {
+      window_months: COHORT_MONTHS_WINDOW,
+      cohort_months: cohortMonths,
+      reseller_count: cohortVelocityRows.length,
+      rows: cohortVelocityRows.map((r) => ({
+        reseller_id: r.reseller_id,
+        reseller_code: r.reseller_code,
+        cohorts: r.cohorts.map((c) => ({
+          cohort_month: c.cohort_month,
+          attributed_count: c.attributed_count,
+          activated_count: c.activated_count,
+          activation_pct: c.activation_pct,
+          median_days_to_activation: c.median_days_to_activation,
+        })),
+      })),
+    },
     ran_at: now.toISOString(),
   });
 }
