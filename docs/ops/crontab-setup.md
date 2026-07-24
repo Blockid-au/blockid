@@ -62,3 +62,55 @@ If `scanned > 0` and `sent == 0`, check `errors` for the reason.
 The Stripe `customer.subscription.trial_will_end` webhook (fires at T-3d)
 runs a redundant drip through `sendTrialChargeWarning`. The hourly cron
 is the primary trigger; the webhook is a safety net.
+
+## Investor weekly digest — `/api/cron/investor-weekly-digest`
+
+Weekly digest for active investors (angel + VC) covering the top-5
+watchlisted tickers by SVI movement since the last digest. See
+`docs/plans/atlassian-standard-mapping-goal.md` §P7 for the spec.
+
+### Line to install
+
+```
+30 22 * * 0 curl -sS -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/investor-weekly-digest >> /var/log/blockid-investor-digest.log 2>&1
+```
+
+- Runs Sunday 22:30 UTC (Monday 08:30 AEST — before the working week).
+- Requires `CRON_SECRET` in the environment.
+- Honours the per-user `email_preferences.weekly_reports` flag; opted-
+  out investors are skipped silently.
+- Kill switch: set `INVESTOR_DIGEST=off` on the app server env to
+  short-circuit the endpoint without touching the crontab.
+
+### Dry-run
+
+Verify the compose step without sending mail:
+
+```bash
+curl -sS -H "Authorization: Bearer $CRON_SECRET" \
+  "https://blockid.au/api/cron/investor-weekly-digest?skip_email=1" | jq
+```
+
+Expected response shape:
+
+```json
+{
+  "ok": true,
+  "investor_count": 42,
+  "emailed": 0,
+  "failures": 0,
+  "dry_run": [
+    {
+      "investor_id": "…",
+      "email": "…",
+      "ticker_count": 3,
+      "is_empty": false,
+      "subject": "Your weekly investor digest — 3 tracked startups moved"
+    }
+  ]
+}
+```
+
+An empty `dry_run` array with `investor_count > 0` means every eligible
+investor has opted out of `weekly_reports` — expected on fresh
+environments.
