@@ -13,6 +13,7 @@ import {
   NEW_SIGNUP_TIER_IDS,
   discountablePrices,
 } from "@/lib/pricing-data";
+import { TRIAL_COPY, TRIAL_DAYS } from "@/lib/plans/trial-copy";
 
 export function Pricing() {
   const [loading, setLoading] = React.useState<string | null>(null);
@@ -91,11 +92,10 @@ export function Pricing() {
             id="pricing-title"
             className="mt-3 text-3xl md:text-5xl font-semibold tracking-tight text-brand-900"
           >
-            Free to start. Pay when you raise.
+            Start with a {TRIAL_DAYS}-day trial. Pay when you keep going.
           </h2>
           <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-700">
-            Every founder gets the Investor-Ready Score free. Upgrade when you
-            need tracking, reports and AI analysis.
+            {TRIAL_COPY.subheadline}
           </p>
         </div>
 
