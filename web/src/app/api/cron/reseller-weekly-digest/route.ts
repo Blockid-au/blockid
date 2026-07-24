@@ -64,6 +64,11 @@ import {
   type DigestSnapshotTopMoversPerMetric,
 } from "@/lib/reseller/digest-snapshot-top-movers-per-metric";
 import {
+  computeDigestSnapshotTopMoversPerReseller,
+  formatDigestSnapshotTopMoversPerResellerSection,
+  type DigestSnapshotTopMoversPerReseller,
+} from "@/lib/reseller/digest-snapshot-top-movers-per-reseller";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1222,6 +1227,10 @@ export async function GET(req: Request) {
   let topMoversSection = "";
   let snapshotTopMoversPerMetric: DigestSnapshotTopMoversPerMetric | null = null;
   let topMoversPerMetricSection = "";
+  let snapshotTopMoversPerReseller:
+    | DigestSnapshotTopMoversPerReseller
+    | null = null;
+  let topMoversPerResellerSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1313,15 +1322,41 @@ export async function GET(req: Request) {
     topMoversPerMetricSection = formatDigestSnapshotTopMoversPerMetricSection(
       snapshotTopMoversPerMetric,
     );
+    // P11.29 — per-reseller top-N |delta| spotlight (module P11.28). Projects
+    // the SAME per-reseller rolling trend down to at least one row per
+    // reseller_code that has any non-null-non-zero mover, so a busy partner
+    // driving several material shifts is guaranteed a spotlight row even when
+    // each of their moves loses the metric-group race to a larger competitor
+    // in the P11.24/P11.26 headlines. No second rolling-trend fold, no
+    // divergence risk vs. the per-metric spotlight or the drill-down table
+    // that consumes the same source.
+    snapshotTopMoversPerReseller = computeDigestSnapshotTopMoversPerReseller(
+      snapshotPerResellerRollingTrend,
+    );
+    topMoversPerResellerSection =
+      formatDigestSnapshotTopMoversPerResellerSection(
+        snapshotTopMoversPerReseller,
+      );
   }
-  if (topMoversSection || topMoversPerMetricSection) {
-    // Splice both executive-summary sections above the fold, in the order
-    // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) so the
-    // biggest single shift lands first and the per-metric coverage table
-    // rounds out any metric whose mover was buried by unit-scale dominance.
+  if (
+    topMoversSection ||
+    topMoversPerMetricSection ||
+    topMoversPerResellerSection
+  ) {
+    // Splice all three executive-summary sections above the fold, in the
+    // order P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) →
+    // P11.28 (per-reseller spotlight) so the biggest single shift lands
+    // first, the per-metric coverage table rounds out any metric whose mover
+    // was buried by unit-scale dominance, and the per-reseller spotlight
+    // guarantees every partner with any material shift gets at least one row
+    // regardless of whether they lead a metric group globally.
     const rest = html.slice(digestHeader.length);
     html =
-      digestHeader + topMoversSection + topMoversPerMetricSection + rest;
+      digestHeader +
+      topMoversSection +
+      topMoversPerMetricSection +
+      topMoversPerResellerSection +
+      rest;
   }
 
   let emailed = false;
@@ -1629,6 +1664,18 @@ export async function GET(req: Request) {
           last_week: snapshotTopMoversPerMetric.last_week,
           top_n_per_metric: snapshotTopMoversPerMetric.top_n_per_metric,
           rows: snapshotTopMoversPerMetric.rows,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
+    snapshot_top_movers_per_reseller: snapshotTopMoversPerReseller
+      ? {
+          window_size: snapshotTopMoversPerReseller.window_size,
+          first_week: snapshotTopMoversPerReseller.first_week,
+          last_week: snapshotTopMoversPerReseller.last_week,
+          top_n_per_reseller: snapshotTopMoversPerReseller.top_n_per_reseller,
+          rows: snapshotTopMoversPerReseller.rows,
         }
       : {
           skipped_reason:
