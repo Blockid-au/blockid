@@ -75,3 +75,4 @@
 {"tick_id":"2026-07-24T07-37-01-294Z","ts":"2026-07-24T07:47:47.071Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-24T07-57-01-314Z","ts":"2026-07-24T07:57:01.314Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T07-57-01-314Z","ts":"2026-07-24T07:57:01.322Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T08-01-50-550Z","ts":"2026-07-24T08:01:50.552Z","loop_label":"atlassian-goal-loop","stage":"tick_end","phase_shipped":"P1i","summary":"GST-threshold-crossing detector — added deriveMonthlyTurnoverFromDaily + assessGSTFromMrr helpers + 15 vitest cases; all green"}
