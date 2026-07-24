@@ -159,6 +159,11 @@ import {
   type DigestSnapshotPctChangeStreakLeaderboard,
 } from "@/lib/reseller/digest-snapshot-pct-change-streak-leaderboard";
 import {
+  computeDigestSnapshotPerMetricDirectionStreakLeaderboard,
+  formatDigestSnapshotPerMetricDirectionStreakLeaderboardSection,
+  type DigestSnapshotPerMetricDirectionStreakLeaderboard,
+} from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-leaderboard";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1412,6 +1417,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPctChangeStreakLeaderboard
     | null = null;
   let pctChangeStreakLeaderboardSection = "";
+  let snapshotPerMetricDirectionStreakLeaderboard:
+    | DigestSnapshotPerMetricDirectionStreakLeaderboard
+    | null = null;
+  let perMetricDirectionStreakLeaderboardSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1900,6 +1909,33 @@ export async function GET(req: Request) {
       formatDigestSnapshotPctChangeStreakLeaderboardSection(
         snapshotPctChangeStreakLeaderboard,
       );
+    // P11.70 — per-metric top-of-fold sustained-direction streak leaderboards
+    // (module P11.69). Per-KPI analogue of the P11.66 flat matrix leaderboard:
+    // instead of one length-sorted top-N pool across every (metric × partner)
+    // pair, this renders an independent top-N ranking PER metric so a partner
+    // leading on churn recovery cannot be crowded out by a partner riding a
+    // volatile attributed_mrr swing. Delegates to
+    // computeDigestSnapshotPerResellerDirectionStreaks through the pure lib so
+    // leaderboard entries cannot diverge from the P11.32 spotlight rows they
+    // summarise — an entry ranked #1 in a group here appears in the P11.32
+    // table below with matching direction / length / cumulative_delta.
+    // Consumes the SAME snapshotPerResellerRollingTrend the P11.32 detector
+    // and the P11.66 flat leaderboard already consume (no extra fold, no
+    // divergence risk vs. the spotlight rows this leaderboard tops). Lands
+    // directly BETWEEN the P11.66 flat matrix leaderboard and the
+    // perResellerDirectionStreaksSection (P11.32/P11.33) so ops reads matrix
+    // top-N → per-KPI top-N (equal footing across metrics) → full per-partner
+    // drill-down. Per-group total_qualified is carried on the envelope so a
+    // "Top 3 of 8 partners on attributed_mrr" caption tells ops how much
+    // detail lives in the P11.32 spotlight below for that KPI specifically.
+    snapshotPerMetricDirectionStreakLeaderboard =
+      computeDigestSnapshotPerMetricDirectionStreakLeaderboard(
+        snapshotPerResellerRollingTrend,
+      );
+    perMetricDirectionStreakLeaderboardSection =
+      formatDigestSnapshotPerMetricDirectionStreakLeaderboardSection(
+        snapshotPerMetricDirectionStreakLeaderboard,
+      );
   }
   if (
     topMoversSection ||
@@ -1910,6 +1946,7 @@ export async function GET(req: Request) {
     directionStreaksSection ||
     perResellerDirectionStreakCoverageSection ||
     directionStreakLeaderboardSection ||
+    perMetricDirectionStreakLeaderboardSection ||
     perResellerDirectionStreaksSection ||
     pctChangeStreakCoverageSection ||
     perMetricPctChangeStreakCoverageSection ||
@@ -1943,6 +1980,7 @@ export async function GET(req: Request) {
       directionStreaksSection +
       perResellerDirectionStreakCoverageSection +
       directionStreakLeaderboardSection +
+      perMetricDirectionStreakLeaderboardSection +
       perResellerDirectionStreaksSection +
       pctChangeStreakCoverageSection +
       perMetricPctChangeStreakCoverageSection +
@@ -2575,6 +2613,24 @@ export async function GET(req: Request) {
             total_qualified:
               snapshotPctChangeStreakLeaderboard.total_qualified,
             rows: snapshotPctChangeStreakLeaderboard.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_direction_streak_leaderboard:
+      snapshotPerMetricDirectionStreakLeaderboard
+        ? {
+            window_size:
+              snapshotPerMetricDirectionStreakLeaderboard.window_size,
+            first_week:
+              snapshotPerMetricDirectionStreakLeaderboard.first_week,
+            last_week: snapshotPerMetricDirectionStreakLeaderboard.last_week,
+            min_streak_length:
+              snapshotPerMetricDirectionStreakLeaderboard.min_streak_length,
+            top_n_per_metric:
+              snapshotPerMetricDirectionStreakLeaderboard.top_n_per_metric,
+            groups: snapshotPerMetricDirectionStreakLeaderboard.groups,
           }
         : {
             skipped_reason:
