@@ -13,9 +13,22 @@
 // AU discount factor (AVCAL/Cut Through Venture 2025) so multiples reflect
 // Australian private-market conditions, not just global SaaS/PitchBook medians.
 //
+// AU exit realisation cross-check (P12b-cfo): auExitRealisationCheck() anchors
+// the VC-Method exit assumption against real reported AU tech exits from
+// `web/src/lib/exits/au-benchmark.ts` — sector-scoped (with fallback to the
+// full fixture) so the VC-Method's exit value cannot silently drift above what
+// AU strategic / PE / IPO buyers actually pay for a comparable business.
+//
 // Self-upgraded by the agent loop (registered in AGENT_DOMAIN_FILES). Keep the
 // math sound and the `sources` current — the CFO agent refreshes these from
 // daily research (Bessemer, SaaS Capital, Carta, PitchBook, a16z, AVCAL).
+
+import {
+  AU_EXIT_DISCLAIMER,
+  getAuComparableExits,
+  summariseAuExits,
+  type AuExit,
+} from "@/lib/exits/au-benchmark";
 
 export type Sector =
   | "saas" | "fintech" | "marketplace" | "healthtech" | "ai" | "deeptech" | "ecommerce" | "default";
@@ -89,6 +102,41 @@ export interface FinancialInjection {
   nextMilestone: string;
 }
 
+export interface AuExitRealisationCheck {
+  /** Sector actually used for the AU comps lookup ("default" fallback → null). */
+  sector: string | null;
+  /** True when the sector filter returned zero comps and we widened to the full fixture. */
+  usedFallback: boolean;
+  /** Sample size after sector + minYear filter. */
+  sampleSize: number;
+  /** Median revenue multiple across sampled AU exits (null when no comps carry a multiple). */
+  medianRevenueMultiple: number | null;
+  /** Median headline valuation across sampled AU exits (AUD). */
+  medianValuationAud: number | null;
+  /** Latest year in the sample (freshness signal). */
+  latestYear: number | null;
+  /** Implied exit ARR from the VC-Method horizon (AUD). null when pre-revenue. */
+  impliedExitArrAud: number | null;
+  /** VC-Method's exit value (AUD) at the sector's global mid ARR multiple. */
+  vcMethodExitValueAud: number | null;
+  /** AU-precedent exit value (impliedExitArrAud × medianRevenueMultiple). null when either factor missing. */
+  auPrecedentExitValueAud: number | null;
+  /**
+   * Percentage delta of AU precedent vs VC-Method: positive → AU market pays
+   * higher multiples than the global sector median, negative → the VC-Method
+   * exit assumption sits above AU-observed precedent. null when either side null.
+   */
+  deltaPct: number | null;
+  /** Verdict: "aligned" (within ±25%), "vc_method_above_au" (>25% above), "au_above_vc_method" (>25% below), "no_signal" (pre-revenue or no multiples). */
+  verdict: "aligned" | "vc_method_above_au" | "au_above_vc_method" | "no_signal";
+  /** Top-3 anchor exits (most recent + largest) used to explain the check. */
+  anchorExits: Pick<AuExit, "company" | "buyer" | "buyerType" | "year" | "valuationAud" | "revenueMultiple">[];
+  /** Human-readable note surfaced in report.notes[] and by IR portfolio bundling. */
+  note: string;
+  /** AFSL disclaimer inherited from the AU exit benchmark fixture. */
+  disclaimer: string;
+}
+
 export interface VcValuationReport {
   sector: Sector;
   stage: string;
@@ -102,6 +150,7 @@ export interface VcValuationReport {
   payback: { months: number | null; roiPct: number };
   injection: FinancialInjection;
   scenarios: { base: number; bull: number; bear: number };
+  auExitCheck: AuExitRealisationCheck;
   notes: string[];
   sources: string[];
 }
@@ -538,6 +587,113 @@ export function financialInjection(input: VcValuationInput, projection: Projecti
   };
 }
 
+// ── AU exit realisation cross-check (P12b-cfo) ──────────────────────────────
+// Anchors the VC-Method exit assumption against real reported AU tech exits.
+// Sector-scoped; falls back to the full fixture when the sector filter matches
+// zero comps. Never mutates the blended valuation — this is an informational
+// cross-check that surfaces in report.notes[] and via the IR portfolio pack.
+
+/** Buyer types considered "realisation events" — excludes secondaries (liquidity, not exit). */
+const REALISATION_BUYER_TYPES = ["strategic", "pe", "ipo"] as const;
+
+export function auExitRealisationCheck(
+  input: VcValuationInput,
+  projection: ProjectionRow[]
+): AuExitRealisationCheck {
+  const bm = vcBenchmark(input.sector);
+  const stage = normStage(input.stage);
+  const exitYears = STAGE_EXIT_YEARS[stage] ?? STAGE_EXIT_YEARS.default;
+  const exitMonth = clamp(exitYears * 12, 12, projection.length);
+  const finalMrr = projection[exitMonth - 1]?.mrrAud ?? projection[projection.length - 1]?.mrrAud ?? 0;
+  const impliedExitArrAud = finalMrr > 0 ? round(finalMrr * 12) : null;
+  const vcMethodExitValueAud = impliedExitArrAud !== null ? round(impliedExitArrAud * bm.arrMultiple.mid) : null;
+
+  // Sector filter uses lowercased VcBenchmark sector; "default" → no sector filter.
+  const requestedSector = bm.sector === "default" ? undefined : bm.sector;
+  // Drop pre-GFC comps (aligns with exit-benchmark-section defaults).
+  const minYear = 2010;
+
+  let comps = getAuComparableExits({ sector: requestedSector, minYear });
+  // Prefer realisation events (strategic / PE / IPO) but keep secondaries as a
+  // fallback if the sector cannot muster three realisation comps.
+  const realisation = comps.filter((c) => (REALISATION_BUYER_TYPES as readonly string[]).includes(c.buyerType));
+  if (realisation.length >= 3) comps = realisation;
+
+  let usedFallback = false;
+  if (comps.length === 0) {
+    usedFallback = true;
+    comps = getAuComparableExits({ minYear });
+  }
+
+  const summary = summariseAuExits(comps);
+  const medianRevenueMultiple = summary.medianRevenueMultiple;
+  const medianValuationAud = summary.medianValuationAud;
+
+  const auPrecedentExitValueAud =
+    impliedExitArrAud !== null && medianRevenueMultiple !== null
+      ? round(impliedExitArrAud * medianRevenueMultiple)
+      : null;
+
+  const deltaPct =
+    auPrecedentExitValueAud !== null && vcMethodExitValueAud !== null && vcMethodExitValueAud > 0
+      ? Math.round(((auPrecedentExitValueAud - vcMethodExitValueAud) / vcMethodExitValueAud) * 100)
+      : null;
+
+  let verdict: AuExitRealisationCheck["verdict"] = "no_signal";
+  if (deltaPct !== null) {
+    if (deltaPct > 25) verdict = "au_above_vc_method";
+    else if (deltaPct < -25) verdict = "vc_method_above_au";
+    else verdict = "aligned";
+  }
+
+  const anchorExits = comps
+    .slice(0, 3)
+    .map((c) => ({
+      company: c.company,
+      buyer: c.buyer,
+      buyerType: c.buyerType,
+      year: c.year,
+      valuationAud: c.valuationAud,
+      revenueMultiple: c.revenueMultiple,
+    }));
+
+  const sectorLabel = usedFallback ? "all AU tech" : requestedSector ?? "AU tech";
+  const anchorLabel = anchorExits.map((a) => `${a.company} (${a.year})`).join(", ") || "no anchor deals";
+  const note = (() => {
+    if (verdict === "no_signal") {
+      return `AU exit precedent: ${summary.count} ${sectorLabel} exits sampled since ${minYear}; VC-Method exit anchor unchecked (pre-revenue or no revenue-multiple data). Anchor deals: ${anchorLabel}.`;
+    }
+    const multipleLabel = medianRevenueMultiple !== null ? `${medianRevenueMultiple.toFixed(1)}x` : "n/a";
+    const vcExitLabel = vcMethodExitValueAud !== null ? `A$${vcMethodExitValueAud.toLocaleString()}` : "n/a";
+    const auExitLabel = auPrecedentExitValueAud !== null ? `A$${auPrecedentExitValueAud.toLocaleString()}` : "n/a";
+    const deltaLabel = deltaPct !== null ? `${deltaPct >= 0 ? "+" : ""}${deltaPct}%` : "n/a";
+    const verdictLabel =
+      verdict === "aligned"
+        ? "within ±25% of AU precedent (aligned)"
+        : verdict === "au_above_vc_method"
+          ? "AU market has paid materially above the VC-Method exit anchor for comparable businesses"
+          : "VC-Method exit anchor sits materially above AU-observed precedent (consider stress-testing the exit multiple)";
+    return `AU exit precedent (${sectorLabel}, since ${minYear}, n=${summary.count}, latest ${summary.latestYear ?? "n/a"}): median revenue multiple ${multipleLabel}; VC-Method exit ${vcExitLabel} vs AU-precedent exit ${auExitLabel} (${deltaLabel}) → ${verdictLabel}. Anchor deals: ${anchorLabel}.`;
+  })();
+
+  return {
+    sector: usedFallback ? null : requestedSector ?? null,
+    usedFallback,
+    sampleSize: summary.count,
+    medianRevenueMultiple,
+    medianValuationAud,
+    latestYear: summary.latestYear,
+    impliedExitArrAud,
+    vcMethodExitValueAud,
+    auPrecedentExitValueAud,
+    deltaPct,
+    verdict,
+    anchorExits,
+    note,
+    disclaimer: AU_EXIT_DISCLAIMER,
+  };
+}
+
 // ── Top-level report assembler ──────────────────────────────────────────────
 
 export function buildVcValuationReport(input: VcValuationInput): VcValuationReport {
@@ -581,6 +737,7 @@ export function buildVcValuationReport(input: VcValuationInput): VcValuationRepo
   const breakEven = findBreakEven(projection);
   const injection = financialInjection(input, projection, blendedMid);
   const payback = paybackPeriod(projection, injection.raiseAud);
+  const auExitCheck = auExitRealisationCheck(input, projection);
 
   return {
     sector: bm.sector,
@@ -595,13 +752,15 @@ export function buildVcValuationReport(input: VcValuationInput): VcValuationRepo
     payback,
     injection,
     scenarios: { base: blendedMid, bull: round(blendedMid * 1.6), bear: round(blendedMid * 0.55) },
+    auExitCheck,
     notes: [
       isPreRevenue
         ? `Pre-revenue blend: Berkus (${round(berkus.weight * 100)}%), Comparables (${round(comparables.weight * 100)}%), VC Method (${round(vc.weight * 100)}%), DCF (${round(dcf.weight * 100)}%), Risk-Factor (${round(rfs.weight * 100)}%).`
         : `Valuation blends Comparables (${round(comparables.weight * 100)}%), VC Method (${round(vc.weight * 100)}%), DCF (${round(dcf.weight * 100)}%), Risk-Factor (${round(rfs.weight * 100)}%). Berkus shown as reference.`,
       `Rule of 40: ${ue.ruleOf40} (target ≥ ${bm.ruleOf40Target}). LTV/CAC: ${ue.ltvCacRatio}x (target ≥ ${bm.ltvCacTarget}x).`,
       market.methodology,
+      auExitCheck.note,
     ],
-    sources: Array.from(new Set([...bm.sources, "AVCAL/Cut Through Venture AU benchmarks", "Carta State of Private Markets"])),
+    sources: Array.from(new Set([...bm.sources, "AVCAL/Cut Through Venture AU benchmarks", "Carta State of Private Markets", "AU public exit disclosures (see web/src/lib/exits/au-benchmark.ts)"])),
   };
 }
