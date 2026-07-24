@@ -74,6 +74,11 @@ import {
   type DigestSnapshotPerResellerMetricPctChangeCoverage,
 } from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change-coverage";
 import {
+  computeDigestSnapshotPerResellerPctChangeCoverage,
+  formatDigestSnapshotPerResellerPctChangeCoverageSection,
+  type DigestSnapshotPerResellerPctChangeCoverage,
+} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-coverage";
+import {
   computeDigestSnapshotTopMovers,
   formatDigestSnapshotTopMoversSection,
   type DigestSnapshotTopMovers,
@@ -1294,6 +1299,9 @@ export async function GET(req: Request) {
   let snapshotPerResellerMetricPctChangeCoverage:
     | DigestSnapshotPerResellerMetricPctChangeCoverage
     | null = null;
+  let snapshotPerResellerPctChangeCoverage:
+    | DigestSnapshotPerResellerPctChangeCoverage
+    | null = null;
   let snapshotTopMovers: DigestSnapshotTopMovers | null = null;
   let topMoversSection = "";
   let snapshotTopMoversPerMetric: DigestSnapshotTopMoversPerMetric | null = null;
@@ -1467,6 +1475,30 @@ export async function GET(req: Request) {
       );
     if (perResellerMetricPctChangeCoverageSection)
       html += perResellerMetricPctChangeCoverageSection;
+    // P11.46 — per-reseller |pct_change| coverage summary (module P11.45).
+    // Mirror pivot of the P11.44 per-metric coverage above: instead of grouping
+    // by HEADLINE_METRICS to answer "how thin/deep was each metric moved
+    // across the partner set", this folds the SAME
+    // snapshotPerResellerRollingTrend object by reseller_code to answer "how
+    // thin/deep did each partner move across the metric set". A partner who
+    // touched every metric with small moves reads identically to one who
+    // touched only one metric with a large move under the P11.44 grouping;
+    // this table separates them. Rows emitted in reseller_code alphabetical
+    // order so ops reads the same partner ladder every Monday. Rendered
+    // directly after perResellerMetricPctChangeCoverageSection so the reader
+    // walks per-metric coverage (which METRICS moved broadly) → per-reseller
+    // coverage (which PARTNERS moved broadly) on the same page — mirrors the
+    // P11.44 landing after P11.42 for the same-axis pair above.
+    snapshotPerResellerPctChangeCoverage =
+      computeDigestSnapshotPerResellerPctChangeCoverage(
+        snapshotPerResellerRollingTrend,
+      );
+    const perResellerPctChangeCoverageSection =
+      formatDigestSnapshotPerResellerPctChangeCoverageSection(
+        snapshotPerResellerPctChangeCoverage,
+      );
+    if (perResellerPctChangeCoverageSection)
+      html += perResellerPctChangeCoverageSection;
     // P11.25 — top-N |delta| movers headline (module P11.24). Project the
     // per-reseller rolling trend into the biggest cross-metric shifts and
     // render a compact executive summary. Computed here so the source data
@@ -1932,6 +1964,19 @@ export async function GET(req: Request) {
               snapshotPerResellerMetricPctChangeCoverage.last_week,
             threshold: snapshotPerResellerMetricPctChangeCoverage.threshold,
             rows: snapshotPerResellerMetricPctChangeCoverage.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_pct_change_coverage:
+      snapshotPerResellerPctChangeCoverage
+        ? {
+            window_size: snapshotPerResellerPctChangeCoverage.window_size,
+            first_week: snapshotPerResellerPctChangeCoverage.first_week,
+            last_week: snapshotPerResellerPctChangeCoverage.last_week,
+            threshold: snapshotPerResellerPctChangeCoverage.threshold,
+            rows: snapshotPerResellerPctChangeCoverage.rows,
           }
         : {
             skipped_reason:
