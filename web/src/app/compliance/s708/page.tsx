@@ -12,6 +12,7 @@ import {
 } from "@/lib/compliance/s708-wholesale";
 import { S708_SMALL_SCALE_DISCLAIMER } from "@/lib/compliance/s708-small-scale-counter";
 import { S708CounterFormClient } from "./s708-counter-form-client";
+import { RofrWizardClient } from "@/components/dashboard/rofr-wizard-client";
 
 export const metadata: Metadata = {
   title: "s708(8) wholesale investor certificates | BlockID",
@@ -173,6 +174,8 @@ export default async function S708CompliancePage() {
         </div>
 
         <S708CounterFormClient disclaimer={S708_SMALL_SCALE_DISCLAIMER} />
+
+        <RofrWizardClient />
 
         <p className="text-xs text-muted-foreground">{S708_DISCLAIMER}</p>
       </div>
