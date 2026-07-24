@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.357
+version: 2026-07-24.358
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -654,6 +654,157 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 358
+    ran_at: 2026-07-24
+    action: p10_promotion_codes_tier_stripe_id_disjunction_invariant_summary_twin_hoist_onto_admin_reseller_detail_validation
+    result: |
+      Executes tick 357 next-pick option (a) verbatim as a cross-surface
+      twin lift of the tick 332 module-scope summary at
+      web/tests/e2e/reseller/admin-reseller-detail-authz.spec.ts:1819-1932
+      (ck_stripe_objects_by_tier disjunction coupling promotion_codes[]
+      .tier_pct + stripe_coupon_id + stripe_promotion_code_id) onto the
+      sibling admin-reseller-detail-validation.spec.ts. Adds a NEW module-
+      scope doc-block between the tick 357 resellers-row closing rotation
+      candidates block (rows 814-828) and the tick 342 commissions[] cluster
+      opener (previously at row 829, now shifted downward by the new block).
+      Mirrors the tick 332 sibling summary verbatim: writer-side source
+      (0091:98-102 ck_stripe_objects_by_tier disjunction + 0091:90 orthogonal
+      tier_pct set-membership CHECK), application write path (decideCodeMint
+      at promotion-code-mint.ts with ensureStripeCoupon + ensureStripe
+      PromotionCode branches on tier_pct dispatch), read path (route.ts:
+      83-88 select on the promotion_codes Promise.all leg), runtime
+      enforcement (three-layer proxy chain rather than direct row-wire
+      assert on the two stripe id columns — see distinct-from-tick-357
+      posture note below), coverage-per-guard posture (sibling per-column
+      pins fire on both tier 0 and tier > 0 seed variants), and symmetric-
+      cluster posture (closes the summary-lens sweep on THIS surface across
+      all five detail-route slots).
+
+      Distinct-from-tick-357 posture note:
+        - Unlike the tick 357 resellers-row ck_wholesale_gst_required
+          invariant — whose per-column runtime enforcement on THIS spec
+          lives ONLY on billing_model (row 964 via BILLING_MODELS.has) with
+          gst_registered + abn carrying ZERO inline pins here — the
+          promotion_codes[] cluster on THIS file DOES carry inline per-
+          column pins on THREE of the projected columns: id UUID at rows
+          1136-1139, tier_pct two-part typeof-number + ALLOWED_TIER_PCTS
+          set-membership at rows 1169-1176 (tick 339 lift), code +
+          PROMO_CODE_RE at rows 1183-1184 (tick 232 twin-symmetrisation).
+        - However the TWO columns coupled by the ck_stripe_objects_by_tier
+          disjunction — stripe_coupon_id + stripe_promotion_code_id — carry
+          ZERO inline pins on THIS file today (grep for row.stripe_coupon_
+          id / row.stripe_promotion_code_id on this file returns zero hits;
+          only the sibling detail-authz spec carries per-column pins on
+          those two columns at ticks 301 + 302 + 324-message-refresh).
+        - The runtime enforcement of the disjunction on this surface lands
+          via a THREE-LAYER PROXY CHAIN rather than a direct row-wire
+          assert, matching the tick 357 posture on the resellers-row
+          invariant:
+            (i)   sibling admin-reseller-detail-authz.spec.ts carries per-
+                  column pins on both stripe columns AND the coupled per-
+                  row if/else at rows 2616-2662 (ticks 301 + 302 + 324
+                  message refresh). Any wire-shape drift or tier-coupling
+                  violation surfaces on the sibling surface, so the
+                  invariant IS observable end-to-end from Playwright —
+                  just on the other detail surface, not this one.
+            (ii)  decideCodeMint() unit-test suite at web/src/lib/reseller/
+                  promotion-code-mint.test.ts (17/17 pass per P9.4 sign-off)
+                  exercises the write-path dispatch directly. A mint-branch
+                  drift that stopped writing one of the two stripe ids for
+                  a tier > 0 row, a tier 0 branch bypass, or an ensure
+                  StripeCoupon/PromotionCode refactor that reordered the
+                  two Stripe calls without holding the INSERT until both
+                  returned would fail one of the unit tests before it
+                  could land on the database.
+            (iii) DB CHECK ck_stripe_objects_by_tier at 0091:98-102 is the
+                  last line of defence — a direct-SQL admin action that
+                  skipped BOTH the P9.4 approve-branch AND the mint
+                  helper (e.g. a manual docker exec supabase-db psql
+                  INSERT into reseller_promotion_codes) would still be
+                  rejected at write-time by the CHECK, so no bypass path
+                  can land a tier 0 row with a non-null stripe id or a
+                  tier > 0 row without both stripe ids on the disk.
+        - Therefore this summary hoist adds ZERO new asserts to this file
+          — the three-layer enforcement chain is already the runtime
+          enforcement layer. This hoist is a pure documentation close-out
+          lift completing the summary-lens twin for the promotion_codes[]
+          cluster on both detail surfaces.
+
+      Rotation rationale:
+        - Executes tick 357 next-pick option (a) verbatim. Pure
+          documentation-only summary hoist matching the tick 357 posture
+          on this file — no new imports, no new module-scope const, no
+          fixture change, no route change, no per-column assert added.
+        - Summary-lens sweep on admin-reseller-detail-validation NOW
+          carries FIVE module-scope summaries (commissions[] tick 354 +
+          admins[] tick 355 + attributions_summary tick 355 + resellers-
+          row tick 357 + promotion_codes[] THIS TICK) — one per detail-
+          route slot. The summary-lens twin sweep is now COMPLETE across
+          both detail surfaces: sibling admin-reseller-detail-authz
+          likewise carries a module-scope entry on all five slots
+          (resellers-row tick 333 + promotion_codes[] tick 332 +
+          commissions[] tick 334 + admins[] + attributions_summary tick
+          356).
+        - Coverage-per-guard posture: this tick adds ZERO new asserts, so
+          no new pin fires on any CI run. The doc-block gives future
+          rotation ticks a single module-scope entry to lift from without
+          re-reading tick 301 + tick 302 + the ck_stripe_objects_by_tier
+          schema + the promotion-code-mint write-path in full.
+
+      Diagnostic delta of the pass:
+        - admin-reseller-detail-validation.spec.ts:
+            + new module-scope tick 358 doc-block placed between the tick
+              357 resellers-row closing rotation candidates block (row 828)
+              and the tick 342 commissions[] cluster opener (now shifted
+              from row 829 to a later row by the new block).
+            + Cross-references: sibling tick 332 summary rows 1819-1932 +
+              writer-side source 0091:98-102 (ck_stripe_objects_by_tier
+              disjunction) + 0091:90 (orthogonal tier_pct set-membership)
+              + promotion-code-mint.ts (decideCodeMint + ensureStripe
+              Coupon + ensureStripePromotionCode) + promotion-code-mint
+              .test.ts (17/17 per P9.4) + route.ts:83-88 (loadReseller
+              promotion_codes SELECT) + sibling per-column pins ticks 301
+              (stripe_coupon_id) / 302 (stripe_promotion_code_id) / 324
+              (message refresh).
+        - No production code touched, no fixture change, no route change,
+          no new imports, no new module-scope constants.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npm run lint:reseller`: R-01 11 files + R-03 32
+          routes + R-04 8 stripe files; 6 exemptions, 0 violations
+          (unchanged from tick 357).
+        - Playwright specs excluded from vitest by design.
+
+      Frontier after tick 358: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Summary-lens twin sweep now COMPLETE across both detail surfaces
+      on all five detail-route slots (resellers-row + promotion_codes[]
+      + admins[] + attributions_summary + commissions[]) — every slot
+      carries a module-scope invariant summary on BOTH detail-authz and
+      detail-validation. No asymmetric slot remains between the two
+      surfaces.
+
+      Next natural picks on tick 359:
+        (a) rotate to a wholly new cluster like reseller_requests[] on
+        the admin-requests-*.spec.ts family (the reseller-requests inbox
+        cluster has not yet been surface-lifted between detail-authz and
+        its validation twin — none of the summary-lens sweep touched
+        that surface).
+        (b) rotate to a message-prose refresh on any of the ten summary
+        blocks (five per surface) — a future drift check would compare
+        the five summary blocks on each surface against their sibling
+        twins for phrasing coherence.
+        (c) rotate to the cross-surface twin spec (admin-resellers-list-
+        *.spec.ts) — the list projection does not fan out to child rows
+        but does project the resellers-row shape.
+        (d) idle — frontier remains tight (P1.5 + P8.5 HUMAN-BLOCKED,
+        P11 never_completes, Track B closed, P10 continues accepting
+        incremental pin-tightening + summary-hoist ticks).
+    commit: (this tick)
+
   - tick: 357
     ran_at: 2026-07-24
     action: p10_resellers_row_ck_wholesale_gst_required_cross_column_invariant_summary_twin_hoist_onto_admin_reseller_detail_validation
