@@ -30,7 +30,7 @@ import {
 } from "@/lib/market/au-market-lookup";
 
 /** Uppercased, whitespace-stripped ANZSIC 2006 class code (e.g. "J5810"). */
-const ANZSIC_CODE_PATTERN = /\b([A-S])\s*(\d{4})\b/;
+const ANZSIC_CODE_PATTERN = /\b([A-Sa-s])\s*(\d{4})\b/;
 
 /**
  * Scan free-form startup description for an ANZSIC 2006 class code (like

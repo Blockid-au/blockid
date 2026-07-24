@@ -426,3 +426,4 @@
 {"tick_id":"2026-07-24T18-57-01-923Z","ts":"2026-07-24T19:06:38.239Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-24T19-07-01-313Z","ts":"2026-07-24T19:07:01.314Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-24T19-07-01-313Z","ts":"2026-07-24T19:07:01.319Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts":"2026-07-24T19:15:18.408Z","loop":"atlassian-goal-loop","phase":"P3d","status":"shipped","commit":"pending","summary":"CMO agent-side wire of AU market lookup — new au-market-anchor.ts + agent-dispatcher.ts market-criterion branch pushes ABS/IBISWorld anchor block into user-prompt. 15 vitest cases green, tsc clean."}
