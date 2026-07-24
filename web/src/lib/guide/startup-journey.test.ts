@@ -141,10 +141,49 @@ describe("R&D Tax Incentive section (chapter 06 P1j)", () => {
     }
   });
 
-  it("no other chapter carries sections yet (P1j is single-chapter for now)", () => {
+  it("no other chapter carries sections yet (P1j + P1l — chapters 06 and 10 only)", () => {
+    const chaptersWithSections = new Set<ChapterSlug>(["06-revenue", "10-fundraise"]);
     for (const chapter of listChapters()) {
-      if (chapter.slug === "06-revenue") continue;
+      if (chaptersWithSections.has(chapter.slug)) continue;
       expect(chapter.sections).toBeUndefined();
+    }
+  });
+});
+
+describe("primary vs secondary section (chapter 10 P1l)", () => {
+  it("chapter 10-fundraise publishes a primary-vs-secondary section EN + VI", () => {
+    const c = getChapter("10-fundraise");
+    expect(c).not.toBeNull();
+    expect(c?.sections).toBeDefined();
+    const s = c?.sections?.find((x) => x.id === "primary-vs-secondary");
+    expect(s).toBeDefined();
+    expect(s?.heading.en.length).toBeGreaterThan(0);
+    expect(s?.heading.vi.length).toBeGreaterThan(0);
+    // At least six substantive bullets each; both locales aligned.
+    expect(s?.body.en.length).toBeGreaterThanOrEqual(6);
+    expect(s?.body.vi.length).toBe(s?.body.en.length);
+  });
+
+  it("primary-vs-secondary section cites the anchors an AU founder needs to defend the call", () => {
+    const c = getChapter("10-fundraise");
+    const s = c?.sections?.find((x) => x.id === "primary-vs-secondary");
+    const en = (s?.body.en ?? []).join("\n");
+    // Atlassian precedent + AU statutory anchors that make the copy auditable.
+    for (const anchor of [
+      "Accel",                    // 2010 US$60M secondary
+      "T. Rowe",                  // 2014 US$150M secondary
+      "US$60M",                   // Accel 2010 headline
+      "US$150M",                  // T. Rowe 2014 headline
+      "s707",                     // Corps Act on-sale rule
+      "s708",                     // exemption regime
+      "Right of First Refusal",   // ROFR
+      "CGT event A1",             // ITAA 1997 s104-10
+      "Subscription Agreement",   // primary docs
+      "Share Purchase Agreement", // secondary docs
+      "Div 360",                  // ESIC — does NOT survive secondary
+      "Form 484",                 // ASIC notification for both paths
+    ]) {
+      expect(en).toContain(anchor);
     }
   });
 });
