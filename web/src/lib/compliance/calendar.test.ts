@@ -17,6 +17,10 @@ import {
   CALENDAR_PRODID,
 } from "./calendar";
 import type { RDCalendarEntry } from "./rd-calendar";
+import type { WGEAResult } from "./wgea-threshold";
+import { WGEA_DISCLAIMER } from "./wgea-threshold";
+import type { ModernSlaveryResult } from "./modern-slavery-threshold";
+import { MODERN_SLAVERY_DISCLAIMER } from "./modern-slavery-threshold";
 
 // A safe anchor: 2026-07-24 (today per session context). Standard AU FY
 // that started on 2026-07-01, so the current FY is FY 2026-27 and Q1 is
@@ -146,6 +150,129 @@ describe("buildComplianceCalendar — R&D registration deadlines", () => {
     expect(rd!.summary).toMatch(/FY 2025-26/);
     expect(rd!.uid).toBe("rd-registration-fy2025-26@blockid.au");
     expect(rd!.description).toMatch(/IR&D Act 1986 s 27A/);
+  });
+});
+
+function wgeaResult(overrides: Partial<WGEAResult> = {}): WGEAResult {
+  return {
+    current_headcount_au: 120,
+    peak_headcount_last_12_months: 120,
+    threshold_headcount: 100,
+    is_relevant_employer: true,
+    is_above_threshold: true,
+    next_report_due_iso: "2027-05-31",
+    action_required: "report_required",
+    urgency: "critical",
+    reasoning: "test",
+    disclaimer: WGEA_DISCLAIMER,
+    ...overrides,
+  };
+}
+
+function msResult(overrides: Partial<ModernSlaveryResult> = {}): ModernSlaveryResult {
+  return {
+    current_period_revenue_aud: 120_000_000,
+    projected_full_period_revenue_aud: 120_000_000,
+    last_full_period_revenue_aud: 120_000_000,
+    threshold_aud: 100_000_000,
+    is_reporting_entity: true,
+    is_above_threshold: true,
+    statement_due_iso: "2026-12-31",
+    days_until_statement_due: 160,
+    action_required: "statement_due_soon",
+    urgency: "critical",
+    reasoning: "test",
+    disclaimer: MODERN_SLAVERY_DISCLAIMER,
+    ...overrides,
+  };
+}
+
+describe("buildComplianceCalendar — WGEA report deadline", () => {
+  it("emits no WGEA events when the wgea option is absent", () => {
+    const events = buildComplianceCalendar({ now: NOW });
+    expect(events.filter((e) => e.kind === "wgea_report")).toHaveLength(0);
+  });
+
+  it("emits no WGEA events when the employer is not a relevant employer", () => {
+    const events = buildComplianceCalendar({
+      now: NOW,
+      wgea: wgeaResult({
+        is_relevant_employer: false,
+        is_above_threshold: false,
+        current_headcount_au: 20,
+        peak_headcount_last_12_months: 20,
+        next_report_due_iso: undefined,
+      }),
+    });
+    expect(events.filter((e) => e.kind === "wgea_report")).toHaveLength(0);
+  });
+
+  it("emits a wgea_report event on next_report_due_iso for a relevant employer", () => {
+    const events = buildComplianceCalendar({
+      now: NOW,
+      wgea: wgeaResult({ next_report_due_iso: "2027-05-31" }),
+    });
+    const wgea = events.find((e) => e.kind === "wgea_report");
+    expect(wgea).toBeDefined();
+    expect(wgea!.date_start).toBe("2027-05-31");
+    expect(wgea!.date_end).toBe("2027-06-01");
+    expect(wgea!.uid).toBe("wgea-report-2027@blockid.au");
+    expect(wgea!.summary).toMatch(/WGEA public report 2027/);
+    expect(wgea!.description).toMatch(/Workplace Gender Equality Act 2012/);
+    expect(wgea!.reminder_lead_days).toBe(14);
+  });
+
+  it("respects the 12-month horizon (skips WGEA events past horizon)", () => {
+    const events = buildComplianceCalendar({
+      now: NOW,
+      horizonMonths: 6,
+      wgea: wgeaResult({ next_report_due_iso: "2028-05-31" }),
+    });
+    expect(events.filter((e) => e.kind === "wgea_report")).toHaveLength(0);
+  });
+});
+
+describe("buildComplianceCalendar — Modern Slavery statement deadline", () => {
+  it("emits no MSA events when the modernSlavery option is absent", () => {
+    const events = buildComplianceCalendar({ now: NOW });
+    expect(events.filter((e) => e.kind === "modern_slavery_statement")).toHaveLength(0);
+  });
+
+  it("emits no MSA events when the entity is not a reporting entity", () => {
+    const events = buildComplianceCalendar({
+      now: NOW,
+      modernSlavery: msResult({
+        is_reporting_entity: false,
+        is_above_threshold: false,
+        statement_due_iso: undefined,
+      }),
+    });
+    expect(events.filter((e) => e.kind === "modern_slavery_statement")).toHaveLength(0);
+  });
+
+  it("emits a modern_slavery_statement event on statement_due_iso for a reporting entity", () => {
+    const events = buildComplianceCalendar({
+      now: NOW,
+      modernSlavery: msResult({ statement_due_iso: "2026-12-31" }),
+    });
+    const ms = events.find((e) => e.kind === "modern_slavery_statement");
+    expect(ms).toBeDefined();
+    expect(ms!.date_start).toBe("2026-12-31");
+    expect(ms!.date_end).toBe("2027-01-01");
+    expect(ms!.uid).toBe("modern-slavery-statement-2026@blockid.au");
+    expect(ms!.summary).toMatch(/Modern Slavery statement 2026/);
+    expect(ms!.description).toMatch(/Modern Slavery Act 2018/);
+    expect(ms!.description).toMatch(/s13\(2\)/);
+    expect(ms!.reminder_lead_days).toBe(14);
+  });
+
+  it("respects the 12-month horizon (skips MSA events past horizon)", () => {
+    const events = buildComplianceCalendar({
+      now: NOW,
+      horizonMonths: 3,
+      modernSlavery: msResult({ statement_due_iso: "2027-12-31" }),
+    });
+    expect(events.filter((e) => e.kind === "modern_slavery_statement")).toHaveLength(0);
   });
 });
 

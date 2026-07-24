@@ -28,6 +28,8 @@ import {
   renderIcs,
   CALENDAR_DISCLAIMER,
 } from "@/lib/compliance/calendar";
+import type { WGEAResult } from "@/lib/compliance/wgea-threshold";
+import type { ModernSlaveryResult } from "@/lib/compliance/modern-slavery-threshold";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -42,6 +44,12 @@ interface RdRow {
 }
 interface EquityPlanRow {
   incorporation_date: string | null;
+}
+interface WgeaRow {
+  result_json: WGEAResult | null;
+}
+interface ModernSlaveryRow {
+  result_json: ModernSlaveryResult | null;
 }
 
 export async function GET(request: Request) {
@@ -64,9 +72,11 @@ export async function GET(request: Request) {
     registration_status?: RDCalendarEntry["registration_status"];
     registration_date?: string | null;
   }> = [];
+  let wgea: WGEAResult | null = null;
+  let modernSlavery: ModernSlaveryResult | null = null;
 
   if (supabase) {
-    const [gstQ, rdQ, equityQ] = await Promise.all([
+    const [gstQ, rdQ, equityQ, wgeaQ, msQ] = await Promise.all([
       supabase
         .from("compliance_gst_status")
         .select("registered_for_gst")
@@ -87,6 +97,22 @@ export async function GET(request: Request) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle<EquityPlanRow>(),
+      supabase
+        .from("compliance_wgea_status")
+        .select("result_json")
+        .eq("user_id", user.id)
+        .eq("project_id", projectId)
+        .order("computed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle<WgeaRow>(),
+      supabase
+        .from("compliance_modern_slavery_status")
+        .select("result_json")
+        .eq("user_id", user.id)
+        .eq("project_id", projectId)
+        .order("computed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle<ModernSlaveryRow>(),
     ]);
 
     gstRegistered = Boolean(gstQ.data?.registered_for_gst);
@@ -102,6 +128,8 @@ export async function GET(request: Request) {
           : "not_registered",
       registration_date: r.registration_date,
     }));
+    wgea = wgeaQ.data?.result_json ?? null;
+    modernSlavery = msQ.data?.result_json ?? null;
   }
 
   const rdCalendar = buildRDCalendar({ registrations: rdRegistrations });
@@ -109,6 +137,8 @@ export async function GET(request: Request) {
     gstRegistered,
     acnRegistrationDate,
     rdCalendar,
+    wgea,
+    modernSlavery,
   });
   const ics = renderIcs(events);
 

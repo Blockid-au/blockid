@@ -19,11 +19,17 @@
 //      the existing compliance_rd_registrations state so registered FYs
 //      are skipped. IR&D Act 1986 s 27A.
 //
+// P1n-calendar-events (2026-07-24) folds in WGEA + Modern Slavery events:
+//   4. WGEA public report — WGE Act 2012 (Cth) s3 relevant employer,
+//      annual public report due 31 May after the reporting period ends.
+//      Emitted when the WGEA detector reports is_relevant_employer.
+//   5. Modern Slavery statement — MSA 2018 (Cth) s5 reporting entity,
+//      statement due within 6 months of the FY end. Emitted when the
+//      MSA detector reports is_reporting_entity.
+//
 // Deferred (follow-ups):
 //   - Fair Work anniversary (award-classification review) — not date-
 //     driven, employer-triggered.
-//   - Modern Slavery statement (P1n) — has its own threshold detector.
-//   - WGEA report (P1n) — has its own threshold detector.
 //   - Substituted Accounting Period BAS quarters — depends on
 //     substituted-FY support in the R&D calendar too.
 //
@@ -32,6 +38,8 @@
 // and hands the assembled options in.
 
 import type { RDCalendarEntry } from "@/lib/compliance/rd-calendar";
+import type { WGEAResult } from "@/lib/compliance/wgea-threshold";
+import type { ModernSlaveryResult } from "@/lib/compliance/modern-slavery-threshold";
 
 export const CALENDAR_DISCLAIMER =
   "Not tax or legal advice — BAS due dates assume standard 1-July-to-30-June FY and self-lodgment. Companies with an ATO-approved Substituted Accounting Period, or lodging via a registered tax agent, may have different dates. Confirm with the ATO and your registered agent before relying on this calendar.";
@@ -47,7 +55,9 @@ const REMINDER_LEAD_DAYS = 14 as const;
 export type ComplianceEventKind =
   | "bas_quarter"
   | "asic_annual_review"
-  | "rd_registration";
+  | "rd_registration"
+  | "wgea_report"
+  | "modern_slavery_statement";
 
 export interface ComplianceEvent {
   uid: string;
@@ -94,6 +104,20 @@ export interface BuildComplianceCalendarOptions {
    * classification. Registered / not-applicable rows are skipped.
    */
   rdCalendar?: readonly RDCalendarEntry[];
+  /**
+   * Latest `assessWGEA()` snapshot for the founder. When
+   * `is_relevant_employer` and `next_report_due_iso` are present, we
+   * emit a `wgea_report` all-day event for the 31-May-following public-
+   * report deadline. Null / undefined skips the WGEA branch entirely.
+   */
+  wgea?: WGEAResult | null;
+  /**
+   * Latest `assessModernSlavery()` snapshot for the founder. When
+   * `is_reporting_entity` and `statement_due_iso` are present, we emit
+   * a `modern_slavery_statement` all-day event for the FY-end + 6-month
+   * lodgement deadline. Null / undefined skips the MSA branch entirely.
+   */
+  modernSlavery?: ModernSlaveryResult | null;
 }
 
 const BAS_QUARTERS: ReadonlyArray<{
@@ -121,6 +145,10 @@ const ASIC_ANNUAL_REVIEW_URL =
   "https://asic.gov.au/for-business/running-a-company/annual-review-and-lodgement";
 const AUSINDUSTRY_RD_URL =
   "https://business.gov.au/grants-and-programs/research-and-development-tax-incentive";
+const WGEA_REPORTING_URL =
+  "https://www.wgea.gov.au/what-we-do/reporting";
+const MODERN_SLAVERY_URL =
+  "https://modernslaveryregister.gov.au/";
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -254,6 +282,54 @@ function buildRdEvents(
   return events;
 }
 
+function buildWgeaEvents(
+  wgea: WGEAResult,
+  now: Date,
+  horizonMonths: number,
+): ComplianceEvent[] {
+  const events: ComplianceEvent[] = [];
+  if (!wgea.is_relevant_employer) return events;
+  const deadlineIso = wgea.next_report_due_iso;
+  if (!deadlineIso) return events;
+  if (!withinHorizon(deadlineIso, now, horizonMonths)) return events;
+  const year = new Date(deadlineIso + "T00:00:00Z").getUTCFullYear();
+  events.push({
+    uid: `wgea-report-${year}@blockid.au`,
+    kind: "wgea_report",
+    summary: `WGEA public report ${year} — lodge with agency`,
+    description: `Workplace Gender Equality Act 2012 (Cth) s3 relevant-employer public report. Reporting period 1 April → 31 March; statement due to the Workplace Gender Equality Agency by ${deadlineIso}. Six gender-equality-indicator dataset required. WGEA reference: ${WGEA_REPORTING_URL}.`,
+    date_start: deadlineIso,
+    date_end: addDaysIso(deadlineIso, 1),
+    reminder_lead_days: REMINDER_LEAD_DAYS,
+    source_url: WGEA_REPORTING_URL,
+  });
+  return events;
+}
+
+function buildModernSlaveryEvents(
+  ms: ModernSlaveryResult,
+  now: Date,
+  horizonMonths: number,
+): ComplianceEvent[] {
+  const events: ComplianceEvent[] = [];
+  if (!ms.is_reporting_entity) return events;
+  const deadlineIso = ms.statement_due_iso;
+  if (!deadlineIso) return events;
+  if (!withinHorizon(deadlineIso, now, horizonMonths)) return events;
+  const year = new Date(deadlineIso + "T00:00:00Z").getUTCFullYear();
+  events.push({
+    uid: `modern-slavery-statement-${year}@blockid.au`,
+    kind: "modern_slavery_statement",
+    summary: `Modern Slavery statement ${year} — lodge with register`,
+    description: `Modern Slavery Act 2018 (Cth) s5 reporting-entity statement. Consolidated revenue at or above A$100M — statement due within 6 months of FY end (${deadlineIso}). Requires principal-governing-body approval + responsible-member signature under s13(2); seven mandatory reporting criteria under s16. Attorney-General's register: ${MODERN_SLAVERY_URL}.`,
+    date_start: deadlineIso,
+    date_end: addDaysIso(deadlineIso, 1),
+    reminder_lead_days: REMINDER_LEAD_DAYS,
+    source_url: MODERN_SLAVERY_URL,
+  });
+  return events;
+}
+
 export function buildComplianceCalendar(
   opts: BuildComplianceCalendarOptions = {},
 ): ComplianceEvent[] {
@@ -278,6 +354,16 @@ export function buildComplianceCalendar(
 
   if (opts.rdCalendar && opts.rdCalendar.length > 0) {
     events.push(...buildRdEvents(opts.rdCalendar, now, horizonMonths));
+  }
+
+  if (opts.wgea) {
+    events.push(...buildWgeaEvents(opts.wgea, now, horizonMonths));
+  }
+
+  if (opts.modernSlavery) {
+    events.push(
+      ...buildModernSlaveryEvents(opts.modernSlavery, now, horizonMonths),
+    );
   }
 
   events.sort((a, b) => a.date_start.localeCompare(b.date_start));
