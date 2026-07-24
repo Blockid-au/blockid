@@ -74,6 +74,11 @@ import {
   type DigestSnapshotDirectionStreaks,
 } from "@/lib/reseller/digest-snapshot-direction-streaks";
 import {
+  computeDigestSnapshotPerResellerDirectionStreaks,
+  formatDigestSnapshotPerResellerDirectionStreaksSection,
+  type DigestSnapshotPerResellerDirectionStreaks,
+} from "@/lib/reseller/digest-snapshot-per-reseller-direction-streaks";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1238,6 +1243,10 @@ export async function GET(req: Request) {
   let topMoversPerResellerSection = "";
   let snapshotDirectionStreaks: DigestSnapshotDirectionStreaks | null = null;
   let directionStreaksSection = "";
+  let snapshotPerResellerDirectionStreaks:
+    | DigestSnapshotPerResellerDirectionStreaks
+    | null = null;
+  let perResellerDirectionStreaksSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -1359,22 +1368,47 @@ export async function GET(req: Request) {
     directionStreaksSection = formatDigestSnapshotDirectionStreaksSection(
       snapshotDirectionStreaks,
     );
+    // P11.33 — per-reseller sustained-direction streak detector (module P11.32).
+    // Projects the SAME per-reseller rolling trend used by P11.22 down to the
+    // longest run of consecutive same-sign point-to-point deltas per
+    // (metric × reseller_code). Drills down the P11.31 portfolio streak table
+    // above it and — critically — surfaces counter-balanced patterns
+    // invisible to P11.31 (partner A slides -5000/wk while partner B climbs
+    // +5000/wk for 3 weeks → portfolio flat every single week so P11.31 is
+    // silent yet both partners ran material length-3 streaks). Consumes
+    // snapshotPerResellerRollingTrend directly (no second per-reseller trend
+    // fold, no divergence risk vs. the per-reseller drill-down trend table
+    // this streak drill-down summarises).
+    snapshotPerResellerDirectionStreaks =
+      computeDigestSnapshotPerResellerDirectionStreaks(
+        snapshotPerResellerRollingTrend,
+      );
+    perResellerDirectionStreaksSection =
+      formatDigestSnapshotPerResellerDirectionStreaksSection(
+        snapshotPerResellerDirectionStreaks,
+      );
   }
   if (
     topMoversSection ||
     topMoversPerMetricSection ||
     topMoversPerResellerSection ||
-    directionStreaksSection
+    directionStreaksSection ||
+    perResellerDirectionStreaksSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
-    // (per-reseller spotlight) → P11.30 (sustained-direction streaks) so the
+    // (per-reseller spotlight) → P11.30 (portfolio sustained-direction
+    // streaks) → P11.32 (per-reseller sustained-direction streaks) so the
     // biggest single shift lands first, the per-metric coverage table rounds
     // out any metric whose mover was buried by unit-scale dominance, the
     // per-reseller spotlight guarantees every partner with any material shift
     // gets at least one row regardless of whether they lead a metric group
-    // globally, and the direction-streak table surfaces the persistence angle
-    // the three |delta|-magnitude sections above it may bury.
+    // globally, the portfolio direction-streak table surfaces the persistence
+    // angle the three |delta|-magnitude sections above it may bury, and the
+    // per-reseller streak drill-down names the specific partner behind each
+    // portfolio streak (and — critically — surfaces counter-balanced patterns
+    // invisible to the portfolio streak table above it when partner slides
+    // and gains cancel each other week-over-week).
     const rest = html.slice(digestHeader.length);
     html =
       digestHeader +
@@ -1382,6 +1416,7 @@ export async function GET(req: Request) {
       topMoversPerMetricSection +
       topMoversPerResellerSection +
       directionStreaksSection +
+      perResellerDirectionStreaksSection +
       rest;
   }
 
@@ -1719,6 +1754,20 @@ export async function GET(req: Request) {
           skipped_reason:
             previousSnapshotSkipReason ?? "no_previous_snapshot",
         },
+    snapshot_per_reseller_direction_streaks:
+      snapshotPerResellerDirectionStreaks
+        ? {
+            window_size: snapshotPerResellerDirectionStreaks.window_size,
+            first_week: snapshotPerResellerDirectionStreaks.first_week,
+            last_week: snapshotPerResellerDirectionStreaks.last_week,
+            min_streak_length:
+              snapshotPerResellerDirectionStreaks.min_streak_length,
+            rows: snapshotPerResellerDirectionStreaks.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     ran_at: now.toISOString(),
   };
 
