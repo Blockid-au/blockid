@@ -1180,3 +1180,5 @@
 {"ts":"2026-07-24T04:23:20.632Z","event":"github-push-master","detail":"Blockid-au: feat(db): 0110 trial warning columns migration + canonical TRIAL_COPY (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:25:49.800Z","event":"github-push-master","detail":"Blockid-au: fix(tests): repair Gate 4b failures blocking round 5 deploy (round 5.5 QA) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T04:26:03.386Z","event":"github-push-master","detail":"Blockid-au: feat(cron): trial-charge-warning pre-charge email endpoint (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:26:23.682Z","event":"github-push-master","detail":"Blockid-au: feat(ui): create-project button gated + upgrade CTA for at-limit founders (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T04:27:28.794Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): tick 379 twin-lift reseller_attributions row-cluster summary onto drawer-authz (1 commits)","source":"github-webhook"}
