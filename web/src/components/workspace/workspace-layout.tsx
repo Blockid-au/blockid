@@ -13,7 +13,9 @@ import { PHASE_LABELS } from "@/lib/showcase/gallery";
 // Role → menu overlay (hidden groups + injected groups + extra top-nav
 // CTAs). Extracted to a helper so other surfaces can reuse the same source
 // of truth. See ux-ia-startup-flow-goal.md §C.6 — P6.
-import { getMenuOverlayForRole } from "@/lib/nav/role-menu-overlay";
+import { getMenuOverlayForRole, resolveInitialCollapse } from "@/lib/nav/role-menu-overlay";
+import { useNavCollapse } from "@/lib/nav/nav-collapse-store";
+import { RecommendedNextStepTile } from "@/components/workspace/recommended-next-step-tile";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
 import { CreditBadge } from "@/components/workspace/credit-badge";
@@ -169,8 +171,16 @@ function renderNavGroup(args: {
   entitlement: ReturnType<typeof useEntitlement>;
   pathname: string;
   setMobileOpen: (v: boolean) => void;
+  /**
+   * Pillar collapse state — when true, the group's items are hidden and
+   * the header renders as a clickable disclosure. When undefined the
+   * legacy always-open behaviour is used (used by the P5 later-phases
+   * expander which handles its own disclosure).
+   */
+  collapsed?: boolean;
+  onToggle?: (label: string) => void;
 }): React.ReactNode {
-  const { group, currentPhase, sidebarOpen, planId, segment, entitlement, pathname, setMobileOpen } = args;
+  const { group, currentPhase, sidebarOpen, planId, segment, entitlement, pathname, setMobileOpen, collapsed, onToggle } = args;
   const isFuturePhase = group.minPhase != null && group.minPhase > currentPhase;
   const resolvedItems = resolveGroup(group, { planId, segment, hasFeature: entitlement.can });
   if (resolvedItems.length === 0) return null;
@@ -186,28 +196,69 @@ function renderNavGroup(args: {
     ? `Unlocks after Phase ${unlockPhase}: ${unlockLabel}`
     : undefined;
 
+  const isCollapsible = typeof collapsed === "boolean" && typeof onToggle === "function";
+  const isCollapsed = isCollapsible && collapsed === true;
+
   return (
-    <div key={group.label} className="mb-1">
-      {/* Group header */}
+    <div key={group.label} className="mb-1" data-pillar={group.pillar} data-group-label={group.label}>
+      {/* Group header — clickable disclosure when the caller passes
+          collapse state, otherwise a plain label. */}
       {sidebarOpen && (
-        <div
-          className="px-3 pt-4 pb-1.5 flex items-center justify-between"
-          title={futureTitle}
-        >
-          <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", isFuturePhase ? "text-ink-300" : "text-ink-400")}>{group.label}</span>
-          {group.stage && (
+        isCollapsible ? (
+          <button
+            type="button"
+            onClick={() => onToggle?.(group.label)}
+            aria-expanded={!isCollapsed}
+            aria-controls={`nav-group-panel-${group.label.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`}
+            title={futureTitle}
+            className="w-full px-3 pt-4 pb-1.5 flex items-center justify-between text-left hover:bg-surface-50/60 rounded-md transition-colors"
+          >
             <span className={cn(
-              "text-[9px]",
-              isFuturePhase
-                ? "px-1.5 py-0.5 rounded font-semibold bg-amber-100 text-amber-700 ring-1 ring-amber-200"
-                : "text-ink-400/60",
+              "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
+              isFuturePhase ? "text-ink-300" : "text-ink-400",
             )}>
-              {isFuturePhase ? "Locked" : group.stage}
+              <ChevronDown
+                strokeWidth={1.75}
+                className={cn("h-3 w-3 transition-transform duration-150", isCollapsed ? "-rotate-90" : "")}
+                aria-hidden
+              />
+              {group.label}
             </span>
-          )}
-        </div>
+            {group.stage && (
+              <span className={cn(
+                "text-[9px]",
+                isFuturePhase
+                  ? "px-1.5 py-0.5 rounded font-semibold bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+                  : "text-ink-400/60",
+              )}>
+                {isFuturePhase ? "Locked" : group.stage}
+              </span>
+            )}
+          </button>
+        ) : (
+          <div
+            className="px-3 pt-4 pb-1.5 flex items-center justify-between"
+            title={futureTitle}
+          >
+            <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", isFuturePhase ? "text-ink-300" : "text-ink-400")}>{group.label}</span>
+            {group.stage && (
+              <span className={cn(
+                "text-[9px]",
+                isFuturePhase
+                  ? "px-1.5 py-0.5 rounded font-semibold bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+                  : "text-ink-400/60",
+              )}>
+                {isFuturePhase ? "Locked" : group.stage}
+              </span>
+            )}
+          </div>
+        )
       )}
-      {/* Group items */}
+      {/* Group items — hidden entirely when the pillar is collapsed. Kept
+          in the DOM otherwise so per-item state (active link) is preserved
+          across toggles. */}
+      {isCollapsed ? null : (
+      <div id={`nav-group-panel-${group.label.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`}>
       {resolvedItems.map(({ item, locked }) => {
         const { href, label, icon: Icon, lifecycle, addOnKey } = item;
         const active = pathname === href || pathname.startsWith(href + "/");
@@ -270,6 +321,8 @@ function renderNavGroup(args: {
           </Link>
         );
       })}
+      </div>
+      )}
     </div>
   );
 }
@@ -287,12 +340,19 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
   // Base catalogue (+ admin group when the account is admin), then apply
   // the role overlay so hidden groups drop and ordering respects the role's
   // priority list. Segment gating inside `resolveGroup()` still runs.
-  const baseGroups = isAdmin ? [...NAV_GROUPS, ADMIN_NAV_GROUP] : NAV_GROUPS;
-  const overlay = getMenuOverlayForRole({
-    role: user.role ?? null,
-    segment: segment ?? null,
-    accountType: (entitlement.user as { accountType?: string } | null | undefined)?.accountType ?? null,
-  });
+  const baseGroups = React.useMemo(
+    () => (isAdmin ? [...NAV_GROUPS, ADMIN_NAV_GROUP] : NAV_GROUPS),
+    [isAdmin],
+  );
+  const accountType = (entitlement.user as { accountType?: string } | null | undefined)?.accountType ?? null;
+  const overlay = React.useMemo(
+    () => getMenuOverlayForRole({
+      role: user.role ?? null,
+      segment: segment ?? null,
+      accountType,
+    }),
+    [user.role, segment, accountType],
+  );
   const orderedGroups = React.useMemo(() => {
     const hidden = new Set(overlay.hiddenGroups);
     const kept = baseGroups.filter((g) => !hidden.has(g.label));
@@ -317,6 +377,71 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
     (g) => g.minPhase != null && g.minPhase > laterPhaseThreshold,
   );
   const [laterOpen, setLaterOpen] = React.useState(false);
+
+  // Pillar-aware collapse state — merges role overlay defaults, catalogue
+  // `defaultCollapsed`, and per-user localStorage. `useNavCollapse` is a
+  // useSyncExternalStore wrapper so SSR renders the overlay defaults and
+  // CSR hydrates without a flip.
+  //
+  // Special case: for Now-pillar groups (Build & Validate / Ownership &
+  // Equity / Fundraise / Grow & Scale), the layout auto-expands the ONE
+  // group whose `minPhase` brackets the founder's `currentPhase`. This
+  // beats the overlay default so a phase-3 founder lands with Fundraise
+  // open even though the founder overlay marks it collapsed.
+  const nowGroups = React.useMemo(
+    () => nearGroups.filter((g) => g.pillar === "now"),
+    [nearGroups],
+  );
+  const activeNowLabel = React.useMemo(() => {
+    // Sort by minPhase asc, pick the last group whose minPhase <= currentPhase.
+    const withPhase = nowGroups
+      .filter((g) => g.minPhase != null)
+      .sort((a, b) => (a.minPhase! - b.minPhase!));
+    let active: string | null = null;
+    for (const g of withPhase) {
+      if ((g.minPhase ?? 0) <= currentPhase) active = g.label;
+    }
+    // Fresh (phase-0) founder → start with the earliest Now group open.
+    if (!active && withPhase.length > 0) active = withPhase[0].label;
+    return active;
+  }, [nowGroups, currentPhase]);
+
+  const overlayDefaults = React.useMemo(
+    () => resolveInitialCollapse(orderedGroups, overlay),
+    [orderedGroups, overlay],
+  );
+  // Force the auto-expanded Now group open in the default state.
+  const initialCollapse = React.useMemo(() => {
+    const next = { ...overlayDefaults };
+    if (activeNowLabel) next[activeNowLabel] = false;
+    return next;
+  }, [overlayDefaults, activeNowLabel]);
+
+  const [collapseState, toggleCollapse] = useNavCollapse(initialCollapse);
+
+  // Mobile: force all pillars closed except Overview — screens are tighter.
+  // We derive a per-render override rather than mutating the store so
+  // toggling on mobile still writes-through to localStorage for the next
+  // desktop session.
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  const effectiveCollapse = React.useMemo(() => {
+    if (!isMobile) return collapseState;
+    const forced: Record<string, boolean> = {};
+    for (const g of orderedGroups) {
+      forced[g.label] = g.pillar !== "overview" ? true : false;
+    }
+    // Preserve any user toggles that keep a group open on mobile
+    // (only if the label doesn't fall back to the mobile default).
+    return { ...forced };
+  }, [isMobile, collapseState, orderedGroups]);
 
   return (
     <div className="min-h-svh bg-surface-100 text-ink-800 dark:bg-surface-50 dark:text-ink-800 flex">
@@ -347,6 +472,19 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
           </button>
         </div>
 
+        {/* Pinned tile — one-tap recommended next action; sits ABOVE
+            the nav so it clears the pillar headers on 13" laptops. */}
+        <RecommendedNextStepTile
+          currentPhase={currentPhase}
+          planId={planId}
+          segment={segment}
+          sidebarOpen={sidebarOpen}
+        />
+
+        {/* Free-tier upgrade nudge — hoisted up next to the recommendation
+            tile so both live above the fold instead of below <main>. */}
+        <UnlockPulseCard planId={planId} />
+
         {/* Nav items */}
         <nav className="flex-1 py-1 px-1 overflow-y-auto" aria-label="Workspace navigation">
           {nearGroups.map((group) =>
@@ -359,6 +497,11 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
               entitlement,
               pathname,
               setMobileOpen,
+              // Overview + phase-matching Now group + role group always
+              // start expanded; everything else honors the resolved
+              // collapse state (overlay defaults + user localStorage).
+              collapsed: effectiveCollapse[group.label] ?? false,
+              onToggle: toggleCollapse,
             }),
           )}
           {sidebarOpen && laterGroups.length > 0 && (() => {
@@ -542,8 +685,9 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
         {/* Founding 50 upgrade nudge — shown when user has 1 free credit left */}
         <UpgradePrompt />
 
-        {/* First-visit unlock pulse for free-tier users. Dismissible + persistent. */}
-        <UnlockPulseCard planId={planId} />
+        {/* First-visit unlock pulse now renders inside the sidebar tile stack
+            (above the nav), keeping upgrade nudges next to the recommendation
+            tile rather than below the fold. */}
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
