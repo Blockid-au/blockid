@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-24.384
+version: 2026-07-24.385
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -408,12 +408,19 @@ tracks:
         ]
       P10_hardening:
         status: blocked_by: [P1..P9]
+        sub_phases:
+          P10.R09_manifest_drift_cron: {status: done, tick: 384, completed_at: 2026-07-24, files: [
+            "web/src/lib/reseller/manifest-drift.ts (pure detectManifestDrift + formatManifestDriftEmail; k/phantom classification with three lists: missing / phantom_missing_file / phantom_no_mutation)",
+            "web/src/lib/reseller/manifest-drift.test.ts (11/11 pass — clean-vs-drift shapes, singular/plural finding count, HTML escape)",
+            "web/src/app/api/cron/reseller-manifest-drift/route.ts (walks GATED_DIRECTORIES for route.ts + detects POST/PATCH/PUT/DELETE via regex mirroring the completeness suite; feeds detectManifestDrift + emails admin@blockid.au on drift; ?skip_email=1 / ?force_email=1 dry-run knobs; CRON_SECRET bearer)",
+            "web/scripts/crontab.production (30 4 * * * reseller-manifest-drift — 04:30 UTC / 14:30 AEST, one slot after weekly-digest)"
+          ], note: "R-09 gate closed. Runtime companion to the feature-gates.manifest.test.ts completeness suite — catches drift merged past CI (hand server edits, out-of-band route additions, manifest entries left behind after a delete). Uses process.cwd()/src/app as APP_ROOT so it works under next-start without extra config. Pre-existing R-03 violation on api/dataroom/populate-from-template/route.ts (POST lacks gateRequireFeature call despite being in the manifest since round 5.4c) surfaced by npm run lint:reseller and MUST land in a follow-up tick before the P10 'CI rules R-01..R-09 all green' exit_criterion can flip — R-09 lib+cron itself is complete and green."}
         exit_criteria: [
           "Playwright E2E: full A + B walkthrough as founder, reseller, admin",
           "perf-audit: reseller console TTFB p95 < 500ms",
           "security-audit: RLS + typed wrapper enforced end-to-end",
           "au-compliance: E.1 EN + VI notice reviewed, APP 5.2 coverage confirmed",
-          "CI rules R-01..R-09 all green"
+          "CI rules R-01..R-09 all green (R-09 runtime cron DONE P10.R09 tick 384; R-03 wiring on dataroom/populate-from-template still pending — surfaces in npm run lint:reseller)"
         ]
       P11_ongoing:
         status: pending
