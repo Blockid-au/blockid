@@ -44,3 +44,8 @@
 {"tick_id":"2026-07-24T07-07-01-418Z","ts":"2026-07-24T07:10:56.833Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
 {"tick_id":"2026-07-24T07-07-01-418Z","ts":"2026-07-24T07:10:58.336Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-07-24T07-07-01-418Z","ts":"2026-07-24T07:10:58.341Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"e2dd2537","last_deployed":"1d5e355"}
+{"tick_id":"2026-07-24T07-07-01-418Z","ts":"2026-07-24T07:16:55.139Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"e2dd2537"}
+{"tick_id":"2026-07-24T07-07-01-418Z","ts":"2026-07-24T07:16:55.140Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-24T07-17-01-222Z","ts":"2026-07-24T07:17:01.222Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-24T07-17-01-222Z","ts":"2026-07-24T07:17:01.230Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-24T07-18-00-000Z","ts":"2026-07-24T07:19:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1b","summary":"AU-flavoured SAFE test block (4 cases) + goal-file annotation; template body already on disk from Round 5.6c; 14/14 legal-template tests green."}
