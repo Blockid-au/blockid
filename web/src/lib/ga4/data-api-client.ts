@@ -147,7 +147,12 @@ export async function runReport(request: Ga4RunReportRequest): Promise<Ga4RunRep
   const property = getGa4PropertyId();
   if (!property) throw new Error("GA4_PROPERTY_ID not set");
   const client = await getAnalyticsData();
-  const res = await client.properties.runReport({
+  // Cast: googleapis' generated types disagree on `limit` shape and
+  // response typing; runtime shape is compatible with our loose interface.
+  const clientAny = client as unknown as {
+    properties: { runReport: (args: unknown) => Promise<{ data?: Ga4RunReportResponse }> };
+  };
+  const res = await clientAny.properties.runReport({
     property,
     requestBody: request,
   });
