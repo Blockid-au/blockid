@@ -1441,3 +1441,6 @@
 {"ts":"2026-07-24T16:30:33Z","status":"success","gates":"9/9","pid":"742101","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-24T16:38:27.031Z","event":"github-push-master","detail":"Blockid-au: feat(compliance): P1n-esic-route /compliance/{esic,s708,gst,rd} deep-link pages (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-24T16:38:38.453Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T16-27-01-928Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T16:42:55.879Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.39 per-(reseller × metric) pct-change drill-down of P11.37 portfolio pct-change (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T16:43:00.379Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T16-35-01-501Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-24T16:44:57Z","status":"success","gates":"9/9","pid":"790118","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
