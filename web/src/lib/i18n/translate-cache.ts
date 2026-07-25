@@ -17,12 +17,35 @@
 
 import "server-only";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile, appendFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Locale } from "./locales";
 
 const CACHE_ROOT = join(process.cwd(), "content", "i18n");
+
+/**
+ * Append an audit line so `scripts/i18n/lint-cache.mjs` can drift-check
+ * new entries in CI (the cache itself is sha-keyed so EN isn't
+ * recoverable without this side-channel).
+ */
+async function appendAudit(
+  locale: Locale,
+  pairs: Record<string, string>,
+): Promise<void> {
+  const path = join(CACHE_ROOT, `${locale}-audit.jsonl`);
+  const ts = new Date().toISOString();
+  const lines = Object.entries(pairs)
+    .map(([en, vi]) => JSON.stringify({ ts, en, vi }))
+    .join("\n");
+  if (!lines) return;
+  try {
+    await mkdir(dirname(path), { recursive: true });
+    await appendFile(path, lines + "\n", "utf8");
+  } catch {
+    // Silent — audit is best-effort telemetry.
+  }
+}
 
 type CacheMap = Record<string, string>;
 
@@ -96,11 +119,17 @@ export async function cacheSetMany(
   pairs: Record<string, string>,
 ): Promise<void> {
   const map = await loadLocale(locale);
+  const fresh: Record<string, string> = {};
   for (const [en, vi] of Object.entries(pairs)) {
-    map[hashKey(en)] = vi;
+    const key = hashKey(en);
+    if (map[key] !== vi) fresh[en] = vi;
+    map[key] = vi;
   }
   dirty.add(locale);
   scheduleFlush();
+  if (Object.keys(fresh).length > 0) {
+    void appendAudit(locale, fresh);
+  }
 }
 
 function scheduleFlush(): void {

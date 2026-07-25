@@ -63,6 +63,16 @@ export function LocaleSwitcher() {
     (target: Locale) => {
       setLocaleCookie(target);
       setCurrent(target);
+      // T-1403.11: signed-in users also persist to founder_profiles so
+      // the choice survives cookie clears + follows them across devices.
+      // Anonymous callers get a soft 204 — cookie already handles them.
+      void fetch("/api/founder-profile/locale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: target }),
+        cache: "no-store",
+        credentials: "same-origin",
+      }).catch(() => {});
       // Runtime DOM walker in <TranslationProvider> reads the locale
       // header on the next render — refresh (not push) so we don't
       // 404 on pages that lack a `/vi/*` mirror.

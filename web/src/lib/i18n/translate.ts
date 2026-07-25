@@ -25,6 +25,12 @@ import type { Locale } from "./locales";
 import { DEFAULT_LOCALE } from "./locales";
 import { RESERVED_TERMS, containsReservedDrift } from "./reserved-terms";
 import { cacheGetMany, cacheSetMany } from "./translate-cache";
+import {
+  recordDriftReject,
+  recordGeminiCall,
+  recordHits,
+  recordRequest,
+} from "./translate-stats";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -58,6 +64,8 @@ export async function translateBatch(
     return out;
   }
 
+  recordRequest(target, ens.length);
+
   const unique = dedupe(ens.filter((s) => shouldTranslate(s)));
   if (unique.length === 0) {
     const out: Record<string, string> = {};
@@ -67,18 +75,28 @@ export async function translateBatch(
 
   const cached = await cacheGetMany(target, unique);
   const missing = unique.filter((s) => !(s in cached));
+  recordHits(target, unique.length - missing.length, missing.length);
 
   const fresh: Record<string, string> = {};
   for (let i = 0; i < missing.length; i += MAX_BATCH) {
     const slice = missing.slice(i, i + MAX_BATCH);
     const translated = await callGeminiBatch(slice, target).catch(() => null);
-    if (!translated) continue;
+    if (!translated) {
+      recordGeminiCall(target, 0, false);
+      continue;
+    }
+    let kept = 0;
     for (const [en, vi] of Object.entries(translated)) {
       const drift = containsReservedDrift(en, vi);
-      if (drift.length > 0) continue; // reject: reserved token was translated away
+      if (drift.length > 0) {
+        recordDriftReject(target);
+        continue; // reject: reserved token was translated away
+      }
       if (!vi || vi === en) continue;
       fresh[en] = vi;
+      kept += 1;
     }
+    recordGeminiCall(target, kept, true);
   }
 
   if (Object.keys(fresh).length > 0) {
