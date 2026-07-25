@@ -655,3 +655,9 @@
 {"tick_id":"2026-07-25T02-02-00-000Z","ts":"2026-07-25T02:02:00.000Z","loop_label":"atlassian-goal-loop","phase":"P5-tax-invoice-checker-panel-mount","status":"shipped","stage":"tick_end","note":"/dashboard/compliance RSC page mounts CompliancePanel; nav-groups fundraise.data-room gains Compliance Panel entry; unblocks P5-tax-invoice-checker-tile-e2e"}
 {"tick_id":"2026-07-25T01-57-01-315Z","ts":"2026-07-25T02:04:58.493Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":477167,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-25T01-57-01-315Z","ts":"2026-07-25T02:04:58.525Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":6}
+{"tick_id":"2026-07-25T01-57-01-315Z","ts":"2026-07-25T02:05:00.058Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-25T01-57-01-315Z","ts":"2026-07-25T02:05:00.063Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"a4fe054c","last_deployed":"1e8ca36"}
+{"tick_id":"2026-07-25T01-57-01-315Z","ts":"2026-07-25T02:05:18.144Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"a4fe054c"}
+{"tick_id":"2026-07-25T01-57-01-315Z","ts":"2026-07-25T02:05:18.145Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-25T02-07-01-488Z","ts":"2026-07-25T02:07:01.489Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-25T02-07-01-488Z","ts":"2026-07-25T02:07:01.495Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
