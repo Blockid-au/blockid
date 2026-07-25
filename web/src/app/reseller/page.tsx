@@ -18,6 +18,7 @@ import {
 } from "@/lib/reseller/portfolio-aggregates";
 import { buildPhaseDistribution } from "@/lib/reseller/portfolio-phase-distribution";
 import { buildReviewsSummary } from "@/lib/reseller/reviews";
+import { RoleLandingIntro } from "@/components/role/role-landing-intro";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,10 @@ export default async function ResellerDashboardPage() {
 
   return (
     <>
+      <div className="mb-6">
+        <RoleLandingIntro role="reseller" />
+      </div>
+
       <section className="mb-8">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {kpis.map((k) => (
