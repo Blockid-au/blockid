@@ -184,6 +184,11 @@ import {
   type DigestSnapshotDirectionStreakLengthHistogram,
 } from "@/lib/reseller/digest-snapshot-direction-streak-length-histogram";
 import {
+  computeDigestSnapshotDirectionStreakLengthPercentiles,
+  formatDigestSnapshotDirectionStreakLengthPercentilesSection,
+  type DigestSnapshotDirectionStreakLengthPercentiles,
+} from "@/lib/reseller/digest-snapshot-direction-streak-length-percentiles";
+import {
   computeDigestSnapshotPctChangeStreakLengthHistogram,
   formatDigestSnapshotPctChangeStreakLengthHistogramSection,
   type DigestSnapshotPctChangeStreakLengthHistogram,
@@ -1482,6 +1487,10 @@ export async function GET(req: Request) {
     | DigestSnapshotDirectionStreakLengthHistogram
     | null = null;
   let directionStreakLengthHistogramSection = "";
+  let snapshotDirectionStreakLengthPercentiles:
+    | DigestSnapshotDirectionStreakLengthPercentiles
+    | null = null;
+  let directionStreakLengthPercentilesSection = "";
   let snapshotPctChangeStreakLengthHistogram:
     | DigestSnapshotPctChangeStreakLengthHistogram
     | null = null;
@@ -2135,6 +2144,27 @@ export async function GET(req: Request) {
       formatDigestSnapshotDirectionStreakLengthHistogramSection(
         snapshotDirectionStreakLengthHistogram,
       );
+    // P11.90 — portfolio sustained-direction streak length percentile summary
+    // (module P11.89). Scalar p50 / p90 / mean / max reduction of the SAME
+    // snapshotDirectionStreaks input the P11.78 histogram consumes directly
+    // above, so the summary cannot diverge from the distribution it
+    // summarises for a given window. Complements the P11.78 shape-of-
+    // persistence tail by exposing the two numbers ops most often cites when
+    // scanning a length distribution in a hurry — the median (typical run)
+    // and the p90 (long tail) — as scalar fields greppable out of the
+    // cron-health JSONL envelope week over week without re-folding the
+    // histogram OR the P11.30 detector. Section splices directly BELOW
+    // directionStreakLengthHistogramSection (P11.78) per the P11.89
+    // formatter docblock's explicit placement rule so ops reads the full
+    // length distribution and then the scalar summary underneath.
+    snapshotDirectionStreakLengthPercentiles =
+      computeDigestSnapshotDirectionStreakLengthPercentiles(
+        snapshotDirectionStreaks,
+      );
+    directionStreakLengthPercentilesSection =
+      formatDigestSnapshotDirectionStreakLengthPercentilesSection(
+        snapshotDirectionStreakLengthPercentiles,
+      );
     // P11.80 — portfolio |pct|-material-streak length-frequency histogram
     // (module P11.79). Magnitude-axis analogue of the P11.78 direction
     // histogram wired directly above. Consumes snapshotPctChangeStreaks
@@ -2294,6 +2324,7 @@ export async function GET(req: Request) {
     perMetricDirectionStreakCoverageSection ||
     directionStreaksSection ||
     directionStreakLengthHistogramSection ||
+    directionStreakLengthPercentilesSection ||
     perResellerDirectionStreakCoverageSection ||
     directionStreakLeaderboardSection ||
     perMetricDirectionStreakLeaderboardSection ||
@@ -2337,6 +2368,7 @@ export async function GET(req: Request) {
       perMetricDirectionStreakCoverageSection +
       directionStreaksSection +
       directionStreakLengthHistogramSection +
+      directionStreakLengthPercentilesSection +
       perResellerDirectionStreakCoverageSection +
       directionStreakLeaderboardSection +
       perMetricDirectionStreakLeaderboardSection +
@@ -3079,6 +3111,32 @@ export async function GET(req: Request) {
             max_length:
               snapshotDirectionStreakLengthHistogram.max_length,
             buckets: snapshotDirectionStreakLengthHistogram.buckets,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_direction_streak_length_percentiles:
+      snapshotDirectionStreakLengthPercentiles
+        ? {
+            window_size:
+              snapshotDirectionStreakLengthPercentiles.window_size,
+            first_week:
+              snapshotDirectionStreakLengthPercentiles.first_week,
+            last_week:
+              snapshotDirectionStreakLengthPercentiles.last_week,
+            min_streak_length:
+              snapshotDirectionStreakLengthPercentiles.min_streak_length,
+            total_streaks:
+              snapshotDirectionStreakLengthPercentiles.total_streaks,
+            p50_length:
+              snapshotDirectionStreakLengthPercentiles.p50_length,
+            p90_length:
+              snapshotDirectionStreakLengthPercentiles.p90_length,
+            mean_length:
+              snapshotDirectionStreakLengthPercentiles.mean_length,
+            max_length:
+              snapshotDirectionStreakLengthPercentiles.max_length,
           }
         : {
             skipped_reason:
