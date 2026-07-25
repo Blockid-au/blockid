@@ -652,3 +652,4 @@
 {"tick_id":"2026-07-25T01-47-02-011Z","ts":"2026-07-25T01:54:40.206Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-25T01-57-01-315Z","ts":"2026-07-25T01:57:01.316Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T01-57-01-315Z","ts":"2026-07-25T01:57:01.323Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T02-02-00-000Z","ts":"2026-07-25T02:02:00.000Z","loop_label":"atlassian-goal-loop","phase":"P5-tax-invoice-checker-panel-mount","status":"shipped","stage":"tick_end","note":"/dashboard/compliance RSC page mounts CompliancePanel; nav-groups fundraise.data-room gains Compliance Panel entry; unblocks P5-tax-invoice-checker-tile-e2e"}
