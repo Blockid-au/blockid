@@ -179,6 +179,11 @@ import {
   type DigestSnapshotPerResellerPctChangeStreakLeaderboard,
 } from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-leaderboard";
 import {
+  computeDigestSnapshotDirectionStreakLengthHistogram,
+  formatDigestSnapshotDirectionStreakLengthHistogramSection,
+  type DigestSnapshotDirectionStreakLengthHistogram,
+} from "@/lib/reseller/digest-snapshot-direction-streak-length-histogram";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1448,6 +1453,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerPctChangeStreakLeaderboard
     | null = null;
   let perResellerPctChangeStreakLeaderboardSection = "";
+  let snapshotDirectionStreakLengthHistogram:
+    | DigestSnapshotDirectionStreakLengthHistogram
+    | null = null;
+  let directionStreakLengthHistogramSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2061,6 +2070,26 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerPctChangeStreakLeaderboardSection(
         snapshotPerResellerPctChangeStreakLeaderboard,
       );
+    // P11.78 — portfolio direction-streak length-frequency histogram (module
+    // P11.77). Consumes snapshotDirectionStreaks (P11.30) directly rather
+    // than re-folding snapshotRollingTrend so this histogram cannot diverge
+    // from the P11.30 rows the P11.31 table renders above it. Complements
+    // the P11.57 coverage topline (share of possible cells qualifying) and
+    // the P11.67 leaderboard (top-N deepest runs) by exposing the SHAPE of
+    // persistence between them — two portfolios with the same coverage% and
+    // the same leaderboard #1 can differ sharply in tail, and neither
+    // coverage nor leaderboard exposes that. Section splices directly BELOW
+    // directionStreaksSection (P11.31 spotlight table) so ops reads the
+    // per-metric spotlight and then the shape-of-persistence tail
+    // underneath.
+    snapshotDirectionStreakLengthHistogram =
+      computeDigestSnapshotDirectionStreakLengthHistogram(
+        snapshotDirectionStreaks,
+      );
+    directionStreakLengthHistogramSection =
+      formatDigestSnapshotDirectionStreakLengthHistogramSection(
+        snapshotDirectionStreakLengthHistogram,
+      );
   }
   if (
     topMoversSection ||
@@ -2069,6 +2098,7 @@ export async function GET(req: Request) {
     directionStreakCoverageSection ||
     perMetricDirectionStreakCoverageSection ||
     directionStreaksSection ||
+    directionStreakLengthHistogramSection ||
     perResellerDirectionStreakCoverageSection ||
     directionStreakLeaderboardSection ||
     perMetricDirectionStreakLeaderboardSection ||
@@ -2106,6 +2136,7 @@ export async function GET(req: Request) {
       directionStreakCoverageSection +
       perMetricDirectionStreakCoverageSection +
       directionStreaksSection +
+      directionStreakLengthHistogramSection +
       perResellerDirectionStreakCoverageSection +
       directionStreakLeaderboardSection +
       perMetricDirectionStreakLeaderboardSection +
@@ -2822,6 +2853,27 @@ export async function GET(req: Request) {
             top_n_per_reseller:
               snapshotPerResellerPctChangeStreakLeaderboard.top_n_per_reseller,
             groups: snapshotPerResellerPctChangeStreakLeaderboard.groups,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_direction_streak_length_histogram:
+      snapshotDirectionStreakLengthHistogram
+        ? {
+            window_size:
+              snapshotDirectionStreakLengthHistogram.window_size,
+            first_week:
+              snapshotDirectionStreakLengthHistogram.first_week,
+            last_week:
+              snapshotDirectionStreakLengthHistogram.last_week,
+            min_streak_length:
+              snapshotDirectionStreakLengthHistogram.min_streak_length,
+            total_streaks:
+              snapshotDirectionStreakLengthHistogram.total_streaks,
+            max_length:
+              snapshotDirectionStreakLengthHistogram.max_length,
+            buckets: snapshotDirectionStreakLengthHistogram.buckets,
           }
         : {
             skipped_reason:
