@@ -1,0 +1,109 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`tier-visibility — golden snapshot per tier > tier=accel_ent visible slugs 1`] = `
+[
+  "blockchain.sync",
+  "equity_offer.request",
+  "esop.manage",
+  "pdf_branding",
+  "reseller.console",
+  "reseller.create_startup",
+  "reseller.grant_credits",
+  "share_management",
+  "vesting.write",
+]
+`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=accel_growth visible slugs 1`] = `
+[
+  "blockchain.sync",
+  "equity_offer.request",
+  "esop.manage",
+  "pdf_branding",
+  "share_management",
+  "vesting.write",
+]
+`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=accel_starter visible slugs 1`] = `
+[
+  "equity_offer.request",
+  "pdf_branding",
+  "share_management",
+  "vesting.write",
+]
+`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=advisor visible slugs 1`] = `
+[
+  "equity_offer.request",
+  "pdf_branding",
+  "share_management",
+  "vesting.write",
+]
+`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=angel visible slugs 1`] = `[]`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=enterprise visible slugs 1`] = `
+[
+  "blockchain.sync",
+  "equity_offer.request",
+  "esop.manage",
+  "pdf_branding",
+  "reseller.console",
+  "reseller.create_startup",
+  "reseller.grant_credits",
+  "share_management",
+  "vesting.write",
+]
+`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=free visible slugs 1`] = `[]`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=growth visible slugs 1`] = `
+[
+  "equity_offer.request",
+  "pdf_branding",
+  "share_management",
+  "vesting.write",
+]
+`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=scale visible slugs 1`] = `
+[
+  "blockchain.sync",
+  "equity_offer.request",
+  "esop.manage",
+  "pdf_branding",
+  "share_management",
+  "vesting.write",
+]
+`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=starter visible slugs 1`] = `[]`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=vc_ent visible slugs 1`] = `
+[
+  "blockchain.sync",
+  "equity_offer.request",
+  "esop.manage",
+  "pdf_branding",
+  "reseller.console",
+  "reseller.create_startup",
+  "reseller.grant_credits",
+  "share_management",
+  "vesting.write",
+]
+`;
+
+exports[`tier-visibility — golden snapshot per tier > tier=vc_small visible slugs 1`] = `
+[
+  "blockchain.sync",
+  "equity_offer.request",
+  "esop.manage",
+  "pdf_branding",
+  "share_management",
+  "vesting.write",
+]
+`;
