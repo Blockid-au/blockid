@@ -141,18 +141,77 @@ describe("R&D Tax Incentive section (chapter 06 P1j)", () => {
     }
   });
 
-  it("no other chapter carries sections yet (P1j + P1l + Q6/Q7 + P11 + P5-tax-invoice-checker-ch5-section — chapters 05, 06, 08, 10 and 11 only)", () => {
+  it("no other chapter carries sections yet (P1j + P1l + Q6/Q7 + P11 + P5-tax-invoice-checker-ch5-section + P12d-redomicile-decision — chapters 05, 06, 08, 10, 11 and 12 only)", () => {
     const chaptersWithSections = new Set<ChapterSlug>([
       "05-pmf",
       "06-revenue",
       "08-team",
       "10-fundraise",
       "11-scale",
+      "12-exit",
     ]);
     for (const chapter of listChapters()) {
       if (chaptersWithSections.has(chapter.slug)) continue;
       expect(chapter.sections).toBeUndefined();
     }
+  });
+});
+
+describe("redomicile-decision-tree section (chapter 12 P12d-redomicile-decision)", () => {
+  it("chapter 12-exit publishes a redomicile-decision-tree section EN + VI", () => {
+    const c = getChapter("12-exit");
+    expect(c).not.toBeNull();
+    expect(c?.sections).toBeDefined();
+    const s = c?.sections?.find((x) => x.id === "redomicile-decision-tree");
+    expect(s).toBeDefined();
+    expect(s?.heading.en.length).toBeGreaterThan(0);
+    expect(s?.heading.vi.length).toBeGreaterThan(0);
+    // At least six substantive bullets each; both locales aligned.
+    expect(s?.body.en.length).toBeGreaterThanOrEqual(6);
+    expect(s?.body.vi.length).toBe(s?.body.en.length);
+  });
+
+  it("redomicile section cites the anchors an AU founder needs to defend the call", () => {
+    const c = getChapter("12-exit");
+    const s = c?.sections?.find((x) => x.id === "redomicile-decision-tree");
+    const en = (s?.body.en ?? []).join("\n");
+    for (const anchor of [
+      "Scheme of Arrangement",                 // core mechanism
+      "Part 5.1",                              // Corps Act 2001 (Cth) — AU scheme regime
+      "s411",                                  // Corps Act member-scheme section
+      "Federal Court",                         // AU sanction court
+      "UK High Court",                         // Atlassian 2022 precedent
+      "Delaware",                              // Atlassian redomicile destination
+      "Companies Act 2006",                    // UK scheme regime
+      "Part 26",                               // UK Companies Act 2006 scheme part
+      "Subdiv 124-M",                          // ITAA 1997 scrip-for-scrip rollover
+      "ITAA 1997",                             // AU income-tax statute
+      "CGT event A1",                          // ITAA 1997 s104-10 trigger
+      "FIRB",                                  // Foreign Investment Review Board
+      "Foreign Acquisitions and Takeovers Act 1975", // FIRB statute
+      "A$339M",                                // 2026 FIRB non-sensitive threshold
+      "PFIC",                                  // IRC §1297 exposure
+      "CFC",                                   // IRC §957 CFC status post-redomicile
+      "GILTI",                                 // IRC §951A exposure
+      "s911A",                                 // Corps Act financial-services boundary
+      "s923B",                                 // Corps Act misleading-representation boundary
+      "/dashboard/exit-readiness",             // BlockID surface deep-link
+    ]) {
+      expect(en).toContain(anchor);
+    }
+  });
+
+  it("redomicile section explicitly frames itself as narrow-scenario, not a default recommendation", () => {
+    const c = getChapter("12-exit");
+    const s = c?.sections?.find((x) => x.id === "redomicile-decision-tree");
+    const en = (s?.body.en ?? []).join("\n").toLowerCase();
+    // Guardrail: the section must route founders through a specialist rather
+    // than framing redomicile as a productised offering. Mirrors the P1m
+    // dual-class-decision guardrail — the platform surfaces the decision,
+    // it does not auto-generate the scheme booklet or the Delaware certificate.
+    expect(en).toContain("not yet, and possibly never");
+    expect(en).toContain("specialist");
+    expect(en).toContain("blockid does not auto-draft");
   });
 });
 
