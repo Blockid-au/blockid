@@ -85,9 +85,9 @@ export function TabsTrigger({
       aria-controls={`${ctx.baseId}-panel-${value}`}
       onClick={() => ctx.setValue(value)}
       className={cn(
-        "px-3.5 py-1.5 text-sm font-medium rounded-lg cursor-pointer transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+        "px-3.5 py-1.5 text-sm font-medium rounded-lg cursor-pointer transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ds-focus-ring)]/60",
         active
-          ? "bg-white text-ink-900 shadow-sm font-semibold"
+          ? "bg-white text-[var(--ds-accent)] shadow-sm font-semibold"
           : "text-ink-500 hover:text-ink-800",
         className,
       )}
