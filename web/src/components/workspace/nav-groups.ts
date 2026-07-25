@@ -164,6 +164,31 @@ const HOME_ITEMS: NavLeaf[] = [
 // --- Validate --------------------------------------------------------------
 const VALIDATE_SUBGROUPS: NavSubgroup[] = [
   {
+    // Startup Package entry — Ship 1 (2026-07-25). Single-item cluster so
+    // the packaged founder journey has an unambiguous sidebar surface. The
+    // wider guide lives at /docs/startup-package; this row deep-links to the
+    // packaged flow. Founder-only, free tier, feature-gated on
+    // `startup_package` per feature-gates.manifest.ts.
+    id: "validate.get-investor-ready",
+    label: "Get Investor-Ready",
+    segments: ["founder"],
+    items: [
+      {
+        href: "/startup-package",
+        label: "Startup Package",
+        icon: Rocket,
+        requiredFeature: "startup_package",
+        feature: "startup_package",
+        minPhase: 0,
+        minPlan: "free",
+        minTier: "free",
+        segments: ["founder"],
+        lifecycle: "beta",
+        growthPhase: 0,
+      },
+    ],
+  },
+  {
     id: "validate.discover",
     label: "Discover",
     items: [
