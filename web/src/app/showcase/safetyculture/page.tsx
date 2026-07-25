@@ -5,9 +5,16 @@
 import Link from "next/link";
 
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
+import {
+  SAFETYCULTURE_TIMELINE,
+  type Milestone as SharedMilestone,
+} from "@/lib/startup-package/case-study-milestones";
+import { GROWTH_PHASE_IDS } from "@/lib/journey-map";
 
 export const dynamic = "force-dynamic";
 
+// Renderer-local shape — sourced from the shared timeline module but
+// re-projected onto the numeric-phase axis this page's grouping still uses.
 interface Milestone {
   year: number | string;
   phase: number;
@@ -15,6 +22,18 @@ interface Milestone {
   detail: string;
   source: string;
   usd?: string;
+}
+
+function toLegacyMilestone(m: SharedMilestone): Milestone {
+  const idx = GROWTH_PHASE_IDS.indexOf(m.phase);
+  return {
+    year: m.year ?? "",
+    phase: idx >= 0 ? idx + 1 : 1,
+    headline: m.headline,
+    detail: m.detail,
+    source: m.source ?? "",
+    usd: m.usd,
+  };
 }
 
 const PHASE_NAMES: Record<number, string> = {
@@ -32,77 +51,7 @@ const PHASE_NAMES: Record<number, string> = {
   12: "Exit / Beyond",
 };
 
-const TIMELINE: Milestone[] = [
-  {
-    year: 2004,
-    phase: 1,
-    headline: "Founded in Townsville by Luke Anear",
-    detail:
-      "Ex-Private Investigator with a passion for workplace safety builds paper-forms replacement for construction + mining sites. Regional Aussie founder — unusual for tech.",
-    source: "https://en.wikipedia.org/wiki/SafetyCulture",
-  },
-  {
-    year: 2012,
-    phase: 4,
-    headline: "iAuditor mobile app launched",
-    detail:
-      "Native iOS + Android inspection app replaces paper safety checklists. Freemium model. Product-led growth from Day 0.",
-    source: "https://safetyculture.com/press/",
-  },
-  {
-    year: 2016,
-    phase: 10,
-    headline: "US$23M Series A led by Index Ventures + Blackbird",
-    detail:
-      "Series A after 12 years of bootstrap-and-slow-growth. Uncommon path — most Aussie tech takes seed within 2 years.",
-    source: "https://safetyculture.com/press/",
-    usd: "$23M",
-  },
-  {
-    year: 2018,
-    phase: 11,
-    headline: "US$70M Series B; valuation ~US$440M",
-    detail:
-      "Tiger Global led. HQ shifts to Sydney office alongside Townsville roots. International expansion into US + UK.",
-    source: "https://safetyculture.com/press/",
-    usd: "$70M",
-  },
-  {
-    year: 2021,
-    phase: 11,
-    headline: "US$99M Series C; unicorn status",
-    detail:
-      "Insight Partners led. Valuation US$1.6B — first Townsville-founded tech unicorn.",
-    source: "https://safetyculture.com/press/",
-    usd: "$1.6B valuation",
-  },
-  {
-    year: 2022,
-    phase: 11,
-    headline: "US$34M Series C extension @ US$2.7B valuation",
-    detail:
-      "Softbank Vision Fund 2 led — first Australian Softbank-led round. Growth acceleration into US + APAC.",
-    source: "https://safetyculture.com/press/",
-    usd: "$2.7B valuation",
-  },
-  {
-    year: 2023,
-    phase: 11,
-    headline: "AI product line launched",
-    detail:
-      "Generative AI features for safety checklist creation + inspection analysis. Partnerships with OpenAI + Anthropic.",
-    source: "https://safetyculture.com/press/",
-  },
-  {
-    year: 2024,
-    phase: 11,
-    headline: "Secondary trade valuation ~US$2B (down from US$2.7B peak)",
-    detail:
-      "Consistent with global valuation resets. Company remains cash-flow positive.",
-    source: "https://safetyculture.com/press/",
-    usd: "$2B secondary",
-  },
-];
+const TIMELINE: Milestone[] = SAFETYCULTURE_TIMELINE.map(toLegacyMilestone);
 
 export default function SafetyCultureShowcasePage() {
   const byPhase = new Map<number, Milestone[]>();
