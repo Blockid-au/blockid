@@ -255,6 +255,11 @@ import {
   type DigestSnapshotPerMetricPersistenceScorecardVerdictTransition,
 } from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard-verdict-transition";
 import {
+  computeDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistribution,
+  formatDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistributionSection,
+  type DigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistribution,
+} from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard-verdict-transition-distribution";
+import {
   computeDigestSnapshotPerResellerMetricPersistenceScorecard,
   formatDigestSnapshotPerResellerMetricPersistenceScorecardSection,
   type DigestSnapshotPerResellerMetricPersistenceScorecard,
@@ -1632,6 +1637,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricPersistenceScorecardVerdictTransition
     | null = null;
   let perMetricPersistenceScorecardVerdictTransitionSection = "";
+  let snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution:
+    | DigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistribution
+    | null = null;
+  let perMetricPersistenceScorecardVerdictTransitionDistributionSection = "";
   let snapshotPerResellerPersistenceScorecard:
     | DigestSnapshotPerResellerPersistenceScorecard
     | null = null;
@@ -3068,6 +3077,27 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionSection(
         snapshotPerMetricPersistenceScorecardVerdictTransition,
       );
+    // P11.126 — per-metric verdict-transition DELTA-RANK DISTRIBUTION caption
+    // (module P11.125). Pure derivation of the P11.115 per-metric transition
+    // envelope into a scalar-summary distribution: 'ACROSS thirteen KPIs, how
+    // many improved by +2 vs +1 ranks, degraded by −1 vs −2, rotated, or
+    // remained undecidable?' Ops reads a single caption + non-zero bucket list
+    // rather than eyeballing the row-per-KPI transition table above. Splices
+    // directly BELOW perMetricPersistenceScorecardVerdictTransitionSection so
+    // the scalar summary sits inline beneath the row grid that produced it.
+    // Consumes the SAME snapshotPerMetricPersistenceScorecardVerdictTransition
+    // the P11.116 formatter just consumed — no extra fold, no divergence risk.
+    // Formatter returns "" on window_size < 3 OR total == 0 OR alert_worthy ==
+    // 0 (matches the P11.115/P11.116 short-window suppression + adds the
+    // aggregation-specific 'nothing to summarise' guards).
+    snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution =
+      computeDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistribution(
+        snapshotPerMetricPersistenceScorecardVerdictTransition,
+      );
+    perMetricPersistenceScorecardVerdictTransitionDistributionSection =
+      formatDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistributionSection(
+        snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution,
+      );
     // P11.118 — per-partner persistence scorecard verdict TRANSITION caption
     // (module P11.117). Pure derivation of two P11.111 per-partner verdict
     // envelopes (previous, current) into ONE discrete transition token PER
@@ -3312,6 +3342,7 @@ export async function GET(req: Request) {
     perMetricPersistenceScorecardSection ||
     perMetricPersistenceScorecardVerdictSection ||
     perMetricPersistenceScorecardVerdictTransitionSection ||
+    perMetricPersistenceScorecardVerdictTransitionDistributionSection ||
     perResellerPersistenceScorecardSection ||
     perResellerMetricPersistenceScorecardSection ||
     perResellerMetricPersistenceScorecardVerdictSection ||
@@ -3372,6 +3403,7 @@ export async function GET(req: Request) {
       perMetricPersistenceScorecardSection +
       perMetricPersistenceScorecardVerdictSection +
       perMetricPersistenceScorecardVerdictTransitionSection +
+      perMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreakLengthPercentilesSection +
@@ -4395,6 +4427,26 @@ export async function GET(req: Request) {
               snapshotPerMetricPersistenceScorecardVerdictTransition.threshold,
             rows:
               snapshotPerMetricPersistenceScorecardVerdictTransition.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_persistence_scorecard_verdict_transition_distribution:
+      snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution
+        ? {
+            window_size:
+              snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution.window_size,
+            first_week:
+              snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution.first_week,
+            last_week:
+              snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution.last_week,
+            sustained_p90_threshold:
+              snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution.sustained_p90_threshold,
+            threshold:
+              snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution.threshold,
+            distribution:
+              snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution.distribution,
           }
         : {
             skipped_reason:
