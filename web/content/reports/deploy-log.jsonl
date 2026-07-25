@@ -1600,3 +1600,4 @@
 {"ts":"2026-07-24T23:58:34.260Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-24T23-47-01-309Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T00:02:09.639Z","event":"github-push-master","detail":"Blockid-au: fix(stripe): add Idempotency-Key to checkout.sessions.create — Stripe blueprint audit (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T00:07:52.124Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal): P11.75 per-reseller |pct|-change streak leaderboard pure lib (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T00:14:04.697Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal): P7a-mover-callout — biggest week-over-week phase mover in founder digest (7 commits)","source":"github-webhook"}
