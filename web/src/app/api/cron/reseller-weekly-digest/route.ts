@@ -194,6 +194,11 @@ import {
   type DigestSnapshotPctChangeStreakLengthHistogram,
 } from "@/lib/reseller/digest-snapshot-pct-change-streak-length-histogram";
 import {
+  computeDigestSnapshotPctChangeStreakLengthPercentiles,
+  formatDigestSnapshotPctChangeStreakLengthPercentilesSection,
+  type DigestSnapshotPctChangeStreakLengthPercentiles,
+} from "@/lib/reseller/digest-snapshot-pct-change-streak-length-percentiles";
+import {
   computeDigestSnapshotPerResellerDirectionStreakLengthHistogram,
   formatDigestSnapshotPerResellerDirectionStreakLengthHistogramSection,
   type DigestSnapshotPerResellerDirectionStreakLengthHistogram,
@@ -1495,6 +1500,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPctChangeStreakLengthHistogram
     | null = null;
   let pctChangeStreakLengthHistogramSection = "";
+  let snapshotPctChangeStreakLengthPercentiles:
+    | DigestSnapshotPctChangeStreakLengthPercentiles
+    | null = null;
+  let pctChangeStreakLengthPercentilesSection = "";
   let snapshotPerResellerDirectionStreakLengthHistogram:
     | DigestSnapshotPerResellerDirectionStreakLengthHistogram
     | null = null;
@@ -2189,6 +2198,31 @@ export async function GET(req: Request) {
       formatDigestSnapshotPctChangeStreakLengthHistogramSection(
         snapshotPctChangeStreakLengthHistogram,
       );
+    // P11.92 — portfolio sustained-|pct|-material streak length percentile
+    // summary (module P11.91). Scalar p50 / p90 / mean / max reduction of the
+    // SAME snapshotPctChangeStreaks input the P11.80 histogram consumes
+    // directly above, so the summary cannot diverge from the distribution it
+    // summarises for a given window + threshold. Magnitude-axis analogue of the
+    // P11.90 direction-streak percentile summary. Complements the P11.80
+    // shape-of-persistence tail by exposing the two numbers ops most often
+    // cites when scanning a length distribution in a hurry — the median
+    // (typical run) and the p90 (long tail) — as scalar fields greppable out
+    // of the cron-health JSONL envelope week over week without re-folding the
+    // histogram OR the P11.49 detector, AND carrying the source threshold so a
+    // shift from p50=2 to p50=3 at the SAME 25% band reads differently from an
+    // apparent shift caused by widening the threshold to 40%. Section splices
+    // directly BELOW pctChangeStreakLengthHistogramSection (P11.80) per the
+    // P11.91 formatter docblock's explicit placement rule so ops reads the
+    // full length distribution and then the scalar summary underneath,
+    // mirroring the P11.90 direction-axis placement rule.
+    snapshotPctChangeStreakLengthPercentiles =
+      computeDigestSnapshotPctChangeStreakLengthPercentiles(
+        snapshotPctChangeStreaks,
+      );
+    pctChangeStreakLengthPercentilesSection =
+      formatDigestSnapshotPctChangeStreakLengthPercentilesSection(
+        snapshotPctChangeStreakLengthPercentiles,
+      );
     // P11.82 — per-partner sustained-direction streak length-frequency
     // histogram (module P11.81). Per-partner analogue of the P11.78 portfolio
     // histogram, closing the histogram family's per-partner axis symmetric
@@ -2335,6 +2369,7 @@ export async function GET(req: Request) {
     perMetricPctChangeStreakCoverageSection ||
     pctChangeStreaksSection ||
     pctChangeStreakLengthHistogramSection ||
+    pctChangeStreakLengthPercentilesSection ||
     perResellerPctChangeStreakCoverageSection ||
     pctChangeStreakLeaderboardSection ||
     perMetricPctChangeStreakLeaderboardSection ||
@@ -2380,6 +2415,7 @@ export async function GET(req: Request) {
       perMetricPctChangeStreakCoverageSection +
       pctChangeStreaksSection +
       pctChangeStreakLengthHistogramSection +
+      pctChangeStreakLengthPercentilesSection +
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
@@ -3160,6 +3196,34 @@ export async function GET(req: Request) {
             max_length:
               snapshotPctChangeStreakLengthHistogram.max_length,
             buckets: snapshotPctChangeStreakLengthHistogram.buckets,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_pct_change_streak_length_percentiles:
+      snapshotPctChangeStreakLengthPercentiles
+        ? {
+            window_size:
+              snapshotPctChangeStreakLengthPercentiles.window_size,
+            first_week:
+              snapshotPctChangeStreakLengthPercentiles.first_week,
+            last_week:
+              snapshotPctChangeStreakLengthPercentiles.last_week,
+            min_streak_length:
+              snapshotPctChangeStreakLengthPercentiles.min_streak_length,
+            threshold:
+              snapshotPctChangeStreakLengthPercentiles.threshold,
+            total_streaks:
+              snapshotPctChangeStreakLengthPercentiles.total_streaks,
+            p50_length:
+              snapshotPctChangeStreakLengthPercentiles.p50_length,
+            p90_length:
+              snapshotPctChangeStreakLengthPercentiles.p90_length,
+            mean_length:
+              snapshotPctChangeStreakLengthPercentiles.mean_length,
+            max_length:
+              snapshotPctChangeStreakLengthPercentiles.max_length,
           }
         : {
             skipped_reason:
