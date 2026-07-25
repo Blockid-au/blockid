@@ -104,6 +104,10 @@ export interface AnalyticsEventMap {
   // ── BlockID Startup Index ──
   index_viewed: Record<string, never>;
 
+  // ── Startup Package public listing ──
+  startup_listing_viewed: { slug: string };
+  startup_listing_contact_submitted: { slug: string };
+
   // ── Navigation ──
   cta_clicked: { cta_id: string; location: string };
   nav_tool_selected: { tool: string };
