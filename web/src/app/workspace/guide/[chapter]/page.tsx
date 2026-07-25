@@ -20,6 +20,7 @@ import { PageTracker } from "@/components/analytics/page-tracker";
 import { ChapterProgressRibbon } from "@/components/guide/chapter-progress-ribbon";
 import { AbsLookupPanel } from "@/components/guide/abs-lookup-panel";
 import { LandingPagePreviewPanel } from "@/components/guide/landing-page-preview-panel";
+import { Ga4PlanPanel } from "@/components/guide/ga4-plan-panel";
 import {
   allChapterSlugs,
   getAdjacentChapters,
@@ -104,6 +105,10 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
 
       {c.slug === "04-mvp" ? (
         <LandingPagePreviewPanel locale={locale} variant="workspace" />
+      ) : null}
+
+      {c.slug === "07-growth" ? (
+        <Ga4PlanPanel locale={locale} variant="workspace" />
       ) : null}
 
       {c.qualifyingTests ? (
