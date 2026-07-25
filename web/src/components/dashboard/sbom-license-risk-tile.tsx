@@ -7,11 +7,10 @@
 // strong-copyleft / weak-copyleft / unknown exposure at a glance without
 // exporting the CSV.
 //
-// Mount instruction (deferred — dashboard shell owner will wire it in):
-//   import { SbomLicenseRiskTile } from "@/components/dashboard/sbom-license-risk-tile";
-//   <SbomLicenseRiskTile />
-// suggested surface: /dashboard/data-room (top of the page, above the
-// investor-access-log table).
+// Mounted 2026-07-25 at web/src/app/dashboard/data-room/page.tsx (top of
+// the page, above the investor-access-log table). Playwright round-trip
+// at web/tests/e2e/founder/sbom-license-risk-tile.spec.ts covers the
+// loading / error / slate / red / amber / emerald branches.
 //
 // The API route is public (see route.ts — the lock file already ships in the
 // repo) so this tile does not need auth; it can render on any workspace page.

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { SbomLicenseRiskTile } from "@/components/dashboard/sbom-license-risk-tile";
 
 export const metadata: Metadata = {
   title: "Data Room — Investor Access — BlockID",
@@ -85,6 +86,11 @@ export default async function DataRoomPage() {
           <h1 className="text-2xl font-bold text-ink-900">Data Room</h1>
           <p className="text-sm text-ink-500 mt-1">Track who viewed your shared score links and when</p>
         </div>
+
+        {/* P7-sbom-license-risk-tile — mounted 2026-07-25 above the investor-access-log
+            per the tile's original mount instructions. Surfaces data-room folder 7.9
+            (Open-Source License Inventory) + 4.9 (Third-Party Dependency Inventory). */}
+        <SbomLicenseRiskTile />
 
         {links.length === 0 ? (
           <div className="rounded-xl border border-surface-200 bg-surface-50 px-6 py-12 text-center">
