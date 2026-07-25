@@ -26,7 +26,7 @@ export function CopyButton({ text, className }: CopyButtonProps) {
       type="button"
       className={
         className ??
-        "inline-flex items-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-500 transition-colors hover:bg-surface-100 hover:text-ink-700 active:bg-surface-200 shrink-0"
+        "inline-flex items-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-500 transition-colors hover:bg-surface-100 hover:text-[var(--ds-accent)] active:bg-surface-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ds-focus-ring)]/60 shrink-0"
       }
       onClick={handleCopy}
     >
