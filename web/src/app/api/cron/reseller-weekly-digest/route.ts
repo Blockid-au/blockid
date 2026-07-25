@@ -2533,6 +2533,48 @@ export async function GET(req: Request) {
       formatDigestSnapshotPersistenceScorecardVerdictTransitionSection(
         snapshotPersistenceScorecardVerdictTransition,
       );
+    // P11.132 — portfolio verdict-transition DELTA-RANK DISTRIBUTION scalar
+    // summary (module P11.131). Pure derivation of the P11.113 portfolio
+    // transition into the SAME distribution shape the sibling per-metric
+    // (P11.125/P11.126), per-partner (P11.127/P11.128), and per-(partner ×
+    // metric) (P11.129/P11.130) grains emit — same ten transition buckets,
+    // same alert_worthy scalar, same net_delta_rank barometer, same
+    // suppression trio (window_size < 3, total == 0, alert_worthy == 0) and
+    // same fixed bullet order (improved_by_2 → improved_by_1 → degraded_by_1
+    // → degraded_by_2 → rotated → undecidable → *_by_other tail). At the
+    // portfolio grain n === 1 so the distribution is degenerate: every
+    // emitted total === 1 and each bucket lives in {0, 1}. The value is NOT
+    // aggregation reduction (nothing to reduce at n=1) but vocabulary
+    // consistency — a JSONL consumer iterating the four
+    // snapshot_*_persistence_scorecard_verdict_transition_distribution
+    // envelopes finds the SAME bucket set and the SAME alert_worthy /
+    // net_delta_rank scalars at every grain, so a cross-grain regression
+    // alert can read ONE vocabulary rather than four. CAPSTONES the
+    // DISTRIBUTION family at ALL FOUR scorecard grains. Envelope-field
+    // sourcing difference vs. the three finer grains: this module consumes
+    // TWO inputs (the P11.113 transition + the P11.105 scorecard) since
+    // P11.113 alone carries just the transition + delta_rank and does not
+    // itself carry a window envelope; the scorecard is the natural anchor
+    // since it is the P11.113 input's grandparent. sustained_p90_threshold
+    // defaults to DEFAULT_SUSTAINED_P90_THRESHOLD (=3) matching the P11.107
+    // verdict argument convention. Section splices directly BELOW
+    // persistenceScorecardVerdictTransitionSection so ops reads the
+    // current-week portfolio transition badge above and the SAME vocabulary
+    // the three finer grains emit below without switching mental models
+    // across grains. Guarded on snapshotPersistenceScorecard truthiness so
+    // the pathological previousSnapshot-missing / no-scorecard path leaves
+    // the distribution unset with no envelope entry emitted downstream.
+    if (snapshotPersistenceScorecard) {
+      snapshotPersistenceScorecardVerdictTransitionDistribution =
+        computeDigestSnapshotPersistenceScorecardVerdictTransitionDistribution(
+          snapshotPersistenceScorecardVerdictTransition,
+          snapshotPersistenceScorecard,
+        );
+      persistenceScorecardVerdictTransitionDistributionSection =
+        formatDigestSnapshotPersistenceScorecardVerdictTransitionDistributionSection(
+          snapshotPersistenceScorecardVerdictTransitionDistribution,
+        );
+    }
     // P11.82 — per-partner sustained-direction streak length-frequency
     // histogram (module P11.81). Per-partner analogue of the P11.78 portfolio
     // histogram, closing the histogram family's per-partner axis symmetric
@@ -3435,7 +3477,8 @@ export async function GET(req: Request) {
     perResellerPersistenceScorecardVerdictTransitionDistributionSection ||
     persistenceScorecardSection ||
     persistenceScorecardVerdictSection ||
-    persistenceScorecardVerdictTransitionSection
+    persistenceScorecardVerdictTransitionSection ||
+    persistenceScorecardVerdictTransitionDistributionSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -3479,6 +3522,7 @@ export async function GET(req: Request) {
       persistenceScorecardSection +
       persistenceScorecardVerdictSection +
       persistenceScorecardVerdictTransitionSection +
+      persistenceScorecardVerdictTransitionDistributionSection +
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
@@ -4743,6 +4787,26 @@ export async function GET(req: Request) {
             delta_rank:
               snapshotPersistenceScorecardVerdictTransition.delta_rank,
             summary: snapshotPersistenceScorecardVerdictTransition.summary,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_persistence_scorecard_verdict_transition_distribution:
+      snapshotPersistenceScorecardVerdictTransitionDistribution
+        ? {
+            window_size:
+              snapshotPersistenceScorecardVerdictTransitionDistribution.window_size,
+            first_week:
+              snapshotPersistenceScorecardVerdictTransitionDistribution.first_week,
+            last_week:
+              snapshotPersistenceScorecardVerdictTransitionDistribution.last_week,
+            sustained_p90_threshold:
+              snapshotPersistenceScorecardVerdictTransitionDistribution.sustained_p90_threshold,
+            threshold:
+              snapshotPersistenceScorecardVerdictTransitionDistribution.threshold,
+            distribution:
+              snapshotPersistenceScorecardVerdictTransitionDistribution.distribution,
           }
         : {
             skipped_reason:
