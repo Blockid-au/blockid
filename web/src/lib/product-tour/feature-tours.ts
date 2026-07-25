@@ -28,7 +28,11 @@ export type FeatureTourSlug =
   | "mentor-first-run"
   | "accelerator-first-run"
   | "innovator-first-run"
-  | "reseller-first-run";
+  | "reseller-first-run"
+  // Startup Package walkthrough (subgoal 11) — 5-step spotlight covering
+  // buy → interview → analyze → dashboard → auto-fill. Auto-launches on
+  // /startup-package when the founder has never seen it (see tour-state).
+  | "startup-package";
 
 export type FeatureTourIcon =
   | "rocket"
@@ -726,6 +730,104 @@ const TOURS: FeatureTour[] = [
         },
         anchor: "[data-tour=\"innovator-reports\"]",
         cta: { label: { en: "Open reports", vi: "Mở báo cáo" }, href: "/innovator/reports" },
+      },
+    ],
+  },
+  // -------------------------------------------------------------------------
+  // Startup Package (subgoal 11) — 5-step walkthrough attached to the
+  // /startup-package route. Screenshots are captured manually later; until
+  // then the FeatureSpotlight overlay renders each step without media.
+  // -------------------------------------------------------------------------
+  {
+    slug: "startup-package",
+    route: "/startup-package",
+    icon: "rocket",
+    version: 1,
+    estimatedMinutes: 2,
+    name: {
+      en: "Startup Package walkthrough",
+      vi: "Hướng dẫn Startup Package",
+    },
+    summary: {
+      en: "5 steps: buy → interview → analyze → dashboard → auto-fill",
+      vi: "5 bước: mua → phỏng vấn → phân tích → dashboard → tự động điền",
+    },
+    steps: [
+      {
+        id: "buy",
+        title: {
+          en: "1. Buy the Package",
+          vi: "1. Mua gói Package",
+        },
+        body: {
+          en: "One-off A$149 unlock: 25 credits, four agent passes, ten dataroom templates, and your public /startup/[slug] listing spin up on checkout.",
+          vi: "Mở khóa một lần A$149: 25 credits, bốn lượt agent, mười template data room, và trang /startup/[slug] công khai sẵn sàng khi thanh toán.",
+        },
+        anchor: "[data-tour=\"package-buy-cta\"]",
+        cta: {
+          label: { en: "Start checkout", vi: "Bắt đầu thanh toán" },
+          href: "/startup-package#pricing",
+        },
+      },
+      {
+        id: "interview",
+        title: {
+          en: "2. Answer the 8-step interview",
+          vi: "2. Trả lời 8 bước phỏng vấn",
+        },
+        body: {
+          en: "Guided prompts capture your vision, customers, and traction. Each answer auto-saves and rebuilds your SVI signal in real time.",
+          vi: "Câu hỏi hướng dẫn ghi lại tầm nhìn, khách hàng và đà tiến. Mỗi câu trả lời tự lưu và cập nhật SVI thời gian thực.",
+        },
+        anchor: "[data-tour=\"package-interview-step\"]",
+        cta: {
+          label: { en: "Open interview", vi: "Mở phỏng vấn" },
+          href: "/startup-package/interview",
+        },
+      },
+      {
+        id: "analyze",
+        title: {
+          en: "3. Run a C-Level analysis",
+          vi: "3. Chạy phân tích C-Level",
+        },
+        body: {
+          en: "Each phase spawns its lead agent on your latest answers. Cost + word count show before you spend — nothing is auto-charged.",
+          vi: "Mỗi giai đoạn kích hoạt agent dẫn dắt trên câu trả lời mới nhất. Chi phí + số từ hiển thị trước khi chi — không tự động tính phí.",
+        },
+        anchor: "[data-tour=\"package-analyze-button\"]",
+      },
+      {
+        id: "dashboard",
+        title: {
+          en: "4. Track the 12-phase dashboard",
+          vi: "4. Theo dõi dashboard 12 giai đoạn",
+        },
+        body: {
+          en: "One card per phase shows deliverables, credit prices, SVI trend, and your reserved cap-table allocation — the founder cockpit in one view.",
+          vi: "Một thẻ mỗi giai đoạn hiển thị deliverables, giá credit, xu hướng SVI và phần cổ phần đã dành — trạm điều khiển founder trong một view.",
+        },
+        anchor: "[data-tour=\"package-dashboard-grid\"]",
+        cta: {
+          label: { en: "Open dashboard", vi: "Mở dashboard" },
+          href: "/startup-package",
+        },
+      },
+      {
+        id: "autofill",
+        title: {
+          en: "5. Auto-fill a deliverable",
+          vi: "5. Tự động điền một deliverable",
+        },
+        body: {
+          en: "Click any deliverable to spend credits, dispatch the matching PDF generator, and drop the file straight into your dataroom.",
+          vi: "Nhấp deliverable bất kỳ để chi credit, gọi generator PDF phù hợp và đẩy file trực tiếp vào data room.",
+        },
+        anchor: "[data-tour=\"package-autofill-button\"]",
+        cta: {
+          label: { en: "Open data room", vi: "Mở data room" },
+          href: "/workspace/data-room",
+        },
       },
     ],
   },

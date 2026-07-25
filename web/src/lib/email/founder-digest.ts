@@ -46,6 +46,54 @@ export interface BuildFounderDigestInput {
    * section is silently omitted so nothing regresses.
    */
   previousReadinessByPhase?: Record<string, PhaseReadinessEntry>;
+  /**
+   * Startup Package progress block (subgoal 10). When present, the digest
+   * PREPENDS a "Package progress" section above the readiness climb — the
+   * founder sees their guided-Package position first, then the underlying
+   * readiness signal. The block is a pure input so the founder-digest lib
+   * stays side-effect-free; the cron builder is responsible for gating on
+   * `package_purchased_at` + `email_preferences.package_progress` before
+   * populating this field. When absent, the digest renders unchanged so
+   * older callers keep the pre-subgoal-10 shape.
+   */
+  packageProgress?: PackageProgressInput;
+}
+
+/**
+ * Data the founder digest needs to render the Package progress block.
+ * Pure — the cron builder fetches this from `startup_package_progress`,
+ * `startup_package_interview`, `svi_snapshots`, and `credits.ts:FEATURE_COSTS`
+ * (see `buildPackageProgressBlock` for the composed helper).
+ */
+export interface PackageProgressInput {
+  /** Current phase title, e.g. "Customer Development". */
+  currentPhaseTitle: string;
+  /** Slug ordinal (1-12) — used for the `Phase N of 12` label. */
+  currentPhaseSlug: string;
+  /** Whole-percent completion of the current phase (0-100). */
+  currentPhaseCompletionPct: number;
+  /** SVI value from this week's snapshot. */
+  sviCurrent: number;
+  /** SVI value from last week's snapshot (or null for the first digest). */
+  sviPrevious: number | null;
+  /**
+   * Next credit-priced action pulled from unfinished deliverables. Null
+   * when the founder is fully caught up for this phase.
+   */
+  nextAction: {
+    label: string;
+    creditCost: number;
+    href: string;
+  } | null;
+  /** Count of interview steps not yet answered (0-8). */
+  unfinishedInterviewSteps: number;
+  /** Deep-link CTA to the Package dashboard for this project. */
+  packageDashboardUrl: string;
+}
+
+export interface PackageProgressBlock {
+  html: string;
+  text: string;
 }
 
 export interface FounderDigestEmail {
@@ -218,6 +266,91 @@ export function buildReadinessClimbDeltaSeries(
   });
 }
 
+/**
+ * Build the "Startup Package progress" section that gets PREPENDED above
+ * the readiness climb when a founder is on the Package. Pure — no I/O.
+ * Returns HTML + text mirrors that both the digest builder and any
+ * standalone tooling (e.g. a per-founder preview page) can render.
+ *
+ * Layout:
+ *   (a) current phase title + a 12-step progress bar of the current phase,
+ *   (b) SVI delta vs last week (signed, coloured up/down/flat),
+ *   (c) next credit-priced action (or a "caught up" message),
+ *   (d) unfinished interview steps count (badge only when > 0).
+ */
+export function buildPackageProgressBlock(
+  input: PackageProgressInput,
+): PackageProgressBlock {
+  const pct = Math.max(0, Math.min(100, Math.round(input.currentPhaseCompletionPct)));
+  const sviDelta =
+    input.sviPrevious !== null && Number.isFinite(input.sviPrevious)
+      ? input.sviCurrent - input.sviPrevious
+      : null;
+  const sviArrow =
+    sviDelta === null || sviDelta === 0 ? "—" : sviDelta > 0 ? "▲" : "▼";
+  const sviColour =
+    sviDelta === null || sviDelta === 0
+      ? "#64748b"
+      : sviDelta > 0
+        ? "#047857"
+        : "#be123c";
+  const sviDeltaLabel =
+    sviDelta === null
+      ? "first snapshot"
+      : sviDelta === 0
+        ? "no change this week"
+        : `${sviDelta > 0 ? "+" : ""}${sviDelta} pts vs last week`;
+
+  const nextActionBlock = input.nextAction
+    ? `<p style="margin:8px 0 0;font-size:13px;color:#0f172a"><strong>Next paid action:</strong> ${escapeHtml(input.nextAction.label)} <span style="color:#0369a1;font-weight:600">· ${input.nextAction.creditCost} credits</span></p>
+       <p style="margin:6px 0 0"><a href="${escapeAttr(input.nextAction.href)}" style="color:#0f766e;font-weight:600;text-decoration:none">Run this action →</a></p>`
+    : `<p style="margin:8px 0 0;font-size:13px;color:#475569"><em>Caught up for this phase — no paid actions queued.</em></p>`;
+
+  const unfinishedBadge =
+    input.unfinishedInterviewSteps > 0
+      ? `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#fef3c7;color:#92400e;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">${input.unfinishedInterviewSteps} interview step${input.unfinishedInterviewSteps === 1 ? "" : "s"} left</span>`
+      : `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#dcfce7;color:#166534;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Interview complete</span>`;
+
+  const html = `
+      <div style="padding:16px 24px;border-top:1px solid #e2e8f0;background:#f0f9ff">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Startup Package · Progress this week</p>
+        <h2 style="margin:2px 0 6px;font-size:16px;color:#0f172a">
+          Phase ${escapeHtml(input.currentPhaseSlug)} of 12 · ${escapeHtml(input.currentPhaseTitle)}
+          ${unfinishedBadge}
+        </h2>
+        <div style="height:8px;width:100%;background:#e0f2fe;border-radius:999px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:#0f766e"></div>
+        </div>
+        <p style="margin:6px 0 0;font-size:12px;color:#475569">${pct}% of this phase's deliverables complete.</p>
+        <p style="margin:10px 0 0;font-size:13px;color:#0f172a"><strong>SVI:</strong> ${input.sviCurrent} <span style="color:${sviColour};font-weight:600">${sviArrow} ${escapeHtml(sviDeltaLabel)}</span></p>
+        ${nextActionBlock}
+        <p style="margin:12px 0 0"><a href="${escapeAttr(input.packageDashboardUrl)}" style="color:#0f766e;font-weight:600;text-decoration:none">Open Package dashboard →</a></p>
+      </div>`;
+
+  const textLines: string[] = [];
+  textLines.push("Startup Package — Progress this week");
+  textLines.push(
+    `Phase ${input.currentPhaseSlug} of 12 · ${input.currentPhaseTitle} — ${pct}% complete`,
+  );
+  textLines.push(`SVI: ${input.sviCurrent} (${sviArrow} ${sviDeltaLabel})`);
+  if (input.nextAction) {
+    textLines.push(
+      `Next paid action: ${input.nextAction.label} · ${input.nextAction.creditCost} credits`,
+    );
+    textLines.push(`  ${input.nextAction.href}`);
+  } else {
+    textLines.push("Caught up for this phase — no paid actions queued.");
+  }
+  textLines.push(
+    input.unfinishedInterviewSteps > 0
+      ? `Interview steps left: ${input.unfinishedInterviewSteps}`
+      : "Interview complete",
+  );
+  textLines.push(`Package dashboard: ${input.packageDashboardUrl}`);
+
+  return { html, text: textLines.join("\n") };
+}
+
 export function buildFounderDigest(
   input: BuildFounderDigestInput,
 ): FounderDigestEmail {
@@ -240,6 +373,9 @@ export function buildFounderDigest(
 function renderHtml(input: BuildFounderDigestInput, score: number): string {
   const bandColour = BAND_COLOUR[input.band];
   const bandLabel = BAND_LABEL[input.band];
+  const packageBlock = input.packageProgress
+    ? buildPackageProgressBlock(input.packageProgress).html
+    : "";
   const arrow =
     input.bandDirection === "up" ? "▲" : input.bandDirection === "down" ? "▼" : "—";
 
@@ -394,6 +530,7 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
         <div style="font-size:12px;color:#475569;margin-top:2px">${arrow} ${escapeHtml(input.deltaSummary)}</div>
       </div>
     </div>
+    ${packageBlock}
     ${climbBlock}
     ${moverCalloutBlock}
     ${climbDeltaBlock}
@@ -413,6 +550,10 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
 function renderText(input: BuildFounderDigestInput, score: number): string {
   const lines: string[] = [];
   lines.push(`Hi ${input.name},`, "");
+  if (input.packageProgress) {
+    const block = buildPackageProgressBlock(input.packageProgress);
+    lines.push(block.text, "");
+  }
   lines.push(`Phase ${input.phaseSlug} — ${input.phaseLabel}`);
   lines.push(`Readiness: ${score}/100 (${BAND_LABEL[input.band]})`);
   lines.push(input.deltaSummary, "");
