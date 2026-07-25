@@ -1864,3 +1864,6 @@
 {"ts":"2026-07-25T12:42:51.227Z","event":"github-push-master","detail":"Blockid-au: fix(startup-package): post-merge tests green (89/89) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T12:44:43.337Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P10-structure-decision): pure single-class-vs-dual-class quiz helper (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T12:44:51.723Z","event":"github-push-master","detail":"Blockid-au: chore(atlassian-goal-loop): log P10-structure-decision tick (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T12:44:59.175Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T12-37-01-884Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T12:46:38.251Z","event":"github-push-master","detail":"Blockid-au: fix(tier-visibility): revert startup_package minTier to 'free' — matches golden snapshot + purchase-gate intent (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T12:48:54.326Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.135): per-partner cross-metric alerts pure-lib (1 commits)","source":"github-webhook"}
