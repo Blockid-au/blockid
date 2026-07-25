@@ -239,6 +239,11 @@ import {
   type DigestSnapshotPerMetricPctChangeStreakLengthPercentiles,
 } from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-length-percentiles";
 import {
+  computeDigestSnapshotPerMetricPersistenceScorecard,
+  formatDigestSnapshotPerMetricPersistenceScorecardSection,
+  type DigestSnapshotPerMetricPersistenceScorecard,
+} from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1556,6 +1561,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricPctChangeStreakLengthPercentiles
     | null = null;
   let perMetricPctChangeStreakLengthPercentilesSection = "";
+  let snapshotPerMetricPersistenceScorecard:
+    | DigestSnapshotPerMetricPersistenceScorecard
+    | null = null;
+  let perMetricPersistenceScorecardSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2530,6 +2539,44 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerMetricPctChangeStreakLengthPercentilesSection(
         snapshotPerMetricPctChangeStreakLengthPercentiles,
       );
+    // P11.102 — per-metric direction+magnitude persistence scorecard (module
+    // P11.101). Capstone per-metric row that side-by-sides the P11.97 direction
+    // and P11.99 magnitude per-metric percentile summaries into ONE table with
+    // one row per HEADLINE_METRICS KPI so ops can answer "does THIS KPI churn
+    // direction-persistently AND magnitude-persistently, or only one, or
+    // neither?" without cross-referencing the two upstream per-metric sections
+    // above it. Delegates to computeDigestSnapshotPerMetricDirectionStreakLengthPercentiles
+    // (P11.97) + computeDigestSnapshotPerMetricPctChangeStreakLengthPercentiles
+    // (P11.99) through the pure lib so scorecard rows CANNOT diverge from the
+    // two upstream summaries they side-by-side (they ARE those same folds joined
+    // by KPI key). Consumes the SAME snapshotPerResellerRollingTrend the P11.51
+    // detector + P11.71 per-metric leaderboard + P11.85/P11.86 per-metric
+    // direction histogram + P11.87/P11.88 per-metric magnitude histogram +
+    // P11.97/P11.98 per-metric direction percentile + P11.99/P11.100 per-metric
+    // magnitude percentile already consume (no extra fold, no divergence risk).
+    // Threshold passthrough on the magnitude side matches P11.87/P11.91/P11.95/
+    // P11.99 posture so JSONL consumers can distinguish real per-KPI cross-axis
+    // shape shifts from apparent shifts caused by widening the amber band.
+    // Section splices IMMEDIATELY BELOW
+    // perMetricPctChangeStreakLengthPercentilesSection (P11.99/P11.100 per-metric
+    // magnitude scalar) and ABOVE perResellerPctChangeStreakLeaderboardSection
+    // (P11.75/P11.76 per-partner leaderboard) per the P11.101 formatter docblock
+    // explicit placement rule — capstone position at the bottom of the per-metric
+    // ladder so a reader who already saw direction and magnitude summaries above
+    // can immediately reconcile them into a single per-KPI verdict without
+    // scrolling back up. Walk: per-metric coverage (P11.63) → per-metric top-N
+    // (P11.71) → per-metric direction shape (P11.85) → per-metric direction
+    // scalar (P11.97) → per-metric magnitude shape (P11.87) → per-metric
+    // magnitude scalar (P11.99) → per-metric BOTH-AXES scorecard (this section,
+    // new) → per-partner ladder.
+    snapshotPerMetricPersistenceScorecard =
+      computeDigestSnapshotPerMetricPersistenceScorecard(
+        snapshotPerResellerRollingTrend,
+      );
+    perMetricPersistenceScorecardSection =
+      formatDigestSnapshotPerMetricPersistenceScorecardSection(
+        snapshotPerMetricPersistenceScorecard,
+      );
   }
   if (
     topMoversSection ||
@@ -2562,7 +2609,8 @@ export async function GET(req: Request) {
     perMetricDirectionStreakLengthHistogramSection ||
     perMetricDirectionStreakLengthPercentilesSection ||
     perMetricPctChangeStreakLengthHistogramSection ||
-    perMetricPctChangeStreakLengthPercentilesSection
+    perMetricPctChangeStreakLengthPercentilesSection ||
+    perMetricPersistenceScorecardSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -2608,6 +2656,7 @@ export async function GET(req: Request) {
       perMetricPctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLengthHistogramSection +
       perMetricPctChangeStreakLengthPercentilesSection +
+      perMetricPersistenceScorecardSection +
       perResellerPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreakLengthPercentilesSection +
@@ -3565,6 +3614,26 @@ export async function GET(req: Request) {
               snapshotPerMetricPctChangeStreakLengthPercentiles.threshold,
             groups:
               snapshotPerMetricPctChangeStreakLengthPercentiles.groups,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_persistence_scorecard:
+      snapshotPerMetricPersistenceScorecard
+        ? {
+            window_size:
+              snapshotPerMetricPersistenceScorecard.window_size,
+            first_week:
+              snapshotPerMetricPersistenceScorecard.first_week,
+            last_week:
+              snapshotPerMetricPersistenceScorecard.last_week,
+            min_streak_length:
+              snapshotPerMetricPersistenceScorecard.min_streak_length,
+            threshold:
+              snapshotPerMetricPersistenceScorecard.threshold,
+            rows:
+              snapshotPerMetricPersistenceScorecard.rows,
           }
         : {
             skipped_reason:
