@@ -254,6 +254,11 @@ import {
   type DigestSnapshotPerResellerPersistenceScorecard,
 } from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard";
 import {
+  computeDigestSnapshotPerResellerPersistenceScorecardVerdict,
+  formatDigestSnapshotPerResellerPersistenceScorecardVerdictSection,
+  type DigestSnapshotPerResellerPersistenceScorecardVerdict,
+} from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard-verdict";
+import {
   computeDigestSnapshotPersistenceScorecard,
   formatDigestSnapshotPersistenceScorecardSection,
   type DigestSnapshotPersistenceScorecard,
@@ -1593,6 +1598,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerPersistenceScorecard
     | null = null;
   let perResellerPersistenceScorecardSection = "";
+  let snapshotPerResellerPersistenceScorecardVerdict:
+    | DigestSnapshotPerResellerPersistenceScorecardVerdict
+    | null = null;
+  let perResellerPersistenceScorecardVerdictSection = "";
   let snapshotPersistenceScorecard: DigestSnapshotPersistenceScorecard | null =
     null;
   let persistenceScorecardSection = "";
@@ -2529,6 +2538,34 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerPersistenceScorecardSection(
         snapshotPerResellerPersistenceScorecard,
       );
+    // P11.112 — per-partner persistence scorecard VERDICT table (module
+    // P11.111). Per-partner analogue of the portfolio P11.107/P11.108 and
+    // per-metric P11.109/P11.110 verdict captions — collapses each row of the
+    // P11.103 per-partner twin-block scalar table above into ONE discrete
+    // verdict token per partner so ops stops running the "is direction p90=3
+    // sustained?" ladder mentally per reseller_code (ACME, ZEBRA,
+    // INFOVISION, …). Splices directly BELOW the P11.104
+    // perResellerPersistenceScorecardSection so a reader who already saw the
+    // per-partner direction and magnitude scalar rows can immediately read the
+    // collapsed per-partner verdicts without reconciling every twin-block row
+    // in their head. Formatter returns "" on window_size < 3 OR when every row
+    // resolves to `flat` / `insufficient_window` (mirrors the P11.103
+    // scorecard formatter's own short-window suppression posture) so the
+    // digest stays quiet on quiet partners — no orphan verdict table below an
+    // empty scorecard block. Envelope entry lands beside the P11.104
+    // snapshot_per_reseller_persistence_scorecard entry so JSONL consumers
+    // grep 'ACME=sustained_both_axes' per partner without side-loading the
+    // P11.104 scorecard rows. Completes the verdict-caption trio at all three
+    // scorecard grains (portfolio P11.108 → per-metric P11.110 → per-partner
+    // this tick).
+    snapshotPerResellerPersistenceScorecardVerdict =
+      computeDigestSnapshotPerResellerPersistenceScorecardVerdict(
+        snapshotPerResellerPersistenceScorecard,
+      );
+    perResellerPersistenceScorecardVerdictSection =
+      formatDigestSnapshotPerResellerPersistenceScorecardVerdictSection(
+        snapshotPerResellerPersistenceScorecardVerdict,
+      );
     // P11.86 — per-metric sustained-direction streak length-frequency
     // histogram (module P11.85). Per-metric analogue of the P11.78 portfolio
     // and P11.82 per-partner direction-streak histograms, closing the
@@ -2774,6 +2811,7 @@ export async function GET(req: Request) {
     perMetricPersistenceScorecardSection ||
     perMetricPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardSection ||
+    perResellerPersistenceScorecardVerdictSection ||
     persistenceScorecardSection ||
     persistenceScorecardVerdictSection
   ) {
@@ -2829,6 +2867,7 @@ export async function GET(req: Request) {
       perResellerPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreakLengthPercentilesSection +
       perResellerPersistenceScorecardSection +
+      perResellerPersistenceScorecardVerdictSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -3843,6 +3882,26 @@ export async function GET(req: Request) {
               snapshotPerResellerPersistenceScorecard.threshold,
             rows:
               snapshotPerResellerPersistenceScorecard.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_persistence_scorecard_verdict:
+      snapshotPerResellerPersistenceScorecardVerdict
+        ? {
+            window_size:
+              snapshotPerResellerPersistenceScorecardVerdict.window_size,
+            first_week:
+              snapshotPerResellerPersistenceScorecardVerdict.first_week,
+            last_week:
+              snapshotPerResellerPersistenceScorecardVerdict.last_week,
+            sustained_p90_threshold:
+              snapshotPerResellerPersistenceScorecardVerdict.sustained_p90_threshold,
+            threshold:
+              snapshotPerResellerPersistenceScorecardVerdict.threshold,
+            rows:
+              snapshotPerResellerPersistenceScorecardVerdict.rows,
           }
         : {
             skipped_reason:
