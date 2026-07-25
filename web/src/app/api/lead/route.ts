@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan } from "@/lib/plans";
 import { sendPaymentLink } from "@/lib/email";
+import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 
 // POST /api/lead
 // Captures a lead from the marketing surfaces. Persists to Supabase if
@@ -94,22 +95,30 @@ export async function POST(request: Request) {
       ).replace(/\/$/, "");
 
       try {
-        const session = await stripe.checkout.sessions.create({
-          mode: "payment",
-          customer_email: email,
-          line_items: [{ price: priceId, quantity: 1 }],
-          success_url: `${siteUrl}/checkout/success?plan=founding50`,
-          cancel_url: `${siteUrl}/founding-50`,
-          metadata: {
-            blockid_source: "founding50",
-            blockid_email: email,
-            // No blockid_user_id at lead stage — the user hasn't signed up yet.
-            // The webhook handler will fall back to email-based lookup when
-            // blockid_user_id is absent but blockid_plan + blockid_email are set.
-            blockid_plan: "founding50",
+        const session = await stripe.checkout.sessions.create(
+          {
+            mode: "payment",
+            customer_email: email,
+            line_items: [{ price: priceId, quantity: 1 }],
+            success_url: `${siteUrl}/checkout/success?plan=founding50`,
+            cancel_url: `${siteUrl}/founding-50`,
+            metadata: {
+              blockid_source: "founding50",
+              blockid_email: email,
+              // No blockid_user_id at lead stage — the user hasn't signed up yet.
+              // The webhook handler will fall back to email-based lookup when
+              // blockid_user_id is absent but blockid_plan + blockid_email are set.
+              blockid_plan: "founding50",
+            },
+            allow_promotion_codes: true,
           },
-          allow_promotion_codes: true,
-        });
+          {
+            idempotencyKey: sessionIdempotencyKey("founding50", [
+              email.toLowerCase().trim(),
+              priceId,
+            ]),
+          },
+        );
 
         checkoutUrl = session.url ?? undefined;
       } catch (err) {

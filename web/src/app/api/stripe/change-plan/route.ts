@@ -261,19 +261,29 @@ export async function POST(request: Request) {
     }
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au";
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer: customerId,
-      line_items: [{ price: newPriceId, quantity: 1 }],
-      success_url: `${siteUrl}/checkout/success?plan=${newPlanId}`,
-      cancel_url: `${siteUrl}/#pricing`,
-      // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
-      metadata: {
-        blockid_user_id: user.id,
-        blockid_user_hash: hashUserId(user.id),
-        blockid_plan: newPlanId,
+    const { sessionIdempotencyKey } = await import("@/lib/stripe/idempotency");
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        customer: customerId,
+        line_items: [{ price: newPriceId, quantity: 1 }],
+        success_url: `${siteUrl}/checkout/success?plan=${newPlanId}`,
+        cancel_url: `${siteUrl}/#pricing`,
+        // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
+        metadata: {
+          blockid_user_id: user.id,
+          blockid_user_hash: hashUserId(user.id),
+          blockid_plan: newPlanId,
+        },
       },
-    });
+      {
+        idempotencyKey: sessionIdempotencyKey("change_plan", [
+          user.id,
+          newPlanId,
+          newPriceId,
+        ]),
+      },
+    );
 
     await logConversionEvent({
       userId: user.id,

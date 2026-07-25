@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { isEarlyBird } from "@/lib/plans";
+import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 
 export async function POST(request: Request) {
   if (!isStripeConfigured()) {
@@ -48,17 +49,25 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: email,
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${siteUrl}/?analysis_paid=true&email=${encodeURIComponent(email as string)}`,
-      cancel_url: `${siteUrl}/#svi`,
-      metadata: {
-        blockid_type: "svi_analysis",
-        blockid_email: email,
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        customer_email: email,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${siteUrl}/?analysis_paid=true&email=${encodeURIComponent(email as string)}`,
+        cancel_url: `${siteUrl}/#svi`,
+        metadata: {
+          blockid_type: "svi_analysis",
+          blockid_email: email,
+        },
       },
-    });
+      {
+        idempotencyKey: sessionIdempotencyKey("analysis", [
+          email.toLowerCase().trim(),
+          priceId,
+        ]),
+      },
+    );
 
     return NextResponse.json({ ok: true, url: session.url });
   } catch (err) {

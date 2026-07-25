@@ -4,6 +4,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, STRIPE_PRICE_MAP } from "@/lib/stripe";
+import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 
 export const dynamic = "force-dynamic";
 
@@ -34,17 +35,22 @@ export async function POST(req: NextRequest) {
 
   const origin = req.headers.get("origin") || "https://blockid.au";
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    line_items: [{ price: priceId, quantity: 1 }],
-    customer_email: me.email,
-    metadata: { userId: me.id, sviApiTier: tier },
-    success_url: `${origin}/workspace/svi-api?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
-    cancel_url: `${origin}/workspace/svi-api`,
-    subscription_data: {
+  const session = await stripe.checkout.sessions.create(
+    {
+      mode: "subscription",
+      line_items: [{ price: priceId, quantity: 1 }],
+      customer_email: me.email,
       metadata: { userId: me.id, sviApiTier: tier },
+      success_url: `${origin}/workspace/svi-api?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
+      cancel_url: `${origin}/workspace/svi-api`,
+      subscription_data: {
+        metadata: { userId: me.id, sviApiTier: tier },
+      },
     },
-  });
+    {
+      idempotencyKey: sessionIdempotencyKey("svi_api", [me.id, tier, priceId]),
+    },
+  );
 
   return NextResponse.json({ ok: true, url: session.url });
 }
