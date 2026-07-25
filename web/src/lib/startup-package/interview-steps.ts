@@ -53,6 +53,9 @@ export interface Bilingual {
 
 export interface InterviewStep {
   key: InterviewStepKey;
+  /** Alias for {@link key} — integration.test.ts + external callers expect
+   * `step.id`. Populated identically at build time. */
+  id: InterviewStepKey;
   phaseId: GrowthPhaseId;
   order: number;
   prompt: Bilingual;
@@ -65,7 +68,10 @@ export interface InterviewStep {
   creditCost: number;
 }
 
-export const INTERVIEW_STEPS: readonly InterviewStep[] = Object.freeze([
+// Backed by raw literals below; a .map() adorns each entry with `id = key`
+// so callers that expect `step.id` (integration tests + external consumers)
+// find it without duplicating the key literal in every row.
+const RAW_INTERVIEW_STEPS: readonly Omit<InterviewStep, "id">[] = Object.freeze([
   {
     key: "idea_and_problem",
     phaseId: "vision",
@@ -235,6 +241,10 @@ export const INTERVIEW_STEPS: readonly InterviewStep[] = Object.freeze([
     },
   },
 ]);
+
+export const INTERVIEW_STEPS: readonly InterviewStep[] = Object.freeze(
+  RAW_INTERVIEW_STEPS.map((s) => ({ ...s, id: s.key })),
+);
 
 /** Look up a step by key — throws if unknown (safer than optional). */
 export function getInterviewStep(key: InterviewStepKey): InterviewStep {

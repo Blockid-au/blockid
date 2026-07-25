@@ -264,3 +264,12 @@ export const UNICORN_PLAYBOOK_TASKS: readonly UnicornPlaybookTask[] = [
 export function tasksForPhase(phaseId: GrowthPhaseId): UnicornPlaybookTask[] {
   return UNICORN_PLAYBOOK_TASKS.filter((task) => task.phase === phaseId);
 }
+
+// ---------------------------------------------------------------------------
+// Alias re-export — integration.test.ts expects `UNICORN_PLAYBOOK` (singular)
+// and tasks carrying a `phaseId` alias. Kept alongside the primary export so
+// both shapes work without a breaking rename.
+// ---------------------------------------------------------------------------
+export const UNICORN_PLAYBOOK: ReadonlyArray<
+  UnicornPlaybookTask & { phaseId: GrowthPhaseId }
+> = UNICORN_PLAYBOOK_TASKS.map((t) => ({ ...t, phaseId: t.phase }));
