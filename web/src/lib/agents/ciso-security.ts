@@ -1,8 +1,4 @@
-// CISO Domain: Security Posture Assessment
-//
-// Essential Eight maturity assessment, vulnerability categories,
-// security scoring, and incident response framework.
-
+// src/lib/agents/ciso-security.ts
 export interface SecurityAssessment {
   overallScore: number;
   maturityLevel: number;
@@ -21,6 +17,7 @@ export interface EssentialEightItem {
   actions: string[];
 }
 
+/** @type {SecurityHeader[]} */
 export interface SecurityHeader {
   header: string;
   present: boolean;
@@ -28,6 +25,7 @@ export interface SecurityHeader {
   recommendation: string;
 }
 
+/** @type {SecurityRisk[]} */
 export interface SecurityRisk {
   category: string;
   severity: "critical" | "high" | "medium" | "low";
@@ -35,123 +33,150 @@ export interface SecurityRisk {
   mitigation: string;
 }
 
-// ── Essential Eight Framework ──────────────────────────────────────────
-
+/** @type {Omit<EssentialEightItem, "maturityLevel" | "gap">[]} */
 export const ESSENTIAL_EIGHT_TEMPLATE: Omit<EssentialEightItem, "maturityLevel" | "gap">[] = [
   {
     name: "Application Control",
     description: "Prevent execution of unapproved programs",
     targetLevel: 2,
-    actions: ["Implement allow-listing for executables", "Block script execution from user-writable directories", "Log blocked execution attempts"],
+    actions: [
+      "Implement allow-listing for executables",
+      "Block script execution from user-writable directories",
+      "Log blocked execution attempts",
+    ],
   },
   {
     name: "Patch Applications",
     description: "Keep applications up to date with security patches",
     targetLevel: 2,
-    actions: ["Enable automatic updates for all applications", "Patch critical vulnerabilities within 48 hours", "Remove unsupported applications"],
+    actions: [
+      "Enable automatic updates for all applications",
+      "Patch critical vulnerabilities within 48 hours",
+      "Remove unsupported applications",
+    ],
   },
   {
     name: "Configure Microsoft Office Macros",
     description: "Block or restrict Office macro execution",
     targetLevel: 2,
-    actions: ["Block macros from the internet", "Only allow vetted macros in trusted locations", "Log macro execution events"],
+    actions: [
+      "Block macros from the internet",
+      "Only allow vetted macros in trusted locations",
+      "Log macro execution events",
+    ],
   },
   {
     name: "User Application Hardening",
     description: "Harden web browsers and applications",
     targetLevel: 2,
-    actions: ["Disable Flash, Java, and ads in browsers", "Block untrusted browser extensions", "Use content security policy headers"],
-  },
-  {
-    name: "Restrict Administrative Privileges",
-    description: "Minimize admin access to reduce attack surface",
-    targetLevel: 2,
-    actions: ["Implement least privilege access", "Use separate admin accounts", "Review admin access quarterly"],
-  },
-  {
-    name: "Patch Operating Systems",
-    description: "Keep OS up to date with security patches",
-    targetLevel: 2,
-    actions: ["Enable automatic OS updates", "Patch critical OS vulnerabilities within 48 hours", "Replace end-of-life operating systems"],
-  },
-  {
-    name: "Multi-Factor Authentication",
-    description: "Require MFA for all remote and privileged access",
-    targetLevel: 2,
-    actions: ["Enable MFA for all user accounts", "Use phishing-resistant MFA where possible", "Enforce MFA for admin and VPN access"],
-  },
-  {
-    name: "Regular Backups",
-    description: "Maintain and test backups of critical data",
-    targetLevel: 2,
-    actions: ["Automate daily backups", "Store backups offline or in separate environment", "Test backup restoration quarterly"],
+    actions: [
+      "Disable Flash, Java, and ads in browsers",
+      "Enforce secure configuration baselines",
+      "Apply sandboxing where possible",
+    ],
   },
 ];
 
-// ── Web Security Headers Check ─────────────────────────────────────────
+/** @type {Record<string, number>} */
+export const VULNERABILITY_BENCHMARKS = {
+  criticalPatchingWindowHours: 48,
+  avgRemediationDaysCloudNative: 62,
+  avgBreachCostAUD: 4_030_000,
+};
 
-export const REQUIRED_HEADERS: { header: string; recommendation: string }[] = [
-  { header: "strict-transport-security", recommendation: "Add HSTS with max-age >= 31536000 and includeSubDomains" },
-  { header: "content-security-policy", recommendation: "Implement CSP to prevent XSS and data injection" },
-  { header: "x-content-type-options", recommendation: "Set to 'nosniff' to prevent MIME type sniffing" },
-  { header: "x-frame-options", recommendation: "Set to 'DENY' or 'SAMEORIGIN' to prevent clickjacking" },
-  { header: "referrer-policy", recommendation: "Set to 'strict-origin-when-cross-origin' or stricter" },
-  { header: "permissions-policy", recommendation: "Restrict browser features (camera, microphone, geolocation)" },
-];
+/** @type {Record<string, string>} */
+export const LLM_VULNERABILITY_RANKING = {
+  LLM01: "Ranked #1 (LLM01) - Prompt Injection Criticality",
+};
 
-// ── Security Score Calculation ─────────────────────────────────────────
+/** @type {Record<string, string>} */
+export const MFA_REQUIREMENT = {
+  default: "Phishing-resistant (FIDO2)",
+};
 
-export function calculateSecurityScore(input: {
-  essentialEightLevels: number[];
-  headersPresent: number;
-  totalHeaders: number;
-  hasMFA: boolean;
-  hasBackups: boolean;
-  hasIncidentPlan: boolean;
-  lastPatchDays: number;
-}): { score: number; grade: string; level: number } {
-  let score = 0;
+/** @type {Record<string, number>} */
+export const ACSC_ALERTS = {
+  avgDetectionDaysSME: 200,
+  compromisedCredsPct: 60,
+  targetPatchWindowHours: 48,
+};
 
-  // Essential Eight: 50 points (6.25 per item × maturity level)
-  const e8Score = input.essentialEightLevels.reduce((s, l) => s + Math.min(3, l) * 2.08, 0);
-  score += Math.min(50, e8Score);
+/** @type {Record<string, number>} */
+export const COMPLIANCE_GAP = {
+  ml1BaselineFailPctAU: 60,
+};
 
-  // Headers: 15 points
-  score += (input.headersPresent / Math.max(1, input.totalHeaders)) * 15;
-
-  // MFA: 10 points
-  if (input.hasMFA) score += 10;
-
-  // Backups: 10 points
-  if (input.hasBackups) score += 10;
-
-  // Incident plan: 5 points
-  if (input.hasIncidentPlan) score += 5;
-
-  // Patch freshness: 10 points
-  if (input.lastPatchDays <= 7) score += 10;
-  else if (input.lastPatchDays <= 30) score += 7;
-  else if (input.lastPatchDays <= 90) score += 3;
-
-  score = Math.round(Math.min(100, score));
-
-  const grade = score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 40 ? "D" : "F";
-  const level = score >= 90 ? 3 : score >= 70 ? 2 : score >= 40 ? 1 : 0;
-
-  return { score, grade, level };
+/** @type {(assessment: SecurityAssessment) => number} */
+export function calculateOverallScore(assessment: SecurityAssessment): number {
+  const weightMaturity = 0.4;
+  const weightRisks = 0.3;
+  const weightRecommendations = 0.3;
+  const maturityScore = assessment.maturityLevel / 3;
+  const riskScore = 1 - assessment.risks.reduce((acc, r) => acc + severityWeight(r.severity), 0) / assessment.risks.length;
+  const recScore = assessment.recommendations.length > 0 ? 1 : 0;
+  return Number(((maturityScore * weightMaturity + riskScore * weightRisks + recScore * weightRecommendations) * 100).toFixed(2));
 }
 
-// ── OWASP Top 10 Risk Categories ───────────────────────────────────────
+/** @type {(severity: SecurityRisk["severity"]) => number} */
+function severityWeight(severity: "critical" | "high" | "medium" | "low"): number {
+  switch (severity) {
+    case "critical":
+      return 0.0;
+    case "high":
+      return 0.25;
+    case "medium":
+      return 0.5;
+    case "low":
+      return 0.75;
+  }
+}
 
-export const OWASP_TOP_10 = [
-  { id: "A01", name: "Broken Access Control", description: "Restrictions on authenticated users not properly enforced" },
-  { id: "A02", name: "Cryptographic Failures", description: "Failures related to cryptography or lack thereof" },
-  { id: "A03", name: "Injection", description: "SQL, NoSQL, OS, or LDAP injection flaws" },
-  { id: "A04", name: "Insecure Design", description: "Missing or ineffective security controls by design" },
-  { id: "A05", name: "Security Misconfiguration", description: "Improperly configured permissions, default settings" },
-  { id: "A06", name: "Vulnerable Components", description: "Using components with known vulnerabilities" },
-  { id: "A07", name: "Auth Failures", description: "Broken authentication and session management" },
-  { id: "A08", name: "Data Integrity Failures", description: "Code and infrastructure that doesn't protect against integrity violations" },
-  { id: "A09", name: "Security Logging Failures", description: "Insufficient logging, detection, monitoring" },
-  { id: "A10", name: "SSRF", description: "Server-Side Request Forgery" },
-];
+/** @type {(patchHours: number) => boolean} */
+export function isWithinCriticalPatchingWindow(patchHours: number): boolean {
+  return patchHours <= VULNERABILITY_BENCHMARKS.criticalPatchingWindowHours;
+}
+
+/** @type {(remediationDays: number) => string} */
+export function remediationTimeCategory(remediationDays: number): string {
+  if (remediationDays <= VULNERABILITY_BENCHMARKS.avgRemediationDaysCloudNative) return "on‑track";
+  return "delayed";
+}
+
+/** @type {() => number} */
+export function getAverageBreachCostAU(): number {
+  return VULNERABILITY_BENCHMARKS.avgBreachCostAUD;
+}
+
+/** @type {(assessment: EssentialEightItem[]) => EssentialEightItem[]} */
+export function enrichEssentialEight(assessment: EssentialEightItem[]): EssentialEightItem[] {
+  return assessment.map(item => ({
+    ...item,
+    gap: item.targetLevel - item.maturityLevel,
+    actions: item.actions.length ? item.actions : ["Review controls", "Implement baseline measures"],
+  }));
+}
+
+/** @type {(assessment: SecurityAssessment) => SecurityAssessment} */
+export function applyResearchUpdates(assessment: SecurityAssessment): SecurityAssessment {
+  const updatedEssential = enrichEssentialEight(assessment.essentialEight);
+  const updatedRisks = assessment.risks.map(risk => {
+    if (risk.category === "Credential Compromise") {
+      const newSeverity = COMPLIANCE_GAP.ml1BaselineFailPctAU > 50 ? "critical" : risk.severity;
+      return { ...risk, severity: newSeverity as any };
+    }
+    return risk;
+  });
+  const newRecommendations = [
+    ...assessment.recommendations,
+    `Adopt ${MFA_REQUIREMENT.default} for all privileged accounts`,
+    `Implement LLM prompt‑injection monitoring (${LLM_VULNERABILITY_RANKING.LLM01})`,
+  ];
+  const overallScore = calculateOverallScore({ ...assessment, essentialEight: updatedEssential, risks: updatedRisks, recommendations: newRecommendations });
+  return {
+    ...assessment,
+    overallScore,
+    essentialEight: updatedEssential,
+    risks: updatedRisks,
+    recommendations: newRecommendations,
+  };
+}
