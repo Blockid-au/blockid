@@ -1702,3 +1702,6 @@
 {"ts":"2026-07-25T04:41:16Z","status":"success","gates":"9/9","pid":"3339610","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-25T04:52:51.439Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P11-acquisition-wizard-e2e): Playwright spec for AcquisitionWizardClient on /dashboard/exit-readiness (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T04:52:59.560Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T04-47-01-501Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T04:53:31.822Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T04-45-01-863Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T04:59:25Z","status":"success","gates":"9/9","pid":"3401289","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-25T05:00:27.534Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.100-per-metric-pct-change-streak-length-percentiles-cron-wiring): splice per-metric |Δ%|-material p50/p90/mean/max scalar summary into weekly digest below P11.87/P11.88 histogram (1 commits)","source":"github-webhook"}
