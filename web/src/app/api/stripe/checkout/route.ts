@@ -8,6 +8,7 @@ import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
 import { hashUserId } from "@/lib/reseller/hash";
 import { buildCheckoutSuccessUrl } from "@/lib/stripe/checkout-success-url";
+import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
 // POST /api/stripe/checkout
@@ -346,7 +347,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = await stripe.checkout.sessions.create(sessionParams);
+    const session = await stripe.checkout.sessions.create(sessionParams, {
+      idempotencyKey: sessionIdempotencyKey("checkout", [
+        user.id,
+        planId,
+        priceId,
+        resellerAttribution?.code ?? null,
+        couponCode ?? null,
+      ]),
+    });
 
     // SOC2-lite audit: record the successful checkout session creation.
     // Non-PII only — plan id, cadence, trial days, and whether a reseller code

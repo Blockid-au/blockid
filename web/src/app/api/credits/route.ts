@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getBalance, getTransactionHistory, grantCredits, CREDIT_PACKS } from "@/lib/credits";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
+import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 
 // GET /api/credits
 // Returns the authenticated user's credit balance + recent transactions.
@@ -75,18 +76,27 @@ export async function POST(request: Request) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au";
 
     try {
-      const session = await stripe.checkout.sessions.create({
-        mode: "payment",
-        customer_email: user.email,
-        line_items: [{ price: creditsPriceId, quantity: 1 }],
-        success_url: `${siteUrl}/workspace/billing?credits_purchased=${amount}#credits`,
-        cancel_url: `${siteUrl}/workspace/billing#credits`,
-        metadata: {
-          blockid_user_id: user.id,
-          blockid_credits: String(amount),
-          type: "credit_purchase",
+      const session = await stripe.checkout.sessions.create(
+        {
+          mode: "payment",
+          customer_email: user.email,
+          line_items: [{ price: creditsPriceId, quantity: 1 }],
+          success_url: `${siteUrl}/workspace/billing?credits_purchased=${amount}#credits`,
+          cancel_url: `${siteUrl}/workspace/billing#credits`,
+          metadata: {
+            blockid_user_id: user.id,
+            blockid_credits: String(amount),
+            type: "credit_purchase",
+          },
         },
-      });
+        {
+          idempotencyKey: sessionIdempotencyKey("credits", [
+            user.id,
+            amount,
+            creditsPriceId,
+          ]),
+        },
+      );
 
       return NextResponse.json({ ok: true, url: session.url });
     } catch (err) {
