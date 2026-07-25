@@ -61,12 +61,12 @@ export type PackagePurchase = z.infer<typeof PackagePurchaseSchema>;
 export const PackageInterviewAnswerSchema = z.object({
   id: z.string().min(1),
   project_id: z.string().min(1),
-  user_id: z.string().min(1).nullable(),
+  user_id: z.string().min(1).nullable().optional(),
   step_key: InterviewStepKeySchema,
   answer_text: z.string(),
   char_count: z.number().int().nonnegative(),
   created_at: z.string(),
-  updated_at: z.string(),
+  updated_at: z.string().optional(),
 });
 export type PackageInterviewAnswer = z.infer<
   typeof PackageInterviewAnswerSchema
@@ -83,8 +83,8 @@ export const PackageReservedAllocationSchema = z.object({
     .nullable(),
   on_chain_token_id: z.string().nullable(),
   opt_in_at: z.string().nullable(),
-  created_at: z.string(),
-  updated_at: z.string(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 });
 export type PackageReservedAllocation = z.infer<
   typeof PackageReservedAllocationSchema
@@ -105,8 +105,8 @@ export type PackageProgress = z.infer<typeof PackageProgressSchema>;
 // ---------------------------------------------------------------------------
 
 export const PackageInterviewAnswerInputSchema = z.object({
-  project_id: z.string().uuid(),
-  user_id: z.string().uuid().nullable().optional(),
+  project_id: z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, { message: "Invalid UUID" }),
+  user_id: z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, { message: "Invalid UUID" }).nullable().optional(),
   step_key: InterviewStepKeySchema,
   answer_text: z.string(),
 });
@@ -115,7 +115,7 @@ export type PackageInterviewAnswerInput = z.infer<
 >;
 
 export const PackageReservedAllocationInputSchema = z.object({
-  project_id: z.string().uuid(),
+  project_id: z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, { message: "Invalid UUID" }),
   pct_reserved: z.number().min(10).max(100),
   ticker_hint: z.string().min(3).max(4).nullable().optional(),
   on_chain_token_id: z.string().nullable().optional(),
@@ -126,7 +126,7 @@ export type PackageReservedAllocationInput = z.infer<
 >;
 
 export const PackageProgressInputSchema = z.object({
-  project_id: z.string().uuid(),
+  project_id: z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, { message: "Invalid UUID" }),
   phase_id: z.string().min(1),
   status: z.enum(PROGRESS_STATUSES).optional(),
   completion_pct: z.number().int().min(0).max(100).optional(),
@@ -134,8 +134,8 @@ export const PackageProgressInputSchema = z.object({
 export type PackageProgressInput = z.infer<typeof PackageProgressInputSchema>;
 
 export const PackagePurchaseInputSchema = z.object({
-  user_id: z.string().uuid(),
-  project_id: z.string().uuid(),
+  user_id: z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, { message: "Invalid UUID" }),
+  project_id: z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, { message: "Invalid UUID" }),
   stripe_session_id: z.string().nullable().optional(),
   stripe_price_id: z.string().nullable().optional(),
   seed_credits: z.number().int().nonnegative().optional(),

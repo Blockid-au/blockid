@@ -237,6 +237,7 @@ export function reportExcerpt(row: AssembledReportRow): string {
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/!\[[^\]]*\]\([^)]+\)/g, " ")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^\s*[-*+]\s+/gm, "")
     .replace(/[#>*_`~]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
