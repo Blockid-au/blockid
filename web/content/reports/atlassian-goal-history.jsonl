@@ -1077,3 +1077,6 @@
 {"tick_id":"2026-07-25T14-37-01-980Z","ts":"2026-07-25T14:47:44.982Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"9307494c","last_deployed":"2aa1228"}
 {"tick_id":"2026-07-25T14-37-01-980Z","ts":"2026-07-25T14:47:44.994Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"9307494c"}
 {"tick_id":"2026-07-25T14-37-01-980Z","ts":"2026-07-25T14:47:44.995Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-25T14-57-01-356Z","ts":"2026-07-25T14:57:01.357Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-25T14-57-01-356Z","ts":"2026-07-25T14:57:01.369Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"P5-tax-invoice-checker-tile-e2e-2026-07-25","ts":"2026-07-25T15:02:59.485Z","loop_label":"atlassian-goal-loop","phase":"P5-tax-invoice-checker-tile-e2e","stage":"phase_shipped","status":"shipped","summary":"Playwright spec at web/tests/e2e/founder/tax-invoice-history-tile.spec.ts covering slate/red/amber/emerald branches of the tax-invoice history tile on /dashboard/compliance; --list green (1 test discovered under chromium); zero source-code churn."}
