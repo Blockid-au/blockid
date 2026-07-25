@@ -6,6 +6,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { buildExitBenchmarkSection } from "@/lib/investor-pack/exit-benchmark-section";
 import { ExitReadinessTile } from "@/components/dashboard/exit-readiness-tile";
 import { AcquisitionWizardClient } from "@/components/dashboard/acquisition-wizard-client";
+import { RedomicileWizardClient } from "@/components/dashboard/redomicile-wizard-client";
 import { requireTierForPage } from "@/lib/entitlements/require-tier-for-page";
 
 // P12b-tile — /dashboard/exit-readiness deep-link.
@@ -60,6 +61,7 @@ export default async function ExitReadinessDashboardPage() {
         </header>
         <ExitReadinessTile section={section} projectSector={projectSector} />
         <AcquisitionWizardClient />
+        <RedomicileWizardClient />
       </div>
     </WorkspaceLayout>
   );
