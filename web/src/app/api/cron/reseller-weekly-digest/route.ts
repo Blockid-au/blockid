@@ -292,6 +292,11 @@ import {
   type DigestSnapshotPerResellerPersistenceScorecardVerdictTransition,
 } from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard-verdict-transition";
 import {
+  computeDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistribution,
+  formatDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistributionSection,
+  type DigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistribution,
+} from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard-verdict-transition-distribution";
+import {
   computeDigestSnapshotPersistenceScorecard,
   formatDigestSnapshotPersistenceScorecardSection,
   type DigestSnapshotPersistenceScorecard,
@@ -1665,6 +1670,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerPersistenceScorecardVerdictTransition
     | null = null;
   let perResellerPersistenceScorecardVerdictTransitionSection = "";
+  let snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution:
+    | DigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistribution
+    | null = null;
+  let perResellerPersistenceScorecardVerdictTransitionDistributionSection = "";
   let snapshotPersistenceScorecard: DigestSnapshotPersistenceScorecard | null =
     null;
   let persistenceScorecardSection = "";
@@ -3194,6 +3203,30 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionSection(
         snapshotPerResellerPersistenceScorecardVerdictTransition,
       );
+    // P11.128 — per-partner verdict-transition DELTA-RANK DISTRIBUTION caption
+    // (module P11.127). Pure derivation of the P11.117 per-partner transition
+    // envelope into a scalar-summary distribution: 'ACROSS the partner roster,
+    // how many improved by +2 vs +1 ranks, degraded by −1 vs −2, rotated, or
+    // remained undecidable?' Ops reads a single caption + non-zero bucket list
+    // rather than eyeballing the row-per-partner transition table above.
+    // Splices directly BELOW perResellerPersistenceScorecardVerdictTransitionSection
+    // so the scalar summary sits inline beneath the row grid that produced it.
+    // Consumes the SAME snapshotPerResellerPersistenceScorecardVerdictTransition
+    // the P11.118 formatter just consumed — no extra fold, no divergence risk.
+    // Formatter returns "" on window_size < 3 OR total == 0 OR alert_worthy ==
+    // 0 (matches the P11.117/P11.118 short-window suppression + adds the
+    // aggregation-specific 'nothing to summarise' guards). Mirrors the P11.126
+    // per-metric-grain distribution wiring exactly — same envelope shape (no
+    // rows[], nested distribution object with the ten transition buckets +
+    // alert_worthy scalar + net_delta_rank barometer).
+    snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution =
+      computeDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistribution(
+        snapshotPerResellerPersistenceScorecardVerdictTransition,
+      );
+    perResellerPersistenceScorecardVerdictTransitionDistributionSection =
+      formatDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistributionSection(
+        snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution,
+      );
     // P11.124 — per-(partner × metric) persistence scorecard verdict TRANSITION
     // caption (module P11.123). Pure derivation of two P11.121 per-pair verdict
     // envelopes (previous, current) into ONE discrete transition token PER
@@ -3349,6 +3382,7 @@ export async function GET(req: Request) {
     perResellerMetricPersistenceScorecardVerdictTransitionSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
+    perResellerPersistenceScorecardVerdictTransitionDistributionSection ||
     persistenceScorecardSection ||
     persistenceScorecardVerdictSection ||
     persistenceScorecardVerdictTransitionSection
@@ -3413,6 +3447,7 @@ export async function GET(req: Request) {
       perResellerMetricPersistenceScorecardVerdictTransitionSection +
       perResellerPersistenceScorecardVerdictSection +
       perResellerPersistenceScorecardVerdictTransitionSection +
+      perResellerPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -4567,6 +4602,26 @@ export async function GET(req: Request) {
               snapshotPerResellerPersistenceScorecardVerdictTransition.threshold,
             rows:
               snapshotPerResellerPersistenceScorecardVerdictTransition.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_persistence_scorecard_verdict_transition_distribution:
+      snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution
+        ? {
+            window_size:
+              snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution.window_size,
+            first_week:
+              snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution.first_week,
+            last_week:
+              snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution.last_week,
+            sustained_p90_threshold:
+              snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution.sustained_p90_threshold,
+            threshold:
+              snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution.threshold,
+            distribution:
+              snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution.distribution,
           }
         : {
             skipped_reason:
