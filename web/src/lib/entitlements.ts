@@ -106,7 +106,9 @@ const LEGACY_PLAN_MAP: Record<string, string> = {
 
 // Fallback feature bundles for legacy plans when the plans table has not been
 // seeded yet (fresh dev DB, or migration failure). Mirrors 0074_plans_matrix.
-const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
+// Exported so entitlements/tier-ladder.test.ts can assert the ladder covers
+// every feature key the fallback surfaces (no orphan gates).
+export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
   founder_free: ["svi.run.limited"],
   founder_starter: [
     "svi.run",
