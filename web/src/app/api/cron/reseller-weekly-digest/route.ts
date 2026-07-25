@@ -338,6 +338,11 @@ import {
   type DigestSnapshotPerMetricCrossPartnerAlerts,
 } from "@/lib/reseller/digest-snapshot-per-metric-cross-partner-alerts";
 import {
+  computeDigestSnapshotPerPairHotCells,
+  formatDigestSnapshotPerPairHotCellsSection,
+  type DigestSnapshotPerPairHotCells,
+} from "@/lib/reseller/digest-snapshot-per-pair-hot-cells";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1730,6 +1735,8 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricCrossPartnerAlerts
     | null = null;
   let perMetricCrossPartnerAlertsSection = "";
+  let snapshotPerPairHotCells: DigestSnapshotPerPairHotCells | null = null;
+  let perPairHotCellsSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3545,6 +3552,28 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerMetricCrossPartnerAlertsSection(
           snapshotPerMetricCrossPartnerAlerts,
         );
+      // P11.140 — per-pair hot cells ranking (module P11.139). Granular
+      // complement to both cross-cut rankings above: the P11.135/P11.136 pair
+      // ranks partners by cross-metric alert-signal, the P11.137/P11.138 pair
+      // ranks KPIs by cross-partner alert-signal, and this module ranks the
+      // INDIVIDUAL (partner × KPI) cells driving both. Preserves pair-level
+      // row granularity from the P11.123 envelope, filters to alert-worthy
+      // transitions only, ranks by |delta_rank| (floor 1 for improved/degraded
+      // at delta_rank=0; baseline 1 for rotated + undecidable). Splices
+      // IMMEDIATELY BELOW perMetricCrossPartnerAlertsSection per the P11.139
+      // formatter docblock placement rule so the hierarchy descends pair-rows
+      // (P11.124) → per-partner ranking (P11.135) → per-metric ranking (P11.137)
+      // → per-pair hot cells (P11.139) → per-pair scalar distribution (P11.130):
+      // both cross-cut rankings sit adjacent, and the granular hot-cell list
+      // sits between them and the scalar distribution so ops can pivot from
+      // 'loudest partners / loudest KPIs' straight into the specific cells
+      // driving both without leaving the Monday email.
+      snapshotPerPairHotCells = computeDigestSnapshotPerPairHotCells(
+        snapshotPerResellerMetricPersistenceScorecardVerdictTransition,
+      );
+      perPairHotCellsSection = formatDigestSnapshotPerPairHotCellsSection(
+        snapshotPerPairHotCells,
+      );
     }
   }
   if (
@@ -3590,6 +3619,7 @@ export async function GET(req: Request) {
     perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection ||
     perResellerCrossMetricAlertsSection ||
     perMetricCrossPartnerAlertsSection ||
+    perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
     perResellerPersistenceScorecardVerdictTransitionDistributionSection ||
@@ -3661,6 +3691,7 @@ export async function GET(req: Request) {
       perResellerMetricPersistenceScorecardVerdictTransitionSection +
       perResellerCrossMetricAlertsSection +
       perMetricCrossPartnerAlertsSection +
+      perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
       perResellerPersistenceScorecardVerdictTransitionSection +
@@ -4814,6 +4845,19 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_per_pair_hot_cells: snapshotPerPairHotCells
+      ? {
+          window_size: snapshotPerPairHotCells.window_size,
+          first_week: snapshotPerPairHotCells.first_week,
+          last_week: snapshotPerPairHotCells.last_week,
+          sustained_p90_threshold:
+            snapshotPerPairHotCells.sustained_p90_threshold,
+          threshold: snapshotPerPairHotCells.threshold,
+          rows: snapshotPerPairHotCells.rows,
+        }
+      : {
+          skipped_reason: previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
     snapshot_per_reseller_metric_persistence_scorecard_verdict_transition_distribution:
       snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution
         ? {
