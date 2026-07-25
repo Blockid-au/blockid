@@ -727,3 +727,7 @@
 {"tick_id":"2026-07-25T03-51-12-770Z","ts":"2026-07-25T03:51:12.770Z","loop_label":"atlassian-goal-loop","stage":"tick_end","phase":"P12b-tile-e2e","status":"shipped","artefact":"web/tests/e2e/founder/exit-readiness-tile.spec.ts","note":"Playwright spec pins ExitReadinessTile mount + data-used-fallback + AU_EXIT_DISCLAIMER + buyer-type chips + Atlassian-anchor row on /dashboard/exit-readiness."}
 {"tick_id":"2026-07-25T03-47-01-438Z","ts":"2026-07-25T03:52:06.780Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":305326,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-25T03-47-01-438Z","ts":"2026-07-25T03:52:06.810Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
+{"tick_id":"2026-07-25T03-47-01-438Z","ts":"2026-07-25T03:52:08.451Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-25T03-47-01-438Z","ts":"2026-07-25T03:52:08.457Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"48f74c59","last_deployed":"e36f576"}
+{"tick_id":"2026-07-25T03-47-01-438Z","ts":"2026-07-25T03:58:35.470Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"48f74c59"}
+{"tick_id":"2026-07-25T03-47-01-438Z","ts":"2026-07-25T03:58:35.471Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
