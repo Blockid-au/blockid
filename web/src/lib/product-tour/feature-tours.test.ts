@@ -80,8 +80,11 @@ describe("feature-tours registry", () => {
     ).toBe(true);
   });
 
-  it("route paths are unique per tour", () => {
-    const routes = listFeatureTours().map((t) => t.route);
-    expect(new Set(routes).size).toBe(routes.length);
+  it("slugs are unique per tour", () => {
+    // Route paths intentionally overlap (a role-first-run tour can share a
+    // route with a per-feature tour on the same surface). Uniqueness is
+    // enforced on slug, not route.
+    const slugs = listFeatureTours().map((t) => t.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
   });
 });
