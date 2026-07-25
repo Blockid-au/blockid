@@ -1107,6 +1107,21 @@
         "href": "/score"
       },
       "angle": "Provide a data-driven breakdown of current valuation ranges for Pre-Seed and Seed stages across different sectors (SaaS, Fintech, Healthtech) in the Australian market. Explain how founders can use these benchmarks to justify their valuation during investor negotiations."
+    },
+    {
+      "slug": "startup-valuation-impact-on-tax-australia",
+      "title": "Startup Valuation & Tax: Avoiding CGT Traps in Australia",
+      "category": "compliance",
+      "keywords": [
+        "startup valuation tax Australia",
+        "CGT startup exit",
+        "share valuation ATO"
+      ],
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/tools/valuation-calculator"
+      },
+      "angle": "Explain the tax implications of setting an aggressive vs conservative valuation for founders and early employees. Focus on Capital Gains Tax (CGT) and the risks of 'undervaluing' shares during equity issuance in the eyes of the ATO."
     }
   ]
 }
