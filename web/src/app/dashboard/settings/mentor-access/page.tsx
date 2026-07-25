@@ -11,9 +11,9 @@ import {
   isEffective,
   isExpired,
   isExpiringSoon,
-  loadAllGrantsForFounder,
   type MentorAccessGrant,
 } from "@/lib/mentor/access-tiers";
+import { loadAllGrantsForFounder } from "@/lib/mentor/access-tiers-server";
 import { RevokeButton } from "./revoke-button";
 
 // Founder-side list of every mentor who currently has (or once had) access
