@@ -770,3 +770,5 @@
 {"tick_id":"2026-07-25T05-27-01-579Z","ts":"2026-07-25T05:27:01.580Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T05-27-01-579Z","ts":"2026-07-25T05:27:01.597Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-25T05-34-58-117Z","ts":"2026-07-25T05:34:58.115Z","loop_label":"atlassian-goal-loop","stage":"tick_end","picked":"P4a-preview-ui-e2e","artefacts":["web/tests/e2e/founder/landing-page-preview-panel.spec.ts","docs/plans/atlassian-standard-mapping-goal.md"]}
+{"tick_id":"2026-07-25T05-27-01-579Z","ts":"2026-07-25T05:35:21.056Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":499456,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-25T05-27-01-579Z","ts":"2026-07-25T05:35:21.089Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
