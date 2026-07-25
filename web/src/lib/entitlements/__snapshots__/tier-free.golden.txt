@@ -1,0 +1,20 @@
+home	My Startups	/workspace/projects
+home	Archived	/workspace/projects/archived
+home	Portfolio	/dashboard/portfolio
+home	SVI Score	/dashboard/svi
+home	New Analysis	/
+home	Action Plan	/workspace/roadmap
+validate / validate.track	Weekly Reports	/workspace/reports
+validate	Weekly Reports	/workspace/reports
+account / account.profile	My Profile	/workspace/profile
+account / account.profile	Founder Profile	/workspace/founder-profile
+account / account.profile	Notifications	/workspace/notifications
+account / account.profile	Referrals	/workspace/referrals
+account / account.billing	Billing	/workspace/billing
+account / account.enterprise	Integrations	/workspace/integrations
+account	My Profile	/workspace/profile
+account	Founder Profile	/workspace/founder-profile
+account	Notifications	/workspace/notifications
+account	Referrals	/workspace/referrals
+account	Billing	/workspace/billing
+account	Integrations	/workspace/integrations

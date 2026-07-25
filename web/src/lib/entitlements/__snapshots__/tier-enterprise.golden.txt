@@ -1,0 +1,82 @@
+home	My Startups	/workspace/projects
+home	Archived	/workspace/projects/archived
+home	Portfolio	/dashboard/portfolio
+home	SVI Score	/dashboard/svi
+home	New Analysis	/
+home	Action Plan	/workspace/roadmap
+validate / validate.discover	Market Size	/dashboard/market-size
+validate / validate.discover	Knowledge Base	/workspace/knowledge-base
+validate / validate.evaluate	Evaluation (13)	/workspace/evaluation
+validate / validate.evaluate	Evidence Vault	/workspace/evidence
+validate / validate.track	Metrics	/workspace/metrics
+validate / validate.track	Weekly Reports	/workspace/reports
+validate	Market Size	/dashboard/market-size
+validate	Knowledge Base	/workspace/knowledge-base
+validate	Evaluation (13)	/workspace/evaluation
+validate	Evidence Vault	/workspace/evidence
+validate	Metrics	/workspace/metrics
+validate	Weekly Reports	/workspace/reports
+build / build.equity-setup	Equity Setup	/workspace/equity-setup
+build / build.equity-setup	Equity Split	/workspace/equity
+build / build.equity-setup	Cap Table	/workspace/cap-table
+build / build.equity-setup	Shareholders	/workspace/shareholders
+build / build.people	ESOP Setup	/workspace/esop
+build / build.people	Vesting	/workspace/vesting
+build / build.people	ESOP Manage	/workspace/equity-esop
+build / build.blockchain	Wallet	/workspace/wallet
+build / build.blockchain	Blockchain Sync	/workspace/equity-dashboard
+build	Equity Setup	/workspace/equity-setup
+build	Equity Split	/workspace/equity
+build	Cap Table	/workspace/cap-table
+build	Shareholders	/workspace/shareholders
+build	ESOP Setup	/workspace/esop
+build	Vesting	/workspace/vesting
+build	ESOP Manage	/workspace/equity-esop
+build	Wallet	/workspace/wallet
+build	Blockchain Sync	/workspace/equity-dashboard
+fundraise / fundraise.valuation-finance	VC Valuation	/dashboard/valuation
+fundraise / fundraise.valuation-finance	CFO Advisor	/dashboard/cfo
+fundraise / fundraise.valuation-finance	Finance P&L	/dashboard/finance
+fundraise / fundraise.valuation-finance	ESOP Manager	/dashboard/esop
+fundraise / fundraise.valuation-finance	Team & Salaries	/dashboard/team
+fundraise / fundraise.data-room	Data Room	/workspace/data-room
+fundraise / fundraise.data-room	Documents	/workspace/documents
+fundraise / fundraise.data-room	ESIC Self-Assessment	/workspace/esic-assessment
+fundraise / fundraise.accelerators	Accelerator Tracker	/dashboard/accelerator
+fundraise / fundraise.accelerators	Accelerator Criteria	/dashboard/accelerator-criteria
+fundraise / fundraise.raise	Fundraise Readiness	/dashboard/fundraise
+fundraise / fundraise.raise	Raise Capital	/workspace/fundraise
+fundraise	VC Valuation	/dashboard/valuation
+fundraise	CFO Advisor	/dashboard/cfo
+fundraise	Finance P&L	/dashboard/finance
+fundraise	ESOP Manager	/dashboard/esop
+fundraise	Team & Salaries	/dashboard/team
+fundraise	Data Room	/workspace/data-room
+fundraise	Documents	/workspace/documents
+fundraise	ESIC Self-Assessment	/workspace/esic-assessment
+fundraise	Accelerator Tracker	/dashboard/accelerator
+fundraise	Accelerator Criteria	/dashboard/accelerator-criteria
+fundraise	Fundraise Readiness	/dashboard/fundraise
+fundraise	Raise Capital	/workspace/fundraise
+account / account.profile	My Profile	/workspace/profile
+account / account.profile	Founder Profile	/workspace/founder-profile
+account / account.profile	Notifications	/workspace/notifications
+account / account.profile	Referrals	/workspace/referrals
+account / account.billing	Billing	/workspace/billing
+account / account.enterprise	Integrations	/workspace/integrations
+account / account.enterprise	Custom Branding	/workspace/branding
+account / account.enterprise	Advisor Portal	/dashboard/advisor
+account / account.enterprise	API Keys	/workspace/api-keys
+account / account.enterprise	SSO	/workspace/sso
+account / account.enterprise	White-label	/workspace/white-label
+account	My Profile	/workspace/profile
+account	Founder Profile	/workspace/founder-profile
+account	Notifications	/workspace/notifications
+account	Referrals	/workspace/referrals
+account	Billing	/workspace/billing
+account	Integrations	/workspace/integrations
+account	Custom Branding	/workspace/branding
+account	Advisor Portal	/dashboard/advisor
+account	API Keys	/workspace/api-keys
+account	SSO	/workspace/sso
+account	White-label	/workspace/white-label
