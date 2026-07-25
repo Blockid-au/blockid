@@ -1601,3 +1601,5 @@
 {"ts":"2026-07-25T00:02:09.639Z","event":"github-push-master","detail":"Blockid-au: fix(stripe): add Idempotency-Key to checkout.sessions.create — Stripe blueprint audit (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T00:07:52.124Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal): P11.75 per-reseller |pct|-change streak leaderboard pure lib (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T00:14:04.697Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal): P7a-mover-callout — biggest week-over-week phase mover in founder digest (7 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T00:19:25.603Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T00-15-01-899Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T00:27:23.134Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal): P5-tax-invoice-checker-persist — snapshot table + POST/GET route (2 commits)","source":"github-webhook"}
