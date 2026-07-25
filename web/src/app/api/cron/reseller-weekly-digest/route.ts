@@ -267,7 +267,13 @@ import {
   computeDigestSnapshotPersistenceScorecardVerdict,
   formatDigestSnapshotPersistenceScorecardVerdictSection,
   type DigestSnapshotPersistenceScorecardVerdict,
+  type PersistenceScorecardVerdictToken,
 } from "@/lib/reseller/digest-snapshot-persistence-scorecard-verdict";
+import {
+  computeDigestSnapshotPersistenceScorecardVerdictTransition,
+  formatDigestSnapshotPersistenceScorecardVerdictTransitionSection,
+  type DigestSnapshotPersistenceScorecardVerdictTransition,
+} from "@/lib/reseller/digest-snapshot-persistence-scorecard-verdict-transition";
 import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
