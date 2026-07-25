@@ -121,6 +121,17 @@
       "annual_amount_cents": 3500000,
       "interval": "monthly",
       "trial_days": 14
+    },
+    {
+      "plan_id": "founder_package",
+      "product_name": "Startup Package",
+      "segment": "founder",
+      "stripe_env_var": "STRIPE_PRICE_STARTUP_PACKAGE",
+      "currency": "aud",
+      "monthly_amount_cents": null,
+      "annual_amount_cents": null,
+      "interval": "once",
+      "trial_days": 0
     }
   ]
 }

@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     couponCode,
     resellerCode: bodyResellerCode,
     origin: bodyOrigin,
+    projectId: bodyProjectId,
   } =
     (body as {
       plan?: string;
@@ -61,6 +62,10 @@ export async function POST(request: Request) {
       // billing, founding-50, landing pricing) omit this field and keep the
       // marketing thank-you landing.
       origin?: string;
+      // Startup Package one-off checkout — the founder buys the package for a
+      // specific project so the webhook can stamp package_purchased_at + seed
+      // the dataroom against that project. Ignored by every other planId.
+      projectId?: string;
     }) ?? {};
 
   // Reseller attribution — priority: body param (from onboarding wizard state)
@@ -76,7 +81,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const plan = getPlan(planId);
+  // Startup Package — one-off checkout that lives in plans.csv (v2 matrix)
+  // but not in the legacy LEGACY_PLANS array getPlan() reads. Synthesise a
+  // minimal LegacyPlan shape so the rest of the flow (isRecurring branch,
+  // audit log, idempotency key) sees a normal one-off plan.
+  const IS_STARTUP_PACKAGE = planId === "founder_package";
+  const plan = IS_STARTUP_PACKAGE
+    ? {
+        id: "founder_package",
+        name: "Startup Package",
+        price: 14900,
+        cadence: "once" as const,
+        features: ["startup_package", "pdf_branding"],
+      }
+    : getPlan(planId);
   if (!plan || plan.cadence === "free") {
     return NextResponse.json(
       { ok: false, reason: "Invalid or free plan" },
@@ -253,6 +271,17 @@ export async function POST(request: Request) {
       blockid_user_hash: hashUserId(user.id),
       blockid_plan: planId,
       ...(userSegment ? { blockid_segment: userSegment } : {}),
+      // Startup Package — carry the project_id + a stable `plan` field the
+      // webhook branches on. Kept sanitised (only when the caller supplied
+      // a UUID-shaped string) so we never write arbitrary text into Stripe.
+      ...(IS_STARTUP_PACKAGE
+        ? {
+            plan: "founder_package",
+            ...(bodyProjectId && typeof bodyProjectId === "string"
+              ? { project_id: bodyProjectId }
+              : {}),
+          }
+        : {}),
     },
     allow_promotion_codes: true,
   };
@@ -348,13 +377,19 @@ export async function POST(request: Request) {
 
   try {
     const session = await stripe.checkout.sessions.create(sessionParams, {
-      idempotencyKey: sessionIdempotencyKey("checkout", [
-        user.id,
-        planId,
-        priceId,
-        resellerAttribution?.code ?? null,
-        couponCode ?? null,
-      ]),
+      idempotencyKey: IS_STARTUP_PACKAGE
+        ? sessionIdempotencyKey("startup-package", [
+            user.id,
+            "founder_package",
+            priceId,
+          ])
+        : sessionIdempotencyKey("checkout", [
+            user.id,
+            planId,
+            priceId,
+            resellerAttribution?.code ?? null,
+            couponCode ?? null,
+          ]),
     });
 
     // SOC2-lite audit: record the successful checkout session creation.

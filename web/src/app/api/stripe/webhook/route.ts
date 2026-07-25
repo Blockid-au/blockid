@@ -202,6 +202,12 @@ export async function POST(request: Request) {
       return;
     }
 
+    // ── Startup Package (founder_package) one-off ───────────────────
+    if (session.metadata?.plan === "founder_package") {
+      await handleStartupPackagePurchase(session, e);
+      return;
+    }
+
     // ── Credit pack purchase ────────────────────────────────────────
     if (session.metadata?.type === "credit_purchase") {
       const creditUserId = session.metadata.blockid_user_id;
@@ -720,6 +726,122 @@ export async function POST(request: Request) {
     console.log(
       `[blockid:stripe] invoice paid for customer ${customerId}, amount: ${amountCents}`,
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // Startup Package (founder_package) — one-off purchase handler.
+  // -------------------------------------------------------------------------
+  //
+  // Fires from checkout.session.completed when metadata.plan === "founder_package".
+  // Idempotent by three natural keys:
+  //   (a) the outer claimWebhookEvent() row on stripe_webhook_events.event_id;
+  //   (b) startup_package_purchases.stripe_session_id UNIQUE;
+  //   (c) grantCredits() tags each credit_transactions row with the session id
+  //       so a repeat delivery within the retry window is deduped there too.
+  async function handleStartupPackagePurchase(
+    session: Stripe.Checkout.Session,
+    event: Stripe.Event,
+  ): Promise<void> {
+    const userId = session.metadata?.blockid_user_id;
+    const projectId = session.metadata?.project_id ?? null;
+    if (!userId) {
+      console.warn(
+        "[blockid:stripe] founder_package session missing blockid_user_id",
+        { session_id: session.id },
+      );
+      return;
+    }
+
+    // (a) Grant the 25 seed credits. Non-fatal: an already-granted transaction
+    //     surfaces as ok:false and we still proceed to insert the purchase
+    //     row so the founder's account state remains consistent.
+    const seedCredits = 25;
+    try {
+      await grantCredits(userId, seedCredits, "package_seed", {
+        plan: "founder_package",
+        session_id: session.id,
+        stripe_event_id: event.id,
+      });
+    } catch (err) {
+      console.warn(
+        "[blockid:stripe] founder_package grantCredits failed",
+        err,
+      );
+    }
+
+    // (b) Insert purchase row. UNIQUE(stripe_session_id) makes this idempotent.
+    if (projectId) {
+      try {
+        const { insertPurchase } = await import(
+          "@/lib/startup-package/repo"
+        );
+        await insertPurchase({
+          user_id: userId,
+          project_id: projectId,
+          stripe_session_id: session.id,
+          stripe_price_id:
+            session.line_items?.data?.[0]?.price?.id ?? null,
+          seed_credits: seedCredits,
+        });
+      } catch (err) {
+        console.warn(
+          "[blockid:stripe] founder_package insertPurchase failed",
+          err,
+        );
+      }
+
+      // (c) Seed the Day-0 dataroom templates against the founder's project.
+      try {
+        const email = session.customer_email ?? session.metadata?.blockid_email;
+        if (email) {
+          const { seedDataroomTemplates } = await import(
+            "@/lib/dataroom/seed-templates"
+          );
+          const result = await seedDataroomTemplates({
+            projectId,
+            userId,
+            email: email.toLowerCase().trim(),
+          });
+          if (!result.ok || result.failed.length > 0) {
+            console.warn(
+              "[blockid:stripe] founder_package dataroom seed partial",
+              { failed: result.failed, uploaded: result.uploaded },
+            );
+          }
+        }
+      } catch (err) {
+        console.warn(
+          "[blockid:stripe] founder_package seedDataroomTemplates failed",
+          err,
+        );
+      }
+
+      // (d) Stamp package_purchased_at on the project so downstream UIs
+      //     (weekly digest, dashboard) can gate off a single boolean.
+      const { error: projErr } = await supabase
+        .from("projects")
+        .update({ package_purchased_at: new Date().toISOString() })
+        .eq("id", projectId)
+        .eq("user_id", userId);
+      if (projErr) {
+        console.warn(
+          "[blockid:stripe] founder_package projects.update failed",
+          projErr,
+        );
+      }
+    }
+
+    // Revenue analytics — same shape as credit-pack path so the CFO reports
+    // aggregate one-off SKUs together.
+    await recordRevenueEvent({
+      userId,
+      planId: "founder_package",
+      stripeEventId: event.id,
+      grossCents: session.amount_total ?? 0,
+      currency: session.currency ?? "aud",
+      kind: "startup_package",
+      detail: { session_id: session.id, project_id: projectId },
+    });
   }
 
   // -------------------------------------------------------------------------
