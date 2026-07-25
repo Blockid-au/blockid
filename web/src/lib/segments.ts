@@ -103,7 +103,8 @@ export function planTierRank(t: PlanTier): number {
 
 // Map a raw plan id (legacy or v2) to a PlanTier. Returns null when the id is
 // not recognised so the caller can treat it as the lowest tier.
-const PLAN_ID_TO_TIER: Record<string, PlanTier> = {
+// Exported so the tier-ladder test can assert legacy IDs still resolve.
+export const PLAN_ID_TO_TIER: Record<string, PlanTier> = {
   // Legacy pre-v2 SKUs
   free: "free",
   founding50: "starter",
