@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400" role="img" aria-label="Onboarding goal form mock">
+  <rect width="640" height="400" fill="#0F1B47"/>
+  <rect x="20" y="20" width="600" height="360" rx="12" fill="#131938" stroke="#22326B"/>
+  <text x="40" y="60" font-family="Inter,sans-serif" font-size="20" font-weight="600" fill="#F8FAFC">What is your goal?</text>
+  <text x="40" y="86" font-family="Inter,sans-serif" font-size="13" fill="#94A3B8">Pick a phase — we tailor the checklist.</text>
+  <g font-family="Inter,sans-serif" font-size="14" fill="#F8FAFC">
+    <rect x="40" y="110" width="560" height="50" rx="10" fill="#1B2A5E" stroke="#38BDF8"/>
+    <circle cx="70" cy="135" r="10" fill="none" stroke="#38BDF8" stroke-width="3"/>
+    <circle cx="70" cy="135" r="5" fill="#38BDF8"/>
+    <text x="95" y="140">Idea validation</text>
+    <rect x="40" y="175" width="560" height="50" rx="10" fill="#1B2A5E"/>
+    <circle cx="70" cy="200" r="10" fill="none" stroke="#94A3B8" stroke-width="2"/>
+    <text x="95" y="205">Product-market fit</text>
+    <rect x="40" y="240" width="560" height="50" rx="10" fill="#1B2A5E"/>
+    <circle cx="70" cy="265" r="10" fill="none" stroke="#94A3B8" stroke-width="2"/>
+    <text x="95" y="270">Ready to raise</text>
+    <rect x="40" y="310" width="180" height="44" rx="10" fill="#38BDF8"/>
+    <text x="130" y="338" text-anchor="middle" font-weight="600" fill="#0F1B47">Continue</text>
+  </g>
+</svg>
