@@ -234,6 +234,11 @@ import {
   type DigestSnapshotPerMetricPctChangeStreakLengthHistogram,
 } from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-length-histogram";
 import {
+  computeDigestSnapshotPerMetricPctChangeStreakLengthPercentiles,
+  formatDigestSnapshotPerMetricPctChangeStreakLengthPercentilesSection,
+  type DigestSnapshotPerMetricPctChangeStreakLengthPercentiles,
+} from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-length-percentiles";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1547,6 +1552,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricPctChangeStreakLengthHistogram
     | null = null;
   let perMetricPctChangeStreakLengthHistogramSection = "";
+  let snapshotPerMetricPctChangeStreakLengthPercentiles:
+    | DigestSnapshotPerMetricPctChangeStreakLengthPercentiles
+    | null = null;
+  let perMetricPctChangeStreakLengthPercentilesSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2481,6 +2490,46 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerMetricPctChangeStreakLengthHistogramSection(
         snapshotPerMetricPctChangeStreakLengthHistogram,
       );
+    // P11.100 — per-metric sustained-|pct|-material streak length percentile
+    // summary (module P11.99). Per-metric analogue of the P11.91 portfolio and
+    // P11.95 per-partner |pct|-material scalar reductions AND magnitude-axis
+    // analogue of the P11.97/P11.98 per-metric direction percentile summary
+    // wired above, closing the percentile-summary family's last empty leaf —
+    // the per-metric axis on the magnitude side — so ops reading the P11.87/
+    // P11.88 per-metric histogram section can immediately grep a scalar
+    // p50/p90/mean/max reduction of that same distribution one row per KPI
+    // rather than visually collapsing each histogram to answer the same
+    // question. Consumes the SAME snapshotPerResellerRollingTrend the P11.51
+    // detector, the P11.71 per-metric leaderboard, the P11.87 per-metric
+    // histogram, and the P11.91/P11.95 portfolio + per-partner percentile
+    // siblings already consume (no extra fold, no divergence risk vs. the
+    // per-metric distribution it summarises for a given window). Threshold
+    // passthrough matches P11.79/P11.83/P11.87/P11.91/P11.95 on the magnitude
+    // axis so JSONL consumers can distinguish "churn p50 shifted from 2 to 3
+    // at the SAME 25% threshold" (real per-KPI shape change) from "churn p50
+    // shifted because the threshold widened to 40%" (apparent shift due to a
+    // wider amber band). Section splices IMMEDIATELY BELOW
+    // perMetricPctChangeStreakLengthHistogramSection (P11.87/P11.88 per-metric
+    // magnitude histogram) and ABOVE perResellerPctChangeStreakLeaderboardSection
+    // (P11.75/P11.76 per-partner leaderboard) per the P11.99 formatter docblock
+    // placement rule so ops walks per-metric coverage (P11.63) → per-metric
+    // top-N leaderboard (P11.71) → per-metric shape-of-persistence tail
+    // (P11.87) → per-metric scalar p50/p90 summary (this section, new) →
+    // per-partner coverage (P11.55) → per-partner top-N (P11.75) → per-partner
+    // length histogram (P11.83) → per-partner scalar p50/p90 summary (P11.95)
+    // → per-(metric × partner) spotlight (P11.51), grouping every per-metric
+    // magnitude surface together before jumping to per-partner magnitude
+    // surfaces. Extends the P11.91/P11.92 portfolio-grain magnitude placement
+    // one grain down and mirrors the P11.97/P11.98 direction-side per-metric
+    // placement one axis over.
+    snapshotPerMetricPctChangeStreakLengthPercentiles =
+      computeDigestSnapshotPerMetricPctChangeStreakLengthPercentiles(
+        snapshotPerResellerRollingTrend,
+      );
+    perMetricPctChangeStreakLengthPercentilesSection =
+      formatDigestSnapshotPerMetricPctChangeStreakLengthPercentilesSection(
+        snapshotPerMetricPctChangeStreakLengthPercentiles,
+      );
   }
   if (
     topMoversSection ||
@@ -2512,7 +2561,8 @@ export async function GET(req: Request) {
     perResellerPctChangeStreaksSection ||
     perMetricDirectionStreakLengthHistogramSection ||
     perMetricDirectionStreakLengthPercentilesSection ||
-    perMetricPctChangeStreakLengthHistogramSection
+    perMetricPctChangeStreakLengthHistogramSection ||
+    perMetricPctChangeStreakLengthPercentilesSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -2557,6 +2607,7 @@ export async function GET(req: Request) {
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLengthHistogramSection +
+      perMetricPctChangeStreakLengthPercentilesSection +
       perResellerPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreakLengthPercentilesSection +
@@ -3494,6 +3545,26 @@ export async function GET(req: Request) {
               snapshotPerMetricPctChangeStreakLengthHistogram.threshold,
             groups:
               snapshotPerMetricPctChangeStreakLengthHistogram.groups,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_pct_change_streak_length_percentiles:
+      snapshotPerMetricPctChangeStreakLengthPercentiles
+        ? {
+            window_size:
+              snapshotPerMetricPctChangeStreakLengthPercentiles.window_size,
+            first_week:
+              snapshotPerMetricPctChangeStreakLengthPercentiles.first_week,
+            last_week:
+              snapshotPerMetricPctChangeStreakLengthPercentiles.last_week,
+            min_streak_length:
+              snapshotPerMetricPctChangeStreakLengthPercentiles.min_streak_length,
+            threshold:
+              snapshotPerMetricPctChangeStreakLengthPercentiles.threshold,
+            groups:
+              snapshotPerMetricPctChangeStreakLengthPercentiles.groups,
           }
         : {
             skipped_reason:
