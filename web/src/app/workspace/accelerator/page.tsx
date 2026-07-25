@@ -19,6 +19,7 @@ import {
   type ApplicantRow,
 } from "@/lib/accelerator-portal";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { RoleLandingIntro } from "@/components/role/role-landing-intro";
 
 export const metadata: Metadata = {
   title: "Accelerator Workspace — BlockID",
@@ -57,6 +58,7 @@ export default async function AcceleratorWorkspacePage() {
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <FeatureGate feature={COHORT_FEATURE} label="Accelerator cohort workspace">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+          <RoleLandingIntro role="accelerator" hasGlobalSpotlight />
           <header>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-bold text-ink-900">Accelerator Workspace</h1>

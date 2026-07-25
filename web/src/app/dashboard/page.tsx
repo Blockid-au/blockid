@@ -22,6 +22,7 @@ import { getBalance } from "@/lib/credits";
 import { getProjectIdFromRequest, getActiveProject, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { RoleLandingIntro } from "@/components/role/role-landing-intro";
 import { JourneyBar } from "@/components/dashboard/journey-bar";
 import { JourneyStepLadder } from "@/components/dashboard/journey-step-ladder";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
@@ -690,6 +691,9 @@ export default async function DashboardPage({
       <PageTracker page="dashboard" />
 
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
+        {/* ── Role hero + guided tour launcher (role-based-2026-07-25) ──── */}
+        <RoleLandingIntro role="founder" variant="compact" hasGlobalSpotlight />
+
         {/* ── Banners ───────────────────────────────────────────────────────── */}
         {sp.checkout === "success" && (
           <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
