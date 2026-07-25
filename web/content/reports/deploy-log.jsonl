@@ -1688,3 +1688,4 @@
 {"ts":"2026-07-25T04:07:24Z","status":"success","gates":"9/9","pid":"3218643","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-25T04:13:48.629Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P5-tax-invoice-checker-ui-e2e): Playwright spec for /workspace/tax-invoice-checker wizard (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T04:13:57.837Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T04-07-01-476Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T04:14:50.422Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.96-per-reseller-pct-change-streak-length-percentiles-cron-wiring): splice per-partner |pct|-material p50/p90/mean/max section below P11.84 histogram + envelope with threshold passthrough (1 commits)","source":"github-webhook"}
