@@ -830,3 +830,6 @@
 {"tick_id":"2026-07-25T07-17-02-037Z","ts":"2026-07-25T07:26:09.820Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"28f23425","last_deployed":"1c09b17"}
 {"tick_id":"2026-07-25T07-17-02-037Z","ts":"2026-07-25T07:32:42.585Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"28f23425"}
 {"tick_id":"2026-07-25T07-17-02-037Z","ts":"2026-07-25T07:32:42.587Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-25T07-37-01-472Z","ts":"2026-07-25T07:37:01.473Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-25T07-37-01-472Z","ts":"2026-07-25T07:37:01.479Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T07-46-57-000Z-atlassian-P1n-esic-form-ui-e2e","ts":"2026-07-25T07:46:57.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1n-esic-form-ui-e2e","summary":"Playwright spec for EsicAssessmentClient at web/tests/e2e/compliance/esic-form.spec.ts — eligible → red 1990 branch matrix; brings ESIC to Playwright form-submit parity with WGEA + Modern Slavery + GST + s708; typecheck green; --list discovers 1 test."}
