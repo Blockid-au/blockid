@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-25.537
+version: 2026-07-25.538
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -471,6 +471,9 @@ tracks:
           gst_reconciliation_delta, cohort_velocity, ltv_cac_per_reseller
         ]
         sub_phases:
+          P11.144_per_transition_hot_cells_drilldown_cron_wiring: {status: done, tick: 538, completed_at: 2026-07-25, files: [
+            "web/src/app/api/cron/reseller-weekly-digest/route.ts (import triple {compute,format,DigestSnapshotPerTransitionHotCellsDrilldown} beside the P11.143 pure-lib module; state vars snapshotPerTransitionHotCellsDrilldown + perTransitionHotCellsDrilldownSection alongside the P11.142 summary state pair; compute+format IMMEDIATELY AFTER the P11.142 summary wiring inside the SAME snapshotPerResellerMetricPersistenceScorecardVerdictTransition truthiness guard that already gates P11.136 + P11.138 + P11.140 + P11.142 so a missing pair-level transition envelope leaves all five surfaces unset with five no-envelope entries; consumes snapshotPerPairHotCells directly rather than re-walking snapshotPerResellerMetricPersistenceScorecardVerdictTransition — mirrors the P11.142 summary + P11.20 readSectionTotal reuse pattern where the drill-down is a partition over the fold guaranteeing the per-transition partition can never diverge from the granular table it partitions; HTML splice IMMEDIATELY BELOW perPairHotCellsSummarySection AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.143 formatter docblock placement rule — hierarchy descends per-metric ranking (P11.137) → per-pair hot-cells SUMMARY (P11.141) → per-transition DRILL-DOWN (P11.143) → per-pair hot-cells GRANULAR (P11.139) → per-pair scalar distribution (P11.130) so ops reads the blended executive-summary lead first, then the per-transition drill-down to spot urgent-but-quieter buckets, then the granular table for the specific cells behind each bucket; hoist-condition includes perTransitionHotCellsDrilldownSection; response envelope entry snapshot_per_transition_hot_cells_drilldown landed IMMEDIATELY AFTER snapshot_per_pair_hot_cells_summary and IMMEDIATELY BEFORE snapshot_per_pair_hot_cells so the three per-pair-hot-cells envelope entries (blended scalar → per-transition drill-down → granular rows) stay adjacent and hierarchically ordered in the JSONL response body per the P11.143 module docblock envelope-adjacency rule; envelope carries the full fixed-key buckets shape {improved, degraded, rotated, undecidable} regardless of formatter suppression since the P11.143 module always ships all four keys with zero scalars + null winners for absent transitions — the granular per-cell rows continue to live on the sibling snapshot_per_pair_hot_cells entry and the blended winners on snapshot_per_pair_hot_cells_summary)"
+          ], note: "Closes the P11.143 → P11.144 pure-lib → cron-wiring cadence exactly as P11.135 → P11.136, P11.137 → P11.138, P11.139 → P11.140, and P11.141 → P11.142 did before. The Monday admin@blockid.au email now carries the PER-TRANSITION DRILL-DOWN complement IMMEDIATELY BELOW the P11.142 blended scalar summary and IMMEDIATELY ABOVE the P11.140 granular per-pair hot-cells table so ops sees an urgent-but-quieter degradation-bucket winner alongside the improvement-bucket winner rather than getting blended away by the P11.141 top_partner + top_metric picks — the ops case the P11.141 note flagged as the drill-down's raison d'être. Guard: same snapshotPerResellerMetricPersistenceScorecardVerdictTransition truthiness that gates P11.136 + P11.138 + P11.140 + P11.142, so week-1 (no previous snapshot) + window_size<3 + zero-hot-cells all suppress all five surfaces together — nothing appears half-rendered. Envelope entry always ships regardless of formatter suppression (matches the P11.136/P11.138/P11.140/P11.142 envelope-vs-formatter split) so a JSONL consumer never sees a truncated set — the buckets object always ships all four keys {improved, degraded, rotated, undecidable} per the P11.143 module envelope-adjacency rule, so a JSONL consumer joining buckets by transition key across ticks always finds the complete set even in weeks where only one transition fires. Hierarchy in the email now reads: pair-rows table (P11.124) → per-partner cross-metric ranking (P11.135/P11.136) → per-metric cross-partner ranking (P11.137/P11.138) → per-pair hot-cells SUMMARY (P11.141/P11.142) → per-transition DRILL-DOWN (P11.143/P11.144) → per-pair hot-cells GRANULAR (P11.139/P11.140) → per-pair scalar distribution (P11.129/P11.130) — the DRILL-DOWN sits BETWEEN the SUMMARY and the GRANULAR so ops reads the executive-summary lead first, then the per-transition drill-down to spot the urgent-but-quieter cluster, then the granular table for the specific cells. Verified: npx tsc --noEmit clean; npx vitest run src/lib/reseller/digest-snapshot-per-transition-hot-cells-drilldown.test.ts → 24/24 (unchanged from P11.143 tick 537 — cron-wiring adds no new lib tests, matching the P11.106/.../P11.142 posture where the pure-lib + envelope-shape invariants live in the module's own test file); npm run lint:reseller posture unchanged (11 R-01 + 41 R-03 + 8 R-04 + 11 R-10 scanned; pre-existing R-03 violations on api/mentor/{notes,check-ins,access-request}/route.ts + api/startup-package/{save-answer,analyze,deliverable,reservation}/route.ts predate this tick per the P11.108→P11.142 note chain — mentor + startup-package routes not on reseller scorecard critical path). Next surfaces: (a) fresh detector-family surface (slope / regression / delta-velocity), or (b) cross-cut ranking correlation module that folds the two cross-cut rankings (P11.135/P11.136 per-partner + P11.137/P11.138 per-metric) into a single (partner, KPI) heat-map hot-cell list, or (c) per-transition scalar summary bucketing hot cells by delta-magnitude within each transition for a further drill-down inside each P11.143 bucket."}
           P11.143_per_transition_hot_cells_drilldown_pure_lib: {status: done, tick: 537, completed_at: 2026-07-25, files: [
             "web/src/lib/reseller/digest-snapshot-per-transition-hot-cells-drilldown.ts (compute + format + fixed-key buckets {improved,degraded,rotated,undecidable} + PerTransitionBucket / PerTransitionBucketTopPartner / PerTransitionBucketTopMetric types; partitions the P11.139 per-pair hot-cells list BY transition and picks a per-bucket top-partner + top-KPI winner PER bucket; each bucket carries {cells, sum_hot_score, max_hot_score, top_partner|null, top_metric|null}; buckets object always ships all four fixed keys regardless of which transitions actually appear this week so a JSONL consumer joining bucket entries by transition key across ticks always finds the complete set; empty buckets carry zero scalars + null winners rather than being omitted; per-bucket top_partner tie-break cells DESC → sum_hot_score DESC → reseller_code ASC; per-bucket top_metric tie-break cells DESC → sum_hot_score DESC → key ASC; top_metric carries metric_name through from the first row for that key; total_hot_cells envelope scalar mirrors P11.141 for drilldown/summary parity — drilldown.total_hot_cells always equals summary.total_hot_cells since both consume the same P11.139 envelope; formatter suppresses on window_size<3 OR total_hot_cells===0; visual table omits empty buckets but envelope keeps all four)",
             "web/src/lib/reseller/digest-snapshot-per-transition-hot-cells-drilldown.test.ts (24 cases: envelope passthrough 2 [scalar carry + null week-label survival], bucket shape stability 3 [empty→zero+null all four + always-4-keys + per-bucket-zero-when-absent], bucket scalar aggregation 2 [partition + drilldown/summary parity], top_partner tie-break 5 [cells wins + sum tie-break + identity tie-break + max_hot_score reflects loudest single cell in bucket + winners scoped per bucket], top_metric tie-break 4 [cells+metric_name carry + sum tie-break + key ASC + deterministic re-run], formatter suppression 3 [window<3 empty + zero cells empty + non-empty renders], formatter content 5 [caption weeks/threshold/sustained + omit-empty-visual-but-keep-envelope + per-bucket cells/sum/max + HTML escape on reseller_code/metric_name/week label + transition arrows quartet])"
@@ -1232,6 +1235,92 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 538
+    ran_at: 2026-07-25
+    action: p11_144_per_transition_hot_cells_drilldown_cron_wiring
+    result: |
+      Cron-route wiring for P11.143 — takes the per-transition hot-cells
+      drill-down module out of the pure-lib freezer and plants it in the
+      hot Monday cron path. Follows the P11.115→P11.116 / P11.117→P11.118 /
+      P11.119→P11.120 / P11.121→P11.122 / P11.123→P11.124 / P11.125→P11.126 /
+      P11.127→P11.128 / P11.129→P11.130 / P11.131→P11.132 / P11.133→P11.134 /
+      P11.135→P11.136 / P11.137→P11.138 / P11.139→P11.140 / P11.141→P11.142
+      cadence exactly: previous pure-lib tick lands the derivation + test
+      coverage; this tick threads it into the response body + splice order +
+      envelope + hoist condition without disturbing any other section.
+
+      Splice order at the per-pair block now reads:
+        perResellerMetricPersistenceScorecardVerdictTransitionSection
+        + perResellerCrossMetricAlertsSection
+        + perMetricCrossPartnerAlertsSection
+        + perPairHotCellsSummarySection
+        + perTransitionHotCellsDrilldownSection  ← this tick
+        + perPairHotCellsSection
+        + perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection
+
+      Splice placement rule: IMMEDIATELY BELOW perPairHotCellsSummarySection
+      AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.143 formatter
+      docblock — the drill-down sits BETWEEN the SUMMARY and the GRANULAR so
+      the hierarchy descends per-metric ranking (P11.137) → per-pair hot-
+      cells SUMMARY (P11.141) → per-transition DRILL-DOWN (P11.143) → per-
+      pair hot-cells GRANULAR (P11.139) → per-pair scalar distribution
+      (P11.130): ops reads the blended executive-summary lead first, then
+      the per-transition drill-down to spot urgent-but-quieter buckets
+      (a small degradation cluster on a single partner+KPI that would
+      otherwise get blended away by P11.141 top_partner/top_metric which
+      almost certainly reflects the dominant-transition winners), then the
+      granular table for the specific cells behind each bucket.
+
+      Guard: SAME snapshotPerResellerMetricPersistenceScorecardVerdictTransition
+      truthiness that P11.136 + P11.138 + P11.140 + P11.142 use, so week-1
+      (no previous snapshot) + window_size<3 + zero-hot-cells all suppress
+      all five surfaces together — nothing appears half-rendered.
+
+      Compute consumes snapshotPerPairHotCells directly rather than re-
+      walking the per-pair verdict-transition envelope — mirrors the P11.142
+      summary reuse pattern where the drill-down is a partition over the
+      granular fold, guaranteeing per-transition partition can never diverge
+      from the granular table it partitions.
+
+      Envelope entry snapshot_per_transition_hot_cells_drilldown landed
+      IMMEDIATELY AFTER snapshot_per_pair_hot_cells_summary and IMMEDIATELY
+      BEFORE snapshot_per_pair_hot_cells so the three per-pair-hot-cells
+      envelope entries (blended scalar → per-transition drill-down →
+      granular rows) stay adjacent and hierarchically ordered per the
+      P11.143 module docblock envelope-adjacency rule. Envelope carries the
+      full fixed-key buckets shape {improved, degraded, rotated,
+      undecidable} regardless of formatter suppression since the P11.143
+      module always ships all four keys with zero scalars + null winners
+      for absent transitions — a JSONL consumer joining buckets by
+      transition key across ticks always finds the complete set.
+
+      Verification:
+        - `cd web && npx tsc --noEmit`: exit 0 (whole tree clean).
+        - `cd web && npx vitest run src/lib/reseller/digest-snapshot-per-
+          transition-hot-cells-drilldown.test.ts` → 24/24 (unchanged from
+          P11.143 tick 537 — cron-wiring adds no new lib tests, matching
+          the P11.106/.../P11.142 posture where the pure-lib + envelope-
+          shape invariants live in the module's own test file).
+        - `cd web && npm run lint:reseller`: posture unchanged (11 R-01 +
+          41 R-03 + 8 R-04 + 11 R-10 scanned; pre-existing R-03 violations
+          on api/mentor/{notes,check-ins,access-request}/route.ts + api/
+          startup-package/{save-answer,analyze,deliverable,reservation}/
+          route.ts predate this tick per the P11.108→P11.142 note chain
+          — mentor + startup-package routes not on reseller scorecard
+          critical path).
+
+      Frontier after tick 538: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Next surfaces: (a) fresh detector-family surface (slope / regression /
+      delta-velocity), or (b) cross-cut ranking correlation module folding
+      the two cross-cut rankings into a single (partner, KPI) heat-map
+      hot-cell list, or (c) per-transition scalar summary bucketing hot
+      cells by delta-magnitude within each transition for a further drill-
+      down inside each P11.143 bucket.
+    commit: (this tick)
+
   - tick: 385
     ran_at: 2026-07-24
     action: p10_reseller_attributions_row_cluster_cross_column_invariant_summary_twin_lift_onto_credit_grant_authz

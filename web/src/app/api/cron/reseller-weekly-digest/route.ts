@@ -348,6 +348,11 @@ import {
   type DigestSnapshotPerPairHotCellsSummary,
 } from "@/lib/reseller/digest-snapshot-per-pair-hot-cells-summary";
 import {
+  computeDigestSnapshotPerTransitionHotCellsDrilldown,
+  formatDigestSnapshotPerTransitionHotCellsDrilldownSection,
+  type DigestSnapshotPerTransitionHotCellsDrilldown,
+} from "@/lib/reseller/digest-snapshot-per-transition-hot-cells-drilldown";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1746,6 +1751,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerPairHotCellsSummary
     | null = null;
   let perPairHotCellsSummarySection = "";
+  let snapshotPerTransitionHotCellsDrilldown:
+    | DigestSnapshotPerTransitionHotCellsDrilldown
+    | null = null;
+  let perTransitionHotCellsDrilldownSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3603,6 +3612,28 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerPairHotCellsSummarySection(
           snapshotPerPairHotCellsSummary,
         );
+      // P11.144 — per-transition hot-cells DRILL-DOWN (module P11.143).
+      // Partitions the P11.139 per-pair hot-cells list BY transition and picks
+      // a per-bucket top-partner + top-KPI winner PER bucket so the urgent-
+      // but-quieter degradation cluster surfaces alongside the improvement
+      // cluster rather than getting buried inside the P11.141 blended scalar
+      // summary. Splices IMMEDIATELY BELOW perPairHotCellsSummarySection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.143 formatter
+      // docblock placement rule so the hierarchy descends per-metric ranking
+      // (P11.137) → per-pair hot-cells SUMMARY (P11.141) → per-transition
+      // DRILL-DOWN (P11.143) → per-pair hot-cells GRANULAR (P11.139) → per-
+      // pair scalar distribution (P11.130): ops reads the blended executive-
+      // summary lead first, then the per-transition drill-down to spot
+      // urgent-but-quieter buckets, then the granular table for the specific
+      // cells behind each bucket.
+      snapshotPerTransitionHotCellsDrilldown =
+        computeDigestSnapshotPerTransitionHotCellsDrilldown(
+          snapshotPerPairHotCells,
+        );
+      perTransitionHotCellsDrilldownSection =
+        formatDigestSnapshotPerTransitionHotCellsDrilldownSection(
+          snapshotPerTransitionHotCellsDrilldown,
+        );
     }
   }
   if (
@@ -3649,6 +3680,7 @@ export async function GET(req: Request) {
     perResellerCrossMetricAlertsSection ||
     perMetricCrossPartnerAlertsSection ||
     perPairHotCellsSummarySection ||
+    perTransitionHotCellsDrilldownSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -3722,6 +3754,7 @@ export async function GET(req: Request) {
       perResellerCrossMetricAlertsSection +
       perMetricCrossPartnerAlertsSection +
       perPairHotCellsSummarySection +
+      perTransitionHotCellsDrilldownSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -4895,6 +4928,23 @@ export async function GET(req: Request) {
       : {
           skipped_reason: previousSnapshotSkipReason ?? "no_previous_snapshot",
         },
+    snapshot_per_transition_hot_cells_drilldown:
+      snapshotPerTransitionHotCellsDrilldown
+        ? {
+            window_size: snapshotPerTransitionHotCellsDrilldown.window_size,
+            first_week: snapshotPerTransitionHotCellsDrilldown.first_week,
+            last_week: snapshotPerTransitionHotCellsDrilldown.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionHotCellsDrilldown.sustained_p90_threshold,
+            threshold: snapshotPerTransitionHotCellsDrilldown.threshold,
+            total_hot_cells:
+              snapshotPerTransitionHotCellsDrilldown.total_hot_cells,
+            buckets: snapshotPerTransitionHotCellsDrilldown.buckets,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     snapshot_per_pair_hot_cells: snapshotPerPairHotCells
       ? {
           window_size: snapshotPerPairHotCells.window_size,
