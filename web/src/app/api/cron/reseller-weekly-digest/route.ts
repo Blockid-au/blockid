@@ -174,6 +174,11 @@ import {
   type DigestSnapshotPerResellerDirectionStreakLeaderboard,
 } from "@/lib/reseller/digest-snapshot-per-reseller-direction-streak-leaderboard";
 import {
+  computeDigestSnapshotPerResellerPctChangeStreakLeaderboard,
+  formatDigestSnapshotPerResellerPctChangeStreakLeaderboardSection,
+  type DigestSnapshotPerResellerPctChangeStreakLeaderboard,
+} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-leaderboard";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1439,6 +1444,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerDirectionStreakLeaderboard
     | null = null;
   let perResellerDirectionStreakLeaderboardSection = "";
+  let snapshotPerResellerPctChangeStreakLeaderboard:
+    | DigestSnapshotPerResellerPctChangeStreakLeaderboard
+    | null = null;
+  let perResellerPctChangeStreakLeaderboardSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2017,6 +2026,41 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerDirectionStreakLeaderboardSection(
         snapshotPerResellerDirectionStreakLeaderboard,
       );
+    // P11.76 — per-partner top-of-fold sustained-|pct|-material streak
+    // leaderboards (module P11.75). |pct|-magnitude analogue of the P11.74
+    // per-partner direction leaderboards, and per-partner analogue of the
+    // P11.72 per-metric |pct|-material leaderboards: instead of one length-
+    // sorted top-N pool per KPI, this renders an independent top-N ranking
+    // PER partner so a small partner leading on their own churn volatility
+    // ranks #1 on their own book even if their MRR magnitude wouldn't crack
+    // the flat matrix leaderboard (P11.68) or the per-metric strip (P11.72).
+    // Delegates to computeDigestSnapshotPerResellerPctChangeStreaks through
+    // the pure lib so leaderboard entries cannot diverge from the P11.52
+    // spotlight rows they summarise — an entry ranked #1 in a partner group
+    // here appears in the P11.52 table below with matching length /
+    // max_abs_pct / min_abs_pct / cumulative_abs_pct. Consumes the SAME
+    // snapshotPerResellerRollingTrend the P11.51 detector and the P11.68 /
+    // P11.72 leaderboards already consume (no extra fold, no divergence risk
+    // vs. the spotlight rows this per-partner leaderboard tops). Lands
+    // directly BETWEEN the P11.72 per-metric |pct|-material leaderboard
+    // (perMetricPctChangeStreakLeaderboardSection) and the
+    // perResellerPctChangeStreaksSection (P11.52) so ops reads matrix top-N
+    // → per-KPI top-N → per-partner top-N (equal footing across partners) →
+    // full per-(metric × partner) drill-down. Closes the leaderboard
+    // family's per-partner axis on the |pct|-magnitude axis symmetric with
+    // the P11.74 per-partner direction leaderboard and mirrors the coverage
+    // family's per-reseller split at P11.55. Per-group total_qualified is
+    // carried on the envelope so a "Top 3 of 8 KPIs for ACME" caption tells
+    // ops how much detail lives in the P11.52 spotlight below for that
+    // partner specifically.
+    snapshotPerResellerPctChangeStreakLeaderboard =
+      computeDigestSnapshotPerResellerPctChangeStreakLeaderboard(
+        snapshotPerResellerRollingTrend,
+      );
+    perResellerPctChangeStreakLeaderboardSection =
+      formatDigestSnapshotPerResellerPctChangeStreakLeaderboardSection(
+        snapshotPerResellerPctChangeStreakLeaderboard,
+      );
   }
   if (
     topMoversSection ||
@@ -2036,6 +2080,7 @@ export async function GET(req: Request) {
     perResellerPctChangeStreakCoverageSection ||
     pctChangeStreakLeaderboardSection ||
     perMetricPctChangeStreakLeaderboardSection ||
+    perResellerPctChangeStreakLeaderboardSection ||
     perResellerPctChangeStreaksSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
@@ -2072,6 +2117,7 @@ export async function GET(req: Request) {
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
+      perResellerPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -2755,6 +2801,27 @@ export async function GET(req: Request) {
             top_n_per_reseller:
               snapshotPerResellerDirectionStreakLeaderboard.top_n_per_reseller,
             groups: snapshotPerResellerDirectionStreakLeaderboard.groups,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_pct_change_streak_leaderboard:
+      snapshotPerResellerPctChangeStreakLeaderboard
+        ? {
+            window_size:
+              snapshotPerResellerPctChangeStreakLeaderboard.window_size,
+            first_week:
+              snapshotPerResellerPctChangeStreakLeaderboard.first_week,
+            last_week:
+              snapshotPerResellerPctChangeStreakLeaderboard.last_week,
+            min_streak_length:
+              snapshotPerResellerPctChangeStreakLeaderboard.min_streak_length,
+            threshold:
+              snapshotPerResellerPctChangeStreakLeaderboard.threshold,
+            top_n_per_reseller:
+              snapshotPerResellerPctChangeStreakLeaderboard.top_n_per_reseller,
+            groups: snapshotPerResellerPctChangeStreakLeaderboard.groups,
           }
         : {
             skipped_reason:
