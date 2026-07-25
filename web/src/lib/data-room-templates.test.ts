@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { DATA_ROOM_STRUCTURE } from "./data-room-templates";
 
 /**
@@ -67,6 +69,37 @@ describe("DATA_ROOM_STRUCTURE — Series-A / acquirer parity", () => {
     const au = DATA_ROOM_STRUCTURE.find((s) => s.section === "au_compliance");
     expect(au, "AU Compliance section must exist").toBeDefined();
     expect(au!.documents.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("wires the Phase-2 LOI + Discovery Interview Log AU legal templates (goal §1 phase 2 gap)", () => {
+    // Contract: docs/plans/atlassian-standard-mapping-goal.md §1 phase 2
+    // "Missing: interview-log template ... LOI / letter-of-intent template also absent"
+    // Ship-off task P2-loi-interview-wire (2026-07-25).
+    const bySlug = allDocs.reduce<Record<string, (typeof allDocs)[number]>>(
+      (acc, doc) => {
+        if (doc.template_slug) acc[doc.template_slug] = doc;
+        return acc;
+      },
+      {},
+    );
+
+    const loi = bySlug["au-customer-loi"];
+    expect(loi, "LOI entry must be wired via template_slug").toBeDefined();
+    expect(loi!.type).toBe("template");
+
+    const interview = bySlug["au-customer-discovery-interview-log"];
+    expect(
+      interview,
+      "Interview Log entry must be wired via template_slug",
+    ).toBeDefined();
+    expect(interview!.type).toBe("template");
+
+    // Both slugs must resolve to a live file under web/content/templates/legal.
+    // process.cwd() is web/ when vitest runs.
+    for (const slug of ["au-customer-loi", "au-customer-discovery-interview-log"]) {
+      const path = join(process.cwd(), "content", "templates", "legal", `${slug}.md`);
+      expect(existsSync(path), `legal template ${slug}.md must exist`).toBe(true);
+    }
   });
 
   it("flags conservatively-worded AU regulatory items for founder review", () => {

@@ -845,6 +845,16 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
     investorImpact: "critical",
     documents: [
       {
+        name: "Customer Discovery Interview Log",
+        type: "template",
+        format: "md",
+        priority: "P1",
+        description: "Structured record of a problem-discovery interview (≥ 5 recommended before Phase 3). APP-compliant consent + storage block; safe to circulate as raise evidence.",
+        template_slug: "au-customer-discovery-interview-log",
+        dueDiligenceNotes:
+          "Investors expect ≥ 5 documented interviews at Phase 2. Use /legal-templates/au-customer-discovery-interview-log as the starting point.",
+      },
+      {
         name: "Traction Dashboard",
         type: "auto",
         priority: "P0",
@@ -1113,6 +1123,16 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
     description: "Customer contracts, supplier agreements, employment, and board arrangements",
     investorImpact: "high",
     documents: [
+      {
+        name: "Letter of Intent (Non-Binding, Customer)",
+        type: "template",
+        format: "md",
+        priority: "P1",
+        description: "Non-binding indication of buyer intent — Phase 2/3 demand evidence ahead of an executed customer contract. Ships with s18 ACL / s1041H / s769C misleading-conduct disclaimer.",
+        template_slug: "au-customer-loi",
+        dueDiligenceNotes:
+          "LOIs are indications only — never present as committed revenue in a fundraise deck. See /legal-templates/au-customer-loi.",
+      },
       {
         name: "Key Customer Contracts (Top 3 by ACV)",
         type: "upload",
