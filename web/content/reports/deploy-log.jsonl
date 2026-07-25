@@ -1789,3 +1789,4 @@
 {"ts":"2026-07-25T09:08:56.472Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P1k-page-e2e): Playwright spec for /compliance/calendar founder page (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T09:09:07.556Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T08-57-01-202Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T09:10:46Z","status":"success","gates":"9/9","pid":"93602","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-25T09:20:10.921Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.120-per-reseller-metric-persistence-scorecard-cron-wiring): wire finest-grain scorecard into reseller-weekly-digest cron (1 commits)","source":"github-webhook"}
