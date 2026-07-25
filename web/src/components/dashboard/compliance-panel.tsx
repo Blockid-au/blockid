@@ -13,6 +13,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { TaxInvoiceHistoryTile } from "./tax-invoice-history-tile";
 
 interface EsicPayload {
   ok: boolean;
@@ -445,6 +446,7 @@ function CompliancePanelInner() {
         <RdTile data={state.rd} />
         <WgeaTile data={state.wgea} />
         <ModernSlaveryTile data={state.modernSlavery} />
+        <TaxInvoiceHistoryTile />
       </div>
     </section>
   );

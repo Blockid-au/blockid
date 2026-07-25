@@ -92,20 +92,30 @@ export async function GET() {
   }
 
   const project = await getActiveProject(user.id);
-  const { data } = await supabase
-    .from("compliance_tax_invoice_checks")
-    .select(
-      "input_json, result_json, ok, band, gst_inclusive_total_aud, computed_gst_component_aud, missing_field_count, warning_count, computed_at",
-    )
-    .eq("user_id", user.id)
-    .eq("project_id", project?.id ?? null)
-    .order("computed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const projectId = project?.id ?? null;
+
+  const [latest, countQuery] = await Promise.all([
+    supabase
+      .from("compliance_tax_invoice_checks")
+      .select(
+        "input_json, result_json, ok, band, gst_inclusive_total_aud, computed_gst_component_aud, missing_field_count, warning_count, computed_at",
+      )
+      .eq("user_id", user.id)
+      .eq("project_id", projectId)
+      .order("computed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("compliance_tax_invoice_checks")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("project_id", projectId),
+  ]);
 
   return NextResponse.json({
     ok: true,
-    result: data ?? null,
+    result: latest.data ?? null,
+    total: countQuery.count ?? 0,
     disclaimer: TAX_INVOICE_DISCLAIMER,
   });
 }

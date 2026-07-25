@@ -632,3 +632,6 @@
 {"tick_id":"2026-07-25T01-07-02-028Z","ts":"2026-07-25T01:13:19.655Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"a08ee78c","last_deployed":"4997457"}
 {"tick_id":"2026-07-25T01-07-02-028Z","ts":"2026-07-25T01:21:30.327Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"a08ee78c"}
 {"tick_id":"2026-07-25T01-07-02-028Z","ts":"2026-07-25T01:21:30.329Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-25T01-27-01-369Z","ts":"2026-07-25T01:27:01.369Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-25T01-27-01-369Z","ts":"2026-07-25T01:27:01.383Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T01-27-01-369Z","ts":"2026-07-25T01:35:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5-tax-invoice-checker-tile","summary":"Read-only compliance-panel tile consuming GET /api/compliance/tax-invoice-check; renders saved count + latest-band chip; deep-links to /workspace/tax-invoice-checker","files_changed":5,"tests_added":19,"tests_green":143}
