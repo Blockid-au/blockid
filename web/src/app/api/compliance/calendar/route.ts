@@ -28,6 +28,10 @@ import {
   renderIcs,
   CALENDAR_DISCLAIMER,
 } from "@/lib/compliance/calendar";
+import {
+  buildSubscribeUrl,
+  pickNextEvent,
+} from "@/app/compliance/calendar/calendar-view.helpers";
 import type { WGEAResult } from "@/lib/compliance/wgea-threshold";
 import type { ModernSlaveryResult } from "@/lib/compliance/modern-slavery-threshold";
 
@@ -140,9 +144,27 @@ export async function GET(request: Request) {
     wgea,
     modernSlavery,
   });
-  const ics = renderIcs(events);
 
   const url = new URL(request.url);
+  const format = url.searchParams.get("format");
+  if (format === "json") {
+    const now = new Date();
+    const origin = request.headers.get("x-forwarded-host") ?? url.host;
+    const subscribe = buildSubscribeUrl(origin ? `https://${origin}` : "");
+    return NextResponse.json(
+      {
+        ok: true,
+        total: events.length,
+        next_event: pickNextEvent(events, now),
+        events,
+        subscribe,
+        disclaimer: CALENDAR_DISCLAIMER,
+      },
+      { headers: { "Cache-Control": "private, max-age=300" } },
+    );
+  }
+
+  const ics = renderIcs(events);
   const download = url.searchParams.get("download") === "1";
   const headers: Record<string, string> = {
     "Content-Type": "text/calendar; charset=utf-8",

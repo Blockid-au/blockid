@@ -697,3 +697,4 @@
 {"tick_id":"2026-07-25T02-37-01-704Z","ts":"2026-07-25T02:47:55.980Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-25T02-57-01-300Z","ts":"2026-07-25T02:57:01.300Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T02-57-01-300Z","ts":"2026-07-25T02:57:01.309Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T03-02-59-290Z","ts":"2026-07-25T03:02:59.290Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end","phase":"P1k-nav-tile","summary":"Compliance Calendar dashboard tile on /dashboard/compliance panel: 8th slot surfaces next-up event + subscribe CTA, backed by new ?format=json branch on GET /api/compliance/calendar; 16 vitest cases green, typecheck green."}
