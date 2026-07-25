@@ -75,6 +75,7 @@ function NumberField(props: {
   max?: number;
   step?: number;
   placeholder?: string;
+  testId?: string;
 }) {
   return (
     <label className="block">
@@ -91,6 +92,7 @@ function NumberField(props: {
         placeholder={props.placeholder}
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
+        data-testid={props.testId}
         className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
     </label>
@@ -126,6 +128,7 @@ function Toggle(props: {
   hint?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  testId?: string;
 }) {
   return (
     <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-surface-200 bg-white p-4">
@@ -140,6 +143,7 @@ function Toggle(props: {
         role="switch"
         aria-checked={props.checked}
         onClick={() => props.onChange(!props.checked)}
+        data-testid={props.testId}
         className={cn(
           "relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
           props.checked ? "bg-brand-600" : "bg-surface-300",
@@ -219,6 +223,7 @@ export function AcquisitionWizardClient() {
               max={100}
               step={1}
               placeholder="95"
+              testId="acquisition-input-consents"
             />
             <NumberField
               label="Cash share (%)"
@@ -228,6 +233,7 @@ export function AcquisitionWizardClient() {
               min={0}
               max={100}
               step={1}
+              testId="acquisition-input-cash-pct"
             />
             <NumberField
               label="RSU (retention) share (%)"
@@ -237,6 +243,7 @@ export function AcquisitionWizardClient() {
               min={0}
               max={100}
               step={1}
+              testId="acquisition-input-rsu-pct"
             />
             <NumberField
               label="Earnout share (%)"
@@ -309,12 +316,14 @@ export function AcquisitionWizardClient() {
                 hint="If yes, the RSU tranche may qualify for Subdiv 83A-C deferred ESS taxation for AU-resident recipients."
                 checked={state.buyer_is_listed}
                 onChange={(v) => patch("buyer_is_listed", v)}
+                testId="acquisition-toggle-buyer-listed"
               />
               <Toggle
                 label="Buyer is foreign-government-influenced"
                 hint="Sovereign wealth fund, state-owned enterprise, or 20%+ foreign-government-held. Triggers FIRB regardless of deal size."
                 checked={state.buyer_is_foreign_govt_influenced}
                 onChange={(v) => patch("buyer_is_foreign_govt_influenced", v)}
+                testId="acquisition-toggle-foreign-gov"
               />
             </div>
           </div>
