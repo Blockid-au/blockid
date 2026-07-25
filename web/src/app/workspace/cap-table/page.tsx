@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { CapTableManager } from "@/components/workspace/cap-table-manager";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { requireTierForPage } from "@/lib/entitlements/require-tier-for-page";
 
 export const metadata: Metadata = {
   title: "Cap Table | BlockID",
@@ -14,6 +15,14 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function CapTablePage() {
+  // Server-side tier gate — redirects unauthenticated to /auth/login and
+  // sub-tier users to /pricing?feature=... before we touch the DB.
+  await requireTierForPage({
+    feature: "share_management",
+    minTier: "growth",
+    fromPath: "/workspace/cap-table",
+  });
+
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/cap-table");
 

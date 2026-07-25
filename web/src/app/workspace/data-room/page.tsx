@@ -6,6 +6,7 @@ import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSan
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { DataRoomClient } from "./data-room-client";
 import { DATA_ROOM_STRUCTURE } from "@/lib/data-room-templates";
+import { requireTierForPage } from "@/lib/entitlements/require-tier-for-page";
 
 export const metadata: Metadata = {
   title: "Data Room",
@@ -166,6 +167,12 @@ console.log(`data-room-templates.count: ${DATA_ROOM_ITEMS.length}`);
 const CATEGORIES = Array.from(new Set(DATA_ROOM_ITEMS.map((i) => i.category)));
 
 export default async function DataRoomPage() {
+  await requireTierForPage({
+    feature: "data_room.access",
+    minTier: "growth",
+    fromPath: "/workspace/data-room",
+  });
+
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/data-room");
 
