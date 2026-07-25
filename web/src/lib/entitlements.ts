@@ -73,6 +73,10 @@ export type Feature =
   | "reseller.console"
   | "reseller.create_startup"
   | "reseller.grant_credits"
+  // Founder Startup Package (Ship-1 guided-flow SKU). Unlocks the guided
+  // interview, agent dispatch, live SVI meter, Day-0 dataroom, and public
+  // /startup/[slug] listing. See docs/plans/startup-package.
+  | "startup_package"
   // Share Management add-on bundle (§ F, U.15.13). Delegates all cap-table /
   // data-room / esop / blockchain / token / vesting primitives.
   | "share_management"
@@ -109,7 +113,7 @@ const LEGACY_PLAN_MAP: Record<string, string> = {
 // Exported so entitlements/tier-ladder.test.ts can assert the ladder covers
 // every feature key the fallback surfaces (no orphan gates).
 export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
-  founder_free: ["svi.run.limited"],
+  founder_free: ["svi.run.limited", "startup_package"],
   founder_starter: [
     "svi.run",
     "evidence.upload",
