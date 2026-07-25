@@ -68,13 +68,14 @@ export async function POST(request: Request, ctx: RouteContext) {
   }
 
   // 3. Body + registry lookup
-  let body: {
+  type DeliverableBody = {
     projectId?: string;
     phaseId?: string;
     deliverableKey?: string;
-  } | null = null;
+  };
+  let body: DeliverableBody | null = null;
   try {
-    body = (await request.json()) as typeof body;
+    body = (await request.json()) as DeliverableBody;
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
