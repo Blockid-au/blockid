@@ -3,28 +3,29 @@
 /**
  * LocaleSwitcher — compact "EN | VI" toggle rendered in the primary nav.
  *
- * Behaviour:
+ * Behaviour (T-1403 update — runtime DOM translation):
  *   - Clicking a code sets the `blockid_locale` cookie (365 days, Lax,
  *     Secure, path=/) so the proxy pins the choice on every subsequent
  *     request.
- *   - Then navigates to the mirror path — `/pricing` becomes `/vi/pricing`
- *     and vice versa — preserving query string + hash.
+ *   - Then calls `router.refresh()` — the URL stays put and the
+ *     `TranslationProvider` in the root layout picks up the new locale
+ *     header from the proxy and translates the DOM in place. This
+ *     avoids 404s on the 253 pages that don't have a `/vi/*` mirror.
+ *   - Legacy: `/vi/*` mirror pages still exist for the two SEO-priority
+ *     surfaces (home + pricing) and remain reachable by direct link.
  *   - The currently-active locale renders as a non-interactive `<span>` so
  *     screen readers announce the selected state via `aria-current`.
- *   - No client-side i18n framework; label strings are inlined ASCII
- *     (EN/VI) so the component is safe to render before catalogs load.
- *
- * Mount point (T-1400): `NavV2`, right of the Docs dropdown, left of
- * "Sign in".
+ *   - Rendered at every viewport so mobile users can toggle too — the
+ *     previous `hidden md:inline-flex` hid the control on phones.
  */
 
-import { useRouter, usePathname } from "next/navigation";
-import { useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import {
   LOCALES,
   LOCALE_COOKIE,
-  localeFromPath,
-  toLocalePath,
+  DEFAULT_LOCALE,
+  isLocale,
   type Locale,
 } from "@/lib/i18n/locales";
 
@@ -40,29 +41,42 @@ function setLocaleCookie(locale: Locale): void {
   document.cookie = `${LOCALE_COOKIE}=${locale}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
 }
 
+function readCookieLocale(): Locale {
+  if (typeof document === "undefined") return DEFAULT_LOCALE;
+  const cookie = document.cookie.split(";").find((c) =>
+    c.trim().startsWith(`${LOCALE_COOKIE}=`),
+  );
+  if (!cookie) return DEFAULT_LOCALE;
+  const value = cookie.split("=")[1]?.trim() ?? "";
+  return isLocale(value) ? value : DEFAULT_LOCALE;
+}
+
 export function LocaleSwitcher() {
   const router = useRouter();
-  const pathname = usePathname() ?? "/";
-  const { locale: current, rest } = localeFromPath(pathname);
+  const [current, setCurrent] = useState<Locale>(DEFAULT_LOCALE);
+
+  useEffect(() => {
+    setCurrent(readCookieLocale());
+  }, []);
 
   const onPick = useCallback(
     (target: Locale) => {
       setLocaleCookie(target);
-      if (target === current) {
-        // Cookie updated but no navigation needed.
-        router.refresh();
-        return;
-      }
-      router.push(toLocalePath(rest, target));
+      setCurrent(target);
+      // Runtime DOM walker in <TranslationProvider> reads the locale
+      // header on the next render — refresh (not push) so we don't
+      // 404 on pages that lack a `/vi/*` mirror.
+      router.refresh();
     },
-    [current, rest, router],
+    [router],
   );
 
   return (
     <div
       role="group"
       aria-label="Language"
-      className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-xs font-semibold text-brand-ink-muted md:inline-flex"
+      className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-xs font-semibold text-brand-ink-muted"
+      data-i18n-skip
     >
       {LOCALES.map((code, i) => {
         const active = code === current;

@@ -5,6 +5,9 @@ import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-anal
 import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
+import { TranslationProvider } from "@/components/i18n/translation-provider";
+import { DEFAULT_LOCALE, LOCALE_HEADER, isLocale, type Locale } from "@/lib/i18n/locales";
+import { buildSeedCatalog } from "@/lib/i18n/seed-catalog";
 import "./globals.css";
 
 const inter = Inter({
@@ -97,11 +100,16 @@ export default async function RootLayout({
   // Nonce is generated per-request by web/src/proxy.ts and echoed onto the
   // `x-nonce` request header. Threaded onto every inline <script> so they
   // satisfy the strict `script-src 'nonce-...'` CSP (no 'unsafe-inline').
-  const nonce = (await headers()).get("x-nonce") ?? "";
+  const h = await headers();
+  const nonce = h.get("x-nonce") ?? "";
+  const localeRaw = h.get(LOCALE_HEADER) ?? DEFAULT_LOCALE;
+  const locale: Locale = isLocale(localeRaw) ? localeRaw : DEFAULT_LOCALE;
+  const htmlLang = locale === "vi" ? "vi-VN" : "en-AU";
+  const seedCatalog = buildSeedCatalog(locale);
 
   return (
     <html
-      lang="en-AU"
+      lang={htmlLang}
       className={`${inter.variable} ${plexMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -119,7 +127,9 @@ export default async function RootLayout({
       <body className="min-h-full bg-surface-50 text-brand-900 dark:text-ink-800 font-sans flex flex-col">
         <GTMNoScript />
         <Providers>
-          {children}
+          <TranslationProvider locale={locale} seed={seedCatalog}>
+            {children}
+          </TranslationProvider>
           <GoogleAnalytics nonce={nonce} />
           <OrganizationJsonLd />
           <SoftwareApplicationJsonLd />
