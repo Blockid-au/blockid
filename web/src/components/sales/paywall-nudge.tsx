@@ -38,6 +38,19 @@ export interface PaywallRequest {
    * "founder" when omitted.
    */
   segment?: string;
+  /**
+   * Rendering variant. "modal" (default) preserves current behaviour.
+   * "phase-card" opts into the phase-aware overview tile — the modal is
+   * suppressed and the tier_upgrade_impression event fires alongside
+   * paywall_hit so both funnels reconcile in GA4.
+   */
+  variant?: "modal" | "phase-card";
+  /** Current growth phase (1..12) — used by the phase-card variant. */
+  phase?: number;
+  /** Phase at which the feature is most useful — used by the phase-card variant. */
+  bestAtPhase?: number;
+  /** Delta on the user's current monthly bill (AUD) — used by the phase-card variant. */
+  monthlyDeltaAud?: number;
 }
 
 interface PaywallContextValue {
@@ -146,7 +159,25 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
       feature: req.feature,
       current_plan: req.currentPlan ?? null,
       required_plan: req.requiredPlan ?? null,
+      variant: req.variant ?? "modal",
     });
+    if (req.variant === "phase-card") {
+      // Reconcile phase-card entries under the same funnel schema so GA4
+      // dashboards don't split the tier_upgrade_impression stream.
+      fireGa("tier_upgrade_impression", {
+        feature: req.feature,
+        current_tier: req.currentPlan ?? null,
+        target_tier: req.requiredPlan ?? null,
+        phase: req.phase ?? null,
+        monthly_delta_aud: req.monthlyDeltaAud ?? null,
+        source: "paywall_bridge",
+      });
+      // Phase-card variant renders inside the overview tile (see
+      // <PhaseAwareUpgradeCard />) — we intentionally do NOT open the modal.
+      // The bridge exists purely so a `?nudge=<slug>` deep-link can reuse the
+      // same cooldown/rate-limit accounting as the modal path.
+      return true;
+    }
     setRequest(req);
     return true;
   }, []);
@@ -333,6 +364,45 @@ function PaywallDialog({ request, onClose }: PaywallDialogProps) {
       </div>
     </div>,
     portalHost,
+  );
+}
+
+/**
+ * useContextualUpgrade — thin wrapper that pairs the phase-aware suggestion
+ * (chosen elsewhere via nextBestUpgrade()) with openPaywall({variant:"phase-card"}).
+ *
+ * Call from a `?nudge=<slug>` deep-link handler inside workspace-shell so a
+ * post-checkout / post-redirect bounce can auto-open the card exactly once.
+ * All rate-limits (cooldown + 24h counter) still apply — this hook does not
+ * bypass them.
+ */
+export interface ContextualUpgradeInput {
+  feature: string;
+  tier?: string;
+  phase?: number;
+  bestAtPhase?: number;
+  monthlyDeltaAud?: number;
+  segment?: string;
+  requiredPlan?: string;
+  discoveryHint?: string;
+}
+
+export function useContextualUpgrade(): (input: ContextualUpgradeInput) => boolean {
+  const { openPaywall } = usePaywall();
+  return React.useCallback(
+    (input: ContextualUpgradeInput) =>
+      openPaywall({
+        feature: input.feature,
+        featureLabel: input.discoveryHint,
+        currentPlan: input.tier,
+        requiredPlan: input.requiredPlan,
+        segment: input.segment,
+        variant: "phase-card",
+        phase: input.phase,
+        bestAtPhase: input.bestAtPhase,
+        monthlyDeltaAud: input.monthlyDeltaAud,
+      }),
+    [openPaywall],
   );
 }
 

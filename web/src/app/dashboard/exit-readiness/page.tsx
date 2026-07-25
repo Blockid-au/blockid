@@ -6,6 +6,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { buildExitBenchmarkSection } from "@/lib/investor-pack/exit-benchmark-section";
 import { ExitReadinessTile } from "@/components/dashboard/exit-readiness-tile";
 import { AcquisitionWizardClient } from "@/components/dashboard/acquisition-wizard-client";
+import { requireTierForPage } from "@/lib/entitlements/require-tier-for-page";
 
 // P12b-tile — /dashboard/exit-readiness deep-link.
 //
@@ -24,6 +25,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ExitReadinessDashboardPage() {
+  await requireTierForPage({
+    minTier: "growth",
+    fromPath: "/dashboard/exit-readiness",
+  });
+
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/dashboard/exit-readiness");
 
