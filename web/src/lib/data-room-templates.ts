@@ -832,6 +832,8 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         priority: "P1",
         description: "SaaS + open-source dependency inventory with vendor, purpose, data category, and contract expiry",
         required_for_stage: "series_a",
+        dueDiligenceNotes:
+          "OSS half of this register auto-generates from package-lock.json — fetch /api/dataroom/sbom (JSON) or /api/dataroom/sbom?format=csv and drop the CSV into folder 4 alongside vendor/SaaS rows.",
       },
       {
         name: "GA4 Measurement Plan",
@@ -1123,6 +1125,8 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         priority: "P1",
         description: "SBOM of all OSS dependencies with license (MIT / Apache / GPL / AGPL etc.) and distribution status",
         required_for_stage: "seed",
+        dueDiligenceNotes:
+          "Auto-generated from package-lock.json via GET /api/dataroom/sbom (JSON) or /api/dataroom/sbom?format=csv. Investors doing pre-signature diligence spot-check GPL / AGPL / SSPL exposure here — verify any copyleft entry with counsel before shipping in a distributed product.",
       },
       {
         name: "Domain Name Register",
