@@ -260,6 +260,11 @@ import {
   type DigestSnapshotPerResellerMetricPersistenceScorecard,
 } from "@/lib/reseller/digest-snapshot-per-reseller-metric-persistence-scorecard";
 import {
+  computeDigestSnapshotPerResellerMetricPersistenceScorecardVerdict,
+  formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictSection,
+  type DigestSnapshotPerResellerMetricPersistenceScorecardVerdict,
+} from "@/lib/reseller/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict";
+import {
   computeDigestSnapshotPerResellerPersistenceScorecard,
   formatDigestSnapshotPerResellerPersistenceScorecardSection,
   type DigestSnapshotPerResellerPersistenceScorecard,
@@ -1629,6 +1634,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerMetricPersistenceScorecard
     | null = null;
   let perResellerMetricPersistenceScorecardSection = "";
+  let snapshotPerResellerMetricPersistenceScorecardVerdict:
+    | DigestSnapshotPerResellerMetricPersistenceScorecardVerdict
+    | null = null;
+  let perResellerMetricPersistenceScorecardVerdictSection = "";
   let snapshotPerResellerPersistenceScorecardVerdict:
     | DigestSnapshotPerResellerPersistenceScorecardVerdict
     | null = null;
@@ -2676,6 +2685,36 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerMetricPersistenceScorecardSection(
         snapshotPerResellerMetricPersistenceScorecard,
       );
+    // P11.122 — per-(partner × metric) persistence scorecard VERDICT table
+    // (module P11.121). Finest-grain analogue of the portfolio P11.107/P11.108,
+    // per-metric P11.109/P11.110, and per-partner P11.111/P11.112 verdict
+    // pairs — collapses each row of the P11.119/P11.120 per-pair twin-block
+    // scalar table above into ONE discrete verdict token per (reseller_code ×
+    // metric) pair so ops stops running the "is direction length=3 sustained?"
+    // ladder mentally per row (INFOVISION × attributed_mrr, ACME ×
+    // clawback_exposure, ZEBRA × attributed_churn_30d, …). Splices directly
+    // BELOW the P11.120 perResellerMetricPersistenceScorecardSection per the
+    // P11.121 formatter docblock so a reader who already saw the finest-grain
+    // twin-block scalar row can immediately read the collapsed per-pair
+    // verdicts without reconciling every row in their head. Formatter returns
+    // "" on window_size < 3 OR when every row resolves to `flat` /
+    // `insufficient_window` (mirrors the P11.119 scorecard formatter's own
+    // short-window suppression posture) so the digest stays quiet on quiet
+    // pairs — no orphan verdict table below an empty scorecard block. Envelope
+    // entry lands beside the P11.120 snapshot_per_reseller_metric_persistence_
+    // scorecard entry so JSONL consumers grep 'ACME × attributed_mrr=
+    // sustained_both_axes' per pair without side-loading the P11.120 scorecard
+    // rows. Capstones the verdict-classification quartet across ALL FOUR
+    // scorecard grains (portfolio P11.108 → per-metric P11.110 → per-partner
+    // P11.112 → per-(partner × metric) this tick).
+    snapshotPerResellerMetricPersistenceScorecardVerdict =
+      computeDigestSnapshotPerResellerMetricPersistenceScorecardVerdict(
+        snapshotPerResellerMetricPersistenceScorecard,
+      );
+    perResellerMetricPersistenceScorecardVerdictSection =
+      formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictSection(
+        snapshotPerResellerMetricPersistenceScorecardVerdict,
+      );
     // P11.112 — per-partner persistence scorecard VERDICT table (module
     // P11.111). Per-partner analogue of the portfolio P11.107/P11.108 and
     // per-metric P11.109/P11.110 verdict captions — collapses each row of the
@@ -3153,6 +3192,7 @@ export async function GET(req: Request) {
     perMetricPersistenceScorecardVerdictTransitionSection ||
     perResellerPersistenceScorecardSection ||
     perResellerMetricPersistenceScorecardSection ||
+    perResellerMetricPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
     persistenceScorecardSection ||
@@ -3214,6 +3254,7 @@ export async function GET(req: Request) {
       perResellerPctChangeStreakLengthPercentilesSection +
       perResellerPersistenceScorecardSection +
       perResellerMetricPersistenceScorecardSection +
+      perResellerMetricPersistenceScorecardVerdictSection +
       perResellerPersistenceScorecardVerdictSection +
       perResellerPersistenceScorecardVerdictTransitionSection +
       perResellerPctChangeStreaksSection +
@@ -4270,6 +4311,26 @@ export async function GET(req: Request) {
               snapshotPerResellerMetricPersistenceScorecard.threshold,
             rows:
               snapshotPerResellerMetricPersistenceScorecard.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_metric_persistence_scorecard_verdict:
+      snapshotPerResellerMetricPersistenceScorecardVerdict
+        ? {
+            window_size:
+              snapshotPerResellerMetricPersistenceScorecardVerdict.window_size,
+            first_week:
+              snapshotPerResellerMetricPersistenceScorecardVerdict.first_week,
+            last_week:
+              snapshotPerResellerMetricPersistenceScorecardVerdict.last_week,
+            sustained_p90_threshold:
+              snapshotPerResellerMetricPersistenceScorecardVerdict.sustained_p90_threshold,
+            threshold:
+              snapshotPerResellerMetricPersistenceScorecardVerdict.threshold,
+            rows:
+              snapshotPerResellerMetricPersistenceScorecardVerdict.rows,
           }
         : {
             skipped_reason:
