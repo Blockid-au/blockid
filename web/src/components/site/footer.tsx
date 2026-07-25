@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { ShieldCheck, MapPin, Users, BarChart3 } from "lucide-react";
+import { PartnerFooterRow } from "@/components/marketing/partner-footer-row";
 
 const columns = [
   {
@@ -118,7 +119,12 @@ export function Footer() {
               </div>
             ))}
           </div>
-          <div className="mt-12 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-400 md:flex-row md:items-center md:justify-between">
+          {/* Curator-controlled accelerator strip — renders NOTHING when the
+              partners config is empty. Inherits slate-400 ink via currentColor. */}
+          <div className="mt-10 border-t border-ink-800 pt-4 text-slate-400">
+            <PartnerFooterRow group="accepted" />
+          </div>
+          <div className="mt-6 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-400 md:flex-row md:items-center md:justify-between">
             <p>
               &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
             </p>

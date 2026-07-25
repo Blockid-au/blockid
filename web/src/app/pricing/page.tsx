@@ -9,6 +9,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import type { Segment } from "@/lib/plans-v2";
 
@@ -194,6 +195,10 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </p>
         </div>
       </MarketingSection>
+
+      {/* Narrow curator-controlled integration strip, immediately above the
+          final CTA. Renders NOTHING when the config is empty. */}
+      <LogoCloud group="integrated" density="compact" />
 
       <MarketingCtaStrip
         headline="Talk to sales for a bespoke fit."

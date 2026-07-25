@@ -1,60 +1,91 @@
 import type { HTMLAttributes } from "react";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import {
+  loadPartnersConfig,
+  resolveGroup,
+  type NormalisedPartner,
+  type PartnerGroupKey,
+} from "./partners-types";
 
 /**
- * TrustStrip — investor/accelerator logo row for the luxury hero.
+ * TrustStrip — sponsor / accelerator / investor logo row for the lux hero.
  *
- * Reads from web/config/marketing-partners.json at request time. If the
- * config file is missing OR the `investors` array is empty, the strip
- * renders NOTHING — never fabricate affiliations. User has explicitly
- * asked that unverified partner logos never appear on the landing page.
+ * Reads from web/config/marketing-partners.json at request time. Renders
+ * NOTHING when the config file is missing OR the resolved group is empty —
+ * never fabricate affiliations. See partners-types.ts for the guardrail.
  */
 
-interface PartnersConfig {
-  investors_headline?: string;
-  investors?: string[];
+interface TrustStripProps extends HTMLAttributes<HTMLDivElement> {
+  /** Curator group to render. Omit to fall back to legacy `investors` array. */
+  group?: PartnerGroupKey;
 }
 
-function loadInvestors(): PartnersConfig | null {
-  try {
-    const path = join(process.cwd(), "config", "marketing-partners.json");
-    const raw = readFileSync(path, "utf-8");
-    const parsed = JSON.parse(raw) as PartnersConfig;
-    if (!Array.isArray(parsed.investors) || parsed.investors.length === 0) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-type TrustStripProps = HTMLAttributes<HTMLDivElement>;
-
-export function TrustStrip({ className = "", ...rest }: TrustStripProps) {
-  const config = loadInvestors();
-  if (!config?.investors) return null;
-  const headline = config.investors_headline ?? "Working with";
+export function TrustStrip({ className = "", group, ...rest }: TrustStripProps) {
+  const config = loadPartnersConfig();
+  const resolved = resolveGroup(config, group, "investors", "Working with");
+  if (!resolved) return null;
 
   return (
     <div className={className} {...rest}>
       <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-brand-ink-muted">
-        {headline}
+        {resolved.label ?? "Working with"}
       </p>
       <ul
         className="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:gap-x-12"
-        aria-label="Verified partner logos"
+        aria-label={`${resolved.label ?? "Partner"} logos`}
       >
-        {config.investors.map((name) => (
-          <li key={name}>
-            <span
-              className="inline-flex h-10 items-center justify-center rounded-md border border-white/5 bg-white/[0.02] px-5 text-sm font-medium tracking-wide text-brand-ink/60 opacity-60 grayscale transition duration-300 hover:opacity-100 hover:text-brand-ink hover:grayscale-0"
-              title={name}
-            >
-              {name}
-            </span>
+        {resolved.entries.map((entry) => (
+          <li key={entry.name}>
+            <TrustTile entry={entry} />
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+function TrustTile({ entry }: { entry: NormalisedPartner }) {
+  const tileClass = [
+    "inline-flex h-10 items-center justify-center rounded-md",
+    "border border-white/5 bg-white/[0.02] px-5",
+    "text-sm font-medium tracking-wide text-brand-ink/60",
+    "opacity-60 grayscale transition duration-300",
+    "hover:opacity-100 hover:text-brand-ink hover:grayscale-0",
+    "focus-visible:outline-none focus-visible:ring-2",
+    "focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2",
+    "focus-visible:ring-offset-brand-navy",
+  ].join(" ");
+
+  const inner =
+    entry.src !== null ? (
+      <img
+        src={entry.src}
+        alt={entry.alt}
+        loading="lazy"
+        decoding="async"
+        className="h-6 w-auto max-w-[140px]"
+      />
+    ) : (
+      <span>{entry.name}</span>
+    );
+
+  if (entry.href) {
+    return (
+      <a
+        href={entry.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={entry.alt}
+        title={entry.name}
+        className={tileClass}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <span className={tileClass} title={entry.name}>
+      {inner}
+    </span>
   );
 }
