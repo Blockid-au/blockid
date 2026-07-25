@@ -1028,3 +1028,4 @@
 {"ts":"2026-07-25T16:15:01Z","endpoint":"vesting","status":"ok","duration_ms":266,"detail":"{\"processed\": 1, \"completed\": 0, \"emailed\": 0}"}
 {"ts":"2026-07-25T16:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16490,"detail":""}
 {"ts":"2026-07-25T16:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":180,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-07-25T16:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2628,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (235964192 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273944832 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
