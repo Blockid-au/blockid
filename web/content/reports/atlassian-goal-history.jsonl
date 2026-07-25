@@ -841,3 +841,4 @@
 {"tick_id":"2026-07-25T07-37-01-472Z","ts":"2026-07-25T07:53:51.061Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-25T07-57-01-406Z","ts":"2026-07-25T07:57:01.406Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T07-57-01-406Z","ts":"2026-07-25T07:57:01.415Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T08-03-35-000Z","ts":"2026-07-25T08:03:35.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P3e-tile-e2e","summary":"Playwright spec at web/tests/e2e/founder/market-size-tile.spec.ts drives MarketSizeTile through anzsic/keyword/empty branches; typecheck green, --list discovers 1 test."}
