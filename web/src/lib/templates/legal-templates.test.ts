@@ -886,3 +886,149 @@ describe("au-customer-discovery-interview-log template", () => {
     expect(noRecording).not.toMatch(/\{\{#disconfirmed_hypothesis\}\}/);
   });
 });
+
+describe("au-founder-agreement template", () => {
+  const tpl = getTemplate("au-founder-agreement");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-1 corporate template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.category).toBe("corporate");
+    expect(tpl?.phase_slug).toBe("phase-1");
+    expect(listTemplates().some((t) => t.slug === "au-founder-agreement")).toBe(
+      true,
+    );
+  });
+
+  it("declares the AU co-founder anchors an investor's lawyer looks for", () => {
+    // Vesting norms Blackbird / AirTree / Square Peg term sheets expect.
+    expect(body).toMatch(/reverse-vesting/i);
+    expect(body).toMatch(/1-year cliff|cliff/);
+    expect(body).toMatch(/double-trigger/);
+    // Corporations Act anchors — s127 execution, s254T solvency, s168 Register,
+    // s12 associate definition (Reserved Matters), Part 2J.1 buy-back.
+    expect(body).toMatch(/section 127|s 127/);
+    expect(body).toMatch(/s 254T|section 254T/);
+    expect(body).toMatch(/s 168|section 168/);
+    expect(body).toMatch(/s 12/);
+    expect(body).toMatch(/Part 2J\.1/);
+    // Good Leaver / Bad Leaver split is what makes this AU agreement
+    // investor-defensible.
+    expect(body).toMatch(/Good Leaver/);
+    expect(body).toMatch(/Bad Leaver/);
+    // Restraints of Trade Act 1976 (NSW) read-down power — the reason we ship
+    // cascading restraints rather than a single fixed period.
+    expect(body).toMatch(/Restraints of Trade Act 1976/);
+    // Moral rights consent — Copyright Act 1968 (Cth) Part IX.
+    expect(body).toMatch(/moral rights/i);
+    expect(body).toMatch(/195AW/);
+    // Div 83A cross-reference — Founder ESOP grants sit on the separate scheme.
+    expect(body).toMatch(/Division 83A/);
+    // Deadlock mechanic + Change-of-Control definition — the two clauses that
+    // separate a founder-only agreement from a shareholders' agreement.
+    expect(body).toMatch(/Russian Roulette/);
+    expect(body).toMatch(/Change of Control/);
+    // AFSL disclaimer at top-of-doc.
+    expect(body).toMatch(/NOT LEGAL ADVICE/);
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("substitutes party fields and honours the third-founder toggle", () => {
+    const base: Record<string, string> = {
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      registered_office_address: "Sydney NSW 2000",
+      company_business_description:
+        "AI-driven investor-readiness workspace for AU founders",
+      effective_date: "1 July 2026",
+      founder_1_name: "Alice Founder",
+      founder_1_address: "Sydney NSW",
+      founder_1_shares: "5,000,000",
+      founder_1_pct: "50",
+      founder_1_role: "CEO",
+      founder_1_commitment: "Full-time",
+      founder_2_name: "Bob Founder",
+      founder_2_address: "Melbourne VIC",
+      founder_2_shares: "5,000,000",
+      founder_2_pct: "50",
+      founder_2_role: "CTO",
+      founder_2_commitment: "Full-time",
+      issue_price_per_share_aud: "0.0001",
+      vesting_total_months: "48",
+      vesting_cliff_months: "12",
+      unvested_buyback_price_aud: "0.0001",
+      permitted_other_hours_per_week: "5",
+      first_priced_raise_aud: "1,500,000",
+      founder_stipend_aud_per_month: "6,000",
+      bad_leaver_price_aud: "0.0001",
+      restraint_period_1_months: "12",
+      restraint_period_2_months: "6",
+      restraint_period_3_months: "3",
+      restraint_area_1: "Australia and New Zealand",
+      restraint_area_2: "Australia",
+      restraint_area_3: "New South Wales",
+      related_party_threshold_aud: "10,000",
+      debt_threshold_aud: "100,000",
+      governing_state: "New South Wales",
+      director_name: "Alice Founder",
+      annexure_a_disclosures:
+        "Nil disclosed — no pre-existing IP or side arrangements.",
+      revision_date: "2026-07-25",
+    };
+    // Two-founder path: has_third_founder omitted → third row stripped
+    // AND third-founder signature block stripped.
+    const twoFounder = applySubstitutions(body, base);
+    expect(twoFounder).toContain("Acme Innovation Pty Ltd");
+    expect(twoFounder).toContain("ACN 659 615 111");
+    expect(twoFounder).toContain("Alice Founder");
+    expect(twoFounder).toContain("Bob Founder");
+    expect(twoFounder).not.toContain("Founder 3");
+    expect(twoFounder).not.toContain("{{founder_3_name}}");
+    expect(twoFounder).not.toMatch(/\{\{#has_third_founder\}\}/);
+    // Vesting numbers substitute into the reverse-vesting clause.
+    expect(twoFounder).toMatch(/48 months/);
+    expect(twoFounder).toMatch(/12-month cliff/);
+    // Governing law flows into section 9.2.
+    expect(twoFounder).toContain("New South Wales, Australia");
+
+    // Three-founder path: has_third_founder=true keeps the row and the
+    // execution block for Founder 3.
+    const threeFounder = applySubstitutions(body, {
+      ...base,
+      founder_1_pct: "40",
+      founder_2_pct: "40",
+      founder_3_name: "Carol Founder",
+      founder_3_address: "Brisbane QLD",
+      founder_3_shares: "2,000,000",
+      founder_3_pct: "20",
+      founder_3_role: "COO",
+      founder_3_commitment: "Full-time",
+      has_third_founder: "true",
+    });
+    expect(threeFounder).toContain("Carol Founder");
+    expect(threeFounder).toMatch(/Brisbane QLD/);
+    // 40/40/20 split renders into the equity-split table.
+    expect(threeFounder).toMatch(/40%/);
+    expect(threeFounder).toMatch(/20%/);
+    expect(threeFounder).not.toMatch(/\{\{#has_third_founder\}\}/);
+  });
+});

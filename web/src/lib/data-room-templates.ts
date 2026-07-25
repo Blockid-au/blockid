@@ -561,10 +561,11 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
       },
       {
         name: "Founder Agreements & Vesting Schedules",
-        type: "upload",
+        type: "template",
         format: "pdf",
         priority: "P0",
         description: "All founder agreements including vesting, IP assignment, non-compete",
+        template_slug: "au-founder-agreement",
         dueDiligenceNotes: "4-year vesting with 1-year cliff is standard AU market expectation",
       },
       {
