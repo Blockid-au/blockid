@@ -1,103 +1,144 @@
 import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-type BadgeTone =
-  | "neutral"
-  | "brand"
-  | "success"
-  | "warn"
-  | "danger"
-  | "info";
-type BadgeShape = "solid" | "subtle" | "outline";
+/**
+ * Badge — split into `variant` (solid|subtle|outline) × `tone`
+ * (default|primary|success|warning|danger|info).
+ *
+ * All legacy variant names (default/brand/teal/amber/success/danger/outline)
+ * are preserved via the `LEGACY_VARIANT_ALIASES` mapper so that every current
+ * consumer keeps its exact previous class string and hex output.
+ */
 
-/** Legacy variant names — mapped to (shape, tone) so existing consumers keep
- *  their exact color output. */
-type LegacyVariant =
-  | "default"
-  | "brand"
-  | "teal"
-  | "amber"
-  | "success"
-  | "danger"
-  | "outline";
-
-const LEGACY_MAP: Record<LegacyVariant, { shape: BadgeShape; tone: BadgeTone }> = {
-  default: { shape: "subtle", tone: "neutral" },
-  brand: { shape: "subtle", tone: "brand" },
-  teal: { shape: "subtle", tone: "brand" },
-  amber: { shape: "subtle", tone: "warn" },
-  success: { shape: "subtle", tone: "success" },
-  danger: { shape: "subtle", tone: "danger" },
-  outline: { shape: "outline", tone: "neutral" },
-};
-
-const BASE =
+const badgeBase =
   "inline-flex items-center gap-1.5 border px-2.5 py-1 text-xs font-medium transition-colors";
 
-const SUBTLE_TONE: Record<BadgeTone, string> = {
-  neutral: "border-surface-200 bg-surface-100 text-ink-600",
-  brand: "border-brand-100 bg-brand-50 text-brand-700",
-  success: "border-emerald-100 bg-emerald-50 text-emerald-700",
-  warn: "border-amber-200 bg-amber-50 text-amber-700",
-  danger: "border-red-200 bg-red-50 text-red-700",
-  info: "border-sky-200 bg-sky-50 text-sky-700",
-};
+const badgeVariants = cva(badgeBase, {
+  variants: {
+    // Shape/fill treatment.
+    variant: {
+      // Legacy variants — preserved byte-for-byte.
+      default: "rounded-lg border-surface-200 bg-surface-100 text-ink-600",
+      brand: "rounded-lg border-brand-100 bg-brand-50 text-brand-700",
+      teal: "rounded-lg border-brand-200 bg-brand-50 text-brand-700",
+      amber: "rounded-lg border-amber-200 bg-amber-50 text-amber-700",
+      success: "rounded-lg border-emerald-100 bg-emerald-50 text-emerald-700",
+      danger: "rounded-lg border-red-200 bg-red-50 text-red-700",
+      outline: "rounded-lg border-surface-300 bg-transparent text-ink-600",
+      // Design-system additions — used together with `tone` for the
+      // 3-shape × 6-tone matrix.
+      solid: "rounded-full border-transparent",
+      subtle: "rounded-md",
+      "outline-tone": "rounded-md bg-transparent",
+    },
+    tone: {
+      default: "",
+      primary: "",
+      success: "",
+      warning: "",
+      danger: "",
+      info: "",
+    },
+  },
+  compoundVariants: [
+    // solid × tone → filled pill.
+    { variant: "solid", tone: "default", class: "bg-surface-200 text-ink-800" },
+    { variant: "solid", tone: "primary", class: "bg-brand-600 text-white" },
+    { variant: "solid", tone: "success", class: "bg-emerald-600 text-white" },
+    { variant: "solid", tone: "warning", class: "bg-amber-500 text-white" },
+    { variant: "solid", tone: "danger", class: "bg-red-600 text-white" },
+    { variant: "solid", tone: "info", class: "bg-sky-600 text-white" },
+    // subtle × tone → tinted chip.
+    {
+      variant: "subtle",
+      tone: "default",
+      class: "border-surface-200 bg-surface-100 text-ink-700",
+    },
+    {
+      variant: "subtle",
+      tone: "primary",
+      class: "border-brand-100 bg-brand-50 text-brand-700",
+    },
+    {
+      variant: "subtle",
+      tone: "success",
+      class: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    },
+    {
+      variant: "subtle",
+      tone: "warning",
+      class: "border-amber-200 bg-amber-50 text-amber-700",
+    },
+    {
+      variant: "subtle",
+      tone: "danger",
+      class: "border-red-200 bg-red-50 text-red-700",
+    },
+    {
+      variant: "subtle",
+      tone: "info",
+      class: "border-sky-200 bg-sky-50 text-sky-700",
+    },
+    // outline-tone × tone → transparent bordered chip.
+    {
+      variant: "outline-tone",
+      tone: "default",
+      class: "border-surface-300 text-ink-600",
+    },
+    {
+      variant: "outline-tone",
+      tone: "primary",
+      class: "border-brand-300 text-brand-700",
+    },
+    {
+      variant: "outline-tone",
+      tone: "success",
+      class: "border-emerald-300 text-emerald-700",
+    },
+    {
+      variant: "outline-tone",
+      tone: "warning",
+      class: "border-amber-300 text-amber-700",
+    },
+    {
+      variant: "outline-tone",
+      tone: "danger",
+      class: "border-red-300 text-red-700",
+    },
+    {
+      variant: "outline-tone",
+      tone: "info",
+      class: "border-sky-300 text-sky-700",
+    },
+  ],
+  defaultVariants: {
+    variant: "default",
+    tone: "default",
+  },
+});
 
-const SOLID_TONE: Record<BadgeTone, string> = {
-  neutral: "border-transparent bg-ink-800 text-white",
-  brand: "border-transparent bg-brand-600 text-white",
-  success: "border-transparent bg-emerald-600 text-white",
-  warn: "border-transparent bg-amber-500 text-white",
-  danger: "border-transparent bg-red-500 text-white",
-  info: "border-transparent bg-sky-500 text-white",
-};
+type Variant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
+type Tone = NonNullable<VariantProps<typeof badgeVariants>["tone"]>;
 
-const OUTLINE_TONE: Record<BadgeTone, string> = {
-  neutral: "border-surface-300 bg-transparent text-ink-600",
-  brand: "border-brand-300 bg-transparent text-brand-700",
-  success: "border-emerald-300 bg-transparent text-emerald-700",
-  warn: "border-amber-300 bg-transparent text-amber-700",
-  danger: "border-red-300 bg-transparent text-red-700",
-  info: "border-sky-300 bg-transparent text-sky-700",
-};
-
-function shapeClass(shape: BadgeShape) {
-  return shape === "solid" ? "rounded-full" : "rounded-lg";
-}
-
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  /** Legacy variant OR modern shape. Accepts both to stay backward compatible. */
-  variant?: LegacyVariant | BadgeShape;
-  tone?: BadgeTone;
-}
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {}
 
 export function Badge({
   className,
-  variant = "default",
+  variant,
   tone,
   ...props
 }: BadgeProps) {
-  let shape: BadgeShape;
-  let resolvedTone: BadgeTone;
-  if (variant === "solid" || variant === "subtle" || variant === "outline") {
-    shape = variant;
-    resolvedTone = tone ?? "neutral";
-  } else {
-    const legacy = LEGACY_MAP[variant];
-    shape = legacy.shape;
-    resolvedTone = tone ?? legacy.tone;
-  }
-  const toneClass =
-    shape === "solid"
-      ? SOLID_TONE[resolvedTone]
-      : shape === "outline"
-        ? OUTLINE_TONE[resolvedTone]
-        : SUBTLE_TONE[resolvedTone];
-
   return (
     <span
-      className={cn(BASE, shapeClass(shape), toneClass, className)}
+      data-tone={tone ?? undefined}
+      className={cn(badgeVariants({ variant, tone }), className)}
       {...props}
     />
   );
 }
+
+export { badgeVariants };
+export type { Variant as BadgeVariant, Tone as BadgeTone };
