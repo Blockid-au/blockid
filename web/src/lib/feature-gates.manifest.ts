@@ -80,6 +80,13 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   { route: "api/reseller/billing/setup-intent/route.ts", required_feature: "reseller.console" },
   { route: "api/reseller/billing/save-default-payment-method/route.ts", required_feature: "reseller.console" },
 
+  // Founder Startup Package — Ship-1 guided-interview mutation routes.
+  // Public sample (POST /save-answer) also gated so an anonymous drive-by
+  // can't spam upserts; the free tier is enforced inside the handler once
+  // the user is authenticated + on the founder_free plan.
+  { route: "api/startup-package/save-answer/route.ts", required_feature: "startup_package", note: "guided-interview autosave — 60/hour rate-limit inside" },
+  { route: "api/startup-package/analyze/route.ts", required_feature: "startup_package", note: "dispatches 1 lead agent per step — 5/hour rate-limit inside" },
+
   // Mentor console (customer-success advisory) — reseller-admin scoped.
   // /access-grant/[grantId] is intentionally NOT gated: the actor is the
   // founder, not the mentor, so requireFeature("reseller.console") would
@@ -120,6 +127,9 @@ export const GATED_DIRECTORIES: readonly string[] = Object.freeze([
   "api/mentor/notes",
   "api/mentor/check-ins",
   "api/mentor/access-request",
+  // Founder Startup Package — subgoal 3/4 mutation routes.
+  "api/startup-package/save-answer",
+  "api/startup-package/analyze",
 ]);
 
 /** HTTP verbs that count as "mutation" for the completeness lens. */

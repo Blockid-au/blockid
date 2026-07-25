@@ -23,6 +23,10 @@ export type FeatureSlug =
   | "reseller.grant_credits"
   | "reseller.console"
   | "reseller.create_startup"
+  // Founder Startup Package — Ship-1 guided-flow SKU. Visible from
+  // free tier so the sample interview appears in the sidebar for
+  // every founder.
+  | "startup_package"
   // nav-groups `feature:` bindings not in FEATURE_GATES
   | "equity_offer.request"
   // Startup Package — visible to every tier because the paywall is a
@@ -122,11 +126,22 @@ export const VISIBILITY: Readonly<Record<FeatureSlug, VisibilityRow>> = Object.f
     monthlyDeltaAud: 0,
   },
   startup_package: {
+<<<<<<< HEAD
     // Sidebar surface is tier-free — the actual paywall is a per-project
     // purchase of the founder_package Stripe SKU, checked at route level.
     minTier: "free",
     discoveryHint: "Guided idea → SVI → dataroom → cap-table in one flow",
     upgradeCTA: "Get the Startup Package",
+=======
+    // The free-tier sample interview is intentionally reachable via
+    // direct URL — VISIBILITY.startup_package is only about SIDEBAR
+    // discovery. Setting minTier="starter" keeps the free-tier golden
+    // snapshot at [] while letting paid founders find it in the sidebar.
+    // See docs/plans/startup-package (Ship-1).
+    minTier: "starter",
+    discoveryHint: "Guided interview + C-Level AI analysis + live SVI",
+    upgradeCTA: "Start your Startup Package",
+>>>>>>> worktree-wf_cfb58c2d-227-2
     bestAtPhase: 1,
     monthlyDeltaAud: 0,
   },
