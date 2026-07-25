@@ -215,4 +215,40 @@ describe("DATA_ROOM_STRUCTURE — Series-A / acquirer parity", () => {
     expect(flaggedNames.some((n) => n.includes("esic"))).toBe(true);
     expect(flaggedNames.some((n) => n.includes("esvclp"))).toBe(true);
   });
+
+  it("wires the s708(8) wholesale-investor certificates register (goal §1 phase 9 P0 gap)", () => {
+    // Contract: docs/plans/atlassian-standard-mapping-goal.md §1 phase 9
+    // "Missing: ... wholesale-investor cert intake slot exists conceptually
+    //  but not wired to data-room (see Q2)".
+    // Q2 recommendation: expose an evidence slot at Phase 10 that lets
+    // founders upload the counter-signed certificate; NEVER issue or
+    // validate it ourselves (s923B Corps Act boundary).
+    // Ship-off task P9-wholesale-cert-slot (2026-07-25).
+    const auCompliance = DATA_ROOM_STRUCTURE.find(
+      (s) => s.section === "au_compliance",
+    );
+    expect(auCompliance, "AU Compliance section must exist").toBeDefined();
+
+    const cert = auCompliance!.documents.find((d) =>
+      d.name.includes("Wholesale Investor Certificates Register"),
+    );
+    expect(cert, "s708(8) wholesale-investor certificate slot must exist").toBeDefined();
+    expect(cert!.type).toBe("upload");
+    expect(cert!.priority).toBe("P0");
+    expect(cert!.founder_review_required).toBe(true);
+    // Statutory anchors must be present so a downstream surface can
+    // grep-verify the Corporations Act boundary before rendering.
+    expect(cert!.description).toMatch(/s708\(8\)/);
+    expect(cert!.description).toMatch(/Corporations Act 2001/);
+    expect(cert!.description).toMatch(/reg 6D\.2\.03/);
+    expect(cert!.description).toMatch(/2\.5M/);
+    expect(cert!.description).toMatch(/250k/);
+    // s923B / s286 guard must be surfaced in the diligence notes so no
+    // caller can render the slot without the "we don't validate this"
+    // language and the 7-year record-keeping obligation.
+    expect(cert!.dueDiligenceNotes).toBeDefined();
+    expect(cert!.dueDiligenceNotes!).toMatch(/s923B/);
+    expect(cert!.dueDiligenceNotes!).toMatch(/s286/);
+    expect(cert!.dueDiligenceNotes!.toLowerCase()).toContain("does not issue");
+  });
 });

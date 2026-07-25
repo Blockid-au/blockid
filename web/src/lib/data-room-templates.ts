@@ -1389,6 +1389,22 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         dueDiligenceNotes: "Conservative default wording only; a qualified compliance adviser must confirm before publication.",
       },
       {
+        // atlassian-standard-mapping-goal.md §1 phase 9 P0 gap:
+        // "wholesale-investor cert intake slot exists conceptually but not
+        //  wired to data-room (see Q2)". Q2 recommendation: "expose an
+        //  evidence slot at Phase 10 that lets founder upload the
+        //  counter-signed cert; NEVER issue or validate the certificate
+        //  ourselves (that is a s923B financial services boundary)".
+        name: "Wholesale Investor Certificates Register (s708(8))",
+        type: "upload",
+        format: "pdf",
+        priority: "P0",
+        description: "Qualified-accountant certificates issued under Corporations Act 2001 (Cth) s708(8) + Corporations Regulations 2001 reg 6D.2.03 evidencing each sophisticated-investor test (A$2.5M net assets OR A$250k gross income for each of the last 2 financial years) was met before the founder accepted the investor's application. Upload one signed certificate per investor per offer; certificates dated more than 6 months before application acceptance are treated as stale by most AU legal counsel and should be re-issued.",
+        required_for_stage: "seed",
+        founder_review_required: true,
+        dueDiligenceNotes: "BlockID.au does NOT issue or validate these certificates — s923B Corporations Act 2001 (Cth) reserves that judgement for a qualified accountant. Founder must collect the counter-signed certificate from each investor's accountant before funds settle and hold it for at least 7 years to satisfy record-keeping under s286.",
+      },
+      {
         name: "Privacy Act 1988 Compliance Statement",
         type: "upload",
         format: "pdf",
