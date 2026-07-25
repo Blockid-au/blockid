@@ -1640,3 +1640,5 @@
 {"ts":"2026-07-25T02:01:11.647Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.85-per-metric-direction-streak-length-histogram-pure-lib): per-KPI shape-of-persistence histogram (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T02:01:19.716Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T01-55-01-305Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T02:04:41.569Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P5-tax-invoice-checker-panel-mount): plan note + history (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T02:05:01.451Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T01-57-01-315Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T02:10:32.259Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.86-per-metric-direction-streak-length-histogram-cron-wiring): wire per-metric direction histogram into weekly digest (1 commits)","source":"github-webhook"}
