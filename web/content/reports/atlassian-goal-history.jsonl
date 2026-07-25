@@ -761,3 +761,5 @@
 {"tick_id":"2026-07-25T05-07-01-608Z","ts":"2026-07-25T05:07:01.609Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T05-07-01-608Z","ts":"2026-07-25T05:07:01.616Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id": "2026-07-25T05-07-01-608Z", "ts": "2026-07-25T05:16:58.406Z", "loop_label": "atlassian-goal-loop", "human_review_minutes_7d": 0, "stage": "tick_end", "picked": "P10-rofr-workflow-ui-e2e", "artefacts": ["web/tests/e2e/founder/rofr-wizard.spec.ts", "docs/plans/atlassian-standard-mapping-goal.md"]}
+{"tick_id":"2026-07-25T05-07-01-608Z","ts":"2026-07-25T05:17:17.323Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":615704,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-25T05-07-01-608Z","ts":"2026-07-25T05:17:17.367Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":14}
