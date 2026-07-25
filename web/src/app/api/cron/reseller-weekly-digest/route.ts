@@ -333,6 +333,11 @@ import {
   type DigestSnapshotPerResellerCrossMetricAlerts,
 } from "@/lib/reseller/digest-snapshot-per-reseller-cross-metric-alerts";
 import {
+  computeDigestSnapshotPerMetricCrossPartnerAlerts,
+  formatDigestSnapshotPerMetricCrossPartnerAlertsSection,
+  type DigestSnapshotPerMetricCrossPartnerAlerts,
+} from "@/lib/reseller/digest-snapshot-per-metric-cross-partner-alerts";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1721,6 +1726,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerCrossMetricAlerts
     | null = null;
   let perResellerCrossMetricAlertsSection = "";
+  let snapshotPerMetricCrossPartnerAlerts:
+    | DigestSnapshotPerMetricCrossPartnerAlerts
+    | null = null;
+  let perMetricCrossPartnerAlertsSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3518,6 +3527,24 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerResellerCrossMetricAlertsSection(
           snapshotPerResellerCrossMetricAlerts,
         );
+      // P11.138 — per-metric cross-partner alerts ranking (module P11.137).
+      // Dual of the P11.135/P11.136 per-partner ranking: pivots the SAME
+      // P11.123 per-(partner × metric) verdict-transition envelope by
+      // metric_key instead of reseller_code so ops can rank KPIs by cross-
+      // partner alert-signal rather than by variance. Splices IMMEDIATELY
+      // BELOW perResellerCrossMetricAlertsSection so the hierarchy descends
+      // pair-rows (P11.124) → per-partner ranking (P11.135) → per-metric
+      // ranking (P11.137) → per-pair scalar distribution (P11.130) — both
+      // cross-cut rankings sit adjacent so ops can pivot from 'loudest
+      // partners' to 'loudest KPIs' in a single glance.
+      snapshotPerMetricCrossPartnerAlerts =
+        computeDigestSnapshotPerMetricCrossPartnerAlerts(
+          snapshotPerResellerMetricPersistenceScorecardVerdictTransition,
+        );
+      perMetricCrossPartnerAlertsSection =
+        formatDigestSnapshotPerMetricCrossPartnerAlertsSection(
+          snapshotPerMetricCrossPartnerAlerts,
+        );
     }
   }
   if (
@@ -3562,6 +3589,7 @@ export async function GET(req: Request) {
     perResellerMetricPersistenceScorecardVerdictTransitionSection ||
     perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection ||
     perResellerCrossMetricAlertsSection ||
+    perMetricCrossPartnerAlertsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
     perResellerPersistenceScorecardVerdictTransitionDistributionSection ||
@@ -3632,6 +3660,7 @@ export async function GET(req: Request) {
       perResellerMetricPersistenceScorecardVerdictSection +
       perResellerMetricPersistenceScorecardVerdictTransitionSection +
       perResellerCrossMetricAlertsSection +
+      perMetricCrossPartnerAlertsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
       perResellerPersistenceScorecardVerdictTransitionSection +
@@ -4765,6 +4794,21 @@ export async function GET(req: Request) {
               snapshotPerResellerCrossMetricAlerts.sustained_p90_threshold,
             threshold: snapshotPerResellerCrossMetricAlerts.threshold,
             rows: snapshotPerResellerCrossMetricAlerts.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_cross_partner_alerts:
+      snapshotPerMetricCrossPartnerAlerts
+        ? {
+            window_size: snapshotPerMetricCrossPartnerAlerts.window_size,
+            first_week: snapshotPerMetricCrossPartnerAlerts.first_week,
+            last_week: snapshotPerMetricCrossPartnerAlerts.last_week,
+            sustained_p90_threshold:
+              snapshotPerMetricCrossPartnerAlerts.sustained_p90_threshold,
+            threshold: snapshotPerMetricCrossPartnerAlerts.threshold,
+            rows: snapshotPerMetricCrossPartnerAlerts.rows,
           }
         : {
             skipped_reason:
