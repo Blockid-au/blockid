@@ -1,19 +1,40 @@
 import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-export const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-3xl border border-surface-200/80 bg-white shadow-sm",
-      className,
-    )}
-    {...props}
-  />
-));
+/**
+ * Card variants — additive to preserve every existing render.
+ * `default` pins the current class string byte-for-byte, so pages that used
+ * <Card /> before this change keep rendering identically.
+ */
+const cardVariants = cva("", {
+  variants: {
+    variant: {
+      default: "rounded-3xl border border-surface-200/80 bg-white shadow-sm",
+      elevated:
+        "rounded-2xl border border-transparent bg-white shadow-lg",
+      subtle:
+        "rounded-xl border border-surface-200/60 bg-surface-50 shadow-none",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+  },
+});
+
+export interface CardProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof cardVariants> {}
+
+export const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(cardVariants({ variant }), className)}
+      {...props}
+    />
+  ),
+);
 Card.displayName = "Card";
 
 export const CardHeader = React.forwardRef<
@@ -75,3 +96,5 @@ export const CardFooter = React.forwardRef<
   />
 ));
 CardFooter.displayName = "CardFooter";
+
+export { cardVariants };
