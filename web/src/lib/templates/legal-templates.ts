@@ -96,6 +96,100 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     ],
   },
   {
+    slug: "au-founder-agreement",
+    title: "AU Founder Agreement (co-founder terms + reverse-vesting)",
+    category: "corporate",
+    phase_slug: "phase-1",
+    summary:
+      "Chapter-1 co-founder agreement — equity split, 4-year reverse-vesting with 1-year cliff, Good/Bad Leaver, roles + commitment, confidentiality, restraints (NSW ROT cascading), Reserved Matters, deadlock (mediation → Russian Roulette), and Change-of-Control acceleration.",
+    file_path: "web/content/templates/legal/au-founder-agreement.md",
+    version: "1.0",
+    revision_date: "2026-07-25",
+    disclaimer: DISCLAIMER_SHORT,
+    placeholders: [
+      "company_name",
+      "acn",
+      "registered_office_address",
+      "company_business_description",
+      "effective_date",
+      "founder_1_name",
+      "founder_1_address",
+      "founder_1_shares",
+      "founder_1_pct",
+      "founder_1_role",
+      "founder_1_commitment",
+      "founder_2_name",
+      "founder_2_address",
+      "founder_2_shares",
+      "founder_2_pct",
+      "founder_2_role",
+      "founder_2_commitment",
+      "founder_3_name",
+      "founder_3_address",
+      "founder_3_shares",
+      "founder_3_pct",
+      "founder_3_role",
+      "founder_3_commitment",
+      "issue_price_per_share_aud",
+      "vesting_total_months",
+      "vesting_cliff_months",
+      "unvested_buyback_price_aud",
+      "permitted_other_hours_per_week",
+      "first_priced_raise_aud",
+      "founder_stipend_aud_per_month",
+      "bad_leaver_price_aud",
+      "restraint_period_1_months",
+      "restraint_period_2_months",
+      "restraint_period_3_months",
+      "restraint_area_1",
+      "restraint_area_2",
+      "restraint_area_3",
+      "related_party_threshold_aud",
+      "debt_threshold_aud",
+      "governing_state",
+      "director_name",
+      "annexure_a_disclosures",
+      "revision_date",
+    ],
+    sources: [
+      {
+        label:
+          "Corporations Act 2001 (Cth) — ss 12 (associates), 127 (execution), 168 (Register of Members), 254T (solvency test), 254X, Part 2J.1 (buy-backs)",
+        url: "https://www.legislation.gov.au/C2004A00818/latest/text",
+      },
+      {
+        label:
+          "Restraints of Trade Act 1976 (NSW) — s 4 (read-down power)",
+        url: "https://legislation.nsw.gov.au/view/whole/html/inforce/current/act-1976-067",
+      },
+      {
+        label:
+          "Copyright Act 1968 (Cth) — Part IX moral rights (ss 195AW, 195AWA)",
+        url: "https://www.legislation.gov.au/C1968A00063/latest/text",
+      },
+      {
+        label:
+          "Superannuation Guarantee (Administration) Act 1992 (Cth) + Taxation Administration Act 1953 (Cth) Sch 1 (PAYG)",
+        url: "https://www.legislation.gov.au/C2004A04435/latest/text",
+      },
+      {
+        label:
+          "Electronic Transactions Act 1999 (Cth) — e-signature validity",
+        url: "https://www.legislation.gov.au/C2004A00553/latest/text",
+      },
+      {
+        label:
+          "Australian Disputes Centre — Guidelines for Commercial Mediation",
+        url: "https://disputescentre.com.au/",
+      },
+      {
+        label:
+          "Blackbird / AirTree / Square Peg — public term sheets (double-trigger acceleration, 4y/1y vesting norm)",
+        url: "https://www.blackbird.vc/starter-kit",
+      },
+    ],
+  },
+  {
     slug: "au-esop-scheme-rules",
     title: "AU ESOP Scheme Rules",
     category: "employment",
