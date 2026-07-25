@@ -214,6 +214,11 @@ import {
   type DigestSnapshotPerResellerPctChangeStreakLengthHistogram,
 } from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-length-histogram";
 import {
+  computeDigestSnapshotPerResellerPctChangeStreakLengthPercentiles,
+  formatDigestSnapshotPerResellerPctChangeStreakLengthPercentilesSection,
+  type DigestSnapshotPerResellerPctChangeStreakLengthPercentiles,
+} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-length-percentiles";
+import {
   computeDigestSnapshotPerMetricDirectionStreakLengthHistogram,
   formatDigestSnapshotPerMetricDirectionStreakLengthHistogramSection,
   type DigestSnapshotPerMetricDirectionStreakLengthHistogram,
@@ -1521,6 +1526,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerPctChangeStreakLengthHistogram
     | null = null;
   let perResellerPctChangeStreakLengthHistogramSection = "";
+  let snapshotPerResellerPctChangeStreakLengthPercentiles:
+    | DigestSnapshotPerResellerPctChangeStreakLengthPercentiles
+    | null = null;
+  let perResellerPctChangeStreakLengthPercentilesSection = "";
   let snapshotPerMetricDirectionStreakLengthHistogram:
     | DigestSnapshotPerMetricDirectionStreakLengthHistogram
     | null = null;
@@ -2320,6 +2329,43 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerPctChangeStreakLengthHistogramSection(
         snapshotPerResellerPctChangeStreakLengthHistogram,
       );
+    // P11.96 — per-partner sustained-|pct|-material streak length percentile
+    // summary (module P11.95). Magnitude-axis analogue of the P11.94
+    // per-partner direction percentile summary wired above and per-partner
+    // analogue of the P11.92 portfolio |pct|-material percentile summary,
+    // closing the percentile-summary family's last empty leaf — the
+    // per-partner axis on the magnitude side — symmetric with the P11.55
+    // (coverage) / P11.75 (leaderboard) / P11.83 (histogram) per-partner
+    // splits on the same |pct|-material axis. Delegates to
+    // computeDigestSnapshotPerResellerPctChangeStreaks through the pure lib
+    // so per-partner percentile groups cannot diverge from the P11.51
+    // spotlight rows they summarise. Consumes the SAME
+    // snapshotPerResellerRollingTrend the P11.51 detector, the P11.75
+    // per-partner leaderboard, and the P11.83 per-partner histogram already
+    // consume (no extra fold, no divergence risk vs. the spotlight rows
+    // below). Threshold passthrough matches P11.79/P11.83/P11.87/P11.91 on
+    // other grains of the magnitude axis so JSONL consumers can distinguish
+    // "ACME p50 shifted from 2 to 3 at the SAME 25% band" from "ACME p50
+    // shifted from 2 to 3 because the threshold was widened to 40%".
+    // Section splices directly BETWEEN
+    // perResellerPctChangeStreakLengthHistogramSection (P11.84 per-partner
+    // |pct|-material histogram) and perResellerPctChangeStreaksSection
+    // (P11.51/P11.52 per-(metric × partner) spotlight) per the P11.95
+    // formatter docblock's explicit placement rule so ops walks per-partner
+    // coverage (P11.55) → per-partner top-N leaderboard (P11.75) →
+    // per-partner shape-of-persistence tail (P11.83) → per-partner scalar
+    // p50/p90 summary (this section) → per-partner spotlight detail (P11.51),
+    // mirroring the P11.93/P11.94 direction-side placement one axis over and
+    // extending the P11.91/P11.92 portfolio-grain magnitude placement one
+    // grain down.
+    snapshotPerResellerPctChangeStreakLengthPercentiles =
+      computeDigestSnapshotPerResellerPctChangeStreakLengthPercentiles(
+        snapshotPerResellerRollingTrend,
+      );
+    perResellerPctChangeStreakLengthPercentilesSection =
+      formatDigestSnapshotPerResellerPctChangeStreakLengthPercentilesSection(
+        snapshotPerResellerPctChangeStreakLengthPercentiles,
+      );
     // P11.86 — per-metric sustained-direction streak length-frequency
     // histogram (module P11.85). Per-metric analogue of the P11.78 portfolio
     // and P11.82 per-partner direction-streak histograms, closing the
@@ -2417,6 +2463,7 @@ export async function GET(req: Request) {
     perMetricPctChangeStreakLeaderboardSection ||
     perResellerPctChangeStreakLeaderboardSection ||
     perResellerPctChangeStreakLengthHistogramSection ||
+    perResellerPctChangeStreakLengthPercentilesSection ||
     perResellerPctChangeStreaksSection ||
     perMetricDirectionStreakLengthHistogramSection ||
     perMetricPctChangeStreakLengthHistogramSection
@@ -2465,6 +2512,7 @@ export async function GET(req: Request) {
       perMetricPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreakLengthHistogramSection +
+      perResellerPctChangeStreakLengthPercentilesSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -3323,6 +3371,26 @@ export async function GET(req: Request) {
               snapshotPerResellerPctChangeStreakLengthHistogram.threshold,
             groups:
               snapshotPerResellerPctChangeStreakLengthHistogram.groups,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_pct_change_streak_length_percentiles:
+      snapshotPerResellerPctChangeStreakLengthPercentiles
+        ? {
+            window_size:
+              snapshotPerResellerPctChangeStreakLengthPercentiles.window_size,
+            first_week:
+              snapshotPerResellerPctChangeStreakLengthPercentiles.first_week,
+            last_week:
+              snapshotPerResellerPctChangeStreakLengthPercentiles.last_week,
+            min_streak_length:
+              snapshotPerResellerPctChangeStreakLengthPercentiles.min_streak_length,
+            threshold:
+              snapshotPerResellerPctChangeStreakLengthPercentiles.threshold,
+            groups:
+              snapshotPerResellerPctChangeStreakLengthPercentiles.groups,
           }
         : {
             skipped_reason:
