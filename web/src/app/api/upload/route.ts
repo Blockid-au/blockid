@@ -30,7 +30,7 @@ export async function OPTIONS(request: Request) {
 }
 
 // Uploads dir: /app/uploads (Docker volume mount) or /public/uploads (dev)
-const UPLOAD_DIR = existsSync("/app/uploads") ? "/app/uploads" : join(process.cwd(), "public", "uploads");
+const UPLOAD_DIR = existsSync("/app/uploads") ? "/app/uploads" : join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads");
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 // Serve via upload.blockid.au (nginx static) or fallback to blockid.au/uploads
 const UPLOAD_BASE_URL = process.env.NEXT_PUBLIC_UPLOAD_URL ?? "https://upload.blockid.au";

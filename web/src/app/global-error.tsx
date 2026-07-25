@@ -26,9 +26,15 @@ function reportToSentry(err: Error) {
   } catch { /* fail silently */ }
 }
 
-export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  // Fire Sentry inline (no hooks) — Next 16 prerenders global-error without a
-  // React runtime context, so useEffect throws during static generation.
+// Next 16 renamed `reset` → `unstable_retry`. Signature per
+// node_modules/next/dist/docs/01-app/01-getting-started/10-error-handling.md.
+export default function GlobalError({
+  error,
+  unstable_retry,
+}: {
+  error: Error & { digest?: string };
+  unstable_retry: () => void;
+}) {
   if (typeof window !== "undefined") {
     reportToSentry(error);
   }
@@ -51,7 +57,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
               <button
                 type="button"
-                onClick={reset}
+                onClick={() => unstable_retry()}
                 style={{ height: "44px", padding: "0 24px", borderRadius: "12px", background: "#2563eb", color: "white", fontWeight: 600, fontSize: "14px", border: "none", cursor: "pointer" }}
               >
                 Try Again
