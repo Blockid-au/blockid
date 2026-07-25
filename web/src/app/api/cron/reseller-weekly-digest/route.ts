@@ -244,6 +244,11 @@ import {
   type DigestSnapshotPerMetricPersistenceScorecard,
 } from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard";
 import {
+  computeDigestSnapshotPerResellerPersistenceScorecard,
+  formatDigestSnapshotPerResellerPersistenceScorecardSection,
+  type DigestSnapshotPerResellerPersistenceScorecard,
+} from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1565,6 +1570,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricPersistenceScorecard
     | null = null;
   let perMetricPersistenceScorecardSection = "";
+  let snapshotPerResellerPersistenceScorecard:
+    | DigestSnapshotPerResellerPersistenceScorecard
+    | null = null;
+  let perResellerPersistenceScorecardSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2393,6 +2402,44 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerPctChangeStreakLengthPercentilesSection(
         snapshotPerResellerPctChangeStreakLengthPercentiles,
       );
+    // P11.104 — per-partner direction+magnitude persistence scorecard cron
+    // wiring (module P11.103). Capstone per-partner row that side-by-sides
+    // the P11.93 direction-axis and P11.95 magnitude-axis per-partner
+    // percentile scalars into ONE row per partner so ops can answer "does
+    // THIS PARTNER churn direction-persistently AND magnitude-persistently,
+    // or only one, or neither?" without scrolling between the two upstream
+    // per-partner sections. Delegates through the pure lib to BOTH
+    // computeDigestSnapshotPerResellerDirectionStreakLengthPercentiles
+    // (P11.93) AND computeDigestSnapshotPerResellerPctChangeStreakLengthPercentiles
+    // (P11.95) so scorecard rows cannot diverge from the two per-partner
+    // summaries they join. Consumes the SAME snapshotPerResellerRollingTrend
+    // the P11.51 detector + P11.75 per-partner leaderboard + P11.83
+    // per-partner magnitude histogram + P11.93/P11.94 per-partner direction
+    // percentile + P11.95/P11.96 per-partner magnitude percentile siblings
+    // already consume — no extra fold, no divergence risk. Section splices
+    // IMMEDIATELY BELOW perResellerPctChangeStreakLengthPercentilesSection
+    // (P11.95/P11.96 per-partner magnitude scalar) and ABOVE
+    // perResellerPctChangeStreaksSection (P11.51/P11.52 per-(metric ×
+    // partner) spotlight) per the P11.103 formatter docblock explicit
+    // placement rule — capstone position at the bottom of the per-partner
+    // ladder so a reader who already saw direction and magnitude summaries
+    // above can immediately reconcile them into a single per-partner
+    // verdict without scrolling back up. Mirrors the P11.101/P11.102
+    // per-metric capstone placement one grain up (both capstone scorecards
+    // land at the bottom of their respective grain's ladder). Walk:
+    // per-partner coverage (P11.55) → per-partner top-N (P11.75) →
+    // per-partner direction shape (P11.81) → per-partner direction scalar
+    // (P11.93) → per-partner magnitude shape (P11.83) → per-partner
+    // magnitude scalar (P11.95) → per-partner BOTH-AXES scorecard (this
+    // section, new) → per-(metric × partner) spotlight.
+    snapshotPerResellerPersistenceScorecard =
+      computeDigestSnapshotPerResellerPersistenceScorecard(
+        snapshotPerResellerRollingTrend,
+      );
+    perResellerPersistenceScorecardSection =
+      formatDigestSnapshotPerResellerPersistenceScorecardSection(
+        snapshotPerResellerPersistenceScorecard,
+      );
     // P11.86 — per-metric sustained-direction streak length-frequency
     // histogram (module P11.85). Per-metric analogue of the P11.78 portfolio
     // and P11.82 per-partner direction-streak histograms, closing the
@@ -2610,7 +2657,8 @@ export async function GET(req: Request) {
     perMetricDirectionStreakLengthPercentilesSection ||
     perMetricPctChangeStreakLengthHistogramSection ||
     perMetricPctChangeStreakLengthPercentilesSection ||
-    perMetricPersistenceScorecardSection
+    perMetricPersistenceScorecardSection ||
+    perResellerPersistenceScorecardSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -2660,6 +2708,7 @@ export async function GET(req: Request) {
       perResellerPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreakLengthPercentilesSection +
+      perResellerPersistenceScorecardSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -3634,6 +3683,26 @@ export async function GET(req: Request) {
               snapshotPerMetricPersistenceScorecard.threshold,
             rows:
               snapshotPerMetricPersistenceScorecard.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_persistence_scorecard:
+      snapshotPerResellerPersistenceScorecard
+        ? {
+            window_size:
+              snapshotPerResellerPersistenceScorecard.window_size,
+            first_week:
+              snapshotPerResellerPersistenceScorecard.first_week,
+            last_week:
+              snapshotPerResellerPersistenceScorecard.last_week,
+            min_streak_length:
+              snapshotPerResellerPersistenceScorecard.min_streak_length,
+            threshold:
+              snapshotPerResellerPersistenceScorecard.threshold,
+            rows:
+              snapshotPerResellerPersistenceScorecard.rows,
           }
         : {
             skipped_reason:
