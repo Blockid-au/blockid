@@ -252,6 +252,39 @@ describe("DATA_ROOM_STRUCTURE — Series-A / acquirer parity", () => {
     expect(cert!.dueDiligenceNotes!.toLowerCase()).toContain("does not issue");
   });
 
+  it("wires the Phase-8 ESOP Plan Document Team Copy AU legal template (goal §1 phase 8 last gap)", () => {
+    // Contract: docs/plans/atlassian-standard-mapping-goal.md §1 phase 8
+    // "Only gap: `esop-scheme.md` template body itself is not in
+    //  data-room-templates.ts (folder 6 item 'ESOP Plan Document (Team Copy)'
+    //  exists at :960 but is `type: 'upload'` not `'template'` — no seeded
+    //  body)". Also §2 folder 6 item 6.6.
+    // Ship-off task P8-esop-team-copy-wire (2026-07-25).
+    const team = DATA_ROOM_STRUCTURE.find((s) => s.section === "team");
+    expect(team, "Team & Advisors section must exist").toBeDefined();
+
+    const esop = team!.documents.find(
+      (d) => d.name === "ESOP Plan Document (Team Copy)",
+    );
+    expect(
+      esop,
+      "ESOP Plan Document (Team Copy) slot must exist in folder 6",
+    ).toBeDefined();
+    expect(esop!.type).toBe("template");
+    expect(esop!.template_slug).toBe("au-esop-scheme-rules");
+
+    const p = join(
+      process.cwd(),
+      "content",
+      "templates",
+      "legal",
+      "au-esop-scheme-rules.md",
+    );
+    expect(
+      existsSync(p),
+      "legal template au-esop-scheme-rules.md must exist",
+    ).toBe(true);
+  });
+
   it("wires the Phase-9 ESIC Self-Assessment worksheet AU legal template (goal §1 phase 9 P0 gap — worksheet leg)", () => {
     // Contract: docs/plans/atlassian-standard-mapping-goal.md §1 phase 9
     // "Missing: ESIC eligibility gate (data-room folder 11 item ESIC
