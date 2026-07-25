@@ -1,0 +1,301 @@
+// Weekly digest per-metric direction+magnitude persistence scorecard (P11.101).
+//
+// The streak length percentile family already covers both axes (direction and
+// |pct|-material magnitude) at every grain (portfolio, per-partner, per-
+// metric):
+//   • P11.89 / P11.90   → portfolio direction scalar reduction
+//   • P11.91 / P11.92   → portfolio magnitude scalar reduction
+//   • P11.93 / P11.94   → per-partner direction scalar reduction
+//   • P11.95 / P11.96   → per-partner magnitude scalar reduction
+//   • P11.97 / P11.98   → per-metric direction scalar reduction
+//   • P11.99 / P11.100  → per-metric magnitude scalar reduction
+//
+// A gap remains at the per-metric grain: ops reading the digest sees the
+// per-metric direction summary and, further down, the per-metric magnitude
+// summary — but the two sit in DIFFERENT tables walked by DIFFERENT source
+// folds, so answering "which KPIs are persistent on BOTH axes vs one axis
+// only?" still requires cross-referencing two sections. Two KPIs with
+// identical direction p50/p90 can differ sharply on the magnitude axis: one
+// carries a fat |Δ%| tail (weeks of sustained direction that also happen to
+// clear the amber band) while the other stays inside the band (sustained
+// direction without material magnitude). Neither the direction-side nor the
+// magnitude-side per-metric summary exposes that split as a single scorecard
+// row.
+//
+// This module closes that gap. Fold BOTH axes over the SAME rolling trend and
+// emit one row per HEADLINE_METRICS KPI with side-by-side scalar reductions
+// for direction (from P11.97's fold) and magnitude (from P11.99's fold). One
+// consolidated table with one row per KPI so ops can answer "does THIS KPI
+// churn direction-persistently AND magnitude-persistently, or only one, or
+// neither?" without ever scrolling between two digest sections.
+//
+// Pure-lib-first per the P11.14 → P11.15 / P11.20 → P11.21 / P11.22 → P11.23 /
+// P11.24 → P11.25 / P11.26 → P11.27 / P11.28 → P11.29 / P11.30 → P11.31 /
+// P11.32 → P11.33 / P11.34 → P11.35 / P11.37 → P11.38 / P11.39 → P11.40 /
+// P11.41 → P11.42 / P11.43 → P11.44 / P11.45 → P11.46 / P11.47 → P11.48 /
+// P11.49 → P11.50 / P11.51 → P11.52 / P11.53 → P11.54 / P11.55 → P11.56 /
+// P11.57 → P11.58 / P11.59 → P11.60 / P11.61 → P11.62 / P11.63 → P11.64 /
+// P11.65 → P11.66 / P11.67 → P11.68 / P11.69 → P11.70 / P11.71 → P11.72 /
+// P11.73 → P11.74 / P11.75 → P11.76 / P11.77 → P11.78 / P11.79 → P11.80 /
+// P11.81 → P11.82 / P11.83 → P11.84 / P11.85 → P11.86 / P11.87 → P11.88 /
+// P11.89 → P11.90 / P11.91 → P11.92 / P11.93 → P11.94 / P11.95 → P11.96 /
+// P11.97 → P11.98 / P11.99 → P11.100 cadence. Cron-route wiring intentionally
+// deferred to a follow-up tick (P11.102) so this cross-axis synthesis can be
+// exercised in isolation before touching the hot Monday cron path.
+//
+// Formatter docblock explicit placement rule: the P11.102 cron wiring should
+// splice the per-metric persistence scorecard section IMMEDIATELY BELOW the
+// P11.99/P11.100 per-metric magnitude percentile section (the last per-metric
+// summary in the current ladder) and ABOVE the per-partner ladder so ops walks
+// per-metric coverage (P11.63) → per-metric top-N (P11.71) → per-metric
+// direction shape (P11.85) → per-metric direction scalar (P11.97) → per-metric
+// magnitude shape (P11.87) → per-metric magnitude scalar (P11.99) →
+// per-metric BOTH-AXES scorecard (THIS MODULE) → per-partner ladder. The
+// scorecard is the "capstone" per-metric row so its placement at the bottom
+// of the per-metric ladder is intentional: a reader who already saw the
+// direction and magnitude summaries above can immediately reconcile them into
+// a single per-KPI verdict without scrolling back up.
+//
+// Design notes:
+//   • Consumes DigestSnapshotPerResellerRollingTrend directly and delegates
+//     to BOTH computeDigestSnapshotPerMetricDirectionStreakLengthPercentiles
+//     (P11.97) and computeDigestSnapshotPerMetricPctChangeStreakLengthPercentiles
+//     (P11.99). Scorecard rows cannot diverge from the two summaries they
+//     side-by-side because they ARE the same folds joined by KPI key.
+//   • Threshold from the source envelope is carried through so JSONL
+//     consumers can distinguish "MRR magnitude persistence increased at the
+//     SAME 25% threshold" (real KPI shape change) from "MRR magnitude
+//     persistence appeared to increase because the threshold widened to 40%"
+//     (apparent shift). Matches P11.91/P11.95/P11.99 threshold-passthrough
+//     posture.
+//   • Group ordering: HEADLINE_METRICS spec order (canonical KPI ladder,
+//     matches P11.63 / P11.71 / P11.85 / P11.87 / P11.97 / P11.99 posture).
+//   • KPIs are included when EITHER axis qualifies (direction OR magnitude).
+//     A KPI omitted from both axes is silently skipped. When one axis
+//     qualifies and the other does not, the missing-axis scalars are 0
+//     (total_streaks=0, p50/p90/mean/max=0) so ops can visually see the
+//     asymmetry (fat direction column with a zero magnitude column ⇒ this
+//     KPI carries sustained direction without material |Δ%|; opposite ⇒
+//     KPI churns materially but flips direction each week).
+//   • Formatter returns "" when window_size < 3 (a 2-week window cannot host
+//     a length-2 streak — matches P11.51 / P11.83 / P11.87 / P11.91 / P11.93
+//     / P11.95 / P11.97 / P11.99 posture) OR when zero groups qualify.
+
+import {
+  HEADLINE_METRICS,
+  type HeadlineMetricUnit,
+} from "./digest-snapshot-metric-delta";
+import { PCT_CHANGE_MATERIAL_THRESHOLD } from "./digest-snapshot-metric-pct-change";
+import type { DigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-reseller-rolling-trend";
+import { DEFAULT_MIN_STREAK_LENGTH } from "./digest-snapshot-per-reseller-pct-change-streaks";
+import { computeDigestSnapshotPerMetricDirectionStreakLengthPercentiles } from "./digest-snapshot-per-metric-direction-streak-length-percentiles";
+import { computeDigestSnapshotPerMetricPctChangeStreakLengthPercentiles } from "./digest-snapshot-per-metric-pct-change-streak-length-percentiles";
+import type { KnownKpiSection } from "./digest-snapshot";
+
+export interface PerMetricPersistenceScorecardAxis {
+  readonly total_streaks: number;
+  readonly p50_length: number;
+  readonly p90_length: number;
+  readonly mean_length: number;
+  readonly max_length: number;
+}
+
+export interface PerMetricPersistenceScorecardRow {
+  readonly key: KnownKpiSection;
+  readonly metric_name: string;
+  readonly unit: HeadlineMetricUnit;
+  readonly direction: PerMetricPersistenceScorecardAxis;
+  readonly magnitude: PerMetricPersistenceScorecardAxis;
+}
+
+export interface DigestSnapshotPerMetricPersistenceScorecard {
+  readonly window_size: number;
+  readonly first_week: string | null;
+  readonly last_week: string | null;
+  readonly min_streak_length: number;
+  readonly threshold: number;
+  readonly rows: readonly PerMetricPersistenceScorecardRow[];
+}
+
+const EMPTY_AXIS: PerMetricPersistenceScorecardAxis = {
+  total_streaks: 0,
+  p50_length: 0,
+  p90_length: 0,
+  mean_length: 0,
+  max_length: 0,
+};
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/**
+ * Fold a DigestSnapshotPerResellerRollingTrend into a per-metric persistence
+ * scorecard that side-by-sides the direction and |pct|-material magnitude
+ * scalar reductions. For each HEADLINE_METRICS KPI that qualifies on at least
+ * one axis, emits a row with two side-by-side blocks (direction + magnitude);
+ * each block carries p50 / p90 / mean / max reduced from that KPI's streak
+ * lengths on that axis. Delegates to P11.97 + P11.99 so scorecard rows cannot
+ * diverge from those summaries.
+ *
+ * Group ordering: HEADLINE_METRICS spec order. KPIs omitted from BOTH axes
+ * are silently skipped. When one axis qualifies and the other does not, the
+ * missing-axis block is zero-filled so ops can see the asymmetry visually.
+ * minStreakLength + threshold are forwarded to the respective detectors; each
+ * detector handles its own coercion.
+ */
+export function computeDigestSnapshotPerMetricPersistenceScorecard(
+  trend: DigestSnapshotPerResellerRollingTrend,
+  minStreakLength: number = DEFAULT_MIN_STREAK_LENGTH,
+  threshold: number = PCT_CHANGE_MATERIAL_THRESHOLD,
+): DigestSnapshotPerMetricPersistenceScorecard {
+  const direction =
+    computeDigestSnapshotPerMetricDirectionStreakLengthPercentiles(
+      trend,
+      minStreakLength,
+    );
+  const magnitude =
+    computeDigestSnapshotPerMetricPctChangeStreakLengthPercentiles(
+      trend,
+      minStreakLength,
+      threshold,
+    );
+
+  const directionByKey = new Map(direction.groups.map((g) => [g.key, g]));
+  const magnitudeByKey = new Map(magnitude.groups.map((g) => [g.key, g]));
+
+  const rows: PerMetricPersistenceScorecardRow[] = [];
+  for (const spec of HEADLINE_METRICS) {
+    const dir = directionByKey.get(spec.key);
+    const mag = magnitudeByKey.get(spec.key);
+    if (!dir && !mag) continue;
+
+    const metric_name = dir?.metric_name ?? mag?.metric_name ?? spec.metric_name;
+    const unit = dir?.unit ?? mag?.unit ?? spec.unit;
+
+    rows.push({
+      key: spec.key,
+      metric_name,
+      unit,
+      direction: dir
+        ? {
+            total_streaks: dir.total_streaks,
+            p50_length: dir.p50_length,
+            p90_length: dir.p90_length,
+            mean_length: dir.mean_length,
+            max_length: dir.max_length,
+          }
+        : EMPTY_AXIS,
+      magnitude: mag
+        ? {
+            total_streaks: mag.total_streaks,
+            p50_length: mag.p50_length,
+            p90_length: mag.p90_length,
+            mean_length: mag.mean_length,
+            max_length: mag.max_length,
+          }
+        : EMPTY_AXIS,
+    });
+  }
+
+  return {
+    window_size: direction.window_size,
+    first_week: direction.first_week,
+    last_week: direction.last_week,
+    min_streak_length: direction.min_streak_length,
+    threshold: magnitude.threshold,
+    rows,
+  };
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Render the per-metric direction+magnitude persistence scorecard as a
+ * single consolidated table with one row per qualifying KPI and TWO
+ * side-by-side blocks per row (direction axis on the left, magnitude axis on
+ * the right, each with total / p50 / p90 / mean / max). The one-table-many-
+ * rows shape mirrors P11.95 / P11.97 / P11.99; the twin-block shape is unique
+ * to this capstone summary because the whole point is direct cross-axis
+ * comparison for each KPI.
+ *
+ * The caption embeds the magnitude threshold percent so a reader sees at a
+ * glance which amber band the |Δ%| block is scored against — matches P11.91 /
+ * P11.95 / P11.99 caption pattern on the magnitude axis. The direction block
+ * has no tunable threshold (a direction streak is any run of same-sign
+ * transitions) so no direction-side threshold is embedded.
+ *
+ * In the P11.102 cron wiring this lands directly BELOW the P11.99/P11.100
+ * per-metric |Δ%|-material percentile section — the capstone position at the
+ * bottom of the per-metric ladder so a reader who already saw direction and
+ * magnitude summaries above can immediately reconcile them into a single
+ * per-KPI verdict without scrolling back up.
+ *
+ * Returns "" when window_size < 3 (a 2-week window cannot host a length-2
+ * streak — matches P11.51 / P11.87 / P11.91 / P11.95 / P11.97 / P11.99
+ * posture) OR when zero rows qualify.
+ */
+export function formatDigestSnapshotPerMetricPersistenceScorecardSection(
+  scorecard: DigestSnapshotPerMetricPersistenceScorecard,
+): string {
+  if (scorecard.window_size < 3) return "";
+  if (scorecard.rows.length === 0) return "";
+
+  const firstWeek = scorecard.first_week ? escapeHtml(scorecard.first_week) : "";
+  const lastWeek = scorecard.last_week ? escapeHtml(scorecard.last_week) : "";
+  const thresholdPct = round1(scorecard.threshold * 100).toFixed(1);
+
+  const rowsHtml = scorecard.rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${escapeHtml(row.key)}</td>
+          <td>${escapeHtml(row.metric_name)}</td>
+          <td style="text-align:right">${row.direction.total_streaks}</td>
+          <td style="text-align:right">${row.direction.p50_length}</td>
+          <td style="text-align:right">${row.direction.p90_length}</td>
+          <td style="text-align:right">${row.direction.mean_length.toFixed(1)}</td>
+          <td style="text-align:right">${row.direction.max_length}</td>
+          <td style="text-align:right">${row.magnitude.total_streaks}</td>
+          <td style="text-align:right">${row.magnitude.p50_length}</td>
+          <td style="text-align:right">${row.magnitude.p90_length}</td>
+          <td style="text-align:right">${row.magnitude.mean_length.toFixed(1)}</td>
+          <td style="text-align:right">${row.magnitude.max_length}</td>
+        </tr>`,
+    )
+    .join("");
+
+  return `
+    <h3 style="margin-top:24px;font-family:Arial,sans-serif;font-size:14px">Per-metric direction &plus; magnitude persistence scorecard across the ${scorecard.window_size}-week window (${firstWeek} &rarr; ${lastWeek}) at the ${thresholdPct}% magnitude threshold</h3>
+    <p style="font-family:Arial,sans-serif;font-size:13px">Side-by-side scalar reduction of the P11.97 direction-axis and P11.99 magnitude-axis per-metric percentile summaries so ops can answer &ldquo;does THIS KPI churn direction-persistently AND magnitude-persistently, or only one, or neither?&rdquo; without scrolling between the two upstream sections. Two KPIs with identical direction p50/p90 can differ sharply on the magnitude axis (fat direction column beside a zero magnitude column &rArr; sustained direction inside the amber band; opposite &rArr; volatile |&Delta;%| but flips direction each week). Nearest-rank method (inclusive) matches the P11.89 / P11.91 / P11.93 / P11.95 / P11.97 / P11.99 yardstick so the direction and magnitude scalars in this scorecard are directly comparable to the upstream per-grain summaries. Threshold carried alongside the magnitude block so a shift from magnitude p50=2 to p50=3 at the SAME threshold reads differently from an apparent shift caused by widening the threshold band.</p>
+    <table cellpadding="6" cellspacing="0" border="1" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px">
+      <thead>
+        <tr>
+          <th rowspan="2">KPI</th>
+          <th rowspan="2">Metric</th>
+          <th colspan="5" style="text-align:center">Direction axis (P11.97)</th>
+          <th colspan="5" style="text-align:center">Magnitude axis (P11.99)</th>
+        </tr>
+        <tr>
+          <th>Total</th>
+          <th>p50</th>
+          <th>p90</th>
+          <th>Mean</th>
+          <th>Max</th>
+          <th>Total</th>
+          <th>p50</th>
+          <th>p90</th>
+          <th>Mean</th>
+          <th>Max</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}
+      </tbody>
+    </table>`;
+}
