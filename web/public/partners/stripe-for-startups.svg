@@ -1,4 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" role="img" aria-label="Stripe for Startups" preserveAspectRatio="xMidYMid meet">
   <title>Stripe for Startups</title>
-  <text x="120" y="36" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="19" font-weight="700" letter-spacing="0.5" fill="currentColor">Stripe for Startups</text>
+  <!-- Icon: flowing chevrons evoking Stripe's payment flow -->
+  <g fill="currentColor">
+    <path d="M12 22 L22 30 L12 38 Z" opacity="0.55"/>
+    <path d="M24 22 L34 30 L24 38 Z" opacity="0.8"/>
+    <path d="M36 22 L46 30 L36 38 Z"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="58" y="28" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="16" font-weight="800" letter-spacing="-0.3" fill="currentColor">stripe</text>
+  <text x="58" y="46" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="12" font-weight="500" letter-spacing="1.4" fill="currentColor" opacity="0.85">FOR STARTUPS</text>
 </svg>
