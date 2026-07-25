@@ -33,7 +33,18 @@ import type { AccountType, Segment } from "@/lib/segments";
 // `app_users.segment` (which overlaps AccountType but adds `lp`), or the
 // virtual `admin` role. Accept the union so callers pass whatever they
 // have without needing to map first.
-export type RoleKey = AccountType | Segment | "admin";
+//
+// Virtual role keys — added for the role-based-2026-07-25 consolidation
+// even though the DB `account_type` CHECK constraint does not yet include
+// them. The onboarding wizard + admin provisioning use these values in
+// memory to select the right overlay; a follow-up migration extends the
+// DB enum.
+export type RoleKey =
+  | AccountType
+  | Segment
+  | "admin"
+  | "mentor"
+  | "innovator";
 
 export interface TopNavExtra {
   href: string;
@@ -161,6 +172,34 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
     // top-bar extra makes the console 1-click from any page.
     topNavExtras: [
       { href: "/reseller", label: "Reseller", badge: "Console" },
+    ],
+    sidebarOrder: ["Home", "Roles", "Account"],
+    defaultCollapsedGroups: ["Account"],
+  },
+
+  // Program mentor (attributed via reseller / accelerator invite). Mentor
+  // work happens under /reseller/mentor/*; the workspace sidebar is a thin
+  // shell — Home + Roles + Account only — with a top-nav bridge back to
+  // the mentor console. Founder ops (Validate/Build/Fundraise/Scale)
+  // are hidden because a mentor never edits a founder's workspace.
+  mentor: {
+    roleLabel: "Program Mentor",
+    hiddenGroups: ["Validate", "Build", "Fundraise", "Scale & Exit"],
+    topNavExtras: [
+      { href: "/reseller/mentor", label: "Mentor", badge: "Console" },
+    ],
+    sidebarOrder: ["Home", "Roles", "Account"],
+    defaultCollapsedGroups: ["Account"],
+  },
+
+  // Corporate innovator (VP Innovation / Ventures teams). Full corporate
+  // console lives under /innovator/* — sibling to /reseller. Workspace
+  // sidebar is the same minimal shell as the mentor/reseller pattern.
+  innovator: {
+    roleLabel: "Corporate Innovator",
+    hiddenGroups: ["Validate", "Build", "Fundraise", "Scale & Exit"],
+    topNavExtras: [
+      { href: "/innovator", label: "Innovator", badge: "Console" },
     ],
     sidebarOrder: ["Home", "Roles", "Account"],
     defaultCollapsedGroups: ["Account"],
