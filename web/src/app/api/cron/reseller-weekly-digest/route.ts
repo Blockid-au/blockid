@@ -1615,6 +1615,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPersistenceScorecardVerdict
     | null = null;
   let persistenceScorecardVerdictSection = "";
+  let snapshotPersistenceScorecardVerdictTransition:
+    | DigestSnapshotPersistenceScorecardVerdictTransition
+    | null = null;
+  let persistenceScorecardVerdictTransitionSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2381,6 +2385,70 @@ export async function GET(req: Request) {
       formatDigestSnapshotPersistenceScorecardVerdictSection(
         snapshotPersistenceScorecardVerdict,
       );
+    // P11.114 — portfolio persistence scorecard verdict TRANSITION caption
+    // (module P11.113). Pure derivation of two P11.107 verdicts (previous,
+    // current) into ONE discrete transition token — first_classification /
+    // undecidable / stable / improved / degraded / rotated — so ops can spot
+    // a week-over-week flip like sustained_both_axes → volatile without
+    // keeping last week's verdict in their head. Splices directly BELOW the
+    // P11.108 persistenceScorecardVerdictSection so the reader sees the
+    // current-week verdict badge above and the transition badge inline below
+    // without diffing two verdict rows in their head each Monday. Formatter
+    // returns "" for first_classification (no baseline to diff — fresh
+    // install week) and stable (verdict caption above already fully describes
+    // the state) so the digest stays quiet when the transition itself carries
+    // no new information. Previous verdict token is decoded defensively from
+    // previousSnapshot.envelope.snapshot_persistence_scorecard_verdict.verdict
+    // — older snapshots (pre-P11.108 tick 505) store {skipped_reason} instead
+    // of a verdict object and fall through to `null`, which the module treats
+    // as first_classification (baseline-establishment week). Envelope entry
+    // lands beside snapshot_persistence_scorecard_verdict so JSONL consumers
+    // can grep 'transition=degraded' week over week without side-loading the
+    // P11.107 verdict scalars.
+    const previousPortfolioVerdictRaw =
+      previousSnapshot.envelope.snapshot_persistence_scorecard_verdict;
+    let previousPortfolioVerdict: DigestSnapshotPersistenceScorecardVerdict | null =
+      null;
+    if (
+      previousPortfolioVerdictRaw &&
+      typeof previousPortfolioVerdictRaw === "object"
+    ) {
+      const record = previousPortfolioVerdictRaw as Record<string, unknown>;
+      const token = record.verdict;
+      const KNOWN_VERDICT_TOKENS: readonly PersistenceScorecardVerdictToken[] = [
+        "insufficient_window",
+        "flat",
+        "sustained_both_axes",
+        "sustained_direction_only",
+        "sustained_magnitude_only",
+        "volatile",
+      ];
+      if (
+        typeof token === "string" &&
+        (KNOWN_VERDICT_TOKENS as readonly string[]).includes(token)
+      ) {
+        previousPortfolioVerdict = {
+          verdict: token as PersistenceScorecardVerdictToken,
+          sustained_p90_threshold:
+            typeof record.sustained_p90_threshold === "number"
+              ? record.sustained_p90_threshold
+              : 3,
+          direction_sustained: record.direction_sustained === true,
+          magnitude_sustained: record.magnitude_sustained === true,
+          summary:
+            typeof record.summary === "string" ? record.summary : "",
+        };
+      }
+    }
+    snapshotPersistenceScorecardVerdictTransition =
+      computeDigestSnapshotPersistenceScorecardVerdictTransition(
+        snapshotPersistenceScorecardVerdict,
+        previousPortfolioVerdict,
+      );
+    persistenceScorecardVerdictTransitionSection =
+      formatDigestSnapshotPersistenceScorecardVerdictTransitionSection(
+        snapshotPersistenceScorecardVerdictTransition,
+      );
     // P11.82 — per-partner sustained-direction streak length-frequency
     // histogram (module P11.81). Per-partner analogue of the P11.78 portfolio
     // histogram, closing the histogram family's per-partner axis symmetric
@@ -2819,7 +2887,8 @@ export async function GET(req: Request) {
     perResellerPersistenceScorecardSection ||
     perResellerPersistenceScorecardVerdictSection ||
     persistenceScorecardSection ||
-    persistenceScorecardVerdictSection
+    persistenceScorecardVerdictSection ||
+    persistenceScorecardVerdictTransitionSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -2862,6 +2931,7 @@ export async function GET(req: Request) {
       pctChangeStreakLengthPercentilesSection +
       persistenceScorecardSection +
       persistenceScorecardVerdictSection +
+      persistenceScorecardVerdictTransitionSection +
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
@@ -3938,6 +4008,26 @@ export async function GET(req: Request) {
             magnitude_sustained:
               snapshotPersistenceScorecardVerdict.magnitude_sustained,
             summary: snapshotPersistenceScorecardVerdict.summary,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_persistence_scorecard_verdict_transition:
+      snapshotPersistenceScorecardVerdictTransition
+        ? {
+            transition:
+              snapshotPersistenceScorecardVerdictTransition.transition,
+            from_verdict:
+              snapshotPersistenceScorecardVerdictTransition.from_verdict,
+            to_verdict:
+              snapshotPersistenceScorecardVerdictTransition.to_verdict,
+            from_rank:
+              snapshotPersistenceScorecardVerdictTransition.from_rank,
+            to_rank: snapshotPersistenceScorecardVerdictTransition.to_rank,
+            delta_rank:
+              snapshotPersistenceScorecardVerdictTransition.delta_rank,
+            summary: snapshotPersistenceScorecardVerdictTransition.summary,
           }
         : {
             skipped_reason:
