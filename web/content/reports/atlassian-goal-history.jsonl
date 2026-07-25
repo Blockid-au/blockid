@@ -779,3 +779,5 @@
 {"tick_id":"2026-07-25T05-47-02-049Z","ts":"2026-07-25T05:47:02.050Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T05-47-02-049Z","ts":"2026-07-25T05:47:02.057Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-25T06-00-00-000Z","ts":"2026-07-25T06:00:00.000Z","loop_label":"atlassian-goal-loop","stage":"tick_complete","phase_id":"P1n-wgea-modslavery-e2e","result":"shipped","surface":"web/tests/e2e/compliance/wgea.spec.ts + web/tests/e2e/compliance/modern-slavery.spec.ts","tests_added":12,"tests_passed":12,"typecheck":"green","files_added":2,"files_modified":2}
+{"tick_id":"2026-07-25T05-47-02-049Z","ts":"2026-07-25T05:54:33.130Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":451070,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-25T05-47-02-049Z","ts":"2026-07-25T05:54:33.161Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
