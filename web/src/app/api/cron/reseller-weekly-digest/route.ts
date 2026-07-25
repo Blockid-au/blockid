@@ -244,6 +244,11 @@ import {
   type DigestSnapshotPerMetricPersistenceScorecard,
 } from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard";
 import {
+  computeDigestSnapshotPerMetricPersistenceScorecardVerdict,
+  formatDigestSnapshotPerMetricPersistenceScorecardVerdictSection,
+  type DigestSnapshotPerMetricPersistenceScorecardVerdict,
+} from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard-verdict";
+import {
   computeDigestSnapshotPerResellerPersistenceScorecard,
   formatDigestSnapshotPerResellerPersistenceScorecardSection,
   type DigestSnapshotPerResellerPersistenceScorecard,
@@ -1580,6 +1585,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricPersistenceScorecard
     | null = null;
   let perMetricPersistenceScorecardSection = "";
+  let snapshotPerMetricPersistenceScorecardVerdict:
+    | DigestSnapshotPerMetricPersistenceScorecardVerdict
+    | null = null;
+  let perMetricPersistenceScorecardVerdictSection = "";
   let snapshotPerResellerPersistenceScorecard:
     | DigestSnapshotPerResellerPersistenceScorecard
     | null = null;
@@ -2704,6 +2713,31 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerMetricPersistenceScorecardSection(
         snapshotPerMetricPersistenceScorecard,
       );
+    // P11.110 — per-metric persistence scorecard VERDICT table (module
+    // P11.109). Per-KPI analogue of the portfolio P11.107/P11.108 verdict
+    // caption — collapses each row of the P11.101 per-metric twin-block
+    // scalar table above into ONE discrete verdict token so ops stops running
+    // the "is direction p90=3 sustained?" ladder mentally per HEADLINE_METRICS
+    // row (attributed_mrr, attributed_churn_30d, clawback_exposure, etc.).
+    // Splices directly BELOW the P11.102 perMetricPersistenceScorecardSection
+    // so a reader who already saw the per-KPI direction and magnitude scalar
+    // rows can immediately read the collapsed per-KPI verdicts without
+    // reconciling every twin-block row in their head. Formatter returns "" on
+    // window_size < 3 OR when every row resolves to `flat` /
+    // `insufficient_window` (mirrors the P11.101 scorecard formatter's own
+    // short-window suppression posture) so the digest stays quiet on quiet
+    // KPIs — no orphan verdict table below an empty scorecard block. Envelope
+    // entry lands beside the P11.102 snapshot_per_metric_persistence_scorecard
+    // entry so JSONL consumers grep 'verdict=sustained_both_axes' per KPI
+    // without side-loading the P11.102 scorecard rows.
+    snapshotPerMetricPersistenceScorecardVerdict =
+      computeDigestSnapshotPerMetricPersistenceScorecardVerdict(
+        snapshotPerMetricPersistenceScorecard,
+      );
+    perMetricPersistenceScorecardVerdictSection =
+      formatDigestSnapshotPerMetricPersistenceScorecardVerdictSection(
+        snapshotPerMetricPersistenceScorecardVerdict,
+      );
   }
   if (
     topMoversSection ||
@@ -2738,6 +2772,7 @@ export async function GET(req: Request) {
     perMetricPctChangeStreakLengthHistogramSection ||
     perMetricPctChangeStreakLengthPercentilesSection ||
     perMetricPersistenceScorecardSection ||
+    perMetricPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardSection ||
     persistenceScorecardSection ||
     persistenceScorecardVerdictSection
@@ -2789,6 +2824,7 @@ export async function GET(req: Request) {
       perMetricPctChangeStreakLengthHistogramSection +
       perMetricPctChangeStreakLengthPercentilesSection +
       perMetricPersistenceScorecardSection +
+      perMetricPersistenceScorecardVerdictSection +
       perResellerPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreakLengthPercentilesSection +
@@ -3767,6 +3803,26 @@ export async function GET(req: Request) {
               snapshotPerMetricPersistenceScorecard.threshold,
             rows:
               snapshotPerMetricPersistenceScorecard.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_persistence_scorecard_verdict:
+      snapshotPerMetricPersistenceScorecardVerdict
+        ? {
+            window_size:
+              snapshotPerMetricPersistenceScorecardVerdict.window_size,
+            first_week:
+              snapshotPerMetricPersistenceScorecardVerdict.first_week,
+            last_week:
+              snapshotPerMetricPersistenceScorecardVerdict.last_week,
+            sustained_p90_threshold:
+              snapshotPerMetricPersistenceScorecardVerdict.sustained_p90_threshold,
+            threshold:
+              snapshotPerMetricPersistenceScorecardVerdict.threshold,
+            rows:
+              snapshotPerMetricPersistenceScorecardVerdict.rows,
           }
         : {
             skipped_reason:
