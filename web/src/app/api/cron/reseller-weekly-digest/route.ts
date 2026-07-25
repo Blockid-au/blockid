@@ -254,6 +254,11 @@ import {
   type DigestSnapshotPersistenceScorecard,
 } from "@/lib/reseller/digest-snapshot-persistence-scorecard";
 import {
+  computeDigestSnapshotPersistenceScorecardVerdict,
+  formatDigestSnapshotPersistenceScorecardVerdictSection,
+  type DigestSnapshotPersistenceScorecardVerdict,
+} from "@/lib/reseller/digest-snapshot-persistence-scorecard-verdict";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1582,6 +1587,10 @@ export async function GET(req: Request) {
   let snapshotPersistenceScorecard: DigestSnapshotPersistenceScorecard | null =
     null;
   let persistenceScorecardSection = "";
+  let snapshotPersistenceScorecardVerdict:
+    | DigestSnapshotPersistenceScorecardVerdict
+    | null = null;
+  let persistenceScorecardVerdictSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2326,6 +2335,28 @@ export async function GET(req: Request) {
     persistenceScorecardSection = formatDigestSnapshotPersistenceScorecardSection(
       snapshotPersistenceScorecard,
     );
+    // P11.108 — portfolio persistence scorecard VERDICT caption (module
+    // P11.107). Pure derivation of the P11.105 scorecard scalars into ONE
+    // discrete verdict token (insufficient_window | flat | sustained_both_axes
+    // | sustained_direction_only | sustained_magnitude_only | volatile) plus a
+    // short human-readable summary. Splices directly BELOW the P11.106
+    // persistenceScorecardSection so ops reads the twin-block numeric row
+    // above and the collapsed verdict caption inline below without redoing
+    // the mental classification ladder in their head each Monday. Formatter
+    // returns "" for insufficient_window + flat (mirrors the P11.106 scorecard
+    // formatter's own suppression on those cases) so the digest stays quiet
+    // when the scorecard itself is quiet — no orphan caption below an empty
+    // scorecard block. Envelope entry lands beside the P11.106 scorecard
+    // envelope entry so JSONL consumers can grep 'verdict=sustained_both_axes'
+    // week over week without side-loading the P11.106 scorecard scalars.
+    snapshotPersistenceScorecardVerdict =
+      computeDigestSnapshotPersistenceScorecardVerdict(
+        snapshotPersistenceScorecard,
+      );
+    persistenceScorecardVerdictSection =
+      formatDigestSnapshotPersistenceScorecardVerdictSection(
+        snapshotPersistenceScorecardVerdict,
+      );
     // P11.82 — per-partner sustained-direction streak length-frequency
     // histogram (module P11.81). Per-partner analogue of the P11.78 portfolio
     // histogram, closing the histogram family's per-partner axis symmetric
@@ -2708,7 +2739,8 @@ export async function GET(req: Request) {
     perMetricPctChangeStreakLengthPercentilesSection ||
     perMetricPersistenceScorecardSection ||
     perResellerPersistenceScorecardSection ||
-    persistenceScorecardSection
+    persistenceScorecardSection ||
+    persistenceScorecardVerdictSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -2750,6 +2782,7 @@ export async function GET(req: Request) {
       pctChangeStreakLengthHistogramSection +
       pctChangeStreakLengthPercentilesSection +
       persistenceScorecardSection +
+      persistenceScorecardVerdictSection +
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
@@ -3773,6 +3806,22 @@ export async function GET(req: Request) {
           skipped_reason:
             previousSnapshotSkipReason ?? "no_previous_snapshot",
         },
+    snapshot_persistence_scorecard_verdict:
+      snapshotPersistenceScorecardVerdict
+        ? {
+            verdict: snapshotPersistenceScorecardVerdict.verdict,
+            sustained_p90_threshold:
+              snapshotPersistenceScorecardVerdict.sustained_p90_threshold,
+            direction_sustained:
+              snapshotPersistenceScorecardVerdict.direction_sustained,
+            magnitude_sustained:
+              snapshotPersistenceScorecardVerdict.magnitude_sustained,
+            summary: snapshotPersistenceScorecardVerdict.summary,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     ran_at: now.toISOString(),
   };
 
