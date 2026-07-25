@@ -10,13 +10,22 @@ import {
 } from "@/lib/fundraise";
 import { assertESICEligibleOrWarn } from "@/lib/compliance/esic-funding-gate";
 import { assertDiv83AEligibleOrWarn } from "@/lib/compliance/div83a-funding-gate";
+import { detectEsicMarketing } from "@/lib/compliance/esic-marketing-gate";
 
 // Extra body flag — the /api/fundraise endpoint historically took only
 // FundraiseRound fields. The ESIC gate (P6) needs to know whether the
 // caller is configuring a wholesale-only round so we treat this optional
 // boolean as an additive body slot. Unknown values fall back to false.
+// P9-esic-round-marketing-gate additionally reads the pitch marketing
+// metadata slots (marketedAsEsic / pitchClaimsEsic / pitchDescription /
+// tags) so any round that markets the Div 360 offset — retail or
+// wholesale — flips the ESIC gate into blocking mode.
 interface FundraisePostBody extends Partial<FundraiseRound> {
   wholesaleOnly?: boolean;
+  marketedAsEsic?: boolean;
+  pitchClaimsEsic?: boolean;
+  pitchDescription?: string | null;
+  tags?: readonly string[];
 }
 
 export const dynamic = "force-dynamic";
@@ -95,6 +104,19 @@ export async function POST(request: NextRequest) {
   // web/src/lib/compliance/esic-funding-gate.ts for the ITAA97 Div 360
   // + AusIndustry ESIC + s911A/s1041H references.
   const wholesaleOnly = body.wholesaleOnly === true;
+  // P9-esic-round-marketing-gate — a retail round that pitches the
+  // Div 360 offset carries the same s1041H exposure as a wholesale-only
+  // round. Flip requireEligible=true whenever the marketing detector
+  // fires so the ESIC gate 412-blocks on missing / stale / ineligible
+  // rather than silently warning.
+  const marketing = detectEsicMarketing({
+    marketedAsEsic: body.marketedAsEsic,
+    pitchClaimsEsic: body.pitchClaimsEsic,
+    roundName: body.roundName,
+    pitchDescription: body.pitchDescription,
+    tags: body.tags,
+  });
+  const esicRequireEligible = wholesaleOnly || marketing.marketed;
   let esicWarn: unknown = undefined;
   let div83aWarn: unknown = undefined;
   try {
@@ -102,8 +124,10 @@ export async function POST(request: NextRequest) {
     const gate = await assertESICEligibleOrWarn(supabase, {
       userId: user.id,
       projectId: project?.id ?? null,
-      requireEligible: wholesaleOnly,
-      action: "fundraise_round_create",
+      requireEligible: esicRequireEligible,
+      action: marketing.marketed
+        ? "fundraise_round_create_marketed_esic"
+        : "fundraise_round_create",
     });
     if (!gate.ok) {
       return NextResponse.json(
@@ -114,6 +138,12 @@ export async function POST(request: NextRequest) {
           message: gate.message,
           url_to_fix: gate.url_to_fix,
           disclaimer: gate.disclaimer,
+          ...(marketing.marketed
+            ? {
+                marketing_signals: marketing.signals,
+                marketing_disclaimer: marketing.disclaimer,
+              }
+            : {}),
         },
         { status: 412 },
       );
@@ -243,6 +273,12 @@ export async function POST(request: NextRequest) {
     newCapTable: result.newCapTable,
     ...(esicWarn ? { esic_warn: esicWarn } : {}),
     ...(div83aWarn ? { div83a_warn: div83aWarn } : {}),
+    ...(marketing.marketed
+      ? {
+          marketing_signals: marketing.signals,
+          marketing_disclaimer: marketing.disclaimer,
+        }
+      : {}),
   });
 }
 
