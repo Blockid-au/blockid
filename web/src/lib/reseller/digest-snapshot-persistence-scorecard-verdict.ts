@@ -178,3 +178,54 @@ export function computeDigestSnapshotPersistenceScorecardVerdict(
     summary: `Portfolio volatile across the ${scorecard.window_size}-week window — streaks exist (direction=${dirStreaks}, magnitude=${magStreaks}) but neither axis p90 clears the ${threshold}-week sustained bar.`,
   };
 }
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+const VERDICT_BADGE_STYLE: Record<PersistenceScorecardVerdictToken, string> = {
+  insufficient_window: "background:#e5e7eb;color:#374151",
+  flat: "background:#e5e7eb;color:#374151",
+  sustained_both_axes: "background:#065f46;color:#ecfdf5",
+  sustained_direction_only: "background:#1e3a8a;color:#eff6ff",
+  sustained_magnitude_only: "background:#7c2d12;color:#fff7ed",
+  volatile: "background:#7f1d1d;color:#fef2f2",
+};
+
+/**
+ * Render the portfolio persistence scorecard verdict as a short single-line
+ * caption that splices directly below the P11.105/P11.106 scorecard table so
+ * ops sees the twin-block numeric row above and the discrete verdict token +
+ * human-readable summary inline below without redoing the mental classification
+ * ladder in their head each Monday.
+ *
+ * Returns "" for the `insufficient_window` and `flat` verdicts because the
+ * upstream P11.105 scorecard formatter also returns "" in those cases (window
+ * too short to host a length-2 streak, or both axes zero-filled with no
+ * qualifying streaks). Suppressing the verdict caption on the same conditions
+ * keeps the digest quiet on weeks the scorecard itself is quiet — no orphan
+ * "verdict: flat" caption below an empty scorecard block.
+ *
+ * In the P11.108 cron wiring this lands directly BELOW the P11.106
+ * persistenceScorecardSection — the capstone-caption position at the bottom
+ * of the portfolio-grain ladder so a reader who already saw the direction and
+ * magnitude scalar rows can immediately read the collapsed verdict beneath the
+ * numbers rather than reconciling the two blocks in their head.
+ */
+export function formatDigestSnapshotPersistenceScorecardVerdictSection(
+  verdict: DigestSnapshotPersistenceScorecardVerdict,
+): string {
+  if (verdict.verdict === "insufficient_window") return "";
+  if (verdict.verdict === "flat") return "";
+
+  const token = escapeHtml(verdict.verdict);
+  const summary = escapeHtml(verdict.summary);
+  const badgeStyle = VERDICT_BADGE_STYLE[verdict.verdict];
+
+  return `
+    <p style="margin-top:8px;font-family:Arial,sans-serif;font-size:13px"><strong>Portfolio persistence verdict:</strong> <span style="padding:2px 8px;border-radius:4px;font-family:Menlo,monospace;font-size:12px;${badgeStyle}">${token}</span> &mdash; ${summary}</p>`;
+}

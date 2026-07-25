@@ -8,6 +8,7 @@ import { computeDigestSnapshotPersistenceScorecard } from "./digest-snapshot-per
 import {
   computeDigestSnapshotPersistenceScorecardVerdict,
   DEFAULT_SUSTAINED_P90_THRESHOLD,
+  formatDigestSnapshotPersistenceScorecardVerdictSection,
 } from "./digest-snapshot-persistence-scorecard-verdict";
 
 function snap(
@@ -160,5 +161,73 @@ describe("computeDigestSnapshotPersistenceScorecardVerdict — threshold overrid
     const v = computeDigestSnapshotPersistenceScorecardVerdict(scorecard);
     expect(v.sustained_p90_threshold).toBe(DEFAULT_SUSTAINED_P90_THRESHOLD);
     expect(DEFAULT_SUSTAINED_P90_THRESHOLD).toBe(3);
+  });
+});
+
+describe("formatDigestSnapshotPersistenceScorecardVerdictSection", () => {
+  it("returns empty string for insufficient_window (matches scorecard formatter suppression)", () => {
+    const scorecard = scorecardFor([mrrSnap(0, 100), mrrSnap(1, 200)]);
+    const v = computeDigestSnapshotPersistenceScorecardVerdict(scorecard);
+    expect(v.verdict).toBe("insufficient_window");
+    expect(formatDigestSnapshotPersistenceScorecardVerdictSection(v)).toBe("");
+  });
+
+  it("returns empty string for flat (matches scorecard formatter suppression)", () => {
+    const scorecard = scorecardFor([
+      mrrSnap(0, 100),
+      mrrSnap(1, 100),
+      mrrSnap(2, 100),
+    ]);
+    const v = computeDigestSnapshotPersistenceScorecardVerdict(scorecard);
+    expect(v.verdict).toBe("flat");
+    expect(formatDigestSnapshotPersistenceScorecardVerdictSection(v)).toBe("");
+  });
+
+  it("renders sustained_both_axes caption with the token badge + summary", () => {
+    const scorecard = scorecardFor([
+      bothSnap(0, 100, 100),
+      bothSnap(1, 200, 60),
+      bothSnap(2, 400, 30),
+      bothSnap(3, 800, 15),
+      bothSnap(4, 1600, 5),
+    ]);
+    const v = computeDigestSnapshotPersistenceScorecardVerdict(scorecard);
+    const html = formatDigestSnapshotPersistenceScorecardVerdictSection(v);
+    expect(html).toContain("Portfolio persistence verdict");
+    expect(html).toContain("sustained_both_axes");
+    expect(html).toContain("BOTH axes");
+    expect(html).toContain("direction p90=4");
+    expect(html).toContain("magnitude p90=4");
+  });
+
+  it("renders volatile caption with the disambiguating summary", () => {
+    const scorecard = scorecardFor([
+      mrrSnap(0, 10000),
+      mrrSnap(1, 10200),
+      mrrSnap(2, 10404),
+      mrrSnap(3, 10300),
+      mrrSnap(4, 10400),
+      mrrSnap(5, 10504),
+      mrrSnap(6, 10400),
+      mrrSnap(7, 10500),
+    ]);
+    const v = computeDigestSnapshotPersistenceScorecardVerdict(scorecard);
+    const html = formatDigestSnapshotPersistenceScorecardVerdictSection(v);
+    expect(v.verdict).toBe("volatile");
+    expect(html).toContain("volatile");
+    expect(html).toContain("neither axis p90 clears");
+  });
+
+  it("escapes HTML meta-characters in the summary and token", () => {
+    const html = formatDigestSnapshotPersistenceScorecardVerdictSection({
+      verdict: "volatile",
+      sustained_p90_threshold: 3,
+      direction_sustained: false,
+      magnitude_sustained: false,
+      summary: "<script>alert(1)</script> & 'quotes'",
+    });
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&amp;");
   });
 });
