@@ -279,7 +279,7 @@ Atlassian S-1 barely covered product tech (product is described in "Business" na
 | 4.6 | System Architecture Diagram (`:786`) | N/A | 4-11 | AUTO (CTO agent) |
 | 4.7 | Uptime / SLA History 12mo (`:794`) | MD&A key metrics | 7-11 | AUTO (from GA4/Datadog) |
 | 4.8 | Security Incident Register (`:802`) | S-1 "Risk Factors" | 7-11 | AUTO (from audit-log) |
-| 4.9 | Third-Party Dependency Inventory (`:811`) | N/A (open-source in S-1 exhibit 21.1 subsidiaries) | 7-11 | **shipped 2026-07-25 (P7-sbom-generator)** — AUTO via `GET /api/dataroom/sbom` (JSON) / `?format=csv` (spreadsheet), parses `package-lock.json` v3 with `buildSbom()` at `web/src/lib/dataroom/sbom.ts`; SaaS/vendor rows remain NUDGE |
+| 4.9 | Third-Party Dependency Inventory (`:811`) | N/A (open-source in S-1 exhibit 21.1 subsidiaries) | 7-11 | **shipped 2026-07-25 (P7-sbom-generator)** — AUTO via `GET /api/dataroom/sbom` (JSON) / `?format=csv` (spreadsheet), parses `package-lock.json` v3 with `buildSbom()` at `web/src/lib/dataroom/sbom.ts`; **P7-sbom-license-risk (2026-07-25)** layers `classifySbomLicenseRisk()` at `web/src/lib/dataroom/sbom-license-risk.ts` — pure classifier maps each SPDX identifier onto 5 risk bands (`strong_copyleft` / `weak_copyleft` / `unknown` / `permissive` / `other`) with worst-band-wins across compound `OR`/`AND` expressions (WITH-exceptions stripped), splits runtime vs dev counts, and returns a `runtime_risky[]` list sorted strong→unknown→weak so an investor sees the exposure ordered by severity. `LICENSE_RISK_DISCLAIMER` inlined into every response; SaaS/vendor rows remain NUDGE |
 
 ### Folder 5 — Market & Traction (`:822-912`, 9 items)
 | # | BlockID item | Atlassian S-1 equivalent | Phase | Auto-gen? |
