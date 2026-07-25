@@ -1,7 +1,46 @@
 # BlockID.au Product Roadmap
 
 > Startup Verification Intelligence for Australian founders.
-> Last updated: 2026-07-24 (v2.0.0-beta.10 deployed)
+> Last updated: 2026-07-25 (v2.0.0-beta.10 deployed; release `YaGloNOpIM1WO3Kah9iRc`, sha `3b3878ba`)
+
+---
+
+## Phase 3.0: Startup Package Ship 1 (Completed — 2026-07-25)
+
+Guided founder journey from idea → SVI → dataroom → reserved cap-table, wrapped in a single Stripe SKU. Full plan: `/home/dovanlong/.claude/plans/spawn-agent-v-d-ng-cosmic-aho.md`. Migration `0118_startup_package.sql`.
+
+- [x] Sub-goal 1 — DB + entitlement: 4 tables (`startup_package_{purchases,interview,reserved_allocations,progress}`), Zod row schemas in `lib/startup-package/{types,repo}.ts`, `startup_package` feature slug in `tier-visibility.ts`
+- [x] Sub-goal 2 — Stripe SKU + checkout: `founder_package` (A$149 one-off + 25 seed credits), `STRIPE_PRICE_STARTUP_PACKAGE`, webhook grants credits + creates purchase row + seeds Day-0 dataroom
+- [x] Sub-goal 3 — Guided interview UI: `/startup-package/interview/[step]`, 8 phase-mapped steps, useReducer + localStorage state, `/api/startup-package/save-answer` (POST) with 60/hour rate-limit
+- [x] Sub-goal 4 — Agent dispatch: `/api/startup-package/analyze` (POST) — one lead-agent per step, 5/hour rate-limit, credit-priced with 402-if-insufficient, persists to `assembled_reports`
+- [x] Sub-goal 5 — SVI real-time recompute: `svi-recompute.ts` writes `svi_snapshots` with `source:'package_step'` after every answer + analyze; live meter component on dashboard
+- [x] Sub-goal 6 — Package dashboard `/startup-package/[projectId]`: 3-column responsive layout (phase list + phase card + SVI meter/reservation) with credit-priced "Auto-fill" buttons
+- [x] Sub-goal 7 — Auto-fill deliverables: `/api/startup-package/deliverable/[slug]` dispatches to the matching PDF generator, uploads to `dataroom` bucket, inserts `dataroom_files` row with `template_slug='package_<phase>_<key>'`
+- [x] Sub-goal 8 — DB-first cap-table reservation: min-10% + 3-4-letter ticker in `startup_package_reserved_allocations`. On-chain button greyed out (Ship 2)
+- [x] Sub-goal 9 — Public `/startup/[slug]` listing: OG image, generateStaticParams, filtered by `public` flag on `assembled_reports`
+- [x] Sub-goal 10 — Weekly progress email: package-progress block prepended to `founder-digest.ts` when `email_preferences.package_progress`
+- [x] Sub-goal 11 — Feature-tour registered as `startup-package` slug (5 steps: buy → interview → analyze → dashboard → auto-fill)
+- [x] Sub-goal 12 — Nav entry + `/docs/startup-package` guide page + Playwright smoke + integration tests (89/89 passing)
+- [x] Sub-goal 13 — Unicorn Playbook: 14 tasks (from Atlassian/Canva/Xero/SafetyCulture recon) in `unicorn-playbook.ts`, collapsible on phase card, case-study milestones extracted to shared module
+
+**Verified live:** `https://blockid.au/startup-package` → 200 · `/docs/startup-package` → 200
+
+## Phase 3.1: Startup Package Ship 2 (Planned)
+
+Full spec in plan file. Ship 2 deliverables:
+
+- [ ] On-chain token mint (wire greyed-out button to `/api/blockchain/create-token`; EVM address collection + gas subsidy policy)
+- [ ] Pitch video Remotion composition (1-min + 3-min variants; mirror `how-it-works` scene pattern)
+- [ ] Custom subdomain hosting `[slug].blockid.au` (Cloudflare wildcard + Next 16 host-routing)
+- [ ] ABN + trademark guide report (PDF generator + IP Australia / ABR affiliate links; 1 credit/report)
+- [ ] Accelerator apply drafter (LLM drafts application text from interview + SVI; per-program)
+- [ ] Financial projection + GTM auto-fill deliverables (dedicated CFO/CMO agent flow)
+- [ ] CRM link (HubSpot vs native; Zapier webhook over `startup_package_purchases`)
+- [ ] 90-day-revenue tracker tile (GA4 Data API + Stripe; both already wired)
+- [ ] Conference recommender (curated `conferences` seed JSON)
+- [ ] Author real DOCX bodies for the 14 unicorn playbook tasks (currently stubs)
+- [ ] Model Canva / Xero / SafetyCulture as first-class fixtures like `showcase/atlassian/fixture.ts`
+- [ ] Fix `/startup/[slug]` 500 on nonexistent slug — should `notFound()` instead
 
 ---
 

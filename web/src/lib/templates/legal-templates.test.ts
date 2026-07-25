@@ -1131,3 +1131,75 @@ describe("au-founder-agreement template", () => {
     expect(threeFounder).not.toMatch(/\{\{#has_third_founder\}\}/);
   });
 });
+
+describe("au-esic-self-assessment template", () => {
+  const tpl = getTemplate("au-esic-self-assessment");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-9 fundraising template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.slug).toBe("au-esic-self-assessment");
+    expect(tpl?.category).toBe("fundraising");
+    expect(tpl?.phase_slug).toBe("phase-9");
+    expect(
+      listTemplates().some((t) => t.slug === "au-esic-self-assessment"),
+    ).toBe(true);
+  });
+
+  it("declares the Div 360 ITAA97 statutory anchors reviewers need", () => {
+    // Every substring below must appear verbatim in the template body so that
+    // a grep-based diligence check (or a founder scanning for the anchor)
+    // can locate it without ambiguity.
+    for (const needle of [
+      "Division 360",
+      "s360-40",
+      "s360-45",
+      "ITAA 1997",
+      "100",
+      "A$200,000",
+      "A$1,000,000",
+      "A$50,000",
+      "principles-based",
+      "Tax Agent Services Act 2009",
+      "s923B",
+      "s286",
+      "APP 11",
+      "NOT LEGAL ADVICE",
+      "Electronic Transactions Act",
+      "s127",
+    ]) {
+      expect(body, `missing statutory anchor: ${needle}`).toContain(needle);
+    }
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("cites at least 6 statutory + industry sources with https URLs", () => {
+    expect(tpl?.sources.length ?? 0).toBeGreaterThanOrEqual(6);
+    for (const src of tpl?.sources ?? []) {
+      expect(src.label, "source label must be non-empty").toBeTruthy();
+      expect(src.label.trim().length).toBeGreaterThan(0);
+      expect(src.url, `source URL must be https: ${src.label}`).toMatch(
+        /^https:\/\//,
+      );
+    }
+  });
+});
