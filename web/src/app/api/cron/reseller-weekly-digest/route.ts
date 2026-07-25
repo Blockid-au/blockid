@@ -204,6 +204,11 @@ import {
   type DigestSnapshotPerMetricDirectionStreakLengthHistogram,
 } from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-length-histogram";
 import {
+  computeDigestSnapshotPerMetricPctChangeStreakLengthHistogram,
+  formatDigestSnapshotPerMetricPctChangeStreakLengthHistogramSection,
+  type DigestSnapshotPerMetricPctChangeStreakLengthHistogram,
+} from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-length-histogram";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1493,6 +1498,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricDirectionStreakLengthHistogram
     | null = null;
   let perMetricDirectionStreakLengthHistogramSection = "";
+  let snapshotPerMetricPctChangeStreakLengthHistogram:
+    | DigestSnapshotPerMetricPctChangeStreakLengthHistogram
+    | null = null;
+  let perMetricPctChangeStreakLengthHistogramSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2237,6 +2246,45 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerMetricDirectionStreakLengthHistogramSection(
         snapshotPerMetricDirectionStreakLengthHistogram,
       );
+    // P11.88 — per-metric sustained-|pct|-material streak length-frequency
+    // histogram (module P11.87). Per-metric analogue of the P11.79 portfolio
+    // and P11.83 per-partner |pct|-material histograms and magnitude-axis
+    // analogue of the P11.86 per-metric direction histogram wired above,
+    // closing the histogram family's last empty leaf — the per-metric axis
+    // on the magnitude side — symmetric with the P11.63 (coverage) / P11.71
+    // (leaderboard) per-metric splits on the same |pct|-material axis.
+    // Delegates to computeDigestSnapshotPerResellerPctChangeStreaks through
+    // the pure lib so per-metric histogram groups cannot diverge from the
+    // P11.51 spotlight rows they summarise. Consumes the SAME
+    // snapshotPerResellerRollingTrend the P11.51 detector, the P11.71
+    // per-metric leaderboard, and the P11.83 per-partner histogram already
+    // consume (no extra fold, no divergence risk vs. the P11.51 spotlight
+    // rows below). Per-KPI bucket set is DENSE from min_streak_length to
+    // that KPI's own max_length so a KPI whose deepest partner run is
+    // length-4 does not carry a phantom length-5 bucket sourced from a
+    // sibling KPI's tail. Threshold passthrough matches P11.79/P11.83 on
+    // other grains of the magnitude axis so JSONL consumers can distinguish
+    // 'length-2 shares at the 25% band' from 'length-2 shares at a widened
+    // 40% band'. Section splices directly BETWEEN
+    // perMetricPctChangeStreakLeaderboardSection (P11.71/P11.72 per-metric
+    // top-N |pct|-material leaderboard) and
+    // perResellerPctChangeStreakLeaderboardSection (P11.75/P11.76 per-
+    // partner top-N |pct|-material leaderboard) per the P11.87 formatter
+    // docblock's explicit placement rule so ops walks per-metric coverage
+    // (P11.63) → per-metric top-N leaderboard (P11.71) → per-metric shape-
+    // of-persistence tail (this section, new) → per-partner top-N
+    // leaderboard (P11.75) → per-partner shape-of-persistence tail (P11.83)
+    // → per-(metric × partner) spotlight detail (P11.51), grouping every
+    // per-metric surface together before jumping to per-partner surfaces —
+    // mirrors the P11.86 placement on the direction axis.
+    snapshotPerMetricPctChangeStreakLengthHistogram =
+      computeDigestSnapshotPerMetricPctChangeStreakLengthHistogram(
+        snapshotPerResellerRollingTrend,
+      );
+    perMetricPctChangeStreakLengthHistogramSection =
+      formatDigestSnapshotPerMetricPctChangeStreakLengthHistogramSection(
+        snapshotPerMetricPctChangeStreakLengthHistogram,
+      );
   }
   if (
     topMoversSection ||
@@ -2262,7 +2310,8 @@ export async function GET(req: Request) {
     perResellerPctChangeStreakLeaderboardSection ||
     perResellerPctChangeStreakLengthHistogramSection ||
     perResellerPctChangeStreaksSection ||
-    perMetricDirectionStreakLengthHistogramSection
+    perMetricDirectionStreakLengthHistogramSection ||
+    perMetricPctChangeStreakLengthHistogramSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -2302,6 +2351,7 @@ export async function GET(req: Request) {
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
+      perMetricPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreaksSection +
@@ -3108,6 +3158,26 @@ export async function GET(req: Request) {
               snapshotPerMetricDirectionStreakLengthHistogram.min_streak_length,
             groups:
               snapshotPerMetricDirectionStreakLengthHistogram.groups,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_pct_change_streak_length_histogram:
+      snapshotPerMetricPctChangeStreakLengthHistogram
+        ? {
+            window_size:
+              snapshotPerMetricPctChangeStreakLengthHistogram.window_size,
+            first_week:
+              snapshotPerMetricPctChangeStreakLengthHistogram.first_week,
+            last_week:
+              snapshotPerMetricPctChangeStreakLengthHistogram.last_week,
+            min_streak_length:
+              snapshotPerMetricPctChangeStreakLengthHistogram.min_streak_length,
+            threshold:
+              snapshotPerMetricPctChangeStreakLengthHistogram.threshold,
+            groups:
+              snapshotPerMetricPctChangeStreakLengthHistogram.groups,
           }
         : {
             skipped_reason:
