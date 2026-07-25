@@ -752,3 +752,5 @@
 {"tick_id":"2026-07-25T04-47-01-501Z","ts":"2026-07-25T04:47:01.502Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T04-47-01-501Z","ts":"2026-07-25T04:47:01.509Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-25T04-52-33-649Z","ts":"2026-07-25T04:52:33.651Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end","picked":"P11-acquisition-wizard-e2e","artefacts":["web/tests/e2e/founder/acquisition-wizard.spec.ts","web/src/components/dashboard/acquisition-wizard-client.tsx","docs/plans/atlassian-standard-mapping-goal.md"]}
+{"tick_id":"2026-07-25T04-47-01-501Z","ts":"2026-07-25T04:52:56.461Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":354950,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-25T04-47-01-501Z","ts":"2026-07-25T04:52:56.493Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":11}
