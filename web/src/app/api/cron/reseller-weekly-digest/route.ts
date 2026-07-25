@@ -323,6 +323,11 @@ import {
   type DigestSnapshotPersistenceScorecardVerdictTransitionDistribution,
 } from "@/lib/reseller/digest-snapshot-persistence-scorecard-verdict-transition-distribution";
 import {
+  computeDigestSnapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts,
+  formatDigestSnapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlertsSection,
+  type DigestSnapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts,
+} from "@/lib/reseller/digest-snapshot-persistence-scorecard-verdict-transition-distribution-family-alerts";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1703,6 +1708,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPersistenceScorecardVerdictTransitionDistribution
     | null = null;
   let persistenceScorecardVerdictTransitionDistributionSection = "";
+  let snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts:
+    | DigestSnapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts
+    | null = null;
+  let persistenceScorecardVerdictTransitionDistributionFamilyAlertsSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3430,6 +3439,47 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistributionSection(
         snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution,
       );
+    // P11.134 — cross-grain verdict-transition DISTRIBUTION-family alerts
+    // aggregator (module P11.133). Folds the FOUR grain-level distribution
+    // envelopes (portfolio P11.131/P11.132 + per-metric P11.125/P11.126 +
+    // per-partner P11.127/P11.128 + per-(partner × metric) P11.129/P11.130)
+    // into ONE scalar summary — `total_alerts`, `grains_alerting`,
+    // `net_delta_rank` sum, and `highest_signal_grain` pointer — so an ops
+    // JSONL consumer can answer 'is anything alerting THIS week, and if so
+    // how loud?' with a single grep rather than opening four
+    // snapshot_*_persistence_scorecard_verdict_transition_distribution
+    // envelopes and re-summing the scalars in their head. Each of the four
+    // inputs is optional: missing grains (fresh install, previousSnapshot
+    // skipped, partial rollout) are simply skipped in the aggregation. The
+    // compute returns null when ALL FOUR inputs are missing, and the
+    // formatter suppresses on null snapshot / window_size < 3 / total_alerts
+    // === 0 (matches every downstream grain-level suppression posture so a
+    // silent week yields a silent lead). Envelope fields (window_size /
+    // first_week / last_week / threshold / sustained_p90_threshold) are
+    // sourced from the first non-null grain in the fixed priority order
+    // portfolio → per_metric → per_partner → per_pair; the four grains
+    // derive from the SAME weekly snapshot so the envelopes agree by
+    // construction. Section splices ABOVE persistenceScorecardVerdictTransitionDistributionSection
+    // (the portfolio-grain distribution caption) as an executive-summary
+    // lead so ops sees the roll-up first and drills into the specific grain
+    // that owns the largest signal — the four grain-level captions below
+    // stay in their existing splice positions.
+    snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts =
+      computeDigestSnapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts(
+        {
+          portfolio: snapshotPersistenceScorecardVerdictTransitionDistribution,
+          per_metric:
+            snapshotPerMetricPersistenceScorecardVerdictTransitionDistribution,
+          per_partner:
+            snapshotPerResellerPersistenceScorecardVerdictTransitionDistribution,
+          per_pair:
+            snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution,
+        },
+      );
+    persistenceScorecardVerdictTransitionDistributionFamilyAlertsSection =
+      formatDigestSnapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlertsSection(
+        snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts,
+      );
   }
   if (
     topMoversSection ||
@@ -3478,7 +3528,8 @@ export async function GET(req: Request) {
     persistenceScorecardSection ||
     persistenceScorecardVerdictSection ||
     persistenceScorecardVerdictTransitionSection ||
-    persistenceScorecardVerdictTransitionDistributionSection
+    persistenceScorecardVerdictTransitionDistributionSection ||
+    persistenceScorecardVerdictTransitionDistributionFamilyAlertsSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -3522,6 +3573,7 @@ export async function GET(req: Request) {
       persistenceScorecardSection +
       persistenceScorecardVerdictSection +
       persistenceScorecardVerdictTransitionSection +
+      persistenceScorecardVerdictTransitionDistributionFamilyAlertsSection +
       persistenceScorecardVerdictTransitionDistributionSection +
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
@@ -4787,6 +4839,26 @@ export async function GET(req: Request) {
             delta_rank:
               snapshotPersistenceScorecardVerdictTransition.delta_rank,
             summary: snapshotPersistenceScorecardVerdictTransition.summary,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_persistence_scorecard_verdict_transition_distribution_family_alerts:
+      snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts
+        ? {
+            window_size:
+              snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts.window_size,
+            first_week:
+              snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts.first_week,
+            last_week:
+              snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts.last_week,
+            sustained_p90_threshold:
+              snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts.sustained_p90_threshold,
+            threshold:
+              snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts.threshold,
+            alerts:
+              snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts.alerts,
           }
         : {
             skipped_reason:
