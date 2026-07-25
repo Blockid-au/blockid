@@ -343,6 +343,11 @@ import {
   type DigestSnapshotPerPairHotCells,
 } from "@/lib/reseller/digest-snapshot-per-pair-hot-cells";
 import {
+  computeDigestSnapshotPerPairHotCellsSummary,
+  formatDigestSnapshotPerPairHotCellsSummarySection,
+  type DigestSnapshotPerPairHotCellsSummary,
+} from "@/lib/reseller/digest-snapshot-per-pair-hot-cells-summary";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1737,6 +1742,10 @@ export async function GET(req: Request) {
   let perMetricCrossPartnerAlertsSection = "";
   let snapshotPerPairHotCells: DigestSnapshotPerPairHotCells | null = null;
   let perPairHotCellsSection = "";
+  let snapshotPerPairHotCellsSummary:
+    | DigestSnapshotPerPairHotCellsSummary
+    | null = null;
+  let perPairHotCellsSummarySection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3574,6 +3583,26 @@ export async function GET(req: Request) {
       perPairHotCellsSection = formatDigestSnapshotPerPairHotCellsSection(
         snapshotPerPairHotCells,
       );
+      // P11.142 — per-pair hot-cells SCALAR SUMMARY (module P11.141). Scalar
+      // roll-up complement to the granular per-pair hot-cells ranking above:
+      // the P11.139/P11.140 pair emits one row per alert-worthy (partner ×
+      // KPI) cell, this module folds that list into a single-envelope
+      // executive-summary — total cells + sum/max/mean hot_score + fixed-key
+      // {improved, degraded, rotated, undecidable} transition mix + single
+      // loudest partner + single loudest KPI. Splices IMMEDIATELY ABOVE
+      // perPairHotCellsSection per the P11.141 formatter docblock placement
+      // rule so the hierarchy descends per-metric ranking (P11.137) →
+      // per-pair hot-cells SUMMARY (P11.141) → per-pair hot-cells GRANULAR
+      // (P11.139) → per-pair scalar distribution (P11.130): ops reads the
+      // executive-summary lead first (total cells, loudest partner, loudest
+      // KPI, transition mix) and drills straight into the granular table for
+      // the specific cells driving each scalar.
+      snapshotPerPairHotCellsSummary =
+        computeDigestSnapshotPerPairHotCellsSummary(snapshotPerPairHotCells);
+      perPairHotCellsSummarySection =
+        formatDigestSnapshotPerPairHotCellsSummarySection(
+          snapshotPerPairHotCellsSummary,
+        );
     }
   }
   if (
@@ -3619,6 +3648,7 @@ export async function GET(req: Request) {
     perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection ||
     perResellerCrossMetricAlertsSection ||
     perMetricCrossPartnerAlertsSection ||
+    perPairHotCellsSummarySection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -3691,6 +3721,7 @@ export async function GET(req: Request) {
       perResellerMetricPersistenceScorecardVerdictTransitionSection +
       perResellerCrossMetricAlertsSection +
       perMetricCrossPartnerAlertsSection +
+      perPairHotCellsSummarySection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -4845,6 +4876,25 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_per_pair_hot_cells_summary: snapshotPerPairHotCellsSummary
+      ? {
+          window_size: snapshotPerPairHotCellsSummary.window_size,
+          first_week: snapshotPerPairHotCellsSummary.first_week,
+          last_week: snapshotPerPairHotCellsSummary.last_week,
+          sustained_p90_threshold:
+            snapshotPerPairHotCellsSummary.sustained_p90_threshold,
+          threshold: snapshotPerPairHotCellsSummary.threshold,
+          total_hot_cells: snapshotPerPairHotCellsSummary.total_hot_cells,
+          sum_hot_score: snapshotPerPairHotCellsSummary.sum_hot_score,
+          max_hot_score: snapshotPerPairHotCellsSummary.max_hot_score,
+          mean_hot_score: snapshotPerPairHotCellsSummary.mean_hot_score,
+          by_transition: snapshotPerPairHotCellsSummary.by_transition,
+          top_partner: snapshotPerPairHotCellsSummary.top_partner,
+          top_metric: snapshotPerPairHotCellsSummary.top_metric,
+        }
+      : {
+          skipped_reason: previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
     snapshot_per_pair_hot_cells: snapshotPerPairHotCells
       ? {
           window_size: snapshotPerPairHotCells.window_size,
