@@ -1713,3 +1713,6 @@
 {"ts":"2026-07-25T05:18:30.069Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T05-10-01-813Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T05:23:30Z","status":"success","gates":"9/9","pid":"3485649","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-25T05:25:30.385Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.102-per-metric-persistence-scorecard-cron-wiring): wire capstone per-metric direction+magnitude scorecard into Monday digest email + JSONL envelope (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T05:25:48.267Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T05-20-01-514Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T05:32:08Z","status":"success","gates":"9/9","pid":"3517664","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-25T05:35:13.466Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P4a-preview-ui-e2e): Playwright spec for landing-page preview panel on /guide/04-mvp (1 commits)","source":"github-webhook"}
