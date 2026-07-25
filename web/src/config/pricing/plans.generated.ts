@@ -295,6 +295,25 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     },
     "active": true,
     "sort_order": 120
+  },
+  {
+    "id": "founder_package",
+    "segment": "founder",
+    "name": "Startup Package",
+    "price_aud_cents": 14900,
+    "annual_price_aud_cents": 0,
+    "interval": "once",
+    "trial_days": 0,
+    "stripe_env_var": "STRIPE_PRICE_STARTUP_PACKAGE",
+    "feature_flags": [
+      "startup_package",
+      "pdf_branding"
+    ],
+    "usage_limits": {
+      "monthly_credits": 25
+    },
+    "active": true,
+    "sort_order": 95
   }
 ] as const;
 

@@ -10,6 +10,7 @@ exports[`tier-visibility — golden snapshot per tier > tier=accel_ent visible s
   "reseller.create_startup",
   "reseller.grant_credits",
   "share_management",
+  "startup_package",
   "vesting.write",
 ]
 `;
@@ -21,6 +22,7 @@ exports[`tier-visibility — golden snapshot per tier > tier=accel_growth visibl
   "esop.manage",
   "pdf_branding",
   "share_management",
+  "startup_package",
   "vesting.write",
 ]
 `;
@@ -30,6 +32,7 @@ exports[`tier-visibility — golden snapshot per tier > tier=accel_starter visib
   "equity_offer.request",
   "pdf_branding",
   "share_management",
+  "startup_package",
   "vesting.write",
 ]
 `;
@@ -39,11 +42,16 @@ exports[`tier-visibility — golden snapshot per tier > tier=advisor visible slu
   "equity_offer.request",
   "pdf_branding",
   "share_management",
+  "startup_package",
   "vesting.write",
 ]
 `;
 
-exports[`tier-visibility — golden snapshot per tier > tier=angel visible slugs 1`] = `[]`;
+exports[`tier-visibility — golden snapshot per tier > tier=angel visible slugs 1`] = `
+[
+  "startup_package",
+]
+`;
 
 exports[`tier-visibility — golden snapshot per tier > tier=enterprise visible slugs 1`] = `
 [
@@ -55,17 +63,23 @@ exports[`tier-visibility — golden snapshot per tier > tier=enterprise visible 
   "reseller.create_startup",
   "reseller.grant_credits",
   "share_management",
+  "startup_package",
   "vesting.write",
 ]
 `;
 
-exports[`tier-visibility — golden snapshot per tier > tier=free visible slugs 1`] = `[]`;
+exports[`tier-visibility — golden snapshot per tier > tier=free visible slugs 1`] = `
+[
+  "startup_package",
+]
+`;
 
 exports[`tier-visibility — golden snapshot per tier > tier=growth visible slugs 1`] = `
 [
   "equity_offer.request",
   "pdf_branding",
   "share_management",
+  "startup_package",
   "vesting.write",
 ]
 `;
@@ -77,11 +91,16 @@ exports[`tier-visibility — golden snapshot per tier > tier=scale visible slugs
   "esop.manage",
   "pdf_branding",
   "share_management",
+  "startup_package",
   "vesting.write",
 ]
 `;
 
-exports[`tier-visibility — golden snapshot per tier > tier=starter visible slugs 1`] = `[]`;
+exports[`tier-visibility — golden snapshot per tier > tier=starter visible slugs 1`] = `
+[
+  "startup_package",
+]
+`;
 
 exports[`tier-visibility — golden snapshot per tier > tier=vc_ent visible slugs 1`] = `
 [
@@ -93,6 +112,7 @@ exports[`tier-visibility — golden snapshot per tier > tier=vc_ent visible slug
   "reseller.create_startup",
   "reseller.grant_credits",
   "share_management",
+  "startup_package",
   "vesting.write",
 ]
 `;
@@ -104,6 +124,7 @@ exports[`tier-visibility — golden snapshot per tier > tier=vc_small visible sl
   "esop.manage",
   "pdf_branding",
   "share_management",
+  "startup_package",
   "vesting.write",
 ]
 `;
