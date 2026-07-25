@@ -328,6 +328,11 @@ import {
   type DigestSnapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts,
 } from "@/lib/reseller/digest-snapshot-persistence-scorecard-verdict-transition-distribution-family-alerts";
 import {
+  computeDigestSnapshotPerResellerCrossMetricAlerts,
+  formatDigestSnapshotPerResellerCrossMetricAlertsSection,
+  type DigestSnapshotPerResellerCrossMetricAlerts,
+} from "@/lib/reseller/digest-snapshot-per-reseller-cross-metric-alerts";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1712,6 +1717,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts
     | null = null;
   let persistenceScorecardVerdictTransitionDistributionFamilyAlertsSection = "";
+  let snapshotPerResellerCrossMetricAlerts:
+    | DigestSnapshotPerResellerCrossMetricAlerts
+    | null = null;
+  let perResellerCrossMetricAlertsSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3480,6 +3489,36 @@ export async function GET(req: Request) {
       formatDigestSnapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlertsSection(
         snapshotPersistenceScorecardVerdictTransitionDistributionFamilyAlerts,
       );
+    // P11.136 — per-partner cross-metric alerts ranking (module P11.135).
+    // Folds the P11.123 per-(partner × metric) verdict-transition envelope
+    // into a ROW-PER-PARTNER cross-metric alerts summary so ops can rank
+    // partners by cross-KPI alert-signal rather than by revenue. Complements
+    // the P11.117/P11.118 per-partner surface (which collapses every partner's
+    // KPI portfolio into a SINGLE verdict token and reports mixed portfolios
+    // only as `rotated` or `undecidable`) AND the P11.129/P11.130 per-pair
+    // distribution (which folds the ENTIRE roster into a single scalar
+    // distribution and strips out partner identity — a JSONL consumer that
+    // wants to rank partners by alert-signal has to walk the row-per-pair
+    // table and re-aggregate by reseller_code themselves).
+    // Consumes the SAME snapshotPerResellerMetricPersistenceScorecardVerdictTransition
+    // the P11.124 formatter + P11.130 distribution already consumed — no
+    // extra fold, no divergence risk vs. the row-per-pair table above.
+    // Section splices IMMEDIATELY BELOW perResellerMetricPersistenceScorecardVerdictTransitionSection
+    // so ops reads the pair-level transitions above and drills straight into
+    // the per-partner ranking below (the P11.130 per-pair distribution scalar
+    // summary lands directly beneath the ranking so the hierarchy is
+    // pair-rows → per-partner ranking → scalar distribution — coarsening
+    // as it descends).
+    if (snapshotPerResellerMetricPersistenceScorecardVerdictTransition) {
+      snapshotPerResellerCrossMetricAlerts =
+        computeDigestSnapshotPerResellerCrossMetricAlerts(
+          snapshotPerResellerMetricPersistenceScorecardVerdictTransition,
+        );
+      perResellerCrossMetricAlertsSection =
+        formatDigestSnapshotPerResellerCrossMetricAlertsSection(
+          snapshotPerResellerCrossMetricAlerts,
+        );
+    }
   }
   if (
     topMoversSection ||
@@ -3522,6 +3561,7 @@ export async function GET(req: Request) {
     perResellerMetricPersistenceScorecardVerdictSection ||
     perResellerMetricPersistenceScorecardVerdictTransitionSection ||
     perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection ||
+    perResellerCrossMetricAlertsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
     perResellerPersistenceScorecardVerdictTransitionDistributionSection ||
@@ -3591,6 +3631,7 @@ export async function GET(req: Request) {
       perResellerMetricPersistenceScorecardSection +
       perResellerMetricPersistenceScorecardVerdictSection +
       perResellerMetricPersistenceScorecardVerdictTransitionSection +
+      perResellerCrossMetricAlertsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
       perResellerPersistenceScorecardVerdictTransitionSection +
@@ -4709,6 +4750,21 @@ export async function GET(req: Request) {
               snapshotPerResellerMetricPersistenceScorecardVerdictTransition.threshold,
             rows:
               snapshotPerResellerMetricPersistenceScorecardVerdictTransition.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_cross_metric_alerts:
+      snapshotPerResellerCrossMetricAlerts
+        ? {
+            window_size: snapshotPerResellerCrossMetricAlerts.window_size,
+            first_week: snapshotPerResellerCrossMetricAlerts.first_week,
+            last_week: snapshotPerResellerCrossMetricAlerts.last_week,
+            sustained_p90_threshold:
+              snapshotPerResellerCrossMetricAlerts.sustained_p90_threshold,
+            threshold: snapshotPerResellerCrossMetricAlerts.threshold,
+            rows: snapshotPerResellerCrossMetricAlerts.rows,
           }
         : {
             skipped_reason:
