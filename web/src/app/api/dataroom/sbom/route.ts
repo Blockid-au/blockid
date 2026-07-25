@@ -17,6 +17,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { buildSbom, type SbomEntry } from "@/lib/dataroom/sbom";
+import { classifySbomLicenseRisk } from "@/lib/dataroom/sbom-license-risk";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -87,8 +88,13 @@ export async function GET(req: NextRequest): Promise<Response> {
     });
   }
 
-  return NextResponse.json(sbom, {
-    status: 200,
-    headers: { "cache-control": "public, max-age=300, s-maxage=300" },
-  });
+  const license_risk = classifySbomLicenseRisk(sbom);
+
+  return NextResponse.json(
+    { ...sbom, license_risk },
+    {
+      status: 200,
+      headers: { "cache-control": "public, max-age=300, s-maxage=300" },
+    },
+  );
 }
