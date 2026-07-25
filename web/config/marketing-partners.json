@@ -1,7 +1,47 @@
 {
-  "//": "Marketing partner display config. LEAVE ARRAYS EMPTY UNTIL A PARTNERSHIP IS REAL AND SIGNED. Do NOT list unverified affiliations.",
+  "//": "Marketing partner display config. LEAVE ARRAYS EMPTY UNTIL A PARTNERSHIP IS REAL AND SIGNED. Do NOT list unverified affiliations. Every entry MUST be recorded in docs/plans/uiux-sync-2026-07-24/01-sponsor-curator.md before it is added here.",
   "headline": "Working with",
   "partners": [],
   "investors_headline": "Backed by",
-  "investors": []
+  "investors": [],
+  "groups": {
+    "accepted": {
+      "label": "Accepted into",
+      "entries": [
+        {
+          "name": "Founder Institute",
+          "src": "/partners/founder-institute.svg",
+          "href": "https://fi.co",
+          "alt": "Founder Institute — global pre-seed accelerator"
+        },
+        {
+          "name": "NVIDIA Inception",
+          "src": "/partners/nvidia-inception.svg",
+          "href": "https://www.nvidia.com/en-us/startups/",
+          "alt": "NVIDIA Inception program member"
+        },
+        {
+          "name": "Spacecubed AI Fellowship",
+          "src": "/partners/spacecubed-ai-fellowship.svg",
+          "href": "https://spacecubed.com/labs/",
+          "alt": "Spacecubed AI Fellowship cohort"
+        }
+      ]
+    },
+    "integrated": {
+      "label": "Integrated with",
+      "entries": [
+        {
+          "name": "Stripe for Startups",
+          "src": "/partners/stripe-for-startups.svg",
+          "href": "https://stripe.com/startups",
+          "alt": "Stripe for Startups — payment infrastructure partner"
+        }
+      ]
+    },
+    "backed": {
+      "label": "Backed by",
+      "entries": []
+    }
+  }
 }

@@ -14,6 +14,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import Link from "next/link";
+import { PartnerFooterRow } from "@/components/marketing/partner-footer-row";
 
 type VersionFile = {
   version?: unknown;
@@ -122,6 +123,13 @@ export function MarketingFooter() {
             </ul>
           </div>
         ))}
+      </div>
+      {/* Curator-controlled accelerator strip — renders NOTHING when the
+          partners config is empty. Inherits fintech ink via currentColor. */}
+      <div className="border-t border-[var(--fintech-border)] text-[var(--fintech-ink-muted)]">
+        <div className="mx-auto max-w-7xl px-6">
+          <PartnerFooterRow group="accepted" />
+        </div>
       </div>
       <div className="border-t border-[var(--fintech-border)]">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
