@@ -132,10 +132,19 @@ export const PLAN_ID_TO_TIER: Record<string, PlanTier> = {
   accel_ent: "accel_ent",
 };
 
-function planIdToTier(planId: string | null | undefined): PlanTier {
+/**
+ * planIdToTier — public exported resolver used by the RSC nav filter and
+ * `getCurrentUserTier()`. Includes the legacy-plan grandfathering baked
+ * into PLAN_ID_TO_TIER above so callers never have to layer LEGACY_PLAN_MAP
+ * on top themselves.
+ */
+export function planIdToTier(planId: string | null | undefined): PlanTier {
   if (!planId) return "free";
   return PLAN_ID_TO_TIER[planId] ?? "free";
 }
+
+/** Snapshot of the plan-id → tier map. Exposed read-only for tests/debug. */
+export const PLAN_ID_TO_TIER_MAP: Readonly<Record<string, PlanTier>> = PLAN_ID_TO_TIER;
 
 /**
  * meetsMinPlan — true when the user's plan rank ≥ the required min-plan rank.
