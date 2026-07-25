@@ -276,6 +276,11 @@ import {
   type DigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransition,
 } from "@/lib/reseller/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict-transition";
 import {
+  computeDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution,
+  formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistributionSection,
+  type DigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution,
+} from "@/lib/reseller/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict-transition-distribution";
+import {
   computeDigestSnapshotPerResellerPersistenceScorecard,
   formatDigestSnapshotPerResellerPersistenceScorecardSection,
   type DigestSnapshotPerResellerPersistenceScorecard,
@@ -1662,6 +1667,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransition
     | null = null;
   let perResellerMetricPersistenceScorecardVerdictTransitionSection = "";
+  let snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution:
+    | DigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution
+    | null = null;
+  let perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection = "";
   let snapshotPerResellerPersistenceScorecardVerdict:
     | DigestSnapshotPerResellerPersistenceScorecardVerdict
     | null = null;
@@ -3339,6 +3348,37 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionSection(
         snapshotPerResellerMetricPersistenceScorecardVerdictTransition,
       );
+    // P11.130 — per-(partner × metric) verdict-transition DELTA-RANK
+    // DISTRIBUTION caption (module P11.129). Pure derivation of the P11.123
+    // per-pair transition envelope into a scalar-summary distribution: 'ACROSS
+    // the (partner × KPI) roster, how many pairs improved by +2 vs +1 ranks,
+    // degraded by −1 vs −2, rotated, or remained undecidable?' Ops reads a
+    // single caption + non-zero bucket list rather than eyeballing the
+    // row-per-pair transition table above (a 3-partner × 13-KPI roster is 39
+    // rows; a 10-partner × 13-KPI roster is 130 rows).
+    // Splices directly BELOW perResellerMetricPersistenceScorecardVerdictTransitionSection
+    // so the scalar summary sits inline beneath the row grid that produced it.
+    // Consumes the SAME snapshotPerResellerMetricPersistenceScorecardVerdictTransition
+    // the P11.124 formatter just consumed — no extra fold, no divergence risk
+    // vs. the row-per-pair table above.
+    // Formatter returns "" on window_size < 3 OR total == 0 OR alert_worthy ==
+    // 0 (matches the P11.123/P11.124 short-window suppression + adds the
+    // aggregation-specific 'nothing to summarise' guards). Mirrors the P11.126
+    // per-metric-grain and P11.128 per-partner-grain distribution wiring
+    // exactly — same envelope shape (no rows[], nested distribution object
+    // with the ten transition buckets + alert_worthy scalar + net_delta_rank
+    // barometer). CAPSTONES the DISTRIBUTION family at three of four scorecard
+    // grains (per-metric P11.125/P11.126 + per-partner P11.127/P11.128 +
+    // per-pair P11.129/P11.130); portfolio-grain distribution remains as a
+    // future tick option.
+    snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution =
+      computeDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution(
+        snapshotPerResellerMetricPersistenceScorecardVerdictTransition,
+      );
+    perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection =
+      formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistributionSection(
+        snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution,
+      );
   }
   if (
     topMoversSection ||
@@ -3380,6 +3420,7 @@ export async function GET(req: Request) {
     perResellerMetricPersistenceScorecardSection ||
     perResellerMetricPersistenceScorecardVerdictSection ||
     perResellerMetricPersistenceScorecardVerdictTransitionSection ||
+    perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
     perResellerPersistenceScorecardVerdictTransitionDistributionSection ||
@@ -3445,6 +3486,7 @@ export async function GET(req: Request) {
       perResellerMetricPersistenceScorecardSection +
       perResellerMetricPersistenceScorecardVerdictSection +
       perResellerMetricPersistenceScorecardVerdictTransitionSection +
+      perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
       perResellerPersistenceScorecardVerdictTransitionSection +
       perResellerPersistenceScorecardVerdictTransitionDistributionSection +
@@ -4562,6 +4604,26 @@ export async function GET(req: Request) {
               snapshotPerResellerMetricPersistenceScorecardVerdictTransition.threshold,
             rows:
               snapshotPerResellerMetricPersistenceScorecardVerdictTransition.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_metric_persistence_scorecard_verdict_transition_distribution:
+      snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution
+        ? {
+            window_size:
+              snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution.window_size,
+            first_week:
+              snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution.first_week,
+            last_week:
+              snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution.last_week,
+            sustained_p90_threshold:
+              snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution.sustained_p90_threshold,
+            threshold:
+              snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution.threshold,
+            distribution:
+              snapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution.distribution,
           }
         : {
             skipped_reason:
