@@ -1,5 +1,11 @@
 # BlockID.au Changelog
 
+## 2026-07-25 — Startup Package (Ship 1)
+
+- **startup-package** New guided founder journey — A$149 one-off unlock (+ 25 pre-loaded credits), 8-step interview auto-fed to CEO/CMO/CFO/CTO agents, day-0 dataroom seed, public `/startup/[slug]` listing, phase-aware weekly progress emails.
+- **startup-package** Public `/docs/startup-package` guide covering the 5-step overview, pricing, the 8-step interview timeline, the 12-phase journey binding, and the 14-task unicorn playbook derived from the Atlassian / Canva / Xero / Airwallex / Culture Amp fixtures.
+- **workspace/nav** New "Get Investor-Ready" cluster under the "Now" pillar for the founder segment linking to `/startup-package` (feature-gated on `startup_package`, `beta` lifecycle).
+
 ## Unreleased — 2026-07-24
 
 ### Features
