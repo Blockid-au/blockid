@@ -149,7 +149,7 @@ describe("getSupabaseAdmin mock", () => {
     const client = getSupabaseAdmin();
     expect(supabaseSpy).toHaveBeenCalled();
     // Sanity — the shape we mock must expose `.from`.
-    expect(typeof client.from).toBe("function");
+    expect(typeof client?.from).toBe("function");
   });
 });
 
