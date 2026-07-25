@@ -1670,3 +1670,6 @@
 {"ts":"2026-07-25T03:18:27.062Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P12d-redomicile-wizard): interactive redomicile decision wizard on /dashboard/exit-readiness (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T03:18:39.436Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T03-07-01-625Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T03:25:06.564Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.92-pct-change-streak-length-percentiles-cron-wiring): wire portfolio |pct|-material streak-length p50/p90/mean/max summary into weekly digest (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T03:25:14.953Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T03-20-01-728Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T03:25:20Z","status":"success","gates":"9/9","pid":"3068394","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-25T03:35:38.612Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P12d-redomicile-wizard-e2e): playwright spec drives redomicile wizard through hold/prepare/proceed/reconsider branches (1 commits)","source":"github-webhook"}
