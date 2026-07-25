@@ -86,10 +86,11 @@ export async function getPurchaseByStripeSession(
 export async function insertPurchase(
   input: PackagePurchaseInput,
 ): Promise<PackagePurchase | null> {
+  const parsed = PackagePurchaseInputSchema.parse(input);
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
 
-  const parsed = PackagePurchaseInputSchema.parse(input);
 
   const { data, error } = await supabase
     .from("startup_package_purchases")
@@ -140,10 +141,11 @@ export async function listInterviewAnswers(
 export async function upsertInterviewAnswer(
   input: PackageInterviewAnswerInput,
 ): Promise<PackageInterviewAnswer | null> {
+  const parsed = PackageInterviewAnswerInputSchema.parse(input);
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
 
-  const parsed = PackageInterviewAnswerInputSchema.parse(input);
 
   const { data, error } = await supabase
     .from("startup_package_interview")
@@ -194,10 +196,11 @@ export async function getReservedAllocation(
 export async function upsertReservedAllocation(
   input: PackageReservedAllocationInput,
 ): Promise<PackageReservedAllocation | null> {
+  const parsed = PackageReservedAllocationInputSchema.parse(input);
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
 
-  const parsed = PackageReservedAllocationInputSchema.parse(input);
 
   const { data, error } = await supabase
     .from("startup_package_reserved_allocations")
@@ -246,10 +249,11 @@ export async function listProgress(
 export async function upsertProgress(
   input: PackageProgressInput,
 ): Promise<PackageProgress | null> {
+  const parsed = PackageProgressInputSchema.parse(input);
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
 
-  const parsed = PackageProgressInputSchema.parse(input);
 
   const { data, error } = await supabase
     .from("startup_package_progress")
