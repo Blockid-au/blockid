@@ -1345,13 +1345,14 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
       },
       {
         name: "ESIC Eligibility Assessment",
-        type: "upload",
+        type: "template",
+        template_slug: "au-esic-self-assessment",
         format: "pdf",
         priority: "P1",
-        description: "Founder-signed assessment against the Early Stage Innovation Company tests in Division 360-40 ITAA 1997 (100-point innovation test or principles-based test), including basis for each element",
+        description: "Walkable Div 360 ITAA97 worksheet (was upload-only, now founder-facing template) — 4 Limb-1 gateway tests (s360-40(1)(a)-(e): age ≤3y standard / ≤6y R&D-heavy, prior-year income ≤ A$200,000, prior-year expenses ≤ A$1,000,000, not listed) + 100-point objective test (s360-45) + 5-part principles-based test (s360-40(1)(f)) + ATO PBR fallback (TAA 1953 Sch 1 Div 359) + Tax Agent Services Act 2009 (Cth) sign-off block for investor reliance on the 20% tax offset (s360-15) and 10-year CGT exemption (s360-50)",
         required_for_stage: "seed",
         founder_review_required: true,
-        dueDiligenceNotes: "Draft prepared by the platform; must be reviewed and signed off by the founder or a registered tax agent before it is relied on by any investor.",
+        dueDiligenceNotes: "Draft prepared by the platform; must be reviewed and signed off by the founder or a registered tax agent under the Tax Agent Services Act 2009 (Cth) before it is relied on by any investor. Corps Act 2001 (Cth) s923B boundary — BlockID does NOT provide tax advice.",
       },
       {
         name: "ESVCLP Fund Eligibility Note",

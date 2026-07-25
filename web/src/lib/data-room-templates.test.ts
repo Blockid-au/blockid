@@ -251,4 +251,38 @@ describe("DATA_ROOM_STRUCTURE — Series-A / acquirer parity", () => {
     expect(cert!.dueDiligenceNotes!).toMatch(/s286/);
     expect(cert!.dueDiligenceNotes!.toLowerCase()).toContain("does not issue");
   });
+
+  it("wires the Phase-9 ESIC Self-Assessment worksheet AU legal template (goal §1 phase 9 P0 gap — worksheet leg)", () => {
+    // Contract: docs/plans/atlassian-standard-mapping-goal.md §1 phase 9
+    // "Missing: ESIC eligibility gate (data-room folder 11 item ESIC
+    //  Eligibility Assessment is upload-only — no auto-check)".
+    // §2 blocker templates #5: "ESIC Self-Assessment worksheet (Folder 11
+    // item 6) — must let founder walk the 3 gateway tests + 100-point
+    // principles-based OR 100-point points-based OR ATO ruling".
+    // Ship-off task P9-esic-self-assessment (2026-07-25).
+    const tax = DATA_ROOM_STRUCTURE.find((s) => s.section === "tax");
+    expect(tax, "Tax section must exist").toBeDefined();
+
+    const esic = tax!.documents.find(
+      (d) => d.name === "ESIC Eligibility Assessment",
+    );
+    expect(
+      esic,
+      "ESIC Eligibility Assessment slot must exist in folder 11 (Tax)",
+    ).toBeDefined();
+    expect(esic!.type).toBe("template");
+    expect(esic!.template_slug).toBe("au-esic-self-assessment");
+
+    const p = join(
+      process.cwd(),
+      "content",
+      "templates",
+      "legal",
+      "au-esic-self-assessment.md",
+    );
+    expect(
+      existsSync(p),
+      "legal template au-esic-self-assessment.md must exist",
+    ).toBe(true);
+  });
 });
