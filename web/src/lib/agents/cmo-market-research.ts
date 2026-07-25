@@ -27,6 +27,10 @@ export interface CompetitorProfile {
   featureReleaseFrequency: number;
   /** Adoption rate of cybersecurity features (0-1) */
   cybersecurityFeatureAdoption: number;
+  /** Data refresh latency in minutes (Benchmark: 4.2m) */
+  dataRefreshLatencyMinutes?: number;
+  /** AI valuation accuracy percentage (Benchmark: 92%) */
+  aiValuationAccuracy?: number;
 }
 
 /** Customer segment definition */
@@ -67,95 +71,98 @@ export interface MarketResearch {
   customerSegments: CustomerSegment[];
   /** Average Series A funding round size in Australia (AU$) */
   averageSeriesAFunding: number;
-  /** Number of Australian unicorns */
-  australianUnicorns: number;
 }
 
-/** Content Marketing Benchmarks based on 2023 research */
-export interface ContentBenchmarks {
-  /** Average % of overall marketing budget allocated to content */
-  budgetAllocation: number;
-  /** Expected ROI multiplier (e.g., 12 for 12:1) */
-  expectedRoiMultiplier: number;
-  /** Most effective channels sorted by efficacy */
-  topChannels: string[];
-  /** Average daily hours spent by marketers on content (1-3 range) */
-  dailyTimeInvestment: number;
-}
-
-/** SEO Performance Metrics based on Helpful Content Updates */
-export interface SeoMetrics {
-  /** Weightage of page experience signals in algorithm (0-1) */
-  pageExperienceWeight: number;
-  /** Average ranking jump for high E-E-A-T scores */
-  eeatRankingImprovement: number;
-  /** Percentage of sites affected by Helpful Content Update (0-1) */
-  hcuImpactRate: number;
-}
-
-/** Australian Startup Ecosystem Constants */
-export const AU_MARKET_DATA = {
-  TOTAL_FUNDING_Q2_2023: 1400000000,
-  STARTUP_COUNT_2022: 2500,
-  TOP_INVESTMENT_SECTOR: 'Artificial Intelligence',
-  DOMESTIC_FOCUS_RATE: 0.71,
-  NAVIGATION_TOOL_ADOPTION_RATE: 0.56,
-  NAVIGATION_MARKET_CAGR: 0.346,
-  VALUATION_TOOL_CRITICALITY: 0.71,
-};
-
-/** Global Content Benchmarks */
-export const CONTENT_MARKETING_BENCHMARKS: ContentBenchmarks = {
-  budgetAllocation: 0.26,
-  expectedRoiMultiplier: 12,
-  topChannels: ['Blog posts', 'Social media', 'Email newsletters'],
-  dailyTimeInvestment: 2,
-};
-
-/** SEO Algorithm Constants */
-export const SEO_ALGORITHM_DATA: SeoMetrics = {
-  pageExperienceWeight: 0.17,
-  eeatRankingImprovement: 12.5,
-  hcuImpactRate: 0.25,
-};
-
-/** 
- * Calculates the projected market size for Startup Navigation tools 
- * based on CAGR and current adoption rates.
- * @param currentMarketValue Current market value in AU$
- * @param years Projection period in years
- * @returns Projected market value
- */
-export function calculateNavigationMarketGrowth(currentMarketValue: number, years: number): number {
-  return currentMarketValue * Math.pow(1 + AU_MARKET_DATA.NAVIGATION_MARKET_CAGR, years);
-}
-
-/** 
- * Determines the positioning weight between "Navigation" and "Valuation" tools
- * based on research priority (KPMG vs CB Insights data).
- * @param userNeed 'growth' | 'funding'
- * @returns Positioning score (0-1) where 1 is heavy focus on Valuation/Equity
- */
-export function getPositioningWeight(userNeed: 'growth' | 'funding'): number {
-  if (userNeed === 'funding') {
-    return AU_MARKET_DATA.VALUATION_TOOL_CRITICALITY;
+/** AU Market Specific Benchmarks 2024/2025 */
+export const AU_STARTUP_BENCHMARKS = {
+  valuation: {
+    seedPostMoneyAvg: 5500000, // Midpoint of A$4M - A$7M
+    revenueMultipleMin: 4,
+    revenueMultipleMax: 8,
+    aiPremiumMultiplier: 1.3,
+  },
+  operational: {
+    avgRunwayRequirementMonths: 21, // Midpoint of 18-24
+    newCompanyGrowthRateMonthly: 5200, // Based on Apr-May 2024 data
+  },
+  marketing: {
+    b2bBlogConversionRate: 0.023, // Midpoint 2.1% - 2.5%
+    shortFormVideoEngagement: 0.0425, // Midpoint 3.5% - 5.0%
+    aiContentBudgetAllocation: 0.20, // Midpoint 15% - 25%
+    avgCPLAU: 82.5, // Midpoint A$45 - A$120
+  },
+  seo: {
+    aiOverviewCtrReduction: 0.215, // Midpoint 18-25%
+    organicVolatilityIndex: 0.40, // Midpoint 30-50%
   }
-  return 1 - AU_MARKET_DATA.VALUATION_TOOL_CRITICALITY;
+};
+
+/** Positioning Constants for 'Startup Navigation System' */
+export const STRATEGIC_POSITIONING = {
+  PRODUCT_CATEGORY: 'Startup Navigation System',
+  VALUE_PROPOSITION: 'Holistic road-mapping, market intelligence, and equity modelling',
+  METRIC_IMPROVEMENT: {
+    dilutionReduction: 0.03, // 12% down to 9%
+    sectorGrowthYoY: 0.22, // 22% vs 13% for valuation-only
+    marketProjection2028Billion: 4.1,
+  }
+};
+
+/**
+ * Calculates the estimated valuation for an AU SaaS startup based on current research.
+ * @param arr Annual Recurring Revenue
+ * @param isAiPowered Whether the startup leverages AI to apply the premium multiplier
+ */
+export function calculateAUValuation(arr: number, isAiPowered: boolean): number {
+  const medianMultiple = (AU_STARTUP_BENCHMARKS.valuation.revenueMultipleMin + AU_STARTUP_BENCHMARKS.valuation.revenueMultipleMax) / 2;
+  let valuation = arr * medianMultiple;
+  if (isAiPowered) {
+    valuation *= AU_STARTUP_BENCHMARKS.valuation.aiPremiumMultiplier;
+  }
+  return valuation;
 }
 
-/** 
- * Estimates the potential AU customer base for the 'Startup Navigation System'
- * @returns Estimated number of targetable AU startups
+/**
+ * Estimates potential lead acquisition based on content spend and AU CPL benchmarks.
+ * @param budget Total marketing budget for content
+ * @param aiToolAllocation Percentage of budget allocated to AI tools (default 20%)
  */
-export function estimateAUAddressableStartups(): number {
-  return Math.floor(AU_MARKET_DATA.STARTUP_COUNT_2022 * AU_MARKET_DATA.NAVIGATION_TOOL_ADOPTION_RATE);
+export function estimateLeadGen(budget: number, aiToolAllocation: number = AU_STARTUP_BENCHMARKS.marketing.aiContentBudgetAllocation): {
+  totalLeads: number;
+  aiToolSpend: number;
+  contentSpend: number;
+} {
+  const aiToolSpend = budget * aiToolAllocation;
+  const contentSpend = budget - aiToolSpend;
+  const totalLeads = contentSpend / AU_STARTUP_BENCHMARKS.marketing.avgCPLAU;
+  return {
+    totalLeads: Math.floor(totalLeads),
+    aiToolSpend,
+    contentSpend
+  };
 }
 
-/** 
- * Calculates the suggested content budget based on a total marketing spend
- * @param totalBudget Total marketing budget in AU$
- * @returns Suggested content marketing spend
+/**
+ * Evaluates the effectiveness of a 'Navigation' approach vs a 'Valuation' approach.
+ * @param currentDilution The current estimated dilution percentage (e.g., 0.12)
  */
-export function calculateSuggestedContentBudget(totalBudget: number): number {
-  return totalBudget * CONTENT_MARKETING_BENCHMARKS.budgetAllocation;
+export function projectDilutionSaving(currentDilution: number): number {
+  return currentDilution - (currentDilution - STRATEGIC_POSITIONING.METRIC_IMPROVEMENT.dilutionReduction);
+}
+
+/**
+ * Analyzes SEO risk based on current AI Overview trends.
+ * @param currentTraffic Current organic traffic volume
+ * @param isAiContentHeavy Whether the site relies heavily on AI-generated content
+ */
+export function analyzeSeoRisk(currentTraffic: number, isAiContentHeavy: boolean): {
+  projectedTrafficLoss: number;
+  volatilityRisk: 'Low' | 'Medium' | 'High';
+} {
+  const loss = currentTraffic * AU_STARTUP_BENCHMARKS.seo.aiOverviewCtrReduction;
+  const volatilityRisk = isAiContentHeavy ? 'High' : 'Medium';
+  return {
+    projectedTrafficLoss: Math.floor(loss),
+    volatilityRisk
+  };
 }
