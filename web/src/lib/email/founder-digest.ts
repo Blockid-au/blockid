@@ -123,6 +123,57 @@ export interface ClimbDeltaCell {
 }
 
 /**
+ * Pick the single phase with the largest absolute week-over-week delta
+ * (magnitude only — the *causal* action attribution is a separate tick
+ * that needs the reseller-monitor edit-log stream). Returns null when the
+ * series is empty OR every cell resolved to `direction === "same"` (a
+ * fully-flat week has nothing to highlight). Ties break by (a) the current
+ * phase first — a founder cares more about the phase they're standing in
+ * than an equally-large delta elsewhere, (b) then phase ordinal ascending
+ * so an earlier phase wins over a later one, keeping output deterministic
+ * across snapshots. `"new"` cells count as movers using their current
+ * score as the magnitude (0 → 40 is a bigger story than 88 → 90). Pure —
+ * exported for the vitest fixture.
+ */
+export function pickBiggestMover(
+  cells: ClimbDeltaCell[],
+): ClimbDeltaCell | null {
+  let best: ClimbDeltaCell | null = null;
+  let bestMagnitude = 0;
+  for (const cell of cells) {
+    if (cell.direction === "same") continue;
+    const magnitude =
+      cell.direction === "new" ? Math.abs(cell.currScore) : Math.abs(cell.delta);
+    if (magnitude <= 0) continue;
+    if (!best) {
+      best = cell;
+      bestMagnitude = magnitude;
+      continue;
+    }
+    if (magnitude > bestMagnitude) {
+      best = cell;
+      bestMagnitude = magnitude;
+      continue;
+    }
+    if (magnitude === bestMagnitude) {
+      if (cell.isCurrent && !best.isCurrent) {
+        best = cell;
+        bestMagnitude = magnitude;
+        continue;
+      }
+      if (
+        cell.isCurrent === best.isCurrent &&
+        Number(cell.phase) < Number(best.phase)
+      ) {
+        best = cell;
+        bestMagnitude = magnitude;
+      }
+    }
+  }
+  return best;
+}
+
+/**
  * Walk 12 phases and pair the current readiness map with the previous
  * digest snapshot, returning per-phase before/after with signed deltas.
  * Direction `"new"` fires when the current tick has a real score but the
@@ -204,8 +255,24 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
           input.phaseSlug,
         )
       : null;
+  const climbDeltaMoved =
+    !!climbDeltaCells && climbDeltaCells.some((c) => c.direction !== "same");
+  const biggestMover = climbDeltaMoved
+    ? pickBiggestMover(climbDeltaCells!)
+    : null;
+  const moverCalloutBlock = biggestMover
+    ? (() => {
+        const copy = formatMoverCallout(biggestMover);
+        return `
+      <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Biggest mover this week</p>
+        <p style="margin:0;font-size:14px;color:${copy.colour};font-weight:600">${copy.icon} ${escapeHtml(copy.headline)}</p>
+        <p style="margin:4px 0 0;color:#64748b;font-size:12px">${escapeHtml(copy.hint)}</p>
+      </div>`;
+      })()
+    : "";
   const climbDeltaBlock =
-    climbDeltaCells && climbDeltaCells.some((c) => c.direction !== "same")
+    climbDeltaMoved && climbDeltaCells
       ? `
       <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
         <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Week-over-week climb</p>
@@ -328,6 +395,7 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
       </div>
     </div>
     ${climbBlock}
+    ${moverCalloutBlock}
     ${climbDeltaBlock}
     ${nextActionBlock}
     ${missingBlock}
@@ -364,6 +432,12 @@ function renderText(input: BuildFounderDigestInput, score: number): string {
       input.phaseSlug,
     );
     if (deltaCells.some((c) => c.direction !== "same")) {
+      const mover = pickBiggestMover(deltaCells);
+      if (mover) {
+        const copy = formatMoverCallout(mover);
+        lines.push(`Biggest mover this week: ${copy.icon} ${copy.headline}`);
+        lines.push(`  ${copy.hint}`, "");
+      }
       lines.push("Week-over-week climb (last week → this week · delta):");
       for (const c of deltaCells) {
         const marker = c.isCurrent ? "▶ " : "  ";
@@ -413,6 +487,45 @@ function renderText(input: BuildFounderDigestInput, score: number): string {
   lines.push(`Dashboard: ${input.dashboardUrl}`, "");
   lines.push(AFSL_DISCLAIMER);
   return lines.join("\n");
+}
+
+interface MoverCallout {
+  headline: string;
+  hint: string;
+  icon: string;
+  colour: string;
+}
+
+/**
+ * Copy pack for the biggest-mover callout — direction-specific headline +
+ * hint. Pure so the HTML + text mirrors + tests all render from the same
+ * source of truth. Exported for the vitest fixture.
+ */
+export function formatMoverCallout(cell: ClimbDeltaCell): MoverCallout {
+  const phaseLabel = `Phase ${cell.phase}`;
+  const hereChip = cell.isCurrent ? " (you are here)" : "";
+  if (cell.direction === "new") {
+    return {
+      headline: `${phaseLabel}${hereChip} entered your readiness map at ${cell.currScore}/100`,
+      hint: "This phase wasn't scored in last week's digest — a fresh signal to steer the next tick.",
+      icon: "★",
+      colour: "#0369a1",
+    };
+  }
+  if (cell.direction === "up") {
+    return {
+      headline: `${phaseLabel}${hereChip} climbed +${cell.delta} pts to ${cell.currScore}/100`,
+      hint: "Your biggest week-over-week gain — keep the workflow that moved it.",
+      icon: "▲",
+      colour: "#047857",
+    };
+  }
+  return {
+    headline: `${phaseLabel}${hereChip} slipped ${cell.delta} pts to ${cell.currScore}/100`,
+    hint: "Your biggest week-over-week drop — check what changed in your data room since the last digest.",
+    icon: "▼",
+    colour: "#be123c",
+  };
 }
 
 function clamp(raw: unknown): number {
