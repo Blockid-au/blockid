@@ -15,6 +15,7 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ChapterProgressRibbon } from "@/components/guide/chapter-progress-ribbon";
+import { AbnLookupPanel } from "@/components/guide/abn-lookup-panel";
 import { AbsLookupPanel } from "@/components/guide/abs-lookup-panel";
 import { LandingPagePreviewPanel } from "@/components/guide/landing-page-preview-panel";
 import { Ga4PlanPanel } from "@/components/guide/ga4-plan-panel";
@@ -129,6 +130,10 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
           <Bullets items={list(s.body)} />
         </section>
       ))}
+
+      {c.slug === "01-vision" ? (
+        <AbnLookupPanel locale={locale} variant="marketing" />
+      ) : null}
 
       {c.slug === "03-market-research" ? (
         <AbsLookupPanel locale={locale} variant="marketing" />
