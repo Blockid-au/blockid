@@ -1,13 +1,13 @@
 {
-  "date": "2026-07-24",
-  "overall": 26,
+  "date": "2026-07-25",
+  "overall": 24,
   "status": "RED",
   "dimensions": [
     {
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "298/371 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "313/390 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/abr/lookup/route.ts",
@@ -22,8 +22,8 @@
     {
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
-      "score": 1,
-      "detail": "19/371 call checkRateLimit (or @rate-limit-exempt)",
+      "score": 0,
+      "detail": "19/390 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/abr/lookup/route.ts",
@@ -39,7 +39,7 @@
       "key": "secrets_hygiene",
       "label": "Secrets hygiene (no committed credentials)",
       "score": 0,
-      "detail": "19 suspicious lines",
+      "detail": "20 suspicious lines",
       "findings": [
         "Leak: src/app/api/cron/security-posture/route.ts:126:    \"STRIPE_SECRET_KEY=sk_\",",
         "Leak: src/app/api/cron/security-posture/route.ts:127:    \"SUPABASE_SERVICE_ROLE_KEY=ey\",",
@@ -91,8 +91,8 @@
     }
   ],
   "recommendations": [
+    "Add checkRateLimit() to every /api/* route or tag with @rate-limit-exempt comment",
     "Move leaked secret patterns out of repo; rotate any exposed credentials immediately",
-    "Add missing security headers to src/middleware.ts (CSP, X-Frame, X-Content-Type, Referrer, Permissions)",
-    "Add checkRateLimit() to every /api/* route or tag with @rate-limit-exempt comment"
+    "Add missing security headers to src/middleware.ts (CSP, X-Frame, X-Content-Type, Referrer, Permissions)"
   ]
 }
