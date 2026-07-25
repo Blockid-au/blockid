@@ -812,3 +812,6 @@
 {"tick_id":"2026-07-25T06-37-01-845Z","ts":"2026-07-25T06:46:24.538Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"e495ddfb","last_deployed":"027ee6d"}
 {"tick_id":"2026-07-25T06-37-01-845Z","ts":"2026-07-25T06:52:51.381Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"e495ddfb"}
 {"tick_id":"2026-07-25T06-37-01-845Z","ts":"2026-07-25T06:52:51.382Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-25T06-57-01-538Z","ts":"2026-07-25T06:57:01.539Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-25T06-57-01-538Z","ts":"2026-07-25T06:57:01.549Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T07-00-atlassian-P5-cohort-svi-tile-e2e","ts":"2026-07-25T07:00:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5-cohort-svi-tile-e2e","summary":"Playwright spec for CohortRetentionTile at web/tests/e2e/founder/cohort-retention-tile.spec.ts — grey→green→amber→grey branch matrix; typecheck green; --list discovers 1 test."}
