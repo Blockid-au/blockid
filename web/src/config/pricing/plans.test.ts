@@ -66,12 +66,14 @@ function parseCsv(): CsvRow[] {
   });
 }
 
-describe("PRC-INV — 12-SKU pricing matrix", () => {
+describe("PRC-INV — 13-SKU pricing matrix (12 tier SKUs + Startup Package one-off)", () => {
   const rows = parseCsv();
   const activeRows = rows.filter((r) => r.active === "true");
 
-  it("plans.csv declares exactly 12 active SKUs", () => {
-    expect(activeRows).toHaveLength(12);
+  it("plans.csv declares exactly 13 active SKUs (12 recurring + founder_package one-off)", () => {
+    expect(activeRows).toHaveLength(13);
+    // Regression guard: the 13th active SKU MUST be the Startup Package.
+    expect(activeRows.some((r) => r.id === "founder_package")).toBe(true);
   });
 
   it("every active CSV SKU appears in the generated catalogue", () => {
@@ -79,10 +81,10 @@ describe("PRC-INV — 12-SKU pricing matrix", () => {
     for (const row of activeRows) {
       expect(generatedIds.has(row.id), `missing generated SKU: ${row.id}`).toBe(true);
     }
-    expect(GENERATED_PLANS.filter((p) => p.active)).toHaveLength(12);
+    expect(GENERATED_PLANS.filter((p) => p.active)).toHaveLength(13);
   });
 
-  it("Founder / Investor / Advisor / Accelerator segment tabs collectively surface all 12 SKUs", () => {
+  it("Founder / Investor / Advisor / Accelerator segment tabs collectively surface all 12 tier SKUs", () => {
     const tabs: Segment[] = ["founder", "investor", "advisor", "accelerator"];
     const surfaced = new Set<string>();
     for (const seg of tabs) {
@@ -91,6 +93,8 @@ describe("PRC-INV — 12-SKU pricing matrix", () => {
       }
     }
     // 5 founder + 4 investor (incl. Advisor SKU reused on advisor tab) + 3 accelerator = 12
+    // founder_package is an add-on SKU, NOT a tier — it is intentionally
+    // absent from plansForSegment() so the segment tabs stay clean.
     expect(surfaced.size).toBe(12);
   });
 
