@@ -24,7 +24,11 @@ export type FeatureSlug =
   | "reseller.console"
   | "reseller.create_startup"
   // nav-groups `feature:` bindings not in FEATURE_GATES
-  | "equity_offer.request";
+  | "equity_offer.request"
+  // Startup Package — visible to every tier because the paywall is a
+  // per-project purchase gate, not a subscription tier. See
+  // web/supabase/migrations/0118_startup_package.sql.
+  | "startup_package";
 
 /** Add-on identifiers surfaced by the billing drawer instead of /pricing. */
 export type AddOnKey = "share_management";
@@ -115,6 +119,15 @@ export const VISIBILITY: Readonly<Record<FeatureSlug, VisibilityRow>> = Object.f
     discoveryHint: "Top up managed-customer credits from your reseller pool",
     upgradeCTA: "Contact sales",
     bestAtPhase: 12,
+    monthlyDeltaAud: 0,
+  },
+  startup_package: {
+    // Sidebar surface is tier-free — the actual paywall is a per-project
+    // purchase of the founder_package Stripe SKU, checked at route level.
+    minTier: "free",
+    discoveryHint: "Guided idea → SVI → dataroom → cap-table in one flow",
+    upgradeCTA: "Get the Startup Package",
+    bestAtPhase: 1,
     monthlyDeltaAud: 0,
   },
 });

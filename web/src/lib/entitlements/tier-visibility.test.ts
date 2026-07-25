@@ -69,8 +69,11 @@ describe("tier-visibility — golden snapshot per tier", () => {
 });
 
 describe("tier-visibility — isVisibleAtTier semantics", () => {
-  it("free tier sees nothing gated above it", () => {
-    expect(visibleFor("free")).toEqual([]);
+  it("free tier only sees tier-free surfaces (startup_package is purchase-gated)", () => {
+    // startup_package intentionally sits at minTier=free — the paywall is a
+    // per-project purchase check, not a subscription tier. Every OTHER slug
+    // must still be hidden from free-tier users.
+    expect(visibleFor("free")).toEqual(["startup_package"]);
   });
 
   it("enterprise tier sees every founder-track feature", () => {
