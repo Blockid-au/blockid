@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { LogoCloud } from "@/components/landing/logo-cloud";
 import {
   Bot,
   CheckCircle2,
@@ -262,6 +263,11 @@ export default function AboutPage() {
             </div>
           </section>
 
+        </div>
+        {/* Curator-controlled accelerator strip — renders NOTHING when the
+            partners config is empty. Full-bleed inside the outer main. */}
+        <LogoCloud group="accepted" className="mt-4 mb-14" />
+        <div className="mx-auto max-w-4xl px-6">
           {/* CTA */}
           <section className="rounded-2xl border border-brand-500/20 bg-brand-600/5 p-8 text-center">
             <h2 className="text-2xl font-bold text-ink-800 mb-3">
