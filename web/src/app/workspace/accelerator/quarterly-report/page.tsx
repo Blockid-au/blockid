@@ -15,6 +15,7 @@ import { FeatureGate } from "@/components/access/FeatureGate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { requireTierForPage } from "@/lib/entitlements/require-tier-for-page";
 
 export const metadata: Metadata = {
   title: "Quarterly Report — Accelerator Workspace",
@@ -146,6 +147,12 @@ function fmtDate(iso: string | null): string {
 }
 
 export default async function AcceleratorQuarterlyReportPage() {
+  await requireTierForPage({
+    feature: COHORT_FEATURE,
+    minTier: "accel_starter",
+    fromPath: "/workspace/accelerator/quarterly-report",
+  });
+
   const user = await getCurrentUser();
   if (!user)
     redirect("/auth/login?next=/workspace/accelerator/quarterly-report");
