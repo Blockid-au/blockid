@@ -7,6 +7,7 @@ import {
   estimateTamSamSom,
   searchByKeyword,
 } from "@/lib/market/au-market-lookup";
+import { findIbisworldDeeplinks } from "@/lib/market/ibisworld-deeplinks";
 import { MarketSizeTile } from "@/components/dashboard/market-size-tile";
 import { normaliseIndustryKeyword } from "@/components/dashboard/market-size-tile.helpers";
 
@@ -81,6 +82,21 @@ export default async function MarketSizeDashboardPage({
           .slice(0, 4)
       : [];
 
+  // IBISWorld deep-links for the same sector — prefer the ANZSIC code the
+  // ABS lookup landed on (deterministic) and fall back to the sector text
+  // when the founder searched by keyword but nothing matched. Skip entirely
+  // when neither is available so the tile stays empty rather than firing a
+  // "no reports" surface for a founder with no sector at all.
+  const ibisworldAnzsic = result?.industry.anzsicCode ?? explicitAnzsic;
+  const ibisworld =
+    ibisworldAnzsic || keyword
+      ? findIbisworldDeeplinks({
+          anzsicCode: ibisworldAnzsic || undefined,
+          sector: !ibisworldAnzsic && keyword ? keyword : undefined,
+          limit: 5,
+        })
+      : null;
+
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="mx-auto max-w-5xl px-6 pb-24 pt-6 space-y-6">
@@ -106,6 +122,7 @@ export default async function MarketSizeDashboardPage({
           result={result}
           suggestions={suggestions}
           keyword={keyword}
+          ibisworld={ibisworld}
         />
       </div>
     </WorkspaceLayout>

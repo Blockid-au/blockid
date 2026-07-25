@@ -958,3 +958,4 @@
 {"tick_id":"2026-07-25T11-17-01-794Z","ts":"2026-07-25T11:34:17.546Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-25T11-37-01-553Z","ts":"2026-07-25T11:37:01.553Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T11-37-01-553Z","ts":"2026-07-25T11:37:01.561Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T11-47-16-277Z","ts":"2026-07-25T11:47:16.279Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_ship","subtask":"P3-ibisworld-tile-wire","surface":"/dashboard/market-size","phase":3,"priority":"P1","note":"wire findIbisworldDeeplinks into MarketSizeTile — sortIbisworldDeeplinksForTile helper + 5-case vitest, tile block with report-title link + AU industry index fallback + disclaimer"}

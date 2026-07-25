@@ -6,6 +6,7 @@
 // these helpers.
 
 import type { AuIndustrySnapshot } from "@/lib/market/au-market-lookup";
+import type { IbisworldDeeplink } from "@/lib/market/ibisworld-deeplinks";
 
 /**
  * Format an AUD figure into a compact A$-prefixed string used across
@@ -76,6 +77,31 @@ export function normaliseIndustryKeyword(
   const trimmed = String(raw).trim().toLowerCase();
   if (trimmed === "") return null;
   return trimmed;
+}
+
+/**
+ * Sort + cap an IBISWorld deep-link list for the founder-facing tile block.
+ * Freshest report first (publishedYear desc), tie-broken by anzsicCode
+ * alphabetical so the ordering is deterministic across re-renders.
+ * `cap` is clamped to the [0, matches.length] window; a zero / negative
+ * cap yields an empty array (surface stays empty rather than showing every
+ * seeded report).
+ */
+export function sortIbisworldDeeplinksForTile(
+  matches: readonly IbisworldDeeplink[],
+  cap: number,
+): IbisworldDeeplink[] {
+  if (!matches || matches.length === 0) return [];
+  const safeCap = Number.isFinite(cap) ? Math.max(0, Math.floor(cap)) : 0;
+  if (safeCap === 0) return [];
+  return [...matches]
+    .sort((a, b) => {
+      if (b.publishedYear !== a.publishedYear) {
+        return b.publishedYear - a.publishedYear;
+      }
+      return a.anzsicCode.localeCompare(b.anzsicCode);
+    })
+    .slice(0, safeCap);
 }
 
 /**
