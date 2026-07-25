@@ -75,22 +75,26 @@ const DEFAULT_OVERLAY: RoleMenuOverlay = Object.freeze({
   roleLabel: "Founder",
   hiddenGroups: [],
   topNavExtras: [],
+  // Post tier-menu-2026-07-24 restructure: 7 top-level groups
+  // (Home, Validate, Build, Fundraise, Scale & Exit, Roles, Account).
   sidebarOrder: [
-    "Overview",
-    "Build & Validate",
-    "Ownership & Equity",
+    "Home",
+    "Validate",
+    "Build",
     "Fundraise",
-    "Grow & Scale",
+    "Scale & Exit",
+    "Roles",
     "Account",
   ],
-  // Founder default: collapse everything except Overview + the phase-matching
-  // Now group (workspace-layout re-expands the group whose minPhase brackets
-  // the founder's currentPhase, so from the founder's POV two pillars are
-  // open on first paint).
+  // Founder default: collapse everything except Home + the phase-matching
+  // workflow-step group (workspace-layout re-expands the group whose minPhase
+  // brackets the founder's currentPhase, so from the founder's POV two
+  // pillars are open on first paint).
   defaultCollapsedGroups: [
-    "Ownership & Equity",
+    "Build",
     "Fundraise",
-    "Grow & Scale",
+    "Scale & Exit",
+    "Roles",
     "Account",
   ],
 });
@@ -103,70 +107,74 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
   // stays visible because angels/VCs also read Fundraise-status dashboards
   // when evaluating deals. The Investor group is segment-gated in
   // NAV_GROUPS so it renders automatically — we just reorder it to the top.
+  // Angel + VC surfaces: hide founder-only operational clusters (Validate,
+  // Build, Scale & Exit); Fundraise stays visible because angels/VCs also
+  // read Fundraise-status dashboards when evaluating deals. The Investor
+  // subgroup lives under "Roles" and is segment-gated so it renders
+  // automatically — we just reorder Roles to the top.
   investor_angel: {
     roleLabel: "Angel investor",
-    hiddenGroups: ["Build & Validate", "Ownership & Equity", "Grow & Scale"],
+    hiddenGroups: ["Validate", "Build", "Scale & Exit"],
     topNavExtras: [],
-    sidebarOrder: ["Overview", "Investor", "Fundraise", "Account"],
-    // Angel: keep Investor expanded, collapse the rest.
+    sidebarOrder: ["Home", "Roles", "Fundraise", "Account"],
     defaultCollapsedGroups: ["Fundraise", "Account"],
   },
   investor_vc: {
     roleLabel: "VC investor",
-    hiddenGroups: ["Build & Validate", "Ownership & Equity", "Grow & Scale"],
+    hiddenGroups: ["Validate", "Build", "Scale & Exit"],
     topNavExtras: [],
-    sidebarOrder: ["Overview", "Investor", "Fundraise", "Account"],
+    sidebarOrder: ["Home", "Roles", "Fundraise", "Account"],
     defaultCollapsedGroups: ["Fundraise", "Account"],
   },
 
   advisor: {
     roleLabel: "Advisor",
-    hiddenGroups: ["Build & Validate", "Grow & Scale"],
+    hiddenGroups: ["Validate", "Scale & Exit"],
     topNavExtras: [],
-    sidebarOrder: ["Overview", "Advisor", "Ownership & Equity", "Fundraise", "Account"],
-    defaultCollapsedGroups: ["Ownership & Equity", "Fundraise", "Account"],
+    sidebarOrder: ["Home", "Roles", "Build", "Fundraise", "Account"],
+    defaultCollapsedGroups: ["Build", "Fundraise", "Account"],
   },
 
   accelerator: {
     roleLabel: "Accelerator",
-    hiddenGroups: ["Build & Validate", "Ownership & Equity"],
+    hiddenGroups: ["Validate", "Build"],
     topNavExtras: [],
-    sidebarOrder: ["Overview", "Accelerator", "Fundraise", "Grow & Scale", "Account"],
-    defaultCollapsedGroups: ["Fundraise", "Grow & Scale", "Account"],
+    sidebarOrder: ["Home", "Roles", "Fundraise", "Scale & Exit", "Account"],
+    defaultCollapsedGroups: ["Fundraise", "Scale & Exit", "Account"],
   },
   // Incubators use the same shape as accelerators for now — the app has no
   // dedicated Incubator NAV_GROUP yet, so we alias to the accelerator layout
   // and let the segment filter render whatever is scoped.
   incubator: {
     roleLabel: "Incubator",
-    hiddenGroups: ["Build & Validate", "Ownership & Equity"],
+    hiddenGroups: ["Validate", "Build"],
     topNavExtras: [],
-    sidebarOrder: ["Overview", "Accelerator", "Fundraise", "Grow & Scale", "Account"],
-    defaultCollapsedGroups: ["Fundraise", "Grow & Scale", "Account"],
+    sidebarOrder: ["Home", "Roles", "Fundraise", "Scale & Exit", "Account"],
+    defaultCollapsedGroups: ["Fundraise", "Scale & Exit", "Account"],
   },
 
   reseller: {
     roleLabel: "Reseller",
-    hiddenGroups: ["Build & Validate", "Ownership & Equity", "Fundraise", "Grow & Scale"],
-    // Reseller console lives at /reseller — the sidebar has a Reseller
-    // group already (feature-gated), but the top-bar extra makes the
-    // console 1-click from any page.
+    hiddenGroups: ["Validate", "Build", "Fundraise", "Scale & Exit"],
+    // Reseller console lives at /reseller — the sidebar has Reseller +
+    // Mentor subgroups under the Roles group (feature-gated), but the
+    // top-bar extra makes the console 1-click from any page.
     topNavExtras: [
       { href: "/reseller", label: "Reseller", badge: "Console" },
     ],
-    sidebarOrder: ["Overview", "Reseller", "Account"],
+    sidebarOrder: ["Home", "Roles", "Account"],
     defaultCollapsedGroups: ["Account"],
   },
 
   journalist: {
     roleLabel: "Journalist",
-    // Journalists get a stripped, read-only shell — Overview + Account only.
-    // The Investor/Advisor/Accelerator/Reseller groups are segment-gated so
-    // they never render for this account_type anyway; we hide founder ops
-    // explicitly to keep the sidebar to two buckets.
-    hiddenGroups: ["Build & Validate", "Ownership & Equity", "Fundraise", "Grow & Scale"],
+    // Journalists get a stripped, read-only shell — Home + Account only.
+    // The role subgroups are segment-gated so they never render for this
+    // account_type anyway; we hide founder ops explicitly to keep the
+    // sidebar to two buckets.
+    hiddenGroups: ["Validate", "Build", "Fundraise", "Scale & Exit", "Roles"],
     topNavExtras: [],
-    sidebarOrder: ["Overview", "Account"],
+    sidebarOrder: ["Home", "Account"],
     defaultCollapsedGroups: ["Account"],
   },
   // affiliate + investor (legacy) — inherit default.
@@ -181,29 +189,23 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
       { href: "/admin", label: "Admin", ariaLabel: "Admin control panel" },
     ],
     sidebarOrder: [
-      "Overview",
-      "Build & Validate",
-      "Ownership & Equity",
+      "Home",
+      "Validate",
+      "Build",
       "Fundraise",
-      "Grow & Scale",
-      "Investor",
-      "Advisor",
-      "Accelerator",
-      "Reseller",
+      "Scale & Exit",
+      "Roles",
       "Admin",
       "Account",
     ],
-    // Admins scan, they don't onboard — everything except Overview and
+    // Admins scan, they don't onboard — everything except Home and
     // Admin starts collapsed.
     defaultCollapsedGroups: [
-      "Build & Validate",
-      "Ownership & Equity",
+      "Validate",
+      "Build",
       "Fundraise",
-      "Grow & Scale",
-      "Investor",
-      "Advisor",
-      "Accelerator",
-      "Reseller",
+      "Scale & Exit",
+      "Roles",
       "Account",
     ],
   },
