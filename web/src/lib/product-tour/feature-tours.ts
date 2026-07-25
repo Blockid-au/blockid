@@ -20,7 +20,15 @@ export type FeatureTourSlug =
   | "dataroom"
   | "reseller"
   | "dashboard-nav"
-  | "exit-readiness";
+  | "exit-readiness"
+  // Per-role first-run tours (role-based-2026-07-25 consolidation).
+  // Each auto-launches on ROLE_SPECS[role].landingHref after signup.
+  | "founder-first-run"
+  | "advisor-first-run"
+  | "mentor-first-run"
+  | "accelerator-first-run"
+  | "innovator-first-run"
+  | "reseller-first-run";
 
 export type FeatureTourIcon =
   | "rocket"
@@ -387,6 +395,409 @@ const TOURS: FeatureTour[] = [
           label: { en: "Open Exit Readiness", vi: "Mở Exit Readiness" },
           href: "/dashboard/exit-readiness",
         },
+      },
+    ],
+  },
+  // -------------------------------------------------------------------------
+  // Per-role first-run tours (role-based-2026-07-25 consolidation).
+  //
+  // Kept intentionally short (3–5 steps) — each is the "here's your cockpit"
+  // walkthrough that fires once on the role's landing page. Deep-dive tours
+  // (svi, dataroom, exit-readiness, dashboard-nav) still surface separately
+  // as the founder progresses.
+  // -------------------------------------------------------------------------
+  {
+    slug: "founder-first-run",
+    route: "/dashboard",
+    icon: "rocket",
+    version: 1,
+    estimatedMinutes: 2,
+    name: { en: "Founder first-run", vi: "Founder — lần đầu" },
+    summary: {
+      en: "Your SVI score, action plan, evaluation and data room in five stops.",
+      vi: "SVI, kế hoạch hành động, đánh giá và data room trong năm điểm dừng.",
+    },
+    steps: [
+      {
+        id: "svi",
+        title: { en: "Your SVI score lives here", vi: "Điểm SVI của bạn ở đây" },
+        body: {
+          en: "This is your Startup Valuation Index — an uncapped Nikkei-style score. Every action in BlockID moves it up or down.",
+          vi: "Chỉ số định giá startup — không giới hạn kiểu Nikkei. Mọi hành động trên BlockID đều đẩy nó lên hoặc xuống.",
+        },
+        anchor: "[data-tour=\"svi-score-card\"]",
+        cta: { label: { en: "Open SVI", vi: "Mở SVI" }, href: "/dashboard/svi" },
+      },
+      {
+        id: "roadmap",
+        title: { en: "The 12-phase Action Plan", vi: "Kế hoạch 12 giai đoạn" },
+        body: {
+          en: "Your roadmap is auto-generated from your current growth phase. Ship the top 2–3 tasks and your SVI moves this week.",
+          vi: "Lộ trình tự sinh theo giai đoạn hiện tại. Hoàn thành 2–3 việc trên cùng và SVI sẽ tăng trong tuần.",
+        },
+        anchor: "[data-tour=\"roadmap-nav\"]",
+        cta: { label: { en: "Open roadmap", vi: "Mở lộ trình" }, href: "/workspace/roadmap" },
+      },
+      {
+        id: "evaluation",
+        title: { en: "Score the 13 criteria", vi: "Đánh giá 13 tiêu chí" },
+        body: {
+          en: "Fill in what you know; we auto-fill the rest from public data. Missing evidence is your fastest SVI lift on day one.",
+          vi: "Điền những gì bạn biết; phần còn lại chúng tôi tự điền từ dữ liệu công khai. Bổ sung chứng cứ thiếu là cách tăng SVI nhanh nhất trong ngày đầu.",
+        },
+        anchor: "a[href=\"/workspace/evaluation\"]",
+        cta: { label: { en: "Open evaluation", vi: "Mở đánh giá" }, href: "/workspace/evaluation" },
+      },
+      {
+        id: "dataroom",
+        title: { en: "Data room seeded on day zero", vi: "Data room có sẵn từ ngày 0" },
+        body: {
+          en: "Ten investor-standard templates are already in your data room. Complete them once and share a single link with every investor.",
+          vi: "Mười mẫu chuẩn nhà đầu tư đã có sẵn. Hoàn thành một lần và chia sẻ một liên kết cho mọi nhà đầu tư.",
+        },
+        anchor: "a[href=\"/workspace/data-room\"]",
+        cta: { label: { en: "Open data room", vi: "Mở data room" }, href: "/workspace/data-room" },
+      },
+      {
+        id: "investor-pack",
+        title: { en: "Share with investors", vi: "Chia sẻ với nhà đầu tư" },
+        body: {
+          en: "Generate an investor pack and send trackable links. See who opened it, which slides they lingered on, and who is warm.",
+          vi: "Tạo bộ tài liệu nhà đầu tư và gửi liên kết có theo dõi. Xem ai đã mở, đọc slide nào lâu, ai là ‘ấm’.",
+        },
+        anchor: "a[href=\"/workspace/investor-pack\"]",
+        cta: { label: { en: "Open investor pack", vi: "Mở bộ tài liệu" }, href: "/workspace/investor-pack" },
+      },
+    ],
+  },
+  {
+    slug: "advisor-first-run",
+    route: "/dashboard/advisor",
+    icon: "users",
+    version: 1,
+    estimatedMinutes: 2,
+    name: { en: "Advisor first-run", vi: "Advisor — lần đầu" },
+    summary: {
+      en: "Portfolio SVI, invites, roster, engagement notes and the Monday digest.",
+      vi: "SVI danh mục, mời, roster, ghi chú và bản tin thứ Hai.",
+    },
+    steps: [
+      {
+        id: "welcome",
+        title: { en: "Your advisor cockpit", vi: "Trạm điều khiển advisor" },
+        body: {
+          en: "Every startup you advise lives here — SVI trend, stage, last analysis, in one row.",
+          vi: "Mọi startup bạn cố vấn ở đây — xu hướng SVI, giai đoạn, phân tích gần nhất, trong một dòng.",
+        },
+        anchor: "h1",
+      },
+      {
+        id: "invite",
+        title: { en: "Invite your first client", vi: "Mời khách hàng đầu tiên" },
+        body: {
+          en: "Send an invite to a founder. When they accept, their SVI and stage flow into your roster automatically.",
+          vi: "Gửi lời mời tới một founder. Khi chấp nhận, SVI + giai đoạn của họ chảy vào roster.",
+        },
+        anchor: "button:has(svg.lucide-plus)",
+      },
+      {
+        id: "roster",
+        title: { en: "Read the roster", vi: "Đọc roster" },
+        body: {
+          en: "Sortable by SVI, stage, or last analysis. Click any row to open the client's full profile.",
+          vi: "Sắp xếp theo SVI, giai đoạn, hoặc phân tích gần nhất. Nhấp một dòng để mở hồ sơ đầy đủ.",
+        },
+        anchor: "table",
+        cta: { label: { en: "Open roster", vi: "Mở roster" }, href: "/workspace/client-roster" },
+      },
+      {
+        id: "notes",
+        title: { en: "Log a 30-second note", vi: "Ghi chú 30 giây" },
+        body: {
+          en: "After every session, drop an engagement note. Quarterly reviews then write themselves.",
+          vi: "Sau mỗi phiên, ghi một ghi chú. Đánh giá quý sẽ tự viết ra.",
+        },
+        anchor: "a[href^=\"/workspace/advisor-notes\"]",
+        cta: { label: { en: "Open notes", vi: "Mở ghi chú" }, href: "/workspace/advisor-notes" },
+      },
+      {
+        id: "digest",
+        title: { en: "Turn on the Monday digest", vi: "Bật bản tin thứ Hai" },
+        body: {
+          en: "SVI deltas across your whole roster, delivered 8am AEST every Monday — zero data entry.",
+          vi: "Chênh lệch SVI toàn roster, gửi 8h sáng AEST mỗi thứ Hai — không cần nhập liệu.",
+        },
+        anchor: "a[href=\"/workspace/weekly-digest\"]",
+        cta: { label: { en: "Open digest", vi: "Mở bản tin" }, href: "/workspace/weekly-digest" },
+      },
+    ],
+  },
+  {
+    slug: "mentor-first-run",
+    route: "/reseller/mentor",
+    icon: "users",
+    version: 1,
+    estimatedMinutes: 2,
+    name: { en: "Mentor first-run", vi: "Mentor — lần đầu" },
+    summary: {
+      en: "Mentee roster, consent tiers, weekly check-ins and the cohort roll-up.",
+      vi: "Roster mentee, mức đồng ý, check-in tuần và tổng hợp cohort.",
+    },
+    steps: [
+      {
+        id: "welcome",
+        title: { en: "Welcome to the Mentor console", vi: "Chào mừng đến console Mentor" },
+        body: {
+          en: "An engagement view of founders attributed to you — never a billing view. Reseller admin owns billing.",
+          vi: "Chế độ xem gắn kết với founder được gán cho bạn — không phải chế độ xem billing. Admin reseller quản lý billing.",
+        },
+        anchor: "body",
+      },
+      {
+        id: "roster",
+        title: { en: "Your mentee roster", vi: "Roster mentee của bạn" },
+        body: {
+          en: "Each row is one attributed founder. Heat = last-30-day activity. Click a name to open their console.",
+          vi: "Mỗi dòng là một founder được gán. Heat = hoạt động 30 ngày qua. Nhấp tên để mở console.",
+        },
+        anchor: "[data-tour=\"mentor-roster\"]",
+        cta: { label: { en: "Filter overdue", vi: "Lọc quá hạn" }, href: "/reseller/mentor?filter=overdue" },
+      },
+      {
+        id: "consent",
+        title: { en: "Consent tiers gate what you see", vi: "Mức đồng ý quyết định bạn thấy gì" },
+        body: {
+          en: "Request reports_shared to unlock SVI numbers; request full_mentor to leave founder-visible notes.",
+          vi: "Yêu cầu reports_shared để thấy điểm SVI; yêu cầu full_mentor để ghi chú founder nhìn thấy.",
+        },
+        anchor: "[data-tour=\"mentor-consent-badge\"]",
+      },
+      {
+        id: "checkin",
+        title: { en: "Log a weekly check-in in 60 seconds", vi: "Ghi check-in tuần trong 60 giây" },
+        body: {
+          en: "Monday-ISO week bucket, one per founder. Capture wins, blockers, and focus.",
+          vi: "Ghép theo tuần ISO bắt đầu thứ Hai, một per founder. Ghi thắng, cản trở và tiêu điểm.",
+        },
+        anchor: "[data-tour=\"mentor-checkin-form\"]",
+      },
+      {
+        id: "cohort",
+        title: { en: "Roll up for your program lead", vi: "Tổng hợp cho lead chương trình" },
+        body: {
+          en: "Cohort view gives phase distribution and a heat-map snapshot suitable for a weekly digest.",
+          vi: "Xem cohort cho phân phối giai đoạn và ảnh chụp heatmap phù hợp bản tin tuần.",
+        },
+        anchor: "[data-tour=\"mentor-cohort-link\"]",
+        cta: { label: { en: "Open cohort", vi: "Mở cohort" }, href: "/reseller/mentor/cohort" },
+      },
+    ],
+  },
+  {
+    slug: "accelerator-first-run",
+    route: "/workspace/accelerator",
+    icon: "flag",
+    version: 1,
+    estimatedMinutes: 3,
+    name: { en: "Accelerator first-run", vi: "Accelerator — lần đầu" },
+    summary: {
+      en: "Cohort SVI, intake code, mentor pool, evaluation rubric and quarterly LP PDF.",
+      vi: "SVI cohort, mã intake, pool mentor, rubric đánh giá và PDF LP quý.",
+    },
+    steps: [
+      {
+        id: "overview",
+        title: { en: "This is your cohort at a glance", vi: "Tổng quan cohort của bạn" },
+        body: {
+          en: "Batch SVI average, week-over-week trend and applicant funnel — the first three numbers your LPs will ask about.",
+          vi: "SVI trung bình batch, xu hướng tuần và phễu ứng viên — ba con số LP luôn hỏi.",
+        },
+        anchor: "main h1",
+      },
+      {
+        id: "add-founders",
+        title: { en: "Add your first founders", vi: "Thêm founder đầu tiên" },
+        body: {
+          en: "Paste your accepted list or add founders one by one. Every founder gets a scoped startup profile and SVI backfills automatically.",
+          vi: "Dán danh sách chấp nhận hoặc thêm từng founder. Mỗi founder có hồ sơ startup và SVI tự nạp.",
+        },
+        anchor: "a[href=\"/workspace/accelerator/cohort/add\"]",
+        cta: { label: { en: "Add founders", vi: "Thêm founder" }, href: "/workspace/accelerator/cohort/add" },
+      },
+      {
+        id: "intake-code",
+        title: { en: "One intake link for the whole batch", vi: "Một liên kết intake cho cả batch" },
+        body: {
+          en: "Founders self-onboard through your reseller code. Credits are pre-loaded from your program wallet.",
+          vi: "Founder tự onboard qua mã reseller. Tín dụng nạp sẵn từ ví chương trình.",
+        },
+        anchor: "a[href=\"/reseller/codes\"]",
+        cta: { label: { en: "Open codes", vi: "Mở mã" }, href: "/reseller/codes" },
+      },
+      {
+        id: "mentor-pool",
+        title: { en: "Assign mentors to founders", vi: "Gán mentor cho founder" },
+        body: {
+          en: "Invite mentors, map them to founders, and read every check-in from one place — with founder-approved access.",
+          vi: "Mời mentor, gán vào founder, đọc mọi check-in từ một nơi — với quyền do founder duyệt.",
+        },
+        anchor: "a[href=\"/reseller/mentor/cohort\"]",
+        cta: { label: { en: "Open mentor pool", vi: "Mở pool mentor" }, href: "/reseller/mentor/cohort" },
+      },
+      {
+        id: "quarterly",
+        title: { en: "Ship a report to your LPs", vi: "Gửi báo cáo cho LP" },
+        body: {
+          en: "One click generates a branded PDF: cohort size, average SVI, capital raised and top performers.",
+          vi: "Một cú nhấp tạo PDF có thương hiệu: số cohort, SVI trung bình, vốn gọi được và top performer.",
+        },
+        anchor: "a[href=\"/workspace/accelerator/quarterly-report\"]",
+        cta: { label: { en: "Open quarterly report", vi: "Mở báo cáo quý" }, href: "/workspace/accelerator/quarterly-report" },
+      },
+    ],
+  },
+  {
+    slug: "innovator-first-run",
+    route: "/innovator",
+    icon: "compass",
+    version: 1,
+    estimatedMinutes: 3,
+    name: { en: "Innovator first-run", vi: "Innovator — lần đầu" },
+    summary: {
+      en: "Thesis, industry map, watchlist, POC pipeline and the board-pack export.",
+      vi: "Thesis, bản đồ ngành, watchlist, pipeline POC và xuất board-pack.",
+    },
+    steps: [
+      {
+        id: "welcome",
+        title: { en: "Welcome to your Innovator console", vi: "Chào mừng đến console Innovator" },
+        body: {
+          en: "Your corporate scouting terminal — set a thesis, track startups, run POCs, generate board packs.",
+          vi: "Terminal scout doanh nghiệp — đặt thesis, theo dõi startup, chạy POC, tạo board pack.",
+        },
+        anchor: "[data-tour=\"innovator-home\"]",
+      },
+      {
+        id: "thesis",
+        title: { en: "Name your innovation themes", vi: "Đặt tên chủ đề đổi mới" },
+        body: {
+          en: "Add 3 strategic themes. We use these to shortlist matches and label everything downstream.",
+          vi: "Thêm 3 chủ đề chiến lược. Dùng để rút gọn danh sách phù hợp và gán nhãn mọi thứ.",
+        },
+        anchor: "[data-tour=\"innovator-thesis\"]",
+        cta: { label: { en: "Open theses", vi: "Mở thesis" }, href: "/innovator/theses" },
+      },
+      {
+        id: "industry-map",
+        title: { en: "Pin the sectors that matter", vi: "Ghim các ngành quan trọng" },
+        body: {
+          en: "The Industry Map ranks every AU startup by SVI within a sector. Pin your 3 sectors and save the layout.",
+          vi: "Bản đồ ngành xếp hạng mọi startup AU theo SVI trong ngành. Ghim 3 ngành và lưu layout.",
+        },
+        anchor: "[data-tour=\"innovator-industry-map\"]",
+        cta: { label: { en: "Open industry map", vi: "Mở bản đồ ngành" }, href: "/innovator/industry-map" },
+      },
+      {
+        id: "watchlist",
+        title: { en: "Build your watchlist", vi: "Xây watchlist" },
+        body: {
+          en: "Bulk-add top-decile startups, tag with a theme, assign an owning teammate. Weekly digest lands from here.",
+          vi: "Thêm hàng loạt top-decile, gán chủ đề và đồng đội. Bản tin tuần từ đây.",
+        },
+        anchor: "[data-tour=\"innovator-watchlist\"]",
+        cta: { label: { en: "Open watchlist", vi: "Mở watchlist" }, href: "/innovator/watchlist" },
+      },
+      {
+        id: "pipeline",
+        title: { en: "Run your POC pipeline", vi: "Chạy pipeline POC" },
+        body: {
+          en: "Promote watchlist entries into the pipeline board. Lanes: Discovered → Screening → POC Scoped → POC Live → Contract.",
+          vi: "Đưa mục watchlist vào bảng pipeline. Lanes: Discovered → Screening → POC Scoped → POC Live → Contract.",
+        },
+        anchor: "[data-tour=\"innovator-pipeline\"]",
+        cta: { label: { en: "Open pipeline", vi: "Mở pipeline" }, href: "/innovator/pipeline" },
+      },
+      {
+        id: "reports",
+        title: { en: "Ship the board pack", vi: "Gửi board pack" },
+        body: {
+          en: "Generate the Ventures Quarterly PDF from live pipeline + watchlist data, co-branded with your logo.",
+          vi: "Tạo PDF Ventures Quarterly từ pipeline + watchlist trực tiếp, gắn logo của bạn.",
+        },
+        anchor: "[data-tour=\"innovator-reports\"]",
+        cta: { label: { en: "Open reports", vi: "Mở báo cáo" }, href: "/innovator/reports" },
+      },
+    ],
+  },
+  {
+    slug: "reseller-first-run",
+    route: "/reseller",
+    icon: "users",
+    version: 1,
+    estimatedMinutes: 2,
+    name: { en: "Reseller first-run", vi: "Reseller — lần đầu" },
+    summary: {
+      en: "KPI header, promo codes, attributed customers, mentor roster and monthly CSV.",
+      vi: "Header KPI, mã khuyến mãi, khách hàng gán, roster mentor và CSV tháng.",
+    },
+    steps: [
+      {
+        id: "welcome",
+        title: { en: "Welcome to the Reseller Console", vi: "Chào mừng Console Reseller" },
+        body: {
+          en: "This console never shows workspace content. You see attributed customers, coupon usage, and mentor activity — nothing that would breach a founder's data room.",
+          vi: "Console này không hiển thị nội dung workspace. Bạn thấy khách hàng gán, sử dụng coupon, hoạt động mentor — không gì vi phạm data room của founder.",
+        },
+        anchor: "header h1",
+      },
+      {
+        id: "kpis",
+        title: { en: "Your KPI header", vi: "Header KPI của bạn" },
+        body: {
+          en: "Attributed customers, active last 7 days, active promo codes, and your billing model. k≥5 anonymity enforced.",
+          vi: "Khách gán, hoạt động 7 ngày qua, mã đang hoạt động, và mô hình billing. Ẩn danh k≥5.",
+        },
+        anchor: "section:has(> .grid.grid-cols-1)",
+      },
+      {
+        id: "codes",
+        title: { en: "Your promo codes", vi: "Mã khuyến mãi của bạn" },
+        body: {
+          en: "One row per tier you're allowed to sell (0/10/20/30/40). Tier 0 has no Stripe object because 0-value coupons are illegal.",
+          vi: "Một dòng cho mỗi tier bạn được bán (0/10/20/30/40). Tier 0 không có đối tượng Stripe vì coupon 0-value không hợp lệ.",
+        },
+        anchor: "a[href=\"/reseller/codes\"]",
+        cta: { label: { en: "Open codes", vi: "Mở mã" }, href: "/reseller/codes" },
+      },
+      {
+        id: "customers",
+        title: { en: "Attributed customers", vi: "Khách hàng gán" },
+        body: {
+          en: "Emails are masked by default. Reveal is one click but audit-logged. Open the drawer for progression + reports.",
+          vi: "Email ẩn mặc định. Hiện một cú nhấp nhưng có log. Mở drawer để xem tiến độ + báo cáo.",
+        },
+        anchor: "a[href=\"/reseller/customers\"]",
+        cta: { label: { en: "Open customers", vi: "Mở khách hàng" }, href: "/reseller/customers" },
+      },
+      {
+        id: "mentor",
+        title: { en: "Mentor roster", vi: "Roster mentor" },
+        body: {
+          en: "Engagement-first view of your book. Filter by overdue check-ins and log notes without leaving the row.",
+          vi: "Chế độ xem tập trung gắn kết. Lọc theo check-in quá hạn và ghi ghi chú mà không rời khỏi dòng.",
+        },
+        anchor: "a[href=\"/reseller/mentor\"]",
+        cta: { label: { en: "Open mentor roster", vi: "Mở roster mentor" }, href: "/reseller/mentor" },
+      },
+      {
+        id: "credits-and-reports",
+        title: { en: "Credits and month-end", vi: "Tín dụng và cuối tháng" },
+        body: {
+          en: "Grant sandbox credits inside your 20k/mo budget; over-budget triggers an admin request. Download last month's KPI CSV from Reports.",
+          vi: "Cấp tín dụng sandbox trong ngân sách 20k/tháng; vượt ngân sách kích hoạt yêu cầu admin. Tải CSV KPI tháng trước từ Reports.",
+        },
+        anchor: "a[href=\"/reseller/credits\"]",
+        cta: { label: { en: "Open credits", vi: "Mở tín dụng" }, href: "/reseller/credits" },
       },
     ],
   },
