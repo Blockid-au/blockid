@@ -126,12 +126,11 @@ export const VISIBILITY: Readonly<Record<FeatureSlug, VisibilityRow>> = Object.f
     monthlyDeltaAud: 0,
   },
   startup_package: {
-    // Free-tier /startup-package landing + sample interview are reachable
-    // via direct URL (route-level check). VISIBILITY governs SIDEBAR
-    // discovery only; minTier="starter" keeps the free-tier golden
-    // snapshot at [] while paid founders see the entry in the sidebar.
-    // Actual purchase gate is the founder_package Stripe SKU.
-    minTier: "starter",
+    // Sidebar surface is tier-free — the actual paywall is a per-project
+    // purchase of the founder_package Stripe SKU, checked at route level.
+    // Snapshot test tier-visibility.test.ts:76 pins visibleFor("free") to
+    // ["startup_package"] to document this intent.
+    minTier: "free",
     discoveryHint: "Guided idea → SVI → dataroom → cap-table in one flow",
     upgradeCTA: "Get the Startup Package",
     bestAtPhase: 1,
