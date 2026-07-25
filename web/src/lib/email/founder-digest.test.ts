@@ -6,6 +6,8 @@ import {
   buildFounderDigest,
   buildReadinessClimbDeltaSeries,
   buildReadinessClimbSeries,
+  formatMoverCallout,
+  pickBiggestMover,
 } from "./founder-digest";
 import type { NudgeMissingItem, NudgeNextAction } from "@/lib/nudge/next-steps";
 import type { PhaseReadinessEntry } from "@/lib/nudge/readiness-by-phase";
@@ -469,6 +471,193 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
     // Real 40 previous → -10 down.
     expect(p2.direction).toBe("down");
     expect(p2.delta).toBe(-10);
+  });
+});
+
+describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () => {
+  const currentClimb: Record<string, PhaseReadinessEntry> = {
+    "1": { score: 90, band: "investor-ready", missing_top3: [], criteria_used: [] },
+    "3": { score: 65, band: "warming-up", missing_top3: [], criteria_used: [] },
+    "5": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+    "9": { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
+  };
+  const previousClimb: Record<string, PhaseReadinessEntry> = {
+    "1": { score: 88, band: "investor-ready", missing_top3: [], criteria_used: [] },
+    "3": { score: 70, band: "warming-up", missing_top3: [], criteria_used: [] },
+    "5": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+  };
+
+  it("renders the biggest-mover callout above the delta table when climb moved", () => {
+    const out = buildFounderDigest({
+      name: "Sam",
+      phaseSlug: "9",
+      phaseLabel: "Funding-Ready",
+      readinessScore: 40,
+      band: "not-ready",
+      deltaSummary: "Phase-9 warming",
+      bandDirection: "same",
+      nextAction: null,
+      missingTop3: [],
+      dashboardUrl: "https://blockid.au/dashboard",
+      readinessByPhase: currentClimb,
+      previousReadinessByPhase: previousClimb,
+    });
+    expect(out.html).toContain("Biggest mover this week");
+    // Phase 9 entered at 40 — magnitude 40 beats phase 3's -5 and phase 1's +2.
+    expect(out.html).toMatch(/Phase 9 \(you are here\) entered your readiness map at 40\/100/);
+    expect(out.html).toContain("★");
+    // Callout ordering: callout appears before the delta table in the HTML.
+    const moverIndex = out.html.indexOf("Biggest mover this week");
+    const tableIndex = out.html.indexOf("Week-over-week climb");
+    expect(moverIndex).toBeGreaterThan(-1);
+    expect(tableIndex).toBeGreaterThan(moverIndex);
+    // Text mirror carries the same headline.
+    expect(out.text).toMatch(/Biggest mover this week: ★ Phase 9 \(you are here\) entered your readiness map at 40\/100/);
+  });
+
+  it("omits the callout when nothing moved (mirrors the delta-table omit rule)", () => {
+    const flat: Record<string, PhaseReadinessEntry> = {
+      "1": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] },
+    };
+    const out = buildFounderDigest({
+      name: "Sam",
+      phaseSlug: "1",
+      phaseLabel: "Vision",
+      readinessScore: 50,
+      band: "warming-up",
+      deltaSummary: "Held steady",
+      bandDirection: "same",
+      nextAction: null,
+      missingTop3: [],
+      dashboardUrl: "https://blockid.au/dashboard",
+      readinessByPhase: flat,
+      previousReadinessByPhase: flat,
+    });
+    expect(out.html).not.toContain("Biggest mover this week");
+    expect(out.text).not.toContain("Biggest mover this week");
+  });
+
+  it("omits the callout when previous snapshot is absent (first digest)", () => {
+    const out = buildFounderDigest({
+      name: "Sam",
+      phaseSlug: "5",
+      phaseLabel: "PMF",
+      readinessScore: 55,
+      band: "warming-up",
+      deltaSummary: "First snapshot",
+      bandDirection: "same",
+      nextAction: null,
+      missingTop3: [],
+      dashboardUrl: "https://blockid.au/dashboard",
+      readinessByPhase: currentClimb,
+    });
+    expect(out.html).not.toContain("Biggest mover this week");
+    expect(out.text).not.toContain("Biggest mover this week");
+  });
+
+  it("pickBiggestMover — magnitude wins over sign, and current-phase breaks ties", () => {
+    // A down-move of -8 beats an up-move of +5.
+    const series = buildReadinessClimbDeltaSeries(
+      {
+        "3": { score: 62, band: "warming-up", missing_top3: [], criteria_used: [] },
+        "7": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+      },
+      {
+        "3": { score: 70, band: "warming-up", missing_top3: [], criteria_used: [] },
+        "7": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] },
+      },
+      "3",
+    );
+    const mover = pickBiggestMover(series);
+    expect(mover?.phase).toBe("3");
+    expect(mover?.direction).toBe("down");
+    expect(mover?.delta).toBe(-8);
+
+    // Ties: same magnitude, current phase wins.
+    const tie = buildReadinessClimbDeltaSeries(
+      {
+        "2": { score: 60, band: "warming-up", missing_top3: [], criteria_used: [] },
+        "6": { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
+      },
+      {
+        "2": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+        "6": { score: 45, band: "not-ready", missing_top3: [], criteria_used: [] },
+      },
+      "6",
+    );
+    const tieMover = pickBiggestMover(tie);
+    // Both have magnitude 5; the current phase (6) wins over phase 2.
+    expect(tieMover?.phase).toBe("6");
+    expect(tieMover?.isCurrent).toBe(true);
+
+    // Ties with no current phase in the tied set: earlier phase wins.
+    const tieAscending = buildReadinessClimbDeltaSeries(
+      {
+        "2": { score: 60, band: "warming-up", missing_top3: [], criteria_used: [] },
+        "6": { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
+      },
+      {
+        "2": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+        "6": { score: 45, band: "not-ready", missing_top3: [], criteria_used: [] },
+      },
+      "10",
+    );
+    expect(pickBiggestMover(tieAscending)?.phase).toBe("2");
+
+    // Flat series → null.
+    const flat = buildReadinessClimbDeltaSeries(
+      { "1": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] } },
+      { "1": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] } },
+      "1",
+    );
+    expect(pickBiggestMover(flat)).toBeNull();
+  });
+
+  it("formatMoverCallout — per-direction copy pack + colour + icon", () => {
+    const up = formatMoverCallout({
+      phase: "1",
+      currScore: 90,
+      prevScore: 80,
+      delta: 10,
+      direction: "up",
+      currBand: "investor-ready",
+      prevBand: "warming-up",
+      isCurrent: false,
+    });
+    expect(up.icon).toBe("▲");
+    expect(up.colour).toBe("#047857");
+    expect(up.headline).toMatch(/Phase 1 climbed \+10 pts to 90\/100/);
+    expect(up.hint).toMatch(/biggest week-over-week gain/i);
+
+    const down = formatMoverCallout({
+      phase: "3",
+      currScore: 40,
+      prevScore: 55,
+      delta: -15,
+      direction: "down",
+      currBand: "not-ready",
+      prevBand: "warming-up",
+      isCurrent: true,
+    });
+    expect(down.icon).toBe("▼");
+    expect(down.colour).toBe("#be123c");
+    expect(down.headline).toMatch(/Phase 3 \(you are here\) slipped -15 pts to 40\/100/);
+    expect(down.hint).toMatch(/data room since the last digest/i);
+
+    const fresh = formatMoverCallout({
+      phase: "9",
+      currScore: 40,
+      prevScore: 0,
+      delta: 40,
+      direction: "new",
+      currBand: "not-ready",
+      prevBand: "not-ready",
+      isCurrent: false,
+    });
+    expect(fresh.icon).toBe("★");
+    expect(fresh.colour).toBe("#0369a1");
+    expect(fresh.headline).toMatch(/Phase 9 entered your readiness map at 40\/100/);
+    expect(fresh.hint).toMatch(/wasn't scored in last week's digest/i);
   });
 });
 

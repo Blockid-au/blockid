@@ -595,3 +595,4 @@
 {"tick_id":"2026-07-24T23-47-01-309Z","ts":"2026-07-24T23:58:32.932Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-25T00-07-01-442Z","ts":"2026-07-25T00:07:01.443Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T00-07-01-442Z","ts":"2026-07-25T00:07:01.449Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T00-13-35-518Z","ts":"2026-07-25T00:13:35.516Z","loop_label":"atlassian-goal-loop","stage":"tick_complete","phase_id":"P7a-mover-callout","result":"shipped","surface":"web/src/lib/email/founder-digest.ts","tests_added":5,"tests_passed":22,"typecheck":"green","files_added":0,"files_modified":2}
