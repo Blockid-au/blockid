@@ -4,10 +4,12 @@
 import { describe, expect, it } from "vitest";
 import {
   buildFounderDigest,
+  buildPackageProgressBlock,
   buildReadinessClimbDeltaSeries,
   buildReadinessClimbSeries,
   formatMoverCallout,
   pickBiggestMover,
+  type PackageProgressInput,
 } from "./founder-digest";
 import type { NudgeMissingItem, NudgeNextAction } from "@/lib/nudge/next-steps";
 import type { PhaseReadinessEntry } from "@/lib/nudge/readiness-by-phase";
@@ -681,5 +683,144 @@ describe("buildFounderDigest — plain text body", () => {
     expect(out.text).toMatch(/Do this next: Add: ESIC/);
     expect(out.text).toMatch(/\[BLOCKER\]/);
     expect(out.text).toContain("s766B");
+  });
+});
+
+/* ── Subgoal 10 — Package progress block ───────────────────────────────── */
+
+const packageProgress: PackageProgressInput = {
+  currentPhaseTitle: "Customer Development",
+  currentPhaseSlug: "2",
+  currentPhaseCompletionPct: 40,
+  sviCurrent: 320,
+  sviPrevious: 280,
+  nextAction: {
+    label: "Auto-fill customer persona",
+    creditCost: 2,
+    href: "https://blockid.au/startup-package/proj-1/customer-persona",
+  },
+  unfinishedInterviewSteps: 3,
+  packageDashboardUrl: "https://blockid.au/startup-package/proj-1",
+};
+
+describe("buildPackageProgressBlock — pure snapshot", () => {
+  it("renders all four sub-sections with a signed SVI delta", () => {
+    const block = buildPackageProgressBlock(packageProgress);
+    // (a) phase title + progress bar
+    expect(block.html).toContain("Phase 2 of 12");
+    expect(block.html).toContain("Customer Development");
+    expect(block.html).toContain("width:40%");
+    // (b) SVI delta signed
+    expect(block.html).toContain("SVI:");
+    expect(block.html).toContain("320");
+    expect(block.html).toContain("+40 pts vs last week");
+    expect(block.html).toContain("▲");
+    // (c) next action + credit cost
+    expect(block.html).toContain("Auto-fill customer persona");
+    expect(block.html).toContain("· 2 credits");
+    // (d) unfinished interview badge
+    expect(block.html).toContain("3 interview steps left");
+    // Text mirror
+    expect(block.text).toContain("Startup Package — Progress this week");
+    expect(block.text).toContain("Phase 2 of 12");
+    expect(block.text).toContain("Next paid action: Auto-fill customer persona · 2 credits");
+    expect(block.text).toContain("Interview steps left: 3");
+  });
+
+  it("handles the first-snapshot case (no previous SVI)", () => {
+    const first = buildPackageProgressBlock({
+      ...packageProgress,
+      sviPrevious: null,
+    });
+    expect(first.html).toContain("first snapshot");
+    expect(first.text).toContain("first snapshot");
+  });
+
+  it("shows a caught-up message when there is no next action", () => {
+    const caughtUp = buildPackageProgressBlock({
+      ...packageProgress,
+      nextAction: null,
+      unfinishedInterviewSteps: 0,
+    });
+    expect(caughtUp.html).toContain("Caught up for this phase");
+    expect(caughtUp.html).toContain("Interview complete");
+    expect(caughtUp.text).toContain("Caught up for this phase");
+    expect(caughtUp.text).toContain("Interview complete");
+  });
+
+  it("colours a downward SVI delta red", () => {
+    const down = buildPackageProgressBlock({
+      ...packageProgress,
+      sviCurrent: 260,
+      sviPrevious: 300,
+    });
+    expect(down.html).toContain("▼");
+    expect(down.html).toContain("-40 pts vs last week");
+    expect(down.html).toContain("#be123c");
+  });
+
+  it("escapes HTML in the phase title + next action", () => {
+    const attack = buildPackageProgressBlock({
+      ...packageProgress,
+      currentPhaseTitle: "<script>x</script>",
+      nextAction: {
+        label: "<img src=x>",
+        creditCost: 1,
+        href: "https://blockid.au/x",
+      },
+    });
+    expect(attack.html).not.toContain("<script>");
+    expect(attack.html).not.toContain("<img src=x>");
+    expect(attack.html).toContain("&lt;script&gt;");
+    expect(attack.html).toContain("&lt;img src=x&gt;");
+  });
+});
+
+describe("buildFounderDigest — package block prepend", () => {
+  it("prepends the Package block above the readiness climb when set", () => {
+    const out = buildFounderDigest({
+      name: "Sam",
+      phaseSlug: "6",
+      phaseLabel: "Revenue / Business Model",
+      readinessScore: 62,
+      band: "warming-up",
+      deltaSummary: "Readiness held steady this week.",
+      bandDirection: "same",
+      nextAction: null,
+      missingTop3: [],
+      dashboardUrl: "https://blockid.au/dashboard",
+      packageProgress,
+    });
+    const packageIdx = out.html.indexOf("Startup Package · Progress this week");
+    const dashboardIdx = out.html.indexOf("Open your dashboard");
+    expect(packageIdx).toBeGreaterThan(-1);
+    expect(dashboardIdx).toBeGreaterThan(-1);
+    expect(packageIdx).toBeLessThan(dashboardIdx);
+    // Text mirror also has the block near the top (before the phase header).
+    const packageTextIdx = out.text.indexOf(
+      "Startup Package — Progress this week",
+    );
+    const phaseTextIdx = out.text.indexOf(
+      "Phase 6 — Revenue / Business Model",
+    );
+    expect(packageTextIdx).toBeGreaterThan(-1);
+    expect(phaseTextIdx).toBeGreaterThan(packageTextIdx);
+  });
+
+  it("renders unchanged when packageProgress is omitted", () => {
+    const out = buildFounderDigest({
+      name: "Sam",
+      phaseSlug: "6",
+      phaseLabel: "Revenue / Business Model",
+      readinessScore: 62,
+      band: "warming-up",
+      deltaSummary: "Readiness held steady this week.",
+      bandDirection: "same",
+      nextAction: null,
+      missingTop3: [],
+      dashboardUrl: "https://blockid.au/dashboard",
+    });
+    expect(out.html).not.toContain("Startup Package · Progress this week");
+    expect(out.text).not.toContain("Startup Package — Progress this week");
   });
 });
