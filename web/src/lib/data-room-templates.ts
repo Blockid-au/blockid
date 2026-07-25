@@ -926,6 +926,16 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         required_for_stage: "series_a",
       },
       {
+        name: "PMF Signal Survey (\"very disappointed %\")",
+        type: "template",
+        format: "md",
+        priority: "P1",
+        description: "Sean Ellis / Rahul Vohra product-market-fit signal survey — the canonical 4-question instrument, APP-compliant consent + storage block, sample-size + Wilson-CI guardrails, and s18 ACL / s1041H Corps Act disclosure rules so the headline % is safe to circulate in a Phase-5 raise evidence pack.",
+        template_slug: "au-pmf-signal-survey",
+        dueDiligenceNotes:
+          "Investors want to see the eligibility rule, denominator, and response rate on the same page as the headline %. Use /legal-templates/au-pmf-signal-survey as the starting point.",
+      },
+      {
         name: "Pricing History",
         type: "upload",
         format: "pdf",
