@@ -1668,3 +1668,5 @@
 {"ts":"2026-07-25T03:11:22.803Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T03-05-01-181Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T03:17:54Z","status":"success","gates":"9/9","pid":"3040524","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-25T03:18:27.062Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P12d-redomicile-wizard): interactive redomicile decision wizard on /dashboard/exit-readiness (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T03:18:39.436Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T03-07-01-625Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T03:25:06.564Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.92-pct-change-streak-length-percentiles-cron-wiring): wire portfolio |pct|-material streak-length p50/p90/mean/max summary into weekly digest (1 commits)","source":"github-webhook"}

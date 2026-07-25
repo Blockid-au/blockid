@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" role="img" aria-label="Founder Institute" preserveAspectRatio="xMidYMid meet">
+  <title>Founder Institute</title>
+  <!-- Icon: three stacked steps (founder → funded → scaled) -->
+  <g fill="currentColor">
+    <rect x="12" y="34" width="10" height="14" rx="1.5"/>
+    <rect x="26" y="24" width="10" height="24" rx="1.5"/>
+    <rect x="40" y="14" width="10" height="34" rx="1.5"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="62" y="28" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="15" font-weight="800" letter-spacing="0.4" fill="currentColor">FOUNDER</text>
+  <text x="62" y="46" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="500" letter-spacing="2.2" fill="currentColor" opacity="0.85">INSTITUTE</text>
+</svg>
