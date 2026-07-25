@@ -5,9 +5,16 @@
 import Link from "next/link";
 
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
+import {
+  XERO_TIMELINE,
+  type Milestone as SharedMilestone,
+} from "@/lib/startup-package/case-study-milestones";
+import { GROWTH_PHASE_IDS } from "@/lib/journey-map";
 
 export const dynamic = "force-dynamic";
 
+// Renderer-local shape — sourced from the shared timeline module but
+// re-projected onto the numeric-phase axis this page's grouping still uses.
 interface Milestone {
   year: number | string;
   phase: number;
@@ -15,6 +22,18 @@ interface Milestone {
   detail: string;
   source: string;
   usd?: string;
+}
+
+function toLegacyMilestone(m: SharedMilestone): Milestone {
+  const idx = GROWTH_PHASE_IDS.indexOf(m.phase);
+  return {
+    year: m.year ?? "",
+    phase: idx >= 0 ? idx + 1 : 1,
+    headline: m.headline,
+    detail: m.detail,
+    source: m.source ?? "",
+    usd: m.usd,
+  };
 }
 
 const PHASE_NAMES: Record<number, string> = {
@@ -32,97 +51,7 @@ const PHASE_NAMES: Record<number, string> = {
   12: "Exit / Beyond",
 };
 
-const TIMELINE: Milestone[] = [
-  {
-    year: 2006,
-    phase: 1,
-    headline: "Founded in Wellington by Rod Drury + Hamish Edwards",
-    detail:
-      "Drury (serial entrepreneur, sold AfterMail to Quest Software in 2006 for NZ$70M) + Edwards (accountant) build cloud-first accounting for SMBs. Original bet: browser-native replaces desktop MYOB.",
-    source: "https://en.wikipedia.org/wiki/Xero_(company)",
-  },
-  {
-    year: 2007,
-    phase: 10,
-    headline: "NZX IPO 6 months after founding — NZ$15M raised",
-    detail:
-      "Listed on NZX at NZ$1.00. Extraordinarily early IPO — pre-revenue. Justified by need for capital + credibility to compete with MYOB in AU.",
-    source: "https://www.xero.com/nz/media-releases/",
-    usd: "NZ$15M",
-  },
-  {
-    year: 2010,
-    phase: 11,
-    headline: "Australian expansion — Sydney office",
-    detail:
-      "AU launch and dual-listing exploration begins. Sydney office established.",
-    source: "https://www.xero.com/nz/media-releases/",
-  },
-  {
-    year: 2012,
-    phase: 11,
-    headline: "ASX dual-listing — ASX code XRO",
-    detail:
-      "Xero listed on ASX as well as NZX. Both boards active until 2018 NZX delist.",
-    source: "https://www.asx.com.au/asx/share-price-research/company/XRO",
-  },
-  {
-    year: 2014,
-    phase: 11,
-    headline: "US expansion + Matrix Partners US$150M round",
-    detail:
-      "Matrix Capital + Accel + Peter Thiel $150M — valuation ~US$1.5B. Aggressive push into US SMB accounting market. Later described as loss-making chapter.",
-    source: "https://en.wikipedia.org/wiki/Xero_(company)",
-    usd: "$150M",
-  },
-  {
-    year: 2016,
-    phase: 11,
-    headline: "1M subscribers milestone",
-    detail: "Global subscriber base crosses 1M; ARR ~NZ$300M.",
-    source: "https://www.xero.com/global/media-releases/",
-  },
-  {
-    year: 2018,
-    phase: 11,
-    headline: "NZX delisting — ASX primary only",
-    detail:
-      "Xero delisted from NZX to simplify governance + reduce compliance overhead. ASX becomes sole listing (still cited as first NZ-to-AU dual-listing success).",
-    source: "https://www.xero.com/global/media-releases/",
-  },
-  {
-    year: 2019,
-    phase: 11,
-    headline: "Acquires Instafile + Hubdoc — data-capture bet",
-    detail:
-      "Doubles down on the accountant tool-chain around Xero — receipts, expenses, doc management.",
-    source: "https://www.xero.com/global/media-releases/",
-  },
-  {
-    year: 2020,
-    phase: 11,
-    headline: "Reaches profitability + 2.7M subscribers",
-    detail:
-      "First full year profitable. ARR NZ$820M. Market cap ~AU$16B on ASX.",
-    source: "https://www.asx.com.au/asx/share-price-research/company/XRO",
-  },
-  {
-    year: 2022,
-    phase: 11,
-    headline: "Steve Vamos steps down; Sukhinder Singh Cassidy CEO",
-    detail:
-      "First externally-hired CEO from Silicon Valley — signals move to US-market focus + AI product bets.",
-    source: "https://www.xero.com/global/media-releases/",
-  },
-  {
-    year: 2024,
-    phase: 11,
-    headline: "Cost-cutting + focus on ARR growth; 4.2M subscribers",
-    detail:
-      "Xero completes restructuring. Announces Xero AI (Just Ask Xero). Market cap ~AU$25B.",
-    source: "https://www.xero.com/global/media-releases/",
-  },
-];
+const TIMELINE: Milestone[] = XERO_TIMELINE.map(toLegacyMilestone);
 
 export default function XeroShowcasePage() {
   const byPhase = new Map<number, Milestone[]>();
