@@ -194,6 +194,11 @@ import {
   type DigestSnapshotPerResellerDirectionStreakLengthHistogram,
 } from "@/lib/reseller/digest-snapshot-per-reseller-direction-streak-length-histogram";
 import {
+  computeDigestSnapshotPerResellerPctChangeStreakLengthHistogram,
+  formatDigestSnapshotPerResellerPctChangeStreakLengthHistogramSection,
+  type DigestSnapshotPerResellerPctChangeStreakLengthHistogram,
+} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-length-histogram";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1475,6 +1480,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerDirectionStreakLengthHistogram
     | null = null;
   let perResellerDirectionStreakLengthHistogramSection = "";
+  let snapshotPerResellerPctChangeStreakLengthHistogram:
+    | DigestSnapshotPerResellerPctChangeStreakLengthHistogram
+    | null = null;
+  let perResellerPctChangeStreakLengthHistogramSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2158,6 +2167,36 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerResellerDirectionStreakLengthHistogramSection(
         snapshotPerResellerDirectionStreakLengthHistogram,
       );
+    // P11.84 — per-partner sustained-|pct|-material streak length-frequency
+    // histogram (module P11.83). Magnitude-axis analogue of the P11.82
+    // per-partner direction-streak histogram wired above and per-partner
+    // analogue of the P11.80 portfolio |pct|-material histogram, closing the
+    // histogram family's per-partner axis on the magnitude side symmetric
+    // with the P11.55 (coverage) / P11.75 (leaderboard) per-partner splits.
+    // Delegates to computeDigestSnapshotPerResellerPctChangeStreaks through
+    // the pure lib so per-partner histogram groups cannot diverge from the
+    // P11.51 spotlight rows they summarise. Consumes the SAME
+    // snapshotPerResellerRollingTrend the P11.51 detector and P11.75
+    // per-partner leaderboard already consume (no extra fold, no divergence
+    // risk vs. the per-partner spotlight rows below). Per-partner bucket set
+    // is DENSE from min_streak_length to that partner's own max_length so a
+    // partner whose deepest |pct|-material run is length-4 does not carry a
+    // phantom length-5 bucket sourced from a sibling partner's tail. Section
+    // splices directly BETWEEN perResellerPctChangeStreakLeaderboardSection
+    // (P11.76 per-partner top-N pct-change leaderboard) and
+    // perResellerPctChangeStreaksSection (P11.51/P11.52 per-partner
+    // spotlight) so ops reads per-partner coverage (P11.55) → per-partner
+    // top-N (P11.75) → per-partner shape-of-persistence tail (this section)
+    // → per-partner spotlight detail (P11.51), mirroring the P11.82
+    // placement on the direction axis.
+    snapshotPerResellerPctChangeStreakLengthHistogram =
+      computeDigestSnapshotPerResellerPctChangeStreakLengthHistogram(
+        snapshotPerResellerRollingTrend,
+      );
+    perResellerPctChangeStreakLengthHistogramSection =
+      formatDigestSnapshotPerResellerPctChangeStreakLengthHistogramSection(
+        snapshotPerResellerPctChangeStreakLengthHistogram,
+      );
   }
   if (
     topMoversSection ||
@@ -2181,6 +2220,7 @@ export async function GET(req: Request) {
     pctChangeStreakLeaderboardSection ||
     perMetricPctChangeStreakLeaderboardSection ||
     perResellerPctChangeStreakLeaderboardSection ||
+    perResellerPctChangeStreakLengthHistogramSection ||
     perResellerPctChangeStreaksSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
@@ -2221,6 +2261,7 @@ export async function GET(req: Request) {
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
       perResellerPctChangeStreakLeaderboardSection +
+      perResellerPctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -2987,6 +3028,26 @@ export async function GET(req: Request) {
               snapshotPerResellerDirectionStreakLengthHistogram.min_streak_length,
             groups:
               snapshotPerResellerDirectionStreakLengthHistogram.groups,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_pct_change_streak_length_histogram:
+      snapshotPerResellerPctChangeStreakLengthHistogram
+        ? {
+            window_size:
+              snapshotPerResellerPctChangeStreakLengthHistogram.window_size,
+            first_week:
+              snapshotPerResellerPctChangeStreakLengthHistogram.first_week,
+            last_week:
+              snapshotPerResellerPctChangeStreakLengthHistogram.last_week,
+            min_streak_length:
+              snapshotPerResellerPctChangeStreakLengthHistogram.min_streak_length,
+            threshold:
+              snapshotPerResellerPctChangeStreakLengthHistogram.threshold,
+            groups:
+              snapshotPerResellerPctChangeStreakLengthHistogram.groups,
           }
         : {
             skipped_reason:
