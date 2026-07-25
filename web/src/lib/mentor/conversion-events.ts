@@ -129,7 +129,14 @@ interface AuditEntry {
 export async function writeAuditLog(entry: AuditEntry): Promise<void> {
   if (typeof window !== "undefined") return; // client-side no-op
   try {
-    const mod = await import("@/lib/supabase");
+    // Function-constructor hides the import from Turbopack static analysis so
+    // supabase.ts (server-only) is not pulled into the browser bundle via the
+    // transitive client-component chain (mentor-invite/form → conversion-events).
+    // The server bundle still resolves it normally at runtime.
+    const loadSupabase = new Function(
+      "return import(\"@/lib/supabase\")",
+    ) as () => Promise<typeof import("@/lib/supabase")>;
+    const mod = await loadSupabase();
     const supabase = mod.getSupabaseAdmin?.();
     if (!supabase) return;
     await supabase.from("reseller_audit_log").insert({

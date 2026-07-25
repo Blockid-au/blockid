@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 
 // Inline Sentry client report — cannot import server-only modules in client error boundary
 function reportToSentry(err: Error) {
@@ -28,9 +27,11 @@ function reportToSentry(err: Error) {
 }
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  React.useEffect(() => {
+  // Fire Sentry inline (no hooks) — Next 16 prerenders global-error without a
+  // React runtime context, so useEffect throws during static generation.
+  if (typeof window !== "undefined") {
     reportToSentry(error);
-  }, [error]);
+  }
 
   return (
     <html lang="en-AU">
