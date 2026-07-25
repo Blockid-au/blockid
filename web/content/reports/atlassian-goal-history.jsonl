@@ -997,3 +997,4 @@
 {"tick_id":"2026-07-25T12-27-02-020Z","ts":"2026-07-25T12:36:02.814Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-25T12-37-01-884Z","ts":"2026-07-25T12:37:01.884Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T12-37-01-884Z","ts":"2026-07-25T12:37:01.892Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T12-40-P10-structure-decision","ts":"2026-07-25T12:44:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P10-structure-decision","title":"pure single-class-vs-dual-class quiz helper","files":["web/src/lib/fundraise/structure-decision.ts","web/src/lib/fundraise/structure-decision.test.ts","docs/plans/atlassian-standard-mapping-goal.md"],"tests":{"vitest_cases":13,"pass":13,"typecheck":"green"},"commit":"a2cabb9c"}
