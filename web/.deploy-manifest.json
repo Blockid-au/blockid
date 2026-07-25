@@ -1,7 +1,7 @@
 {
-  "git_sha": "63a78bb5e83a07e227bc4ecade75a1b372ab5ea3",
-  "deployed_at": "2026-07-25T10:22:16Z",
-  "next_hash": "162883124745389e8b5ba884688aea21",
-  "task_id": "T-1403",
+  "git_sha": "a08e4dff06919746edad5a0c736fd9c73083e65a",
+  "deployed_at": "2026-07-25T10:40:15Z",
+  "next_hash": "d65bda92d9113dfc8deb5136ea802ef3",
+  "task_id": "manual",
   "version": "v2.0.0-beta.10"
 }
