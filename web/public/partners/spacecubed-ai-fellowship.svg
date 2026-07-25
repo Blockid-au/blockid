@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" role="img" aria-label="Spacecubed AI Fellowship" preserveAspectRatio="xMidYMid meet">
   <title>Spacecubed AI Fellowship</title>
-  <text x="120" y="36" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="16" font-weight="700" letter-spacing="0.5" fill="currentColor">Spacecubed AI Fellowship</text>
+  <!-- Icon: isometric cube outline evoking Spacecubed's namesake -->
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round">
+    <path d="M30 14 L46 22 L46 38 L30 46 L14 38 L14 22 Z"/>
+    <path d="M30 14 L30 30 L14 22 M30 30 L46 22 M30 30 L30 46"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="58" y="28" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="15" font-weight="800" letter-spacing="0.3" fill="currentColor">SPACECUBED</text>
+  <text x="58" y="46" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="11" font-weight="500" letter-spacing="1.9" fill="currentColor" opacity="0.85">AI FELLOWSHIP</text>
 </svg>
