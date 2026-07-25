@@ -5,6 +5,7 @@ import { SVIEntrance } from "@/components/svi/svi-entrance";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { HeroSearch } from "@/components/landing/hero-search";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { TrustStrip } from "@/components/landing/trust-strip";
 
 export const metadata = {
   title:
@@ -79,6 +80,19 @@ export default function HomePage() {
               How BlockID.au works
             </h2>
             <HowItWorks />
+          </section>
+          <section
+            id="partners"
+            aria-labelledby="partners-heading"
+            className="border-t border-brand-navy/10 py-12"
+          >
+            <h2 id="partners-heading" className="sr-only">
+              Programs and integrations
+            </h2>
+            <div className="mx-auto max-w-5xl px-6">
+              <TrustStrip group="accepted" className="mt-4" />
+              <TrustStrip group="integrated" className="mt-8" />
+            </div>
           </section>
           <section
             id="trust"
