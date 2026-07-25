@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-24T21:05:01.934Z",
+  "updatedAt": "2026-07-25T21:05:19.318Z",
   "openrouter": [
     "nvidia/nemotron-3-ultra-550b-a55b:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
@@ -15,10 +15,10 @@
     "openai/gpt-oss-120b",
     "llama-3.3-70b-versatile",
     "openai/gpt-oss-20b",
-    "llama-3.1-8b-instant",
     "groq/compound",
+    "llama-3.1-8b-instant",
     "allam-2-7b",
-    "canopylabs/orpheus-arabic-saudi"
+    "canopylabs/orpheus-v1-english"
   ],
   "cerebras": [
     "zai-glm-4.7",
