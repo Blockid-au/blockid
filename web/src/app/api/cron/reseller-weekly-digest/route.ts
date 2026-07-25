@@ -263,7 +263,13 @@ import {
   computeDigestSnapshotPerResellerPersistenceScorecardVerdict,
   formatDigestSnapshotPerResellerPersistenceScorecardVerdictSection,
   type DigestSnapshotPerResellerPersistenceScorecardVerdict,
+  type PerResellerPersistenceScorecardVerdictRow,
 } from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard-verdict";
+import {
+  computeDigestSnapshotPerResellerPersistenceScorecardVerdictTransition,
+  formatDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionSection,
+  type DigestSnapshotPerResellerPersistenceScorecardVerdictTransition,
+} from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard-verdict-transition";
 import {
   computeDigestSnapshotPersistenceScorecard,
   formatDigestSnapshotPersistenceScorecardSection,
@@ -1618,6 +1624,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerPersistenceScorecardVerdict
     | null = null;
   let perResellerPersistenceScorecardVerdictSection = "";
+  let snapshotPerResellerPersistenceScorecardVerdictTransition:
+    | DigestSnapshotPerResellerPersistenceScorecardVerdictTransition
+    | null = null;
+  let perResellerPersistenceScorecardVerdictTransitionSection = "";
   let snapshotPersistenceScorecard: DigestSnapshotPersistenceScorecard | null =
     null;
   let persistenceScorecardSection = "";
@@ -2965,6 +2975,102 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionSection(
         snapshotPerMetricPersistenceScorecardVerdictTransition,
       );
+    // P11.118 — per-partner persistence scorecard verdict TRANSITION caption
+    // (module P11.117). Pure derivation of two P11.111 per-partner verdict
+    // envelopes (previous, current) into ONE discrete transition token PER
+    // PARTNER ROW — first_classification / undecidable / stable / improved /
+    // degraded / rotated — so ops can spot a per-partner week-over-week flip
+    // like 'ACME flipped from sustained_both_axes → volatile' without keeping
+    // last week's per-partner verdict table in their head. Splices directly
+    // BELOW the P11.112 perResellerPersistenceScorecardVerdictSection so the
+    // reader sees the current-week per-partner verdict badges above and the
+    // per-partner transition badges inline below each Monday. Formatter returns
+    // "" when window_size < 3 (matches P11.112 short-window suppression) OR
+    // when every partner resolves to `first_classification` / `stable` so the
+    // digest stays quiet on quiet partners. Previous per-partner verdict
+    // envelope is decoded defensively from
+    // previousSnapshot.envelope.snapshot_per_reseller_persistence_scorecard_verdict
+    // — older snapshots (pre-P11.112 tick 506) store {skipped_reason} instead
+    // of an envelope and fall through to `null`, which the module treats as a
+    // fresh baseline pass (every partner emits `first_classification`). Rows on
+    // the previous envelope with an unknown verdict token OR a missing
+    // reseller_code are dropped from the reconstructed previous envelope so a
+    // hand-edited JSONL row cannot smuggle a bogus token into the ladder —
+    // matches the P11.114 / P11.116 posture at the portfolio and per-metric
+    // grains. Envelope entry lands beside
+    // snapshot_per_reseller_persistence_scorecard_verdict so JSONL consumers
+    // can grep 'transition=degraded' per partner without side-loading the
+    // P11.111 verdict scalars. Capstones the verdict-transition trio at all
+    // three scorecard grains (portfolio P11.114 → per-metric P11.116 →
+    // per-partner this tick).
+    const previousPerResellerVerdictRaw =
+      previousSnapshot.envelope.snapshot_per_reseller_persistence_scorecard_verdict;
+    let previousPerResellerVerdict:
+      | DigestSnapshotPerResellerPersistenceScorecardVerdict
+      | null = null;
+    if (
+      previousPerResellerVerdictRaw &&
+      typeof previousPerResellerVerdictRaw === "object"
+    ) {
+      const record = previousPerResellerVerdictRaw as Record<string, unknown>;
+      const rowsRaw = record.rows;
+      if (Array.isArray(rowsRaw)) {
+        const KNOWN_VERDICT_TOKENS: readonly PersistenceScorecardVerdictToken[] = [
+          "insufficient_window",
+          "flat",
+          "sustained_both_axes",
+          "sustained_direction_only",
+          "sustained_magnitude_only",
+          "volatile",
+        ];
+        const reconstructedRows: PerResellerPersistenceScorecardVerdictRow[] = [];
+        for (const rowRaw of rowsRaw) {
+          if (!rowRaw || typeof rowRaw !== "object") continue;
+          const rowRecord = rowRaw as Record<string, unknown>;
+          const resellerCode = rowRecord.reseller_code;
+          const verdict = rowRecord.verdict;
+          if (
+            typeof resellerCode !== "string" ||
+            typeof verdict !== "string" ||
+            !(KNOWN_VERDICT_TOKENS as readonly string[]).includes(verdict)
+          ) {
+            continue;
+          }
+          reconstructedRows.push({
+            reseller_code: resellerCode,
+            verdict: verdict as PersistenceScorecardVerdictToken,
+            direction_sustained: rowRecord.direction_sustained === true,
+            magnitude_sustained: rowRecord.magnitude_sustained === true,
+            summary:
+              typeof rowRecord.summary === "string" ? rowRecord.summary : "",
+          });
+        }
+        previousPerResellerVerdict = {
+          window_size:
+            typeof record.window_size === "number" ? record.window_size : 0,
+          first_week:
+            typeof record.first_week === "string" ? record.first_week : null,
+          last_week:
+            typeof record.last_week === "string" ? record.last_week : null,
+          sustained_p90_threshold:
+            typeof record.sustained_p90_threshold === "number"
+              ? record.sustained_p90_threshold
+              : 3,
+          threshold:
+            typeof record.threshold === "number" ? record.threshold : 0.25,
+          rows: reconstructedRows,
+        };
+      }
+    }
+    snapshotPerResellerPersistenceScorecardVerdictTransition =
+      computeDigestSnapshotPerResellerPersistenceScorecardVerdictTransition(
+        snapshotPerResellerPersistenceScorecardVerdict,
+        previousPerResellerVerdict,
+      );
+    perResellerPersistenceScorecardVerdictTransitionSection =
+      formatDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionSection(
+        snapshotPerResellerPersistenceScorecardVerdictTransition,
+      );
   }
   if (
     topMoversSection ||
@@ -3003,6 +3109,7 @@ export async function GET(req: Request) {
     perMetricPersistenceScorecardVerdictTransitionSection ||
     perResellerPersistenceScorecardSection ||
     perResellerPersistenceScorecardVerdictSection ||
+    perResellerPersistenceScorecardVerdictTransitionSection ||
     persistenceScorecardSection ||
     persistenceScorecardVerdictSection ||
     persistenceScorecardVerdictTransitionSection
@@ -3062,6 +3169,7 @@ export async function GET(req: Request) {
       perResellerPctChangeStreakLengthPercentilesSection +
       perResellerPersistenceScorecardSection +
       perResellerPersistenceScorecardVerdictSection +
+      perResellerPersistenceScorecardVerdictTransitionSection +
       perResellerPctChangeStreaksSection +
       rest;
   }
@@ -4116,6 +4224,26 @@ export async function GET(req: Request) {
               snapshotPerResellerPersistenceScorecardVerdict.threshold,
             rows:
               snapshotPerResellerPersistenceScorecardVerdict.rows,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_persistence_scorecard_verdict_transition:
+      snapshotPerResellerPersistenceScorecardVerdictTransition
+        ? {
+            window_size:
+              snapshotPerResellerPersistenceScorecardVerdictTransition.window_size,
+            first_week:
+              snapshotPerResellerPersistenceScorecardVerdictTransition.first_week,
+            last_week:
+              snapshotPerResellerPersistenceScorecardVerdictTransition.last_week,
+            sustained_p90_threshold:
+              snapshotPerResellerPersistenceScorecardVerdictTransition.sustained_p90_threshold,
+            threshold:
+              snapshotPerResellerPersistenceScorecardVerdictTransition.threshold,
+            rows:
+              snapshotPerResellerPersistenceScorecardVerdictTransition.rows,
           }
         : {
             skipped_reason:
