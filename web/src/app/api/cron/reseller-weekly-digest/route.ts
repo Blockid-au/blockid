@@ -249,6 +249,11 @@ import {
   type DigestSnapshotPerResellerPersistenceScorecard,
 } from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard";
 import {
+  computeDigestSnapshotPersistenceScorecard,
+  formatDigestSnapshotPersistenceScorecardSection,
+  type DigestSnapshotPersistenceScorecard,
+} from "@/lib/reseller/digest-snapshot-persistence-scorecard";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1574,6 +1579,9 @@ export async function GET(req: Request) {
     | DigestSnapshotPerResellerPersistenceScorecard
     | null = null;
   let perResellerPersistenceScorecardSection = "";
+  let snapshotPersistenceScorecard: DigestSnapshotPersistenceScorecard | null =
+    null;
+  let persistenceScorecardSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2277,6 +2285,47 @@ export async function GET(req: Request) {
       formatDigestSnapshotPctChangeStreakLengthPercentilesSection(
         snapshotPctChangeStreakLengthPercentiles,
       );
+    // P11.106 — portfolio direction+magnitude persistence scorecard (module
+    // P11.105). Capstone portfolio-grain row that side-by-sides the P11.89
+    // direction-axis and P11.91 magnitude-axis scalar reductions into ONE
+    // table with ONE row so ops can answer "is the PORTFOLIO persistent on
+    // direction AND magnitude, or only one, or neither?" without cross-
+    // referencing the two upstream portfolio sections above it. Delegates
+    // through the pure lib to BOTH
+    // computeDigestSnapshotDirectionStreakLengthPercentiles (P11.89) AND
+    // computeDigestSnapshotPctChangeStreakLengthPercentiles (P11.91) so the
+    // scorecard fields CANNOT diverge from the two upstream summaries they
+    // consolidate (they ARE those same folds joined into a single row).
+    // Consumes the SAME snapshotDirectionStreaks input the P11.78 histogram
+    // + P11.89/P11.90 direction percentile already consume AND the SAME
+    // snapshotPctChangeStreaks input the P11.80 histogram + P11.91/P11.92
+    // magnitude percentile already consume (no extra fold, no divergence risk
+    // vs. the two summaries this scorecard joins). Threshold passthrough on
+    // the magnitude side matches P11.79/P11.83/P11.87/P11.91/P11.95/P11.99/
+    // P11.101/P11.103 posture so JSONL consumers can distinguish real
+    // portfolio cross-axis shape shifts from apparent shifts caused by
+    // widening the amber band. Section splices IMMEDIATELY BELOW
+    // pctChangeStreakLengthPercentilesSection (P11.91/P11.92 portfolio
+    // magnitude scalar) and ABOVE the per-partner + per-metric coverage/
+    // leaderboard/histogram/percentile ladders per the P11.105 formatter
+    // docblock explicit placement rule — capstone position at the bottom of
+    // the portfolio-grain ladder so a reader who already saw direction and
+    // magnitude summaries above can immediately reconcile them into a single
+    // portfolio verdict without scrolling back up. Walk: portfolio direction
+    // shape (P11.77) → portfolio direction scalar (P11.89) → portfolio
+    // magnitude shape (P11.79) → portfolio magnitude scalar (P11.91) →
+    // portfolio BOTH-AXES scorecard (this section, new) → per-metric ladder
+    // → per-partner ladder. Mirrors the P11.101/P11.102 per-metric and
+    // P11.103/P11.104 per-partner capstones one grain up so all three
+    // capstone scorecards land at the bottom of their respective grain's
+    // ladder.
+    snapshotPersistenceScorecard = computeDigestSnapshotPersistenceScorecard(
+      snapshotDirectionStreaks,
+      snapshotPctChangeStreaks,
+    );
+    persistenceScorecardSection = formatDigestSnapshotPersistenceScorecardSection(
+      snapshotPersistenceScorecard,
+    );
     // P11.82 — per-partner sustained-direction streak length-frequency
     // histogram (module P11.81). Per-partner analogue of the P11.78 portfolio
     // histogram, closing the histogram family's per-partner axis symmetric
@@ -2658,7 +2707,8 @@ export async function GET(req: Request) {
     perMetricPctChangeStreakLengthHistogramSection ||
     perMetricPctChangeStreakLengthPercentilesSection ||
     perMetricPersistenceScorecardSection ||
-    perResellerPersistenceScorecardSection
+    perResellerPersistenceScorecardSection ||
+    persistenceScorecardSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
     // P11.24 (portfolio |delta|) → P11.26 (per-metric spotlight) → P11.28
@@ -2699,6 +2749,7 @@ export async function GET(req: Request) {
       pctChangeStreaksSection +
       pctChangeStreakLengthHistogramSection +
       pctChangeStreakLengthPercentilesSection +
+      persistenceScorecardSection +
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
@@ -3708,6 +3759,20 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_persistence_scorecard: snapshotPersistenceScorecard
+      ? {
+          window_size: snapshotPersistenceScorecard.window_size,
+          first_week: snapshotPersistenceScorecard.first_week,
+          last_week: snapshotPersistenceScorecard.last_week,
+          min_streak_length: snapshotPersistenceScorecard.min_streak_length,
+          threshold: snapshotPersistenceScorecard.threshold,
+          direction: snapshotPersistenceScorecard.direction,
+          magnitude: snapshotPersistenceScorecard.magnitude,
+        }
+      : {
+          skipped_reason:
+            previousSnapshotSkipReason ?? "no_previous_snapshot",
+        },
     ran_at: now.toISOString(),
   };
 
