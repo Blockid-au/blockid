@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { VestingDashboard } from "./vesting-client";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { requireTierForPage } from "@/lib/entitlements/require-tier-for-page";
 
 export const metadata: Metadata = {
   title: "Vesting Schedules | BlockID",
@@ -15,6 +16,12 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function VestingPage() {
+  await requireTierForPage({
+    feature: "vesting.read",
+    minTier: "growth",
+    fromPath: "/workspace/vesting",
+  });
+
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/vesting");
 
