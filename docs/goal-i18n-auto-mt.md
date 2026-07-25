@@ -124,11 +124,29 @@ propagates to every future translation call.
 - [x] T-1403.6 — switcher no longer navigates; visible on mobile
 - [x] T-1403.7 — seed `vi-cache.json` from existing hand-authored VI
 - [x] T-1403.8 — goal doc (this file)
-- [ ] T-1403.9 — CI lint: fail if a VI cache entry loses a reserved term
-- [ ] T-1403.10 — analytics: log translate.hits / translate.misses per day
-- [ ] T-1403.11 — add locale to Supabase `profiles.preferred_locale`
-- [ ] T-1403.12 — human-review UI at `/admin/i18n/review` for the top-N
-      most-visible cache entries
+- [x] T-1403.9 — CI lint: `scripts/i18n/lint-cache.mjs` reads
+      `vi-audit.jsonl` and fails if any entry loses a reserved term.
+- [x] T-1403.10 — in-memory counters (`translate-stats.ts`) exposed at
+      `GET /api/i18n/stats` behind `x-admin-key` + `INTERNAL_ADMIN_KEY`.
+- [x] T-1403.11 — migration `0117_preferred_locale.sql` adds
+      `founder_profiles.preferred_locale`; switcher fires
+      `POST /api/founder-profile/locale` when the user is signed in.
+- [x] T-1403.12 — `/admin/i18n/review` browse + inline-edit UI with
+      `POST /api/i18n/cache` override endpoint.
+
+### Audit + review data flow
+
+```
+translate-cache.ts  cacheSetMany() ─► vi-cache.json   (sha-keyed)
+                                    └► vi-audit.jsonl (append EN/VI/ts)
+                                             │
+                                             ├─► scripts/i18n/lint-cache.mjs   (CI drift check)
+                                             │
+                                             └─► /admin/i18n/review  (human QA)
+                                                       │
+                                                       └─► POST /api/i18n/cache
+                                                                 → cacheSetMany() (loop)
+```
 
 ## 6. Cost / quota model
 
