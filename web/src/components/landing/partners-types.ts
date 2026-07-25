@@ -10,8 +10,10 @@
 // NOTHING. The user has explicitly asked that unverified partner logos never
 // appear on the site — this component library must not fabricate affiliations.
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+// Static JSON import — Next.js bundles it at build time so this module can be
+// consumed from Server AND Client components without pulling node:fs into the
+// browser bundle (footer.tsx sits on client-component chains).
+import partnersConfigJson from "@/../config/marketing-partners.json";
 
 /**
  * Curator group taxonomy. Extend cautiously — each new group must be added to
@@ -59,14 +61,12 @@ export interface PartnersConfig {
   groups?: Partial<Record<PartnerGroupKey, PartnerGroup>>;
 }
 
-/** Reads and parses the config file. Returns null on any failure. */
+/** Returns the compile-time-bundled partners config. Returns null if the JSON
+ *  is missing or malformed. Isomorphic — safe from both server and client. */
 export function loadPartnersConfig(): PartnersConfig | null {
   try {
-    const path = join(process.cwd(), "config", "marketing-partners.json");
-    const raw = readFileSync(path, "utf-8");
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return null;
-    return parsed as PartnersConfig;
+    if (!partnersConfigJson || typeof partnersConfigJson !== "object") return null;
+    return partnersConfigJson as PartnersConfig;
   } catch {
     return null;
   }
