@@ -1644,3 +1644,5 @@
 {"ts":"2026-07-25T02:10:32.259Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.86-per-metric-direction-streak-length-histogram-cron-wiring): wire per-metric direction histogram into weekly digest (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T02:10:58.865Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T02-05-01-758Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T02:14:42.618Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P5-tax-invoice-checker-ch5-section): Chapter 5 guide section deep-links into /workspace/tax-invoice-checker (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T02:14:53.959Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T02-07-01-488Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T02:20:31.202Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P1k-nav): sidebar entry for /compliance/calendar (1 commits)","source":"github-webhook"}

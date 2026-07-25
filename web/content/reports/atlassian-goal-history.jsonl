@@ -671,3 +671,5 @@
 {"tick_id":"2026-07-25T02-17-01-741Z","ts":"2026-07-25T02:17:01.742Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T02-17-01-741Z","ts":"2026-07-25T02:17:01.749Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-25T02-20-00-000Z","ts":"2026-07-25T02:20:00.000Z","loop_label":"atlassian-goal-loop","phase":"P1k-nav","status":"shipped","stage":"tick_end","note":"Top-level sidebar entry Compliance Calendar added to fundraise.data-room subgroup in nav-groups.ts; 4 tier-* golden snapshots regenerated; 32 nav-integration+visibility tests green; typecheck green"}
+{"tick_id":"2026-07-25T02-17-01-741Z","ts":"2026-07-25T02:20:36.523Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":214771,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-25T02-17-01-741Z","ts":"2026-07-25T02:20:36.550Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
