@@ -141,8 +141,9 @@ describe("R&D Tax Incentive section (chapter 06 P1j)", () => {
     }
   });
 
-  it("no other chapter carries sections yet (P1j + P1l + Q6/Q7 + P11 — chapters 06, 08, 10 and 11 only)", () => {
+  it("no other chapter carries sections yet (P1j + P1l + Q6/Q7 + P11 + P5-tax-invoice-checker-ch5-section — chapters 05, 06, 08, 10 and 11 only)", () => {
     const chaptersWithSections = new Set<ChapterSlug>([
+      "05-pmf",
       "06-revenue",
       "08-team",
       "10-fundraise",
@@ -152,6 +153,51 @@ describe("R&D Tax Incentive section (chapter 06 P1j)", () => {
       if (chaptersWithSections.has(chapter.slug)) continue;
       expect(chapter.sections).toBeUndefined();
     }
+  });
+});
+
+describe("ATO tax-invoice checker section (chapter 05 P5-tax-invoice-checker-ch5-section)", () => {
+  it("chapter 05-pmf publishes an ato-tax-invoice-checker section EN + VI", () => {
+    const c = getChapter("05-pmf");
+    expect(c).not.toBeNull();
+    expect(c?.sections).toBeDefined();
+    const s = c?.sections?.find((x) => x.id === "ato-tax-invoice-checker");
+    expect(s).toBeDefined();
+    expect(s?.heading.en.length).toBeGreaterThan(0);
+    expect(s?.heading.vi.length).toBeGreaterThan(0);
+    expect(s?.body.en.length).toBeGreaterThanOrEqual(6);
+    expect(s?.body.vi.length).toBe(s?.body.en.length);
+  });
+
+  it("ATO tax-invoice section cites the anchors an AU founder needs to defend the format", () => {
+    const c = getChapter("05-pmf");
+    const s = c?.sections?.find((x) => x.id === "ato-tax-invoice-checker");
+    const en = (s?.body.en ?? []).join("\n");
+    for (const anchor of [
+      "s 29-70(1)",                       // GST Act core rule
+      "s 29-70(3)",                       // RCTI carve-out
+      "A$82.50",                          // no-tax-invoice-required threshold
+      "A$1,000",                          // large-invoice threshold
+      "ABN",                              // required supplier + recipient identity
+      "Total price includes GST",         // s 29-70(1) statement alternative
+      "Recipient-Created Tax Invoice",    // RCTI (canonical)
+      "/workspace/tax-invoice-checker",   // deep-link to the shipped wizard
+      "/dashboard/compliance",            // deep-link to the panel
+    ]) {
+      expect(en).toContain(anchor);
+    }
+  });
+
+  it("ATO tax-invoice section points founder at the shipped checker rather than issuing tax advice", () => {
+    const c = getChapter("05-pmf");
+    const s = c?.sections?.find((x) => x.id === "ato-tax-invoice-checker");
+    const en = (s?.body.en ?? []).join("\n").toLowerCase();
+    // Guardrail: the section must route founders to the wizard rather than
+    // reading like tax advice on a specific invoice. The disclaimer that
+    // ships on every checker output (TAX_INVOICE_DISCLAIMER, tax-invoice-
+    // checker.ts) covers the AFSL / tax-agent boundary at runtime.
+    expect(en).toContain("/workspace/tax-invoice-checker");
+    expect(en).toContain("disclaimer");
   });
 });
 

@@ -406,6 +406,45 @@ const CHAPTERS: Chapter[] = [
       en: "Open the workspace Traction tab and log week-1 to week-N retention for the users you have today, however few. Two rows is enough to start — the CDO agent will tell you honestly how much more data it needs.",
       vi: "Mở tab Traction trong không gian làm việc và ghi giữ chân tuần 1 đến tuần N cho người dùng hiện có, dù ít. Hai dòng cũng đủ để bắt đầu — CDO sẽ nói thẳng cần thêm bao nhiêu dữ liệu.",
     },
+    // atlassian-standard-mapping-goal.md P5-tax-invoice-checker-ch5-section
+    // (§1 phase 5 "first invoice/tax-invoice conformant to ATO GST-tax-invoice
+    // rules"): Chapter 5 is where founders raise their first paid invoice.
+    // The pure lib + wizard + persistence + tile + compliance panel are all
+    // live; the guide-side reference was still missing so founders had no
+    // path from Chapter 5 into the /workspace/tax-invoice-checker surface.
+    // General information only — the AFSL / tax-agent boundary is preserved
+    // by the disclaimer that ships on every checker output.
+    sections: [
+      {
+        id: "ato-tax-invoice-checker",
+        heading: {
+          en: "First paid invoice — the ATO tax-invoice format checklist most AU founders get wrong on receipt #1",
+          vi: "Hoá đơn có thu tiền đầu tiên — checklist định dạng tax invoice ATO nhiều founder Úc làm sai từ hoá đơn #1",
+        },
+        body: {
+          en: [
+            "Why it matters at Chapter 5: your first paid customer is also the first person who can lodge a GST input-tax-credit claim using your invoice. Get the format wrong and they either can't claim (bad look) or claim invalidly and forward the ATO problem back to you (worse look). Fixing the template once, at receipt #1, avoids reissuing every invoice you'll ever raise.",
+            "The ATO tax-invoice rules live in A New Tax System (Goods and Services Tax) Act 1999 s 29-70(1). Under A$82.50 (GST-inclusive) a tax invoice is not required at all — a plain receipt is fine. Between A$82.50 and A$1,000 you need the seven standard fields. At A$1,000 and above you also need the recipient's identity and their ABN (or address, if the recipient has no ABN).",
+            "Seven required fields for any tax invoice ≥ A$82.50: (1) the words 'Tax invoice' clearly stated; (2) your identity (business name); (3) your ABN; (4) the invoice issue date; (5) a description of the item(s) sold with quantity where applicable; (6) the GST-inclusive total; (7) either the GST amount (typically total ÷ 11 for a fully taxable supply) OR the statement 'Total price includes GST'. If your supply is GST-free (e.g. exports, some health / education) or input-taxed (e.g. residential rent, financial supplies), you don't add GST — but a plain receipt is still fine unless the customer requests a tax invoice.",
+            "Two extra fields at A$1,000+ (large invoices): the recipient's identity (name or business name) and their ABN (or address if they have no ABN). Skipping this on a $1,001 invoice is the single most common Chapter-5 mistake — the receipt-below-A$82.50 case is much rarer than founders think and doesn't apply once you're raising real invoices.",
+            "Recipient-Created Tax Invoices (RCTI) are the s 29-70(3) carve-out: the buyer issues the tax invoice to the seller. Common in fresh-produce markets, some commissions and platform payouts (Uber, DoorDash). If you're the seller and your buyer issues you an RCTI, you're not obliged to issue your own — but you do need a written RCTI agreement with the buyer before the first one.",
+            "GST cross-check: for a fully-taxable supply the GST component is exactly total ÷ 11 (because GST is added on top: 10 × 1.1 = 11). If the declared GST doesn't match the total ÷ 11 within A$0.02 (rounding tolerance), your template is either double-taxing, under-taxing, or mixing GST-free and taxable lines without a per-line breakdown. The checker's A$0.02 tolerance mirrors the ATO's cent-rounding guidance.",
+            "How BlockID.au surfaces this: /workspace/tax-invoice-checker is the founder-facing wizard — paste or type the invoice fields, hit Assess, and the pure checker (web/src/lib/compliance/tax-invoice-checker.ts) returns the 3-band classification (under_threshold / standard / large) plus missing-field slots + warnings + the ATO disclaimer. Hit Save to snapshot the assessment into compliance_tax_invoice_checks; the /dashboard/compliance panel then shows the latest-band chip so a future auditor sees the audit trail. The ABN checksum reuses the same P1g modulus-89 validator that /api/abr/lookup runs, so a typo'd ABN gets caught before the invoice ships.",
+            "Founder next step for Chapter 5: run one real invoice you've raised (or the template you plan to raise from) through /workspace/tax-invoice-checker. Fix any red slots today, save the snapshot for the data-room audit trail, and re-run the checker whenever you rev the template. This is a 5-minute Chapter-5 task that removes a Chapter-9 diligence question the reviewer would otherwise flag.",
+          ],
+          vi: [
+            "Tại sao quan trọng ở Chương 5: khách hàng có thu tiền đầu tiên cũng là người đầu tiên có thể xin credit thuế GST đầu vào bằng hoá đơn của bạn. Định dạng sai thì họ không claim được (xấu) hoặc claim không hợp lệ và đẩy vấn đề ATO ngược về bạn (tệ hơn). Sửa template một lần ngay hoá đơn #1 tránh phát hành lại toàn bộ hoá đơn sau này.",
+            "Quy tắc tax invoice ATO nằm ở A New Tax System (Goods and Services Tax) Act 1999 s 29-70(1). Dưới A$82.50 (đã gồm GST) không cần tax invoice — biên nhận thường là đủ. Từ A$82.50 đến A$1,000 cần bảy trường tiêu chuẩn. Từ A$1,000 trở lên cần thêm danh tính người mua và ABN của họ (hoặc địa chỉ nếu không có ABN).",
+            "Bảy trường bắt buộc cho tax invoice ≥ A$82.50: (1) chữ 'Tax invoice' ghi rõ; (2) danh tính bạn (tên doanh nghiệp); (3) ABN của bạn; (4) ngày phát hành; (5) mô tả hàng/dịch vụ kèm số lượng khi phù hợp; (6) tổng cộng đã gồm GST; (7) hoặc số tiền GST (thường tổng ÷ 11 cho cung ứng chịu thuế toàn phần) HOẶC câu 'Total price includes GST'. Nếu cung ứng của bạn miễn GST (xuất khẩu, một số y tế / giáo dục) hoặc chịu thuế đầu vào (thuê nhà ở, dịch vụ tài chính) thì không cộng GST — biên nhận đơn giản vẫn đủ trừ khi khách yêu cầu tax invoice.",
+            "Hai trường thêm khi ≥ A$1,000 (hoá đơn lớn): danh tính người mua (tên hoặc tên doanh nghiệp) và ABN của họ (hoặc địa chỉ nếu không có ABN). Bỏ sót ở hoá đơn $1,001 là lỗi phổ biến nhất Chương 5 — trường hợp dưới A$82.50 hiếm hơn founder tưởng và không áp dụng khi bạn đã phát hành hoá đơn thật.",
+            "Recipient-Created Tax Invoices (RCTI) là ngoại lệ s 29-70(3): người mua phát hành tax invoice cho người bán. Phổ biến ở chợ nông sản, một số hoa hồng và trả tiền qua nền tảng (Uber, DoorDash). Nếu bạn là người bán và người mua phát RCTI cho bạn thì bạn không cần phát hành riêng — nhưng phải có thoả thuận RCTI bằng văn bản với người mua trước khi phát cái đầu tiên.",
+            "Kiểm tra GST chéo: với cung ứng chịu thuế toàn phần, GST đúng bằng tổng ÷ 11 (vì GST cộng thêm: 10 × 1.1 = 11). Nếu GST khai không khớp tổng ÷ 11 trong biên độ A$0.02 (dung sai làm tròn) thì template hoặc đánh thuế hai lần, đánh thiếu, hoặc trộn dòng miễn GST với dòng chịu thuế mà không tách theo dòng. Dung sai A$0.02 của checker theo hướng dẫn làm tròn xu của ATO.",
+            "BlockID.au bề mặt hoá thế nào: /workspace/tax-invoice-checker là wizard cho founder — dán hoặc nhập các trường hoá đơn, bấm Assess, và bộ kiểm thuần (web/src/lib/compliance/tax-invoice-checker.ts) trả về phân loại 3 dải (under_threshold / standard / large) kèm ô trường thiếu + cảnh báo + disclaimer ATO. Bấm Save để lưu snapshot vào compliance_tax_invoice_checks; bảng /dashboard/compliance sau đó hiển thị chip dải mới nhất để auditor tương lai thấy dấu vết audit. Kiểm tra checksum ABN dùng lại validator modulus-89 P1g cùng /api/abr/lookup, nên ABN gõ nhầm bị bắt trước khi hoá đơn phát đi.",
+            "Bước tiếp theo cho founder Chương 5: chạy một hoá đơn thật đã phát (hoặc template dự định phát) qua /workspace/tax-invoice-checker. Sửa ô đỏ hôm nay, lưu snapshot cho dấu vết audit data-room, và chạy lại checker mỗi lần đổi template. Đây là task 5 phút Chương 5 loại bỏ câu hỏi diligence Chương 9 mà reviewer sẽ nêu.",
+          ],
+        },
+      },
+    ],
   },
   {
     slug: "06-revenue",
