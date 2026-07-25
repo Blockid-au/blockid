@@ -662,3 +662,5 @@
 {"tick_id":"2026-07-25T02-07-01-488Z","ts":"2026-07-25T02:07:01.489Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T02-07-01-488Z","ts":"2026-07-25T02:07:01.495Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-25T02-15-00-000Z","ts":"2026-07-25T02:15:00.000Z","loop_label":"atlassian-goal-loop","phase":"P5-tax-invoice-checker-ch5-section","status":"shipped","stage":"tick_end","note":"Chapter 5 sections[] entry ato-tax-invoice-checker EN+VI wired into startup-journey.ts; 3 new vitest cases; guide-side deep-link into /workspace/tax-invoice-checker + /dashboard/compliance"}
+{"tick_id":"2026-07-25T02-07-01-488Z","ts":"2026-07-25T02:14:50.845Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":469348,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-25T02-07-01-488Z","ts":"2026-07-25T02:14:50.874Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":6}
