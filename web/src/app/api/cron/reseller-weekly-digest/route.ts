@@ -353,6 +353,11 @@ import {
   type DigestSnapshotPerTransitionHotCellsDrilldown,
 } from "@/lib/reseller/digest-snapshot-per-transition-hot-cells-drilldown";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeDrilldown,
+  formatDigestSnapshotPerTransitionMagnitudeDrilldownSection,
+  type DigestSnapshotPerTransitionMagnitudeDrilldown,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-drilldown";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1755,6 +1760,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionHotCellsDrilldown
     | null = null;
   let perTransitionHotCellsDrilldownSection = "";
+  let snapshotPerTransitionMagnitudeDrilldown:
+    | DigestSnapshotPerTransitionMagnitudeDrilldown
+    | null = null;
+  let perTransitionMagnitudeDrilldownSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3634,6 +3643,30 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionHotCellsDrilldownSection(
           snapshotPerTransitionHotCellsDrilldown,
         );
+      // P11.146 — per-transition MAGNITUDE drill-down (module P11.145).
+      // Further partitions the P11.139 per-pair hot-cells list first by
+      // transition then by hot_score magnitude band {small [1..2], medium
+      // [3..5], large [6+]} so ops sees whether a loud transition bucket
+      // is loud from MANY cells that barely qualified or a FEW cells that
+      // jumped a huge distance — the follow-up shape the P11.143 per-
+      // bucket winner picks alone cannot surface. Splices IMMEDIATELY
+      // BELOW perTransitionHotCellsDrilldownSection AND IMMEDIATELY ABOVE
+      // perPairHotCellsSection per the P11.145 formatter docblock
+      // placement rule so the hierarchy descends per-metric ranking
+      // (P11.137) → per-pair hot-cells SUMMARY (P11.141) → per-transition
+      // DRILL-DOWN (P11.143) → per-transition MAGNITUDE (P11.145) → per-
+      // pair hot-cells GRANULAR (P11.139) → per-pair scalar distribution
+      // (P11.130): ops reads the per-transition winner picks first, then
+      // the magnitude drill-down to see whether the winners are loud from
+      // many small cells or a few large ones, then the granular table.
+      snapshotPerTransitionMagnitudeDrilldown =
+        computeDigestSnapshotPerTransitionMagnitudeDrilldown(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeDrilldownSection =
+        formatDigestSnapshotPerTransitionMagnitudeDrilldownSection(
+          snapshotPerTransitionMagnitudeDrilldown,
+        );
     }
   }
   if (
@@ -3681,6 +3714,7 @@ export async function GET(req: Request) {
     perMetricCrossPartnerAlertsSection ||
     perPairHotCellsSummarySection ||
     perTransitionHotCellsDrilldownSection ||
+    perTransitionMagnitudeDrilldownSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -3755,6 +3789,7 @@ export async function GET(req: Request) {
       perMetricCrossPartnerAlertsSection +
       perPairHotCellsSummarySection +
       perTransitionHotCellsDrilldownSection +
+      perTransitionMagnitudeDrilldownSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -4940,6 +4975,25 @@ export async function GET(req: Request) {
             total_hot_cells:
               snapshotPerTransitionHotCellsDrilldown.total_hot_cells,
             buckets: snapshotPerTransitionHotCellsDrilldown.buckets,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_drilldown:
+      snapshotPerTransitionMagnitudeDrilldown
+        ? {
+            window_size: snapshotPerTransitionMagnitudeDrilldown.window_size,
+            first_week: snapshotPerTransitionMagnitudeDrilldown.first_week,
+            last_week: snapshotPerTransitionMagnitudeDrilldown.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeDrilldown.sustained_p90_threshold,
+            threshold: snapshotPerTransitionMagnitudeDrilldown.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeDrilldown.total_hot_cells,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeDrilldown.band_thresholds,
+            transitions: snapshotPerTransitionMagnitudeDrilldown.transitions,
           }
         : {
             skipped_reason:
