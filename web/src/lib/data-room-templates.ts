@@ -1008,10 +1008,10 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
       },
       {
         name: "ESOP Plan Document (Team Copy)",
-        type: "upload",
+        type: "template",
         format: "pdf",
         priority: "P1",
-        description: "Employee-facing ESOP plan summary, vesting rules, and exercise mechanics (as distributed to staff)",
+        description: "Employee-facing ESOP plan summary, vesting rules, and exercise mechanics (as distributed to staff). See /legal-templates/au-esop-scheme-rules for a Div 83A-calibrated starting point that mirrors the Folder 2 ESOP Plan Rules body.",
         required_for_stage: "seed",
         template_slug: "au-esop-scheme-rules",
       },
