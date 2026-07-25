@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" role="img" aria-label="BlockID — from idea to investor-ready">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#1B2A5E"/>
+      <stop offset="55%" stop-color="#131938"/>
+      <stop offset="100%" stop-color="#05081C"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+
+  <!-- subtle grid -->
+  <g stroke="#22326B" stroke-opacity="0.35" stroke-width="1">
+    <path d="M0 200 H1920 M0 400 H1920 M0 600 H1920 M0 800 H1920"/>
+    <path d="M320 0 V1080 M640 0 V1080 M960 0 V1080 M1280 0 V1080 M1600 0 V1080"/>
+  </g>
+
+  <!-- brand glyph: hex-cube -->
+  <g transform="translate(960 380)">
+    <polygon points="0,-140 121,-70 121,70 0,140 -121,70 -121,-70"
+             fill="none" stroke="url(#gold)" stroke-width="6"/>
+    <polygon points="0,-88 76,-44 76,44 0,88 -76,44 -76,-44"
+             fill="#1B2A5E" stroke="#38BDF8" stroke-width="3"/>
+    <text x="0" y="16" text-anchor="middle" font-family="'Inter','Helvetica Neue',sans-serif"
+          font-size="52" font-weight="700" fill="#F8FAFC">BID</text>
+  </g>
+
+  <!-- wordmark -->
+  <text x="960" y="620" text-anchor="middle"
+        font-family="'Inter','Helvetica Neue',sans-serif"
+        font-size="72" font-weight="700" fill="#F8FAFC" letter-spacing="2">
+    BlockID
+  </text>
+  <text x="960" y="680" text-anchor="middle"
+        font-family="'Inter','Helvetica Neue',sans-serif"
+        font-size="34" font-weight="400" fill="#94A3B8" letter-spacing="1">
+    From idea to investor-ready
+  </text>
+
+  <!-- five step chips across bottom third -->
+  <g font-family="'Inter','Helvetica Neue',sans-serif" font-size="22" fill="#F8FAFC">
+    <!-- 1: Search -->
+    <g transform="translate(220 860)">
+      <rect x="0" y="0" width="280" height="120" rx="18" fill="#1B2A5E" stroke="#38BDF8" stroke-opacity="0.55"/>
+      <circle cx="46" cy="60" r="24" fill="none" stroke="#38BDF8" stroke-width="3"/>
+      <line x1="64" y1="78" x2="80" y2="94" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+      <text x="100" y="52" font-weight="600">1. Search</text>
+      <text x="100" y="82" font-size="16" fill="#94A3B8">Type an idea</text>
+    </g>
+    <!-- 2: Onboard -->
+    <g transform="translate(540 860)">
+      <rect x="0" y="0" width="280" height="120" rx="18" fill="#1B2A5E" stroke="#38BDF8" stroke-opacity="0.55"/>
+      <rect x="30" y="34" width="40" height="52" rx="6" fill="none" stroke="#38BDF8" stroke-width="3"/>
+      <line x1="38" y1="52" x2="62" y2="52" stroke="#38BDF8" stroke-width="3"/>
+      <line x1="38" y1="66" x2="58" y2="66" stroke="#38BDF8" stroke-width="3"/>
+      <text x="100" y="52" font-weight="600">2. Onboard</text>
+      <text x="100" y="82" font-size="16" fill="#94A3B8">Set your goal</text>
+    </g>
+    <!-- 3: Score -->
+    <g transform="translate(860 860)">
+      <rect x="0" y="0" width="280" height="120" rx="18" fill="#1B2A5E" stroke="#38BDF8" stroke-opacity="0.55"/>
+      <path d="M22 78 A26 26 0 0 1 74 78" fill="none" stroke="#38BDF8" stroke-width="4"/>
+      <line x1="48" y1="78" x2="60" y2="52" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+      <text x="100" y="52" font-weight="600">3. Score</text>
+      <text x="100" y="82" font-size="16" fill="#94A3B8">See your SVI</text>
+    </g>
+    <!-- 4: Build -->
+    <g transform="translate(1180 860)">
+      <rect x="0" y="0" width="280" height="120" rx="18" fill="#1B2A5E" stroke="#38BDF8" stroke-opacity="0.55"/>
+      <path d="M28 46 L48 46 L54 56 L84 56 L84 90 L28 90 Z" fill="none" stroke="#38BDF8" stroke-width="3"/>
+      <text x="100" y="52" font-weight="600">4. Build</text>
+      <text x="100" y="82" font-size="16" fill="#94A3B8">Data room</text>
+    </g>
+    <!-- 5: Raise -->
+    <g transform="translate(1500 860)">
+      <rect x="0" y="0" width="280" height="120" rx="18" fill="#1B2A5E" stroke="#38BDF8" stroke-opacity="0.55"/>
+      <path d="M42 84 L54 72 L54 46 A18 18 0 0 1 72 46 L72 72 L84 84 L60 78 Z"
+            fill="none" stroke="#38BDF8" stroke-width="3" stroke-linejoin="round"/>
+      <text x="100" y="52" font-weight="600">5. Raise</text>
+      <text x="100" y="82" font-size="16" fill="#94A3B8">Pitch investors</text>
+    </g>
+  </g>
+</svg>
