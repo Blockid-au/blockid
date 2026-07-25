@@ -23,6 +23,10 @@ export type FeatureSlug =
   | "reseller.grant_credits"
   | "reseller.console"
   | "reseller.create_startup"
+  // Founder Startup Package — Ship-1 guided-flow SKU. Visible from
+  // free tier so the sample interview appears in the sidebar for
+  // every founder.
+  | "startup_package"
   // nav-groups `feature:` bindings not in FEATURE_GATES
   | "equity_offer.request";
 
@@ -115,6 +119,18 @@ export const VISIBILITY: Readonly<Record<FeatureSlug, VisibilityRow>> = Object.f
     discoveryHint: "Top up managed-customer credits from your reseller pool",
     upgradeCTA: "Contact sales",
     bestAtPhase: 12,
+    monthlyDeltaAud: 0,
+  },
+  startup_package: {
+    // The free-tier sample interview is intentionally reachable via
+    // direct URL — VISIBILITY.startup_package is only about SIDEBAR
+    // discovery. Setting minTier="starter" keeps the free-tier golden
+    // snapshot at [] while letting paid founders find it in the sidebar.
+    // See docs/plans/startup-package (Ship-1).
+    minTier: "starter",
+    discoveryHint: "Guided interview + C-Level AI analysis + live SVI",
+    upgradeCTA: "Start your Startup Package",
+    bestAtPhase: 1,
     monthlyDeltaAud: 0,
   },
 });

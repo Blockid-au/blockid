@@ -149,6 +149,23 @@ export interface AnalyticsEventMap {
   reseller_create_startup_completed: { reseller_id: string; plan: string; user_id_hash: string };
   reseller_attribution_committed: { reseller_id: string; via_source: "code" | "provisioned" | "admin_manual" };
 
+  // ── Startup Package (founder-package guided-interview flow) ─────────
+  //   See docs/plans/startup-package sub-goals 3-5. Fired from the
+  //   client wizard after each server ACK so GA4 captures the funnel
+  //   even if the API log rotates.
+  package_purchased: { plan_id: string; price: number };
+  interview_step_completed: {
+    step_key: string;
+    char_count: number;
+    project_id?: string;
+  };
+  agent_analysis_ran: {
+    step_key: string;
+    lead_agent: string;
+    credits_spent: number;
+    svi_delta: number | null;
+  };
+
   // ── Showcase (Track B) — dev-progress + SEO tracking on the BlockID.au
   //   own workspace + guide. Feeds the "know where we are" dashboard.
   showcase_phase_advanced: { from_phase: number; to_phase: number; sha: string };
