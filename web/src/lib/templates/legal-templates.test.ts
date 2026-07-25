@@ -887,6 +887,105 @@ describe("au-customer-discovery-interview-log template", () => {
   });
 });
 
+describe("au-ga4-measurement-plan template", () => {
+  const tpl = getTemplate("au-ga4-measurement-plan");
+  const body = tpl
+    ? readFileSync(
+        path.join(process.cwd(), tpl.file_path.replace(/^web\//, "")),
+        "utf8",
+      )
+    : "";
+
+  it("is registered as a phase-7 commercial template", () => {
+    expect(tpl).toBeDefined();
+    expect(tpl?.category).toBe("commercial");
+    expect(tpl?.phase_slug).toBe("phase-7");
+    expect(
+      listTemplates().some((t) => t.slug === "au-ga4-measurement-plan"),
+    ).toBe(true);
+  });
+
+  it("declares the Privacy Act + ACL + GST anchors reviewers need", () => {
+    // Privacy Act 1988 + Australian Privacy Principles — GA4 collects
+    // personal information (IP, device identifiers, hashed IDs) and the
+    // plan must anchor its handling to the APPs.
+    expect(body).toMatch(/Privacy Act 1988/);
+    expect(body).toMatch(/Australian Privacy Principles/);
+    expect(body).toMatch(/APP 1/);
+    expect(body).toMatch(/APP 3/);
+    expect(body).toMatch(/APP 5/);
+    expect(body).toMatch(/APP 8/);
+    expect(body).toMatch(/APP 11/);
+    // Cross-border disclosure carve-out — GA4 processing sits on Google
+    // US / EU servers, so an APP 8 statement is required.
+    expect(body).toMatch(/cross-border/i);
+    // Consent Mode v2 is the Google-supplied mechanism that keeps GA4
+    // off the wire until the user opts in.
+    expect(body).toMatch(/Consent Mode v2/);
+    // GST hygiene — the single biggest source of accidental revenue
+    // over-reporting in AU GA4 pipelines.
+    expect(body).toMatch(/GST-exclusive/);
+    expect(body).toMatch(/s9-70/);
+    // Misleading-conduct guardrails — the difference between an internal
+    // dashboard and an investor-safe measurement plan.
+    expect(body).toMatch(/s18/);
+    expect(body).toMatch(/Australian Consumer Law/);
+    expect(body).toMatch(/s1041H/);
+    // Wilson-CI + cohort floor + A/B decision rule — statistical
+    // guardrails that stop a small-n activation rate being quoted as a
+    // headline in a deck.
+    expect(body).toMatch(/Wilson/);
+    expect(body).toMatch(/cohort/i);
+    // NDB Scheme trigger — Part IIIC of the Privacy Act — is what makes
+    // loading GA4 without a valid consent banner an ongoing risk, not
+    // just a one-off complaint.
+    expect(body).toMatch(/Notifiable[\s\n>]+Data Breaches/);
+    // Top-of-doc disclaimer.
+    expect(body).toMatch(/NOT LEGAL ADVICE/);
+  });
+
+  it("declares every placeholder that appears in the body", () => {
+    const tokenRe = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const inBody = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = tokenRe.exec(body)) !== null) inBody.add(m[1]);
+    const sectionRe = /\{\{#([a-zA-Z0-9_]+)\}\}/g;
+    const sections = new Set<string>();
+    while ((m = sectionRe.exec(body)) !== null) sections.add(m[1]);
+    const declared = new Set(tpl?.placeholders ?? []);
+    for (const token of inBody) {
+      if (sections.has(token)) continue;
+      expect(declared.has(token), `undeclared {{${token}}}`).toBe(true);
+    }
+  });
+
+  it("substitutes plan identity fields and keeps unfilled tokens visible", () => {
+    const rendered = applySubstitutions(body, {
+      product_name: "Acme Cap Table Cloud",
+      plan_version: "1.0",
+      effective_date: "1 August 2026",
+      plan_owner_name: "Alice Founder",
+      plan_owner_email: "alice@example.com.au",
+      company_name: "Acme Innovation",
+      acn: "659 615 111",
+      ga4_measurement_id: "G-ABCDE12345",
+      revenue_reconciliation_tolerance_pct: "3",
+      cohort_min_n: "40",
+      revision_date: "2026-07-25",
+    });
+    // Concrete plan identity fields render into the header.
+    expect(rendered).toContain("Acme Cap Table Cloud");
+    expect(rendered).toContain("Acme Innovation Pty Ltd");
+    expect(rendered).toContain("ACN 659 615 111");
+    expect(rendered).toContain("G-ABCDE12345");
+    // Tolerance + cohort floor render into the guardrail sections.
+    expect(rendered).toMatch(/±3%/);
+    expect(rendered).toMatch(/n < 40/);
+    // Absent tokens stay visible so a founder sees the gap.
+    expect(rendered).toContain("{{ga4_property_id}}");
+  });
+});
+
 describe("au-founder-agreement template", () => {
   const tpl = getTemplate("au-founder-agreement");
   const body = tpl

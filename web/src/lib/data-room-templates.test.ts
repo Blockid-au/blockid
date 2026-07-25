@@ -162,6 +162,50 @@ describe("DATA_ROOM_STRUCTURE — Series-A / acquirer parity", () => {
     ).toBe(true);
   });
 
+  it("wires the Phase-7 GA4 Measurement Plan AU legal template (goal §1 phase 7 gap)", () => {
+    // Contract: docs/plans/atlassian-standard-mapping-goal.md §1 phase 7
+    // "Missing: ... GA4 measurement plan template not in data-room folder 4"
+    // Ship-off task P7-ga4-measurement-plan (2026-07-25).
+    const bySlug = allDocs.reduce<Record<string, (typeof allDocs)[number]>>(
+      (acc, doc) => {
+        if (doc.template_slug) acc[doc.template_slug] = doc;
+        return acc;
+      },
+      {},
+    );
+
+    const ga4 = bySlug["au-ga4-measurement-plan"];
+    expect(
+      ga4,
+      "GA4 Measurement Plan entry must be wired via template_slug",
+    ).toBeDefined();
+    expect(ga4!.type).toBe("template");
+
+    // Must live in folder 4 (Product & Technology) per goal §1 phase 7 wording.
+    const productSection = DATA_ROOM_STRUCTURE.find(
+      (s) => s.section === "product",
+    );
+    expect(productSection, "product section must exist").toBeDefined();
+    expect(
+      productSection!.documents.some(
+        (d) => d.template_slug === "au-ga4-measurement-plan",
+      ),
+      "GA4 plan must be wired inside folder 4 Product & Technology",
+    ).toBe(true);
+
+    const path = join(
+      process.cwd(),
+      "content",
+      "templates",
+      "legal",
+      "au-ga4-measurement-plan.md",
+    );
+    expect(
+      existsSync(path),
+      "legal template au-ga4-measurement-plan.md must exist",
+    ).toBe(true);
+  });
+
   it("flags conservatively-worded AU regulatory items for founder review", () => {
     // AFSL, ESIC and ESVCLP wording is deliberately conservative and must be
     // reviewed by a compliance-qualified adviser before publication.
