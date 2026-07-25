@@ -824,3 +824,5 @@
 {"tick_id":"2026-07-25T07-17-02-037Z","ts":"2026-07-25T07:17:02.037Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T07-17-02-037Z","ts":"2026-07-25T07:17:02.055Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-25T07-25-34-157Z","ts":"2026-07-25T07:25:34.155Z","loop_label":"atlassian-goal-loop","stage":"tick_end","picked":"P1n-s708-form-ui-e2e","artefacts":["web/tests/e2e/compliance/s708-form.spec.ts","docs/plans/atlassian-standard-mapping-goal.md"]}
+{"tick_id":"2026-07-25T07-17-02-037Z","ts":"2026-07-25T07:26:08.230Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":546171,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-25T07-17-02-037Z","ts":"2026-07-25T07:26:08.262Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":11}
