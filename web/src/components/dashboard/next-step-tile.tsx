@@ -102,7 +102,11 @@ export function NextStepTile() {
 
   if (state.kind === "loading") {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div
+        data-testid="next-step-tile"
+        data-state="loading"
+        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+      >
         <div className="mb-3 h-4 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
         <div className="mb-2 h-6 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
         <div className="mb-4 h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
@@ -113,7 +117,11 @@ export function NextStepTile() {
 
   if (state.kind === "error") {
     return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm dark:border-rose-900 dark:bg-rose-950/40">
+      <div
+        data-testid="next-step-tile"
+        data-state="error"
+        className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm dark:border-rose-900 dark:bg-rose-950/40"
+      >
         <p className="mb-2 font-medium text-rose-800 dark:text-rose-200">
           Nudge unavailable
         </p>
@@ -121,6 +129,7 @@ export function NextStepTile() {
         <button
           type="button"
           onClick={load}
+          data-testid="next-step-retry"
           className="rounded border border-rose-300 bg-white px-3 py-1 text-xs font-medium text-rose-800 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-200"
         >
           Retry
@@ -135,16 +144,28 @@ export function NextStepTile() {
   const top3 = missing.slice(0, 3);
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <div
+      data-testid="next-step-tile"
+      data-state="ready"
+      data-phase-slug={current_phase.slug}
+      className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+    >
       {/* Header — phase pill + readiness donut */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200">
+            <span
+              data-testid="next-step-phase"
+              data-phase-slug={current_phase.slug}
+              className="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200"
+            >
               Phase {current_phase.slug} · {current_phase.label}
             </span>
           </div>
-          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+          <h3
+            data-testid="next-step-action-title"
+            className="text-base font-semibold text-slate-900 dark:text-slate-100"
+          >
             {next_action.title}
           </h3>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
@@ -152,6 +173,8 @@ export function NextStepTile() {
           </p>
           <Link
             href={next_action.cta_url}
+            data-testid="next-step-action-cta"
+            data-category={next_action.category}
             className="mt-3 inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
           >
             {next_action.cta_label}
@@ -166,9 +189,14 @@ export function NextStepTile() {
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Missing for this phase
           </p>
-          <ul className="space-y-1.5">
+          <ul data-testid="next-step-missing" className="space-y-1.5">
             {top3.map((item) => (
-              <li key={`${item.category}::${item.title}`} className="text-sm">
+              <li
+                key={`${item.category}::${item.title}`}
+                data-raise-blocker={item.raise_blocker ? "true" : "false"}
+                data-category={item.category}
+                className="text-sm"
+              >
                 <Link
                   href={item.cta_url}
                   className="flex items-start gap-2 text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400"
@@ -248,7 +276,10 @@ function ReadinessDonut({ score }: { score: number }) {
           strokeDashoffset={offset}
         />
       </svg>
-      <span className="mt-1 text-xs font-semibold text-slate-700 dark:text-slate-200">
+      <span
+        data-testid="next-step-readiness-score"
+        className="mt-1 text-xs font-semibold text-slate-700 dark:text-slate-200"
+      >
         {clamped}
       </span>
       <span className="text-[10px] text-slate-500 dark:text-slate-400">
