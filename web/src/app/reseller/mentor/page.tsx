@@ -19,6 +19,7 @@ import {
   recommendForFounder,
 } from "@/lib/mentor/journey-stages";
 import MentorEmptyState from "@/components/mentor/mentor-empty-state";
+import { RoleLandingIntro } from "@/components/role/role-landing-intro";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,7 @@ export default async function MentorRosterPage({
   if (customers.length === 0) {
     return (
       <div className="space-y-4">
+        <RoleLandingIntro role="mentor" />
         <MentorHeaderBar cohortCount={cohorts.length} />
         <MentorEmptyState />
       </div>
@@ -95,6 +97,7 @@ export default async function MentorRosterPage({
 
   return (
     <div className="space-y-4">
+      <RoleLandingIntro role="mentor" />
       <MentorHeaderBar cohortCount={cohorts.length} />
 
       <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Roster filters">

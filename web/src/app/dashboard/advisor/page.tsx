@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { AdvisorClient } from "./advisor-client";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { RoleLandingIntro } from "@/components/role/role-landing-intro";
 
 export const metadata: Metadata = {
   title: "Advisor Portal — BlockID",
@@ -23,11 +24,7 @@ export default async function AdvisorPage() {
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-5xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-ink-800">Advisor Portal</h1>
-          <p className="text-sm text-ink-600 mt-1">
-            Track and manage your client startups — scores, stages, and
-            investor readiness at a glance.
-          </p>
+          <RoleLandingIntro role="advisor" hasGlobalSpotlight />
         </div>
         <AdvisorClient />
       </div>
