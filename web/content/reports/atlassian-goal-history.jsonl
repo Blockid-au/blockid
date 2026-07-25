@@ -605,3 +605,5 @@
 {"tick_id":"2026-07-25T00-17-01-944Z","ts":"2026-07-25T00:27:32.189Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"bac21e1c","last_deployed":"4997457"}
 {"tick_id":"2026-07-25T00-17-01-944Z","ts":"2026-07-25T00:27:32.201Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"bac21e1c"}
 {"tick_id":"2026-07-25T00-17-01-944Z","ts":"2026-07-25T00:27:32.203Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-25T00-37-01-630Z","ts":"2026-07-25T00:37:01.631Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-25T00-37-01-630Z","ts":"2026-07-25T00:37:01.637Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
