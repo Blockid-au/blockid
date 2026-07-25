@@ -1828,3 +1828,4 @@
 {"ts":"2026-07-25T11:07:48.930Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.127-per-reseller-verdict-transition-delta-rank-distribution-pure-lib): scalar-summary distribution at the per-partner grain (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T11:08:34.744Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T11-00-01-532Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T11:12:29Z","status":"success","gates":"9/9","pid":"523495","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-25T11:14:24.081Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.128-per-reseller-verdict-transition-delta-rank-distribution-cron-wiring): thread scalar distribution into Monday digest cron (1 commits)","source":"github-webhook"}
