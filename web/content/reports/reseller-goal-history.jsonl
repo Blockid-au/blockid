@@ -1078,3 +1078,4 @@
 {"tick_id":"2026-07-25T11-50-01-789Z","ts":"2026-07-25T11:59:36.121Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_deploy_triggered","head":"012c242f","last_deployed":"63b70d0"}
 {"tick_id":"2026-07-25T11-50-01-789Z","ts":"2026-07-25T12:02:19.498Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"auto_deploy_finished","status":1,"head":"012c242f"}
 {"tick_id":"2026-07-25T11-50-01-789Z","ts":"2026-07-25T12:02:19.499Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0.5,"stage":"tick_end"}
+{"tick_id":"2026-07-25T12-05-09Z","ts":"2026-07-25T12:15:00.000Z","loop_label":"reseller-goal-loop","stage":"phase_completed","phase":"P11.132_portfolio_verdict_transition_delta_rank_distribution_cron_wiring","tick":526,"verified":{"tsc":"clean-scoped-to-reseller-and-weekly-digest","vitest_reseller_suite":"1965/1965"}}
