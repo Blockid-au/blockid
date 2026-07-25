@@ -279,7 +279,7 @@ Atlassian S-1 barely covered product tech (product is described in "Business" na
 | 4.6 | System Architecture Diagram (`:786`) | N/A | 4-11 | AUTO (CTO agent) |
 | 4.7 | Uptime / SLA History 12mo (`:794`) | MD&A key metrics | 7-11 | AUTO (from GA4/Datadog) |
 | 4.8 | Security Incident Register (`:802`) | S-1 "Risk Factors" | 7-11 | AUTO (from audit-log) |
-| 4.9 | Third-Party Dependency Inventory (`:811`) | N/A (open-source in S-1 exhibit 21.1 subsidiaries) | 7-11 | AUTO (SBOM generator, none wired) |
+| 4.9 | Third-Party Dependency Inventory (`:811`) | N/A (open-source in S-1 exhibit 21.1 subsidiaries) | 7-11 | **shipped 2026-07-25 (P7-sbom-generator)** — AUTO via `GET /api/dataroom/sbom` (JSON) / `?format=csv` (spreadsheet), parses `package-lock.json` v3 with `buildSbom()` at `web/src/lib/dataroom/sbom.ts`; SaaS/vendor rows remain NUDGE |
 
 ### Folder 5 — Market & Traction (`:822-912`, 9 items)
 | # | BlockID item | Atlassian S-1 equivalent | Phase | Auto-gen? |
@@ -318,7 +318,7 @@ Atlassian S-1 barely covered product tech (product is described in "Business" na
 | 7.6 | Trademark Register (`:1043`) | S-1 "Business — IP" | 6-11 | NUDGE (IP Australia) |
 | 7.7 | Patent Register (`:1051`) | S-1 "Business — IP" | 6-11 | NUDGE |
 | 7.8 | Source Code Assignment Matrix (`:1059`) | Diligence back-up | 4-11 | AUTO (from IP Assignment Deeds) |
-| (7.9) Open-Source License Inventory (`:1068`) | S-1 "Risk Factors — Open Source" | 7-11 | AUTO (SBOM — missing) |
+| (7.9) Open-Source License Inventory (`:1068`) | S-1 "Risk Factors — Open Source" | 7-11 | **shipped 2026-07-25 (P7-sbom-generator)** — AUTO via `GET /api/dataroom/sbom` (JSON or CSV); pure parser `buildSbom()` at `web/src/lib/dataroom/sbom.ts` normalises `license` / `licenses[]` / `license.type` shapes → SPDX string (else `UNKNOWN`), de-dupes nested transitive copies by `(name, version)`, and returns a `by_license` histogram so investors doing pre-signature diligence can spot-check GPL / AGPL / SSPL exposure without an account. 5 vitest cases green; typecheck exit 0. `SBOM_DISCLAIMER` inlined into every response — "license field is copied verbatim from each package's own package.json … not a legal opinion". |
 | (7.10) Domain Name Register (`:1076`) | Diligence back-up | 1-11 | AUTO (WHOIS) |
 
 ### Folder 8 — Contracts & Agreements (`:1087-1151`, 7 items)
