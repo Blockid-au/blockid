@@ -833,6 +833,16 @@ export const DATA_ROOM_STRUCTURE: DataRoomFolder[] = [
         description: "SaaS + open-source dependency inventory with vendor, purpose, data category, and contract expiry",
         required_for_stage: "series_a",
       },
+      {
+        name: "GA4 Measurement Plan",
+        type: "template",
+        format: "md",
+        priority: "P1",
+        description: "Investor-defensible GA4 event taxonomy + APP1/APP5/APP8/APP11 consent baseline + GST-hygienic revenue events + cohort-floor and Wilson-CI guardrails so headline KPIs quoted in a raise don't breach s18 ACL / s1041H Corps Act.",
+        template_slug: "au-ga4-measurement-plan",
+        dueDiligenceNotes:
+          "Investors reading a Phase-7 pack expect the deck's growth KPIs to reconcile to Stripe / Xero within a stated tolerance. Use /legal-templates/au-ga4-measurement-plan to anchor every event, param, and derivation.",
+      },
     ],
   },
 
