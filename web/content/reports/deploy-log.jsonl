@@ -1614,3 +1614,8 @@
 {"ts":"2026-07-25T00:49:22.629Z","event":"github-push-master","detail":"Blockid-au: merge: worktree-wf_2a90f59a-af4-5 remotion (6 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T00:51:20.559Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): pct-change streak-length histogram digest snapshot (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T00:53:44.374Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal): P11.79 pct-change streak-length histogram pure lib (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T00:53:57.766Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T00-45-02-007Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T00:56:24.432Z","event":"github-push-master","detail":"Blockid-au: fix(partners-types): bundle JSON at build-time (drop node:fs) so client-component chains build (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T00:58:47.435Z","event":"github-push-master","detail":"Blockid-au: feat(partners): upgrade 4 sponsor SVGs from text-only to icon + wordmark (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T01:01:05.543Z","event":"github-push-master","detail":"Blockid-au: Merge remotion how-it-works video scenes (2 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T01:03:14.120Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P5-tax-invoice-checker-save): founder Save button POSTs to persistence route (1 commits)","source":"github-webhook"}

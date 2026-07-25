@@ -184,6 +184,11 @@ import {
   type DigestSnapshotDirectionStreakLengthHistogram,
 } from "@/lib/reseller/digest-snapshot-direction-streak-length-histogram";
 import {
+  computeDigestSnapshotPctChangeStreakLengthHistogram,
+  formatDigestSnapshotPctChangeStreakLengthHistogramSection,
+  type DigestSnapshotPctChangeStreakLengthHistogram,
+} from "@/lib/reseller/digest-snapshot-pct-change-streak-length-histogram";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1457,6 +1462,10 @@ export async function GET(req: Request) {
     | DigestSnapshotDirectionStreakLengthHistogram
     | null = null;
   let directionStreakLengthHistogramSection = "";
+  let snapshotPctChangeStreakLengthHistogram:
+    | DigestSnapshotPctChangeStreakLengthHistogram
+    | null = null;
+  let pctChangeStreakLengthHistogramSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2090,6 +2099,30 @@ export async function GET(req: Request) {
       formatDigestSnapshotDirectionStreakLengthHistogramSection(
         snapshotDirectionStreakLengthHistogram,
       );
+    // P11.80 — portfolio |pct|-material-streak length-frequency histogram
+    // (module P11.79). Magnitude-axis analogue of the P11.78 direction
+    // histogram wired directly above. Consumes snapshotPctChangeStreaks
+    // (P11.49) directly rather than re-folding snapshotRollingTrend so this
+    // histogram cannot diverge from the P11.49 rows the P11.50 table renders
+    // above it. Complements the P11.53 coverage topline (share of possible
+    // cells qualifying at |Δ%| ≥ threshold) and the P11.67 leaderboard (top-N
+    // deepest volatile runs) by exposing the SHAPE of magnitude persistence
+    // between them — two portfolios with the same coverage% and the same
+    // leaderboard #1 can differ sharply in tail, and neither coverage nor
+    // leaderboard exposes that. Section splices directly BELOW
+    // pctChangeStreaksSection (P11.50 spotlight table) per the P11.79
+    // formatter docblock's explicit placement rule so ops reads the
+    // count-per-metric list and then the shape-of-persistence tail
+    // underneath, mirroring the P11.78 direction placement rule on the
+    // magnitude axis.
+    snapshotPctChangeStreakLengthHistogram =
+      computeDigestSnapshotPctChangeStreakLengthHistogram(
+        snapshotPctChangeStreaks,
+      );
+    pctChangeStreakLengthHistogramSection =
+      formatDigestSnapshotPctChangeStreakLengthHistogramSection(
+        snapshotPctChangeStreakLengthHistogram,
+      );
   }
   if (
     topMoversSection ||
@@ -2107,6 +2140,7 @@ export async function GET(req: Request) {
     pctChangeStreakCoverageSection ||
     perMetricPctChangeStreakCoverageSection ||
     pctChangeStreaksSection ||
+    pctChangeStreakLengthHistogramSection ||
     perResellerPctChangeStreakCoverageSection ||
     pctChangeStreakLeaderboardSection ||
     perMetricPctChangeStreakLeaderboardSection ||
@@ -2145,6 +2179,7 @@ export async function GET(req: Request) {
       pctChangeStreakCoverageSection +
       perMetricPctChangeStreakCoverageSection +
       pctChangeStreaksSection +
+      pctChangeStreakLengthHistogramSection +
       perResellerPctChangeStreakCoverageSection +
       pctChangeStreakLeaderboardSection +
       perMetricPctChangeStreakLeaderboardSection +
@@ -2874,6 +2909,29 @@ export async function GET(req: Request) {
             max_length:
               snapshotDirectionStreakLengthHistogram.max_length,
             buckets: snapshotDirectionStreakLengthHistogram.buckets,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_pct_change_streak_length_histogram:
+      snapshotPctChangeStreakLengthHistogram
+        ? {
+            window_size:
+              snapshotPctChangeStreakLengthHistogram.window_size,
+            first_week:
+              snapshotPctChangeStreakLengthHistogram.first_week,
+            last_week:
+              snapshotPctChangeStreakLengthHistogram.last_week,
+            min_streak_length:
+              snapshotPctChangeStreakLengthHistogram.min_streak_length,
+            threshold:
+              snapshotPctChangeStreakLengthHistogram.threshold,
+            total_streaks:
+              snapshotPctChangeStreakLengthHistogram.total_streaks,
+            max_length:
+              snapshotPctChangeStreakLengthHistogram.max_length,
+            buckets: snapshotPctChangeStreakLengthHistogram.buckets,
           }
         : {
             skipped_reason:
