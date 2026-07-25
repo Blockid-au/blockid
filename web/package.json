@@ -20,7 +20,9 @@
     "e2e:a11y": "playwright test tests/e2e/a11y/ --reporter=list",
     "e2e:post-deploy": "PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL:-https://blockid.au} playwright test tests/e2e/smoke/post-deploy.spec.ts --reporter=list",
     "tour:capture": "node ../scripts/tour-capture.mjs",
-    "tour:verify": "node ../scripts/tour-verify.mjs"
+    "tour:verify": "node ../scripts/tour-verify.mjs",
+    "video:preview": "remotion studio ../remotion/index.tsx",
+    "video:render": "remotion render ../remotion/index.tsx HowItWorks public/media/how-it-works.mp4 --overwrite --crf 28 --props {}"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.0",
