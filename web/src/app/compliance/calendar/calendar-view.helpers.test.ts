@@ -19,7 +19,6 @@ function ev(
     kind: "bas_quarter",
     summary: `Event ${overrides.date_start}`,
     description: "desc",
-    date_start: overrides.date_start,
     date_end: overrides.date_start,
     reminder_lead_days: 14,
     source_url: "https://example.test",
