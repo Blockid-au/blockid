@@ -110,21 +110,24 @@ export async function loadPackageDashboardData(
       .order("purchased_at", { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then((r) => r.data ?? null)
-      .catch(() => null),
+      .then((r) => r.data ?? null, () => null),
     supabase
       .from("startup_package_interview")
       .select("step_key, answer_text, char_count, created_at")
       .eq("project_id", projectId)
       .order("created_at", { ascending: true })
-      .then((r) => (r.data as PackageInterviewRow[] | null) ?? [])
-      .catch(() => [] as PackageInterviewRow[]),
+      .then(
+        (r) => (r.data as PackageInterviewRow[] | null) ?? [],
+        () => [] as PackageInterviewRow[],
+      ),
     supabase
       .from("startup_package_progress")
       .select("phase_id, status, completion_pct, updated_at")
       .eq("project_id", projectId)
-      .then((r) => (r.data as PackagePhaseProgressRow[] | null) ?? [])
-      .catch(() => [] as PackagePhaseProgressRow[]),
+      .then(
+        (r) => (r.data as PackagePhaseProgressRow[] | null) ?? [],
+        () => [] as PackagePhaseProgressRow[],
+      ),
     loadLatestSviSnapshot(supabase, projectId, userId),
     supabase
       .from("startup_package_reserved_allocations")
@@ -133,8 +136,10 @@ export async function loadPackageDashboardData(
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then((r) => (r.data as PackageReservedAllocationRow | null) ?? null)
-      .catch(() => null),
+      .then(
+        (r) => (r.data as PackageReservedAllocationRow | null) ?? null,
+        () => null,
+      ),
     getBalance(userId).catch(() => 0),
   ]);
 

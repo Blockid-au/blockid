@@ -48,15 +48,14 @@ export async function POST(request: Request) {
     );
   }
 
-  let body:
-    | {
-        projectId?: string;
-        pct_reserved?: number;
-        ticker_hint?: string;
-      }
-    | null = null;
+  type ReservationBody = {
+    projectId?: string;
+    pct_reserved?: number;
+    ticker_hint?: string;
+  };
+  let body: ReservationBody | null = null;
   try {
-    body = (await request.json()) as typeof body;
+    body = (await request.json()) as ReservationBody;
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
