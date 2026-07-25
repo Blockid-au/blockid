@@ -224,6 +224,11 @@ import {
   type DigestSnapshotPerMetricDirectionStreakLengthHistogram,
 } from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-length-histogram";
 import {
+  computeDigestSnapshotPerMetricDirectionStreakLengthPercentiles,
+  formatDigestSnapshotPerMetricDirectionStreakLengthPercentilesSection,
+  type DigestSnapshotPerMetricDirectionStreakLengthPercentiles,
+} from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-length-percentiles";
+import {
   computeDigestSnapshotPerMetricPctChangeStreakLengthHistogram,
   formatDigestSnapshotPerMetricPctChangeStreakLengthHistogramSection,
   type DigestSnapshotPerMetricPctChangeStreakLengthHistogram,
@@ -1534,6 +1539,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerMetricDirectionStreakLengthHistogram
     | null = null;
   let perMetricDirectionStreakLengthHistogramSection = "";
+  let snapshotPerMetricDirectionStreakLengthPercentiles:
+    | DigestSnapshotPerMetricDirectionStreakLengthPercentiles
+    | null = null;
+  let perMetricDirectionStreakLengthPercentilesSection = "";
   let snapshotPerMetricPctChangeStreakLengthHistogram:
     | DigestSnapshotPerMetricPctChangeStreakLengthHistogram
     | null = null;
@@ -2397,6 +2406,42 @@ export async function GET(req: Request) {
       formatDigestSnapshotPerMetricDirectionStreakLengthHistogramSection(
         snapshotPerMetricDirectionStreakLengthHistogram,
       );
+    // P11.98 — per-metric sustained-direction streak length percentile summary
+    // (module P11.97). Per-metric analogue of the P11.89/P11.90 portfolio-grain
+    // and P11.93/P11.94 per-partner-grain scalar p50/p90/mean/max reductions;
+    // closes the direction-streak percentile family's per-metric axis
+    // symmetric with P11.61 (coverage) / P11.69 (leaderboard) / P11.85
+    // (histogram) on the same direction axis. Delegates to
+    // computeDigestSnapshotPerResellerDirectionStreaks through the pure lib so
+    // per-KPI percentile groups cannot diverge from the P11.32 spotlight rows
+    // they summarise — matches the P11.85 histogram + P11.93 per-partner
+    // percentile delegation posture on the adjacent axes. Consumes the SAME
+    // snapshotPerResellerRollingTrend the P11.32 detector, the P11.70 per-
+    // metric leaderboard, the P11.86 per-metric histogram, and the
+    // P11.90/P11.94 direction percentile siblings already consume (no extra
+    // fold, no divergence risk vs. the P11.85 per-metric histogram it
+    // summarises for the same window + min_streak_length). Section splices
+    // directly BETWEEN perMetricDirectionStreakLengthHistogramSection
+    // (P11.85/P11.86 per-metric shape-of-persistence tail) and
+    // perResellerDirectionStreakLeaderboardSection (P11.73/P11.74 per-partner
+    // top-N) per the P11.97 formatter docblock's explicit placement rule so
+    // ops walks per-metric coverage (P11.61) → per-metric top-N (P11.69) →
+    // per-metric shape-of-persistence tail (P11.85) → per-metric scalar
+    // p50/p90 summary (this section) → per-partner coverage (P11.59) →
+    // per-partner top-N (P11.73) → per-partner shape-of-persistence tail
+    // (P11.81) → per-partner scalar p50/p90 summary (P11.93) → per-(metric ×
+    // partner) spotlight detail (P11.32), grouping every per-metric surface
+    // together before jumping to per-partner surfaces. Extends the P11.89/
+    // P11.90 portfolio-grain and P11.93/P11.94 per-partner-grain placement
+    // rules one axis over.
+    snapshotPerMetricDirectionStreakLengthPercentiles =
+      computeDigestSnapshotPerMetricDirectionStreakLengthPercentiles(
+        snapshotPerResellerRollingTrend,
+      );
+    perMetricDirectionStreakLengthPercentilesSection =
+      formatDigestSnapshotPerMetricDirectionStreakLengthPercentilesSection(
+        snapshotPerMetricDirectionStreakLengthPercentiles,
+      );
     // P11.88 — per-metric sustained-|pct|-material streak length-frequency
     // histogram (module P11.87). Per-metric analogue of the P11.79 portfolio
     // and P11.83 per-partner |pct|-material histograms and magnitude-axis
@@ -2466,6 +2511,7 @@ export async function GET(req: Request) {
     perResellerPctChangeStreakLengthPercentilesSection ||
     perResellerPctChangeStreaksSection ||
     perMetricDirectionStreakLengthHistogramSection ||
+    perMetricDirectionStreakLengthPercentilesSection ||
     perMetricPctChangeStreakLengthHistogramSection
   ) {
     // Splice all executive-summary sections above the fold, in the order
@@ -2497,6 +2543,7 @@ export async function GET(req: Request) {
       directionStreakLeaderboardSection +
       perMetricDirectionStreakLeaderboardSection +
       perMetricDirectionStreakLengthHistogramSection +
+      perMetricDirectionStreakLengthPercentilesSection +
       perResellerDirectionStreakLeaderboardSection +
       perResellerDirectionStreakLengthHistogramSection +
       perResellerDirectionStreakLengthPercentilesSection +
@@ -3409,6 +3456,24 @@ export async function GET(req: Request) {
               snapshotPerMetricDirectionStreakLengthHistogram.min_streak_length,
             groups:
               snapshotPerMetricDirectionStreakLengthHistogram.groups,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_metric_direction_streak_length_percentiles:
+      snapshotPerMetricDirectionStreakLengthPercentiles
+        ? {
+            window_size:
+              snapshotPerMetricDirectionStreakLengthPercentiles.window_size,
+            first_week:
+              snapshotPerMetricDirectionStreakLengthPercentiles.first_week,
+            last_week:
+              snapshotPerMetricDirectionStreakLengthPercentiles.last_week,
+            min_streak_length:
+              snapshotPerMetricDirectionStreakLengthPercentiles.min_streak_length,
+            groups:
+              snapshotPerMetricDirectionStreakLengthPercentiles.groups,
           }
         : {
             skipped_reason:
