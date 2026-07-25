@@ -1651,3 +1651,5 @@
 {"ts":"2026-07-25T02:21:50.887Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T02-15-02-032Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-25T02:26:26Z","status":"success","gates":"9/9","pid":"2861971","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-07-25T02:30:25.128Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-goal P11.88-per-metric-pct-change-streak-length-histogram-cron-wiring): wire per-metric |pct|-material histogram into weekly digest (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T02:30:35.060Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-25T02-25-01-479Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-25T02:35:44.720Z","event":"github-push-master","detail":"Blockid-au: feat(atlassian-goal P12d-redomicile-decision): Chapter 12 Scheme-of-Arrangement / redomicile decision-tree section (1 commits)","source":"github-webhook"}
