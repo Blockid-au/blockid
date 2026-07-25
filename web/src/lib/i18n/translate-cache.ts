@@ -22,7 +22,18 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Locale } from "./locales";
 
-const CACHE_ROOT = join(process.cwd(), "content", "i18n");
+/**
+ * Cache root. Defaults to the per-release `content/i18n/` under
+ * `process.cwd()` so a fresh checkout Just Works. Set
+ * `BLOCKID_I18N_CACHE_DIR=/data/i18n-cache` in production so
+ * translations survive redeploys — otherwise every deploy resets the
+ * cache to the seeded 29 entries and Gemini re-translates the world.
+ */
+const CACHE_ROOT =
+  process.env.BLOCKID_I18N_CACHE_DIR &&
+  process.env.BLOCKID_I18N_CACHE_DIR.length > 0
+    ? process.env.BLOCKID_I18N_CACHE_DIR
+    : join(process.cwd(), "content", "i18n");
 
 /**
  * Append an audit line so `scripts/i18n/lint-cache.mjs` can drift-check

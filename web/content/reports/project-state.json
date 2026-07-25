@@ -1,6 +1,6 @@
 {
   "version": "3.1.0",
-  "updatedAt": "2026-07-24T14:00:02.314Z",
+  "updatedAt": "2026-07-25T12:04:02.738Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-07-22T14:00:02.174Z",
@@ -32,7 +32,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-07-24T12:04:07.811Z",
+    "decidedAt": "2026-07-25T12:04:02.737Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1249,6 +1249,33 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-07-24T12:04:07.811Z"
+      },
+      {
+        "id": "T0175",
+        "agent": "cmo",
+        "title": "Create Competitor Feature Release Tracker module",
+        "rationale": "Ingests competitor product updates (Carta, Pulley, Equidam, etc.) and surfaces them in a dashboard to inform positioning and content strategy, addressing the CMO research on competitor feature releases.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-25T12:04:02.737Z"
+      },
+      {
+        "id": "T0176",
+        "agent": "cro",
+        "title": "Implement Pricing Psychology Engine for subscription tier optimization",
+        "rationale": "Applies CRO research on pricing psychology to dynamically recommend tier pricing and discounts, improving conversion and revenue without altering core valuation logic.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-25T12:04:02.737Z"
+      },
+      {
+        "id": "T0177",
+        "agent": "rnd",
+        "title": "Deploy Founder Pain‑Point Insight Service (API)",
+        "rationale": "Exposes emerging founder pain points and feature opportunities as a consumable API, enabling other agents (CPO, CDO) to prioritize roadmap items based on fresh RND research.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-07-25T12:04:02.737Z"
       }
     ]
   },
