@@ -67,7 +67,15 @@ export interface TierLadderEntry {
 // Founder ladder
 // ---------------------------------------------------------------------------
 
-const FREE_FEATURES: readonly Feature[] = ["svi.run.limited"];
+// Startup Package (Ship-1 guided-flow SKU) is available at every founder
+// tier including free — the sample interview is intentionally unlocked
+// pre-payment so founders can experience the flow before A$149. Adding it
+// here at the base keeps the tier-ladder superset invariant true across
+// the whole founder ladder.
+const FREE_FEATURES: readonly Feature[] = [
+  "svi.run.limited",
+  "startup_package",
+];
 
 const STARTER_FEATURES: readonly Feature[] = [
   ...FREE_FEATURES,

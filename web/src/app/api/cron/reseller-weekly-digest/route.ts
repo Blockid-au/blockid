@@ -318,6 +318,11 @@ import {
   type DigestSnapshotPersistenceScorecardVerdictTransition,
 } from "@/lib/reseller/digest-snapshot-persistence-scorecard-verdict-transition";
 import {
+  computeDigestSnapshotPersistenceScorecardVerdictTransitionDistribution,
+  formatDigestSnapshotPersistenceScorecardVerdictTransitionDistributionSection,
+  type DigestSnapshotPersistenceScorecardVerdictTransitionDistribution,
+} from "@/lib/reseller/digest-snapshot-persistence-scorecard-verdict-transition-distribution";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1694,6 +1699,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPersistenceScorecardVerdictTransition
     | null = null;
   let persistenceScorecardVerdictTransitionSection = "";
+  let snapshotPersistenceScorecardVerdictTransitionDistribution:
+    | DigestSnapshotPersistenceScorecardVerdictTransitionDistribution
+    | null = null;
+  let persistenceScorecardVerdictTransitionDistributionSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,

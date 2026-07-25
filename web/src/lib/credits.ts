@@ -159,6 +159,14 @@ export const FEATURE_COSTS: Record<string, number> = {
   journal_reflect: 0.50,         // A$0.50 — AI monthly reflection narrative
   quarterly_revaluation: 1.00,   // A$1.00 — quarterly revaluation report
 
+  // ── Founder Startup Package (Ship-1 guided-flow SKU) ─────────────────
+  // Single per-agent-pass rate — per-step display values live in
+  // web/src/lib/startup-package/interview-steps.ts (0.5-1.0 range). The
+  // server always charges this flat rate so credit accounting stays simple;
+  // the per-step display serves the "always show cost before spend" rule
+  // from memory `feedback_transparent_pricing`.
+  package_agent_analysis: 1.00,
+
   // ── Enhanced Multi-Agent Reports (13 criteria) ──────────────────────
   enhanced_report_standard: 3.00,   // 13-criteria, multi-agent, charts, 5000-8000 words
   enhanced_report_premium: 7.00,    // All above + DOCX + investor memo, 8000-15000 words

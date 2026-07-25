@@ -75,3 +75,4 @@
 {"stage":"deploy","ok":true,"message":"Production running — HTTP 200","aiCalls":0,"durationMs":296,"timestamp":"2026-07-25T12:05:10.445Z"}
 {"stage":"update_artifacts","ok":true,"message":"19 task(s) still in flight","aiCalls":0,"durationMs":49,"timestamp":"2026-07-25T12:05:10.495Z"}
 {"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":11,"timestamp":"2026-07-25T12:05:10.506Z"}
+{"stage":"code","ok":false,"message":"Code stage failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240001,"timestamp":"2026-07-25T12:08:02.744Z"}
