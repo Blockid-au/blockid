@@ -358,6 +358,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeDrilldown,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-drilldown";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeLeaderboard,
+  formatDigestSnapshotPerTransitionMagnitudeLeaderboardSection,
+  type DigestSnapshotPerTransitionMagnitudeLeaderboard,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-leaderboard";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1764,6 +1769,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeDrilldown
     | null = null;
   let perTransitionMagnitudeDrilldownSection = "";
+  let snapshotPerTransitionMagnitudeLeaderboard:
+    | DigestSnapshotPerTransitionMagnitudeLeaderboard
+    | null = null;
+  let perTransitionMagnitudeLeaderboardSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3667,6 +3676,30 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeDrilldownSection(
           snapshotPerTransitionMagnitudeDrilldown,
         );
+      // P11.148 — per-transition MAGNITUDE LEADERBOARD (module P11.147).
+      // Names the top_partner + top_metric owning each (transition, band)
+      // cell that the P11.146 magnitude drill-down aggregates. Answers the
+      // follow-up the per-band scalars alone cannot surface: WITHIN a
+      // specific (transition, band) cell — say (degraded, large) — WHICH
+      // partner and WHICH KPI own the loudest chunk? Splices IMMEDIATELY
+      // BELOW perTransitionMagnitudeDrilldownSection AND IMMEDIATELY ABOVE
+      // perPairHotCellsSection per the P11.147 formatter docblock placement
+      // rule so the hierarchy descends per-transition DRILL-DOWN (P11.143)
+      // → per-transition MAGNITUDE scalars (P11.145) → per-transition
+      // MAGNITUDE LEADERBOARD (P11.147) → per-pair hot-cells GRANULAR
+      // (P11.139) → per-pair scalar distribution (P11.130): ops reads the
+      // per-transition winner picks first, then the magnitude breakdown
+      // for loud-vs-quiet distribution shape, then this leaderboard to
+      // attribute each loud cell to a specific partner + KPI, then the
+      // granular table for the individual cells behind each pick.
+      snapshotPerTransitionMagnitudeLeaderboard =
+        computeDigestSnapshotPerTransitionMagnitudeLeaderboard(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeLeaderboardSection =
+        formatDigestSnapshotPerTransitionMagnitudeLeaderboardSection(
+          snapshotPerTransitionMagnitudeLeaderboard,
+        );
     }
   }
   if (
@@ -3715,6 +3748,7 @@ export async function GET(req: Request) {
     perPairHotCellsSummarySection ||
     perTransitionHotCellsDrilldownSection ||
     perTransitionMagnitudeDrilldownSection ||
+    perTransitionMagnitudeLeaderboardSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -3790,6 +3824,7 @@ export async function GET(req: Request) {
       perPairHotCellsSummarySection +
       perTransitionHotCellsDrilldownSection +
       perTransitionMagnitudeDrilldownSection +
+      perTransitionMagnitudeLeaderboardSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -4994,6 +5029,27 @@ export async function GET(req: Request) {
             band_thresholds:
               snapshotPerTransitionMagnitudeDrilldown.band_thresholds,
             transitions: snapshotPerTransitionMagnitudeDrilldown.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_leaderboard:
+      snapshotPerTransitionMagnitudeLeaderboard
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeLeaderboard.window_size,
+            first_week: snapshotPerTransitionMagnitudeLeaderboard.first_week,
+            last_week: snapshotPerTransitionMagnitudeLeaderboard.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeLeaderboard.sustained_p90_threshold,
+            threshold: snapshotPerTransitionMagnitudeLeaderboard.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeLeaderboard.total_hot_cells,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeLeaderboard.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeLeaderboard.transitions,
           }
         : {
             skipped_reason:
