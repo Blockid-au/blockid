@@ -159,6 +159,15 @@ export function classifyFundraiseResponse(
  * Body assembler for the /api/fundraise POST — matches the shape
  * fundraise-client.tsx currently JSON-stringifies. Extracted so the
  * `wholesaleOnly` slot is guaranteed to travel with every request.
+ *
+ * P9-esic-round-marketing-gate-ui — `marketedAsEsic` is an optional
+ * founder-declared flag that the auto-firing ESIC gate consumes
+ * directly (skipping the heuristic scan). When true, /api/fundraise
+ * flips the ESIC gate into blocking mode regardless of `wholesaleOnly`
+ * because a round that pitches the Div 360 offset to retail investors
+ * carries the same s1041H exposure as a wholesale-only one. Only
+ * emitted on the wire when true so an unticked checkbox never
+ * over-declares intent (the route defaults undefined → false).
  */
 export interface FundraisePostBodyInput {
   roundName: string;
@@ -168,6 +177,7 @@ export interface FundraisePostBodyInput {
   safeDiscount: number;
   safeCap: number;
   wholesaleOnly: boolean;
+  marketedAsEsic?: boolean;
 }
 
 export interface FundraisePostBodyWire {
@@ -178,6 +188,7 @@ export interface FundraisePostBodyWire {
   safeDiscount?: number;
   safeCap?: number;
   wholesaleOnly: boolean;
+  marketedAsEsic?: boolean;
 }
 
 export function buildFundraisePostBody(
@@ -186,6 +197,9 @@ export function buildFundraisePostBody(
   const safeFields = input.instrumentType !== "priced"
     ? { safeDiscount: input.safeDiscount, safeCap: input.safeCap }
     : {};
+  const marketingFields = input.marketedAsEsic === true
+    ? { marketedAsEsic: true as const }
+    : {};
   return {
     roundName: input.roundName,
     targetAmount: input.targetAmount,
@@ -193,6 +207,7 @@ export function buildFundraisePostBody(
     instrumentType: input.instrumentType,
     ...safeFields,
     wholesaleOnly: input.wholesaleOnly,
+    ...marketingFields,
   };
 }
 
