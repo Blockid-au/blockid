@@ -277,24 +277,10 @@ const SCALE_EXIT_SUBGROUPS: NavSubgroup[] = [
     id: "scale-exit.revenue",
     label: "Revenue",
     items: [
-<<<<<<< ours
-      { href: "/workspace/revenue", label: "Revenue", icon: DollarSign, minPlan: "growth" },
-      { href: "/workspace/tax-invoice-checker", label: "Tax Invoice Checker", icon: FileText, minPlan: "starter" },
-      { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen, minPlan: "scale" },
-      { href: "/workspace/dividends", label: "Dividends", icon: Gift, minPlan: "growth" },
-      { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen, minPlan: "growth" },
-      { href: "/dashboard/exit-readiness", label: "Exit Benchmark", icon: BarChart3, minPlan: "starter" },
-||||||| base
-      { href: "/workspace/revenue", label: "Revenue", icon: DollarSign, minPlan: "growth" },
-      { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen, minPlan: "scale" },
-      { href: "/workspace/dividends", label: "Dividends", icon: Gift, minPlan: "growth" },
-      { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen, minPlan: "growth" },
-      { href: "/dashboard/exit-readiness", label: "Exit Benchmark", icon: BarChart3, minPlan: "starter" },
-=======
       { href: "/workspace/revenue", label: "Revenue", icon: DollarSign, minPlan: "growth", minTier: "growth", growthPhase: 4 },
+      { href: "/workspace/tax-invoice-checker", label: "Tax Invoice Checker", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 4 },
       { href: "/workspace/journal", label: "Growth Journal", icon: BookOpen, minPlan: "scale", minTier: "scale", growthPhase: 4 },
       { href: "/workspace/dividends", label: "Dividends", icon: Gift, minPlan: "growth", minTier: "growth", growthPhase: 4 },
->>>>>>> theirs
     ],
   },
   {
