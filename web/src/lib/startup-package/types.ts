@@ -47,9 +47,9 @@ export type ProgressStatus = (typeof PROGRESS_STATUSES)[number];
 // ---------------------------------------------------------------------------
 
 export const PackagePurchaseSchema = z.object({
-  id: z.string().uuid(),
-  user_id: z.string().uuid(),
-  project_id: z.string().uuid(),
+  id: z.string().min(1),
+  user_id: z.string().min(1),
+  project_id: z.string().min(1),
   stripe_session_id: z.string().nullable(),
   stripe_price_id: z.string().nullable(),
   purchased_at: z.string(),
@@ -59,9 +59,9 @@ export const PackagePurchaseSchema = z.object({
 export type PackagePurchase = z.infer<typeof PackagePurchaseSchema>;
 
 export const PackageInterviewAnswerSchema = z.object({
-  id: z.string().uuid(),
-  project_id: z.string().uuid(),
-  user_id: z.string().uuid().nullable(),
+  id: z.string().min(1),
+  project_id: z.string().min(1),
+  user_id: z.string().min(1).nullable(),
   step_key: InterviewStepKeySchema,
   answer_text: z.string(),
   char_count: z.number().int().nonnegative(),
@@ -73,8 +73,8 @@ export type PackageInterviewAnswer = z.infer<
 >;
 
 export const PackageReservedAllocationSchema = z.object({
-  id: z.string().uuid(),
-  project_id: z.string().uuid(),
+  id: z.string().min(1),
+  project_id: z.string().min(1),
   pct_reserved: z.number().min(10).max(100),
   ticker_hint: z
     .string()
@@ -91,8 +91,8 @@ export type PackageReservedAllocation = z.infer<
 >;
 
 export const PackageProgressSchema = z.object({
-  id: z.string().uuid(),
-  project_id: z.string().uuid(),
+  id: z.string().min(1),
+  project_id: z.string().min(1),
   phase_id: z.string().min(1),
   status: z.enum(PROGRESS_STATUSES),
   completion_pct: z.number().int().min(0).max(100),
@@ -105,8 +105,8 @@ export type PackageProgress = z.infer<typeof PackageProgressSchema>;
 // ---------------------------------------------------------------------------
 
 export const PackageInterviewAnswerInputSchema = z.object({
-  project_id: z.string().uuid(),
-  user_id: z.string().uuid().nullable().optional(),
+  project_id: z.string().min(1),
+  user_id: z.string().min(1).nullable().optional(),
   step_key: InterviewStepKeySchema,
   answer_text: z.string(),
 });
@@ -115,7 +115,7 @@ export type PackageInterviewAnswerInput = z.infer<
 >;
 
 export const PackageReservedAllocationInputSchema = z.object({
-  project_id: z.string().uuid(),
+  project_id: z.string().min(1),
   pct_reserved: z.number().min(10).max(100),
   ticker_hint: z.string().min(3).max(4).nullable().optional(),
   on_chain_token_id: z.string().nullable().optional(),
@@ -126,7 +126,7 @@ export type PackageReservedAllocationInput = z.infer<
 >;
 
 export const PackageProgressInputSchema = z.object({
-  project_id: z.string().uuid(),
+  project_id: z.string().min(1),
   phase_id: z.string().min(1),
   status: z.enum(PROGRESS_STATUSES).optional(),
   completion_pct: z.number().int().min(0).max(100).optional(),
@@ -134,11 +134,20 @@ export const PackageProgressInputSchema = z.object({
 export type PackageProgressInput = z.infer<typeof PackageProgressInputSchema>;
 
 export const PackagePurchaseInputSchema = z.object({
-  user_id: z.string().uuid(),
-  project_id: z.string().uuid(),
+  user_id: z.string().min(1),
+  project_id: z.string().min(1),
   stripe_session_id: z.string().nullable().optional(),
   stripe_price_id: z.string().nullable().optional(),
   seed_credits: z.number().int().nonnegative().optional(),
   status: z.enum(PURCHASE_STATUSES).optional(),
 });
 export type PackagePurchaseInput = z.infer<typeof PackagePurchaseInputSchema>;
+
+// ---------------------------------------------------------------------------
+// Legacy aliases — integration tests + earlier build agents expect the
+// "StartupPackage*" prefix. Kept as re-exports so both names work.
+// ---------------------------------------------------------------------------
+export const StartupPackagePurchaseSchema = PackagePurchaseSchema;
+export const StartupPackageInterviewAnswerSchema = PackageInterviewAnswerSchema;
+export const StartupPackageReservedAllocationSchema = PackageReservedAllocationSchema;
+export const StartupPackageProgressSchema = PackageProgressSchema;
