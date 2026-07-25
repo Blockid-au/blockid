@@ -34,6 +34,14 @@ import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
 import { UpgradeModal } from "@/components/upsell/upgrade-modal";
 import { UpgradeBanner } from "@/components/upsell/upgrade-banner";
 import { NAV_GROUPS, ADMIN_NAV_GROUP, type NavGroup, type NavItem } from "@/components/workspace/nav-groups";
+// Hide-not-lock migration path (see docs/plans/tier-menu-2026-07-24/04-cto-hide-engine.md):
+// When this layout is converted to a Server Component in the menu-regroup
+// branch, replace `NAV_GROUPS` here with a server-side
+//   const filtered = filterNavForUser(NAV_GROUPS_V2, await getUserNavContext())
+// call and pass `filtered` down to <NestedSidebar />. filterNavForUser is
+// marked `import "server-only"` so it will fail the build if imported from a
+// client boundary — see `web/src/lib/nav/filter-nav-for-user.ts`.
+// The V2 shape lives in `web/src/lib/nav/nav-schema.ts`.
 import { PaywallProvider } from "@/components/sales/paywall-nudge";
 import { TrialCountdownBanner } from "@/components/sales/trial-countdown-banner";
 import { useEntitlement } from "@/hooks/useEntitlement";
