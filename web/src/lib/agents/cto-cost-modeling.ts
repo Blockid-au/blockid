@@ -74,30 +74,29 @@ export interface TechBudgetMonth {
   month: number;
   /** Monthly cost breakdown */
   costs: TechStackCost[];
-  /** Total spend for this month */
-  total: number;
+  /** Total monthly spend */
+  monthlyTotal: number;
 }
 
 /**
- * 2026 Australian Market Benchmarks for CTO Decision Making
+ * 2026 Australian Market Benchmarks for CTOs
  */
 export const AU_TECH_BENCHMARKS_2026 = {
   infrastructure: {
-    kubernetesAdoption: 0.78,
-    serverlessAdoption: 0.34,
-    recommendedSSR: 'Streaming SSR',
-    targetBundleReduction: 0.42,
-  },
-  frameworks: {
-    react: 0.62,
-    vue: 0.14,
-    angular: 0.11,
-    svelte: 0.09,
+    kubernetesAdoptionRate: 0.78,
+    serverlessWorkloadRate: 0.34,
+    frontendMarketShare: {
+      react: 0.62,
+      vue: 0.14,
+      angular: 0.11,
+      svelte: 0.09,
+    },
+    aiAssistantUsageRate: 0.48,
   },
   security: {
     essentialEightSmeCompliance: 0.38,
-    patchingMaturityLevel3: 0.71,
-    owaspTop10Adoption: 0.45,
+    essentialEightPatchMaturityL3: 0.71,
+    owaspTop10AdoptionRate: 0.45,
   },
   quality: {
     sastAdoptionRate: 0.72,
@@ -105,110 +104,86 @@ export const AU_TECH_BENCHMARKS_2026 = {
     avgMaintainabilityIndex: 68,
     staticAnalysisCoverage: 0.85,
   },
-  productivity: {
-    aiAssistantUsage: 0.48,
+  performance: {
+    nextJs16BundleReduction: 0.42,
+    nextJs16ClientJsReduction: 0.40,
+    nextJs16TtfbImprovement: 0.60,
   },
 } as const;
 
 /**
- * Evaluates if a tech stack aligns with 2026 AU market standards
- * @param stack Current stack configuration
- * @returns Compliance and alignment score
+ * Calculates the estimated reduction in client-side JS bundle size when migrating to Next.js 16
+ * based on 2026 research findings.
+ * @param currentBundleSize Size in KB
+ * @returns Estimated new bundle size in KB
  */
-export function evaluateStackAlignment(stack: TechItem[]): { score: number; gaps: string[] } {
-  const gaps: string[] = [];
-  let score = 0;
-
-  const hasK8s = stack.some(i => i.name.toLowerCase().includes('kubernetes'));
-  const hasSast = stack.some(i => i.type === 'security' && i.name.toLowerCase().includes('sast'));
-  const hasAI = stack.some(i => i.type === 'ai_model');
-
-  if (hasK8s) score += 25; else gaps.push('Missing Kubernetes (Industry standard: 78%)');
-  if (hasSast) score += 25; else gaps.push('Missing SAST tools (Industry standard: 72%)');
-  if (hasAI) score += 25; else gaps.push('No AI productivity tools integrated (Industry standard: 48%)');
-  if (stack.some(i => i.type === 'security')) score += 25; else gaps.push('No dedicated security tooling');
-
-  return { score, gaps };
+export function calculateNextJs16BundleOptimization(currentBundleSize: number): number {
+  return currentBundleSize * (1 - AU_TECH_BENCHMARKS_2026.performance.nextJs16BundleReduction);
 }
 
 /**
- * Calculates estimated performance gain for upgrading to Next.js 16 based on 2026 research
- * @param currentBundleSize Current JS bundle size in KB
- * @param currentTtfb Current Time to First Byte in ms
- * @returns Projected improvements
+ * Evaluates a startup's security posture against the 2026 Australian SME average.
+ * @param complianceScore Current compliance percentage (0-1)
+ * @param controlsIntegrated Number of OWASP controls integrated (0-10)
+ * @returns Analysis of posture relative to market
  */
-export function projectNextJs16Gains(currentBundleSize: number, currentTtfb: number): {
-  projectedBundleSize: number;
-  projectedTtfb: number;
-  improvementPercentage: number;
+export function evaluateSecurityPosture(complianceScore: number, controlsIntegrated: number): {
+  isAboveAverage: boolean;
+  gapToMarket: number;
+  recommendation: string;
 } {
-  const bundleReduction = AU_TECH_BENCHMARKS_2026.infrastructure.targetBundleReduction;
-  const ttfbImprovement = 0.60;
-
-  return {
-    projectedBundleSize: currentBundleSize * (1 - bundleReduction),
-    projectedTtfb: currentTtfb * (1 - ttfbImprovement),
-    improvementPercentage: (bundleReduction + ttfbImprovement) / 2 * 100,
-  };
-}
-
-/**
- * Calculates the "Security Debt" based on ACSC Essential Eight and OWASP benchmarks
- * @param controlsImplemented Number of Essential Eight controls implemented
- * @param owaspControlsImplemented Number of OWASP Top 10 controls implemented
- * @returns Debt score where 0 is fully compliant
- */
-export function calculateSecurityDebt(controlsImplemented: number, owaspControlsImplemented: number): number {
-  const e8Gap = 8 - controlsImplemented;
-  const owaspGap = 10 - owaspControlsImplemented;
-  const auSmeAvg = (1 - AU_TECH_BENCHMARKS_2026.security.essentialEightSmeCompliance) * 8;
-
-  const totalGap = e8Gap + owaspGap;
-  const relativeDebt = totalGap / (auSmeAvg + 5.5);
-
-  return Math.max(0, Math.round(relativeDebt * 100));
-}
-
-/**
- * Projects 12-month budget based on monthly burn and scaling factors
- * @param initialMonth TechBudgetMonth
- * @param monthlyGrowth Scaling factor (e.g., 1.1 for 10% growth)
- * @returns Full 12-month projection
- */
-export function projectAnnualBudget(initialMonth: TechBudgetMonth, monthlyGrowth: number = 1.05): TechBudgetProjection {
-  const months: TechBudgetMonth[] = [];
-  let totals = { infra: 0, dev: 0, ai: 0, tools: 0, security: 0 };
-
-  for (let i = 1; i <= 12; i++) {
-    const growthFactor = Math.pow(monthlyGrowth, i - 1);
-    const monthlyCosts = initialMonth.costs.map(cat => ({
-      ...cat,
-      monthlyCost: cat.monthlyCost * growthFactor,
-      items: cat.items.map(item => ({
-        ...item,
-        monthlyCost: item.monthlyCost * growthFactor,
-      })),
-    }));
-
-    const monthTotal = monthlyCosts.reduce((sum, cat) => sum + cat.monthlyCost, 0);
-    months.push({ month: i, costs: monthlyCosts, total: monthTotal });
-
-    monthlyCosts.forEach(cat => {
-      if (cat.category === 'infra') totals.infra += cat.monthlyCost;
-      if (cat.category === 'dev') totals.dev += cat.monthlyCost;
-      if (cat.category === 'ai') totals.ai += cat.monthlyCost;
-      if (cat.category === 'tools') totals.tools += cat.monthlyCost;
-      if (cat.category === 'security') totals.security += cat.monthlyCost;
-    });
+  const avgCompliance = AU_TECH_BENCHMARKS_2026.security.essentialEightSmeCompliance;
+  const isAboveAverage = complianceScore > avgCompliance;
+  const gapToMarket = complianceScore - avgCompliance;
+  
+  let recommendation = 'Maintain current security trajectory.';
+  if (controlsIntegrated < 7) {
+    recommendation = 'Increase OWASP Top 10 integration to meet the 45% AU startup benchmark (7+ controls).';
+  } else if (complianceScore < avgCompliance) {
+    recommendation = 'Prioritize Essential Eight maturity to exceed the 38% SME compliance average.';
   }
 
+  return { isAboveAverage, gapToMarket, recommendation };
+}
+
+/**
+ * Estimates the impact of AI assistant adoption on developer velocity and cost.
+ * @param teamSize Total number of developers
+ * @param currentWeeklyBurn Total weekly burn for developers
+ * @returns Projected cost efficiency gain based on 48% adoption trend
+ */
+export function estimateAiVelocityGain(teamSize: number, currentWeeklyBurn: number): {
+  projectedEfficiencyGain: number;
+  costPerDeveloperAdjusted: number;
+} {
+  const adoptionRate = AU_TECH_BENCHMARKS_2026.infrastructure.aiAssistantUsageRate;
+  const efficiencyMultiplier = 0.15; // Estimated 15% boost for AI-assisted devs
+  const projectedEfficiencyGain = currentWeeklyBurn * adoptionRate * efficiencyMultiplier;
+  
   return {
-    months,
-    totalInfra12: totals.infra,
-    totalDev12: totals.dev,
-    totalAI12: totals.ai,
-    totalTools12: totals.tools,
-    totalSecurity12: totals.security,
-    grandTotal12: totals.infra + totals.dev + totals.ai + totals.tools + totals.security,
+    projectedEfficiencyGain,
+    costPerDeveloperAdjusted: (currentWeeklyBurn - projectedEfficiencyGain) / teamSize,
   };
+}
+
+/**
+ * Validates if the tech stack meets the 2026 Australian SaaS Quality Benchmarks.
+ * @param maintainabilityIndex Current index (0-100)
+ * @param analysisCoverage Static analysis coverage (0-1)
+ * @returns Boolean indicating if the stack is competitive in the AU market
+ */
+export function validateQualityBenchmarks(maintainabilityIndex: number, analysisCoverage: number): boolean {
+  return (
+    maintainabilityIndex >= AU_TECH_BENCHMARKS_2026.quality.avgMaintainabilityIndex &&
+    analysisCoverage >= AU_TECH_BENCHMARKS_2026.quality.staticAnalysisCoverage
+  );
+}
+
+/**
+ * Projects the total 12-month cost across all categories.
+ * @param budget Monthly breakdown
+ * @returns Grand total for the year
+ */
+export function calculateAnnualProjection(budget: TechBudgetMonth[]): number {
+  return budget.reduce((acc, month) => acc + month.monthlyTotal, 0);
 }
