@@ -363,6 +363,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeLeaderboard,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-leaderboard";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3Leaderboard,
+  formatDigestSnapshotPerTransitionMagnitudeTop3LeaderboardSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3Leaderboard,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-leaderboard";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1773,6 +1778,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeLeaderboard
     | null = null;
   let perTransitionMagnitudeLeaderboardSection = "";
+  let snapshotPerTransitionMagnitudeTop3Leaderboard:
+    | DigestSnapshotPerTransitionMagnitudeTop3Leaderboard
+    | null = null;
+  let perTransitionMagnitudeTop3LeaderboardSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3700,6 +3709,32 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeLeaderboardSection(
           snapshotPerTransitionMagnitudeLeaderboard,
         );
+      // P11.150 — per-transition MAGNITUDE TOP-3 LEADERBOARD (module
+      // P11.149). Ranks the top-3 partners + top-3 KPIs owning each
+      // (transition, band) cell that the P11.148 single-winner leaderboard
+      // named a #1 for. Answers the follow-up the single-winner picker
+      // cannot surface: is the top_partner an OUTLIER (second-place has
+      // half as many cells), or is the winner barely ahead of a pack of
+      // near-peers (three partners tied within one cell of each other,
+      // ops needs to poke all three)? Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeLeaderboardSection AND IMMEDIATELY ABOVE
+      // perPairHotCellsSection per the P11.149 formatter docblock placement
+      // rule so the hierarchy descends per-transition DRILL-DOWN (P11.143)
+      // → per-transition MAGNITUDE scalars (P11.145) → per-transition
+      // MAGNITUDE LEADERBOARD single-winner (P11.147) → per-transition
+      // MAGNITUDE TOP-3 LEADERBOARD (P11.149) → per-pair hot-cells GRANULAR
+      // (P11.139) → per-pair scalar distribution (P11.130): ops reads the
+      // single-winner leaderboard first for the #1 pick, then this top-3
+      // list to see whether the #1 is an outlier or one of a pack of near-
+      // peers, then the granular table for the individual cells.
+      snapshotPerTransitionMagnitudeTop3Leaderboard =
+        computeDigestSnapshotPerTransitionMagnitudeTop3Leaderboard(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3LeaderboardSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3LeaderboardSection(
+          snapshotPerTransitionMagnitudeTop3Leaderboard,
+        );
     }
   }
   if (
@@ -3749,6 +3784,7 @@ export async function GET(req: Request) {
     perTransitionHotCellsDrilldownSection ||
     perTransitionMagnitudeDrilldownSection ||
     perTransitionMagnitudeLeaderboardSection ||
+    perTransitionMagnitudeTop3LeaderboardSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -3825,6 +3861,7 @@ export async function GET(req: Request) {
       perTransitionHotCellsDrilldownSection +
       perTransitionMagnitudeDrilldownSection +
       perTransitionMagnitudeLeaderboardSection +
+      perTransitionMagnitudeTop3LeaderboardSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5050,6 +5087,31 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeLeaderboard.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeLeaderboard.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_leaderboard:
+      snapshotPerTransitionMagnitudeTop3Leaderboard
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3Leaderboard.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3Leaderboard.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3Leaderboard.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3Leaderboard.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3Leaderboard.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3Leaderboard.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3Leaderboard.top_n,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3Leaderboard.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3Leaderboard.transitions,
           }
         : {
             skipped_reason:
