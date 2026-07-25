@@ -285,8 +285,10 @@ async function buildInputContext(
       .select("step_key, answer_text, char_count")
       .eq("project_id", args.project.id)
       .order("created_at", { ascending: true })
-      .then((r) => r.data ?? [])
-      .catch(() => [] as Array<{ step_key: string; answer_text: string; char_count: number | null }>),
+      .then(
+        (r) => r.data ?? [],
+        () => [] as Array<{ step_key: string; answer_text: string; char_count: number | null }>,
+      ),
     loadLatestSvi(supabase, args.user, args.project.id),
   ]);
 
