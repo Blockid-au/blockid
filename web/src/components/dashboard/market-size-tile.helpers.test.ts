@@ -11,8 +11,10 @@ import {
   formatFractionPct,
   normaliseIndustryKeyword,
   pickPrimarySource,
+  sortIbisworldDeeplinksForTile,
 } from "./market-size-tile.helpers";
 import type { AuIndustrySnapshot } from "@/lib/market/au-market-lookup";
+import type { IbisworldDeeplink } from "@/lib/market/ibisworld-deeplinks";
 
 const seed: AuIndustrySnapshot = {
   anzsicCode: "J5810",
@@ -166,5 +168,68 @@ describe("pickPrimarySource", () => {
   it("returns null when no sources at all", () => {
     const bare: AuIndustrySnapshot = { ...seed, sources: [] };
     expect(pickPrimarySource(bare)).toBeNull();
+  });
+});
+
+describe("sortIbisworldDeeplinksForTile", () => {
+  const mk = (
+    anzsicCode: string,
+    publishedYear: number,
+    reportTitle: string,
+  ): IbisworldDeeplink => ({
+    anzsicCode,
+    division: "J",
+    divisionLabel: "Information Media and Telecommunications",
+    industryLabel: `${anzsicCode} industry`,
+    keywords: [],
+    ibisworldUrl: `https://www.ibisworld.com/au/industry/slug-${anzsicCode.toLowerCase()}/${publishedYear}/`,
+    ibisworldReportId: String(publishedYear),
+    reportTitle,
+    publishedYear,
+  });
+
+  it("returns empty on empty input regardless of cap", () => {
+    expect(sortIbisworldDeeplinksForTile([], 5)).toEqual([]);
+    expect(sortIbisworldDeeplinksForTile([], 0)).toEqual([]);
+  });
+
+  it("returns empty when cap is zero, negative, or non-finite", () => {
+    const links = [mk("J5810", 2025, "SaaS")];
+    expect(sortIbisworldDeeplinksForTile(links, 0)).toEqual([]);
+    expect(sortIbisworldDeeplinksForTile(links, -3)).toEqual([]);
+    expect(sortIbisworldDeeplinksForTile(links, Number.NaN)).toEqual([]);
+  });
+
+  it("sorts by publishedYear desc and caps to the requested slice", () => {
+    const links = [
+      mk("J5810", 2024, "Older SaaS"),
+      mk("K6419", 2026, "Fresh Fintech"),
+      mk("Q8511", 2025, "Healthtech mid"),
+    ];
+    const out = sortIbisworldDeeplinksForTile(links, 2);
+    expect(out.map((l) => l.reportTitle)).toEqual([
+      "Fresh Fintech",
+      "Healthtech mid",
+    ]);
+  });
+
+  it("tie-breaks equal publishedYear by anzsicCode alphabetical", () => {
+    const links = [
+      mk("K6419", 2025, "K report"),
+      mk("A0169", 2025, "A report"),
+      mk("J5810", 2025, "J report"),
+    ];
+    const out = sortIbisworldDeeplinksForTile(links, 3);
+    expect(out.map((l) => l.anzsicCode)).toEqual(["A0169", "J5810", "K6419"]);
+  });
+
+  it("does not mutate the input array", () => {
+    const links = [
+      mk("K6419", 2024, "old"),
+      mk("J5810", 2026, "new"),
+    ];
+    const snapshot = links.map((l) => l.anzsicCode);
+    sortIbisworldDeeplinksForTile(links, 2);
+    expect(links.map((l) => l.anzsicCode)).toEqual(snapshot);
   });
 });
