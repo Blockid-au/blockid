@@ -4,7 +4,10 @@ import { assessTaxInvoice } from "@/lib/compliance/tax-invoice-checker";
 import {
   BAND_TO_LABEL,
   MISSING_FIELD_LABEL,
+  SAVE_BUTTON_LABEL,
+  SAVE_STATUS_MESSAGE,
   TAX_INVOICE_HEADLINE,
+  canSaveTaxInvoiceCheck,
   makeEmptyTaxInvoiceFormState,
   pickTaxInvoiceBand,
   toTaxInvoiceInput,
@@ -206,5 +209,68 @@ describe("copy packs", () => {
     expect(BAND_TO_LABEL.under_threshold).toMatch(/82\.50/);
     expect(BAND_TO_LABEL.standard).toMatch(/82\.50/);
     expect(BAND_TO_LABEL.large).toMatch(/1,000/);
+  });
+});
+
+describe("canSaveTaxInvoiceCheck (P5-tax-invoice-checker-save)", () => {
+  it("returns false on a fully blank form so we don't insert an empty snapshot", () => {
+    expect(canSaveTaxInvoiceCheck(makeEmptyTaxInvoiceFormState())).toBe(false);
+  });
+
+  it("returns true once a positive total is typed even without supplier data", () => {
+    expect(
+      canSaveTaxInvoiceCheck(
+        withState({ gst_inclusive_total_aud: "45.50" }),
+      ),
+    ).toBe(true);
+  });
+
+  it("returns true when only supplier data is typed (drafting a template row)", () => {
+    expect(
+      canSaveTaxInvoiceCheck(withState({ supplier_name: "Auschain PTY LTD" })),
+    ).toBe(true);
+    expect(
+      canSaveTaxInvoiceCheck(withState({ supplier_abn: VALID_SUPPLIER_ABN })),
+    ).toBe(true);
+  });
+
+  it("returns false when total is zero / negative / garbage AND no supplier data", () => {
+    expect(
+      canSaveTaxInvoiceCheck(withState({ gst_inclusive_total_aud: "0" })),
+    ).toBe(false);
+    expect(
+      canSaveTaxInvoiceCheck(withState({ gst_inclusive_total_aud: "-10" })),
+    ).toBe(false);
+    expect(
+      canSaveTaxInvoiceCheck(
+        withState({ gst_inclusive_total_aud: "not-a-number" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("treats whitespace-only supplier fields as blank", () => {
+    expect(
+      canSaveTaxInvoiceCheck(
+        withState({ supplier_name: "   ", supplier_abn: "  " }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("save status copy packs (P5-tax-invoice-checker-save)", () => {
+  it("SAVE_BUTTON_LABEL has distinct copy for every status", () => {
+    const labels = new Set(Object.values(SAVE_BUTTON_LABEL));
+    expect(labels.size).toBe(4);
+    for (const l of labels) expect(l.length).toBeGreaterThan(0);
+    // Idle + error should not read as "saving" so the founder doesn't think the
+    // button is stuck.
+    expect(SAVE_BUTTON_LABEL.idle).not.toMatch(/…/);
+    expect(SAVE_BUTTON_LABEL.error).toMatch(/retry/i);
+  });
+
+  it("SAVE_STATUS_MESSAGE surfaces founder-facing copy for saving / saved / error", () => {
+    expect(SAVE_STATUS_MESSAGE.saving).toMatch(/snapshot/i);
+    expect(SAVE_STATUS_MESSAGE.saved).toMatch(/history/i);
+    expect(SAVE_STATUS_MESSAGE.error).toMatch(/failed/i);
   });
 });

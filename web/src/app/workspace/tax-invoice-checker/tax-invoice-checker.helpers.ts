@@ -136,3 +136,40 @@ export const BAND_TO_LABEL: Record<TaxInvoiceResult["band"], string> = {
   standard: "Standard invoice (A$82.50 – A$999.99)",
   large: "Large invoice (A$1,000+)",
 };
+
+/**
+ * Whether the current form state is worth persisting via
+ * POST /api/compliance/tax-invoice-check (P5-tax-invoice-checker-persist).
+ *
+ * The route accepts a `gst_inclusive_total_aud: number` — a founder can
+ * legitimately save an under-threshold receipt (say a A$45 cafe receipt they
+ * want on record) OR a full standard/large invoice, but there is no point
+ * inserting a snapshot with zero total AND no supplier data (that is the
+ * grey / "nothing typed" state pickTaxInvoiceBand surfaces).
+ */
+export function canSaveTaxInvoiceCheck(state: TaxInvoiceFormState): boolean {
+  const total = Number.parseFloat(state.gst_inclusive_total_aud);
+  const hasTotal = Number.isFinite(total) && total > 0;
+  const hasSupplier =
+    state.supplier_name.trim().length > 0 ||
+    state.supplier_abn.trim().length > 0;
+  return hasTotal || hasSupplier;
+}
+
+export type TaxInvoiceSaveStatus = "idle" | "saving" | "saved" | "error";
+
+export const SAVE_BUTTON_LABEL: Record<TaxInvoiceSaveStatus, string> = {
+  idle: "Save assessment",
+  saving: "Saving…",
+  saved: "Saved",
+  error: "Retry save",
+};
+
+export const SAVE_STATUS_MESSAGE: Record<
+  Exclude<TaxInvoiceSaveStatus, "idle">,
+  string
+> = {
+  saving: "Persisting snapshot to your compliance history…",
+  saved: "Snapshot saved to your compliance history.",
+  error: "Save failed — check your connection and try again.",
+};

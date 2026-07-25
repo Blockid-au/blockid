@@ -2,19 +2,18 @@
 
 // P5-tax-invoice-checker-ui — client wizard rendered at
 // /workspace/tax-invoice-checker. Runs the pure `assessTaxInvoice` helper
-// in-browser via useMemo (no fetch, no API, no persistence) so a founder can
-// paste invoice fields and see the ATO tax-invoice classification + missing
-// fields + GST cross-check + recommendations flip live.
-//
-// Deliberately stateless — the P5-tax-invoice-checker-persist follow-up will
-// add a `compliance_tax_invoice_checks` snapshot table once we know callers
-// need it. For now this is a live linter, not a saved compliance artefact.
+// in-browser via useMemo so a founder can paste invoice fields and see the
+// ATO tax-invoice classification + missing fields + GST cross-check +
+// recommendations flip live. P5-tax-invoice-checker-save adds an on-demand
+// "Save assessment" button that POSTs to /api/compliance/tax-invoice-check so
+// the founder can persist the current snapshot for a compliance audit trail.
 
 import * as React from "react";
 import {
   AlertTriangle,
   CheckCircle2,
   Info,
+  Save,
   ShieldCheck,
   XCircle,
 } from "lucide-react";
@@ -23,12 +22,16 @@ import { assessTaxInvoice } from "@/lib/compliance/tax-invoice-checker";
 import {
   BAND_TO_LABEL,
   MISSING_FIELD_LABEL,
+  SAVE_BUTTON_LABEL,
+  SAVE_STATUS_MESSAGE,
   TAX_INVOICE_HEADLINE,
+  canSaveTaxInvoiceCheck,
   makeEmptyTaxInvoiceFormState,
   pickTaxInvoiceBand,
   toTaxInvoiceInput,
   type TaxInvoiceBand,
   type TaxInvoiceFormState,
+  type TaxInvoiceSaveStatus,
 } from "./tax-invoice-checker.helpers";
 
 const BAND_STYLES: Record<
@@ -171,6 +174,35 @@ export function TaxInvoiceCheckerClient() {
 
   const isLargeBand = result.band === "large";
 
+  const [saveStatus, setSaveStatus] =
+    React.useState<TaxInvoiceSaveStatus>("idle");
+  const savePossible = canSaveTaxInvoiceCheck(state);
+
+  // Reset a saved / error indicator whenever the form changes so the founder
+  // knows the button will save the *current* state, not the last-saved one.
+  React.useEffect(() => {
+    setSaveStatus((prev) => (prev === "saving" ? prev : "idle"));
+  }, [state]);
+
+  const handleSave = React.useCallback(async () => {
+    if (!savePossible) return;
+    setSaveStatus("saving");
+    try {
+      const res = await fetch("/api/compliance/tax-invoice-check", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(toTaxInvoiceInput(state)),
+      });
+      if (!res.ok) {
+        setSaveStatus("error");
+        return;
+      }
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("error");
+    }
+  }, [savePossible, state]);
+
   return (
     <section
       data-testid="tax-invoice-checker"
@@ -193,7 +225,7 @@ export function TaxInvoiceCheckerClient() {
         </p>
       </header>
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => setState(SAMPLE_STATE)}
@@ -208,6 +240,38 @@ export function TaxInvoiceCheckerClient() {
         >
           Clear
         </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!savePossible || saveStatus === "saving"}
+          data-testid="tax-invoice-save"
+          data-save-status={saveStatus}
+          className={cn(
+            "h-9 rounded-lg border px-3 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors",
+            saveStatus === "saved"
+              ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+              : saveStatus === "error"
+                ? "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
+                : "border-brand-300 bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-50",
+          )}
+        >
+          <Save strokeWidth={1.75} className="h-3.5 w-3.5" />
+          {SAVE_BUTTON_LABEL[saveStatus]}
+        </button>
+        {saveStatus !== "idle" ? (
+          <span
+            data-testid="tax-invoice-save-message"
+            data-save-status={saveStatus}
+            className={cn(
+              "text-xs",
+              saveStatus === "saved" && "text-emerald-700",
+              saveStatus === "error" && "text-red-700",
+              saveStatus === "saving" && "text-ink-500",
+            )}
+          >
+            {SAVE_STATUS_MESSAGE[saveStatus]}
+          </span>
+        ) : null}
       </div>
 
       <div className="space-y-6">
