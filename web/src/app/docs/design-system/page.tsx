@@ -46,9 +46,9 @@ const BUTTON_VARIANTS = [
   "link", "success", "danger", "destructive",
 ] as const;
 const BUTTON_SIZES = ["xs", "sm", "md", "lg", "xl"] as const;
-const BADGE_TONES = ["neutral", "brand", "success", "warn", "danger", "info"] as const;
+const BADGE_TONES = ["default", "primary", "success", "warning", "danger", "info"] as const;
 const BADGE_SHAPES = ["solid", "subtle", "outline"] as const;
-const CARD_VARIANTS = ["default", "elevated", "subtle", "interactive", "outline"] as const;
+const CARD_VARIANTS = ["default", "elevated", "subtle"] as const;
 
 function H({ children }: { children: React.ReactNode }) {
   return <Heading level="h4" tone="muted">{children}</Heading>;
