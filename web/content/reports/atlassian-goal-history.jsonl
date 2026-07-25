@@ -767,3 +767,6 @@
 {"tick_id":"2026-07-25T05-07-01-608Z","ts":"2026-07-25T05:17:19.532Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"fce6352b","last_deployed":"afb1a84"}
 {"tick_id":"2026-07-25T05-07-01-608Z","ts":"2026-07-25T05:23:30.748Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"fce6352b"}
 {"tick_id":"2026-07-25T05-07-01-608Z","ts":"2026-07-25T05:23:30.749Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-25T05-27-01-579Z","ts":"2026-07-25T05:27:01.580Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-25T05-27-01-579Z","ts":"2026-07-25T05:27:01.597Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T05-34-58-117Z","ts":"2026-07-25T05:34:58.115Z","loop_label":"atlassian-goal-loop","stage":"tick_end","picked":"P4a-preview-ui-e2e","artefacts":["web/tests/e2e/founder/landing-page-preview-panel.spec.ts","docs/plans/atlassian-standard-mapping-goal.md"]}
