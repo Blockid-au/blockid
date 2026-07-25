@@ -1043,3 +1043,4 @@
 {"tick_id":"2026-07-25T13-27-01-334Z","ts":"2026-07-25T13:42:11.526Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-25T13-47-01-682Z","ts":"2026-07-25T13:47:01.683Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-25T13-47-01-682Z","ts":"2026-07-25T13:47:01.705Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T13-53-00-000Z","ts":"2026-07-25T13:53:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P4a-publish-route","summary":"auth-gated POST /api/landing-page/publish; buildPublishSnapshot + idempotent dataroom_files seed keyed on content_sha256; 9 vitest cases green; typecheck exit 0"}
