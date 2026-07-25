@@ -34,6 +34,8 @@ fundraise / fundraise.valuation-finance	Team & Salaries	/dashboard/team
 fundraise / fundraise.data-room	Data Room	/workspace/data-room
 fundraise / fundraise.data-room	Documents	/workspace/documents
 fundraise / fundraise.data-room	ESIC Self-Assessment	/workspace/esic-assessment
+fundraise / fundraise.data-room	Compliance Panel	/dashboard/compliance
+fundraise / fundraise.data-room	Compliance Calendar	/compliance/calendar
 fundraise / fundraise.raise	Fundraise Readiness	/dashboard/fundraise
 fundraise / fundraise.raise	Raise Capital	/workspace/fundraise
 fundraise	VC Valuation	/dashboard/valuation
@@ -44,6 +46,8 @@ fundraise	Team & Salaries	/dashboard/team
 fundraise	Data Room	/workspace/data-room
 fundraise	Documents	/workspace/documents
 fundraise	ESIC Self-Assessment	/workspace/esic-assessment
+fundraise	Compliance Panel	/dashboard/compliance
+fundraise	Compliance Calendar	/compliance/calendar
 fundraise	Fundraise Readiness	/dashboard/fundraise
 fundraise	Raise Capital	/workspace/fundraise
 account / account.profile	My Profile	/workspace/profile

@@ -252,6 +252,7 @@ const FUNDRAISE_SUBGROUPS: NavSubgroup[] = [
       { href: "/workspace/documents", label: "Documents", icon: FolderOpen, minPlan: "starter", minTier: "starter", growthPhase: 3 },
       { href: "/workspace/esic-assessment", label: "ESIC Self-Assessment", icon: ShieldCheck, minPlan: "starter", minTier: "starter", growthPhase: 3 },
       { href: "/dashboard/compliance", label: "Compliance Panel", icon: ShieldCheck, minPlan: "starter", minTier: "starter", growthPhase: 3 },
+      { href: "/compliance/calendar", label: "Compliance Calendar", icon: Calendar, minPlan: "starter", minTier: "starter", growthPhase: 3 },
     ],
   },
   {
