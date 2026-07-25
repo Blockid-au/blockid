@@ -193,6 +193,16 @@ export function FundraiseClient() {
   // offset or ESS start-up concession as a material claim. See goal
   // docs/plans/atlassian-standard-mapping-goal.md P6b.
   const [wholesaleOnly, setWholesaleOnly] = React.useState<boolean>(false);
+  // P9-esic-round-marketing-gate-ui — explicit founder declaration that
+  // the round is being pitched as ESIC-qualifying (Div 360 20% offset /
+  // 10-year CGT exemption). Independent of `wholesaleOnly` because a
+  // retail round marketing the offset carries the same s1041H exposure
+  // as a wholesale-only one. When true, /api/fundraise flips the ESIC
+  // gate into blocking mode via `esic-marketing-gate.ts` regardless of
+  // wholesale category. Leaving unticked lets the server-side heuristic
+  // scan of round name / pitch text / tags still fire — the checkbox
+  // makes intent explicit so a founder isn't relying on keyword matches.
+  const [marketedAsEsic, setMarketedAsEsic] = React.useState<boolean>(false);
 
   // Step 3: Investor Allocations
   const [investors, setInvestors] = React.useState<InvestorAllocation[]>([
@@ -265,6 +275,7 @@ export function FundraiseClient() {
             safeDiscount,
             safeCap,
             wholesaleOnly,
+            marketedAsEsic,
           }),
         ),
       });
@@ -614,6 +625,46 @@ export function FundraiseClient() {
                     if any active ESOP grant fails the Div 83A gate.
                     Leave unticked for a normal round — you'll still
                     see a warning banner but nothing is blocked.
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            {/* Marketed-as-ESIC opt-in (P9-esic-round-marketing-gate-ui) —
+                explicit founder declaration that the round is being
+                pitched under the Div 360 20% investor offset / 10-year
+                CGT exemption. Independent of wholesale-only because a
+                retail round that markets the offset carries the same
+                s1041H (misleading conduct) exposure. Ticking this flips
+                the ESIC gate into blocking mode via esic-marketing-gate
+                even if the round name / pitch text / tags don't match
+                the heuristic scan. */}
+            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  data-testid="fundraise-marketed-as-esic"
+                  checked={marketedAsEsic}
+                  onChange={(e) => setMarketedAsEsic(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-400"
+                />
+                <span className="text-sm text-ink-800">
+                  <span className="font-semibold">
+                    Marketed as ESIC-qualifying (Div 360)
+                  </span>
+                  <span className="block text-xs text-ink-600 mt-1">
+                    Tick this if your pitch deck, term sheet, or investor
+                    conversations reference the ESIC 20% investor tax
+                    offset or the 10-year CGT exemption — even on a
+                    retail round. BlockID will refuse to save the round
+                    (HTTP 412) unless a fresh eligible ESIC
+                    self-assessment is on file, because misleading
+                    conduct under s1041H Corporations Act 2001 (Cth)
+                    doesn't turn on the wholesale/retail distinction.
+                    Leave unticked if you're not marketing the offset
+                    at all — the server-side heuristic scan of your
+                    round name / pitch text / tags will still catch
+                    obvious mentions.
                   </span>
                 </span>
               </label>

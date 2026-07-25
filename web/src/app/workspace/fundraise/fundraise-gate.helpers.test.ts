@@ -292,6 +292,61 @@ describe("buildFundraisePostBody", () => {
       expect(wire.wholesaleOnly).toBe(true);
     }
   });
+
+  // P9-esic-round-marketing-gate-ui — explicit founder-declared
+  // marketedAsEsic flag skips the /api/fundraise heuristic scan and
+  // flips the ESIC gate into blocking mode. Wire semantics:
+  //   - only present on the wire when true (unticked box never
+  //     over-declares intent — the route defaults undefined → false)
+  //   - independent of wholesaleOnly (a retail-marketed-ESIC round
+  //     carries the same s1041H exposure as a wholesale-only one)
+  //   - travels on every instrument type
+  it("omits marketedAsEsic on the wire when the flag is unset", () => {
+    const wire = buildFundraisePostBody({ ...base, instrumentType: "safe" });
+    expect(wire.marketedAsEsic).toBeUndefined();
+    expect("marketedAsEsic" in wire).toBe(false);
+  });
+
+  it("omits marketedAsEsic on the wire when the flag is explicitly false", () => {
+    const wire = buildFundraisePostBody({
+      ...base,
+      instrumentType: "safe",
+      marketedAsEsic: false,
+    });
+    expect(wire.marketedAsEsic).toBeUndefined();
+    expect("marketedAsEsic" in wire).toBe(false);
+  });
+
+  it("emits marketedAsEsic=true on the wire when the flag is true", () => {
+    const wire = buildFundraisePostBody({
+      ...base,
+      instrumentType: "safe",
+      marketedAsEsic: true,
+    });
+    expect(wire.marketedAsEsic).toBe(true);
+  });
+
+  it("carries marketedAsEsic=true on every instrument type independent of wholesaleOnly", () => {
+    for (const instrumentType of ["safe", "convertible_note", "priced"] as const) {
+      const retailMarketed = buildFundraisePostBody({
+        ...base,
+        instrumentType,
+        wholesaleOnly: false,
+        marketedAsEsic: true,
+      });
+      expect(retailMarketed.marketedAsEsic).toBe(true);
+      expect(retailMarketed.wholesaleOnly).toBe(false);
+
+      const wholesaleMarketed = buildFundraisePostBody({
+        ...base,
+        instrumentType,
+        wholesaleOnly: true,
+        marketedAsEsic: true,
+      });
+      expect(wholesaleMarketed.marketedAsEsic).toBe(true);
+      expect(wholesaleMarketed.wholesaleOnly).toBe(true);
+    }
+  });
 });
 
 describe("GATE_BLOCK_HEADING", () => {
