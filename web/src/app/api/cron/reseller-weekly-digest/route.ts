@@ -189,6 +189,11 @@ import {
   type DigestSnapshotPctChangeStreakLengthHistogram,
 } from "@/lib/reseller/digest-snapshot-pct-change-streak-length-histogram";
 import {
+  computeDigestSnapshotPerResellerDirectionStreakLengthHistogram,
+  formatDigestSnapshotPerResellerDirectionStreakLengthHistogramSection,
+  type DigestSnapshotPerResellerDirectionStreakLengthHistogram,
+} from "@/lib/reseller/digest-snapshot-per-reseller-direction-streak-length-histogram";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1466,6 +1471,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPctChangeStreakLengthHistogram
     | null = null;
   let pctChangeStreakLengthHistogramSection = "";
+  let snapshotPerResellerDirectionStreakLengthHistogram:
+    | DigestSnapshotPerResellerDirectionStreakLengthHistogram
+    | null = null;
+  let perResellerDirectionStreakLengthHistogramSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -2123,6 +2132,32 @@ export async function GET(req: Request) {
       formatDigestSnapshotPctChangeStreakLengthHistogramSection(
         snapshotPctChangeStreakLengthHistogram,
       );
+    // P11.82 — per-partner sustained-direction streak length-frequency
+    // histogram (module P11.81). Per-partner analogue of the P11.78 portfolio
+    // histogram, closing the histogram family's per-partner axis symmetric
+    // with the P11.59 (coverage) / P11.73 (leaderboard) per-partner splits.
+    // Delegates to computeDigestSnapshotPerResellerDirectionStreaks through
+    // the pure lib so per-partner histogram groups cannot diverge from the
+    // P11.32 spotlight rows they summarise. Consumes the SAME
+    // snapshotPerResellerRollingTrend the P11.32 detector and the P11.73
+    // per-partner leaderboard already consume (no extra fold, no divergence
+    // risk vs. the spotlight rows below). Per-partner bucket set is DENSE
+    // from min_streak_length to that partner's own max_length so a partner
+    // whose deepest run is length-4 does not carry a phantom length-5 bucket
+    // sourced from a sibling partner's tail. Section splices directly BETWEEN
+    // perResellerDirectionStreakLeaderboardSection (P11.74 per-partner top-N)
+    // and perResellerDirectionStreaksSection (P11.32/P11.33 per-partner
+    // spotlight) so ops reads per-partner coverage (P11.60) → per-partner
+    // top-N (P11.74) → per-partner shape-of-persistence tail (this section)
+    // → per-partner spotlight detail (P11.32).
+    snapshotPerResellerDirectionStreakLengthHistogram =
+      computeDigestSnapshotPerResellerDirectionStreakLengthHistogram(
+        snapshotPerResellerRollingTrend,
+      );
+    perResellerDirectionStreakLengthHistogramSection =
+      formatDigestSnapshotPerResellerDirectionStreakLengthHistogramSection(
+        snapshotPerResellerDirectionStreakLengthHistogram,
+      );
   }
   if (
     topMoversSection ||
@@ -2136,6 +2171,7 @@ export async function GET(req: Request) {
     directionStreakLeaderboardSection ||
     perMetricDirectionStreakLeaderboardSection ||
     perResellerDirectionStreakLeaderboardSection ||
+    perResellerDirectionStreakLengthHistogramSection ||
     perResellerDirectionStreaksSection ||
     pctChangeStreakCoverageSection ||
     perMetricPctChangeStreakCoverageSection ||
@@ -2175,6 +2211,7 @@ export async function GET(req: Request) {
       directionStreakLeaderboardSection +
       perMetricDirectionStreakLeaderboardSection +
       perResellerDirectionStreakLeaderboardSection +
+      perResellerDirectionStreakLengthHistogramSection +
       perResellerDirectionStreaksSection +
       pctChangeStreakCoverageSection +
       perMetricPctChangeStreakCoverageSection +
@@ -2932,6 +2969,24 @@ export async function GET(req: Request) {
             max_length:
               snapshotPctChangeStreakLengthHistogram.max_length,
             buckets: snapshotPctChangeStreakLengthHistogram.buckets,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_reseller_direction_streak_length_histogram:
+      snapshotPerResellerDirectionStreakLengthHistogram
+        ? {
+            window_size:
+              snapshotPerResellerDirectionStreakLengthHistogram.window_size,
+            first_week:
+              snapshotPerResellerDirectionStreakLengthHistogram.first_week,
+            last_week:
+              snapshotPerResellerDirectionStreakLengthHistogram.last_week,
+            min_streak_length:
+              snapshotPerResellerDirectionStreakLengthHistogram.min_streak_length,
+            groups:
+              snapshotPerResellerDirectionStreakLengthHistogram.groups,
           }
         : {
             skipped_reason:
