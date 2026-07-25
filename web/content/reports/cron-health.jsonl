@@ -888,3 +888,5 @@
 {"ts":"2026-07-25T03:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":5573,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-07-25T03:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16433,"detail":""}
 {"ts":"2026-07-25T03:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2566,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234204676 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273968168 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-25T03:15:01Z","endpoint":"reseller-clear-commissions","status":"ok","duration_ms":182,"detail":"{\"cleared\": 0, \"message\": \"no pending rows past window\"}"}
+{"ts":"2026-07-25T03:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":154,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
