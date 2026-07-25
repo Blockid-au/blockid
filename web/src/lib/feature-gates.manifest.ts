@@ -88,6 +88,21 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   { route: "api/mentor/notes/route.ts", required_feature: "reseller.console" },
   { route: "api/mentor/check-ins/route.ts", required_feature: "reseller.console" },
   { route: "api/mentor/access-request/route.ts", required_feature: "reseller.console" },
+
+  // Startup Package (Ship 1 — spawn-agent-v-d-ng-cosmic-aho, subgoals 7 + 8).
+  // `startup_package` feature slug is introduced by subgoal 1 in
+  // lib/entitlements.ts. The cast keeps subgoals 6/7/8 compiling in
+  // isolation until the release agent merges subgoal 1.
+  {
+    route: "api/startup-package/deliverable/[slug]/route.ts",
+    required_feature: "startup_package" as unknown as Feature,
+    note: "Ship 1 — auto-fill per-phase deliverables into the dataroom.",
+  },
+  {
+    route: "api/startup-package/reservation/route.ts",
+    required_feature: "startup_package" as unknown as Feature,
+    note: "Ship 1 — DB-first cap-table reservation.",
+  },
 ]);
 
 /** Look up the required feature for a route path. Returns null if ungated. */
@@ -120,6 +135,7 @@ export const GATED_DIRECTORIES: readonly string[] = Object.freeze([
   "api/mentor/notes",
   "api/mentor/check-ins",
   "api/mentor/access-request",
+  "api/startup-package",
 ]);
 
 /** HTTP verbs that count as "mutation" for the completeness lens. */
