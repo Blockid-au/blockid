@@ -4,18 +4,20 @@ vi.mock("server-only", () => ({}));
 
 // next/navigation.redirect() throws a special error in Next; we mock it to a
 // plain throw so we can assert the target URL without pulling in the runtime.
-const redirectMock = vi.fn((url: string) => {
-  const err = new Error(`REDIRECT:${url}`);
-  (err as unknown as { digest: string }).digest = `NEXT_REDIRECT;replace;${url}`;
-  throw err;
-});
+const { redirectMock, getCurrentUserMock, canMock, recordGateHitMock } =
+  vi.hoisted(() => ({
+    redirectMock: vi.fn((url: string) => {
+      const err = new Error(`REDIRECT:${url}`);
+      (err as unknown as { digest: string }).digest = `NEXT_REDIRECT;replace;${url}`;
+      throw err;
+    }),
+    getCurrentUserMock: vi.fn(),
+    canMock: vi.fn(),
+    recordGateHitMock: vi.fn(),
+  }));
+
 vi.mock("next/navigation", () => ({ redirect: redirectMock }));
-
-const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
-
-const canMock = vi.fn();
-const recordGateHitMock = vi.fn();
 vi.mock("@/lib/entitlements", () => ({
   can: (...args: unknown[]) => canMock(...args),
   recordGateHit: (...args: unknown[]) => recordGateHitMock(...args),
