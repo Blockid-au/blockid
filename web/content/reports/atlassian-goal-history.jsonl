@@ -731,3 +731,6 @@
 {"tick_id":"2026-07-25T03-47-01-438Z","ts":"2026-07-25T03:52:08.457Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"48f74c59","last_deployed":"e36f576"}
 {"tick_id":"2026-07-25T03-47-01-438Z","ts":"2026-07-25T03:58:35.470Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"48f74c59"}
 {"tick_id":"2026-07-25T03-47-01-438Z","ts":"2026-07-25T03:58:35.471Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-25T04-07-01-476Z","ts":"2026-07-25T04:07:01.477Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-25T04-07-01-476Z","ts":"2026-07-25T04:07:01.486Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-25T04-07-01-476Z","ts":"2026-07-25T04:20:00.000Z","loop_label":"atlassian-goal-loop","stage":"tick_complete","phase_id":"P5-tax-invoice-checker-ui-e2e","result":"shipped","surface":"web/tests/e2e/founder/tax-invoice-checker.spec.ts","tests_added":1,"tests_passed":1,"typecheck":"n/a","files_added":1,"files_modified":1}
