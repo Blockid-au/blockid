@@ -8,7 +8,10 @@ export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
     <label
       ref={ref}
       className={cn(
-        "block text-[length:var(--text-body-sm)] font-medium text-[var(--ds-ink-subtle)]",
+        // Base class preserved so every existing label render is byte-identical.
+        // The paired Input controls the visible focus ring
+        // (ring-2 ring-brand-500/50) — labels stay style-neutral.
+        "block text-sm font-medium text-ink-700",
         className,
       )}
       {...props}
