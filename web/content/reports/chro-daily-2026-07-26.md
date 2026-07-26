@@ -1,32 +1,32 @@
-# Chief Information Security Officer — Daily Brief (2026-07-26)
-**Agent:** CISO  ·  **Status:** GREEN  ·  **Domain:** Security & Privacy  ·  **Reports to:** CEO
+# Chief Human Resources Officer — Daily Brief (2026-07-26)
+**Agent:** CHRO  ·  **Status:** GREEN  ·  **Domain:** People & Culture  ·  **Reports to:** CEO
 > CEO North Star: **Paying Customers + Verified Company Profiles + Monthly Recurring Revenue**
-> CEO alignment for this role: Reducing operational friction (security risk)
+> CEO alignment for this role: Reducing operational friction (team scaling)
 ## 1. 30-Day KPI Ownership (from CEO scoreboard)
-- Essential Eight maturity baseline
-- 0 open critical CVEs
-- Security posture score weekly
-- Incident response runbook v1
-- All routes authed + rate-limited
+- Team composition benchmark vs stage
+- ESOP pool live (T0094)
+- Founder salary benchmark
+- Hiring pipeline v1
+- Division 83A scheme docs
 ## 2. CEO-Assigned Tasks (project-state.json)
 **In progress:** 0  ·  **Pending:** 0  ·  **Shipped (last 7d):** 1
 
 ### ✅ Shipped (last 7d)
-- `T0217` Security hardening — rate-limit + headers + secrets audit
+- `T0223` ESOP grant tracker + Div 83A eligibility checker
 ## 3. Today's Action Items (CEO-aligned)
-1. Review auth + rate-limit coverage on new routes
-2. Scan deps for CVEs
-3. Audit one Supabase RLS policy
-4. Verify CSP + security headers
-5. Update security posture score
+1. Review ESOP pool + grants UI
+2. Update AU salary benchmarks
+3. Audit hiring funnel
+4. Coordinate with CLO on Division 83A
+5. Update org chart
 ## 4. Last 24h Activity (git, this agent's domain)
 _No commits in this agent's file domains in the last 24h._
 ## 5. Daily Routine Checklist
-- [ ] Review auth + rate-limit coverage on new routes
-- [ ] Scan deps for CVEs
-- [ ] Audit one Supabase RLS policy
-- [ ] Verify CSP + security headers
-- [ ] Update security posture score
+- [ ] Review ESOP pool + grants UI
+- [ ] Update AU salary benchmarks
+- [ ] Audit hiring funnel
+- [ ] Coordinate with CLO on Division 83A
+- [ ] Update org chart
 ## 6. CEO Filter (every action must support at least one)
 - Getting paying customers
 - Learning willingness to pay
