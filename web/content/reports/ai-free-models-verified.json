@@ -1,58 +1,48 @@
 {
-  "verifiedAt": "2026-07-19T03:00:23.216Z",
+  "verifiedAt": "2026-07-26T03:00:39.190Z",
   "source": "ai-free-models.json",
   "verified": {
     "openrouter": [
-      "qwen/qwen3-coder:free",
       "nvidia/nemotron-3-ultra-550b-a55b:free",
       "nvidia/nemotron-3-super-120b-a12b:free",
-      "qwen/qwen3-next-80b-a3b-instruct:free"
+      "google/gemma-4-31b-it:free",
+      "google/gemma-4-26b-a4b-it:free",
+      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "inclusionai/ling-3.0-flash:free",
+      "poolside/laguna-s-2.1:free",
+      "poolside/laguna-m.1:free"
     ],
     "groq": [
+      "qwen/qwen3.6-27b",
       "openai/gpt-oss-120b",
       "llama-3.3-70b-versatile",
-      "qwen/qwen3.6-27b"
+      "openai/gpt-oss-20b",
+      "groq/compound",
+      "llama-3.1-8b-instant",
+      "allam-2-7b"
     ],
     "cerebras": [
+      "zai-glm-4.7",
       "gpt-oss-120b",
-      "zai-glm-4.7"
+      "gemma-4-31b"
     ],
     "sambanova": [
-      "gpt-oss-120b",
-      "Meta-Llama-3.3-70B-Instruct",
       "DeepSeek-V3.1",
-      "DeepSeek-V3.2"
+      "DeepSeek-V3.2",
+      "Meta-Llama-3.3-70B-Instruct",
+      "gemma-4-31B-it"
     ]
   },
   "excluded": {
-    "paidLeaks": [
-      {
-        "provider": "sambanova",
-        "model": "MiniMax-M2.7",
-        "status": "payment_required",
-        "detail": "{\"error\":{\"message\":\"A payment method is required to use `MiniMax-M2.7`. Add one at https://cloud.sambanova.ai/plans/billing to continue.\",\"type\":\"payment_required\",\"param\":\"model\",\"code\":\"PAYMENT_MET"
-      }
-    ],
-    "notFound": [
-      {
-        "provider": "openrouter",
-        "model": "openai/gpt-oss-120b:free",
-        "status": "not_found",
-        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: openai/gpt-oss-120b\",\"code\":404},\"user_id\":\""
-      },
+    "paidLeaks": [],
+    "notFound": [],
+    "other": [
       {
         "provider": "groq",
-        "model": "qwen/qwen3-32b",
-        "status": "not_found",
-        "detail": "{\"error\":{\"message\":\"The model `qwen/qwen3-32b` does not exist or you do not have access to it.\",\"type\":\"invalid_request_error\",\"code\":\"model_not_found\"}}\n"
-      },
-      {
-        "provider": "groq",
-        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-        "status": "not_found",
-        "detail": "{\"error\":{\"message\":\"The model `meta-llama/llama-4-scout-17b-16e-instruct` does not exist or you do not have access to it.\",\"type\":\"invalid_request_error\",\"code"
+        "model": "canopylabs/orpheus-v1-english",
+        "status": "other",
+        "detail": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com"
       }
-    ],
-    "other": []
+    ]
   }
 }
