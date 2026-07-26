@@ -66,103 +66,102 @@ export interface MarketResearch {
   /** Competitor profiles */
   competitors: CompetitorProfile[];
   /** Market trends */
-  marketTrends: string[];
-  /** Customer segments */
-  customerSegments: CustomerSegment[];
-  /** Average Series A funding round size in Australia (AU$) */
-  averageSeriesAFunding: number;
+  trends: string[];
 }
 
-/** AU Market Specific Benchmarks 2024/2025 */
+/** AU Market Benchmarks based on 2024 Research */
 export const AU_STARTUP_BENCHMARKS = {
-  valuation: {
-    seedPostMoneyAvg: 5500000, // Midpoint of A$4M - A$7M
-    revenueMultipleMin: 4,
-    revenueMultipleMax: 8,
-    aiPremiumMultiplier: 1.3,
+  VALUATION: {
+    SEED_POST_MONEY_MIN: 4000000,
+    SEED_POST_MONEY_MAX: 7000000,
+    MEDIAN_REVENUE_MULTIPLE_MIN: 4,
+    MEDIAN_REVENUE_MULTIPLE_MAX: 8,
+    AI_PREMIUM_MULTIPLIER: 1.3,
   },
-  operational: {
-    avgRunwayRequirementMonths: 21, // Midpoint of 18-24
-    newCompanyGrowthRateMonthly: 5200, // Based on Apr-May 2024 data
+  OPERATIONAL: {
+    AVG_RUNWAY_REQUIREMENT_MONTHS: 21,
+    NEW_COMPANY_RECORD_VELOCITY_MONTHLY: 5200,
   },
-  marketing: {
-    b2bBlogConversionRate: 0.023, // Midpoint 2.1% - 2.5%
-    shortFormVideoEngagement: 0.0425, // Midpoint 3.5% - 5.0%
-    aiContentBudgetAllocation: 0.20, // Midpoint 15% - 25%
-    avgCPLAU: 82.5, // Midpoint A$45 - A$120
+  MARKETING: {
+    B2B_BLOG_CONVERSION_RATE_MIN: 0.021,
+    B2B_BLOG_CONVERSION_RATE_MAX: 0.025,
+    SHORT_FORM_VIDEO_ENGAGEMENT_MIN: 0.035,
+    SHORT_FORM_VIDEO_ENGAGEMENT_MAX: 0.05,
+    AI_CONTENT_BUDGET_ALLOCATION_MIN: 0.15,
+    AI_CONTENT_BUDGET_ALLOCATION_MAX: 0.25,
+    AU_CONTENT_CPL_MIN: 45,
+    AU_CONTENT_CPL_MAX: 120,
   },
-  seo: {
-    aiOverviewCtrReduction: 0.215, // Midpoint 18-25%
-    organicVolatilityIndex: 0.40, // Midpoint 30-50%
+  SEO: {
+    AI_OVERVIEW_CTR_REDUCTION_MIN: 0.18,
+    AI_OVERVIEW_CTR_REDUCTION_MAX: 0.25,
+    AI_CONTENT_VOLATILITY_MIN: 0.3,
+    AI_CONTENT_VOLATILITY_MAX: 0.5,
   }
 };
 
-/** Positioning Constants for 'Startup Navigation System' */
-export const STRATEGIC_POSITIONING = {
-  PRODUCT_CATEGORY: 'Startup Navigation System',
-  VALUE_PROPOSITION: 'Holistic road-mapping, market intelligence, and equity modelling',
-  METRIC_IMPROVEMENT: {
-    dilutionReduction: 0.03, // 12% down to 9%
-    sectorGrowthYoY: 0.22, // 22% vs 13% for valuation-only
-    marketProjection2028Billion: 4.1,
-  }
+/** Positioning Metrics for 'Startup Navigation System' */
+export interface NavigationSystemMetrics {
+  /** Target reduction in founder dilution (from 12% to 9%) */
+  targetDilutionReduction: number;
+  /** Global market growth rate for Navigation SaaS (22%) */
+  navigationSaaSGrowthRate: number;
+  /** Traditional valuation tool growth rate (13%) */
+  valuationToolGrowthRate: number;
+  /** Projected global market size by 2028 (USD 4.1B) */
+  projectedMarketSize2028USD: number;
+}
+
+export const NAVIGATION_POSITIONING_DATA: NavigationSystemMetrics = {
+  targetDilutionReduction: 0.03,
+  navigationSaaSGrowthRate: 0.22,
+  valuationToolGrowthRate: 0.13,
+  projectedMarketSize2028USD: 4100000000,
 };
 
 /**
- * Calculates the estimated valuation for an AU SaaS startup based on current research.
+ * Calculates the estimated valuation for an AU SaaS startup 
+ * incorporating the AI Premium Multiplier.
  * @param arr Annual Recurring Revenue
- * @param isAiPowered Whether the startup leverages AI to apply the premium multiplier
+ * @param hasAI Whether the company has core AI integration
+ * @returns Estimated Valuation in AU$
  */
-export function calculateAUValuation(arr: number, isAiPowered: boolean): number {
-  const medianMultiple = (AU_STARTUP_BENCHMARKS.valuation.revenueMultipleMin + AU_STARTUP_BENCHMARKS.valuation.revenueMultipleMax) / 2;
-  let valuation = arr * medianMultiple;
-  if (isAiPowered) {
-    valuation *= AU_STARTUP_BENCHMARKS.valuation.aiPremiumMultiplier;
-  }
-  return valuation;
+export function calculateAUValuation(arr: number, hasAI: boolean): number {
+  const medianMultiple = (AU_STARTUP_BENCHMARKS.VALUATION.MEDIAN_REVENUE_MULTIPLE_MIN + AU_STARTUP_BENCHMARKS.VALUATION.MEDIAN_REVENUE_MULTIPLE_MAX) / 2;
+  const baseValuation = arr * medianMultiple;
+  return hasAI ? baseValuation * AU_STARTUP_BENCHMARKS.VALUATION.AI_PREMIUM_MULTIPLIER : baseValuation;
 }
 
 /**
- * Estimates potential lead acquisition based on content spend and AU CPL benchmarks.
- * @param budget Total marketing budget for content
- * @param aiToolAllocation Percentage of budget allocated to AI tools (default 20%)
+ * Calculates the expected Cost Per Lead (CPL) for a content campaign in the AU market.
+ * @param leadVolume Target number of leads
+ * @returns Estimated total spend range [min, max]
  */
-export function estimateLeadGen(budget: number, aiToolAllocation: number = AU_STARTUP_BENCHMARKS.marketing.aiContentBudgetAllocation): {
-  totalLeads: number;
-  aiToolSpend: number;
-  contentSpend: number;
-} {
-  const aiToolSpend = budget * aiToolAllocation;
-  const contentSpend = budget - aiToolSpend;
-  const totalLeads = contentSpend / AU_STARTUP_BENCHMARKS.marketing.avgCPLAU;
+export function estimateAUContentSpend(leadVolume: number): [number, number] {
+  const minSpend = leadVolume * AU_STARTUP_BENCHMARKS.MARKETING.AU_CONTENT_CPL_MIN;
+  const maxSpend = leadVolume * AU_STARTUP_BENCHMARKS.MARKETING.AU_CONTENT_CPL_MAX;
+  return [minSpend, maxSpend];
+}
+
+/**
+ * Estimates the impact of AI Overviews on organic traffic CTR.
+ * @param currentCTR The current click-through rate (0-1)
+ * @returns The adjusted CTR after AI Overview impact
+ */
+export function estimateAIOverviewImpact(currentCTR: number): number {
+  const avgReduction = (AU_STARTUP_BENCHMARKS.SEO.AI_OVERVIEW_CTR_REDUCTION_MIN + AU_STARTUP_BENCHMARKS.SEO.AI_OVERVIEW_CTR_REDUCTION_MAX) / 2;
+  return currentCTR * (1 - avgReduction);
+}
+
+/**
+ * Evaluates if a competitor's performance is below the industry benchmark.
+ * @param profile The competitor profile to evaluate
+ * @returns An object identifying benchmark gaps
+ */
+export function evaluateCompetitorGaps(profile: CompetitorProfile) {
   return {
-    totalLeads: Math.floor(totalLeads),
-    aiToolSpend,
-    contentSpend
-  };
-}
-
-/**
- * Evaluates the effectiveness of a 'Navigation' approach vs a 'Valuation' approach.
- * @param currentDilution The current estimated dilution percentage (e.g., 0.12)
- */
-export function projectDilutionSaving(currentDilution: number): number {
-  return currentDilution - (currentDilution - STRATEGIC_POSITIONING.METRIC_IMPROVEMENT.dilutionReduction);
-}
-
-/**
- * Analyzes SEO risk based on current AI Overview trends.
- * @param currentTraffic Current organic traffic volume
- * @param isAiContentHeavy Whether the site relies heavily on AI-generated content
- */
-export function analyzeSeoRisk(currentTraffic: number, isAiContentHeavy: boolean): {
-  projectedTrafficLoss: number;
-  volatilityRisk: 'Low' | 'Medium' | 'High';
-} {
-  const loss = currentTraffic * AU_STARTUP_BENCHMARKS.seo.aiOverviewCtrReduction;
-  const volatilityRisk = isAiContentHeavy ? 'High' : 'Medium';
-  return {
-    projectedTrafficLoss: Math.floor(loss),
-    volatilityRisk
+    latencyGap: (profile.dataRefreshLatencyMinutes || 0) > 4.2,
+    accuracyGap: (profile.aiValuationAccuracy || 0) < 92,
+    isUnderperforming: (profile.dataRefreshLatencyMinutes || 0) > 4.2 || (profile.aiValuationAccuracy || 0) < 92,
   };
 }

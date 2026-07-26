@@ -81,3 +81,7 @@
 {"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":18,"timestamp":"2026-07-25T14:00:02.764Z"}
 {"stage":"qa","ok":true,"message":"QA: ?/21 pass, 0 fail","aiCalls":0,"durationMs":27836,"timestamp":"2026-07-25T14:00:30.601Z"}
 {"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":327,"timestamp":"2026-07-25T14:00:30.929Z"}
+{"stage":"deploy","ok":true,"message":"Production running — HTTP 200","aiCalls":0,"durationMs":335,"timestamp":"2026-07-26T12:05:10.026Z"}
+{"stage":"update_artifacts","ok":true,"message":"19 task(s) still in flight","aiCalls":0,"durationMs":98,"timestamp":"2026-07-26T12:05:10.125Z"}
+{"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":23,"timestamp":"2026-07-26T12:05:10.149Z"}
+{"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":590,"timestamp":"2026-07-26T12:06:14.811Z"}
