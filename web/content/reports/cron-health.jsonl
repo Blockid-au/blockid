@@ -823,3 +823,4 @@
 {"ts":"2026-07-26T16:10:01Z","endpoint":"nurture","status":"ok","duration_ms":162,"detail":"{\"sent\": 0, \"skipped\": 0, \"ts\": \"2026-07-26T16:10:01.696Z\", \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
 {"ts":"2026-07-26T16:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":1916,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (236058008 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273916784 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-26T16:15:01Z","endpoint":"vesting","status":"ok","duration_ms":251,"detail":"{\"processed\": 1, \"completed\": 0, \"emailed\": 0}"}
+{"ts":"2026-07-26T16:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":131,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
