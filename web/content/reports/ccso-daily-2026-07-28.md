@@ -1,29 +1,29 @@
-# Chief Information Security Officer — Daily Brief (2026-07-28)
-**Agent:** CISO  ·  **Status:** YELLOW  ·  **Domain:** Security & Privacy  ·  **Reports to:** CEO
+# Chief Customer Success Officer — Daily Brief (2026-07-28)
+**Agent:** CCSO  ·  **Status:** YELLOW  ·  **Domain:** Customer Success & Retention  ·  **Reports to:** CEO
 > CEO North Star: **Paying Customers + Verified Company Profiles + Monthly Recurring Revenue**
-> CEO alignment for this role: Reducing operational friction (security risk)
+> CEO alignment for this role: Delivering customer value + reducing operational friction
 ## 1. 30-Day KPI Ownership (from CEO scoreboard)
-- Essential Eight maturity baseline
-- 0 open critical CVEs
-- Security posture score weekly
-- Incident response runbook v1
-- All routes authed + rate-limited
+- 10 customer feedback calls
+- 3 testimonials captured
+- 5 referral leads
+- NPS > 50
+- 0 refunds
 ## 2. CEO-Assigned Tasks (project-state.json)
 **In progress:** 0  ·  **Pending:** 0  ·  **Shipped (last 7d):** 0
 ## 3. Today's Action Items (CEO-aligned)
-1. Review auth + rate-limit coverage on new routes
-2. Scan deps for CVEs
-3. Audit one Supabase RLS policy
-4. Verify CSP + security headers
-5. Update security posture score
+1. Review new customers + confirm report delivery
+2. Ask for feedback on report value
+3. Request testimonial / referral from happy customers
+4. Identify churn / refund risk
+5. Send product improvement notes to CPO
 ## 4. Last 24h Activity (git, this agent's domain)
 _No commits in this agent's file domains in the last 24h._
 ## 5. Daily Routine Checklist
-- [ ] Review auth + rate-limit coverage on new routes
-- [ ] Scan deps for CVEs
-- [ ] Audit one Supabase RLS policy
-- [ ] Verify CSP + security headers
-- [ ] Update security posture score
+- [ ] Review new customers + confirm report delivery
+- [ ] Ask for feedback on report value
+- [ ] Request testimonial / referral from happy customers
+- [ ] Identify churn / refund risk
+- [ ] Send product improvement notes to CPO
 ## 6. CEO Filter (every action must support at least one)
 - Getting paying customers
 - Learning willingness to pay
