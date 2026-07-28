@@ -1,7 +1,7 @@
 /**
  * src/lib/agents/cmo-market-research.ts
  * BlockID.au CMO Domain Module
- * Focus: Startup Navigation System positioning and AU Market Intelligence
+ * Focus: Startup Navigation System positioning, AU Market Intelligence, and Growth Benchmarks
  */
 
 export interface CompetitorProfile {
@@ -31,6 +31,10 @@ export interface CompetitorProfile {
   dataRefreshLatencyMinutes?: number;
   /** AI valuation accuracy percentage (Industry Benchmark: 92%) */
   aiValuationAccuracy?: number;
+  /** Time to generate valuation report in minutes (Current Benchmark: < 5m) */
+  reportGenerationTimeMinutes?: number;
+  /** Support for dynamic equity tracking (Boolean) */
+  hasDynamicEquityTracking?: boolean;
 }
 
 /** Customer segment definition */
@@ -45,6 +49,8 @@ export interface CustomerSegment {
   marketFocus: 'domestic' | 'global';
   /** Percentage of this segment prioritizing AI adoption (0-1) */
   aiPrioritizationRate: number;
+  /** Average dilution rate observed in this segment (0-1) */
+  avgDilutionRate?: number;
 }
 
 /** Market research overview */
@@ -67,94 +73,84 @@ export interface MarketResearch {
   competitors: CompetitorProfile[];
 }
 
-/** AU Startup Valuation Benchmarks based on 2024 data */
-export const AU_MARKET_BENCHMARKS = {
-  SEED_VALUATION: { min: 4000000, max: 7000000, currency: 'AUD' },
-  REVENUE_MULTIPLE: { min: 4, max: 8 },
-  AI_PREMIUM_MULTIPLIER: 1.3,
-  RUNWAY_REQUIREMENT_MONTHS: { min: 18, max: 24 },
-  NAV_SYSTEM_DILUTION_REDUCTION: 0.03, // Reduction from 12% to 9%
-  NAV_SYSTEM_CAGR: 0.22, // 22% YoY growth for navigation platforms
-  VALUATION_TOOL_CAGR: 0.13, // 13% YoY for pure valuation tools
+/** AU Specific Valuation Benchmarks 2024 */
+export const AU_STARTUP_BENCHMARKS = {
+  seedValuation: { min: 4000000, max: 7000000, currency: 'AUD' },
+  revenueMultiples: { min: 4, max: 8, metric: 'ARR' },
+  aiPremiumMultiplier: 1.3,
+  avgRunwayRequirementMonths: { min: 18, max: 24 },
 };
 
-/** Content Marketing & SEO Performance Metrics (AU B2B) */
-export interface MarketingBenchmarks {
-  blogConversionRate: { min: 0.021, max: 0.025 };
-  videoEngagementRate: { min: 0.035, max: 0.05 };
-  aiContentBudgetAllocation: { min: 0.15, max: 0.25 };
-  costPerLeadAU: { min: 45, max: 120 };
-  aiOverviewCtrReduction: { min: 0.18, max: 0.25 };
-  aiContentVolatility: { min: 0.3, max: 0.5 };
-}
-
-export const CURRENT_MARKETING_BENCHMARKS: MarketingBenchmarks = {
-  blogConversionRate: { min: 0.021, max: 0.025 },
-  videoEngagementRate: { min: 0.035, max: 0.05 },
+/** Content Marketing & SEO Performance Benchmarks */
+export const CONTENT_MARKETING_BENCHMARKS = {
+  b2bBlogConversionRate: { min: 0.021, max: 0.025 },
+  shortFormVideoEngagement: { min: 0.035, max: 0.050 },
   aiContentBudgetAllocation: { min: 0.15, max: 0.25 },
-  costPerLeadAU: { min: 45, max: 120 },
+  auContentCPL: { min: 45, max: 120, currency: 'AUD' },
   aiOverviewCtrReduction: { min: 0.18, max: 0.25 },
-  aiContentVolatility: { min: 0.3, max: 0.5 },
+  organicTrafficVolatilityIndex: { min: 0.30, max: 0.50 },
 };
 
 /**
- * Calculates the estimated valuation of an AU SaaS startup
+ * Calculates the valuation of an AU SaaS startup based on current market benchmarks.
+ * Incorporates the AI Premium Multiplier if the startup is AI-driven.
+ * 
  * @param arr Annual Recurring Revenue
- * @param isAiPowered Whether the company has a core AI component
- * @returns Estimated post-money valuation (AUD)
+ * @param isAiDriven Whether the startup leverages core AI technology
+ * @param multiple Custom multiple or uses median benchmark
  */
-export function calculateAUStartupValuation(arr: number, isAiPowered: boolean): number {
-  const medianMultiple = (AU_MARKET_BENCHMARKS.REVENUE_MULTIPLE.min + AU_MARKET_BENCHMARKS.REVENUE_MULTIPLE.max) / 2;
-  let valuation = arr * medianMultiple;
-  if (isAiPowered) {
-    valuation *= AU_MARKET_BENCHMARKS.AI_PREMIUM_MULTIPLIER;
-  }
-  return valuation;
+export function calculateAUStartupValuation(
+  arr: number, 
+  isAiDriven: boolean, 
+  multiple?: number
+): number {
+  const medianMultiple = (AU_STARTUP_BENCHMARKS.revenueMultiples.min + AU_STARTUP_BENCHMARKS.revenueMultiples.max) / 2;
+  const baseMultiple = multiple ?? medianMultiple;
+  const multiplier = isAiDriven ? AU_STARTUP_BENCHMARKS.aiPremiumMultiplier : 1.0;
+  
+  return arr * baseMultiple * multiplier;
 }
 
 /**
- * Estimates the equity dilution savings when using a 'Startup Navigation System' vs traditional tools
- * @param currentDilution Current estimated dilution (e.g., 0.12 for 12%)
- * @returns The absolute reduction in dilution percentage
+ * Estimates the potential reduction in equity dilution when moving from a 
+ * pure valuation tool to a 'Startup Navigation System' (Holistic Platform).
+ * 
+ * @param currentDilution Current average dilution rate (0-1)
+ * @returns Predicted new dilution rate based on research findings (12% -> 9% trend)
  */
-export function calculateDilutionSavings(currentDilution: number): number {
-  return currentDilution - (currentDilution - AU_MARKET_BENCHMARKS.NAV_SYSTEM_DILUTION_REDUCTION);
+export function predictDilutionOptimization(currentDilution: number): number {
+  const reductionFactor = 0.09 / 0.12;
+  return currentDilution * reductionFactor;
 }
 
 /**
- * Predicts the growth of the Navigation SaaS market vs Valuation SaaS market
- * @param currentMarketSize Current market size in USD
- * @param years Projection period in years
- * @param type 'navigation' | 'valuation'
- * @returns Projected market size
+ * Calculates the AI-adjusted variance for valuation accuracy.
+ * Based on 15-20% reduction in variance vs manual DCF.
+ * 
+ * @param manualVariance The variance observed in manual Discounted Cash Flow models
+ * @returns The expected variance using AI-automated valuation
  */
-export function projectMarketGrowth(currentMarketSize: number, years: number, type: 'navigation' | 'valuation'): number {
-  const growthRate = type === 'navigation' 
-    ? AU_MARKET_BENCHMARKS.NAV_SYSTEM_CAGR 
-    : AU_MARKET_BENCHMARKS.VALUATION_TOOL_CAGR;
-  return currentMarketSize * Math.pow(1 + growthRate, years);
+export function calculateAiValuationVariance(manualVariance: number): number {
+  const avgReduction = 0.175; // Midpoint of 15-20%
+  return manualVariance * (1 - avgReduction);
 }
 
 /**
- * Analyzes SEO risk based on AI-content density and EEAT signals
- * @param aiContentPercentage Percentage of content generated by AI (0-1)
- * @param hasStrongEEAT Whether the site has strong Experience, Expertise, Authoritativeness, and Trustworthiness signals
- * @returns Volatility risk score (0-1)
+ * Evaluates the health of a content strategy based on SEO volatility and conversion benchmarks.
+ * 
+ * @param actualConversionRate Current blog conversion rate
+ * @param trafficVolatility Current organic traffic volatility
+ * @returns Health score (0-1)
  */
-export function analyzeSEORisk(aiContentPercentage: number, hasStrongEEAT: boolean): number {
-  let risk = aiContentPercentage * ((CURRENT_MARKETING_BENCHMARKS.aiContentVolatility.min + CURRENT_MARKETING_BENCHMARKS.aiContentVolatility.max) / 2);
-  if (hasStrongEEAT) {
-    risk *= 0.5; // Strong EEAT significantly stabilizes ranking
-  }
-  return Math.min(risk, 1);
-}
-
-/**
- * Calculates the required monthly burn to maintain the AU industry standard runway
- * @param totalFunding Total funding raised (AUD)
- * @returns Recommended monthly expenditure limit
- */
-export function calculateRecommendedMonthlyBurn(totalFunding: number): number {
-  const avgRunway = (AU_MARKET_BENCHMARKS.RUNWAY_REQUIREMENT_MONTHS.min + AU_MARKET_BENCHMARKS.RUNWAY_REQUIREMENT_MONTHS.max) / 2;
-  return totalFunding / avgRunway;
+export function evaluateContentStrategyHealth(
+  actualConversionRate: number, 
+  trafficVolatility: number
+): number {
+  const targetConv = (CONTENT_MARKETING_BENCHMARKS.b2bBlogConversionRate.min + CONTENT_MARKETING_BENCHMARKS.b2bBlogConversionRate.max) / 2;
+  const maxVol = CONTENT_MARKETING_BENCHMARKS.organicTrafficVolatilityIndex.max;
+  
+  const convScore = Math.min(actualConversionRate / targetConv, 1.2);
+  const volScore = 1 - (trafficVolatility / maxVol);
+  
+  return (convScore + volScore) / 2;
 }
