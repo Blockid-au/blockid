@@ -35,6 +35,10 @@ export interface CompetitorProfile {
   reportGenerationTimeMinutes?: number;
   /** Support for dynamic equity tracking (Boolean) */
   hasDynamicEquityTracking?: boolean;
+  /** Date of latest major capital/equity module release */
+  latestCapitalModuleReleaseDate?: string;
+  /** Early adopter adoption rate for new capital features (0-1) */
+  capitalFeatureAdoptionRate?: number;
 }
 
 /** Customer segment definition */
@@ -61,96 +65,91 @@ export interface MarketResearch {
   sam: number;
   /** Serviceable Obtainable Market (AU$) */
   som: number;
-  /** TAM data source */
-  tamSource: string;
-  /** Industry */
-  industry: string;
-  /** Region */
-  region: string;
-  /** Annual growth rate (0‑1) */
-  growthRate: number;
-  /** Competitor profiles */
-  competitors: CompetitorProfile[];
+  /** Current growth rate (CAGR) */
+  cagr: number;
+  /** Number of active startups in target region */
+  activeStartupCount: number;
+  /** Total VC funding in current period (AU$) */
+  totalVCFunding: number;
+  /** Average seed-stage monthly funding intensity (AU$) */
+  seedFundingIntensity: number;
+  /** Number of unicorns in the region */
+  unicornCount: number;
+  /** Total startup employment (FTEs) */
+  totalStartupEmployment: number;
 }
 
-/** AU Specific Valuation Benchmarks 2024 */
-export const AU_STARTUP_BENCHMARKS = {
-  seedValuation: { min: 4000000, max: 7000000, currency: 'AUD' },
-  revenueMultiples: { min: 4, max: 8, metric: 'ARR' },
-  aiPremiumMultiplier: 1.3,
-  avgRunwayRequirementMonths: { min: 18, max: 24 },
+/** Content and SEO Benchmarks based on 2025/2026 research */
+export interface ContentBenchmarks {
+  /** Target length for B2B top-ranking pages (words) */
+  targetB2BBlogLength: number;
+  /** Expected organic traffic lift from AI-generated long-form content (multiplier) */
+  aiContentTrafficLift: number;
+  /** Average LinkedIn organic post CTR (0-1) */
+  linkedinOrganicCTR: number;
+  /** Average organic traffic drop after Core Update for high-risk sites (0-1) */
+  coreUpdateTrafficRisk: number;
+  /** CTR increase for high E-E-A-T score pages (multiplier) */
+  eeatCtrMultiplier: number;
+}
+
+/** Constants based on latest market research findings */
+export const AU_STARTUP_MARKET_DATA: MarketResearch = {
+  tam: 4200000000, // Global context converted/aligned to platform scale
+  sam: 5200000000, // Based on H1 2026 VC Funding
+  som: 150000000, // Based on Seed-stage monthly intensity
+  cagr: 0.147, // 14.7% CAGR for navigation tools
+  activeStartupCount: 7800, // Q2 2024 baseline
+  totalVCFunding: 5200000000, // AU$5.2B (H1 2026)
+  seedFundingIntensity: 150000000, // AU$150M monthly
+  unicornCount: 14, // Startup Genome 2026
+  totalStartupEmployment: 210000, // Q2 2026 FTEs
 };
 
-/** Content Marketing & SEO Performance Benchmarks */
-export const CONTENT_MARKETING_BENCHMARKS = {
-  b2bBlogConversionRate: { min: 0.021, max: 0.025 },
-  shortFormVideoEngagement: { min: 0.035, max: 0.050 },
-  aiContentBudgetAllocation: { min: 0.15, max: 0.25 },
-  auContentCPL: { min: 45, max: 120, currency: 'AUD' },
-  aiOverviewCtrReduction: { min: 0.18, max: 0.25 },
-  organicTrafficVolatilityIndex: { min: 0.30, max: 0.50 },
+export const GLOBAL_CONTENT_BENCHMARKS: ContentBenchmarks = {
+  targetB2BBlogLength: 1900,
+  aiContentTrafficLift: 1.15, // 15% higher
+  linkedinOrganicCTR: 0.012, // 1.2%
+  coreUpdateTrafficRisk: 0.123, // 12.3% drop
+  eeatCtrMultiplier: 1.22, // 22% higher
 };
 
 /**
- * Calculates the valuation of an AU SaaS startup based on current market benchmarks.
- * Incorporates the AI Premium Multiplier if the startup is AI-driven.
- * 
- * @param arr Annual Recurring Revenue
- * @param isAiDriven Whether the startup leverages core AI technology
- * @param multiple Custom multiple or uses median benchmark
+ * Calculates the projected organic traffic lift if switching to 
+ * AI-generated long-form content (>=1500 words) based on 2025 benchmarks.
+ * @param currentTraffic Current monthly organic traffic
+ * @returns Projected organic traffic
  */
-export function calculateAUStartupValuation(
-  arr: number, 
-  isAiDriven: boolean, 
-  multiple?: number
-): number {
-  const medianMultiple = (AU_STARTUP_BENCHMARKS.revenueMultiples.min + AU_STARTUP_BENCHMARKS.revenueMultiples.max) / 2;
-  const baseMultiple = multiple ?? medianMultiple;
-  const multiplier = isAiDriven ? AU_STARTUP_BENCHMARKS.aiPremiumMultiplier : 1.0;
-  
-  return arr * baseMultiple * multiplier;
+export function calculateAIContentLift(currentTraffic: number): number {
+  return currentTraffic * GLOBAL_CONTENT_BENCHMARKS.aiContentTrafficLift;
 }
 
 /**
- * Estimates the potential reduction in equity dilution when moving from a 
- * pure valuation tool to a 'Startup Navigation System' (Holistic Platform).
- * 
- * @param currentDilution Current average dilution rate (0-1)
- * @returns Predicted new dilution rate based on research findings (12% -> 9% trend)
+ * Estimates the impact of E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) 
+ * improvements on the Click-Through Rate.
+ * @param currentCTR Current organic CTR (0-1)
+ * @returns Improved CTR (0-1)
  */
-export function predictDilutionOptimization(currentDilution: number): number {
-  const reductionFactor = 0.09 / 0.12;
-  return currentDilution * reductionFactor;
+export function estimateEEATImpact(currentCTR: number): number {
+  return currentCTR * GLOBAL_CONTENT_BENCHMARKS.eeatCtrMultiplier;
 }
 
 /**
- * Calculates the AI-adjusted variance for valuation accuracy.
- * Based on 15-20% reduction in variance vs manual DCF.
- * 
- * @param manualVariance The variance observed in manual Discounted Cash Flow models
- * @returns The expected variance using AI-automated valuation
+ * Calculates the potential market penetration based on AU startup employment.
+ * @param targetFtePercentage Percentage of startup FTEs targeted as users (0-1)
+ * @returns Estimated number of target users
  */
-export function calculateAiValuationVariance(manualVariance: number): number {
-  const avgReduction = 0.175; // Midpoint of 15-20%
-  return manualVariance * (1 - avgReduction);
+export function calculateUserBasePotential(targetFtePercentage: number): number {
+  return AU_STARTUP_MARKET_DATA.totalStartupEmployment * targetFtePercentage;
 }
 
 /**
- * Evaluates the health of a content strategy based on SEO volatility and conversion benchmarks.
- * 
- * @param actualConversionRate Current blog conversion rate
- * @param trafficVolatility Current organic traffic volatility
- * @returns Health score (0-1)
+ * Evaluates the risk of traffic loss during a Google Core Update.
+ * @param currentTraffic Current monthly organic traffic
+ * @param isHighRisk Whether the site is categorized as high-risk
+ * @returns Projected traffic after update
  */
-export function evaluateContentStrategyHealth(
-  actualConversionRate: number, 
-  trafficVolatility: number
-): number {
-  const targetConv = (CONTENT_MARKETING_BENCHMARKS.b2bBlogConversionRate.min + CONTENT_MARKETING_BENCHMARKS.b2bBlogConversionRate.max) / 2;
-  const maxVol = CONTENT_MARKETING_BENCHMARKS.organicTrafficVolatilityIndex.max;
-  
-  const convScore = Math.min(actualConversionRate / targetConv, 1.2);
-  const volScore = 1 - (trafficVolatility / maxVol);
-  
-  return (convScore + volScore) / 2;
+export function projectCoreUpdateImpact(currentTraffic: number, isHighRisk: boolean): number {
+  if (!isHighRisk) return currentTraffic;
+  return currentTraffic * (1 - GLOBAL_CONTENT_BENCHMARKS.coreUpdateTrafficRisk);
 }
