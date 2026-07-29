@@ -57,101 +57,90 @@ export interface CustomerSegment {
   avgDilutionRate: number;
 }
 
-/** Content performance metrics based on 2025 B2B benchmarks */
-export interface ContentBenchmark {
-  /** Target word count for high ranking (B2B SEO Benchmark: 1900) */
-  targetWordCount: number;
-  /** Expected organic traffic lift from AI-assisted long-form content (Benchmark: 0.15) */
-  aiTrafficLift: number;
-  /** Expected LinkedIn organic CTR (Benchmark: 0.012) */
-  linkedinCTR: number;
-  /** EEAT score impact on CTR (Benchmark: 0.22) */
+/** Marketing Content Benchmarks for 2025-2026 */
+export interface ContentBenchmarks {
+  /** Target length for B2B SEO dominance (Words) */
+  targetB2BBlogLength: number;
+  /** Expected organic traffic lift for AI-generated long-form content (Ratio) */
+  aiContentTrafficLift: number;
+  /** Average LinkedIn organic CTR (Ratio) */
+  linkedinOrganicCTR: number;
+  /** Impact of high E-E-A-T scores on CTR (Ratio) */
   eeatCTRBoost: number;
+  /** Average organic traffic drop for high-risk sites after Core Update (Ratio) */
+  coreUpdateRiskDrop: number;
 }
 
-/** Australian Market Intelligence Constants (Updated 2026) */
-export const AU_STARTUP_MARKET_DATA = {
-  activeStartups: 7800,
-  unicorns: 14,
-  totalVCFundingH1_2026: 5200000000,
-  seedStageMonthlyIntensity: 150000000,
-  totalStartupEmploymentFTE: 210000,
-  globalSaaSMarketSize: 4200000000,
-  navigationToolsCAGR: 0.147,
+/** Australian Startup Market Constants (Updated 2026) */
+export const AU_MARKET_DATA = {
+  ACTIVE_STARTUPS: 7800,
+  TOTAL_VC_FUNDING_H1_2026: 5200000000,
+  UNICORN_COUNT: 14,
+  SEED_MONTHLY_FUNDING_INTENSITY: 150000000,
+  TOTAL_STARTUP_EMPLOYMENT_FTE: 210000,
+  GLOBAL_SAAS_MARKET_SIZE_2024: 4200000000,
+  NAVIGATION_TOOL_CAGR: 0.147,
 };
 
-/** SEO Risk Constants */
-export const SEO_RISK_METRICS = {
-  coreUpdateFrequencyPerYear: 2,
-  avgTrafficDropHighRiskSites: 0.123,
-  trafficDropVariance: 0.041,
-};
-
-/**
- * Calculates the projected market opportunity for BlockID in the AU region
- * @param penetrationRate Expected market penetration (0-1)
- * @param avgAnnualContractValue Average ACV in AUD
- * @returns Projected Annual Recurring Revenue
- */
-export function calculateAUMarketOpportunity(penetrationRate: number, avgAnnualContractValue: number): number {
-  return AU_STARTUP_MARKET_DATA.activeStartups * penetrationRate * avgAnnualContractValue;
-}
-
-/**
- * Estimates the organic traffic lift for a content piece based on length and AI usage
- * @param wordCount Length of the article
- * @param isAiAssisted Whether AI was used for long-form generation
- * @param hasHighEEAT Whether the content meets high E-E-A-T standards
- * @returns Estimated traffic multiplier
- */
-export function estimateContentTrafficMultiplier(wordCount: number, isAiAssisted: boolean, hasHighEEAT: boolean): number {
-  let multiplier = 1.0;
-  if (wordCount >= 1500 && isAiAssisted) {
-    multiplier += 0.15;
-  }
-  if (hasHighEEAT) {
-    multiplier += 0.22;
-  }
-  return multiplier;
-}
-
-/**
- * Evaluates if a content piece meets the 2025 B2B SEO Gold Standard
- * @param wordCount Actual word count
- * @returns Boolean indicating if it meets top-ranking benchmarks
- */
-export function isB2BSEOOptimized(wordCount: number): boolean {
-  return wordCount >= 1900;
-}
-
-/**
- * calculates the risk of traffic loss following a Google Core Update
- * @param siteRiskProfile 'high' | 'medium' | 'low'
- * @returns Estimated traffic loss percentage
- */
-export function calculateCoreUpdateRisk(siteRiskProfile: 'high' | 'medium' | 'low'): number {
-  const baseDrop = SEO_RISK_METRICS.avgTrafficDropHighRiskSites;
-  switch (siteRiskProfile) {
-    case 'high': return baseDrop;
-    case 'medium': return baseDrop * 0.5;
-    case 'low': return baseDrop * 0.2;
-    default: return 0;
-  }
-}
-
-/**
- * Benchmarks BlockID's feature adoption against industry leaders (e.g., Carta/Pulley)
- * @param currentAdoption Actual adoption rate (0-1)
- * @param competitorAdoption Benchmark adoption rate (0-1)
- * @returns Gap analysis percentage
- */
-export function analyzeFeatureAdoptionGap(currentAdoption: number, competitorAdoption: number): number {
-  return ((competitorAdoption - currentAdoption) / competitorAdoption) * 100;
-}
-
-export const DEFAULT_CONTENT_BENCHMARKS: ContentBenchmark = {
-  targetWordCount: 1900,
-  aiTrafficLift: 0.15,
-  linkedinCTR: 0.012,
+/** Current Content Performance Benchmarks */
+export const CONTENT_BENCHMARKS: ContentBenchmarks = {
+  targetB2BBlogLength: 1900,
+  aiContentTrafficLift: 0.15,
+  linkedinOrganicCTR: 0.012,
   eeatCTRBoost: 0.22,
+  coreUpdateRiskDrop: 0.123,
 };
+
+/**
+ * Calculates the projected market size for startup navigation tools in AU
+ * based on global CAGR and local startup density.
+ * 
+ * @param currentVal - Current estimated market value
+ * @param years - Projection period
+ * @returns Projected market value
+ */
+export function calculateMarketProjection(currentVal: number, years: number): number {
+  return currentVal * Math.pow(1 + AU_MARKET_DATA.NAVIGATION_TOOL_CAGR, years);
+}
+
+/**
+ * Evaluates if a piece of content meets the current B2B SEO "Power Page" criteria
+ * based on 2025 research findings.
+ * 
+ * @param wordCount - Length of the content
+ * @param hasEEATSignals - Whether the content includes expert citations/authoritative data
+ * @returns Boolean indicating if content is optimized for top rankings
+ */
+export function isContentCompetitive(wordCount: number, hasEEATSignals: boolean): boolean {
+  return wordCount >= CONTENT_BENCHMARKS.targetB2BBlogLength && hasEEATSignals;
+}
+
+/**
+ * Calculates the estimated "Funding Velocity" for the AU seed stage
+ * 
+ * @param totalRaised - Total amount raised by a cohort
+ * @param cohortSize - Number of startups in the cohort
+ * @returns Average funding per startup relative to monthly intensity
+ */
+export function calculateAUFundingVelocity(totalRaised: number, cohortSize: number): number {
+  const avgPerStartup = totalRaised / cohortSize;
+  return avgPerStartup / AU_MARKET_DATA.SEED_MONTHLY_FUNDING_INTENSITY;
+}
+
+/**
+ * Determines the "Risk Score" of a domain based on core update frequency and E-E-A-T
+ * 
+ * @param eeatScore - Normalized E-E-A-T score (0-1)
+ * @param lastUpdateDate - Date of last major content overhaul
+ * @returns Risk percentage (0-1)
+ */
+export function calculateSEOUpdateRisk(eeatScore: number, lastUpdateDate: Date): number {
+  const now = new Date();
+  const monthsSinceUpdate = (now.getTime() - lastUpdateDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+  
+  let risk = CONTENT_BENCHMARKS.coreUpdateRiskDrop;
+  if (eeatScore > 0.8) risk -= 0.05;
+  if (monthsSinceUpdate > 6) risk += 0.05;
+  
+  return Math.max(0, Math.min(1, risk));
+}
