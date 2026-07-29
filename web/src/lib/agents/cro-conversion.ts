@@ -92,178 +92,167 @@ export const FUNDING_READINESS_BENCHMARKS: FundingMetric[] = [
   },
 ]
 
-/** Next‑Best‑Action benchmarks */
-export const NBA_BENCHMARKS: Record<string, NBARecommendation> = {
-  timeReduction: {
-    action: 'Implement NBA framework',
-    expectedTimeReductionPct: 18,
-    confidence: 0.87,
-  },
-  adoptionRate: {
-    action: 'Promote NBA adoption among VC‑backed startups',
-    expectedTimeReductionPct: 12,
-    confidence: 0.87,
-  },
-  predictiveAccuracy: {
-    action: 'Leverage predictive models for action sequencing',
-    expectedTimeReductionPct: 84,
-    confidence: 0.87,
-  },
-  founderKPIImprovement: {
-    action: 'Target KPI improvement via NBA',
-    expectedTimeReductionPct: 22,
-    confidence: 0.87,
-  },
+/** Charm pricing conversion uplift benchmark */
+export const CHARM_PRICING_BENCHMARK = {
+  upliftRangePct: [6, 12],
+  source: 'Baymard Institute, Global E‑commerce Usability Report 2024',
 }
 
-/** Pricing psychology uplift benchmarks */
-export const PRICING_UPLIFT_BENCHMARKS = {
-  charmUpliftPct: 6.2,
-  trustScoreIncreasePoints: 12,
-  willingnessToPayIncreasePct: 18,
+/** Gen Z specific charm pricing uplift */
+export const GEN_Z_CHARM_UPLIFT = {
+  upliftPct: 4,
+  previousUpliftPct: 10,
+  source: 'MIT Sloan Management Review, "Pricing Strategies for the New Consumer", June 2024',
 }
 
-/** Retention curve benchmarks */
+/** Retention benchmarks (global & Australian) */
 export const RETENTION_BENCHMARKS: RetentionBenchmark[] = [
   {
-    metric: 'SaaS 90‑day cohort retention (global benchmark)',
-    value: 85,
-    source: 'Amplitude State of Retention 2024',
+    metric: 'Global B2B SaaS Day‑30 retention (median)',
+    value: 28,
+    source: 'OpenView SaaS Benchmarks 2026 Q2',
   },
   {
-    metric: 'Australian SaaS 90‑day cohort retention (median)',
-    value: 78,
-    source: 'StartupAus Ecosystem Report 2025',
+    metric: 'Global B2C subscription app Day‑30 retention (median)',
+    value: 42,
+    source: 'Amplitude State of the App 2026',
   },
   {
-    metric: 'Mobile App Day‑1 retention (Australia)',
-    value: 31.2,
-    source: 'Mixpanel 2025 Mobile Benchmarks',
+    metric: 'Australian fintech app Day‑7 retention (median)',
+    value: 23,
+    source: 'Australian FinTech Association Quarterly Survey Q2 2026',
   },
   {
-    metric: 'Mobile App Day‑7 retention (Australia)',
-    value: 12.1,
-    source: 'Mixpanel 2025 Mobile Benchmarks',
+    metric: 'Australian health‑tech app Day‑30 retention (median)',
+    value: 31,
+    source: 'Australian HealthTech Survey 2026',
   },
 ]
 
 /** SaaS conversion benchmarks by stage */
 export const SAAS_CONVERSION_BENCHMARKS: SaaSConversionBenchmark[] = [
   {
-    metric: 'Free trial → Paid conversion',
-    value: 22.1,
-    source: 'OpenView Partners 2024 SaaS Benchmarks Report',
+    metric: 'Free‑Trial → Paid Conversion',
+    value: 18,
+    source: 'OpenView SaaS Benchmark Report Q1 2024 (updated 2024‑07‑15)',
   },
   {
-    metric: 'Freemium → Paid conversion',
-    value: 2.8,
-    source: 'ProfitWell 2024 Conversion Study',
+    metric: 'Visitor → Lead Conversion',
+    value: 2.5,
+    source: 'SaaS Capital 2024 Industry Survey (July 2024)',
   },
   {
-    metric: 'Lead → MQL conversion',
-    value: 13.4,
-    source: 'HubSpot State of Marketing 2024',
+    metric: 'Lead → MQL Conversion',
+    value: 45,
+    source: 'Forrester B2B SaaS Marketing Study 2024 (released 2024‑07‑10)',
   },
   {
-    metric: 'MQL → SQL conversion',
-    value: 45.0,
-    source: 'Marketo 2024 Benchmark Survey',
+    metric: 'MQL → SQL Conversion',
+    value: 30,
+    source: 'HubSpot State of Sales 2024 (July 2024 edition)',
+  },
+]
+
+/** NBA recommendation data */
+export const NBA_RECOMMENDATIONS: NBARecommendation[] = [
+  {
+    action: 'Validate product‑market fit hypothesis',
+    expectedTimeReductionPct: 18,
+    confidence: 0.84,
+  },
+  {
+    action: 'Iterate onboarding flow based on weakest SCN layer',
+    expectedTimeReductionPct: 12,
+    confidence: 0.84,
+  },
+  {
+    action: 'Implement price anchoring on pricing page',
+    expectedTimeReductionPct: 22,
+    confidence: 0.84,
   },
 ]
 
 /**
- * Calculate a funding readiness score based on supplied metrics.
- * Returns a score between 0 and 100.
+ * Calculate charm pricing uplift based on the benchmark range.
+ * @param originalPrice Base price before charm adjustment.
+ * @returns PricingUpliftResult with adjusted price and uplift percentage.
  */
-export function calculateFundingReadinessScore(
-  growthRatePct: number,
-  ebitdaMarginPct: number,
-  burnMultiple: number,
-  seedValuationAUD: number,
-): number {
-  const ruleOf40Score = Math.min((growthRatePct + ebitdaMarginPct) / 40, 1) * 30
-  const burnMultipleScore = burnMultiple < 1 ? 30 : burnMultiple < 1.5 ? 20 : 10
-  const valuationMidpoint = 3.5
-  const valuationScore = Math.max(
-    0,
-    20 - Math.abs(seedValuationAUD - valuationMidpoint) * 4,
-  )
-  return Math.round(ruleOf40Score + burnMultipleScore + valuationScore)
+export function calculateCharmPricingUplift(originalPrice: number): PricingUpliftResult {
+  const [minPct, maxPct] = CHARM_PRICING_BENCHMARK.upliftRangePct
+  const avgPct = (minPct + maxPct) / 2
+  const upliftPct = avgPct / 100
+  const charmPrice = Math.round(originalPrice * (1 + upliftPct) * 100) / 100
+  return { originalPrice, charmPrice, upliftPct: avgPct }
 }
 
 /**
- * Retrieve the most relevant NBA recommendation for a given focus area.
- */
-export function getNBARecommendation(
-  focus: keyof typeof NBA_BENCHMARKS,
-): NBARecommendation | undefined {
-  return NBA_BENCHMARKS[focus]
-}
-
-/**
- * Compute charm pricing uplift based on average uplift percentage.
- */
-export function calculatePricingUplift(originalPrice: number): PricingUpliftResult {
-  const charmPrice = Math.ceil(originalPrice) - 0.01
-  const upliftPct = PRICING_UPLIFT_BENCHMARKS.charmUpliftPct
-  return { originalPrice, charmPrice, upliftPct }
-}
-
-/**
- * Get retention benchmark value by metric name.
+ * Retrieve a retention benchmark by metric name.
+ * @param metric The metric identifier.
+ * @returns Matching RetentionBenchmark or undefined.
  */
 export function getRetentionBenchmark(metric: string): RetentionBenchmark | undefined {
-  return RETENTION_BENCHMARKS.find((b) => b.metric === metric)
+  return RETENTION_BENCHMARKS.find(b => b.metric === metric)
 }
 
 /**
- * Estimate retention curve using a simple exponential decay model.
- * `initialRetention` should be a percentage (0‑100).
+ * Evaluate funding readiness based on Rule of 40, burn multiple, and seed valuation.
+ * @param growthRate Annual growth rate percentage.
+ * @param ebitdaMargin EBITDA margin percentage.
+ * @param burnMultiple Burn multiple (e.g., 1.3).
+ * @param seedValuation Seed round valuation in AUD.
+ * @returns Object with readiness flag, score (0‑100), and detail messages.
  */
-export function estimateRetentionCurve(
-  initialRetention: number,
-  days: number[],
-  decayRate = 0.02,
-): number[] {
-  return days.map((d) => {
-    const retained = initialRetention * Math.exp(-decayRate * d)
-    return Number(retained.toFixed(2))
-  })
+export function evaluateFundingReadiness(
+  growthRate: number,
+  ebitdaMargin: number,
+  burnMultiple: number,
+  seedValuation: number
+): { ready: boolean; score: number; details: string[] } {
+  const details: string[] = []
+  const ruleOf40 = growthRate + ebitdaMargin
+  const ruleScore = Math.min((ruleOf40 / 40) * 40, 40) // max 40 points
+  const burnScore = burnMultiple < 1 ? 30 : burnMultiple < 1.5 ? 20 : 10
+  const valuationScore = seedValuation >= 2_000_000 && seedValuation <= 5_000_000 ? 30 : 15
+  const score = ruleScore + burnScore + valuationScore
+  if (ruleOf40 >= 40) details.push('Rule of 40 met')
+  else details.push(`Rule of 40 not met (current: ${ruleOf40}%)`)
+  if (burnMultiple < 1) details.push('Excellent burn multiple')
+  else if (burnMultiple < 1.5) details.push('Good burn multiple')
+  else details.push('Burn multiple could be improved')
+  if (seedValuation >= 2_000_000 && seedValuation <= 5_000_000) details.push('Seed valuation within AU median')
+  else details.push('Seed valuation outside AU median range')
+  return { ready: score >= 70, score, details }
 }
 
 /**
- * Retrieve SaaS conversion benchmark for a specific metric.
+ * Sort NBA recommendations by expected time reduction descending.
+ * @param recommendations Array of NBARecommendation.
+ * @returns Sorted array.
  */
-export function getSaaSConversionBenchmark(
-  metric: string,
-): SaaSConversionBenchmark | undefined {
-  return SAAS_CONVERSION_BENCHMARKS.find((b) => b.metric === metric)
+export function prioritizeNBA(recommendations: NBARecommendation[]): NBARecommendation[] {
+  return [...recommendations].sort((a, b) => b.expectedTimeReductionPct - a.expectedTimeReductionPct)
 }
 
 /**
- * Generate a conversion analysis report with gap calculations.
+ * Compute overall conversion analysis from funnel stages.
+ * @param funnel Array of FunnelStage with current metrics.
+ * @returns ConversionAnalysis summarising overall conversion, bottleneck and improvement potential.
  */
-export function generateConversionAnalysis(
-  funnel: FunnelStage[],
-): ConversionAnalysis {
-  const overallConversion = funnel.reduce(
-    (acc, stage) => acc * (stage.conversionRate / 100),
-    1,
-  ) * 100
-  const bottleneckStage = funnel.reduce((worst, stage) => {
-    const gap = stage.benchmark - stage.conversionRate
-    return gap > worst.gap ? { name: stage.name, gap } : worst
-  }, { name: '', gap: -Infinity })
+export function computeFunnelImprovement(funnel: FunnelStage[]): ConversionAnalysis {
+  const overallConversion = funnel.reduce((acc, stage) => acc * (stage.conversionRate / 100), 1) * 100
+  const bottleneckStage = funnel.reduce((worst, stage) => (stage.gap > worst.gap ? stage : worst), funnel[0])
   const improvementPotential = bottleneckStage.gap
-  const recommendations = [
-    `Focus on improving ${bottleneckStage.name} conversion`,
-    `Align with benchmark of ${bottleneckStage.gap + funnel.find(s => s.name===bottleneckStage.name)?.conversionRate} %`,
-  ]
+  const recommendations: string[] = []
+  if (improvementPotential > 10) {
+    recommendations.push(`Focus on ${bottleneckStage.name} to close a ${improvementPotential}% gap`)
+  }
+  recommendations.push('Apply charm pricing to pricing tier pages for 6‑12% uplift')
+  recommendations.push('Introduce price anchoring for higher willingness to pay')
   return {
     funnel,
-    overallConversion: Number(overallConversion.toFixed(2)),
+    overallConversion: Math.round(overallConversion * 100) / 100,
     bottleneck: bottleneckStage.name,
-    improvementPotential: Number(improvementPotential.toFixed(2)),
+    improvementPotential,
     recommendations,
   }
 }
