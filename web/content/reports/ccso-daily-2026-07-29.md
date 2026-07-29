@@ -1,29 +1,29 @@
-# Chief Operating Officer — Daily Brief (2026-07-29)
-**Agent:** COO  ·  **Status:** YELLOW  ·  **Domain:** Operations & Execution  ·  **Reports to:** CEO
+# Chief Customer Success Officer — Daily Brief (2026-07-29)
+**Agent:** CCSO  ·  **Status:** YELLOW  ·  **Domain:** Customer Success & Retention  ·  **Reports to:** CEO
 > CEO North Star: **Paying Customers + Verified Company Profiles + Monthly Recurring Revenue**
-> CEO alignment for this role: Reducing operational friction (process owner)
+> CEO alignment for this role: Delivering customer value + reducing operational friction
 ## 1. 30-Day KPI Ownership (from CEO scoreboard)
-- 90%+ daily routines completed
-- 4 weekly reviews completed
-- 0 critical blockers > 48h
-- 10 SOPs created
-- CEO dashboard updated daily
+- 10 customer feedback calls
+- 3 testimonials captured
+- 5 referral leads
+- NPS > 50
+- 0 refunds
 ## 2. CEO-Assigned Tasks (project-state.json)
 **In progress:** 0  ·  **Pending:** 0  ·  **Shipped (last 7d):** 0
 ## 3. Today's Action Items (CEO-aligned)
-1. Run daily agent check-in (this report fan-out)
-2. Collect updates + identify blockers
-3. Assign owners + update dashboard
-4. Confirm milestone reports fired
-5. Confirm end-of-day deliverables
+1. Review new customers + confirm report delivery
+2. Ask for feedback on report value
+3. Request testimonial / referral from happy customers
+4. Identify churn / refund risk
+5. Send product improvement notes to CPO
 ## 4. Last 24h Activity (git, this agent's domain)
 _No commits in this agent's file domains in the last 24h._
 ## 5. Daily Routine Checklist
-- [ ] Run daily agent check-in (this report fan-out)
-- [ ] Collect updates + identify blockers
-- [ ] Assign owners + update dashboard
-- [ ] Confirm milestone reports fired
-- [ ] Confirm end-of-day deliverables
+- [ ] Review new customers + confirm report delivery
+- [ ] Ask for feedback on report value
+- [ ] Request testimonial / referral from happy customers
+- [ ] Identify churn / refund risk
+- [ ] Send product improvement notes to CPO
 ## 6. CEO Filter (every action must support at least one)
 - Getting paying customers
 - Learning willingness to pay
