@@ -54,102 +54,104 @@ export interface CustomerSegment {
   /** Percentage of this segment prioritizing AI adoption (0-1) */
   aiPrioritizationRate: number;
   /** Average dilution rate observed in this segment (0-1) */
-  avgDilutionRate?: number;
+  avgDilutionRate: number;
 }
 
-/** Market research overview */
-export interface MarketResearch {
-  /** Total Addressable Market (AU$) */
-  tam: number;
-  /** Serviceable Available Market (AU$) */
-  sam: number;
-  /** Serviceable Obtainable Market (AU$) */
-  som: number;
-  /** Current growth rate (CAGR) */
-  cagr: number;
-  /** Number of active startups in target region */
-  activeStartupCount: number;
-  /** Total VC funding in current period (AU$) */
-  totalVCFunding: number;
-  /** Average seed-stage monthly funding intensity (AU$) */
-  seedFundingIntensity: number;
-  /** Number of unicorns in the region */
-  unicornCount: number;
-  /** Total startup employment (FTEs) */
-  totalStartupEmployment: number;
+/** Content performance metrics based on 2025 B2B benchmarks */
+export interface ContentBenchmark {
+  /** Target word count for high ranking (B2B SEO Benchmark: 1900) */
+  targetWordCount: number;
+  /** Expected organic traffic lift from AI-assisted long-form content (Benchmark: 0.15) */
+  aiTrafficLift: number;
+  /** Expected LinkedIn organic CTR (Benchmark: 0.012) */
+  linkedinCTR: number;
+  /** EEAT score impact on CTR (Benchmark: 0.22) */
+  eeatCTRBoost: number;
 }
 
-/** Content and SEO Benchmarks based on 2025/2026 research */
-export interface ContentBenchmarks {
-  /** Target length for B2B top-ranking pages (words) */
-  targetB2BBlogLength: number;
-  /** Expected organic traffic lift from AI-generated long-form content (multiplier) */
-  aiContentTrafficLift: number;
-  /** Average LinkedIn organic post CTR (0-1) */
-  linkedinOrganicCTR: number;
-  /** Average organic traffic drop after Core Update for high-risk sites (0-1) */
-  coreUpdateTrafficRisk: number;
-  /** CTR increase for high E-E-A-T score pages (multiplier) */
-  eeatCtrMultiplier: number;
-}
-
-/** Constants based on latest market research findings */
-export const AU_STARTUP_MARKET_DATA: MarketResearch = {
-  tam: 4200000000, // Global context converted/aligned to platform scale
-  sam: 5200000000, // Based on H1 2026 VC Funding
-  som: 150000000, // Based on Seed-stage monthly intensity
-  cagr: 0.147, // 14.7% CAGR for navigation tools
-  activeStartupCount: 7800, // Q2 2024 baseline
-  totalVCFunding: 5200000000, // AU$5.2B (H1 2026)
-  seedFundingIntensity: 150000000, // AU$150M monthly
-  unicornCount: 14, // Startup Genome 2026
-  totalStartupEmployment: 210000, // Q2 2026 FTEs
+/** Australian Market Intelligence Constants (Updated 2026) */
+export const AU_STARTUP_MARKET_DATA = {
+  activeStartups: 7800,
+  unicorns: 14,
+  totalVCFundingH1_2026: 5200000000,
+  seedStageMonthlyIntensity: 150000000,
+  totalStartupEmploymentFTE: 210000,
+  globalSaaSMarketSize: 4200000000,
+  navigationToolsCAGR: 0.147,
 };
 
-export const GLOBAL_CONTENT_BENCHMARKS: ContentBenchmarks = {
-  targetB2BBlogLength: 1900,
-  aiContentTrafficLift: 1.15, // 15% higher
-  linkedinOrganicCTR: 0.012, // 1.2%
-  coreUpdateTrafficRisk: 0.123, // 12.3% drop
-  eeatCtrMultiplier: 1.22, // 22% higher
+/** SEO Risk Constants */
+export const SEO_RISK_METRICS = {
+  coreUpdateFrequencyPerYear: 2,
+  avgTrafficDropHighRiskSites: 0.123,
+  trafficDropVariance: 0.041,
 };
 
 /**
- * Calculates the projected organic traffic lift if switching to 
- * AI-generated long-form content (>=1500 words) based on 2025 benchmarks.
- * @param currentTraffic Current monthly organic traffic
- * @returns Projected organic traffic
+ * Calculates the projected market opportunity for BlockID in the AU region
+ * @param penetrationRate Expected market penetration (0-1)
+ * @param avgAnnualContractValue Average ACV in AUD
+ * @returns Projected Annual Recurring Revenue
  */
-export function calculateAIContentLift(currentTraffic: number): number {
-  return currentTraffic * GLOBAL_CONTENT_BENCHMARKS.aiContentTrafficLift;
+export function calculateAUMarketOpportunity(penetrationRate: number, avgAnnualContractValue: number): number {
+  return AU_STARTUP_MARKET_DATA.activeStartups * penetrationRate * avgAnnualContractValue;
 }
 
 /**
- * Estimates the impact of E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) 
- * improvements on the Click-Through Rate.
- * @param currentCTR Current organic CTR (0-1)
- * @returns Improved CTR (0-1)
+ * Estimates the organic traffic lift for a content piece based on length and AI usage
+ * @param wordCount Length of the article
+ * @param isAiAssisted Whether AI was used for long-form generation
+ * @param hasHighEEAT Whether the content meets high E-E-A-T standards
+ * @returns Estimated traffic multiplier
  */
-export function estimateEEATImpact(currentCTR: number): number {
-  return currentCTR * GLOBAL_CONTENT_BENCHMARKS.eeatCtrMultiplier;
+export function estimateContentTrafficMultiplier(wordCount: number, isAiAssisted: boolean, hasHighEEAT: boolean): number {
+  let multiplier = 1.0;
+  if (wordCount >= 1500 && isAiAssisted) {
+    multiplier += 0.15;
+  }
+  if (hasHighEEAT) {
+    multiplier += 0.22;
+  }
+  return multiplier;
 }
 
 /**
- * Calculates the potential market penetration based on AU startup employment.
- * @param targetFtePercentage Percentage of startup FTEs targeted as users (0-1)
- * @returns Estimated number of target users
+ * Evaluates if a content piece meets the 2025 B2B SEO Gold Standard
+ * @param wordCount Actual word count
+ * @returns Boolean indicating if it meets top-ranking benchmarks
  */
-export function calculateUserBasePotential(targetFtePercentage: number): number {
-  return AU_STARTUP_MARKET_DATA.totalStartupEmployment * targetFtePercentage;
+export function isB2BSEOOptimized(wordCount: number): boolean {
+  return wordCount >= 1900;
 }
 
 /**
- * Evaluates the risk of traffic loss during a Google Core Update.
- * @param currentTraffic Current monthly organic traffic
- * @param isHighRisk Whether the site is categorized as high-risk
- * @returns Projected traffic after update
+ * calculates the risk of traffic loss following a Google Core Update
+ * @param siteRiskProfile 'high' | 'medium' | 'low'
+ * @returns Estimated traffic loss percentage
  */
-export function projectCoreUpdateImpact(currentTraffic: number, isHighRisk: boolean): number {
-  if (!isHighRisk) return currentTraffic;
-  return currentTraffic * (1 - GLOBAL_CONTENT_BENCHMARKS.coreUpdateTrafficRisk);
+export function calculateCoreUpdateRisk(siteRiskProfile: 'high' | 'medium' | 'low'): number {
+  const baseDrop = SEO_RISK_METRICS.avgTrafficDropHighRiskSites;
+  switch (siteRiskProfile) {
+    case 'high': return baseDrop;
+    case 'medium': return baseDrop * 0.5;
+    case 'low': return baseDrop * 0.2;
+    default: return 0;
+  }
 }
+
+/**
+ * Benchmarks BlockID's feature adoption against industry leaders (e.g., Carta/Pulley)
+ * @param currentAdoption Actual adoption rate (0-1)
+ * @param competitorAdoption Benchmark adoption rate (0-1)
+ * @returns Gap analysis percentage
+ */
+export function analyzeFeatureAdoptionGap(currentAdoption: number, competitorAdoption: number): number {
+  return ((competitorAdoption - currentAdoption) / competitorAdoption) * 100;
+}
+
+export const DEFAULT_CONTENT_BENCHMARKS: ContentBenchmark = {
+  targetWordCount: 1900,
+  aiTrafficLift: 0.15,
+  linkedinCTR: 0.012,
+  eeatCTRBoost: 0.22,
+};
