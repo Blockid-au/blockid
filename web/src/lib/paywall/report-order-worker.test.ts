@@ -148,7 +148,7 @@ describe("processNextQueuedOrder — empty queue", () => {
   it("returns { processed: false } when no queued row exists", async () => {
     const state: FakeState = { queueRow: null, updates: {} };
     const supabase = makeSupabase(state);
-    const gen = vi.fn<[], Promise<GenerateResult>>();
+    const gen = vi.fn<() => Promise<GenerateResult>>();
 
     const out = await processNextQueuedOrder({
       supabase,
@@ -188,7 +188,7 @@ describe("processNextQueuedOrder — success path", () => {
     const state: FakeState = { queueRow: queuedRow(), updates: {} };
     const supabase = makeSupabase(state);
     const gen = vi
-      .fn<[], Promise<GenerateResult>>()
+      .fn<() => Promise<GenerateResult>>()
       .mockResolvedValue({ ok: true, reportId: "rpt-abc" });
 
     const out = await processNextQueuedOrder({
@@ -243,7 +243,7 @@ describe("processNextQueuedOrder — transient retry path", () => {
       updates: {},
     };
     const supabase = makeSupabase(state);
-    const gen = vi.fn<[], Promise<GenerateResult>>().mockResolvedValue({
+    const gen = vi.fn<() => Promise<GenerateResult>>().mockResolvedValue({
       ok: false,
       transient: true,
       reason: "AI timeout",
@@ -310,7 +310,7 @@ describe("processNextQueuedOrder — permanent fail path", () => {
       updates: {},
     };
     const supabase = makeSupabase(state);
-    const gen = vi.fn<[], Promise<GenerateResult>>().mockResolvedValue({
+    const gen = vi.fn<() => Promise<GenerateResult>>().mockResolvedValue({
       ok: false,
       transient: true,
       reason: "still timing out",
@@ -355,7 +355,7 @@ describe("processNextQueuedOrder — permanent fail path", () => {
   it("marks queue failed immediately when generator flags transient:false", async () => {
     const state: FakeState = { queueRow: queuedRow(), updates: {} };
     const supabase = makeSupabase(state);
-    const gen = vi.fn<[], Promise<GenerateResult>>().mockResolvedValue({
+    const gen = vi.fn<() => Promise<GenerateResult>>().mockResolvedValue({
       ok: false,
       transient: false,
       reason: "invalid business_id",
@@ -385,7 +385,7 @@ describe("processNextQueuedOrder — permanent fail path", () => {
     const huge = "x".repeat(2000);
     const state: FakeState = { queueRow: queuedRow(), updates: {} };
     const supabase = makeSupabase(state);
-    const gen = vi.fn<[], Promise<GenerateResult>>().mockResolvedValue({
+    const gen = vi.fn<() => Promise<GenerateResult>>().mockResolvedValue({
       ok: false,
       transient: false,
       reason: huge,
