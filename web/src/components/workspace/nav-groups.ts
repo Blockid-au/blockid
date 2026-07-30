@@ -43,6 +43,39 @@ export type FeatureLifecycle = "beta" | "live" | "stable";
  * compatibility with existing consumers; `NavLeaf` is the preferred alias
  * in the nested schema (nav-schema.ts consumers should import NavLeaf).
  */
+/**
+ * Persona buckets used by the v3 nav architecture (Master Upgrade Plan §16).
+ * A user carries one or more Persona values in their auth claims; the
+ * PersonaRail (left rail) switches the whole workspace context between them
+ * and the JourneySidebar renders only items whose `persona` matches (or
+ * items with no persona set — those show in every persona).
+ */
+export type Persona =
+  | "founder"
+  | "investor"
+  | "accelerator"
+  | "reseller"
+  | "enterprise"
+  | "admin";
+
+/**
+ * Journey groups fix the vertical ordering inside a persona sidebar
+ * (§16.3, §16.6). Founder persona locks the order
+ *   onboarding → analysis → maturity → reports → permissions → hierarchy
+ *   → ecosystem → settings
+ * so each group opens by default when its growthPhase matches the user's
+ * current phase.
+ */
+export type JourneyGroup =
+  | "onboarding"
+  | "analysis"
+  | "maturity"
+  | "reports"
+  | "permissions"
+  | "hierarchy"
+  | "ecosystem"
+  | "settings";
+
 export interface NavItem {
   href: string;
   label: string;
@@ -68,6 +101,31 @@ export interface NavItem {
    * without the user leaving their current context. Per plan § F.5.
    */
   addOnKey?: "share_management";
+  /**
+   * V3 rule (§16.4 hide-not-teaser): when the item's `minTier` is not met,
+   *   hideWhenLocked === true  ⇒ item is dropped from the tree entirely
+   *   hideWhenLocked === false ⇒ item stays as dimmed + lock icon (legacy)
+   * Default is `true` in v3 — teaser rows on the app sidebar are a dark
+   * pattern; the marketing /pricing page is the single exception (it
+   * reads the full catalogue directly and always renders every tier).
+   * Add-on rows keep the legacy dimmed + Add-on pill behaviour and should
+   * set this to `false` explicitly.
+   */
+  hideWhenLocked?: boolean;
+  /**
+   * V3 persona filter (§16.2 layer C). Items with no `persona` render in
+   * every persona sidebar. Setting `persona` restricts an item to a single
+   * workspace context — e.g. Reseller-only rows carry `persona: "reseller"`
+   * and never appear in the Founder sidebar even for multi-persona users.
+   */
+  persona?: Persona;
+  /**
+   * V3 journey-aligned ordering (§16.3, §16.6). Items with the same
+   * `journeyGroup` render inside the same collapsible section in the
+   * declared order. Currently informational — the JourneySidebar renderer
+   * will consume this once the (app)/(persona)/* route groups land.
+   */
+  journeyGroup?: JourneyGroup;
 }
 
 /** Alias — the design-spec name. Structurally identical to NavItem. */
