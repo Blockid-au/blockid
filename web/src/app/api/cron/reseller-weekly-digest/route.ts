@@ -503,6 +503,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolSkewness,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-skewness";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolExcessKurtosis,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolExcessKurtosisSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolExcessKurtosis,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-excess-kurtosis";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2025,6 +2030,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolSkewness
     | null = null;
   let perTransitionMagnitudeTop3PoolSkewnessSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolExcessKurtosis
+    | null = null;
+  let perTransitionMagnitudeTop3PoolExcessKurtosisSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4808,6 +4817,31 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolSkewnessSection(
           snapshotPerTransitionMagnitudeTop3PoolSkewness,
         );
+      // P11.206 tail-heaviness cron wiring — DIRECT anchor-free
+      // fourth-moment read on the P11.161 pool (Fisher-Pearson
+      // standardised g2 in EXCESS form g2 = m4/m2^2 - 3 using
+      // POPULATION moments; normal reference reads zero). Positive
+      // g2 = heavy tails (leptokurtic — mass in extremes + centre
+      // with light shoulders, single-outlier pools with pool_count
+      // ≥ 5 sit here), negative g2 = light tails (platykurtic —
+      // two-point symmetric pools hit the -2 floor exactly),
+      // zero g2 = mesokurtic like a normal. Completes the classic
+      // (g1, g2) higher-moment shape descriptor pair opened by
+      // P11.203 skewness — asymmetry first, tail-heaviness second
+      // per intro-stats presentation order. Splices IMMEDIATELY
+      // BELOW perTransitionMagnitudeTop3PoolSkewnessSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.205
+      // formatter docblock so the (g1, g2) pair stays adjacent in
+      // the digest hierarchy. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolExcessKurtosis(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolExcessKurtosisSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolExcessKurtosisSection(
+          snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis,
+        );
     }
   }
   if (
@@ -4885,6 +4919,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection ||
     perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection ||
     perTransitionMagnitudeTop3PoolSkewnessSection ||
+    perTransitionMagnitudeTop3PoolExcessKurtosisSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4989,6 +5024,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection +
       perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection +
       perTransitionMagnitudeTop3PoolSkewnessSection +
+      perTransitionMagnitudeTop3PoolExcessKurtosisSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -7039,6 +7075,34 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolSkewness.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolSkewness.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_excess_kurtosis:
+      snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.top_n,
+            mesokurtic_excess_kurtosis_abs_max:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.mesokurtic_excess_kurtosis_abs_max,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolExcessKurtosis.transitions,
           }
         : {
             skipped_reason:
