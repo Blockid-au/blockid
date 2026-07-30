@@ -393,6 +393,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3MiddleGap,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-middle-gap";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3Pool,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3Pool,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1827,6 +1832,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3MiddleGap
     | null = null;
   let perTransitionMagnitudeTop3MiddleGapSection = "";
+  let snapshotPerTransitionMagnitudeTop3Pool:
+    | DigestSnapshotPerTransitionMagnitudeTop3Pool
+    | null = null;
+  let perTransitionMagnitudeTop3PoolSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3898,6 +3907,25 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3MiddleGapSection =
         formatDigestSnapshotPerTransitionMagnitudeTop3MiddleGapSection(
           snapshotPerTransitionMagnitudeTop3MiddleGap,
+        );
+      // P11.162 — per-transition MAGNITUDE TOP-3 POOL (module P11.161).
+      // Population-size complement to the P11.149 TOP-3 leaderboard and the
+      // P11.155/P11.157/P11.159 gap suite. Answers "how many partners / KPIs
+      // live in this (transition, band) OUTSIDE the top-3, and what share of
+      // the total cell count do they carry?" — the follow-up question that
+      // disambiguates a compact 3-partner cell from a wide-tail 12-partner
+      // cell that both show identical top-3 arrays. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3MiddleGapSection AND IMMEDIATELY ABOVE
+      // perPairHotCellsSection per the P11.161 formatter docblock placement
+      // rule. Consumes snapshotPerPairHotCells directly (same posture as the
+      // sibling per-transition magnitude drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3Pool =
+        computeDigestSnapshotPerTransitionMagnitudeTop3Pool(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolSection(
+          snapshotPerTransitionMagnitudeTop3Pool,
         );
     }
   }
