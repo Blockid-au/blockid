@@ -19,6 +19,33 @@
 // to plans-v2.ts and an explicit "pricing-change-approved" review label.
 
 import type { Feature } from "@/lib/entitlements";
+import { PLAN_TIER_RANK, type PlanTier } from "@/lib/segments";
+
+// ---------------------------------------------------------------------------
+// tierCovers — pure "does this tier meet or exceed the required minimum?"
+// check, operating on PlanTier values (not raw plan-ids). This is the
+// v3-nav-friendly counterpart to `meetsMinPlan(planId, minPlan)` in
+// segments.ts: callers that already hold a resolved PlanTier (e.g. the
+// JourneySidebar / TierGate components after `planIdToTier()` has run)
+// use this to avoid re-resolving the plan-id on every render.
+//
+// Semantics:
+//   • Ranks pulled from PLAN_TIER_RANK in segments.ts (single source of truth).
+//   • Returns true when `current` ≥ `min`, false otherwise.
+//   • `min === undefined` ⇒ no gate ⇒ always true (convenience for callers
+//     that pass through an optional item.minTier field).
+// Kept intentionally tiny — pure, sync, no I/O — so it is safe in RSC.
+// ---------------------------------------------------------------------------
+
+export function tierCovers(
+  current: PlanTier | null | undefined,
+  min: PlanTier | null | undefined,
+): boolean {
+  if (!min) return true;
+  const currentRank = current ? (PLAN_TIER_RANK[current] ?? 0) : 0;
+  const minRank = PLAN_TIER_RANK[min] ?? 0;
+  return currentRank >= minRank;
+}
 
 // ---------------------------------------------------------------------------
 // Public plan-id union — canonical v2 SKUs + the internal reseller_admin
