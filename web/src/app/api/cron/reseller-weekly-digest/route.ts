@@ -368,6 +368,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3Leaderboard,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-leaderboard";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3Concentration,
+  formatDigestSnapshotPerTransitionMagnitudeTop3ConcentrationSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3Concentration,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-concentration";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1782,6 +1787,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3Leaderboard
     | null = null;
   let perTransitionMagnitudeTop3LeaderboardSection = "";
+  let snapshotPerTransitionMagnitudeTop3Concentration:
+    | DigestSnapshotPerTransitionMagnitudeTop3Concentration
+    | null = null;
+  let perTransitionMagnitudeTop3ConcentrationSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3735,6 +3744,31 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3LeaderboardSection(
           snapshotPerTransitionMagnitudeTop3Leaderboard,
         );
+      // P11.152 — per-transition MAGNITUDE TOP-3 CONCENTRATION (module
+      // P11.151). Folds the P11.150 top-3 ranked lists into a single
+      // outlier-vs-pack scalar per (transition, band) cell so ops learns
+      // whether the #1 partner / KPI dominates (index >= 0.60) or is
+      // one of a near-peer pack (< 0.40) at a glance without visually
+      // scanning the three ranked entries. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3LeaderboardSection AND IMMEDIATELY
+      // ABOVE perPairHotCellsSection per the P11.151 formatter docblock
+      // placement rule so the hierarchy descends per-transition DRILL-
+      // DOWN (P11.143) → per-transition MAGNITUDE scalars (P11.145) →
+      // per-transition MAGNITUDE LEADERBOARD single-winner (P11.147) →
+      // per-transition MAGNITUDE TOP-3 LEADERBOARD (P11.149) → per-
+      // transition MAGNITUDE TOP-3 CONCENTRATION (P11.151) → per-pair
+      // hot-cells GRANULAR (P11.139) → per-pair scalar distribution
+      // (P11.130). Ops reads the top-3 ranked list first, then this
+      // concentration row for the outlier-vs-pack read, then the
+      // granular table for the individual cells.
+      snapshotPerTransitionMagnitudeTop3Concentration =
+        computeDigestSnapshotPerTransitionMagnitudeTop3Concentration(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3ConcentrationSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3ConcentrationSection(
+          snapshotPerTransitionMagnitudeTop3Concentration,
+        );
     }
   }
   if (
@@ -3785,6 +3819,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeDrilldownSection ||
     perTransitionMagnitudeLeaderboardSection ||
     perTransitionMagnitudeTop3LeaderboardSection ||
+    perTransitionMagnitudeTop3ConcentrationSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -3862,6 +3897,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeDrilldownSection +
       perTransitionMagnitudeLeaderboardSection +
       perTransitionMagnitudeTop3LeaderboardSection +
+      perTransitionMagnitudeTop3ConcentrationSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5112,6 +5148,35 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3Leaderboard.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3Leaderboard.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_concentration:
+      snapshotPerTransitionMagnitudeTop3Concentration
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3Concentration.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3Concentration.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3Concentration.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3Concentration.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3Concentration.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3Concentration.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3Concentration.top_n,
+            outlier_threshold:
+              snapshotPerTransitionMagnitudeTop3Concentration.outlier_threshold,
+            pack_threshold:
+              snapshotPerTransitionMagnitudeTop3Concentration.pack_threshold,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3Concentration.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3Concentration.transitions,
           }
         : {
             skipped_reason:
