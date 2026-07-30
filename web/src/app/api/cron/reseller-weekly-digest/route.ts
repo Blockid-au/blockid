@@ -4731,6 +4731,36 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection(
           snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation,
         );
+      // P11.202 — ROBUST cousin of the P11.200 mean-anchored MAD.
+      // Same ADDITIVE + WHOLE-POOL corner of the dispersion grid,
+      // same 0.5 / 2.0 solo/tight/spread/wide cutoffs, same units
+      // (raw cell-count deviations). Anchor swap: mean → median so
+      // the scalar cushions against the single-leader distortion
+      // that pulls MAD toward the outlier. Pool [3,1,1] reads MAD
+      // 8/9 (mean 5/3 pulls into the outlier) but MADm 2/3 (median
+      // 1 tracks the cluster). Pool [10,1,1] reads MAD 4 but MADm
+      // 3 — robust anchor cushions by exactly one unit. Symmetric
+      // pools where mean coincides with median (e.g. [4,3,2]) read
+      // the same magnitude under both surfaces — the differentiator
+      // is only skew-driven. Well-defined for every non-empty pool:
+      // pool_count 0 → madm null; pool_count 1 → madm 0 (solo);
+      // pool_count >= 2 → madm = mean of absolute deviations from
+      // median, rounded to 4 decimals. Even-n pools use midpoint
+      // of the two central order statistics for parity with the
+      // P11.195/P11.197 median convention.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.201
+      // formatter docblock so MAD (mean-anchored) and MADm (median-
+      // anchored) stay adjacent in the pool hierarchy.
+      // Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection(
+          snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation,
+        );
     }
   }
   if (
@@ -4806,6 +4836,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolMedianMeanRatioSection ||
     perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection ||
     perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection ||
+    perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4908,6 +4939,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolMedianMeanRatioSection +
       perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection +
       perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection +
+      perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6900,6 +6932,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_median_absolute_deviation:
+      snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.top_n,
+            tight_madm_max:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.tight_madm_max,
+            wide_madm_min:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.wide_madm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.transitions,
           }
         : {
             skipped_reason:
