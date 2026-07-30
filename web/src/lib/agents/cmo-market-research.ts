@@ -53,94 +53,94 @@ export interface CustomerSegment {
   marketFocus: 'domestic' | 'global';
   /** Percentage of this segment prioritizing AI adoption (0-1) */
   aiPrioritizationRate: number;
-  /** Average dilution rate observed in this segment (0-1) */
-  avgDilutionRate: number;
+  /** Average dilution rate observed in this segment (%) */
+  averageDilutionRate: number;
 }
 
-/** Marketing Content Benchmarks for 2025-2026 */
-export interface ContentBenchmarks {
-  /** Target length for B2B SEO dominance (Words) */
-  targetB2BBlogLength: number;
-  /** Expected organic traffic lift for AI-generated long-form content (Ratio) */
-  aiContentTrafficLift: number;
-  /** Average LinkedIn organic CTR (Ratio) */
-  linkedinOrganicCTR: number;
-  /** Impact of high E-E-A-T scores on CTR (Ratio) */
-  eeatCTRBoost: number;
-  /** Average organic traffic drop for high-risk sites after Core Update (Ratio) */
-  coreUpdateRiskDrop: number;
-}
-
-/** Australian Startup Market Constants (Updated 2026) */
-export const AU_MARKET_DATA = {
-  ACTIVE_STARTUPS: 7800,
-  TOTAL_VC_FUNDING_H1_2026: 5200000000,
-  UNICORN_COUNT: 14,
-  SEED_MONTHLY_FUNDING_INTENSITY: 150000000,
-  TOTAL_STARTUP_EMPLOYMENT_FTE: 210000,
-  GLOBAL_SAAS_MARKET_SIZE_2024: 4200000000,
-  NAVIGATION_TOOL_CAGR: 0.147,
+/** Market Intelligence Constants based on 2024-2026 Research */
+export const AU_STARTUP_MARKET_DATA = {
+  activeStartupsQ2_2024: 7800,
+  startupEmploymentFTE_2026: 210000,
+  totalVCFundingH1_2026: 5200000000, // AU$5.2 billion
+  seedStageMonthlyIntensity: 150000000, // AU$150 million
+  unicornCount_2026: 14,
+  globalSaaSMarketSize_2024: 4200000000, // $4.2 billion
+  navigationToolsCAGR_2024_2029: 0.147, // 14.7%
 };
 
-/** Current Content Performance Benchmarks */
-export const CONTENT_BENCHMARKS: ContentBenchmarks = {
-  targetB2BBlogLength: 1900,
-  aiContentTrafficLift: 0.15,
-  linkedinOrganicCTR: 0.012,
-  eeatCTRBoost: 0.22,
-  coreUpdateRiskDrop: 0.123,
+/** Content Performance Benchmarks based on 2025 Reports */
+export const CONTENT_BENCHMARKS = {
+  aiLongFormTrafficLift: 0.15, // 15% higher vs human-only
+  topB2BPageAvgLength: 1900, // words
+  linkedinOrganicCTR: 0.012, // 1.2%
+  eeatCTRBoost: 0.22, // 22% higher for high E-E-A-T scores
+};
+
+/** SEO Risk and Stability Constants */
+export const SEO_STABILITY_METRICS = {
+  annualCoreUpdateFrequency: 2,
+  highRiskTrafficDropAvg: 0.123, // 12.3%
+  highRiskTrafficDropVariance: 0.041, // ±4.1%
 };
 
 /**
- * Calculates the projected market size for startup navigation tools in AU
- * based on global CAGR and local startup density.
- * 
- * @param currentVal - Current estimated market value
- * @param years - Projection period
- * @returns Projected market value
+ * Calculates the projected market size for startup navigation tools
+ * @param currentSize Current market size in USD
+ * @param years Projection horizon in years
+ * @returns Projected market size
  */
-export function calculateMarketProjection(currentVal: number, years: number): number {
-  return currentVal * Math.pow(1 + AU_MARKET_DATA.NAVIGATION_TOOL_CAGR, years);
+export function projectNavigationMarketSize(currentSize: number, years: number): number {
+  return currentSize * Math.pow(1 + AU_STARTUP_MARKET_DATA.navigationToolsCAGR_2024_2029, years);
 }
 
 /**
- * Evaluates if a piece of content meets the current B2B SEO "Power Page" criteria
- * based on 2025 research findings.
- * 
- * @param wordCount - Length of the content
- * @param hasEEATSignals - Whether the content includes expert citations/authoritative data
- * @returns Boolean indicating if content is optimized for top rankings
+ * Estimates the potential reach within the Australian startup ecosystem
+ * @param segmentPenetration Target penetration rate (0-1)
+ * @returns Estimated number of target companies
  */
-export function isContentCompetitive(wordCount: number, hasEEATSignals: boolean): boolean {
-  return wordCount >= CONTENT_BENCHMARKS.targetB2BBlogLength && hasEEATSignals;
+export function estimateAUReach(segmentPenetration: number): number {
+  return Math.floor(AU_STARTUP_MARKET_DATA.activeStartupsQ2_2024 * segmentPenetration);
 }
 
 /**
- * Calculates the estimated "Funding Velocity" for the AU seed stage
- * 
- * @param totalRaised - Total amount raised by a cohort
- * @param cohortSize - Number of startups in the cohort
- * @returns Average funding per startup relative to monthly intensity
+ * Calculates the expected traffic lift for a B2B content piece based on length and AI usage
+ * @param wordCount Length of the content
+ * @param isAIGenerated Whether AI was used for long-form structure
+ * @param hasHighEEAT Whether the content meets high E-E-A-T standards
+ * @returns Estimated traffic multiplier
  */
-export function calculateAUFundingVelocity(totalRaised: number, cohortSize: number): number {
-  const avgPerStartup = totalRaised / cohortSize;
-  return avgPerStartup / AU_MARKET_DATA.SEED_MONTHLY_FUNDING_INTENSITY;
+export function calculateExpectedTrafficLift(
+  wordCount: number,
+  isAIGenerated: boolean,
+  hasHighEEAT: boolean
+): number {
+  let lift = 1.0;
+  if (wordCount >= 1500 && isAIGenerated) {
+    lift += CONTENT_BENCHMARKS.aiLongFormTrafficLift;
+  }
+  if (hasHighEEAT) {
+    lift += CONTENT_BENCHMARKS.eeatCTRBoost;
+  }
+  return lift;
 }
 
 /**
- * Determines the "Risk Score" of a domain based on core update frequency and E-E-A-T
- * 
- * @param eeatScore - Normalized E-E-A-T score (0-1)
- * @param lastUpdateDate - Date of last major content overhaul
- * @returns Risk percentage (0-1)
+ * Evaluates the risk level of a site's organic traffic based on recent Core Update data
+ * @param currentTraffic Current monthly organic traffic
+ * @param isHighRisk Whether the site falls into the 'high-risk' category (e.g., low E-E-A-T)
+ * @returns Potential traffic loss during a core update
  */
-export function calculateSEOUpdateRisk(eeatScore: number, lastUpdateDate: Date): number {
-  const now = new Date();
-  const monthsSinceUpdate = (now.getTime() - lastUpdateDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
-  
-  let risk = CONTENT_BENCHMARKS.coreUpdateRiskDrop;
-  if (eeatScore > 0.8) risk -= 0.05;
-  if (monthsSinceUpdate > 6) risk += 0.05;
-  
-  return Math.max(0, Math.min(1, risk));
+export function evaluateCoreUpdateRisk(currentTraffic: number, isHighRisk: boolean): number {
+  if (!isHighRisk) return 0;
+  return currentTraffic * SEO_STABILITY_METRICS.highRiskTrafficDropAvg;
+}
+
+/**
+ * Analyzes competitor capital feature adoption speed
+ * @param earlyAdopters Number of companies that adopted in first 30 days
+ * @param totalBase Total active customer base
+ * @returns Adoption rate (0-1)
+ */
+export function calculateFeatureAdoptionRate(earlyAdopters: number, totalBase: number): number {
+  return earlyAdopters / totalBase;
 }
