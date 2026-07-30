@@ -403,6 +403,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolHhi,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-hhi";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolGini,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolGiniSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolGini,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-gini";
+import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1ShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
@@ -1855,6 +1860,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolHhi
     | null = null;
   let perTransitionMagnitudeTop3PoolHhiSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolGini:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolGini
+    | null = null;
+  let perTransitionMagnitudeTop3PoolGiniSection = "";
   let snapshotPerTransitionMagnitudeTop3PoolTop1Share:
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share
     | null = null;
@@ -3977,6 +3986,35 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolHhiSection(
           snapshotPerTransitionMagnitudeTop3PoolHhi,
         );
+      // P11.170 — per-transition MAGNITUDE TOP-3 POOL GINI
+      // (module P11.169). Second whole-pool inequality-shape complement
+      // to the P11.163 HHI surface. HHI (sum of squared shares) squares
+      // the leader's slice so it reacts STRONGLY to a single dominant
+      // participant but is comparatively insensitive to the shape of
+      // the middle-and-tail once a dominant player is present. Gini
+      // (mean absolute pair-wise difference / (2 × mean), OECD income-
+      // inequality anchor) reacts to the WHOLE curve — a Pareto-shape
+      // (one leader + broad flat tail) and a two-shoulders shape (two
+      // large + light tail) can share the same HHI but diverge on Gini
+      // because Gini integrates every pair-wise gap, not just the
+      // leader's dominance. Cutoffs use plain-language fraction bands
+      // (UNEQUAL_GINI_MIN=0.40 OECD high-inequality anchor / MIXED_GINI_MIN=0.20
+      // clean separation from near-uniform floor / uniform below).
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolHhiSection
+      // AND IMMEDIATELY ABOVE perTransitionMagnitudeTop3PoolTop1ShareSection
+      // per the P11.169 formatter docblock placement rule so HHI and Gini
+      // sit adjacent (both answer "how equal is the pool?" with different
+      // mathematical bases) and hierarchically ABOVE the leader-slice pair.
+      // Consumes snapshotPerPairHotCells directly (same posture as the
+      // sibling per-transition magnitude drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolGini =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolGini(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolGiniSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolGiniSection(
+          snapshotPerTransitionMagnitudeTop3PoolGini,
+        );
       // P11.166 — per-transition MAGNITUDE TOP-3 POOL TOP-1 SHARE
       // (module P11.165). Single-leader complement to the P11.163/P11.164
       // HHI whole-pool inequality surface. HHI folds the shape of the
@@ -4087,6 +4125,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3MiddleGapSection ||
     perTransitionMagnitudeTop3PoolSection ||
     perTransitionMagnitudeTop3PoolHhiSection ||
+    perTransitionMagnitudeTop3PoolGiniSection ||
     perTransitionMagnitudeTop3PoolTop1ShareSection ||
     perTransitionMagnitudeTop3PoolTop2ShareSection ||
     perPairHotCellsSection ||
@@ -4173,6 +4212,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3MiddleGapSection +
       perTransitionMagnitudeTop3PoolSection +
       perTransitionMagnitudeTop3PoolHhiSection +
+      perTransitionMagnitudeTop3PoolGiniSection +
       perTransitionMagnitudeTop3PoolTop1ShareSection +
       perTransitionMagnitudeTop3PoolTop2ShareSection +
       perPairHotCellsSection +
@@ -5615,6 +5655,35 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolHhi.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolHhi.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_gini:
+      snapshotPerTransitionMagnitudeTop3PoolGini
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolGini.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolGini.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolGini.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolGini.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolGini.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolGini.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolGini.top_n,
+            unequal_gini_min:
+              snapshotPerTransitionMagnitudeTop3PoolGini.unequal_gini_min,
+            mixed_gini_min:
+              snapshotPerTransitionMagnitudeTop3PoolGini.mixed_gini_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolGini.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolGini.transitions,
           }
         : {
             skipped_reason:
