@@ -378,6 +378,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3TieCount,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-tie-count";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3RunnerUpGap,
+  formatDigestSnapshotPerTransitionMagnitudeTop3RunnerUpGapSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3RunnerUpGap,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-runner-up-gap";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1800,6 +1805,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3TieCount
     | null = null;
   let perTransitionMagnitudeTop3TieCountSection = "";
+  let snapshotPerTransitionMagnitudeTop3RunnerUpGap:
+    | DigestSnapshotPerTransitionMagnitudeTop3RunnerUpGap
+    | null = null;
+  let perTransitionMagnitudeTop3RunnerUpGapSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3802,6 +3811,32 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3TieCountSection(
           snapshotPerTransitionMagnitudeTop3TieCount,
         );
+      // P11.156 — per-transition MAGNITUDE TOP-3 RUNNER-UP GAP (module P11.155).
+      // Absolute-gap complement to the P11.152 concentration index and the
+      // P11.154 tie count. Concentration answers "how DOMINANT is the #1
+      // pick?" as a normalised scalar; tie count answers "how MANY entries
+      // are tied at the top?" as an integer; this module answers "how much
+      // daylight does the #1 entry have over the #2 entry?" as an integer
+      // cell-count gap. Together the three scalars disambiguate outlier vs
+      // pack-of-peers shapes the leaderboard arrays alone leave to the
+      // reader. Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3TieCountSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.155
+      // formatter docblock placement rule so the hierarchy descends
+      // per-transition DRILL-DOWN (P11.143) → per-transition MAGNITUDE
+      // scalars (P11.145) → per-transition MAGNITUDE LEADERBOARD
+      // single-winner (P11.147) → per-transition MAGNITUDE TOP-3
+      // LEADERBOARD (P11.149) → per-transition MAGNITUDE TOP-3
+      // CONCENTRATION (P11.151) → per-transition MAGNITUDE TOP-3 TIE
+      // COUNT (P11.153) → per-transition MAGNITUDE TOP-3 RUNNER-UP GAP
+      // (P11.155) → per-pair hot-cells GRANULAR (P11.139).
+      snapshotPerTransitionMagnitudeTop3RunnerUpGap =
+        computeDigestSnapshotPerTransitionMagnitudeTop3RunnerUpGap(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3RunnerUpGapSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3RunnerUpGapSection(
+          snapshotPerTransitionMagnitudeTop3RunnerUpGap,
+        );
     }
   }
   if (
@@ -3854,6 +3889,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3LeaderboardSection ||
     perTransitionMagnitudeTop3ConcentrationSection ||
     perTransitionMagnitudeTop3TieCountSection ||
+    perTransitionMagnitudeTop3RunnerUpGapSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -3933,6 +3969,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3LeaderboardSection +
       perTransitionMagnitudeTop3ConcentrationSection +
       perTransitionMagnitudeTop3TieCountSection +
+      perTransitionMagnitudeTop3RunnerUpGapSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5236,6 +5273,33 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3TieCount.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3TieCount.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_runner_up_gap:
+      snapshotPerTransitionMagnitudeTop3RunnerUpGap
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3RunnerUpGap.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3RunnerUpGap.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3RunnerUpGap.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3RunnerUpGap.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3RunnerUpGap.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3RunnerUpGap.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3RunnerUpGap.top_n,
+            outlier_gap_min:
+              snapshotPerTransitionMagnitudeTop3RunnerUpGap.outlier_gap_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3RunnerUpGap.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3RunnerUpGap.transitions,
           }
         : {
             skipped_reason:
