@@ -1329,3 +1329,4 @@
 {"tick_id":"2026-07-30T16-00-01-715Z","ts":"2026-07-30T16:07:12.255Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-30T16-10-01-342Z","ts":"2026-07-30T16:10:01.347Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-30T16-10-01-342Z","ts":"2026-07-30T16:10:01.437Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
+{"tick_id":"2026-07-30T16-14-00-000Z","ts":"2026-07-30T16:17:00.000Z","loop_label":"reseller-goal-loop","stage":"phase_done","phase":"P11.171_per_transition_magnitude_top3_pool_theil_pure_lib","tick":565,"tests":"29/29 pass; full reseller suite 2512/2512"}
