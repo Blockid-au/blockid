@@ -855,3 +855,4 @@
 {"ts":"2026-07-30T18:00:01Z","endpoint":"growth-insights","status":"ok","duration_ms":5926,"detail":"{\"date\": \"2026-07-30\", \"metrics\": {\"totalUsers\": 62, \"newUsersWeek\": 17, \"newUsersToday\": 0, \"sviWeek\": 4, \"sviToday\": 0, \"leadsWeek\": 0, \"leadsToday\": 0, \"totalAccounts\": 67, \"payingUsers\": 5, \"evide"}
 {"ts":"2026-07-30T18:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16670,"detail":""}
 {"ts":"2026-07-30T18:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16444,"detail":""}
+{"ts":"2026-07-30T18:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":1992,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235042396 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274319368 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
