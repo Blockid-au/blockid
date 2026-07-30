@@ -5731,6 +5731,35 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_per_transition_magnitude_top3_pool_theil:
+      snapshotPerTransitionMagnitudeTop3PoolTheil
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolTheil.top_n,
+            high_theil_min:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.high_theil_min,
+            moderate_theil_min:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.moderate_theil_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolTheil.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     snapshot_per_transition_magnitude_top3_pool_top1_share:
       snapshotPerTransitionMagnitudeTop3PoolTop1Share
         ? {
