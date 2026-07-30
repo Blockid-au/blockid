@@ -928,3 +928,4 @@
 {"ts":"2026-07-30T23:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17010,"detail":""}
 {"ts":"2026-07-30T23:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16507,"detail":""}
 {"ts":"2026-07-30T23:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":569,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235029536 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274282088 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-30T23:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16488,"detail":""}

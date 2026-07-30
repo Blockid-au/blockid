@@ -244,6 +244,32 @@ export async function POST(request: Request) {
     );
   }
 
+  // Enqueue the generation worker (Stage 3 Batch A sub-task A2).
+  // Path B lands in PAID directly so we must enqueue inline — the
+  // Stripe webhook is not in the loop. Best-effort: the drain cron
+  // can also pick up orphan PAID rows via a follow-up reconciliation
+  // job if this enqueue fails.
+  try {
+    const { enqueueOrder } = await import(
+      "@/lib/paywall/report-order-worker"
+    );
+    const outcome = await enqueueOrder(supabase, {
+      orderId: order.id,
+      businessId,
+    });
+    if (!outcome.ok) {
+      console.warn(
+        "[blockid:reports/redeem] enqueue failed",
+        { reason: outcome.reason, order_id: order.id },
+      );
+    }
+  } catch (err) {
+    console.warn(
+      "[blockid:reports/redeem] enqueueOrder threw",
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+
   // Best-effort usage log so the CFO dashboard can compute cost per
   // Trust Score point improvement (§15.8).
   await supabase.from("usage_logs").insert({
