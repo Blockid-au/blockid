@@ -141,6 +141,15 @@ export async function POST(request: Request) {
   ): Promise<void> {
     const session = e.data.object as Stripe.Checkout.Session;
 
+    // ── Trust Business Report paywall (Path A, §8.4) ────────────────
+    // The report_order scope is checked FIRST so its short-circuit path
+    // (no plan grant, no credit pack) never accidentally hits the
+    // subscription branches below. See Stage 3 Batch A sub-task A1.
+    if (session.metadata?.bid_scope === "report_order") {
+      await handleReportOrderCompleted(session, e);
+      return;
+    }
+
     // ── Per-analysis payment (no auth required) ─────────────────────
     if (session.metadata?.blockid_type === "svi_analysis") {
       const email = session.metadata.blockid_email?.toLowerCase().trim();
@@ -726,6 +735,187 @@ export async function POST(request: Request) {
     console.log(
       `[blockid:stripe] invoice paid for customer ${customerId}, amount: ${amountCents}`,
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // Trust Business Report paywall (Path A) — checkout.session.completed handler.
+  // -------------------------------------------------------------------------
+  //
+  // Stage 3 Batch A sub-task A1 · Master Upgrade Plan §8.4.
+  //
+  // Fires when /api/reports/checkout has minted a Stripe Checkout Session
+  // for the A$5.50 inc-GST Trust Business Report SKU. Two happy paths:
+  //
+  //   1. The row already exists (checkout route succeeded end-to-end) →
+  //      guarded UPDATE flips CHECKOUT_INITIATED/PAYMENT_PENDING → PAID.
+  //   2. The row is missing (checkout route hit `order_row_insert_failed`
+  //      after Stripe returned) → INSERT from session metadata directly
+  //      into PAID. Reconciliation fallback documented in the checkout
+  //      route's warning branch.
+  //
+  // Idempotency:
+  //   - Outer claimWebhookEvent() dedupes duplicate Stripe deliveries.
+  //   - Guarded UPDATE (WHERE status IN in-flight) makes a second
+  //     delivery a no-op even if the outer dedup missed.
+  //   - UNIQUE(order_id) on report_generation_queue makes a duplicate
+  //     enqueue a silent no-op.
+  //
+  // Never throws — a bookkeeping failure must not cause Stripe to retry
+  // and re-charge the user. Console-warns and returns.
+  async function handleReportOrderCompleted(
+    session: Stripe.Checkout.Session,
+    event: Stripe.Event,
+  ): Promise<void> {
+    const businessId = session.metadata?.bid_business_id;
+    const userId = session.metadata?.bid_user_id;
+    const sku = session.metadata?.bid_sku ?? "sku_trust_report_5aud";
+
+    if (!businessId || !userId) {
+      console.warn(
+        "[blockid:stripe] report_order webhook missing bid_business_id/bid_user_id",
+        { session_id: session.id },
+      );
+      return;
+    }
+
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : null;
+    const nowIso = new Date().toISOString();
+
+    // ── Locate the row ──────────────────────────────────────────────
+    const { data: existing } = await supabase
+      .from("report_orders")
+      .select("id, status")
+      .eq("stripe_session_id", session.id)
+      .maybeSingle();
+
+    let orderId: string | null = existing?.id ?? null;
+
+    if (existing) {
+      // Guarded UPDATE — only flip from an in-flight state. A row
+      // that's already PAID/GENERATING/READY is a duplicate delivery.
+      const { error: updErr } = await supabase
+        .from("report_orders")
+        .update({
+          status: "PAID",
+          paid_at: nowIso,
+          stripe_payment_intent_id: paymentIntentId,
+        })
+        .eq("id", existing.id)
+        .in("status", ["CHECKOUT_INITIATED", "PAYMENT_PENDING"]);
+
+      if (updErr) {
+        console.warn(
+          "[blockid:stripe] report_orders update failed",
+          { code: updErr.code, message: updErr.message },
+        );
+      }
+    } else {
+      // Reconciliation fallback: /api/reports/checkout INSERT failed
+      // after Stripe returned. Insert now from session metadata so
+      // the queue drain can still generate the report the user paid
+      // for. product_sku is trusted from metadata (server-authored by
+      // the checkout route) so we do not accept a client-supplied SKU.
+      const amountCents = session.amount_total ?? 550;
+      const insertMetadata: Record<string, unknown> = {
+        sku,
+        first_touch: session.metadata?.bid_first_touch ?? "",
+        reconciled_from_webhook: true,
+        stripe_event_id: event.id,
+      };
+      const { data: inserted, error: insErr } = await supabase
+        .from("report_orders")
+        .insert({
+          business_id: businessId,
+          user_id: userId,
+          product_sku: sku,
+          amount_aud: amountCents,
+          credits_used: 0,
+          stripe_session_id: session.id,
+          stripe_payment_intent_id: paymentIntentId,
+          status: "PAID",
+          paid_at: nowIso,
+          metadata: insertMetadata,
+        })
+        .select("id")
+        .single();
+
+      if (insErr || !inserted) {
+        console.error(
+          "[blockid:stripe] report_orders reconciliation insert failed",
+          { code: insErr?.code, message: insErr?.message, session_id: session.id },
+        );
+        return;
+      }
+      orderId = inserted.id;
+    }
+
+    if (!orderId) return;
+
+    // ── Audit log (best-effort) ─────────────────────────────────────
+    try {
+      const { logUserAction } = await import("@/lib/audit/log");
+      await logUserAction({
+        userId,
+        action: "report_order.paid",
+        subjectType: "report_order",
+        subjectId: orderId,
+        fields: {
+          business_id: businessId,
+          sku,
+          amount_cents: session.amount_total ?? 0,
+          stripe_session_id: session.id,
+          stripe_event_id: event.id,
+        },
+        route: "/api/stripe/webhook",
+      });
+    } catch (err) {
+      console.warn(
+        "[blockid:stripe] audit log for report_order.paid failed",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+
+    // ── Enqueue for the drain worker ────────────────────────────────
+    try {
+      const { enqueueOrder } = await import(
+        "@/lib/paywall/report-order-worker"
+      );
+      const outcome = await enqueueOrder(supabase, {
+        orderId,
+        businessId,
+      });
+      if (!outcome.ok) {
+        console.warn(
+          "[blockid:stripe] report_generation_queue enqueue failed",
+          { reason: outcome.reason, order_id: orderId },
+        );
+      }
+    } catch (err) {
+      console.warn(
+        "[blockid:stripe] enqueueOrder threw",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+
+    // Revenue analytics — same shape as founder_package so the CFO
+    // dashboard aggregates the Path A SKU alongside other one-offs.
+    await recordRevenueEvent({
+      userId,
+      planId: null,
+      stripeEventId: event.id,
+      grossCents: session.amount_total ?? 0,
+      currency: session.currency ?? "aud",
+      kind: "trust_report_5aud",
+      detail: {
+        session_id: session.id,
+        order_id: orderId,
+        business_id: businessId,
+        sku,
+      },
+    });
   }
 
   // -------------------------------------------------------------------------
