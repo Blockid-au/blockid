@@ -30,5 +30,18 @@
   "meta.home.title": "BlockID.au — Tìm kiếm startup Úc, chấm điểm sẵn sàng gọi vốn trong 30 giây",
   "meta.home.description": "Gõ tên công ty, BlockID chấm điểm mức độ sẵn sàng gọi vốn trong 30 giây — miễn phí, không cần đăng ký. Dành cho founder người Việt tại Úc.",
   "meta.pricing.title": "Bảng giá — BlockID.au",
-  "meta.pricing.description": "12 gói dịch vụ cho Founder, Nhà đầu tư, Cố vấn và Vườn ươm. Mọi gói trả hàng tháng có 7 ngày dùng thử miễn phí. Huỷ trước ngày thứ 8 — không tính tiền. Giá AUD, đã bao gồm GST."
+  "meta.pricing.description": "12 gói dịch vụ cho Founder, Nhà đầu tư, Cố vấn và Vườn ươm. Mọi gói trả hàng tháng có 7 ngày dùng thử miễn phí. Huỷ trước ngày thứ 8 — không tính tiền. Giá AUD, đã bao gồm GST.",
+  "hero.v3.eyebrow": "Định danh Doanh nghiệp Đã xác minh & Mạng Giá trị",
+  "hero.v3.headline.prefix": "Trao cho doanh nghiệp của bạn một",
+  "hero.v3.headline.accent": "danh tính số đáng tin cậy",
+  "hero.v3.tagline": "Danh tính đã xác minh. Giá trị hiển thị. Doanh nghiệp đáng tin.",
+  "hero.v3.cta.primary.signedOut": "Tạo Business ID của bạn",
+  "hero.v3.cta.primary.signedIn": "Tiếp tục với Business ID của bạn",
+  "hero.v3.cta.secondary": "Xem Trust Report mẫu (A$5.50)",
+  "hero.v3.actionline": "Nhận diện. Xác minh. Giá trị. Kết nối.",
+  "hero.v3.emotional": "Doanh nghiệp không nên phải xây lại niềm tin từ con số 0 mỗi lần.",
+  "hero.v3.outcome": "Được khám phá. Được hiểu. Được tin.",
+  "hero.v3.trustbar.suffix": "doanh nghiệp Úc đã xác minh",
+  "meta.home.v3.title": "BlockID.au — Một Doanh nghiệp. Một Định danh Tin cậy.",
+  "meta.home.v3.description": "Trao cho doanh nghiệp của bạn một danh tính số đáng tin cậy. BlockID.au biến định danh, bằng chứng và năng lực thành một Business ID tin cậy & tái sử dụng — được xác minh cho nhà đầu tư, mua sắm, cấp phép và đối tác."
 }
