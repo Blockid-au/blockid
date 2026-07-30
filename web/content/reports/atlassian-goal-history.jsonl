@@ -7109,3 +7109,9 @@
 {"tick_id":"2026-07-30T21-07-01-904Z","ts":"2026-07-30T21:13:38.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1_dataroom_map","subtask":"P0-equity-engine-lib-test","tests":44,"file":"web/src/lib/equity/engine.test.ts","note":"colocated 44-case vitest for AU equity+ESOP engine (calculateVestingSchedule / calculateCapTable / calculateDilution / calculateESOP / generateVestingTimeline); all 44 green; tsc clean for new file"}
 {"tick_id":"2026-07-30T21-07-01-904Z","ts":"2026-07-30T21:13:58.237Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":416316,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-30T21-07-01-904Z","ts":"2026-07-30T21:13:58.278Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
+{"tick_id":"2026-07-30T21-07-01-904Z","ts":"2026-07-30T21:14:00.053Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-30T21-07-01-904Z","ts":"2026-07-30T21:14:00.063Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"6d811463","last_deployed":"0fdb48f"}
+{"tick_id":"2026-07-30T21-07-01-904Z","ts":"2026-07-30T21:14:28.589Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"6d811463"}
+{"tick_id":"2026-07-30T21-07-01-904Z","ts":"2026-07-30T21:14:28.591Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-30T21-17-01-386Z","ts":"2026-07-30T21:17:01.386Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-30T21-17-01-386Z","ts":"2026-07-30T21:17:01.403Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
