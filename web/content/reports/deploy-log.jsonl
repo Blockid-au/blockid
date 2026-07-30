@@ -3944,3 +3944,10 @@
 {"ts":"2026-07-30T23:33:18.992Z","event":"github-push-master","detail":"Blockid-au: feat(consent): stage-4 sub-E1 — consents + consent_state_events tables (§9.4) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-30T23:34:16.768Z","event":"github-push-master","detail":"Blockid-au: feat(evidence): phase-3 sub-G3 evidence_extractions per-version output (0212) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-30T23:34:54.157Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-weekly-digest): P11.204 skewness cron wiring adjacent to P11.202 MADm (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T23:35:00.519Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-30T23-30-01-488Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T23:35:16.190Z","event":"github-push-master","detail":"Blockid-au: feat(consent): stage-4 sub-E2 — share_packages table (§9.4 + §18.2) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T23:37:17.013Z","event":"github-push-master","detail":"Blockid-au: feat(consent): stage-4 sub-E3 — global revocations registry (BCR-004) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T23:40:15.538Z","event":"github-push-master","detail":"Blockid-au: feat(verification): phase-2 sub-F1 add business_profile view (0202) (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T23:41:50.197Z","event":"github-push-master","detail":"Blockid-au: feat(business-id): stage-4 sub-D3 /id/[slug] public profile page (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T23:42:56.336Z","event":"github-push-master","detail":"Blockid-au: feat(evidence): phase-3 sub-G4 hash-verify + state-machine helpers (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T23:45:11.402Z","event":"github-push-master","detail":"Blockid-au: test(dataroom): P5 route test — /api/dataroom/readiness (25 cases) (1 commits)","source":"github-webhook"}
