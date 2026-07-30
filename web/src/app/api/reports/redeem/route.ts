@@ -109,6 +109,12 @@ export async function POST(request: Request) {
   });
 
   const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { ok: false, reason: "Database not configured" },
+      { status: 503 },
+    );
+  }
 
   // Reject a second in-flight order (mirrors /api/reports/checkout).
   const { data: existing } = await supabase
