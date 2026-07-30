@@ -869,3 +869,4 @@
 {"ts":"2026-07-30T19:00:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":617,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235148676 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274319364 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-30T19:00:02Z","endpoint":"svi-review","status":"ok","duration_ms":1245,"detail":"{\"reviewed\": 0, \"milestones\": 0, \"skipped\": 45, \"totalUsers\": 45, \"weekKey\": \"2026_w31\"}"}
 {"ts":"2026-07-30T19:00:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16517,"detail":""}
+{"ts":"2026-07-30T19:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16445,"detail":""}
