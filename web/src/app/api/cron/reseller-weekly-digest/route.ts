@@ -408,6 +408,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolGini,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-gini";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolTheil,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolTheilSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolTheil,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-theil";
+import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1ShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
@@ -1864,6 +1869,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolGini
     | null = null;
   let perTransitionMagnitudeTop3PoolGiniSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolTheil:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolTheil
+    | null = null;
+  let perTransitionMagnitudeTop3PoolTheilSection = "";
   let snapshotPerTransitionMagnitudeTop3PoolTop1Share:
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share
     | null = null;
@@ -4015,6 +4024,37 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolGiniSection(
           snapshotPerTransitionMagnitudeTop3PoolGini,
         );
+      // P11.172 — per-transition MAGNITUDE TOP-3 POOL THEIL (module
+      // P11.171). Third distribution-shape complement to the P11.161
+      // POOL SIZE surface, closing the whole-pool inequality trio
+      // that started with P11.163 HHI + P11.169 Gini. HHI squares
+      // shares (amplifies the leader), Gini integrates every
+      // pair-wise gap (reflects the whole curve), Theil T decomposes
+      // as an entropy divergence between the observed distribution
+      // and the perfectly-uniform reference (weights the large shares
+      // by their own magnitude via share × ln(share × n)). Cells that
+      // share an HHI + Gini label diverge on Theil when the shape of
+      // the leader vs. the shoulders differ — a single runaway
+      // participant registers more sharply on Theil than the
+      // shoulders Gini spreads across the pool. Cutoffs mirror the
+      // income-literature bands (HIGH_THEIL_MIN=0.30 / MODERATE_THEIL_MIN=0.10
+      // / balanced below). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolGiniSection AND IMMEDIATELY
+      // ABOVE perTransitionMagnitudeTop3PoolTop1ShareSection per the
+      // P11.171 formatter docblock placement rule so HHI, Gini, and
+      // Theil sit adjacent as a whole-pool inequality trio (all three
+      // answer "how equal is the pool?" with different mathematical
+      // bases) and hierarchically ABOVE the leader-slice pair.
+      // Consumes snapshotPerPairHotCells directly (same posture as
+      // the sibling per-transition magnitude drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolTheil =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolTheil(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolTheilSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolTheilSection(
+          snapshotPerTransitionMagnitudeTop3PoolTheil,
+        );
       // P11.166 — per-transition MAGNITUDE TOP-3 POOL TOP-1 SHARE
       // (module P11.165). Single-leader complement to the P11.163/P11.164
       // HHI whole-pool inequality surface. HHI folds the shape of the
@@ -4126,6 +4166,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolSection ||
     perTransitionMagnitudeTop3PoolHhiSection ||
     perTransitionMagnitudeTop3PoolGiniSection ||
+    perTransitionMagnitudeTop3PoolTheilSection ||
     perTransitionMagnitudeTop3PoolTop1ShareSection ||
     perTransitionMagnitudeTop3PoolTop2ShareSection ||
     perPairHotCellsSection ||
@@ -4213,6 +4254,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolSection +
       perTransitionMagnitudeTop3PoolHhiSection +
       perTransitionMagnitudeTop3PoolGiniSection +
+      perTransitionMagnitudeTop3PoolTheilSection +
       perTransitionMagnitudeTop3PoolTop1ShareSection +
       perTransitionMagnitudeTop3PoolTop2ShareSection +
       perPairHotCellsSection +
