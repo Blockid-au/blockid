@@ -88,7 +88,7 @@ export function PersonaRail({
 
   const handleKeyDown = useCallback(
     (
-      event: React.KeyboardEvent<HTMLDivElement>,
+      event: React.KeyboardEvent<HTMLButtonElement>,
       persona: Persona,
       index: number,
     ) => {
