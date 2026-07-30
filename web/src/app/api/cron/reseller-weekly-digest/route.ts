@@ -438,6 +438,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Share,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top2-share";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom1Share,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom1ShareSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolBottom1Share,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-bottom1-share";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1908,6 +1913,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Share
     | null = null;
   let perTransitionMagnitudeTop3PoolTop2ShareSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolBottom1Share:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolBottom1Share
+    | null = null;
+  let perTransitionMagnitudeTop3PoolBottom1ShareSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4243,6 +4252,38 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2ShareSection(
           snapshotPerTransitionMagnitudeTop3PoolTop2Share,
         );
+      // P11.180 — per-transition MAGNITUDE TOP-3 POOL BOTTOM-1 SHARE
+      // (module P11.179). Floor complement to the P11.165/P11.166 top-1
+      // share surface. Where top-1 share names max(cells)/Σcells (the
+      // fraction owned by the SINGLE LARGEST participant), bottom-1
+      // share names min(cells)/Σcells (the fraction owned by the SINGLE
+      // SMALLEST participant). Together the two surfaces bracket the
+      // pool from both ends — top-1 says "who owns the pool?",
+      // bottom-1 says "how thin is the tail?". Orthogonal to every
+      // whole-pool SEXTET member (HHI/Gini/Theil/Atkinson/CV/H_norm
+      // all fold the whole distribution to one scalar; bottom-1 names
+      // ONE thing at the floor) and orthogonal to top-1 (which names
+      // ONE thing at the head). LABEL ORIENTATION FLIP vs the P11.165
+      // top-1 sibling: HIGH bottom-1 = HIGH floor = LOW long-tail
+      // concentration = FLATTER pool (matches the P11.177 H_norm
+      // evenness-framing orientation). Cutoffs 0.15 flat_floor / 0.05
+      // moderate_floor / thin_tail exposed on the envelope as
+      // flat_floor_min / moderate_floor_min so downstream JSONL
+      // consumers render the vocabulary without importing the TS
+      // module. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolTop2ShareSection AND IMMEDIATELY
+      // ABOVE perPairHotCellsSection per the P11.179 formatter
+      // docblock placement rule. Consumes snapshotPerPairHotCells
+      // directly (same posture as the sibling per-transition magnitude
+      // drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolBottom1Share =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom1Share(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolBottom1ShareSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom1ShareSection(
+          snapshotPerTransitionMagnitudeTop3PoolBottom1Share,
+        );
     }
   }
   if (
@@ -4307,6 +4348,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolNormalizedEntropySection ||
     perTransitionMagnitudeTop3PoolTop1ShareSection ||
     perTransitionMagnitudeTop3PoolTop2ShareSection ||
+    perTransitionMagnitudeTop3PoolBottom1ShareSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4398,6 +4440,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolNormalizedEntropySection +
       perTransitionMagnitudeTop3PoolTop1ShareSection +
       perTransitionMagnitudeTop3PoolTop2ShareSection +
+      perTransitionMagnitudeTop3PoolBottom1ShareSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6044,6 +6087,35 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolTop2Share.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolTop2Share.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_bottom1_share:
+      snapshotPerTransitionMagnitudeTop3PoolBottom1Share
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolBottom1Share.top_n,
+            flat_floor_min:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.flat_floor_min,
+            moderate_floor_min:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.moderate_floor_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolBottom1Share.transitions,
           }
         : {
             skipped_reason:
