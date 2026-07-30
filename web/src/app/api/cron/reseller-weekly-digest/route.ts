@@ -388,6 +388,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3TailGap,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-tail-gap";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3MiddleGap,
+  formatDigestSnapshotPerTransitionMagnitudeTop3MiddleGapSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3MiddleGap,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-middle-gap";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1818,6 +1823,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3TailGap
     | null = null;
   let perTransitionMagnitudeTop3TailGapSection = "";
+  let snapshotPerTransitionMagnitudeTop3MiddleGap:
+    | DigestSnapshotPerTransitionMagnitudeTop3MiddleGap
+    | null = null;
+  let perTransitionMagnitudeTop3MiddleGapSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
