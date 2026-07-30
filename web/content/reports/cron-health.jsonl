@@ -883,3 +883,4 @@
 {"ts":"2026-07-30T20:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":579,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235127564 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274319408 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-30T20:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16927,"detail":""}
 {"ts":"2026-07-30T20:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16478,"detail":""}
+{"ts":"2026-07-30T20:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2464,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235125864 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274319404 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
