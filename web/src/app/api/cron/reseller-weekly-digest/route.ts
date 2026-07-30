@@ -3880,6 +3880,25 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3TailGapSection(
           snapshotPerTransitionMagnitudeTop3TailGap,
         );
+      // P11.160 — per-transition MAGNITUDE TOP-3 MIDDLE GAP (module P11.159).
+      // Middle-of-pack complement to the P11.155 runner-up gap (leader vs #2)
+      // and the P11.157 tail gap (leader vs #N). Runner-up gap answers "how
+      // much daylight does #1 have over #2?"; tail gap answers "how much
+      // daylight does #1 have over the last entry?"; this module answers
+      // "how much daylight does #2 have over the last entry?" — the middle
+      // question. Together the three integer gaps triangulate the shape of
+      // the full TOP-N ranked window without asking ops to eyeball the array.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3TailGapSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.159
+      // formatter docblock placement rule.
+      snapshotPerTransitionMagnitudeTop3MiddleGap =
+        computeDigestSnapshotPerTransitionMagnitudeTop3MiddleGap(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3MiddleGapSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3MiddleGapSection(
+          snapshotPerTransitionMagnitudeTop3MiddleGap,
+        );
     }
   }
   if (
@@ -3934,6 +3953,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3TieCountSection ||
     perTransitionMagnitudeTop3RunnerUpGapSection ||
     perTransitionMagnitudeTop3TailGapSection ||
+    perTransitionMagnitudeTop3MiddleGapSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4015,6 +4035,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3TieCountSection +
       perTransitionMagnitudeTop3RunnerUpGapSection +
       perTransitionMagnitudeTop3TailGapSection +
+      perTransitionMagnitudeTop3MiddleGapSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5372,6 +5393,33 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3TailGap.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3TailGap.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_middle_gap:
+      snapshotPerTransitionMagnitudeTop3MiddleGap
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3MiddleGap.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3MiddleGap.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3MiddleGap.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3MiddleGap.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3MiddleGap.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3MiddleGap.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3MiddleGap.top_n,
+            outlier_gap_min:
+              snapshotPerTransitionMagnitudeTop3MiddleGap.outlier_gap_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3MiddleGap.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3MiddleGap.transitions,
           }
         : {
             skipped_reason:
