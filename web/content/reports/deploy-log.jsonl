@@ -3764,3 +3764,7 @@
 {"ts":"2026-07-30T16:04:08.451Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-30T15-57-02-023Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-30T16:05:42.053Z","event":"github-push-master","detail":"Blockid-au: feat(paywall): migration 0270 — Trust Business Report order lifecycle (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-30T16:06:34.502Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.170 per-transition magnitude TOP-3 pool GINI cron wiring (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T16:06:50.293Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-30T16-00-01-715Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T16:07:22.688Z","event":"github-push-master","detail":"Blockid-au: feat(pricing): v3 SKU catalogue with A$5.50 inc-GST Trust Report SKU (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T16:09:15.287Z","event":"github-push-master","detail":"Blockid-au: feat(nav): v3 hide-when-locked rule + Persona/JourneyGroup schema (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T16:11:25.364Z","event":"github-push-master","detail":"Blockid-au: test(P6-clo-compliance-lib-test): colocated 36-case vitest for pure CLO-domain compliance module (1 commits)","source":"github-webhook"}
