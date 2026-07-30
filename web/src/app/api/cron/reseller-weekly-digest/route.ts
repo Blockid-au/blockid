@@ -478,6 +478,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top2-bottom1-ratio";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatioSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-median-mean-ratio";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1980,6 +1985,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio
     | null = null;
   let perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio
+    | null = null;
+  let perTransitionMagnitudeTop3PoolMedianMeanRatioSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4576,6 +4585,44 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1RatioSection(
           snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio,
         );
+      // P11.196 cron-wiring for the P11.195 pool median/mean ratio.
+      // Robust-stats ORDER-STATISTIC ASYMMETRY scalar = median_cells /
+      // mean_cells over the P11.161 pool. Pearson second skewness shape
+      // without stdev normalisation — names WHERE the middle of the
+      // distribution sits relative to the mean, complementing the SEXTET
+      // (whole-pool inequality/entropy), share family (endpoint slices),
+      // range (additive endpoint spread), 2x2 ratio grid (multiplicative
+      // endpoint ratios) and mid-mass share (middle-mass evenness) by
+      // reading the pool from an entirely new angle: order-statistic
+      // asymmetry. Values in (0, 1] for right-skewed distributions;
+      // above 1 possible for left-skewed pools like [10,10,1] which
+      // reads 10/7 ≈ 1.43. Well-defined for every non-empty pool:
+      // pool_count 0 → ratio null; pool_count <= SOLO_MAX_POOL_COUNT
+      // (2) → ratio 1 by definition (median coincides with mean); pool_count
+      // >= 3 → ratio = median / mean, rounded to 4 decimals. Labels
+      // solo (pool_count <= 2) / symmetric (ratio >= 0.9) / skewed
+      // (0.5 <= ratio < 0.9) / peaked (ratio < 0.5); cutoffs anchored
+      // to [3,2,2]=0.857 (skewed edge) and [10,1,1]=0.25 (peaked).
+      // EVENNESS framing (HIGH ratio = HIGH middle-mean alignment =
+      // more symmetric distribution) — the ONLY pool-shape scalar
+      // where a HIGH value reads as LOW asymmetry, distinct from the
+      // inequality framing of every other pool-shape sibling.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.195
+      // formatter docblock so the pool hierarchy descends whole-pool
+      // SEXTET → leader → dominant-pair → floor → range → floor-pair →
+      // top1/bottom1 RATIO → top2/bottom2 RATIO → mid-mass share →
+      // top1/bottom2 RATIO → top2/bottom1 RATIO → median/mean RATIO
+      // (this) → per-pair granular. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolMedianMeanRatioSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatioSection(
+          snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio,
+        );
     }
   }
   if (
@@ -4648,6 +4695,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolMidMassShareSection ||
     perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection ||
     perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection ||
+    perTransitionMagnitudeTop3PoolMedianMeanRatioSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4747,6 +4795,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolMidMassShareSection +
       perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection +
       perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection +
+      perTransitionMagnitudeTop3PoolMedianMeanRatioSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6649,6 +6698,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_median_mean_ratio:
+      snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.top_n,
+            symmetric_ratio_min:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.symmetric_ratio_min,
+            peaked_ratio_max:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.peaked_ratio_max,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.transitions,
           }
         : {
             skipped_reason:
