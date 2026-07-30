@@ -408,6 +408,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top1-share";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Share,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2ShareSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Share,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top2-share";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1854,6 +1859,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share
     | null = null;
   let perTransitionMagnitudeTop3PoolTop1ShareSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolTop2Share:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Share
+    | null = null;
+  let perTransitionMagnitudeTop3PoolTop2ShareSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3993,6 +4002,34 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1ShareSection(
           snapshotPerTransitionMagnitudeTop3PoolTop1Share,
         );
+      // P11.168 — per-transition MAGNITUDE TOP-3 POOL TOP-2 COMBINED SHARE
+      // (module P11.167). Two-leader complement to the P11.165/P11.166
+      // single-leader (top-1) share surface. Where top-1 names how much
+      // the single largest partner / KPI owns of the pool, this surface
+      // names what fraction of the (transition, band) cells the two
+      // largest participants own COMBINED — the oligopoly / duopoly
+      // signal that disambiguates leader-plus-runner-up from
+      // leader-plus-long-tail. Together the five pool-scale surfaces
+      // triangulate the leadership shape: P11.161 pool_count (HOW MANY?),
+      // P11.161 tail_share (WHAT SITS OUTSIDE TOP-3?), P11.163 HHI
+      // (HOW EQUAL?), P11.165 top-1 share (SINGLE LEADER SLICE?),
+      // P11.167 top-2 share (DOMINANT-PAIR COMBINED SLICE?). Cutoffs
+      // use plain-language fraction bands (0.75 oligopoly / 0.50
+      // leading / contested) — no external-anchor taxonomy since a
+      // pair combined crossing 50/75 percent is directly readable.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolTop1ShareSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.167
+      // formatter docblock placement rule. Consumes snapshotPerPairHotCells
+      // directly (same posture as the sibling per-transition magnitude
+      // drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolTop2Share =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Share(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolTop2ShareSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2ShareSection(
+          snapshotPerTransitionMagnitudeTop3PoolTop2Share,
+        );
     }
   }
   if (
@@ -4051,6 +4088,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolSection ||
     perTransitionMagnitudeTop3PoolHhiSection ||
     perTransitionMagnitudeTop3PoolTop1ShareSection ||
+    perTransitionMagnitudeTop3PoolTop2ShareSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4136,6 +4174,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolSection +
       perTransitionMagnitudeTop3PoolHhiSection +
       perTransitionMagnitudeTop3PoolTop1ShareSection +
+      perTransitionMagnitudeTop3PoolTop2ShareSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5605,6 +5644,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolTop1Share.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolTop1Share.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_top2_share:
+      snapshotPerTransitionMagnitudeTop3PoolTop2Share
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolTop2Share.top_n,
+            top_k: snapshotPerTransitionMagnitudeTop3PoolTop2Share.top_k,
+            oligopoly_share_min:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.oligopoly_share_min,
+            leading_share_min:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.leading_share_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Share.transitions,
           }
         : {
             skipped_reason:
