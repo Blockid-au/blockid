@@ -227,6 +227,61 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    // v3 persona landings under /solutions/* — Master Upgrade Plan §7.1
+    // (Stage-3 sub-B3). Legacy /for/founder now 301s to /solutions/founder
+    // via next.config.ts; we keep the sitemap entry to give Google a fresh
+    // canonical target during transition.
+    {
+      url: `${SITE_URL}/solutions/founder`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/solutions/vn-sme`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/vn-sme`,
+          vi: `${SITE_URL}/vi/solutions/vn-sme`,
+          "x-default": `${SITE_URL}/solutions/vn-sme`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/vi/solutions/vn-sme`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/vn-sme`,
+          vi: `${SITE_URL}/vi/solutions/vn-sme`,
+          "x-default": `${SITE_URL}/solutions/vn-sme`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/solutions/investor`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/solutions/accelerator`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    // Business ID explainer (D3 — public, indexable)
+    {
+      url: `${SITE_URL}/business-id`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
     // Insights / blog
     {
       url: `${SITE_URL}/insights`,

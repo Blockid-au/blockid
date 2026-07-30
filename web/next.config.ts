@@ -22,6 +22,33 @@ const nextConfig: NextConfig = {
   },
   // Include native/binary packages in standalone output
   serverExternalPackages: ["ioredis", "bcryptjs", "@anthropic-ai/sdk", "pptxgenjs"],
+  /**
+   * Stage-3 sub-B3 (Master Upgrade Plan §7.1): legacy `/for/*` marketing
+   * URLs migrate to `/solutions/*`. Only the /for/[segment] slugs that
+   * actually exist today get a 301; `/for/vn-sme` was never live so no
+   * redirect is registered for it (would produce a redirect chain to the
+   * dynamic-route 404). Advisor stays on `/for/advisor` because there is
+   * no `/solutions/advisor` in the plan's persona set.
+   */
+  async redirects() {
+    return [
+      {
+        source: "/for/founder",
+        destination: "/solutions/founder",
+        permanent: true,
+      },
+      {
+        source: "/for/investor",
+        destination: "/solutions/investor",
+        permanent: true,
+      },
+      {
+        source: "/for/accelerator",
+        destination: "/solutions/accelerator",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
