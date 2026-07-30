@@ -6958,3 +6958,4 @@
 {"tick_id":"2026-07-30T18-07-01-463Z","ts":"2026-07-30T18:13:40.159Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-30T18-17-01-424Z","ts":"2026-07-30T18:17:01.425Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-30T18-17-01-424Z","ts":"2026-07-30T18:17:01.438Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts":"2026-07-30T18:22:00Z","phase":"P5_investor_readiness_score","tick":"P5-accelerator-readiness-lib-test","status":"shipped","files":["web/src/lib/agents/accelerator-readiness.test.ts","docs/plans/atlassian-standard-mapping-goal.md"],"tests":{"file":"src/lib/agents/accelerator-readiness.test.ts","passed":29,"total":29,"duration_ms":313},"typecheck":"clean_for_new_file"}
