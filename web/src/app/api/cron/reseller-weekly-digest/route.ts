@@ -6171,6 +6171,35 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_per_transition_magnitude_top3_pool_range:
+      snapshotPerTransitionMagnitudeTop3PoolRange
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolRange.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolRange.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolRange.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolRange.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolRange.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolRange.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolRange.top_n,
+            compressed_range_max:
+              snapshotPerTransitionMagnitudeTop3PoolRange.compressed_range_max,
+            wide_range_min:
+              snapshotPerTransitionMagnitudeTop3PoolRange.wide_range_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolRange.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolRange.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     snapshot_per_pair_hot_cells: snapshotPerPairHotCells
       ? {
           window_size: snapshotPerPairHotCells.window_size,
