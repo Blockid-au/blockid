@@ -413,6 +413,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTheil,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-theil";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolAtkinson,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolAtkinsonSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolAtkinson,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-atkinson";
+import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1ShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
@@ -1873,6 +1878,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTheil
     | null = null;
   let perTransitionMagnitudeTop3PoolTheilSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolAtkinson:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolAtkinson
+    | null = null;
+  let perTransitionMagnitudeTop3PoolAtkinsonSection = "";
   let snapshotPerTransitionMagnitudeTop3PoolTop1Share:
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share
     | null = null;
@@ -4055,6 +4064,40 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolTheilSection(
           snapshotPerTransitionMagnitudeTop3PoolTheil,
         );
+      // P11.174 — per-transition MAGNITUDE TOP-3 POOL ATKINSON (module
+      // P11.173). Fourth distribution-shape complement to the P11.161
+      // POOL SIZE surface, completing the whole-pool inequality QUARTET
+      // that started with P11.163 HHI + P11.169 Gini + P11.171 Theil.
+      // HHI squares shares (amplifies the leader), Gini integrates every
+      // pair-wise gap (reflects the whole curve), Theil T decomposes as
+      // an entropy divergence between the observed distribution and the
+      // perfectly-uniform reference, and Atkinson A(epsilon=0.5) is a
+      // welfare-loss / equally-distributed-equivalent view answering
+      // "how much of the pool would we forgo to reach a perfectly equal
+      // distribution?" via A(0.5) = 1 - (sum sqrt(s_i))^2 / n. Cells
+      // that share an HHI + Gini + Theil label diverge on Atkinson when
+      // the shape of the leader vs. shoulders shifts the welfare-loss
+      // framing. Cutoffs mirror the income-literature bands
+      // (HIGH_ATKINSON_MIN=0.15 / MODERATE_ATKINSON_MIN=0.05 / balanced
+      // below) — narrower than Theil/Gini/HHI since A(0.5) sits in
+      // [0, 1 - 1/n] which is compressed relative to Theil's [0, ln n]
+      // and Gini's [0, 1]. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolTheilSection AND IMMEDIATELY
+      // ABOVE perTransitionMagnitudeTop3PoolTop1ShareSection per the
+      // P11.173 formatter docblock placement rule so HHI, Gini, Theil,
+      // and Atkinson sit adjacent as a whole-pool inequality QUARTET
+      // (all four answer "how equal is the pool?" with different
+      // mathematical bases) and hierarchically ABOVE the leader-slice
+      // pair. Consumes snapshotPerPairHotCells directly (same posture
+      // as the sibling per-transition magnitude drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolAtkinson =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolAtkinson(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolAtkinsonSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolAtkinsonSection(
+          snapshotPerTransitionMagnitudeTop3PoolAtkinson,
+        );
       // P11.166 — per-transition MAGNITUDE TOP-3 POOL TOP-1 SHARE
       // (module P11.165). Single-leader complement to the P11.163/P11.164
       // HHI whole-pool inequality surface. HHI folds the shape of the
@@ -4167,6 +4210,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolHhiSection ||
     perTransitionMagnitudeTop3PoolGiniSection ||
     perTransitionMagnitudeTop3PoolTheilSection ||
+    perTransitionMagnitudeTop3PoolAtkinsonSection ||
     perTransitionMagnitudeTop3PoolTop1ShareSection ||
     perTransitionMagnitudeTop3PoolTop2ShareSection ||
     perPairHotCellsSection ||
@@ -4255,6 +4299,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolHhiSection +
       perTransitionMagnitudeTop3PoolGiniSection +
       perTransitionMagnitudeTop3PoolTheilSection +
+      perTransitionMagnitudeTop3PoolAtkinsonSection +
       perTransitionMagnitudeTop3PoolTop1ShareSection +
       perTransitionMagnitudeTop3PoolTop2ShareSection +
       perPairHotCellsSection +
@@ -5755,6 +5800,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolTheil.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolTheil.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_atkinson:
+      snapshotPerTransitionMagnitudeTop3PoolAtkinson
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolAtkinson.top_n,
+            epsilon: snapshotPerTransitionMagnitudeTop3PoolAtkinson.epsilon,
+            high_atkinson_min:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.high_atkinson_min,
+            moderate_atkinson_min:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.moderate_atkinson_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolAtkinson.transitions,
           }
         : {
             skipped_reason:
