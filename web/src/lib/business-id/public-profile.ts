@@ -238,5 +238,5 @@ export async function readPublicProfile(
 
   if (error || !data) return null;
 
-  return projectRowToPublicProfile(data as Record<string, unknown>);
+  return projectRowToPublicProfile(data as unknown as Record<string, unknown>);
 }
