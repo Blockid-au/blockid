@@ -1196,3 +1196,4 @@
 {"tick_id":"2026-07-30T13-30-01-355Z","ts":"2026-07-30T13:35:30.922Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-30T13-40-01-769Z","ts":"2026-07-30T13:40:01.772Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-30T13-40-01-769Z","ts":"2026-07-30T13:40:01.841Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
+{"tick_id":"2026-07-30T13-46-11-580Z","ts":"2026-07-30T13:46:11.581Z","loop_label":"reseller-goal-loop","stage":"phase_done","phase":"P11.155_per_transition_magnitude_top3_runner_up_gap_pure_lib","tick":549,"tests":"30/30"}
