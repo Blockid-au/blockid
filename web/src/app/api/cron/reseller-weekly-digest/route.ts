@@ -473,6 +473,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top1-bottom2-ratio";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1RatioSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top2-bottom1-ratio";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1971,6 +1976,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio
     | null = null;
   let perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio
+    | null = null;
+  let perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4539,6 +4548,34 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2RatioSection(
           snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio,
         );
+      // P11.194 cron-wiring for the P11.193 pool top2/bottom1 ratio.
+      // MIRROR-ASYMMETRIC dominant-pair-to-floor-slot MULTIPLICATIVE
+      // scalar = top2_cells / bottom1_cells over the P11.161 pool.
+      // Completes the (top_k, bottom_k) 2x2 ratio grid alongside
+      // P11.185 (1v1), P11.187 (2v2), P11.191 (1v2). Numerator SUMS
+      // two slots so magnitudes INFLATE vs P11.185 by ~2x on peaky
+      // [k,1,1] pools (e.g. [4,3,2] reads 7/2=3.5 unequal vs P11.187's
+      // 1.4 LEVEL). Ratio >= 1 by construction for pool_count >= 3.
+      // Labels solo (pool_count <= 2) / level (ratio < 3) / unequal
+      // (>= 3) / stark (>= 8); cutoffs anchored to [2,1,1]=3 and
+      // [7,1,1]=8 and exactly double P11.185 to match the 2-slot
+      // numerator inflation. Inequality framing (HIGH ratio = HIGH
+      // multiplicative dominance) matching P11.185 / P11.187.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.193
+      // formatter docblock so the pool hierarchy descends whole-pool
+      // SEXTET → leader → dominant-pair → floor → range → floor-pair →
+      // top1/bottom1 RATIO → top2/bottom2 RATIO → mid-mass share →
+      // top1/bottom2 RATIO → top2/bottom1 RATIO (this) → per-pair
+      // granular. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1RatioSection(
+          snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio,
+        );
     }
   }
   if (
@@ -4610,6 +4647,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolTop2Bottom2RatioSection ||
     perTransitionMagnitudeTop3PoolMidMassShareSection ||
     perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection ||
+    perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4708,6 +4746,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolTop2Bottom2RatioSection +
       perTransitionMagnitudeTop3PoolMidMassShareSection +
       perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection +
+      perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6576,6 +6615,40 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_top2_bottom1_ratio:
+      snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.top_n,
+            top_k:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.top_k,
+            bottom_k:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.bottom_k,
+            level_ratio_max:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.level_ratio_max,
+            stark_ratio_min:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.stark_ratio_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio.transitions,
           }
         : {
             skipped_reason:
