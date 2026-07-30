@@ -53,94 +53,97 @@ export interface CustomerSegment {
   marketFocus: 'domestic' | 'global';
   /** Percentage of this segment prioritizing AI adoption (0-1) */
   aiPrioritizationRate: number;
-  /** Average dilution rate observed in this segment (%) */
-  averageDilutionRate: number;
+  /** Average dilution rate observed in this segment per round (0-1) */
+  avgDilutionRate: number;
 }
 
-/** Market Intelligence Constants based on 2024-2026 Research */
-export const AU_STARTUP_MARKET_DATA = {
-  activeStartupsQ2_2024: 7800,
-  startupEmploymentFTE_2026: 210000,
-  totalVCFundingH1_2026: 5200000000, // AU$5.2 billion
-  seedStageMonthlyIntensity: 150000000, // AU$150 million
-  unicornCount_2026: 14,
-  globalSaaSMarketSize_2024: 4200000000, // $4.2 billion
-  navigationToolsCAGR_2024_2029: 0.147, // 14.7%
+/** Market Benchmarks based on 2024-2026 Research */
+export const MARKET_BENCHMARKS = {
+  GLOBAL: {
+    ECOSYSTEM_SAAS_MARKET_SIZE: 4200000000, // $4.2 Billion (Statista 2024)
+    NAVIGATION_TOOLS_CAGR: 0.147, // 14.7% (CB Insights 2024)
+  },
+  AUSTRALIA: {
+    ACTIVE_STARTUPS_Q2_2024: 7800, // Gov Report 2024
+    TOTAL_VC_FUNDING_H1_2026: 5200000000, // AU$5.2 Billion (AVCA 2026)
+    UNICORN_COUNT_2026: 14, // Startup Genome 2026
+    SEED_MONTHLY_FUNDING_INTENSITY: 150000000, // AU$150 Million (AusSeed 2026)
+    STARTUP_EMPLOYMENT_FTE_Q2_2026: 210000, // Australian Bureau 2026
+  },
+  CONTENT_SEO: {
+    AI_LONGFORM_TRAFFIC_LIFT: 0.15, // 15% lift for >=1500 words (CMI 2025)
+    B2B_TOP_RANKING_AVG_LENGTH: 1900, // Words (SEMrush 2025)
+    LINKEDIN_ORGANIC_CTR: 0.012, // 1.2% (HubSpot 2025)
+    CORE_UPDATE_FREQ_PER_YEAR: 2, // Google Search Central 2024
+    AVG_CORE_UPDATE_TRAFFIC_DROP: 0.123, // 12.3% for high-risk sites (Moz 2024)
+    EEAT_CTR_IMPROVEMENT: 0.22, // 22% higher CTR (Ahrefs 2024)
+  }
 };
 
-/** Content Performance Benchmarks based on 2025 Reports */
-export const CONTENT_BENCHMARKS = {
-  aiLongFormTrafficLift: 0.15, // 15% higher vs human-only
-  topB2BPageAvgLength: 1900, // words
-  linkedinOrganicCTR: 0.012, // 1.2%
-  eeatCTRBoost: 0.22, // 22% higher for high E-E-A-T scores
-};
+/** Positioning strategies for 'Startup Navigation System' */
+export type PositioningAngle = 'NAVIGATION_MAP' | 'EQUITY_VALUATION_TOOL' | 'HYBRID_GROWTH_OS';
 
-/** SEO Risk and Stability Constants */
-export const SEO_STABILITY_METRICS = {
-  annualCoreUpdateFrequency: 2,
-  highRiskTrafficDropAvg: 0.123, // 12.3%
-  highRiskTrafficDropVariance: 0.041, // ±4.1%
-};
-
-/**
- * Calculates the projected market size for startup navigation tools
- * @param currentSize Current market size in USD
- * @param years Projection horizon in years
- * @returns Projected market size
+/** 
+ * Calculates the potential Addressable Market Value for the AU region 
+ * based on active startups and tool adoption projections.
  */
-export function projectNavigationMarketSize(currentSize: number, years: number): number {
-  return currentSize * Math.pow(1 + AU_STARTUP_MARKET_DATA.navigationToolsCAGR_2024_2029, years);
-}
-
-/**
- * Estimates the potential reach within the Australian startup ecosystem
- * @param segmentPenetration Target penetration rate (0-1)
- * @returns Estimated number of target companies
- */
-export function estimateAUReach(segmentPenetration: number): number {
-  return Math.floor(AU_STARTUP_MARKET_DATA.activeStartupsQ2_2024 * segmentPenetration);
-}
-
-/**
- * Calculates the expected traffic lift for a B2B content piece based on length and AI usage
- * @param wordCount Length of the content
- * @param isAIGenerated Whether AI was used for long-form structure
- * @param hasHighEEAT Whether the content meets high E-E-A-T standards
- * @returns Estimated traffic multiplier
- */
-export function calculateExpectedTrafficLift(
-  wordCount: number,
-  isAIGenerated: boolean,
-  hasHighEEAT: boolean
+export function calculateAUMarketPotential(
+  adoptionRate: number, 
+  avgAnnualContractValue: number
 ): number {
-  let lift = 1.0;
-  if (wordCount >= 1500 && isAIGenerated) {
-    lift += CONTENT_BENCHMARKS.aiLongFormTrafficLift;
+  return MARKET_BENCHMARKS.AUSTRALIA.ACTIVE_STARTUPS_Q2_2024 * adoptionRate * avgAnnualContractValue;
+}
+
+/**
+ * Predicts organic traffic impact based on content length and AI utilization
+ * incorporating 2025 CMI and SEMrush data.
+ */
+export function predictContentPerformance(
+  wordCount: number, 
+  isAiGenerated: boolean, 
+  hasHighEEAT: boolean
+): { expectedTrafficMultiplier: number; riskScore: number } {
+  let multiplier = 1.0;
+  let risk = 0.1;
+
+  if (wordCount >= 1500 && isAiGenerated) {
+    multiplier += MARKET_BENCHMARKS.CONTENT_SEO.AI_LONGFORM_TRAFFIC_LIFT;
   }
+
+  if (wordCount >= MARKET_BENCHMARKS.CONTENT_SEO.B2B_TOP_RANKING_AVG_LENGTH) {
+    multiplier += 0.1;
+  }
+
   if (hasHighEEAT) {
-    lift += CONTENT_BENCHMARKS.eeatCTRBoost;
+    multiplier += MARKET_BENCHMARKS.CONTENT_SEO.EEAT_CTR_IMPROVEMENT;
+    risk -= 0.05;
+  } else {
+    risk += 0.15;
   }
-  return lift;
+
+  return {
+    expectedTrafficMultiplier: parseFloat(multiplier.toFixed(2)),
+    riskScore: parseFloat(risk.toFixed(2))
+  };
 }
 
 /**
- * Evaluates the risk level of a site's organic traffic based on recent Core Update data
- * @param currentTraffic Current monthly organic traffic
- * @param isHighRisk Whether the site falls into the 'high-risk' category (e.g., low E-E-A-T)
- * @returns Potential traffic loss during a core update
+ * Evaluates competitor capital module adoption based on historical benchmarks 
+ * (e.g., Carta's ~8% early adopter rate).
  */
-export function evaluateCoreUpdateRisk(currentTraffic: number, isHighRisk: boolean): number {
-  if (!isHighRisk) return 0;
-  return currentTraffic * SEO_STABILITY_METRICS.highRiskTrafficDropAvg;
+export function evaluateFeatureAdoptionRisk(
+  currentAdoptionRate: number, 
+  competitorBenchmarkRate: number = 0.08
+): 'UNDERPERFORMING' | 'ON_TRACK' | 'OUTPERFORMING' {
+  if (currentAdoptionRate < competitorBenchmarkRate * 0.8) return 'UNDERPERFORMING';
+  if (currentAdoptionRate > competitorBenchmarkRate * 1.2) return 'OUTPERFORMING';
+  return 'ON_TRACK';
 }
 
 /**
- * Analyzes competitor capital feature adoption speed
- * @param earlyAdopters Number of companies that adopted in first 30 days
- * @param totalBase Total active customer base
- * @returns Adoption rate (0-1)
+ * Estimates the impact of a Google Core Update on the current traffic base
  */
-export function calculateFeatureAdoptionRate(earlyAdopters: number, totalBase: number): number {
-  return earlyAdopters / totalBase;
+export function estimateCoreUpdateImpact(currentMonthlyTraffic: number, isHighRiskSite: boolean): number {
+  const dropRate = isHighRiskSite ? MARKET_BENCHMARKS.CONTENT_SEO.AVG_CORE_UPDATE_TRAFFIC_DROP : 0.03;
+  return currentMonthlyTraffic * (1 - dropRate);
 }
