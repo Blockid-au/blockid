@@ -913,3 +913,4 @@
 {"ts":"2026-07-30T22:00:01Z","endpoint":"agent-healthcheck","status":"ok","duration_ms":57054,"detail":"{\"date\": \"2026-07-30\", \"status\": \"RED\", \"summary\": {\"passed\": 15, \"warned\": 3, \"failed\": 2, \"fixed\": 0, \"total\": 20}, \"checks\": [{\"category\": \"code\", \"check\": \"TypeScript\", \"status\": \"pass\", \"detail\":"}
 {"ts":"2026-07-30T22:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":62202,"detail":""}
 {"ts":"2026-07-30T22:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16506,"detail":""}
+{"ts":"2026-07-30T22:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2962,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235053424 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274319372 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
