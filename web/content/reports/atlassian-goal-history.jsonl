@@ -7122,3 +7122,6 @@
 {"tick_id":"2026-07-30T21-17-01-386Z","ts":"2026-07-30T21:23:23.366Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"615c0c3a","last_deployed":"0fdb48f"}
 {"tick_id":"2026-07-30T21-17-01-386Z","ts":"2026-07-30T21:23:53.240Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"615c0c3a"}
 {"tick_id":"2026-07-30T21-17-01-386Z","ts":"2026-07-30T21:23:53.241Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-30T21-27-01-612Z","ts":"2026-07-30T21:27:01.613Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-30T21-27-01-612Z","ts":"2026-07-30T21:27:01.626Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-30T21-27-01-612Z","ts":"2026-07-30T21:35:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P4_walkthrough_wiring","sub_task":"P4-startup-growth-phases-lib-test","artefact":"web/src/lib/startup-growth-phases.test.ts","cases":35,"result":"passed","typecheck":"clean"}
