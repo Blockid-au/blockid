@@ -141,10 +141,11 @@ describe("R&D Tax Incentive section (chapter 06 P1j)", () => {
     }
   });
 
-  it("no other chapter carries sections yet (P1j + P1l + Q6/Q7 + P11 + P5-tax-invoice-checker-ch5-section + P12d-redomicile-decision — chapters 05, 06, 08, 10, 11 and 12 only)", () => {
+  it("no other chapter carries sections yet (P1j + P1l + Q6/Q7 + P11 + P5-tax-invoice-checker-ch5-section + P12d-redomicile-decision + P7-ga4-measurement-plan-section — chapters 05, 06, 07, 08, 10, 11 and 12 only)", () => {
     const chaptersWithSections = new Set<ChapterSlug>([
       "05-pmf",
       "06-revenue",
+      "07-growth",
       "08-team",
       "10-fundraise",
       "11-scale",
@@ -153,6 +154,51 @@ describe("R&D Tax Incentive section (chapter 06 P1j)", () => {
     for (const chapter of listChapters()) {
       if (chaptersWithSections.has(chapter.slug)) continue;
       expect(chapter.sections).toBeUndefined();
+    }
+  });
+});
+
+describe("GA4 measurement plan section (chapter 07 P7-ga4-measurement-plan-section)", () => {
+  it("chapter 07-growth publishes a ga4-measurement-plan section EN + VI", () => {
+    const c = getChapter("07-growth");
+    expect(c).not.toBeNull();
+    expect(c?.sections).toBeDefined();
+    const s = c?.sections?.find((x) => x.id === "ga4-measurement-plan");
+    expect(s).toBeDefined();
+    expect(s?.heading.en.length).toBeGreaterThan(0);
+    expect(s?.heading.vi.length).toBeGreaterThan(0);
+    // At least six substantive bullets each; both locales aligned.
+    expect(s?.body.en.length).toBeGreaterThanOrEqual(6);
+    expect(s?.body.vi.length).toBe(s?.body.en.length);
+    for (const line of s?.body.en ?? []) {
+      expect(line.length).toBeGreaterThan(40);
+    }
+    for (const line of s?.body.vi ?? []) {
+      expect(line.length).toBeGreaterThan(40);
+    }
+  });
+
+  it("GA4 measurement plan section cites the anchors AU founders search for", () => {
+    const c = getChapter("07-growth");
+    const s = c?.sections?.find((x) => x.id === "ga4-measurement-plan");
+    const en = (s?.body.en ?? []).join("\n");
+    for (const anchor of [
+      "Privacy Act 1988",
+      "APP1",
+      "APP5",
+      "APP8",
+      "APP11",
+      "Consent Mode v2",
+      "GST Act s9-70",
+      "purchase.value",
+      "purchase.tax",
+      "Wilson",
+      "s18 Australian Consumer Law",
+      "s1041H Corporations Act 2001 (Cth)",
+      "au-ga4-measurement-plan",
+      "Notifiable Data Breaches Scheme",
+    ]) {
+      expect(en).toContain(anchor);
     }
   });
 });
