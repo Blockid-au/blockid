@@ -418,6 +418,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolAtkinson,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-atkinson";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolCv,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolCvSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolCv,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-cv";
+import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1ShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
@@ -1882,6 +1887,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolAtkinson
     | null = null;
   let perTransitionMagnitudeTop3PoolAtkinsonSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolCv:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolCv
+    | null = null;
+  let perTransitionMagnitudeTop3PoolCvSection = "";
   let snapshotPerTransitionMagnitudeTop3PoolTop1Share:
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share
     | null = null;
@@ -4098,6 +4107,37 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolAtkinsonSection(
           snapshotPerTransitionMagnitudeTop3PoolAtkinson,
         );
+      // P11.176 — per-transition MAGNITUDE TOP-3 POOL COEFFICIENT OF
+      // VARIATION (module P11.175). Fifth whole-pool inequality companion
+      // after the P11.163 HHI + P11.169 Gini + P11.171 Theil + P11.173
+      // Atkinson QUARTET, folding the P11.139 hot-cells envelope into
+      // per-(transition, band) partner + KPI coefficient of variation
+      // CV = σ / μ (population divisor n — the pool IS the population;
+      // no sampling adjustment; matches the population framing carried
+      // by the QUARTET so the QUINTET stays internally consistent
+      // "same population, five lenses"). The QUARTET all fold shares
+      // s_i = x_i / Σx through log / power / square / pair-wise
+      // transforms of the FIRST moment (shares); CV captures the SECOND
+      // moment dispersion (std / mean of the raw counts) — an orthogonal
+      // lens no share-transform metric expresses directly. Cutoffs
+      // mirror the regional-inequality CV literature (HIGH_CV_MIN=0.5 /
+      // MODERATE_CV_MIN=0.2 / balanced below). Splices IMMEDIATELY
+      // BELOW perTransitionMagnitudeTop3PoolAtkinsonSection AND
+      // IMMEDIATELY ABOVE perTransitionMagnitudeTop3PoolTop1ShareSection
+      // per the P11.175 formatter docblock placement rule so HHI, Gini,
+      // Theil, Atkinson, and CV sit adjacent as a whole-pool inequality
+      // QUINTET (all five answer "how equal is the pool?" with different
+      // mathematical bases) and hierarchically ABOVE the leader-slice
+      // pair. Consumes snapshotPerPairHotCells directly (same posture
+      // as the sibling per-transition magnitude drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolCv =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolCv(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolCvSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolCvSection(
+          snapshotPerTransitionMagnitudeTop3PoolCv,
+        );
       // P11.166 — per-transition MAGNITUDE TOP-3 POOL TOP-1 SHARE
       // (module P11.165). Single-leader complement to the P11.163/P11.164
       // HHI whole-pool inequality surface. HHI folds the shape of the
@@ -4211,6 +4251,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolGiniSection ||
     perTransitionMagnitudeTop3PoolTheilSection ||
     perTransitionMagnitudeTop3PoolAtkinsonSection ||
+    perTransitionMagnitudeTop3PoolCvSection ||
     perTransitionMagnitudeTop3PoolTop1ShareSection ||
     perTransitionMagnitudeTop3PoolTop2ShareSection ||
     perPairHotCellsSection ||
@@ -4300,6 +4341,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolGiniSection +
       perTransitionMagnitudeTop3PoolTheilSection +
       perTransitionMagnitudeTop3PoolAtkinsonSection +
+      perTransitionMagnitudeTop3PoolCvSection +
       perTransitionMagnitudeTop3PoolTop1ShareSection +
       perTransitionMagnitudeTop3PoolTop2ShareSection +
       perPairHotCellsSection +
@@ -5830,6 +5872,35 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolAtkinson.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolAtkinson.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_cv:
+      snapshotPerTransitionMagnitudeTop3PoolCv
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolCv.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolCv.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolCv.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolCv.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolCv.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolCv.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolCv.top_n,
+            high_cv_min:
+              snapshotPerTransitionMagnitudeTop3PoolCv.high_cv_min,
+            moderate_cv_min:
+              snapshotPerTransitionMagnitudeTop3PoolCv.moderate_cv_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolCv.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolCv.transitions,
           }
         : {
             skipped_reason:
