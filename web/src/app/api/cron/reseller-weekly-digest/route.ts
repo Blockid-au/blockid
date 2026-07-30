@@ -488,6 +488,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-mean-median-absolute-gap";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-mean-absolute-deviation";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1998,6 +2003,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap
     | null = null;
   let perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation
+    | null = null;
+  let perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4668,6 +4677,51 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection(
           snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap,
         );
+      // P11.200 — ADDITIVE + WHOLE-POOL dispersion fold over the
+      // P11.161 top-3 pool. Fills the last unfilled corner of the
+      // (additive/multiplicative, endpoint/whole-pool) 2x2 dispersion
+      // grid: P11.175 CV = multiplicative + whole-pool (std/mean);
+      // P11.181 range = additive + endpoint-only (max - min); this
+      // surface = additive + whole-pool via
+      //   mad = (1 / pool_count) * SUM_i |cell_i - mean_cells|
+      // in raw cell-count units. Two pools [3,1] and [30,10] both
+      // read CV 0.5 but differ under MAD (1 vs 10) — magnitude in
+      // the reader's units. Pools [10,10,10,5,1,1,1] and
+      // [10,5,5,5,5,5,1] both read range 9 but MAD ~3.43 vs ~1.71
+      // — MAD folds the interior shape range ignores. Unlike the
+      // P11.197 mean-median gap which folds only two center-of-mass
+      // summaries, MAD folds every pool cell into the same additive
+      // axis. Direction-agnostic (right-skew and left-skew both
+      // magnitude) matching P11.181 range. Well-defined for every
+      // non-empty pool: pool_count 0 → mad null; pool_count 1 →
+      // mad 0 by definition (solo — single cell coincides with its
+      // own mean); pool_count >= 2 → mad = mean absolute deviation
+      // from mean, rounded to 4 decimals — including a GENUINE
+      // dispersion read at pool_count 2 (pool [3,1] reads mad 1)
+      // unlike P11.197 where pool_count 2 collapses skewness.
+      // Labels solo (pool_count <= 1) / tight (mad < 0.5) /
+      // spread (0.5 <= mad < 2.0) / wide (mad >= 2.0); cutoffs
+      // anchored to [4,3,2]=0.667 (spread edge) and [10,1,1]=4
+      // (wide). INEQUALITY framing (HIGH mad = MORE dispersion =
+      // MORE inequality) matching P11.175 CV / P11.181 range and
+      // every other magnitude-of-dispersion sibling.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.199
+      // formatter docblock so the pool hierarchy descends whole-pool
+      // SEXTET → leader → dominant-pair → floor → range → floor-pair →
+      // top1/bottom1 RATIO → top2/bottom2 RATIO → mid-mass share →
+      // top1/bottom2 RATIO → top2/bottom1 RATIO → median/mean RATIO →
+      // mean-median ABSOLUTE GAP → mean ABSOLUTE DEVIATION (this) →
+      // per-pair granular.
+      // Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection(
+          snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation,
+        );
     }
   }
   if (
@@ -4742,6 +4796,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection ||
     perTransitionMagnitudeTop3PoolMedianMeanRatioSection ||
     perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection ||
+    perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4843,6 +4898,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection +
       perTransitionMagnitudeTop3PoolMedianMeanRatioSection +
       perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection +
+      perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6805,6 +6861,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_mean_absolute_deviation:
+      snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.top_n,
+            tight_mad_max:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.tight_mad_max,
+            wide_mad_min:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.wide_mad_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation.transitions,
           }
         : {
             skipped_reason:
