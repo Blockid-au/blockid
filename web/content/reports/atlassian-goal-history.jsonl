@@ -7143,3 +7143,5 @@
 {"tick_id":"2026-07-30T21-47-02-004Z","ts":"2026-07-30T21:47:02.005Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-30T21-47-02-004Z","ts":"2026-07-30T21:47:02.017Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-30T21-49-00-000Z","ts":"2026-07-30T21:52:00.000Z","loop_label":"atlassian-goal-loop","stage":"shipped_lib_test","phase":"P9-legal-surfaces-lib-test","file":"web/src/lib/legal/surfaces.test.ts","cases":28,"vitest_ms":310,"tsc":"clean"}
+{"tick_id":"2026-07-30T21-47-02-004Z","ts":"2026-07-30T21:53:38.882Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":396862,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-30T21-47-02-004Z","ts":"2026-07-30T21:53:38.919Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
