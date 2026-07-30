@@ -3982,6 +3982,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3RunnerUpGapSection ||
     perTransitionMagnitudeTop3TailGapSection ||
     perTransitionMagnitudeTop3MiddleGapSection ||
+    perTransitionMagnitudeTop3PoolSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4064,6 +4065,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3RunnerUpGapSection +
       perTransitionMagnitudeTop3TailGapSection +
       perTransitionMagnitudeTop3MiddleGapSection +
+      perTransitionMagnitudeTop3PoolSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5448,6 +5450,33 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3MiddleGap.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3MiddleGap.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool:
+      snapshotPerTransitionMagnitudeTop3Pool
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3Pool.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3Pool.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3Pool.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3Pool.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3Pool.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3Pool.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3Pool.top_n,
+            wide_tail_share_min:
+              snapshotPerTransitionMagnitudeTop3Pool.wide_tail_share_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3Pool.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3Pool.transitions,
           }
         : {
             skipped_reason:
