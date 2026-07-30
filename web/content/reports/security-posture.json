@@ -1,13 +1,13 @@
 {
-  "date": "2026-07-29",
-  "overall": 20,
+  "date": "2026-07-30",
+  "overall": 24,
   "status": "RED",
   "dimensions": [
     {
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "313/390 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "315/392 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/abr/lookup/route.ts",
@@ -23,7 +23,7 @@
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 0,
-      "detail": "19/390 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "19/392 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/abr/lookup/route.ts",
@@ -83,11 +83,10 @@
     {
       "key": "deploy_hygiene",
       "label": "Deploy hygiene",
-      "score": 0,
-      "detail": "last deploy 999d ago, 71 unpushed commits",
+      "score": 3,
+      "detail": "last deploy 999d ago, 0 unpushed commits",
       "findings": [
-        "Last deploy was 999 days ago",
-        "71 unpushed local commits (drift risk)"
+        "Last deploy was 999 days ago"
       ]
     }
   ],
