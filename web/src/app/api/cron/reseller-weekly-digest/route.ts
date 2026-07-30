@@ -483,6 +483,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-median-mean-ratio";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-mean-median-absolute-gap";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1989,6 +1994,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio
     | null = null;
   let perTransitionMagnitudeTop3PoolMedianMeanRatioSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap
+    | null = null;
+  let perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4623,6 +4632,42 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatioSection(
           snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio,
         );
+      // P11.198 cron-wiring for the P11.197 pool mean-median absolute gap.
+      // ADDITIVE order-statistic asymmetry scalar =
+      // |mean_cells - median_cells| over the P11.161 pool. Additive
+      // companion to the P11.195 MULTIPLICATIVE median/mean ratio; the
+      // (multiplicative, additive) split on the mean-vs-median pair
+      // mirrors the existing (P11.181 additive, P11.185 multiplicative)
+      // split on the max-vs-min endpoint pair, extending additive+multiplicative
+      // parity from the endpoint slice to the order-statistic center.
+      // Direction-agnostic magnitude (right-skew and left-skew pools
+      // both read positive; direction recoverable from P11.195 ratio).
+      // Well-defined for every non-empty pool: pool_count 0 → gap null;
+      // pool_count <= SOLO_MAX_POOL_COUNT (2) → gap 0 by definition
+      // (median coincides with mean); pool_count >= 3 →
+      // gap = |mean - median|, rounded to 4 decimals. Labels
+      // solo (pool_count <= 2) / balanced (gap < 0.5) / leaning
+      // (0.5 <= gap < 2.0) / lopsided (gap >= 2.0); cutoffs anchored
+      // to [3,1,1]=0.667 (leaning edge) and [10,1,1]=3 (lopsided).
+      // INEQUALITY framing (HIGH gap = MORE asymmetric = LESS balanced)
+      // matching P11.181 range and every other magnitude-of-asymmetry
+      // sibling, inverting the P11.195 evenness framing.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolMedianMeanRatioSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.197
+      // formatter docblock so the pool hierarchy descends whole-pool
+      // SEXTET → leader → dominant-pair → floor → range → floor-pair →
+      // top1/bottom1 RATIO → top2/bottom2 RATIO → mid-mass share →
+      // top1/bottom2 RATIO → top2/bottom1 RATIO → median/mean RATIO →
+      // mean-median ABSOLUTE GAP (this) → per-pair granular.
+      // Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection(
+          snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap,
+        );
     }
   }
   if (
@@ -4696,6 +4741,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection ||
     perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection ||
     perTransitionMagnitudeTop3PoolMedianMeanRatioSection ||
+    perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4796,6 +4842,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection +
       perTransitionMagnitudeTop3PoolTop2Bottom1RatioSection +
       perTransitionMagnitudeTop3PoolMedianMeanRatioSection +
+      perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6728,6 +6775,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_mean_median_absolute_gap:
+      snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.top_n,
+            balanced_gap_max:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.balanced_gap_max,
+            lopsided_gap_min:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.lopsided_gap_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap.transitions,
           }
         : {
             skipped_reason:
