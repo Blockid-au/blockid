@@ -468,6 +468,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShare,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-mid-mass-share";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2RatioSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top1-bottom2-ratio";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1962,6 +1967,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShare
     | null = null;
   let perTransitionMagnitudeTop3PoolMidMassShareSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio
+    | null = null;
+  let perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4501,6 +4510,35 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShareSection(
           snapshotPerTransitionMagnitudeTop3PoolMidMassShare,
         );
+      // P11.192 cron-wiring for the P11.191 pool top1/bottom2 ratio.
+      // ASYMMETRIC single-leader-to-floor-pair MULTIPLICATIVE scalar =
+      // top1_cells / bottom2_cells over the P11.161 pool where
+      // bottom2_cells sums the two smallest slot counts. Distinct
+      // reading from the SYMMETRIC P11.185 (top1/bottom1) and P11.187
+      // (top2/bottom2) surfaces because the denominator SUMS two slots
+      // — a flat pool [1,1,1] reads 0.5 (leader HALF the floor-pair
+      // combined) rather than 1, and a [4,3,2] reads 0.8 (LEVEL) even
+      // though P11.185 reads 4/2=2 UNEQUAL on the same pool. Labels
+      // solo (pool_count <= 2) / level (ratio < 1.5) / unequal (>= 1.5)
+      // / stark (>= 4); cutoffs anchored to [3,1,1]=1.5 and [8,1,1]=4
+      // small-pool inflection points. Inequality framing (HIGH ratio =
+      // HIGH multiplicative dominance) matching P11.163 / P11.169 /
+      // P11.171 / P11.173 / P11.175 / P11.181 / P11.185 / P11.187.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolMidMassShareSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.191
+      // formatter docblock so the pool hierarchy descends whole-pool
+      // SEXTET → leader → dominant-pair → floor → range → floor-pair →
+      // top1/bottom1 RATIO → top2/bottom2 RATIO → mid-mass share →
+      // top1/bottom2 RATIO (this) → per-pair granular. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2RatioSection(
+          snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio,
+        );
     }
   }
   if (
@@ -4571,6 +4609,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolTop1Bottom1RatioSection ||
     perTransitionMagnitudeTop3PoolTop2Bottom2RatioSection ||
     perTransitionMagnitudeTop3PoolMidMassShareSection ||
+    perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4668,6 +4707,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolTop1Bottom1RatioSection +
       perTransitionMagnitudeTop3PoolTop2Bottom2RatioSection +
       perTransitionMagnitudeTop3PoolMidMassShareSection +
+      perTransitionMagnitudeTop3PoolTop1Bottom2RatioSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
