@@ -398,6 +398,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3Pool,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolHhi,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolHhiSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolHhi,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-hhi";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1836,6 +1841,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3Pool
     | null = null;
   let perTransitionMagnitudeTop3PoolSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolHhi:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolHhi
+    | null = null;
+  let perTransitionMagnitudeTop3PoolHhiSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3927,6 +3936,29 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolSection(
           snapshotPerTransitionMagnitudeTop3Pool,
         );
+      // P11.164 — per-transition MAGNITUDE TOP-3 POOL HHI (module P11.163).
+      // Distribution-shape complement to the P11.161/P11.162 POOL SIZE surface.
+      // The P11.151 top-3 concentration index normalises over the top-3
+      // sub-sum only and is therefore blind to the tail; the P11.161 pool
+      // module names tail SIZE (count + share) but does NOT name the
+      // inequality shape of the FULL pool. HHI (sum of squared cell-shares
+      // across the full pool) disambiguates two cells with an identical
+      // tail_share=0.50: Pareto-shape (one dominant partner + broad tail;
+      // HHI ~0.60 → dominant) vs flat-shape (many near-peer partners;
+      // HHI ~1/N → diffuse). Cutoffs mirror the DOJ/FTC merger-review HHI
+      // bands (0.15 moderate / 0.25 concentrated). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolSection AND IMMEDIATELY ABOVE
+      // perPairHotCellsSection per the P11.163 formatter docblock placement
+      // rule. Consumes snapshotPerPairHotCells directly (same posture as the
+      // sibling per-transition magnitude drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolHhi =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolHhi(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolHhiSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolHhiSection(
+          snapshotPerTransitionMagnitudeTop3PoolHhi,
+        );
     }
   }
   if (
@@ -3983,6 +4015,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3TailGapSection ||
     perTransitionMagnitudeTop3MiddleGapSection ||
     perTransitionMagnitudeTop3PoolSection ||
+    perTransitionMagnitudeTop3PoolHhiSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
