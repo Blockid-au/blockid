@@ -7101,3 +7101,4 @@
 {"tick_id":"2026-07-30T20-47-01-792Z","ts":"2026-07-30T20:56:16.042Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-30T20-57-01-141Z","ts":"2026-07-30T20:57:01.141Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-30T20-57-01-141Z","ts":"2026-07-30T20:57:01.159Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-30T20-57-01-141Z","ts":"2026-07-30T21:00:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5_investor_readiness_score","subtask":"P5-fundraise-lib-test","tests":46,"file":"web/src/lib/fundraise.test.ts","note":"colocated 46-case vitest for calculateRound() priced/SAFE/convertible dilution engine (all 46 green; tsc clean for new file)"}
