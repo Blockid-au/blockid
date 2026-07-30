@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-07-30.575
+version: 2026-07-30.576
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -1365,6 +1365,109 @@ kpi:
   contribution_margin_pct_mtd: 0
 
 review_history:
+  - tick: 539
+    ran_at: 2026-07-30
+    action: p11_182_per_transition_magnitude_top3_pool_range_cron_wiring
+    result: |
+      Cron-route wiring for P11.181 — takes the per-transition magnitude
+      TOP-3 pool RANGE pure-lib out of the freezer and plants it in the
+      hot Monday cron path. Follows the pure-lib-first cadence exactly
+      (P11.161→P11.162 / P11.163→P11.164 / P11.165→P11.166 / P11.167→
+      P11.168 / P11.169→P11.170 / P11.171→P11.172 / P11.173→P11.174 /
+      P11.175→P11.176 / P11.177→P11.178 / P11.179→P11.180 / this tick):
+      previous pure-lib tick lands the derivation + test coverage
+      (P11.181 shipped at commit d6cf211e with 33/33 vitest); this tick
+      threads it into imports, state vars, compute+format inside the
+      shared truthiness guard, hoist condition, HTML splice order and
+      response-envelope entry — all adjacent to the bottom-1 share
+      sibling so the pool hierarchy stays contiguous without disturbing
+      any other section.
+
+      Splice order at the per-transition MAGNITUDE TOP-3 POOL block
+      now reads:
+        perTransitionMagnitudeTop3PoolSection (P11.161)
+        + perTransitionMagnitudeTop3PoolHhiSection (P11.163)
+        + perTransitionMagnitudeTop3PoolGiniSection (P11.169)
+        + perTransitionMagnitudeTop3PoolTheilSection (P11.171)
+        + perTransitionMagnitudeTop3PoolAtkinsonSection (P11.173)
+        + perTransitionMagnitudeTop3PoolCvSection (P11.175)
+        + perTransitionMagnitudeTop3PoolNormalizedEntropySection (P11.177)
+        + perTransitionMagnitudeTop3PoolTop1ShareSection (P11.165)
+        + perTransitionMagnitudeTop3PoolTop2ShareSection (P11.167)
+        + perTransitionMagnitudeTop3PoolBottom1ShareSection (P11.179)
+        + perTransitionMagnitudeTop3PoolRangeSection  ← this tick
+        + perPairHotCellsSection
+
+      Splice placement rule: IMMEDIATELY BELOW
+      perTransitionMagnitudeTop3PoolBottom1ShareSection AND IMMEDIATELY
+      ABOVE perPairHotCellsSection per the P11.181 formatter docblock —
+      the pool is described from EVERY-END (whole-pool SEXTET) → EACH
+      SLICE (top-1, top-2, bottom-1) → SPREAD (this scalar) → per-pair
+      GRANULAR. Ops reads the head-to-floor gap AFTER the leader and
+      trailer are named individually, so the range scalar folds those
+      two shares into one number without hiding either endpoint.
+
+      Guard: SAME snapshotPerPairHotCells truthiness that P11.162 /
+      P11.164 / P11.166 / P11.168 / P11.170 / P11.172 / P11.174 /
+      P11.176 / P11.178 / P11.180 use, so week-1 (no previous snapshot)
+      + window_size<3 + zero-hot-cells all suppress the sextet + leader/
+      trailer/spread trio together — nothing appears half-rendered.
+
+      Compute consumes snapshotPerPairHotCells directly rather than
+      re-walking the P11.161 pool envelope — mirrors the P11.180
+      bottom-1 sibling exactly, so a JSONL consumer joining bottom1 +
+      range across ticks can't observe a bucket present on one surface
+      and absent on the other.
+
+      Envelope entry snapshot_per_transition_magnitude_top3_pool_range
+      landed IMMEDIATELY AFTER snapshot_per_transition_magnitude_top3_
+      pool_bottom1_share and IMMEDIATELY BEFORE snapshot_per_pair_hot_
+      cells so the eleven per-transition-pool envelope entries stay
+      contiguous and hierarchically ordered per the P11.181 module
+      docblock envelope-adjacency rule. Envelope surfaces
+      compressed_range_max (0.20) + wide_range_min (0.50) alongside
+      band_thresholds so a JSONL consumer can render the solo /
+      compressed / moderate / wide vocabulary without importing the TS
+      module.
+
+      Verification:
+        - `cd web && npx vitest run src/lib/reseller/digest-snapshot-
+          per-transition-magnitude-top3-pool-range.test.ts` → 33/33
+          (unchanged from P11.181 tick — cron-wiring adds no new lib
+          tests, matching the P11.162 → P11.180 cadence).
+        - `cd web && npx tsc --noEmit`: pre-existing errors on
+          dataroom/populate.test.ts, pdf/valuation-report-pdf.tsx,
+          scn-detect.ts / scn-detect.test.ts, showcase/atlassian/
+          steps.test.ts, digest-snapshot-per-transition-magnitude-top3-
+          pool-gini.test.ts (unrelated to this tick — the gini one
+          predates P11.180 per the tick 537/538 note chain, the others
+          are on scn-detect / dataroom / pdf / showcase paths outside
+          the reseller scorecard hierarchy). No new errors on route.ts
+          or the new per-transition-pool-range module — the wiring
+          reuses the exact bottom-1 sibling signature and envelope
+          shape.
+        - `cd web && npm run lint:reseller`: 11 R-01 + 41 R-03 + 8
+          R-04 + 11 R-10 scanned; pre-existing R-03 violations on
+          mentor + startup-package routes (mentor/notes, mentor/check-
+          ins, mentor/access-request, startup-package/save-answer,
+          startup-package/analyze, startup-package/deliverable,
+          startup-package/reservation) predate this tick per the
+          P11.108→P11.180 note chain — none on reseller scorecard
+          critical path, none introduced by this tick.
+
+      Frontier after tick 539: shape unchanged — Track A P8.5 STILL
+      HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL;
+      Track B COMPLETE; P1.5 InfoVision seed STILL HUMAN-BLOCKED on
+      H.20 ABN + GST; P10 still blocked_by [P1..P9] until P8.5 clears.
+      Next surfaces: (a) per-transition pool INTERQUARTILE RANGE
+      (IQR = q75 − q25) as a spread scalar that ignores head + floor
+      outliers — companion to this range scalar and complement to
+      P11.163 HHI's "sum-of-squared-shares" whole-pool fold; (b)
+      per-transition pool COEFFICIENT OF QUARTILE VARIATION ((q75−
+      q25)/(q75+q25)) as an outlier-robust dispersion scalar in
+      the same family; or (c) a fresh detector-family surface
+      (slope / regression / delta-velocity) at the whole-pool level.
+
   - tick: 538
     ran_at: 2026-07-25
     action: p11_144_per_transition_hot_cells_drilldown_cron_wiring
