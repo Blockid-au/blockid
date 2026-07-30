@@ -159,20 +159,26 @@ describe("registry / guard cross-invariants", () => {
     }
   });
 
-  it("all version strings are unique-per-kind (a shared string is legal but any duplicate must be intentional)", () => {
-    // Currently tos + privacy share a version. Assert the multiset only
-    // contains that one intentional pair so an accidental copy-paste on a
-    // new kind fires here instead of silently reusing an existing hash.
+  it("shipped release train: tos/privacy on v2.0 and the other 5 kinds on v1.0 (both dated 2026-07-16)", () => {
+    // The 2026-07-16 bulk release stamped tos/privacy at v2.0 and the five
+    // AFSL/consent kinds at v1.0. Pin the distinct-string count so an
+    // accidental copy of one group's version into the other fires here
+    // instead of silently reusing a body_md hash in consent_events.
     const versions = Object.values(DISCLAIMER_VERSIONS);
-    const counts = new Map<string, number>();
-    for (const v of versions) counts.set(v, (counts.get(v) ?? 0) + 1);
-    const duplicates = [...counts.entries()].filter(([, n]) => n > 1);
-    // Only the tos/privacy shared version is expected; everything else must
-    // be unique so a body_md edit forces a bumped version + re-consent.
-    expect(duplicates).toHaveLength(1);
-    const [sharedVersion, count] = duplicates[0]!;
-    expect(count).toBe(2);
-    expect(sharedVersion).toBe(DISCLAIMER_VERSIONS.tos);
-    expect(sharedVersion).toBe(DISCLAIMER_VERSIONS.privacy);
+    const unique = new Set(versions);
+    expect(unique.size).toBe(2);
+    expect(unique.has("v2.0-2026-07-16")).toBe(true);
+    expect(unique.has("v1.0-2026-07-16")).toBe(true);
+    expect(DISCLAIMER_VERSIONS.tos).toBe("v2.0-2026-07-16");
+    expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.0-2026-07-16");
+    for (const kind of [
+      "general_advice_warning",
+      "wholesale_certification",
+      "equity_offer_disclaimer",
+      "not_financial_advice",
+      "marketing",
+    ] as const) {
+      expect(DISCLAIMER_VERSIONS[kind]).toBe("v1.0-2026-07-16");
+    }
   });
 });
