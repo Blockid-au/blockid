@@ -7063,3 +7063,6 @@
 {"tick_id":"2026-07-30T20-07-01-582Z","ts":"2026-07-30T20:13:56.342Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"b9a86745","last_deployed":"0fdb48f"}
 {"tick_id":"2026-07-30T20-07-01-582Z","ts":"2026-07-30T20:14:25.818Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"b9a86745"}
 {"tick_id":"2026-07-30T20-07-01-582Z","ts":"2026-07-30T20:14:25.820Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-30T20-17-01-906Z","ts":"2026-07-30T20:17:01.907Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-30T20-17-01-906Z","ts":"2026-07-30T20:17:01.922Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-30T20-25-00-000Z","ts":"2026-07-30T20:25:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5_investor_readiness_score","subtask":"P5-cap-table-lib-test","tests":37,"file":"web/src/lib/cap-table.test.ts"}
