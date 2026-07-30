@@ -1122,6 +1122,21 @@
         "href": "/tools/valuation-calculator"
       },
       "angle": "Explain the tax implications of setting an aggressive vs conservative valuation for founders and early employees. Focus on Capital Gains Tax (CGT) and the risks of 'undervaluing' shares during equity issuance in the eyes of the ATO."
+    },
+    {
+      "slug": "startup-valuation-for-employee-share-schemes-australia",
+      "title": "Startup Valuation for ESS: Australian Tax & Compliance Guide",
+      "category": "compliance",
+      "keywords": [
+        "ESS valuation Australia",
+        "employee share scheme tax",
+        "startup share valuation ATO"
+      ],
+      "cta": {
+        "label": "Calculate Valuation",
+        "href": "/tools/valuation-calculator"
+      },
+      "angle": "Explain how to determine a 'fair market value' for shares issued under an Employee Share Scheme (ESS) to avoid ATO penalties. Provide a step-by-step approach for founders to value shares for employees without over-inflating the price or triggering immediate tax liabilities."
     }
   ]
 }
