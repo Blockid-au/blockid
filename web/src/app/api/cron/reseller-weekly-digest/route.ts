@@ -383,6 +383,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3RunnerUpGap,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-runner-up-gap";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3TailGap,
+  formatDigestSnapshotPerTransitionMagnitudeTop3TailGapSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3TailGap,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-tail-gap";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1809,6 +1814,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3RunnerUpGap
     | null = null;
   let perTransitionMagnitudeTop3RunnerUpGapSection = "";
+  let snapshotPerTransitionMagnitudeTop3TailGap:
+    | DigestSnapshotPerTransitionMagnitudeTop3TailGap
+    | null = null;
+  let perTransitionMagnitudeTop3TailGapSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3837,6 +3846,31 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3RunnerUpGapSection(
           snapshotPerTransitionMagnitudeTop3RunnerUpGap,
         );
+      // P11.158 — per-transition MAGNITUDE TOP-3 TAIL GAP (module P11.157).
+      // Tail-flatness complement to the P11.155 top-of-pack runner-up gap.
+      // Runner-up gap answers "how much daylight does #1 have over #2?" (the
+      // top-of-pack question); this module answers "how much daylight does
+      // #1 have over the last entry in the top-N ranked list?" (the tail-
+      // flatness question). Together the two scalars name both ends of the
+      // ranked window shape. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3RunnerUpGapSection AND IMMEDIATELY ABOVE
+      // perPairHotCellsSection per the P11.157 formatter docblock placement
+      // rule so the hierarchy descends per-transition DRILL-DOWN (P11.143) →
+      // per-transition MAGNITUDE scalars (P11.145) → per-transition
+      // MAGNITUDE LEADERBOARD single-winner (P11.147) → per-transition
+      // MAGNITUDE TOP-3 LEADERBOARD (P11.149) → per-transition MAGNITUDE
+      // TOP-3 CONCENTRATION (P11.151) → per-transition MAGNITUDE TOP-3 TIE
+      // COUNT (P11.153) → per-transition MAGNITUDE TOP-3 RUNNER-UP GAP
+      // (P11.155) → per-transition MAGNITUDE TOP-3 TAIL GAP (P11.157) →
+      // per-pair hot-cells GRANULAR (P11.139).
+      snapshotPerTransitionMagnitudeTop3TailGap =
+        computeDigestSnapshotPerTransitionMagnitudeTop3TailGap(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3TailGapSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3TailGapSection(
+          snapshotPerTransitionMagnitudeTop3TailGap,
+        );
     }
   }
   if (
@@ -3890,6 +3924,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3ConcentrationSection ||
     perTransitionMagnitudeTop3TieCountSection ||
     perTransitionMagnitudeTop3RunnerUpGapSection ||
+    perTransitionMagnitudeTop3TailGapSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -3970,6 +4005,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3ConcentrationSection +
       perTransitionMagnitudeTop3TieCountSection +
       perTransitionMagnitudeTop3RunnerUpGapSection +
+      perTransitionMagnitudeTop3TailGapSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5300,6 +5336,33 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3RunnerUpGap.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3RunnerUpGap.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_tail_gap:
+      snapshotPerTransitionMagnitudeTop3TailGap
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3TailGap.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3TailGap.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3TailGap.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3TailGap.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3TailGap.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3TailGap.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3TailGap.top_n,
+            outlier_gap_min:
+              snapshotPerTransitionMagnitudeTop3TailGap.outlier_gap_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3TailGap.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3TailGap.transitions,
           }
         : {
             skipped_reason:
