@@ -812,3 +812,4 @@
 {"ts":"2026-07-30T15:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":731,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235127196 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274321828 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-30T15:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":6117,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-07-30T15:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16541,"detail":""}
+{"ts":"2026-07-30T15:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16480,"detail":""}
