@@ -373,6 +373,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3Concentration,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-concentration";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3TieCount,
+  formatDigestSnapshotPerTransitionMagnitudeTop3TieCountSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3TieCount,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-tie-count";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1791,6 +1796,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3Concentration
     | null = null;
   let perTransitionMagnitudeTop3ConcentrationSection = "";
+  let snapshotPerTransitionMagnitudeTop3TieCount:
+    | DigestSnapshotPerTransitionMagnitudeTop3TieCount
+    | null = null;
+  let perTransitionMagnitudeTop3TieCountSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3769,6 +3778,30 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3ConcentrationSection(
           snapshotPerTransitionMagnitudeTop3Concentration,
         );
+      // P11.154 — per-transition MAGNITUDE TOP-3 TIE COUNT (module P11.153).
+      // Absolute-count complement to the P11.152 concentration index. The
+      // concentration scalar answers "how DOMINANT is the #1 pick?"; this
+      // module answers "how MANY entries are tied at the top?" as an integer
+      // in [0, TOP_N]. Together the two disambiguate cases the concentration
+      // formula alone squashes together (e.g. index=0.5 = 1/2 clear leader
+      // vs 2/4 tied pair with a runner-up). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3ConcentrationSection AND IMMEDIATELY ABOVE
+      // perPairHotCellsSection per the P11.153 formatter docblock placement
+      // rule so the hierarchy descends per-transition DRILL-DOWN (P11.143)
+      // → per-transition MAGNITUDE scalars (P11.145) → per-transition
+      // MAGNITUDE LEADERBOARD single-winner (P11.147) → per-transition
+      // MAGNITUDE TOP-3 LEADERBOARD (P11.149) → per-transition MAGNITUDE
+      // TOP-3 CONCENTRATION (P11.151) → per-transition MAGNITUDE TOP-3 TIE
+      // COUNT (P11.153) → per-pair hot-cells GRANULAR (P11.139) → per-pair
+      // scalar distribution (P11.130).
+      snapshotPerTransitionMagnitudeTop3TieCount =
+        computeDigestSnapshotPerTransitionMagnitudeTop3TieCount(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3TieCountSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3TieCountSection(
+          snapshotPerTransitionMagnitudeTop3TieCount,
+        );
     }
   }
   if (
@@ -3820,6 +3853,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeLeaderboardSection ||
     perTransitionMagnitudeTop3LeaderboardSection ||
     perTransitionMagnitudeTop3ConcentrationSection ||
+    perTransitionMagnitudeTop3TieCountSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -3898,6 +3932,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeLeaderboardSection +
       perTransitionMagnitudeTop3LeaderboardSection +
       perTransitionMagnitudeTop3ConcentrationSection +
+      perTransitionMagnitudeTop3TieCountSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5177,6 +5212,30 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3Concentration.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3Concentration.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_tie_count:
+      snapshotPerTransitionMagnitudeTop3TieCount
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3TieCount.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3TieCount.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3TieCount.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3TieCount.sustained_p90_threshold,
+            threshold: snapshotPerTransitionMagnitudeTop3TieCount.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3TieCount.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3TieCount.top_n,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3TieCount.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3TieCount.transitions,
           }
         : {
             skipped_reason:
