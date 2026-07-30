@@ -4099,6 +4099,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3TailGapSection +
       perTransitionMagnitudeTop3MiddleGapSection +
       perTransitionMagnitudeTop3PoolSection +
+      perTransitionMagnitudeTop3PoolHhiSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5510,6 +5511,35 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3Pool.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3Pool.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_hhi:
+      snapshotPerTransitionMagnitudeTop3PoolHhi
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolHhi.top_n,
+            concentrated_hhi_min:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.concentrated_hhi_min,
+            moderate_hhi_min:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.moderate_hhi_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolHhi.transitions,
           }
         : {
             skipped_reason:
