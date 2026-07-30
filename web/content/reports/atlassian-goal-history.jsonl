@@ -7077,3 +7077,10 @@
 {"tick_id":"2026-07-30T20-34-23-949Z","ts":"2026-07-30T20:34:23.950Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5_investor_readiness_score","subtask":"P5-equity-split-lib-test","tests":33,"file":"web/src/lib/equity-split.test.ts"}
 {"tick_id":"2026-07-30T20-27-01-626Z","ts":"2026-07-30T20:35:05.637Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":483996,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-30T20-27-01-626Z","ts":"2026-07-30T20:35:05.671Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
+{"tick_id":"2026-07-30T20-27-01-626Z","ts":"2026-07-30T20:35:07.429Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-30T20-27-01-626Z","ts":"2026-07-30T20:35:07.437Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"dec4e2c4","last_deployed":"0fdb48f"}
+{"tick_id":"2026-07-30T20-27-01-626Z","ts":"2026-07-30T20:35:33.099Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"dec4e2c4"}
+{"tick_id":"2026-07-30T20-27-01-626Z","ts":"2026-07-30T20:35:33.100Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-30T20-37-01-631Z","ts":"2026-07-30T20:37:01.632Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-30T20-37-01-631Z","ts":"2026-07-30T20:37:01.644Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-30T20-40-00-000Z","ts":"2026-07-30T20:41:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P4_walkthrough_wiring","subtask":"P4-rnd-idea-lab-lib-test","tests":43,"file":"web/src/lib/agents/rnd-idea-lab.test.ts"}
