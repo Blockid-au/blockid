@@ -100,6 +100,12 @@ export async function POST(request: Request) {
   }
 
   const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { ok: false, reason: "Database not configured" },
+      { status: 503 },
+    );
+  }
 
   // Reject a second in-flight order for the same (business, user) before
   // hitting Stripe. Mirrors the partial UNIQUE index on report_orders so

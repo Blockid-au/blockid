@@ -831,3 +831,6 @@
 {"ts":"2026-07-30T16:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16441,"detail":""}
 {"ts":"2026-07-30T16:10:01Z","endpoint":"nurture","status":"ok","duration_ms":194,"detail":"{\"sent\": 0, \"skipped\": 0, \"ts\": \"2026-07-30T16:10:01.396Z\", \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
 {"ts":"2026-07-30T16:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":837,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235091536 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274319420 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-30T16:15:01Z","endpoint":"vesting","status":"ok","duration_ms":207,"detail":"{\"processed\": 1, \"completed\": 0, \"emailed\": 0}"}
+{"ts":"2026-07-30T16:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16504,"detail":""}
+{"ts":"2026-07-30T16:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":159,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
