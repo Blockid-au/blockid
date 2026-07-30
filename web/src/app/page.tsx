@@ -7,6 +7,10 @@ import { HeroSearch } from "@/components/landing/hero-search";
 import { HeroV3, EmotionalBand } from "@/components/landing/hero-v3";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { TrustStrip } from "@/components/landing/trust-strip";
+import {
+  readSignedInHint,
+  SIGNED_IN_LANDING_HREF,
+} from "@/lib/supabase/session-hint";
 
 export const metadata = {
   title:
@@ -47,7 +51,7 @@ function readVersionString(): string | null {
   return cachedVersion;
 }
 
-export default function HomePage() {
+export default async function HomePage() {
   const upgradeV3 = process.env.NEXT_PUBLIC_UPGRADE_V3 === "true";
   const upgradeV2 = process.env.NEXT_PUBLIC_UPGRADE_V2 === "true";
 
@@ -57,6 +61,7 @@ export default function HomePage() {
   // /how-it-works, /partners, /trust bands stay identical between V2 and V3.
   if (upgradeV3) {
     const version = readVersionString();
+    const isSignedIn = await readSignedInHint();
     const entityLine = [
       "Auschain PTY LTD",
       "ACN 659 615 111",
@@ -76,7 +81,9 @@ export default function HomePage() {
         </a>
         <NavV2 />
         <main id="main-content">
-          <HeroV3 />
+          <HeroV3
+            signedInHref={isSignedIn ? SIGNED_IN_LANDING_HREF : undefined}
+          />
           <EmotionalBand />
           <section
             id="how"
