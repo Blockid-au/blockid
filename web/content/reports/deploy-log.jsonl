@@ -3858,3 +3858,5 @@
 {"ts":"2026-07-30T20:25:15.151Z","event":"github-push-master","detail":"Blockid-au: test(cap-table): P5-cap-table-lib-test 37-case vitest for cap-table.ts (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-30T20:25:25.553Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-30T20-17-01-906Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-30T20:29:28.878Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P11.187 pool top2/bottom2 multiplicative ratio pure-lib (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T20:29:42.557Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-30T20-20-01-461Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-30T20:34:55.033Z","event":"github-push-master","detail":"Blockid-au: test(equity-split): P5-equity-split-lib-test 33-case vitest for equity-split.ts (1 commits)","source":"github-webhook"}
