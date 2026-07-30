@@ -1,0 +1,609 @@
+import { describe, expect, it } from "vitest";
+
+import type { KnownKpiSection } from "./digest-snapshot";
+import type {
+  DigestSnapshotPerPairHotCells,
+  PerPairHotCellRow,
+} from "./digest-snapshot-per-pair-hot-cells";
+import {
+  MAGNITUDE_MEDIUM_MAX,
+  MAGNITUDE_SMALL_MAX,
+} from "./digest-snapshot-per-transition-magnitude-drilldown";
+import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection,
+  TOP_N,
+} from "./digest-snapshot-per-transition-magnitude-top3-pool-bottom2-share";
+
+type TransitionToken = PerPairHotCellRow["transition"];
+
+function cell(
+  code: string,
+  key: KnownKpiSection,
+  transition: TransitionToken,
+  hot_score: number,
+  overrides: Partial<PerPairHotCellRow> = {},
+): PerPairHotCellRow {
+  const base: PerPairHotCellRow = {
+    reseller_code: code,
+    key,
+    metric_name: `${key} name`,
+    unit: "cents",
+    transition,
+    from_verdict: transition === "first_classification" ? null : "flat",
+    to_verdict: "sustained_both_axes",
+    delta_rank: (() => {
+      switch (transition) {
+        case "improved":
+          return hot_score;
+        case "degraded":
+          return -hot_score;
+        case "rotated":
+        case "stable":
+          return 0;
+        case "undecidable":
+        case "first_classification":
+          return null;
+      }
+    })(),
+    summary: `stub ${code} × ${key} ${transition}`,
+    hot_score,
+  };
+  return { ...base, ...overrides };
+}
+
+function envelope(
+  rows: PerPairHotCellRow[],
+  overrides: Partial<Omit<DigestSnapshotPerPairHotCells, "rows">> = {},
+): DigestSnapshotPerPairHotCells {
+  return {
+    window_size: 4,
+    first_week: "2026-W28",
+    last_week: "2026-W31",
+    sustained_p90_threshold: 3,
+    threshold: 0.25,
+    rows,
+    ...overrides,
+  };
+}
+
+describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share — envelope passthrough", () => {
+  it("carries scalars verbatim from source envelope", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([cell("ACME", "attributed_mrr", "improved", 2)], {
+        window_size: 7,
+        first_week: "2026-W25",
+        last_week: "2026-W31",
+        sustained_p90_threshold: 5,
+        threshold: 0.4,
+      }),
+    );
+    expect(out.window_size).toBe(7);
+    expect(out.first_week).toBe("2026-W25");
+    expect(out.last_week).toBe("2026-W31");
+    expect(out.sustained_p90_threshold).toBe(5);
+    expect(out.threshold).toBe(0.4);
+  });
+
+  it("keeps null first_week / last_week when envelope carries null", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([], { first_week: null, last_week: null }),
+    );
+    expect(out.first_week).toBeNull();
+    expect(out.last_week).toBeNull();
+  });
+
+  it("pins band_thresholds to shared MAGNITUDE_*_MAX constants", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([]),
+    );
+    expect(out.band_thresholds.small_max).toBe(MAGNITUDE_SMALL_MAX);
+    expect(out.band_thresholds.medium_max).toBe(MAGNITUDE_MEDIUM_MAX);
+  });
+
+  it("re-exports the shared TOP_N constant (3) and pins bottom_k to 2", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([]),
+    );
+    expect(out.top_n).toBe(TOP_N);
+    expect(out.top_n).toBe(3);
+    expect(out.bottom_k).toBe(2);
+  });
+
+  it("floor cutoffs are plain-language 25% / 50% bands", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([]),
+    );
+    expect(out.fat_floor_min).toBe(0.5);
+    expect(out.moderate_floor_min).toBe(0.25);
+    expect(out.fat_floor_min).toBeGreaterThan(out.moderate_floor_min);
+    expect(out.moderate_floor_min).toBeGreaterThan(0);
+    expect(out.fat_floor_min).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share — envelope shape stability", () => {
+  it("empty envelope emits pool_count 0 + bottom2_share null in every cell", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([]),
+    );
+    for (const t of [
+      "improved",
+      "degraded",
+      "rotated",
+      "undecidable",
+    ] as const) {
+      for (const b of ["small", "medium", "large"] as const) {
+        const band = out.transitions[t].bands[b];
+        expect(band.partner_pool_count).toBe(0);
+        expect(band.partner_pool_cells).toBe(0);
+        expect(band.partner_bottom2_cells).toBe(0);
+        expect(band.partner_bottom2_share).toBeNull();
+        expect(band.metric_pool_count).toBe(0);
+        expect(band.metric_bottom2_share).toBeNull();
+      }
+    }
+    expect(out.total_hot_cells).toBe(0);
+  });
+
+  it("envelope always ships all 4 transitions × 3 bands", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([cell("ACME", "attributed_mrr", "improved", 2)]),
+    );
+    expect(Object.keys(out.transitions).sort()).toEqual(
+      ["degraded", "improved", "rotated", "undecidable"].sort(),
+    );
+    for (const t of [
+      "improved",
+      "degraded",
+      "rotated",
+      "undecidable",
+    ] as const) {
+      expect(Object.keys(out.transitions[t].bands).sort()).toEqual(
+        ["large", "medium", "small"].sort(),
+      );
+    }
+  });
+});
+
+describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share — arithmetic", () => {
+  it("solo cell (1 partner, 1 cell) → bottom2_share 1 (by definition)", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([cell("ACME", "attributed_mrr", "improved", 2)]),
+    );
+    const band = out.transitions.improved.bands.small;
+    expect(band.partner_pool_count).toBe(1);
+    expect(band.partner_pool_cells).toBe(1);
+    expect(band.partner_bottom2_cells).toBe(1);
+    expect(band.partner_bottom2_share).toBe(1);
+    expect(band.metric_bottom2_share).toBe(1);
+  });
+
+  it("two-partner pool → bottom2 spans the whole pool → share = 1", () => {
+    // Pool has 2 partners with 3 and 1 cells → bottom2 = 1 + 3 = 4 = pool_cells.
+    const rows: PerPairHotCellRow[] = [
+      cell("A", "attributed_mrr", "improved", 4),
+      cell("A", "commission_cleared_mtd", "improved", 4),
+      cell("A", "attributed_net_contribution", "improved", 4),
+      cell("B", "attributed_mrr", "improved", 4),
+    ];
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.medium;
+    expect(band.partner_pool_count).toBe(2);
+    expect(band.partner_pool_cells).toBe(4);
+    expect(band.partner_bottom2_cells).toBe(4);
+    expect(band.partner_bottom2_share).toBe(1);
+  });
+
+  it("flat 4-partner pool [1,1,1,1] → bottom2 = 2 → share = 0.5 (fat_floor edge)", () => {
+    const rows: PerPairHotCellRow[] = [];
+    for (const code of ["A", "B", "C", "D"]) {
+      rows.push(cell(code, "attributed_mrr", "improved", 4));
+    }
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.medium;
+    expect(band.partner_pool_count).toBe(4);
+    expect(band.partner_pool_cells).toBe(4);
+    expect(band.partner_bottom2_cells).toBe(2);
+    expect(band.partner_bottom2_share).toBe(0.5);
+    expect(band.partner_bottom2_share!).toBeGreaterThanOrEqual(
+      out.fat_floor_min,
+    );
+  });
+
+  it("flat 5-partner pool [1,1,1,1,1] → bottom2 = 2 → share = 0.4 (moderate_floor)", () => {
+    const rows: PerPairHotCellRow[] = [];
+    for (const code of ["A", "B", "C", "D", "E"]) {
+      rows.push(cell(code, "attributed_mrr", "improved", 4));
+    }
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.medium;
+    expect(band.partner_pool_count).toBe(5);
+    expect(band.partner_pool_cells).toBe(5);
+    expect(band.partner_bottom2_cells).toBe(2);
+    expect(band.partner_bottom2_share).toBe(0.4);
+    expect(band.partner_bottom2_share!).toBeGreaterThanOrEqual(
+      out.moderate_floor_min,
+    );
+    expect(band.partner_bottom2_share!).toBeLessThan(out.fat_floor_min);
+  });
+
+  it("dominant-leader pool [6,1,1] → bottom2 = 2 → share = 0.25 (moderate_floor edge)", () => {
+    const rows: PerPairHotCellRow[] = [
+      cell("ACME", "attributed_mrr", "improved", 4),
+      cell("ACME", "commission_cleared_mtd", "improved", 4),
+      cell("ACME", "attributed_net_contribution", "improved", 4),
+      cell("ACME", "contribution_margin_pct", "improved", 4),
+      cell("ACME", "clawback_exposure", "improved", 4),
+      cell("ACME", "budget_utilization", "improved", 4),
+      cell("B", "attributed_mrr", "improved", 4),
+      cell("C", "attributed_mrr", "improved", 4),
+    ];
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.medium;
+    expect(band.partner_pool_count).toBe(3);
+    expect(band.partner_pool_cells).toBe(8);
+    expect(band.partner_bottom2_cells).toBe(2);
+    expect(band.partner_bottom2_share).toBe(0.25);
+    expect(band.partner_bottom2_share!).toBeGreaterThanOrEqual(
+      out.moderate_floor_min,
+    );
+    expect(band.partner_bottom2_share!).toBeLessThan(out.fat_floor_min);
+  });
+
+  it("moderately uneven pool [4,3,2] → bottom2 = 3 + 2 = 5 → share = 5/9 = 0.5556 (fat_floor)", () => {
+    const rows: PerPairHotCellRow[] = [
+      cell("A", "attributed_mrr", "improved", 4),
+      cell("A", "commission_cleared_mtd", "improved", 4),
+      cell("A", "attributed_net_contribution", "improved", 4),
+      cell("A", "contribution_margin_pct", "improved", 4),
+      cell("B", "attributed_mrr", "improved", 4),
+      cell("B", "commission_cleared_mtd", "improved", 4),
+      cell("B", "attributed_net_contribution", "improved", 4),
+      cell("C", "attributed_mrr", "improved", 4),
+      cell("C", "commission_cleared_mtd", "improved", 4),
+    ];
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.medium;
+    expect(band.partner_pool_count).toBe(3);
+    expect(band.partner_pool_cells).toBe(9);
+    expect(band.partner_bottom2_cells).toBe(5);
+    // 5/9 = 0.5555... rounded 4 decimals = 0.5556
+    expect(band.partner_bottom2_share).toBe(0.5556);
+    expect(band.partner_bottom2_share!).toBeGreaterThanOrEqual(
+      out.fat_floor_min,
+    );
+  });
+
+  it("long-thin-tail pool → bottom2 drops below moderate_floor (thin_tail)", () => {
+    // 21 distinct codes on attributed_mrr + 1 extra for "AA" on
+    // commission_cleared_mtd. Sorted counts: [1,1,...,1,2] (20 ones, 1 two).
+    // bottom2 = 1 + 1 = 2. pool_cells = 22. share = 2/22 = 0.0909 → thin_tail.
+    const codes = [
+      "AA", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+      "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
+    ];
+    const rows: PerPairHotCellRow[] = [];
+    for (const code of codes) {
+      rows.push(cell(code, "attributed_mrr", "improved", 6));
+    }
+    rows.push(cell("AA", "commission_cleared_mtd", "improved", 6));
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.large;
+    expect(band.partner_pool_count).toBe(21);
+    expect(band.partner_pool_cells).toBe(22);
+    expect(band.partner_bottom2_cells).toBe(2);
+    expect(band.partner_bottom2_share).toBe(0.0909);
+    expect(band.partner_bottom2_share!).toBeLessThan(out.moderate_floor_min);
+  });
+
+  it("bottom2_share never exceeds 1 and stays strictly positive for non-empty cells", () => {
+    const rows: PerPairHotCellRow[] = [
+      cell("A", "attributed_mrr", "improved", 2),
+      cell("A", "commission_cleared_mtd", "improved", 2),
+      cell("B", "attributed_mrr", "improved", 2),
+    ];
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.small;
+    expect(band.partner_bottom2_share!).toBeGreaterThan(0);
+    expect(band.partner_bottom2_share!).toBeLessThanOrEqual(1);
+    expect(band.metric_bottom2_share!).toBeGreaterThan(0);
+    expect(band.metric_bottom2_share!).toBeLessThanOrEqual(1);
+  });
+
+  it("partitions cells by (transition, band) — improved/small doesn't leak into degraded/small", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([
+        cell("ACME", "attributed_mrr", "improved", 1),
+        cell("BETA", "commission_cleared_mtd", "degraded", 1),
+      ]),
+    );
+    expect(out.transitions.improved.bands.small.partner_pool_count).toBe(1);
+    expect(out.transitions.degraded.bands.small.partner_pool_count).toBe(1);
+    expect(out.transitions.improved.bands.medium.partner_pool_count).toBe(0);
+    expect(
+      out.transitions.improved.bands.medium.partner_bottom2_share,
+    ).toBeNull();
+  });
+
+  it("metric fold parity — 4 rows across 2 KPIs → metric bottom2 spans whole pool (share = 1)", () => {
+    // Only 2 KPI-buckets → bottom_k=2 >= pool_count so bottom2 = whole pool.
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([
+        cell("ACME", "attributed_mrr", "improved", 2),
+        cell("BETA", "attributed_mrr", "improved", 2),
+        cell("ACME", "commission_cleared_mtd", "improved", 2),
+        cell("GAMMA", "commission_cleared_mtd", "improved", 2),
+      ]),
+    );
+    const band = out.transitions.improved.bands.small;
+    expect(band.metric_pool_count).toBe(2);
+    expect(band.metric_pool_cells).toBe(4);
+    expect(band.metric_bottom2_cells).toBe(4);
+    expect(band.metric_bottom2_share).toBe(1);
+  });
+
+  it("bandForScore edge cases — hot_score 2 → small, 3 → medium, 6 → large", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([
+        cell("A", "attributed_mrr", "improved", 2),
+        cell("B", "attributed_mrr", "improved", 3),
+        cell("C", "attributed_mrr", "improved", 6),
+      ]),
+    );
+    expect(out.transitions.improved.bands.small.partner_pool_count).toBe(1);
+    expect(out.transitions.improved.bands.medium.partner_pool_count).toBe(1);
+    expect(out.transitions.improved.bands.large.partner_pool_count).toBe(1);
+  });
+
+  it("total_hot_cells equals row count across transition-keyed rows", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([
+        cell("A", "attributed_mrr", "improved", 1),
+        cell("B", "attributed_mrr", "degraded", 4),
+        cell("C", "attributed_mrr", "rotated", 1),
+        cell("D", "attributed_mrr", "undecidable", 1),
+      ]),
+    );
+    expect(out.total_hot_cells).toBe(4);
+  });
+
+  it("skips non-transition-keyed rows (stable / first_classification)", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([
+        cell("A", "attributed_mrr", "stable", 1),
+        cell("B", "attributed_mrr", "first_classification", 1),
+        cell("C", "attributed_mrr", "improved", 1),
+      ]),
+    );
+    expect(out.total_hot_cells).toBe(1);
+    expect(out.transitions.improved.bands.small.partner_pool_count).toBe(1);
+  });
+
+  it("input row order does not affect the output bottom2_share values (determinism)", () => {
+    const rows: PerPairHotCellRow[] = [
+      cell("A", "attributed_mrr", "improved", 2),
+      cell("B", "attributed_mrr", "improved", 2),
+      cell("A", "commission_cleared_mtd", "improved", 2),
+    ];
+    const forward =
+      computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+        envelope(rows),
+      );
+    const reversed =
+      computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+        envelope([...rows].reverse()),
+      );
+    expect(JSON.stringify(forward.transitions)).toBe(
+      JSON.stringify(reversed.transitions),
+    );
+  });
+
+  it("tied trailers → bottom2 sums the two smallest counts consistently", () => {
+    // A=3, B=3, C=1, D=1. Sorted asc [1,1,3,3]. bottom2 = 1+1 = 2. pool=8.
+    // share = 2/8 = 0.25 → moderate_floor edge.
+    const rows: PerPairHotCellRow[] = [
+      cell("A", "attributed_mrr", "improved", 4),
+      cell("A", "commission_cleared_mtd", "improved", 4),
+      cell("A", "attributed_net_contribution", "improved", 4),
+      cell("B", "attributed_mrr", "improved", 4),
+      cell("B", "commission_cleared_mtd", "improved", 4),
+      cell("B", "attributed_net_contribution", "improved", 4),
+      cell("C", "attributed_mrr", "improved", 4),
+      cell("D", "attributed_mrr", "improved", 4),
+    ];
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.medium;
+    expect(band.partner_bottom2_cells).toBe(2);
+    expect(band.partner_bottom2_share).toBe(0.25);
+  });
+
+  it("bottom2_share >= bottom1_share for any pool (bottom2 is a superset of bottom1)", () => {
+    // Any pool with pool_count >= 1: bottom2 sums at least the min cell,
+    // so bottom2_share must be >= bottom1_share = min/pool_cells.
+    const rows: PerPairHotCellRow[] = [
+      cell("A", "attributed_mrr", "improved", 4),
+      cell("A", "commission_cleared_mtd", "improved", 4),
+      cell("A", "attributed_net_contribution", "improved", 4),
+      cell("A", "contribution_margin_pct", "improved", 4),
+      cell("B", "attributed_mrr", "improved", 4),
+      cell("C", "attributed_mrr", "improved", 4),
+    ];
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.medium;
+    // Pool [4,1,1]: sorted asc [1,1,4]. bottom1 = 1/6, bottom2 = 2/6.
+    const expectedBottom1 = 1 / 6;
+    expect(band.partner_bottom2_share!).toBeGreaterThanOrEqual(
+      expectedBottom1 - 1e-9,
+    );
+  });
+
+  it("bottom2_share <= 2/pool_count when pool is perfectly flat", () => {
+    // Perfect flatness: bottom2 = 2 * (1 cell each) = 2, pool = N. share = 2/N.
+    // This is the maximum share bottom-2 can hit at that pool_count.
+    const rows: PerPairHotCellRow[] = [];
+    for (const code of ["A", "B", "C", "D", "E", "F"]) {
+      rows.push(cell(code, "attributed_mrr", "improved", 4));
+    }
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const band = out.transitions.improved.bands.medium;
+    // 6 partners × 1 cell each → bottom2 = 2 / 6 = 0.3333.
+    expect(band.partner_pool_count).toBe(6);
+    expect(band.partner_bottom2_cells).toBe(2);
+    expect(band.partner_bottom2_share).toBe(0.3333);
+    expect(band.partner_bottom2_share!).toBeLessThanOrEqual(2 / 6 + 1e-9);
+  });
+});
+
+describe("formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection — suppression", () => {
+  it("returns empty string when window_size < 3", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([cell("A", "attributed_mrr", "improved", 2)], {
+        window_size: 2,
+      }),
+    );
+    expect(
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out),
+    ).toBe("");
+  });
+
+  it("returns empty string when total_hot_cells is 0", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([], { window_size: 4 }),
+    );
+    expect(
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out),
+    ).toBe("");
+  });
+
+  it("renders HTML when window_size >= 3 and total_hot_cells > 0", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([cell("A", "attributed_mrr", "improved", 2)]),
+    );
+    const html =
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out);
+    expect(html).not.toBe("");
+    expect(html).toContain("Per-transition magnitude TOP-3 pool BOTTOM-2");
+  });
+});
+
+describe("formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection — content", () => {
+  it("carries the transition arrow labels quartet", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([
+        cell("A", "attributed_mrr", "improved", 2),
+        cell("B", "attributed_mrr", "degraded", 4),
+        cell("C", "attributed_mrr", "rotated", 1),
+        cell("D", "attributed_mrr", "undecidable", 1),
+      ]),
+    );
+    const html =
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out);
+    expect(html).toContain("improved &uarr;");
+    expect(html).toContain("degraded &darr;");
+    expect(html).toContain("rotated &harr;");
+    expect(html).toContain("undecidable ?");
+  });
+
+  it("renders solo label for single-partner pool (share = 1)", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([cell("A", "attributed_mrr", "improved", 2)]),
+    );
+    const html =
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out);
+    expect(html).toContain("solo");
+  });
+
+  it("renders fat_floor label when bottom-2 owns >= 50%", () => {
+    // Flat 4-partner pool → bottom2 = 0.5 → fat_floor.
+    const rows: PerPairHotCellRow[] = [];
+    for (const code of ["A", "B", "C", "D"]) {
+      rows.push(cell(code, "attributed_mrr", "improved", 4));
+    }
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const html =
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out);
+    expect(html).toContain("fat_floor");
+  });
+
+  it("renders moderate_floor label when bottom-2 is between 25% and 50%", () => {
+    // Flat 5-partner pool → bottom2 = 0.4 → moderate_floor.
+    const rows: PerPairHotCellRow[] = [];
+    for (const code of ["A", "B", "C", "D", "E"]) {
+      rows.push(cell(code, "attributed_mrr", "improved", 4));
+    }
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const html =
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out);
+    expect(html).toContain("moderate_floor");
+  });
+
+  it("renders thin_tail label when bottom-2 drops below 25%", () => {
+    // 21-partner long-thin-tail pool from arithmetic block → bottom2 = 0.0909.
+    const codes = [
+      "AA", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+      "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
+    ];
+    const rows: PerPairHotCellRow[] = [];
+    for (const code of codes) {
+      rows.push(cell(code, "attributed_mrr", "improved", 6));
+    }
+    rows.push(cell("AA", "commission_cleared_mtd", "improved", 6));
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope(rows),
+    );
+    const html =
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out);
+    expect(html).toContain("thin_tail");
+  });
+
+  it("escapes HTML-special characters in the week labels", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([cell("A", "attributed_mrr", "improved", 2)], {
+        first_week: "<W25>",
+        last_week: '"W31"',
+      }),
+    );
+    const html =
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out);
+    expect(html).toContain("&lt;W25&gt;");
+    expect(html).toContain("&quot;W31&quot;");
+    expect(html).not.toContain("<W25>");
+  });
+
+  it("caption references the P11.167 TOP-2 + P11.179 BOTTOM-1 companions and the 25%/50% cutoffs", () => {
+    const out = computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+      envelope([cell("A", "attributed_mrr", "improved", 2)]),
+    );
+    const html =
+      formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(out);
+    expect(html).toContain("P11.167");
+    expect(html).toContain("P11.179");
+    expect(html).toContain("25%");
+    expect(html).toContain("50%");
+  });
+});
