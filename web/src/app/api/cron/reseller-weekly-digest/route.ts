@@ -1850,6 +1850,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolHhi
     | null = null;
   let perTransitionMagnitudeTop3PoolHhiSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolTop1Share:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share
+    | null = null;
+  let perTransitionMagnitudeTop3PoolTop1ShareSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -3964,6 +3968,31 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolHhiSection(
           snapshotPerTransitionMagnitudeTop3PoolHhi,
         );
+      // P11.166 — per-transition MAGNITUDE TOP-3 POOL TOP-1 SHARE
+      // (module P11.165). Single-leader complement to the P11.163/P11.164
+      // HHI whole-pool inequality surface. HHI folds the shape of the
+      // WHOLE distribution into one scalar; the TOP-1 SHARE names ONE
+      // THING — what fraction of the (transition, band) cells does the
+      // single largest partner / KPI own? Together the four pool-scale
+      // scalars triangulate the read: P11.161 pool_count (HOW MANY?),
+      // P11.161 tail_share (WHAT SITS OUTSIDE TOP-3?), P11.163 HHI (HOW
+      // EQUAL?), P11.165 top-1 share (HOW MUCH DOES THE LEADER OWN?).
+      // Cutoffs use plain-language fraction bands (0.60 runaway / 0.40
+      // leading / contested) — no external-anchor taxonomy since a
+      // single share crossing 40/60 percent is directly readable.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolHhiSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.165
+      // formatter docblock placement rule. Consumes snapshotPerPairHotCells
+      // directly (same posture as the sibling per-transition magnitude
+      // drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolTop1Share =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolTop1ShareSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1ShareSection(
+          snapshotPerTransitionMagnitudeTop3PoolTop1Share,
+        );
     }
   }
   if (
@@ -4021,6 +4050,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3MiddleGapSection ||
     perTransitionMagnitudeTop3PoolSection ||
     perTransitionMagnitudeTop3PoolHhiSection ||
+    perTransitionMagnitudeTop3PoolTop1ShareSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4105,6 +4135,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3MiddleGapSection +
       perTransitionMagnitudeTop3PoolSection +
       perTransitionMagnitudeTop3PoolHhiSection +
+      perTransitionMagnitudeTop3PoolTop1ShareSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -5545,6 +5576,35 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolHhi.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolHhi.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_top1_share:
+      snapshotPerTransitionMagnitudeTop3PoolTop1Share
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolTop1Share.top_n,
+            runaway_share_min:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.runaway_share_min,
+            leading_share_min:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.leading_share_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Share.transitions,
           }
         : {
             skipped_reason:
