@@ -423,6 +423,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolCv,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-cv";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolNormalizedEntropySection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-normalized-entropy";
+import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1ShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
@@ -1891,6 +1896,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolCv
     | null = null;
   let perTransitionMagnitudeTop3PoolCvSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy
+    | null = null;
+  let perTransitionMagnitudeTop3PoolNormalizedEntropySection = "";
   let snapshotPerTransitionMagnitudeTop3PoolTop1Share:
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share
     | null = null;
@@ -4138,6 +4147,49 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolCvSection(
           snapshotPerTransitionMagnitudeTop3PoolCv,
         );
+      // P11.178 — per-transition MAGNITUDE TOP-3 POOL NORMALIZED SHANNON
+      // ENTROPY (module P11.177). Sixth whole-pool distribution-shape
+      // scalar over the P11.161 pool after the P11.163 HHI + P11.169 Gini
+      // + P11.171 Theil + P11.173 Atkinson + P11.175 CV QUINTET, extending
+      // the family to a SEXTET. This surface is the mathematical complement
+      // of the P11.171 Theil surface under the closed-form identity
+      // H_norm = 1 - T / ln(n) — the two carry the SAME information but
+      // the human reading FLIPS: high Theil = high divergence from uniform
+      // (inequality framing), high H_norm = high closeness to uniform
+      // (Pielou evenness framing). Reporting both lets the digest surface
+      // either lens (evenness or inequality) to a reader comfortable with
+      // one scale but not the other, and acts as a self-consistency check
+      // if the two ever drift. Cutoffs (HIGH_EVENNESS_MIN=0.9 /
+      // MODERATE_EVENNESS_MIN=0.7 / unequal below) follow the Pielou-
+      // evenness ecology anchor rather than the P11.171 Theil cutoffs
+      // (0.30 / 0.10) or the P11.173 Atkinson cutoffs (0.15 / 0.05) or
+      // the P11.175 CV cutoffs (0.5 / 0.2) since H_norm sits in [0, 1]
+      // with a DIFFERENT band vocabulary (solo / uniform / mixed / unequal)
+      // where "uniform" is the TOP band because a HIGH H_norm value means
+      // LOW inequality — every distribution surface owns its own cutoffs
+      // so downstream JSONL consumers render the label taxonomy without
+      // importing the TS module. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolCvSection AND IMMEDIATELY ABOVE
+      // perTransitionMagnitudeTop3PoolTop1ShareSection per the P11.177
+      // formatter docblock placement rule so HHI, Gini, Theil, Atkinson,
+      // CV, and H_norm sit adjacent as a whole-pool inequality SEXTET
+      // (all six answer "how equal is the pool?" with different
+      // mathematical bases — the four share-transform metrics fold
+      // s_i = x_i/Σx through log / power / square / pair-wise transforms
+      // of the FIRST moment, CV captures the SECOND-moment dispersion of
+      // the raw counts, and H_norm folds the same first-moment shares as
+      // Theil but under the complementary evenness framing rather than
+      // the divergence framing) and hierarchically ABOVE the leader-slice
+      // pair. Consumes snapshotPerPairHotCells directly (same posture as
+      // the sibling per-transition magnitude drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolNormalizedEntropySection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolNormalizedEntropySection(
+          snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy,
+        );
       // P11.166 — per-transition MAGNITUDE TOP-3 POOL TOP-1 SHARE
       // (module P11.165). Single-leader complement to the P11.163/P11.164
       // HHI whole-pool inequality surface. HHI folds the shape of the
@@ -4252,6 +4304,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolTheilSection ||
     perTransitionMagnitudeTop3PoolAtkinsonSection ||
     perTransitionMagnitudeTop3PoolCvSection ||
+    perTransitionMagnitudeTop3PoolNormalizedEntropySection ||
     perTransitionMagnitudeTop3PoolTop1ShareSection ||
     perTransitionMagnitudeTop3PoolTop2ShareSection ||
     perPairHotCellsSection ||
@@ -4342,6 +4395,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolTheilSection +
       perTransitionMagnitudeTop3PoolAtkinsonSection +
       perTransitionMagnitudeTop3PoolCvSection +
+      perTransitionMagnitudeTop3PoolNormalizedEntropySection +
       perTransitionMagnitudeTop3PoolTop1ShareSection +
       perTransitionMagnitudeTop3PoolTop2ShareSection +
       perPairHotCellsSection +
@@ -5901,6 +5955,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolCv.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolCv.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_normalized_entropy:
+      snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.top_n,
+            high_evenness_min:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.high_evenness_min,
+            moderate_evenness_min:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.moderate_evenness_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy.transitions,
           }
         : {
             skipped_reason:
