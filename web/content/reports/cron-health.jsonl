@@ -799,3 +799,4 @@
 {"ts":"2026-07-30T14:00:01Z","endpoint":"agent-orchestrator","status":"ok","duration_ms":26970,"detail":"{\"stagesRun\": [\"update_artifacts\", \"git_push\", \"qa\", \"report\"], \"results\": [{\"stage\": \"update_artifacts\", \"ok\": true, \"message\": \"19 task(s) still in flight\"}, {\"stage\": \"git_push\", \"ok\": true, \"messa"}
 {"ts":"2026-07-30T14:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":31204,"detail":""}
 {"ts":"2026-07-30T14:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16454,"detail":""}
+{"ts":"2026-07-30T14:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2114,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235146692 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274321832 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
