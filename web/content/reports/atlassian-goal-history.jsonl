@@ -6803,3 +6803,6 @@
 {"tick_id":"2026-07-30T15-07-02-103Z","ts":"2026-07-30T15:12:51.049Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"1302578b","last_deployed":"0fdb48f"}
 {"tick_id":"2026-07-30T15-07-02-103Z","ts":"2026-07-30T15:13:14.441Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"1302578b"}
 {"tick_id":"2026-07-30T15-07-02-103Z","ts":"2026-07-30T15:13:14.442Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-30T15-17-02-003Z","ts":"2026-07-30T15:17:02.004Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-30T15-17-02-003Z","ts":"2026-07-30T15:17:02.016Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-30T15-23-14-576Z","ts":"2026-07-30T15:23:14.578Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"phase_shipped","phase":"P5_investor_readiness_score","subtask":"P5-evaluation-criteria-lib-test","test_count":37,"tests_passing":37,"notes":"colocated 37-case vitest for pure evaluation-criteria.ts — pins 13-criterion registry + weights-sum-to-100 + quality ladder + evaluation progress"}
