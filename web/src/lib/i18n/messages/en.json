@@ -30,5 +30,18 @@
   "meta.home.title": "BlockID.au — Search any startup. Get an investor-ready score.",
   "meta.home.description": "Type a company name and BlockID scores its investor-readiness in 30 seconds — free, no signup.",
   "meta.pricing.title": "Pricing — BlockID.au",
-  "meta.pricing.description": "12-SKU pricing across Founder, Investor, Advisor and Accelerator tiers. Every monthly plan includes a 7-day free trial. Cancel anytime before Day 8 — no charge."
+  "meta.pricing.description": "12-SKU pricing across Founder, Investor, Advisor and Accelerator tiers. Every monthly plan includes a 7-day free trial. Cancel anytime before Day 8 — no charge.",
+  "hero.v3.eyebrow": "Verified Business Identity & Value Network",
+  "hero.v3.headline.prefix": "Give your business a",
+  "hero.v3.headline.accent": "trusted digital identity",
+  "hero.v3.tagline": "Verified identity. Visible value. Trusted business.",
+  "hero.v3.cta.primary.signedOut": "Create Your Business ID",
+  "hero.v3.cta.primary.signedIn": "Continue to your Business ID",
+  "hero.v3.cta.secondary": "See a sample Trust Report (A$5.50)",
+  "hero.v3.actionline": "Identify. Verify. Value. Connect.",
+  "hero.v3.emotional": "A business should not have to rebuild trust from zero every time.",
+  "hero.v3.outcome": "Be discovered. Be understood. Be trusted.",
+  "hero.v3.trustbar.suffix": "verified Australian businesses",
+  "meta.home.v3.title": "BlockID.au — One Business. One Trusted Identity.",
+  "meta.home.v3.description": "Give your business a trusted digital identity. BlockID.au turns identity, evidence and capabilities into one reusable Business ID — verified for investors, procurement, grants and partners."
 }
