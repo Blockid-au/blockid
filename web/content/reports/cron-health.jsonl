@@ -907,3 +907,4 @@
 {"ts":"2026-07-30T21:30:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17107,"detail":""}
 {"ts":"2026-07-30T21:30:02Z","endpoint":"performance-audit","status":"fail","duration_ms":17196,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 __variable_6b9622 h-full antialiased\"><head"}
 {"ts":"2026-07-30T21:40:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2045,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235063584 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274319376 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-30T21:45:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16497,"detail":""}
