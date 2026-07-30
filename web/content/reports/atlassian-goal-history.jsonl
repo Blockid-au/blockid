@@ -7054,3 +7054,6 @@
 {"tick_id":"2026-07-30T19-57-01-936Z","ts":"2026-07-30T20:03:10.239Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"8795f44c","last_deployed":"0fdb48f"}
 {"tick_id":"2026-07-30T19-57-01-936Z","ts":"2026-07-30T20:03:35.377Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"8795f44c"}
 {"tick_id":"2026-07-30T19-57-01-936Z","ts":"2026-07-30T20:03:35.378Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-30T20-07-01-582Z","ts":"2026-07-30T20:07:01.582Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-30T20-07-01-582Z","ts":"2026-07-30T20:07:01.598Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-30T20-13-23-000Z","ts":"2026-07-30T20:13:23.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5_investor_readiness_score","subtask":"P5-funding-plan-lib-test","tests":49,"file":"web/src/lib/funding-plan.test.ts"}
