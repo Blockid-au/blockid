@@ -6749,3 +6749,6 @@
 {"tick_id":"2026-07-30T14-07-01-506Z","ts":"2026-07-30T14:11:15.589Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"73cbe4d9","last_deployed":"0fdb48f"}
 {"tick_id":"2026-07-30T14-07-01-506Z","ts":"2026-07-30T14:11:36.789Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"73cbe4d9"}
 {"tick_id":"2026-07-30T14-07-01-506Z","ts":"2026-07-30T14:11:36.789Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-30T14-17-01-216Z","ts":"2026-07-30T14:17:01.216Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-30T14-17-01-216Z","ts":"2026-07-30T14:17:01.228Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-30T14-21-30-912Z","ts":"2026-07-30T14:21:30.910Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end","phase":"P8-share-structure-lib-test","description":"colocated 25-case vitest for pure share-structure Phase-8 cap-table helper (computeSharePriceFromSVI fixed+dynamic modes, allocation floor invariant, shouldRecompute threshold matrix, default config immutability)"}
