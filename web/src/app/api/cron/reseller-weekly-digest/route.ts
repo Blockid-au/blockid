@@ -6547,6 +6547,40 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_per_transition_magnitude_top3_pool_top1_bottom2_ratio:
+      snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.top_n,
+            top_k:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.top_k,
+            bottom_k:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.bottom_k,
+            level_ratio_max:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.level_ratio_max,
+            stark_ratio_min:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.stark_ratio_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     snapshot_per_pair_hot_cells: snapshotPerPairHotCells
       ? {
           window_size: snapshotPerPairHotCells.window_size,
