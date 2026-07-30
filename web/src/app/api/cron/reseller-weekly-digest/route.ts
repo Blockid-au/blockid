@@ -403,6 +403,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolHhi,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-hhi";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1ShareSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top1-share";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
