@@ -453,6 +453,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-bottom2-share";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom1RatioSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top1-bottom1-ratio";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1935,6 +1940,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share
     | null = null;
   let perTransitionMagnitudeTop3PoolBottom2ShareSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio
+    | null = null;
+  let perTransitionMagnitudeTop3PoolTop1Bottom1RatioSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4378,6 +4387,40 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(
           snapshotPerTransitionMagnitudeTop3PoolBottom2Share,
         );
+      // P11.186 cron-wiring for the P11.185 pool top1/bottom1
+      // multiplicative RATIO scalar. Palma-style scale-invariant
+      // leader-to-floor ratio = top1_cells / bottom1_cells over the
+      // P11.161 pool — MULTIPLICATIVE complement to the P11.181 RANGE
+      // additive spread on the SAME head/floor pair. Well-defined for
+      // every non-empty pool since the P11.139 hot-cells envelope
+      // guarantees min(cell_counts) >= 1 so denominator is never zero.
+      // Labels: solo (pool_count 1, ratio=1 by definition) / level
+      // (<2x) / unequal (2-5x) / stark (>=5x). Cutoffs anchored at
+      // natural small-pool values ([2,1]->2, [5,1,1]->5). LABEL
+      // ORIENTATION follows inequality framing (HIGH ratio = HIGH
+      // multiplicative gap; matches HHI/Gini/Theil/Atkinson/CV/range;
+      // inverts H_norm/bottom-1/bottom-2 evenness framing) because a
+      // ratio reader wants "big number = big gap" for the direct human
+      // read. Cutoffs 2 level_ratio_max / 5 stark_ratio_min exposed on
+      // the envelope so downstream JSONL consumers render the vocabulary
+      // without importing the TS module. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolBottom2ShareSection AND IMMEDIATELY
+      // ABOVE perPairHotCellsSection per the P11.185 formatter docblock
+      // placement rule so the pool hierarchy descends whole-pool
+      // inequality SEXTET → leader slice (top-1) → dominant-pair slice
+      // (top-2) → floor slice (bottom-1) → head-to-floor SPREAD (range)
+      // → floor-pair slice (bottom-2) → top1/bottom1 RATIO (this
+      // surface) → per-pair granular. Consumes snapshotPerPairHotCells
+      // directly (same posture as the sibling per-transition magnitude
+      // drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolTop1Bottom1RatioSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom1RatioSection(
+          snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio,
+        );
     }
   }
   if (
@@ -4445,6 +4488,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolBottom1ShareSection ||
     perTransitionMagnitudeTop3PoolRangeSection ||
     perTransitionMagnitudeTop3PoolBottom2ShareSection ||
+    perTransitionMagnitudeTop3PoolTop1Bottom1RatioSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4539,6 +4583,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolBottom1ShareSection +
       perTransitionMagnitudeTop3PoolRangeSection +
       perTransitionMagnitudeTop3PoolBottom2ShareSection +
+      perTransitionMagnitudeTop3PoolTop1Bottom1RatioSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6275,6 +6320,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolBottom2Share.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolBottom2Share.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_top1_bottom1_ratio:
+      snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.top_n,
+            level_ratio_max:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.level_ratio_max,
+            stark_ratio_min:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.stark_ratio_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio.transitions,
           }
         : {
             skipped_reason:
