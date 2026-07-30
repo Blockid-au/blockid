@@ -463,6 +463,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom2Ratio,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top2-bottom2-ratio";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShare,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShareSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShare,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-mid-mass-share";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1953,6 +1958,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom2Ratio
     | null = null;
   let perTransitionMagnitudeTop3PoolTop2Bottom2RatioSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolMidMassShare:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShare
+    | null = null;
+  let perTransitionMagnitudeTop3PoolMidMassShareSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4465,6 +4474,33 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom2RatioSection(
           snapshotPerTransitionMagnitudeTop3PoolTop2Bottom2Ratio,
         );
+      // P11.190 cron-wiring for the P11.189 pool mid-mass share scalar.
+      // Middle-mass evenness slice = (pool_cells − top1 − bottom1) /
+      // pool_cells over the P11.161 pool — the mass the P11.165 TOP-1
+      // and P11.179 BOTTOM-1 shares DO NOT touch. Companion to the
+      // P11.181 RANGE (additive head/floor spread) and P11.185
+      // TOP-1/BOTTOM-1 RATIO (multiplicative head/floor gap): all three
+      // fold the same two extremes but mid-mass names the LEFTOVER.
+      // Self-verifying identity top1_share + mid_mass_share +
+      // bottom1_share = 1 for pool_count >= 2. Labels solo (pool_count
+      // <= 2) / thin (mid<20%) / moderate (20-40%) / fat (>=40%);
+      // cutoffs anchored to natural 3-4 partner pool shapes. EVENNESS
+      // framing (HIGH mid = HIGH middle mass) matching P11.177 /
+      // P11.179 / P11.183. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolTop2Bottom2RatioSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.189
+      // formatter docblock so the pool hierarchy descends whole-pool
+      // SEXTET → leader → dominant-pair → floor → range → floor-pair →
+      // top1/bottom1 RATIO → top2/bottom2 RATIO → mid-mass share (this)
+      // → per-pair granular. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolMidMassShare =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShare(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolMidMassShareSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShareSection(
+          snapshotPerTransitionMagnitudeTop3PoolMidMassShare,
+        );
     }
   }
   if (
@@ -4534,6 +4570,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolBottom2ShareSection ||
     perTransitionMagnitudeTop3PoolTop1Bottom1RatioSection ||
     perTransitionMagnitudeTop3PoolTop2Bottom2RatioSection ||
+    perTransitionMagnitudeTop3PoolMidMassShareSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4630,6 +4667,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolBottom2ShareSection +
       perTransitionMagnitudeTop3PoolTop1Bottom1RatioSection +
       perTransitionMagnitudeTop3PoolTop2Bottom2RatioSection +
+      perTransitionMagnitudeTop3PoolMidMassShareSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6430,6 +6468,40 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolTop2Bottom2Ratio.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolTop2Bottom2Ratio.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_mid_mass_share:
+      snapshotPerTransitionMagnitudeTop3PoolMidMassShare
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.top_n,
+            top_k:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.top_k,
+            bottom_k:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.bottom_k,
+            thin_mid_max:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.thin_mid_max,
+            fat_mid_min:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.fat_mid_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolMidMassShare.transitions,
           }
         : {
             skipped_reason:
