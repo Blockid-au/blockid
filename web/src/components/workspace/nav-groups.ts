@@ -243,6 +243,9 @@ const VALIDATE_SUBGROUPS: NavSubgroup[] = [
         segments: ["founder"],
         lifecycle: "beta",
         growthPhase: 0,
+        // v3 metadata — full annotation deferred to journey-sidebar migration PR
+        persona: "founder",
+        journeyGroup: "onboarding",
       },
     ],
   },
@@ -259,7 +262,8 @@ const VALIDATE_SUBGROUPS: NavSubgroup[] = [
     label: "Evaluate",
     items: [
       { href: "/workspace/evaluation", label: "Evaluation (13)", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 1 },
-      { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 1 },
+      // v3 metadata — full annotation deferred to journey-sidebar migration PR
+      { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 1, persona: "founder", journeyGroup: "analysis" },
     ],
   },
   {
@@ -438,7 +442,8 @@ const ROLES_SUBGROUPS: NavSubgroup[] = [
     label: "Reseller",
     requiredFeature: "reseller.console",
     items: [
-      { href: "/reseller", label: "Dashboard", icon: LayoutDashboard, feature: "reseller.console", requiredFeature: "reseller.console" },
+      // v3 metadata — full annotation deferred to journey-sidebar migration PR
+      { href: "/reseller", label: "Dashboard", icon: LayoutDashboard, feature: "reseller.console", requiredFeature: "reseller.console", persona: "reseller" },
       { href: "/reseller/customers", label: "Customers", icon: Users, feature: "reseller.console", requiredFeature: "reseller.console" },
       { href: "/reseller/mentor", label: "Mentor", icon: GraduationCap, feature: "reseller.console", requiredFeature: "reseller.console" },
       { href: "/reseller/codes", label: "Codes", icon: Tag, feature: "reseller.console", requiredFeature: "reseller.console" },
