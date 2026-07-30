@@ -493,6 +493,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-mean-absolute-deviation";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-median-absolute-deviation";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2007,6 +2012,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation
     | null = null;
   let perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation
+    | null = null;
+  let perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
