@@ -443,6 +443,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolBottom1Share,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-bottom1-share";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolRange,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolRangeSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolRange,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-range";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1917,6 +1922,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolBottom1Share
     | null = null;
   let perTransitionMagnitudeTop3PoolBottom1ShareSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolRange:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolRange
+    | null = null;
+  let perTransitionMagnitudeTop3PoolRangeSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4284,6 +4293,45 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom1ShareSection(
           snapshotPerTransitionMagnitudeTop3PoolBottom1Share,
         );
+      // P11.182 — per-transition MAGNITUDE TOP-3 POOL RANGE (module
+      // P11.181). Head-to-floor SPREAD scalar over the P11.161 pool.
+      // Folds the P11.165 top-1 share (max(cells)/Σcells) and the
+      // P11.179 bottom-1 share (min(cells)/Σcells) into ONE per-
+      // (transition,band) scalar naming the vertical distance from
+      // leader to trailer: range = top1_share − bottom1_share
+      // (computed from RAW cells before rounding so float drift on
+      // the two rounded shares cannot inflate the range by one ulp).
+      // Complements the whole-pool inequality SEXTET (HHI / Gini /
+      // Theil / Atkinson / CV / H_norm) which fold ALL cells into one
+      // scalar; range instead isolates the head-vs-floor delta. Two
+      // cells with the same pool_count + same HHI can carry very
+      // different ranges — e.g. pool [4,3,2] range 22.2% (moderate)
+      // vs pool [6,1,1] range 62.5% (wide, clear leader towers over
+      // the tail). LABEL ORIENTATION follows the inequality-framing
+      // convention (HIGH range = HIGH spread = HIGH head-to-floor
+      // inequality) matching HHI / Gini / Theil / Atkinson / CV;
+      // inverts the P11.177 H_norm + P11.179 bottom-1 evenness
+      // orientation because a spread reader wants "big number = big
+      // gap". Cutoffs 0.20 compressed_range_max / 0.50 wide_range_min
+      // exposed on the envelope so downstream JSONL consumers render
+      // the solo / compressed / moderate / wide vocabulary without
+      // importing the TS module. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolBottom1ShareSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.181
+      // formatter docblock placement rule so the pool hierarchy
+      // descends whole-pool inequality SEXTET → leader slice (top-1)
+      // → dominant-pair slice (top-2) → floor slice (bottom-1) →
+      // head-to-floor SPREAD (this surface) → per-pair granular.
+      // Consumes snapshotPerPairHotCells directly (same posture as
+      // the sibling per-transition magnitude drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolRange =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolRange(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolRangeSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolRangeSection(
+          snapshotPerTransitionMagnitudeTop3PoolRange,
+        );
     }
   }
   if (
@@ -4349,6 +4397,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolTop1ShareSection ||
     perTransitionMagnitudeTop3PoolTop2ShareSection ||
     perTransitionMagnitudeTop3PoolBottom1ShareSection ||
+    perTransitionMagnitudeTop3PoolRangeSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4441,6 +4490,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolTop1ShareSection +
       perTransitionMagnitudeTop3PoolTop2ShareSection +
       perTransitionMagnitudeTop3PoolBottom1ShareSection +
+      perTransitionMagnitudeTop3PoolRangeSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
