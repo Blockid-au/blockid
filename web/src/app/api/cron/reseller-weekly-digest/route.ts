@@ -448,6 +448,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolRange,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-range";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-bottom2-share";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -1926,6 +1931,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolRange
     | null = null;
   let perTransitionMagnitudeTop3PoolRangeSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolBottom2Share:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share
+    | null = null;
+  let perTransitionMagnitudeTop3PoolBottom2ShareSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4332,6 +4341,43 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolRangeSection(
           snapshotPerTransitionMagnitudeTop3PoolRange,
         );
+      // P11.184 — per-transition MAGNITUDE TOP-3 POOL BOTTOM-2 COMBINED
+      // SHARE (module P11.183). Two-trailer floor-slice complement to
+      // the P11.167 TOP-2 combined share surface and floor-pair
+      // companion to the P11.179 BOTTOM-1 single-trailer share. Where
+      // top-2 answers "how much do the two largest COMBINED own?",
+      // bottom-2 answers "how much do the two smallest COMBINED own?"
+      // — two cells with identical bottom-1 shares can carry very
+      // different bottom-2 combined shares depending on whether floor
+      // participants cluster (short flat tail, high bottom-2) or the
+      // second-smallest jumps toward the head (long thin tail with
+      // just one trailer at the true floor, low bottom-2). LABEL
+      // ORIENTATION FLIP vs the P11.167 top-2 sibling: HIGH bottom-2
+      // = HIGH floor = LOW long-tail concentration = FLATTER pool,
+      // matching the P11.177 H_norm + P11.179 bottom-1 evenness
+      // framing because a bottom-K reader who cares about the tail
+      // wants "big number = fat floor" for the direct human read.
+      // Cutoffs 0.50 fat_floor_min / 0.25 moderate_floor_min exposed
+      // on the envelope so downstream JSONL consumers render the
+      // solo / fat_floor / moderate_floor / thin_tail vocabulary
+      // without importing the TS module. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolRangeSection AND IMMEDIATELY
+      // ABOVE perPairHotCellsSection per the P11.183 formatter
+      // docblock placement rule so the pool hierarchy descends
+      // whole-pool inequality SEXTET → leader slice (top-1) →
+      // dominant-pair slice (top-2) → floor slice (bottom-1) →
+      // head-to-floor SPREAD (range) → floor-pair slice (this
+      // surface) → per-pair granular. Consumes snapshotPerPairHotCells
+      // directly (same posture as the sibling per-transition
+      // magnitude drill-down surfaces).
+      snapshotPerTransitionMagnitudeTop3PoolBottom2Share =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolBottom2ShareSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection(
+          snapshotPerTransitionMagnitudeTop3PoolBottom2Share,
+        );
     }
   }
   if (
@@ -4398,6 +4444,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolTop2ShareSection ||
     perTransitionMagnitudeTop3PoolBottom1ShareSection ||
     perTransitionMagnitudeTop3PoolRangeSection ||
+    perTransitionMagnitudeTop3PoolBottom2ShareSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4491,6 +4538,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolTop2ShareSection +
       perTransitionMagnitudeTop3PoolBottom1ShareSection +
       perTransitionMagnitudeTop3PoolRangeSection +
+      perTransitionMagnitudeTop3PoolBottom2ShareSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6195,6 +6243,38 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolRange.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolRange.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_bottom2_share:
+      snapshotPerTransitionMagnitudeTop3PoolBottom2Share
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.top_n,
+            bottom_k:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.bottom_k,
+            fat_floor_min:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.fat_floor_min,
+            moderate_floor_min:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.moderate_floor_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolBottom2Share.transitions,
           }
         : {
             skipped_reason:
