@@ -1,13 +1,26 @@
 import type { MetadataRoute } from "next";
 import { getAllArticles, invalidateCache } from "@/lib/insights";
+import { listPublicSlugsForSitemap } from "@/lib/business-id/list-public-slugs";
 
 export const dynamic = "force-dynamic";
 
 const SITE_URL = "https://blockid.au";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   invalidateCache(); // ensure fresh read from disk (content volume)
   const lastModified = new Date();
+
+  // Master Upgrade Plan §11.1 + §14bis D3 — public Business ID profiles.
+  // Only rows with public_index=true AND verification_level >= 2 make it
+  // in; L1 self-declared is not sufficient for public discovery.
+  const publicSlugs = await listPublicSlugsForSitemap();
+  const businessIdEntries: MetadataRoute.Sitemap = publicSlugs.map((entry) => ({
+    url: `${SITE_URL}/id/${entry.slug}`,
+    lastModified: entry.lastVerifiedAt,
+    changeFrequency: "weekly" as const,
+    // L2 = 0.6 baseline, +0.1 per level up to L5 = 0.9
+    priority: Math.min(0.9, 0.6 + (entry.verificationLevel - 2) * 0.1),
+  }));
 
   // Dynamic insight articles — recent (last 30d) get weekly crawl + higher priority
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -382,5 +395,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     // Dynamic insight articles
     ...insightEntries,
+    // Dynamic public Business ID profiles (§11.1 / §14bis D3)
+    ...businessIdEntries,
   ];
 }
