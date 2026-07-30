@@ -498,6 +498,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-median-absolute-deviation";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolSkewness,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolSkewnessSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolSkewness,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-skewness";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2016,6 +2021,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation
     | null = null;
   let perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolSkewness:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolSkewness
+    | null = null;
+  let perTransitionMagnitudeTop3PoolSkewnessSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4761,6 +4770,44 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection(
           snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation,
         );
+      // P11.204 — DIRECT anchor-free ASYMMETRY read over the P11.161
+      // pool. Fisher-Pearson standardised third-moment coefficient
+      // g1 = m3 / m2^(3/2) folds every pool cell into ONE SIGNED
+      // asymmetry scalar. Opens the ASYMMETRY axis of the pool-shape
+      // family (companion to the SIZE / CONCENTRATION / DISPERSION
+      // axes already covered by P11.161..P11.202). Every existing
+      // asymmetry proxy encodes skew INDIRECTLY — the P11.195
+      // median/mean ratio and P11.197 mean-median absolute gap
+      // contrast two centre-of-mass summaries; the P11.199/P11.201
+      // MAD-vs-MADm pair contrasts anchor-swap dispersion reads.
+      // Skewness is the DIRECT measurement: positive = right-tail
+      // heavy (leader inflates mean above median), negative =
+      // left-tail heavy (laggard drags mean below median), near
+      // zero = symmetric. Uses POPULATION moments (divide by n,
+      // not n-1) for continuity across pool_count boundaries and
+      // parity with the P11.199/P11.201 population-average
+      // convention. Pool [10,1,1] and [3,1,1] both read g1 = +1/√2
+      // ≈ +0.7071 (right_leaning); pool [10,10,1] reads g1 = -1/√2
+      // (left_leaning); every mean-symmetric pool ([1,1,1], [4,3,2],
+      // [3,2,1], [3,1]) reads exactly 0. Solo pool_count 1 pinned
+      // to 0 (structurally symmetric); flat pools (variance 0)
+      // pinned to 0 (no asymmetry axis to measure) rather than
+      // divide-by-zero. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.203
+      // formatter docblock so ASYMMETRY sits IMMEDIATELY BELOW the
+      // anchor-swap MAD/MADm dispersion pair — natural adjacency
+      // since the anchor-swap pair reveals asymmetry INDIRECTLY by
+      // contrast, this surface reveals it DIRECTLY by sign.
+      // Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolSkewness =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolSkewness(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolSkewnessSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolSkewnessSection(
+          snapshotPerTransitionMagnitudeTop3PoolSkewness,
+        );
     }
   }
   if (
@@ -4837,6 +4884,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection ||
     perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection ||
     perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection ||
+    perTransitionMagnitudeTop3PoolSkewnessSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -4940,6 +4988,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection +
       perTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection +
       perTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection +
+      perTransitionMagnitudeTop3PoolSkewnessSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -6962,6 +7011,34 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_skewness:
+      snapshotPerTransitionMagnitudeTop3PoolSkewness
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.top_n,
+            symmetric_skewness_abs_max:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.symmetric_skewness_abs_max,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolSkewness.transitions,
           }
         : {
             skipped_reason:
