@@ -1699,3 +1699,6 @@
 {"ts":"2026-07-31T05:45:15.488Z","event":"github-push-master","detail":"Blockid-au: chore(cleanup): remove dead web/middleware.ts (superseded by src/proxy.ts) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T05:45:30.171Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T05-37-01-265Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T05:52:13.894Z","event":"github-push-master","detail":"Blockid-au: test(badges): 34-case vitest for lib/badges.ts — P9-badges-lib-test (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T05:52:23.104Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T05-47-01-799Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T06:00:36.033Z","event":"github-push-master","detail":"Blockid-au: test(smoke): compare next param after decode, not as raw substring (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T06:03:48.770Z","event":"github-push-master","detail":"Blockid-au: test(project-state): 49-case vitest for lib/project-state.ts — P9-project-state-lib-test (1 commits)","source":"github-webhook"}
