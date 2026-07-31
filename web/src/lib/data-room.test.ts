@@ -69,15 +69,19 @@ describe("generateDataRoom — structure", () => {
     expect(room.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 
-  it("overall completeness is 0 when every item is missing (empty inputs)", () => {
+  it("empty inputs — only Founder/Contact is complete out of 27 total rows", () => {
+    // Founder / Contact resolves via `USER.displayName` truthiness, so it's
+    // the only complete row when everything else is absent. Guard: pin the
+    // total-row count and the complete count so a schema drift surfaces here
+    // rather than as a silent readiness-score wobble downstream.
     const room = generateDataRoom(baseParams());
-    expect(room.overallCompleteness).toBe(0);
-    // Founder / Contact resolves via displayName, so it's the only complete row
-    // when everything else is absent. Guard: recount to catch a schema drift.
+    const total = room.sections.reduce((n, s) => n + s.items.length, 0);
     const completeCount = room.sections
       .flatMap((s) => s.items)
       .filter((i) => i.status === "complete").length;
-    expect(completeCount).toBe(1); // Founder / Contact from USER.displayName
+    expect(total).toBe(27);
+    expect(completeCount).toBe(1);
+    expect(room.overallCompleteness).toBe(Math.round((1 / 27) * 100));
   });
 });
 
@@ -417,10 +421,10 @@ describe("generateDataRoom — completeness math", () => {
     const complete = room.sections
       .flatMap((s) => s.items)
       .filter((i) => i.status === "complete").length;
-    expect(total).toBe(29);
+    expect(total).toBe(27);
     expect(complete).toBe(1);
     expect(room.overallCompleteness).toBe(Math.round((complete / total) * 100));
-    expect(room.overallCompleteness).toBe(3);
+    expect(room.overallCompleteness).toBe(4);
   });
 
   it("reaches 100 overall when every input is populated to satisfy every row", () => {

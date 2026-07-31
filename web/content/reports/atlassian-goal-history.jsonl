@@ -1255,3 +1255,4 @@
 {"tick_id":"2026-07-31T17-07-01-697Z","ts":"2026-07-31T17:21:51.089Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T17-27-01-472Z","ts":"2026-07-31T17:27:01.473Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T17-27-01-472Z","ts":"2026-07-31T17:27:01.490Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-31T17-32-00-000Z","ts":"2026-07-31T17:32:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1_dataroom_map","sub_task":"P1-data-room-lib-test","target":"web/src/lib/data-room.ts","test":"web/src/lib/data-room.test.ts","cases":31,"result":"green","duration_ms":580}
