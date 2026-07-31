@@ -718,6 +718,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctodecicMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octodecic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemdecic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2412,6 +2417,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctodecicMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToOctodecicMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -6778,6 +6787,31 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctodecicMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToOctodecicMean,
         );
+      // P11.293: PER-TRANSITION MAGNITUDE TOP-3 POOL PEAK-TO-NOVEMDECIC-MEAN.
+      // ptnvm = (max - min) / novemdecic_mean where novemdecic_mean =
+      // ((sum x_i^19) / n)^(1/19) uses the M_19 power mean. Bands tight <
+      // 1.02 (flat, uniform ramp, upper-outlier, two-shoulders, bimodal-
+      // split, two-partner, small regimes), spread in [1.02, 1.14)
+      // (extreme-outlier regime), wide >= 1.14 (runaway-outlier regime
+      // with pool_count >= 13). Cutoffs tighten P11.290 PTSOM's 1.03/1.15
+      // pair down to 1.02/1.14 because novemdecic_mean >= octodecic_mean
+      // by Power Mean inequality (M_19 >= M_18) so ptnvm <= ptsom for
+      // every non-flat pool — the wide cutoff drops from 1.15 to 1.14 so
+      // only pool_count >= 13 pools reach wide (13^(1/19) ~= 1.1445 is
+      // just past the wide floor). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToOctodecicMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.292 formatter
+      // docblock so the DISPERSION axis continues with range-against-
+      // novemdecic-center after the P11.290 range-against-octodecic-
+      // center landing. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean,
+        );
     }
   }
   if (
@@ -6898,6 +6932,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToSedecicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToSeptendecicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToOctodecicMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -7045,6 +7080,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToSedecicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToSeptendecicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToOctodecicMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -10415,6 +10451,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToOctodecicMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToOctodecicMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_novemdecic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.top_n,
+            tight_ptnvm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.tight_ptnvm_max,
+            wide_ptnvm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.wide_ptnvm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.transitions,
           }
         : {
             skipped_reason:
