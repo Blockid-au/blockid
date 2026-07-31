@@ -3970,3 +3970,4 @@
 {"ts":"2026-07-31T00:09:26.743Z","event":"github-push-master","detail":"Blockid-au: feat(ai): phase-4 sub-H3 prompt registry helper (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T00:13:19.298Z","event":"github-push-master","detail":"Blockid-au: feat(programme): phase-5 sub-I1 programme + cohort + participant tables (0290) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T00:15:09.095Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-weekly-digest): P11.208 pool IQR cron wiring (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T00:15:15.935Z","event":"github-push-master","detail":"Blockid-au: test(idea-phase): P3-persist-lib-test — 30-case vitest for previously-untested persist.ts (1 commits)","source":"github-webhook"}
