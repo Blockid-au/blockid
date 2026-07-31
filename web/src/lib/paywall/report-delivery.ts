@@ -174,10 +174,18 @@ export function dispositionForStatus(
   return DISPOSITIONS[status];
 }
 
-/** Narrow an untrusted DB string onto the state enum. */
+/**
+ * Narrow an untrusted DB string onto the state enum.
+ *
+ * `hasOwnProperty`, not `in`: `"toString" in DISPOSITIONS` is true via the
+ * prototype chain, which would hand the route a function where it expects
+ * a disposition and crash the response builder on an undefined status.
+ */
 export function parseOrderStatus(raw: unknown): ReportOrderState | null {
   if (typeof raw !== "string") return null;
-  return raw in DISPOSITIONS ? (raw as ReportOrderState) : null;
+  return Object.prototype.hasOwnProperty.call(DISPOSITIONS, raw)
+    ? (raw as ReportOrderState)
+    : null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
