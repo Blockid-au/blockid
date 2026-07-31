@@ -12,8 +12,8 @@
 
 import { describe, it, expect } from "vitest";
 
-import { COPY as GRANT_COPY } from "@/app/reseller/credits/grant-form";
-import { COPY as DRAWER_COPY } from "@/app/reseller/customers/customer-drawer";
+import { COPY as GRANT_COPY } from "@/app/(app)/(reseller)/reseller/credits/grant-form";
+import { COPY as DRAWER_COPY } from "@/app/(app)/(reseller)/reseller/customers/customer-drawer";
 
 function keysOf(obj: object): string[] {
   return Object.keys(obj).sort();

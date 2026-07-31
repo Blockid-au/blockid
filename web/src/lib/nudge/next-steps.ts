@@ -437,32 +437,33 @@ function detectCurrentPhase(
   const fallbackId =
     project?.growth_phase_current ?? GROWTH_PHASE_IDS[0]; // "vision"
 
-  const growthPhaseId = chosen?.phase_id ?? fallbackId;
-  const phaseOrder =
-    chosen?.phase_order ?? indexOfGrowthPhase(growthPhaseId) + 1;
+  const rawPhaseId = chosen?.phase_id ?? fallbackId;
+  // G8-P0: everything downstream is keyed on the canonical growth taxonomy,
+  // so normalise unknown ids to `vision` rather than letting them leak.
+  const growthPhaseId: GrowthPhaseId = isGrowthPhaseId(rawPhaseId)
+    ? rawPhaseId
+    : GROWTH_PHASE_IDS[0];
+  const phaseOrder = growthPhaseOrder(growthPhaseId);
 
-  const numericSlug = String(phaseOrder);
-  const label = PHASE_LABELS[phaseOrder]?.en ?? PHASE_LABELS[1].en;
-  const labelVi = PHASE_LABELS[phaseOrder]?.vi ?? PHASE_LABELS[1].vi;
-  const stage = phaseToStageLabel(phaseOrder) ?? {
-    stage: "idea",
+  // Labels come from the growth taxonomy, NOT showcase/gallery.ts PHASE_LABELS
+  // — those are the numeric taxonomy and gave `legal_equity` the label
+  // "Revenue / Business Model".
+  const label = GROWTH_PHASE_LABELS[growthPhaseId].en;
+  const labelVi = GROWTH_PHASE_LABELS[growthPhaseId].vi;
+  const stage = growthPhaseToStageLabel(growthPhaseId) ?? {
+    stage: "idea" as const,
     label_en: "Idea",
     label_vi: "Ý tưởng",
   };
 
   return {
-    slug: numericSlug,
+    slug: growthPhaseId,
     label,
     label_vi: labelVi,
     canonical_stage: stage.stage,
     growth_phase_id: growthPhaseId,
     phase_order: phaseOrder,
   };
-}
-
-function indexOfGrowthPhase(id: string): number {
-  const idx = GROWTH_PHASE_IDS.indexOf(id as (typeof GROWTH_PHASE_IDS)[number]);
-  return idx < 0 ? 0 : idx;
 }
 
 // ---------------------------------------------------------------------------
