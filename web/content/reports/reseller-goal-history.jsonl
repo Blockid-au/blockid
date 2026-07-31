@@ -855,3 +855,9 @@
 {"tick_id":"2026-07-31T05-10-01-703Z","ts":"2026-07-31T05:19:21.682Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":559882,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-31T05-10-01-703Z","ts":"2026-07-31T05:19:21.726Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":8}
 {"tick_id":"2026-07-31T05-10-01-703Z","ts":"2026-07-31T05:19:21.728Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"truncation_guard_failed","error":"ReferenceError: guardTruncations is not defined"}
+{"tick_id":"2026-07-31T05-10-01-703Z","ts":"2026-07-31T05:19:23.225Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-31T05-10-01-703Z","ts":"2026-07-31T05:19:23.236Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"85d449f4","last_deployed":"0fdb48f"}
+{"tick_id":"2026-07-31T05-10-01-703Z","ts":"2026-07-31T05:19:23.247Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"85d449f4"}
+{"tick_id":"2026-07-31T05-10-01-703Z","ts":"2026-07-31T05:19:23.248Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T05-20-01-347Z","ts":"2026-07-31T05:20:01.349Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T05-20-01-347Z","ts":"2026-07-31T05:20:01.422Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
