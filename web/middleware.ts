@@ -22,6 +22,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkRateLimit, type RateLimitBucket } from "@/lib/rate-limit";
 import { securityHeaders } from "@/lib/security-headers";
+import { refreshSessionAndInjectHeaders } from "@/lib/supabase/refresh-session";
+import { getMiddlewareClient } from "@/lib/supabase/server-anon";
 
 const JUR_COOKIE = "bid_jur";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
@@ -120,16 +122,25 @@ export async function middleware(req: NextRequest) {
     }
     // Attach ceiling headers to allowed responses too — clients can
     // back off gracefully before we start returning 429s.
-    const ok = NextResponse.next();
+    const ok = NextResponse.next({ request: { headers: req.headers } });
     ok.headers.set("X-RateLimit-Limit", String(result.limit));
     ok.headers.set("X-RateLimit-Remaining", String(result.remaining));
     ok.headers.set("X-RateLimit-Reset", String(Math.floor(result.resetAt / 1000)));
+    // ── 2. SSO session refresh (Master Upgrade Plan §8.9 stage 2) ────
+    // Runs BEFORE header injection so downstream RSCs read the fresh
+    // identity headers. Never mutates the 429 branch above.
+    await refreshSessionAndInjectHeaders(req, ok, {
+      clientFactory: getMiddlewareClient,
+    });
     seedJurisdictionCookie(req, ok);
     return applyHeaders(ok);
   }
 
-  // ── 2. Default path — cookie + headers ──────────────────────────────
-  const res = NextResponse.next();
+  // ── 3. Default path — SSO refresh + cookie + headers ───────────────
+  const res = NextResponse.next({ request: { headers: req.headers } });
+  await refreshSessionAndInjectHeaders(req, res, {
+    clientFactory: getMiddlewareClient,
+  });
   seedJurisdictionCookie(req, res);
   return applyHeaders(res);
 }
