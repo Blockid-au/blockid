@@ -1,4 +1,4 @@
-// Atlassian public-record benchmark — S0–S5 × 12-phase × 12-area mapping.
+// Atlassian public-record benchmark — S0–S5 × 12-phase × 13-area mapping.
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // WHAT THIS IS — AND IS NOT
@@ -20,7 +20,8 @@
 //   * 5-level verification ladder → web/src/lib/verification/level-engine.ts
 //   * 13 SVI criteria            → web/src/lib/evaluation-criteria.ts
 //   * SCN 5-lens (Startup Compass) → web/src/lib/scn-detect.ts
-//   * 12 analysis areas / 4 pillars → Master Upgrade Plan §6
+//   * 13 analysis areas / 4 pillars → Master Upgrade Plan §6
+//     (3 L&P · 4 S&C · 4 O&P · 2 T&D; weights sum to 100)
 //
 // Sibling module: ./fixture.ts holds the original showcase timeline. This
 // module deliberately does NOT rewrite it — it adds the sourced stage layer
@@ -529,7 +530,13 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
   },
 ] as const;
 
-// ─── 12 analysis areas / 4 pillars (Master Upgrade Plan §6) ─────────────────
+// ─── 13 analysis areas / 4 pillars (Master Upgrade Plan §6) ─────────────────
+// Split: Leadership & People 3 · Strategy & Commercial 4 · Operations & Performance 4
+// · Technology & Digital 2. The last-added dimension is `website_digital_presence`
+// (T&D), which pairs with `technology_architecture` and maps to the SVI `website`
+// criterion — a public digital-presence signal that Master Plan §17.3 S4 calls out
+// as distinct from code/architecture. Pinned by the colocated area-count drift
+// guard: see stage-benchmark.test.ts › "13-area drift guard".
 
 export const ANALYSIS_PILLAR_IDS = [
   "leadership_people",
