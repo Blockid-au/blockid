@@ -941,3 +941,4 @@
 {"tick_id":"2026-07-31T09-47-01-306Z","ts":"2026-07-31T09:54:13.315Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T09-57-01-320Z","ts":"2026-07-31T09:57:01.321Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T09-57-01-320Z","ts":"2026-07-31T09:57:01.333Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"manual-2026-07-31T10-02-11Z","ts":"2026-07-31T10:02:11.000Z","loop_label":"atlassian-goal-loop","stage":"phase_test_added","phase":"P9_ship","subtask":"P9-i18n-t-lib-test","file":"web/src/lib/i18n/t.test.ts","cases":22,"head":"1491d01a771649a73329297f2d8436c0e4fff3b9"}
