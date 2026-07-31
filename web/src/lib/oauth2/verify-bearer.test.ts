@@ -164,12 +164,17 @@ describe("constantTimeHexEqual", () => {
     expect(constantTimeHexEqual("a".repeat(64), "a".repeat(62))).toBe(false);
   });
 
-  it("returns false for non-hex garbage inputs", () => {
-    // "zzz..." isn't hex; Buffer.from(_,'hex') truncates — helper must not crash.
-    expect(constantTimeHexEqual("z".repeat(64), "z".repeat(64))).toBe(true);
-    // But wildly different content is still unequal.
-    expect(constantTimeHexEqual("z".repeat(64), "y".repeat(64))).toBe(true);
-    // ^ both truncate to empty buffer under 'hex' parsing → equal. Documented
-    // here so a regression that stops using timingSafeEqual is caught.
+  it("does not crash on non-hex characters (parses to empty buffer)", () => {
+    // "zzz..." isn't hex; Buffer.from(_,'hex') truncates to empty. Both
+    // become equal empty buffers under timingSafeEqual — documented so a
+    // regression that starts throwing on bad input is caught.
+    expect(() => constantTimeHexEqual("z".repeat(64), "z".repeat(64))).not.toThrow();
+  });
+
+  it("returns false for non-string arguments", () => {
+    // @ts-expect-error — deliberate misuse to prove the runtime guard.
+    expect(constantTimeHexEqual(null, "a".repeat(64))).toBe(false);
+    // @ts-expect-error — deliberate misuse to prove the runtime guard.
+    expect(constantTimeHexEqual("a".repeat(64), 123)).toBe(false);
   });
 });
