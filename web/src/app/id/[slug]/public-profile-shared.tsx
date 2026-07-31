@@ -519,26 +519,43 @@ function PageBody({
         className="mx-auto max-w-5xl px-6 py-8"
       >
         <div className="rounded-2xl border border-current/20 p-6 md:p-8">
+          {/* A fictional company cannot issue a signed share package, and
+              inviting a visitor to "request access" from one would imply
+              a counterparty exists. Sample profiles get an explainer CTA
+              instead. */}
           <h2
             id="share-heading"
             className="text-xl font-semibold md:text-2xl"
           >
-            {t(m, "businessIdPublic.share.heading")}
+            {t(m, sample ? "businessIdPublic.demo.share.heading" : "businessIdPublic.share.heading")}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm opacity-85">{shareBody}</p>
+          <p className="mt-2 max-w-2xl text-sm opacity-85">
+            {sample ? t(m, "businessIdPublic.demo.share.body") : shareBody}
+          </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href={`/share/request?business=${encodeURIComponent(profile.slug)}`}
-              className="inline-flex items-center gap-2 rounded-lg bg-[var(--fintech-accent,#4fd1c5)] px-4 py-2 text-sm font-semibold text-[var(--fintech-bg-primary,#0a1622)] focus:outline-none focus:ring-2 focus:ring-[var(--fintech-accent,#4fd1c5)] focus:ring-offset-2 focus:ring-offset-[var(--fintech-bg-primary,#0a1622)]"
-            >
-              {t(m, "businessIdPublic.share.cta")}
-            </Link>
-            <Link
-              href={locale === "vi" ? "/vi/business-id" : "/business-id"}
-              className="inline-flex items-center gap-2 rounded-lg border border-current/40 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-current"
-            >
-              {t(m, "businessIdPublic.share.explainer")}
-            </Link>
+            {sample ? (
+              <Link
+                href={locale === "vi" ? "/vi/business-id" : "/business-id"}
+                className="inline-flex items-center gap-2 rounded-lg bg-[var(--fintech-accent,#4fd1c5)] px-4 py-2 text-sm font-semibold text-[var(--fintech-bg-primary,#0a1622)] focus:outline-none focus:ring-2 focus:ring-[var(--fintech-accent,#4fd1c5)] focus:ring-offset-2 focus:ring-offset-[var(--fintech-bg-primary,#0a1622)]"
+              >
+                {t(m, "businessIdPublic.demo.share.cta")}
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href={`/share/request?business=${encodeURIComponent(profile.slug)}`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--fintech-accent,#4fd1c5)] px-4 py-2 text-sm font-semibold text-[var(--fintech-bg-primary,#0a1622)] focus:outline-none focus:ring-2 focus:ring-[var(--fintech-accent,#4fd1c5)] focus:ring-offset-2 focus:ring-offset-[var(--fintech-bg-primary,#0a1622)]"
+                >
+                  {t(m, "businessIdPublic.share.cta")}
+                </Link>
+                <Link
+                  href={locale === "vi" ? "/vi/business-id" : "/business-id"}
+                  className="inline-flex items-center gap-2 rounded-lg border border-current/40 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-current"
+                >
+                  {t(m, "businessIdPublic.share.explainer")}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -565,6 +582,11 @@ function PageBody({
           </Link>
           {t(m, "businessIdPublic.proof.issuer")}
         </p>
+        {sample && (
+          <p className="mt-3 text-xs font-medium opacity-90">
+            {t(m, "businessIdPublic.demo.footer")}
+          </p>
+        )}
       </section>
     </div>
   );

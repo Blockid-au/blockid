@@ -13,8 +13,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import {
+  BenchmarkNotice,
+  HumanReviewFlagsSection,
+  PhaseBenchmarkPanel,
+  StageBenchmarkSection,
+} from "@/components/showcase/atlassian-benchmark";
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
+import type { PhaseKey } from "@/lib/journey-map";
 import {
   ATLASSIAN_DEMO,
   type AtlassianMilestone,
@@ -200,10 +207,14 @@ export default function AtlassianGrowthPhasesMirrorPage() {
               The BlockID.au founder journey maps every startup onto the same
               twelve phases — Vision at 1, Exit at 12. Below each column shows
               what Atlassian did in that phase, the canonical VC-stage
-              equivalent, the milestones on the timeline, and the SVI score
-              Atlassian would have carried leaving that phase.
+              equivalent, the milestones on the timeline, and the S0–S5 stage
+              the public record places that phase in.
             </p>
           </header>
+
+          <div className="mb-8">
+            <BenchmarkNotice />
+          </div>
 
           <section
             aria-labelledby="phase-strip"
@@ -272,6 +283,8 @@ export default function AtlassianGrowthPhasesMirrorPage() {
                         </ul>
                       ) : null}
                     </div>
+
+                    <PhaseBenchmarkPanel ordinal={col.phase as PhaseKey} />
 
                     {col.snapshot?.sourceUrl ? (
                       <a
