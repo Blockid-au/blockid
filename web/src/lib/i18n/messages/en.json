@@ -135,6 +135,7 @@
   "businessId.badge.title": "Badge widget",
   "businessId.badge.intro": "Embed your verified badge on your website, LinkedIn or email signature. Renders your current verification level, last update date, and a link to your public /id/{slug} profile — updates in real time when your level changes.",
   "businessId.badge.caption": "Sample badge: Verified Business ID · Level 3 · updated Jul 2026. Copy the embed snippet from your dashboard.",
+  "businessId.badge.viewDemo": "View the live demo profile",
   "businessId.cta.title": "Create Your Business ID",
   "businessId.disclaimer": "Nothing on this page is financial or legal advice. Verification confirms what the record says, not the underlying business decision. Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW.",
   "meta.solutions.founder.title": "For Founders — One Business. One Trusted Identity. | BlockID.au",
