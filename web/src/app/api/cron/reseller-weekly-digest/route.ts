@@ -573,6 +573,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolHoover,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-hoover";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluth,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluthSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluth,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-rosenbluth";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2151,6 +2156,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolHoover
     | null = null;
   let perTransitionMagnitudeTop3PoolHooverSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolRosenbluth:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluth
+    | null = null;
+  let perTransitionMagnitudeTop3PoolRosenbluthSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5473,6 +5482,51 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolHooverSection(
           snapshotPerTransitionMagnitudeTop3PoolHoover,
         );
+      // P11.235 rosenbluth cron wiring — WHOLE-POOL BOUNDED
+      // RANK-WEIGHTED-INEQUALITY scalar over the P11.161 pool. Folds
+      // every cell into ONE bounded concentration read on [1/n, 1]
+      // using the Rosenbluth / Hall-Tideman Index:
+      //   ri = 1 / (2 * sum_{i=1..n} i * s_(i)_desc - 1)
+      // where s_(i)_desc is the i-th LARGEST share of the pool. Named
+      // after Ilse Rosenbluth 1955 "Massungen der Konzentration" and
+      // independently rediscovered by Hall & Tideman 1967 "Measures of
+      // Concentration"; DOJ / FTC anti-trust literature calls it the
+      // Hall-Tideman Index. Numbers-equivalent interpretation: 1/ri
+      // equals the effective number of equally sized partners that
+      // would give the same ri — a pool with ri 0.20 behaves like 5
+      // equally sized partners regardless of actual pool_count.
+      // Unique CONCENTRATION-axis contribution: the ONLY rank-WEIGHTED
+      // read in the family (HHI, Gini, Theil, Atkinson, Palma, Hoover
+      // are all rank-INVARIANT), so ri is uniquely sensitive to WHERE
+      // in the leader-board the excess mass sits — a leader pulling
+      // away from #2 raises ri faster than a #3 shrinking. Guards:
+      // pool_count 0 → empty null; pool_count 1 → solo (ri = 1 by
+      // definition — single partner holds share 1 and the sum collapses
+      // to 1, so ri = 1/(2 - 1) = 1); pool_count >= 2 with pool_cells 0
+      // → degenerate null (guarded but structurally unreachable given
+      // count integers >= 1); pool_count >= 2 with pool_cells > 0 →
+      // ri in [1/n, 1] rounded to 4 decimals + ri_normalized =
+      // (ri - 1/n) / (1 - 1/n) in [0, 1] rounded to 4 decimals. Bands
+      // anchored on the NORMALIZED value so cutoffs remain n-invariant
+      // across every pool_count >= 2: balanced ri_norm < 0.10 (near-
+      // uniform), moderate ri_norm in [0.10, 0.30) (leader emerging
+      // but no dominant whale), concentrated ri_norm in [0.30, 0.60)
+      // (leader clearly ahead of the pack), highly_concentrated
+      // ri_norm >= 0.60 (near-monopoly regime). Splices IMMEDIATELY
+      // BELOW perTransitionMagnitudeTop3PoolHooverSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.234
+      // formatter docblock so the rank-weighted read closes the
+      // CONCENTRATION axis after the two rank-invariant bounded reads
+      // (Gini via Lorenz, Hoover via redistribution share). Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolRosenbluth =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluth(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolRosenbluthSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluthSection(
+          snapshotPerTransitionMagnitudeTop3PoolRosenbluth,
+        );
     }
   }
   if (
@@ -5564,6 +5618,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolKellySkewnessSection ||
     perTransitionMagnitudeTop3PoolPalmaSection ||
     perTransitionMagnitudeTop3PoolHooverSection ||
+    perTransitionMagnitudeTop3PoolRosenbluthSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5682,6 +5737,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolKellySkewnessSection +
       perTransitionMagnitudeTop3PoolPalmaSection +
       perTransitionMagnitudeTop3PoolHooverSection +
+      perTransitionMagnitudeTop3PoolRosenbluthSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -8179,6 +8235,37 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolHoover.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolHoover.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_rosenbluth:
+      snapshotPerTransitionMagnitudeTop3PoolRosenbluth
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolRosenbluth.top_n,
+            balanced_ri_normalized_max:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.balanced_ri_normalized_max,
+            concentrated_ri_normalized_min:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.concentrated_ri_normalized_min,
+            highly_concentrated_ri_normalized_min:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.highly_concentrated_ri_normalized_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolRosenbluth.transitions,
           }
         : {
             skipped_reason:
