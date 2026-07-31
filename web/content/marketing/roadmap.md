@@ -34,6 +34,7 @@ We ship in public. Every release is tagged, every task ID lives in the changelog
 
 - **/id/[slug] public profile** — SEO-indexable per D3, migration `0273`, PII whitelist, JSON-LD, and `/embed/badge` SVG widget for external sites.
 - **Consent domain** — `0250_consents` + `consent_state_events` + `0251_share_packages` + `0252_revocations` (BCR-004) with `enforceConsent` middleware guarding read paths.
+- **Full `/vi/*` mirror (D4 pre-empt)** — Vietnamese mirrors at `/vi/solutions/{founder,investor,accelerator}`, `/vi/business-id`, and `/vi/id/[slug]` with `hreflang` alternates and JSON-LD `inLanguage: "vi-VN"`; shared bodies extracted so EN + VI stay in lockstep. Sitemap flatmaps every public L2+ profile into both locales.
 
 ### Phase 2 — Verification ladder
 
@@ -85,7 +86,6 @@ We ship in public. Every release is tagged, every task ID lives in the changelog
 - **Full `@supabase/ssr` middleware refresh** (§8.9 stage 2 of the master plan).
 - **ClamAV daemon** integration for evidence malware scan on upload.
 - **Prompt-eval golden fixtures** — canonical outputs pinned per prompt version.
-- **Full `/vi/*` mirror** — D4 deferred beyond Phase 1 MVP.
 - **VC issuer keypair custody** — hardware-backed signing for verifiable credentials.
 - **Migration `0271_grandfather_a149`** — blocked on CFO sign-off for pricing carry-over.
 - **`scripts/stripe/sync-plans.mjs` live provisioning** — blocked on CFO Stripe key provisioning.

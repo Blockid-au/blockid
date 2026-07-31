@@ -324,12 +324,52 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/investor`,
+          vi: `${SITE_URL}/vi/solutions/investor`,
+          "x-default": `${SITE_URL}/solutions/investor`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/vi/solutions/investor`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/investor`,
+          vi: `${SITE_URL}/vi/solutions/investor`,
+          "x-default": `${SITE_URL}/solutions/investor`,
+        },
+      },
     },
     {
       url: `${SITE_URL}/solutions/accelerator`,
       lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/accelerator`,
+          vi: `${SITE_URL}/vi/solutions/accelerator`,
+          "x-default": `${SITE_URL}/solutions/accelerator`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/vi/solutions/accelerator`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/accelerator`,
+          vi: `${SITE_URL}/vi/solutions/accelerator`,
+          "x-default": `${SITE_URL}/solutions/accelerator`,
+        },
+      },
     },
     // Business ID explainer (D3 — public, indexable)
     {
@@ -337,6 +377,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/business-id`,
+          vi: `${SITE_URL}/vi/business-id`,
+          "x-default": `${SITE_URL}/business-id`,
+        },
+      },
+    },
+    // Sub-T3 — VI mirror of the /business-id explainer.
+    {
+      url: `${SITE_URL}/vi/business-id`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/business-id`,
+          vi: `${SITE_URL}/vi/business-id`,
+          "x-default": `${SITE_URL}/business-id`,
+        },
+      },
     },
     // Insights / blog
     {
