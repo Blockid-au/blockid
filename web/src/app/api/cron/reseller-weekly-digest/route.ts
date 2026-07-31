@@ -7877,6 +7877,38 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_per_transition_magnitude_top3_pool_l_cv:
+      snapshotPerTransitionMagnitudeTop3PoolLCv
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.sustained_p90_threshold,
+            threshold: snapshotPerTransitionMagnitudeTop3PoolLCv.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolLCv.top_n,
+            min_pool_count_for_l_cv:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.min_pool_count_for_l_cv,
+            low_l_cv_max:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.low_l_cv_max,
+            high_l_cv_min:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.high_l_cv_min,
+            highly_concentrated_l_cv_min:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.highly_concentrated_l_cv_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolLCv.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     snapshot_per_pair_hot_cells: snapshotPerPairHotCells
       ? {
           window_size: snapshotPerPairHotCells.window_size,
