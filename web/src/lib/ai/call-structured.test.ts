@@ -244,3 +244,91 @@ describe("callStructured — input validation", () => {
     expect(inserted).toHaveLength(0);
   });
 });
+
+// ── Injected transport (used by the report pipeline's free chain) ──────
+
+describe("callStructured — injected modelCaller", () => {
+  it("uses the injected transport instead of fetch and still logs ai_runs", async () => {
+    const fetchImpl = vi.fn();
+    const seen: Array<{ model: string; turns: number }> = [];
+
+    const res = await callStructured({
+      ...baseArgs,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      modelCaller: async ({ model, messages }) => {
+        seen.push({ model, turns: messages.length });
+        return {
+          ok: true,
+          text: JSON.stringify({ answer: "42", score: 72 }),
+          tokensIn: 11,
+          tokensOut: 7,
+        };
+      },
+    });
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(res.ok).toBe(true);
+    expect(seen).toEqual([{ model: "claude-sonnet-5", turns: 1 }]);
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.status).toBe("ok");
+    expect(inserted[0]!.tokens_in).toBe(11);
+  });
+
+  it("runs the repair pass through the injected transport", async () => {
+    let call = 0;
+    const res = await callStructured({
+      ...baseArgs,
+      modelCaller: async ({ messages }) => {
+        call += 1;
+        return {
+          ok: true,
+          text:
+            call === 1
+              ? "here you go: not json"
+              : JSON.stringify({ answer: "42", score: 30 }),
+          tokensIn: messages.length,
+          tokensOut: 1,
+        };
+      },
+    });
+
+    expect(call).toBe(2);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.score).toBe(30);
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.status).toBe("ok");
+  });
+
+  it("records schema_fail when the injected transport never returns valid JSON", async () => {
+    const res = await callStructured({
+      ...baseArgs,
+      modelCaller: async () => ({ ok: true as const, text: "nope" }),
+    });
+
+    expect(res.ok).toBe(false);
+    expect(inserted[0]!.status).toBe("schema_fail");
+  });
+
+  it("treats a throwing transport as a model_error", async () => {
+    const res = await callStructured({
+      ...baseArgs,
+      modelCaller: async () => {
+        throw new Error("chain exhausted");
+      },
+    });
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toMatch(/chain exhausted/);
+    expect(inserted[0]!.status).toBe("model_error");
+  });
+
+  it("treats an empty completion as a model_error", async () => {
+    const res = await callStructured({
+      ...baseArgs,
+      modelCaller: async () => ({ ok: true as const, text: "   " }),
+    });
+
+    expect(res.ok).toBe(false);
+    expect(inserted[0]!.status).toBe("model_error");
+  });
+});

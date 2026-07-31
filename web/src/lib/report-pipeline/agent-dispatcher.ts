@@ -255,6 +255,11 @@ RULES:
 - Every evidence_id MUST be copied verbatim from the EVIDENCE CATALOGUE below. Never invent one.
 - Every quote MUST appear verbatim in the cited evidence item.
 - If the evidence does not support a specific number, do not state one.
+- Inside "body_markdown", every MATERIAL claim (money, percentage, count, growth
+  rate, multiple, ARR/MRR/TAM-style metric) must be followed by an inline marker
+  [ev:<evidence_id>] copied from the catalogue — or, if nothing supports it,
+  be written with an explicit "(unevidenced)" marker. The grounding auditor
+  rejects material claims that carry neither.
 `.trim();
 
 function renderStructuredUser(input: DispatchInput): string {
