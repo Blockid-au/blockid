@@ -28,6 +28,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { reportOrderPath } from "@/lib/paywall/report-delivery";
 
 export interface ReportPaywallQuote {
   credits: number;
@@ -50,7 +51,11 @@ export interface ReportPaywallGateProps {
   /** External open control. Parent renders a trigger and flips this on. */
   open: boolean;
   onClose(): void;
-  /** Called with the created order id after Path B confirms. */
+  /**
+   * Called with the created order id after Path B confirms. When omitted
+   * the gate navigates to `reportOrderPath(orderId)` itself, so the
+   * credit path always ends somewhere the report is actually delivered.
+   */
   onRedeemed?(orderId: string): void;
 }
 
@@ -147,7 +152,16 @@ export function ReportPaywallGate({
         setPending(null);
         return;
       }
-      onRedeemed?.(data.orderId);
+      // Delivery is the point of the purchase, so a redeem that nobody
+      // is listening to must still take the buyer to their report rather
+      // than silently closing the modal on an unchanged page. Parents
+      // that want their own routing keep full control by passing
+      // onRedeemed; the default only fires when they do not.
+      if (onRedeemed) {
+        onRedeemed(data.orderId);
+      } else {
+        window.location.href = reportOrderPath(data.orderId);
+      }
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");

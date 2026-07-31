@@ -195,7 +195,14 @@ export async function POST(request: Request) {
   }
 
   const origin = siteOrigin(request);
-  const successUrl = `${origin}/dashboard?report_order=success&session_id={CHECKOUT_SESSION_ID}`;
+  // Land the buyer on the delivery page, not the generic dashboard: the
+  // report does not exist yet at redirect time (the webhook flips the
+  // order to PAID and the drain cron generates it), so the destination
+  // has to be a surface that polls GET /api/reports/[orderId]. Stripe
+  // interpolates only its own session id here — the order row is created
+  // below, after the session exists — so the page resolves
+  // session_id → owned order id server-side.
+  const successUrl = `${origin}/dashboard/reports/order?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${origin}/dashboard?report_order=cancel`;
 
   // UTC-day-scoped idempotency: same (user, business, day) → same session.
