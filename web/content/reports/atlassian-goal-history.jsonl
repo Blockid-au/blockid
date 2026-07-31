@@ -7346,3 +7346,4 @@
 {"tick_id":"2026-07-31T01-27-02-028Z","ts":"2026-07-31T01:34:16.821Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T01-37-01-832Z","ts":"2026-07-31T01:37:01.833Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T01-37-01-832Z","ts":"2026-07-31T01:37:01.852Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-31T01-37-01-832Z","ts":"2026-07-31T01:41:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","sub_ticket":"P9-jurisdiction-lib-test","test_file":"web/src/lib/jurisdiction.test.ts","cases":40,"status":"green","duration_ms":351}
