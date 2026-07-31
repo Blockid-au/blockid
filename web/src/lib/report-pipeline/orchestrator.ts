@@ -51,6 +51,15 @@ export interface OrchestratorInput {
   locale?: "en" | "vi";
   callAI: (systemPrompt: string, userPrompt: string, maxTokens: number) => Promise<string>;
   onPhaseChange?: (status: PipelineStatus) => void;
+  /** Overrides for the structured dispatch path (model label, transport, …). */
+  dispatchOptions?: DispatchOptions;
+  /**
+   * Budget predicate for the §5.4 grounding sweep. Defaults to the
+   * ai-client monthly cap: once the month's spend hits MONTHLY_BUDGET_USD
+   * the sweep stops making model calls and reports the remaining sections
+   * with their (free) deterministic verdict only.
+   */
+  auditBudgetOk?: () => boolean;
 }
 
 // ── Orchestrate ─────────────────────────────────────────────────────────────
@@ -92,17 +101,25 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
   context.gatherResults = await gatherData(context, input.callAI);
 
   // ── Phase 2: ANALYZE ────────────────────────────────────────────────
+  // Every agent call is schema-validated and audit-logged to ai_runs.
+  const dispatchOpts: DispatchOptions = {
+    purpose: "customer_report",
+    businessId: input.projectId ?? null,
+    userId: input.userId,
+    ...(input.dispatchOptions ?? {}),
+  };
+
   // Wave 1: Independent analyses
   notify("wave1", 15);
-  await dispatchWave(WAVE_1, context, input.tier, input.callAI);
+  await dispatchWave(WAVE_1, context, input.tier, input.callAI, dispatchOpts);
 
   // Wave 2: Depends on Wave 1
   notify("wave2", 45);
-  await dispatchWave(WAVE_2, context, input.tier, input.callAI);
+  await dispatchWave(WAVE_2, context, input.tier, input.callAI, dispatchOpts);
 
   // Wave 3: Depends on Wave 1 + 2
   notify("wave3", 75);
-  await dispatchWave(WAVE_3, context, input.tier, input.callAI);
+  await dispatchWave(WAVE_3, context, input.tier, input.callAI, dispatchOpts);
 
   // ── Phase 3: SYNTHESIZE ─────────────────────────────────────────────
   notify("synthesizing", 85);
@@ -114,12 +131,14 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
   context.executiveSummary = await generateExecutiveSummary(context, input.callAI);
 
   // LLM Auditor (ported from Google Agent Garden's llm-auditor sample) —
-  // ground the executive summary against the real evidence + SVI scores and
-  // strip any fabricated specifics the free models may have invented. Runs on
-  // the same free provider chain and is fully fail-safe.
-  const audit = await auditExecutiveSummary(context, input.callAI);
-  context.executiveSummary = audit.revised;
+  // §5.4 grounding sweep over EVERY section (executive summary + all
+  // criterion sections), not just the summary. Fully fail-safe and metered.
+  const audit = await auditAllSections(context, input.tier, input.callAI, {
+    budgetOk: input.auditBudgetOk,
+  });
+  context.executiveSummary = audit.executiveSummary;
   context.auditFindings = audit.findings;
+  context.sectionAudits = audit.records;
 
   context.qualityScore = computeFinalQuality(context);
 
@@ -284,12 +303,31 @@ Include:
 
 // ── LLM Auditor (Agent Garden pattern) ──────────────────────────────────────
 
-async function auditExecutiveSummary(
+/**
+ * §5.4 grounding sweep — G8.
+ *
+ * Runs over the executive summary AND every criterion section. Two stages
+ * (see llm-auditor.ts): a free deterministic citation gate on every section,
+ * then a metered critic→reviser LLM pass.
+ *
+ * Cost control, by tier:
+ *   standard        — LLM pass only on sections the free gate flagged, max 6.
+ *                     Typical clean report: 0 auditor calls (was 2).
+ *                     Worst case: 12 calls.
+ *   premium /       — LLM pass on every section, max 16 sections
+ *   investor_memo     (≤ 32 calls). These tiers pay 2-3x Standard.
+ *
+ * The monthly ai-client budget short-circuits the LLM pass at any point; the
+ * free gate still runs, so no section is ever reported as grounded without
+ * having been checked.
+ */
+async function auditAllSections(
   context: ReportContext,
+  tier: ReportTier,
   callAI: (systemPrompt: string, userPrompt: string, maxTokens: number) => Promise<string>,
-): Promise<{ revised: string; findings: string[] }> {
+  opts: { budgetOk?: () => boolean } = {},
+): Promise<{ executiveSummary: string; findings: string[]; records: SectionAuditRecord[] }> {
   const draft = context.executiveSummary ?? "";
-  if (!draft.trim()) return { revised: draft, findings: [] };
 
   // Build the grounding evidence: startup description + actual SVI scores +
   // per-criterion scores. The auditor treats this as the ONLY source of truth.
@@ -309,9 +347,74 @@ async function auditExecutiveSummary(
     `## Per-Criterion Scores\n${criterionScores}`,
   ].join("\n\n");
 
-  // ModelCaller signature matches the pipeline's injected callAI exactly.
-  const result = await auditText(draft, evidence, callAI, 2000);
-  return { revised: result.revised, findings: result.findings };
+  const sections: AuditableSection[] = [];
+  if (draft.trim()) {
+    sections.push({ id: "executive", title: "Executive Summary", content: draft });
+  }
+  for (const [key, result] of context.criterionResults) {
+    sections.push({
+      id: key,
+      title: key,
+      content: result.content,
+      allowedEvidenceIds: buildEvidenceCatalogue(key, context).map(e => e.evidence_id),
+    });
+  }
+
+  const fullSweep = tier === "premium" || tier === "investor_memo";
+  const budgetOk =
+    opts.budgetOk ??
+    (() => {
+      const b = getAIBudgetStatus();
+      return b.spent < b.limit;
+    });
+
+  const outcomes = await auditSections(sections, evidence, callAI, {
+    llmOnlyWhenUncited: !fullSweep,
+    maxLlmSections: fullSweep ? 16 : 6,
+    budgetOk,
+    maxTokens: 2000,
+  });
+
+  const originals = new Map(sections.map(s => [s.id, s.content]));
+  const findings: string[] = [];
+  const records: SectionAuditRecord[] = [];
+  let executiveSummary = draft;
+
+  for (const o of outcomes) {
+    records.push({
+      sectionId: o.sectionId,
+      uncitedClaims: o.uncitedClaims,
+      findings: o.findings,
+      revised: o.revised !== originals.get(o.sectionId),
+      grounded: o.grounded,
+      skipped: o.skipped,
+    });
+
+    for (const f of o.findings) findings.push(`[${o.sectionId}] ${f}`);
+    for (const c of o.uncitedClaims.slice(0, 2)) {
+      findings.push(`[${o.sectionId}] uncited claim: ${c}`);
+    }
+
+    if (o.sectionId === "executive") {
+      executiveSummary = o.revised;
+      continue;
+    }
+
+    // Downgrade + flag — never silently publish an ungrounded section.
+    const result = context.criterionResults.get(o.sectionId as CriterionKey);
+    if (!result) continue;
+    result.content = o.revised;
+    result.grounded = o.grounded;
+    if (!o.grounded) {
+      result.confidence = Math.round(result.confidence * 0.7 * 100) / 100;
+      result.risks = [
+        `Grounding: ${o.uncitedClaims.length} claim(s) in this section are not backed by a cited evidence id — verify before relying on the figures.`,
+        ...result.risks,
+      ];
+    }
+  }
+
+  return { executiveSummary, findings: findings.slice(0, 24), records };
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
