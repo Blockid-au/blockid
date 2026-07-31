@@ -4,6 +4,7 @@ import { Inter, IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
 import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
+import { AuthSyncClient } from "@/components/auth/AuthSyncClient";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
 import { ResellerRefCapture } from "@/components/marketing/reseller-ref-capture";
 import { TranslationProvider } from "@/components/i18n/translation-provider";
@@ -128,6 +129,10 @@ export default async function RootLayout({
       <body className="min-h-full bg-surface-50 text-brand-900 dark:text-ink-800 font-sans flex flex-col">
         <GTMNoScript />
         <Providers>
+          {/* Cross-tab SSO sync — Master Upgrade Plan §8.9 stage 2.
+              Broadcasts sign-in/out on the `bid-auth` BroadcastChannel
+              and calls router.refresh() on peer tab events. */}
+          <AuthSyncClient />
           {/* `?ref=<CODE>` deep-link capture — writes blockid_via cookie
               before any signup flow reads it. Task M1 (v3 reseller upgrade). */}
           <ResellerRefCapture />
