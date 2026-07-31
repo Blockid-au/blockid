@@ -131,88 +131,67 @@ type ShippedItem = {
 
 const RECENTLY_LANDED: ShippedItem[] = [
   {
-    id: "portfolio-svi-chart",
-    title: "Portfolio SVI comparison chart (Q4 MP #2)",
+    id: "v3-hero-paywall",
+    title: "Phase 1 — HeroV3 + SSO-aware CTA + report paywall",
     detail:
-      "Comparison chart landed on the multi-project portfolio surface — Q4 Multi-Project reaches 5/5 shipped (portfolio, team members, permissions, archive UI, 90-day retention cron).",
-    ticket: "Q4 MP #2",
+      "Locked v3 messaging ('One Business. One Trusted Identity.') behind NEXT_PUBLIC_UPGRADE_V3, SSO-aware CTA via cookie hint, and a 9-state report_orders lifecycle (0270) with A$5.50 inc-GST checkout (Path A) or 200-credit redemption (Path B) behind ReportPaywallGate.",
+    ticket: "Phase 1",
   },
   {
-    id: "gate11-flake-v2",
-    title: "Gate 11 flake v2 hardening",
+    id: "v3-backbone",
+    title: "Stage 3 — Report backbone + solution pages + nav v3",
     detail:
-      "Playwright post-deploy hydrated smoke (11 tests) — flake v2 hardening applied; Gate 11 stabilised on master.",
-    ticket: "Gate 11",
+      "Stripe webhook branch for report_order scope with reconciliation INSERT fallback, migration 0272_report_generation_queue + worker + 2-min drain cron, 4 solution pages (/solutions/{founder,vn-sme,investor,accelerator}) + /business-id explainer, sitemap + robots + /for/* → /solutions/* 301 redirects, PersonaRail (6) + JourneySidebar (8) + TierGate + UpgradeChip.",
+    ticket: "Stage 3",
   },
   {
-    id: "infovision-p1-5-seed",
-    title: "InfoVision reseller seed (P1.5) authored",
+    id: "v3-business-id",
+    title: "Stage 4 — /id/[slug] Verified Business Identity surface",
     detail:
-      "Seed script authored and ready; runtime seed remains human-blocked on valid ABN + GST-registered flag (see human-blocked below).",
-    ticket: "P1.5",
+      "Public SEO-indexable /id/[slug] profile (migration 0273) with PII whitelist, JSON-LD, /embed/badge SVG widget for external sites, sitemap entries + 5 new solution/business-id URLs.",
+    ticket: "Stage 4 · D3",
   },
   {
-    id: "reseller-commissions-cluster",
-    title: "Reseller commissions[] cluster ticks",
+    id: "v3-consent",
+    title: "Stage 4 — Consent-based sharing + revocation",
     detail:
-      "Wire-shape and value-set pins on the commissions[] cluster across admin-resellers-list + admin-reseller-detail — contributes to the 39-tick P10 cross-surface pair count.",
-    ticket: "Reseller P10",
+      "0250_consents + consent_state_events + 0251_share_packages + 0252_revocations (BCR-004) with enforceConsent middleware on read paths.",
+    ticket: "BCR-004",
   },
   {
-    id: "reseller-p0-p10",
-    title: "Reseller module P0-P10 complete",
+    id: "v3-verification-ladder",
+    title: "Phase 2 — 5-level verification ladder + ABR adapter",
     detail:
-      "Wholesale + retail billing, feature-gate manifest, sandbox rate-limit, ledger events, admin surfaces, and 39 wire-shape ticks across admin-resellers-list + admin-reseller-detail.",
-    ticket: "Reseller module",
+      "0202_business_profile VIEW, ABR adapter with JSONP + Zod normalisation, POST /api/verification/abr endpoint, and a verification-level engine deriving Basic → Standard → Enhanced → Verified → Trusted from evidence + provenance.",
+    ticket: "Phase 2 · F1-F3",
   },
   {
-    id: "svi-exc-0012",
-    title: "SVI EXC 0012 — founder secondary-offer intake",
+    id: "v3-evidence",
+    title: "Phase 3 — Evidence pipeline with versioning + extraction",
     detail:
-      "Founder-side secondary offer intake page shipped with SVI evidence link and legal review handoff.",
-    ticket: "T_SVI_EXC_0012 v0.5",
+      "0210_evidence + 0211_evidence_versions + 0212_evidence_extractions, SHA-256 hash-verify, and a state-machine (pending → verified / rejected) covering upload, extraction, and version churn.",
+    ticket: "Phase 3 · G1-G3",
   },
   {
-    id: "ciso-06",
-    title: "Stripe portal wholesale gate",
+    id: "v3-ai-orchestration",
+    title: "Phase 4 — AI orchestration: prompt registry + Zod contracts",
     detail:
-      "Server-side 403 on /api/stripe/portal for wholesale-provisioned founders — customer-portal exposure closed.",
-    ticket: "D3-CISO-06",
+      "0230_prompt_versions + 0231_ai_runs, canonical Zod output contracts, canary→prod prompt swap, callStructured wrapper for typed LLM outputs — foundation for the 12-area analysis engine.",
+    ticket: "Phase 4 · H1-H3",
   },
   {
-    id: "ciso-07",
-    title: "Stripe metadata UUID hashing",
+    id: "v3-programme",
+    title: "Phase 5 — Programme + marketplace + partner API",
     detail:
-      "hashUserId() helper + reseller-lints CI rule — subject_startup_user_id no longer leaks raw UUID into Stripe metadata.",
-    ticket: "D3-CISO-07",
+      "0290_programme_cohorts + 0291_marketplace_opportunities + 0292_oauth2_partners, verifyPartnerBearer, and GET /api/v1/id/[slug] partner-callable JSON.",
+    ticket: "Phase 5 · I1-I4",
   },
   {
-    id: "chro-div83a",
-    title: "CHRO Div 83A qualifying-tests checklist",
+    id: "v3-unicorn",
+    title: "Phase 6 — Unicorn framework S0-S5",
     detail:
-      "Employee-share-scheme eligibility checklist wired into ESOP API + knowledge base for start-up concession tests.",
-    ticket: "CHRO advisory",
-  },
-  {
-    id: "cs-vi-loc",
-    title: "Customer-Success VI localization for reseller UI",
-    detail:
-      "Vietnamese translations for Grant modal + Customer drawer on the reseller admin surface.",
-    ticket: "Customer-Success advisory",
-  },
-  {
-    id: "clo-sandbox-banner",
-    title: "CLO sandbox banner + AUP",
-    detail:
-      "In-workspace banner warning against real PI in sandbox with link to Acceptable Use Policy (component wired; policy copy in flight).",
-    ticket: "D4-CLO-06",
-  },
-  {
-    id: "real-world-audit",
-    title: "Real-world workflow parity audit",
-    detail:
-      "Audit committed at docs/plans/real-world-workflow-parity-audit-2026-07-23.md — Atlassian / Canva / Airwallex / Xero / Culture Amp benchmarked against every BlockID surface.",
-    ticket: "docs/plans",
+      "0280_unicorn_stages + framework.ts + goals.ts decomposition + <UnicornPathDashboard/> server component + 2 nightly crons projecting founder progress against the S0→S5 unicorn ladder.",
+    ticket: "Phase 6 · J1-J3",
   },
   {
     id: "journey-vocab",
@@ -220,13 +199,6 @@ const RECENTLY_LANDED: ShippedItem[] = [
     detail:
       "web/src/lib/journey-vocabulary.ts replaces four overlapping legacy taxonomies (SVI-8, Growth-12, Startup Compass 5-dimension, roadmap-8). Legacy surfaces still migrating.",
     ticket: "Vocab v1.0.0",
-  },
-  {
-    id: "data-room-60",
-    title: "Data-room 60+ items with Tax + AU-Compliance sections",
-    detail:
-      "Expanded data-room checklist across corporate, financial, product, IP, contracts, and AU-specific ATO / ESIC / AFSL / Fair Work rows (in flight).",
-    ticket: "Data-room v2",
   },
 ];
 
@@ -239,38 +211,66 @@ type UpcomingItem = {
 
 const IN_PROGRESS: UpcomingItem[] = [
   {
-    id: "reseller-p10",
-    title: "Reseller P10 — test hardening to 500+ ticks",
+    id: "reseller-promo",
+    title: "Reseller promotion codes (Agent K) — IFV / DVL prefixes",
     detail:
-      "Wire-shape and value-set pins across admin-resellers-list + admin-reseller-detail, chain-of-audit and RLS-bypass negatives.",
+      "K1-K3 landed (reseller_promotion_codes schema, IFV+DVL seed script, resolvePromoCode runtime helper + 8-case test). Next: wire into checkout attribution ledger.",
     status: "in_progress",
   },
   {
-    id: "vocab-migration",
-    title: "Migrate SVI / Growth / Startup Compass surfaces to canonical vocabulary",
+    id: "reseller-roster",
+    title: "Reseller startup roster (Agent L)",
     detail:
-      "Replace SVI-8, Growth-12, and Startup Compass 5-dimension labels with CANONICAL_STAGE_LABELS. Reports, dashboards, and guide chapters affected.",
+      "L1 view (0295 reseller_startup_roster) + L2 readResellerRoster helper landed. L3 pending: /reseller/roster page + 0296 notes/activity table.",
     status: "in_progress",
   },
   {
-    id: "data-room-audit",
-    title: "Data-room v2 — AU-compliance + tax rows",
+    id: "reseller-attribution",
+    title: "?ref=CODE attribution wiring (Agent M)",
     detail:
-      "Extend workspace data-room from 21 to 60+ items adding ATO, ESIC, AFSL, Fair Work and tax categories to reach Series-A parity.",
+      "M1 (?ref= deep-link capture + first-touch cookie) + M2 (signup promo-code input + POST /api/reseller/validate-promo) landed. M3 pending: Stripe checkout attribution + reconciliation ledger.",
     status: "in_progress",
   },
   {
-    id: "share-mgmt-prices",
-    title: "Share Management add-on Stripe prices",
+    id: "supabase-ssr",
+    title: "Full @supabase/ssr middleware refresh (§8.9 stage 2)",
     detail:
-      "Wire Stripe price IDs for share-management add-on; blocked on env vars (see human-blocked).",
+      "Migrate remaining server surfaces from legacy auth-helpers to @supabase/ssr with the standard cookie handshake.",
     status: "planned",
   },
   {
-    id: "showcase-canonical",
-    title: "Showcase re-tagging with canonical stages",
+    id: "route-groups",
+    title: "Route groups reorganisation",
     detail:
-      "Re-map Atlassian / Canva / Xero / SafetyCulture showcase timelines from 12-phase to canonical 8-stage vocabulary.",
+      "Physical (marketing)/(app)/(persona)/* split under app/ to isolate marketing shells, authed workspace, and persona rails.",
+    status: "planned",
+  },
+  {
+    id: "clamav",
+    title: "ClamAV daemon integration for evidence malware scan",
+    detail:
+      "Scan every evidence upload before extraction; quarantine on hit; expose scan-status alongside verification level.",
+    status: "planned",
+  },
+  {
+    id: "prompt-fixtures",
+    title: "Prompt-eval golden fixtures",
+    detail:
+      "Pin canonical inputs → expected structured outputs per prompt version so canary→prod swap is diff-reviewable.",
+    status: "planned",
+  },
+  {
+    id: "vi-mirror",
+    title: "Full /vi/* mirror",
+    detail:
+      "Beyond the Phase 1 MVP surfaces — mirror /solutions, /id, /pricing, /docs into /vi.",
+    status: "planned",
+  },
+  {
+    id: "vc-keypair",
+    title: "VC issuer keypair custody",
+    detail:
+      "Hardware-backed signing for verifiable credentials emitted from /id/[slug] and partner API.",
     status: "planned",
   },
 ];
@@ -284,18 +284,25 @@ type HumanBlockedItem = {
 
 const HUMAN_BLOCKED: HumanBlockedItem[] = [
   {
+    id: "grandfather-a149",
+    title: "Migration 0271_grandfather_a149 — pricing carry-over",
+    detail:
+      "Grandfather the A$149 startup-package cohort under v3 SKUs. Blocked on CFO sign-off for the pricing carry-over rules and Stripe reconciliation strategy.",
+    owner: "Human — CFO",
+  },
+  {
+    id: "stripe-sync-plans",
+    title: "scripts/stripe/sync-plans.mjs — live provisioning",
+    detail:
+      "Live Stripe price + product provisioning for v3 SKU catalogue (sku_trust_report_5aud + 6 tier SKUs). Blocked on CFO Stripe key + billing-code provisioning.",
+    owner: "Human — CFO",
+  },
+  {
     id: "infovision-abn-gst",
     title: "InfoVision reseller seed — ABN + GST registration",
     detail:
       "resellers row for InfoVision can't be seeded until a valid ABN and GST-registered flag are provided. Reseller agreement (D4-CLO-02) also awaits execution.",
     owner: "Human — CFO / CLO",
-  },
-  {
-    id: "stripe-env-share-mgmt",
-    title: "Stripe env vars for Share Management add-on prices",
-    detail:
-      "STRIPE_PRICE_SHARE_MGMT_* env vars needed for the Share Management add-on tier. Deploy is blocked on human provisioning of price IDs in Stripe dashboard.",
-    owner: "Human — Ops",
   },
 ];
 
@@ -522,8 +529,9 @@ export default function RoadmapPage() {
         kicker={`Snapshot ${SNAPSHOT_DATE}`}
       >
         <p className="text-sm text-[var(--fintech-ink-muted)]">
-          Ships since the last roadmap sync. Sourced from
-          <code className="mx-1 rounded bg-[var(--fintech-surface)] px-1 py-0.5 text-xs">docs/plans/plan-delta-2026-07-23.md</code>
+          v3.0 Master Upgrade — Phase 1-6 core landed 2026-07-30 → 2026-07-31.
+          Sourced from
+          <code className="mx-1 rounded bg-[var(--fintech-surface)] px-1 py-0.5 text-xs">~/.claude/plans/h-y-k-t-h-p-n-ng-hazy-sutton.md</code>
           and the git log on master.
         </p>
         <ul className="mt-6 grid gap-3 md:grid-cols-2">
