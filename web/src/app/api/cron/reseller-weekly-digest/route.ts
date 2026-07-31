@@ -6706,6 +6706,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToSexticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToSepticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToOcticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToNonicMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -9776,6 +9777,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToOcticMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToOcticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_nonic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.top_n,
+            tight_ptnm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.tight_ptnm_max,
+            wide_ptnm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.wide_ptnm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean.transitions,
           }
         : {
             skipped_reason:

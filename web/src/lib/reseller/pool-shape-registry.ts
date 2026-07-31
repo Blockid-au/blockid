@@ -105,6 +105,7 @@ export const POOL_SHAPE_SURFACES: readonly PoolShapeSurface[] = [
   { slug: "peak-to-sextic-mean", axis: "DISPERSION" },
   { slug: "peak-to-septic-mean", axis: "DISPERSION" },
   { slug: "peak-to-octic-mean", axis: "DISPERSION" },
+  { slug: "peak-to-nonic-mean", axis: "DISPERSION" },
 ];
 
 export const POOL_SHAPE_MODULE_PREFIX =
