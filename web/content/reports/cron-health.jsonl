@@ -944,3 +944,4 @@
 {"ts":"2026-07-31T00:00:01Z","endpoint":"ceo-daily-summary","status":"ok","duration_ms":6932,"detail":"{\"date\": \"2026-07-31\", \"status\": \"YELLOW\", \"agents\": {\"green\": 0, \"yellow\": 14, \"red\": 0, \"missing\": 0}, \"deploys\": 0, \"budget\": {\"month\": \"2026-07\", \"spent\": 1.8, \"limit\": 100, \"percent\": 2, \"calls\":"}
 {"ts":"2026-07-31T00:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16521,"detail":""}
 {"ts":"2026-07-31T00:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16440,"detail":""}
+{"ts":"2026-07-31T00:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2358,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (235003076 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274282080 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
