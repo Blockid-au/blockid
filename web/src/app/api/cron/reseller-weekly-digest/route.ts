@@ -558,6 +558,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolLCv,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-l-cv";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewness,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewnessSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewness,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-kelly-skewness";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2124,6 +2129,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolLCv
     | null = null;
   let perTransitionMagnitudeTop3PoolLCvSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolKellySkewness:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewness
+    | null = null;
+  let perTransitionMagnitudeTop3PoolKellySkewnessSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5299,6 +5308,52 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolLCvSection(
           snapshotPerTransitionMagnitudeTop3PoolLCv,
         );
+      // P11.229 kelly-skewness cron wiring — BOUNDED DECILE-HINGE
+      // ASYMMETRY scalar over the P11.161 pool. Folds the decile triple
+      // (P10, P50, P90) into ONE SIGNED normalised asymmetry read on
+      // [-1, +1]: ks = (P90 + P10 - 2*P50) / (P90 - P10). Deciles
+      // computed via linear-interpolation R type 7 (numpy.percentile /
+      // pandas.quantile default). Fills the DECILE-HINGE cell on the
+      // ASYMMETRY-axis SCOPE × ROBUSTNESS grid — one hinge-level further
+      // out than the P11.215 Bowley quartile-hinge surface (Q1/Q2/Q3
+      // middle-50%), one hinge-level in from the P11.181 range /
+      // P11.185 top1/bot1 / P11.213 COR endpoint surfaces. Reading the
+      // (Bowley, Kelly, g1, L-skewness) quartet lets ops triangulate
+      // WHERE on the pool the asymmetry signal lives: Bowley non-zero +
+      // Kelly ~0 = interior lean only; Bowley ~0 + Kelly non-zero =
+      // tail lean only (interior symmetric but one decile tail heavier);
+      // Bowley ~0 + Kelly ~0 + g1 non-zero = endpoint outlier lean;
+      // all same-sign = structurally skewed. The (Bowley, Kelly)
+      // hinge-based skewness pair mirrors the (P11.217 Moors, P11.219
+      // Crow-Siddiqui) hinge-based kurtosis pair — both use hinges
+      // rather than powers, but Moors uses octiles (E1/E3/E5/E7/E8) and
+      // Crow-Siddiqui uses P2.5/P97.5; Kelly's use of DECILES
+      // (P10/P90) sits between these two extremes and matches the
+      // classical Hildebrand/Kelly decile-hinge convention. Guards:
+      // pool_count < 10 emits small_pool null (decile hinges collapse
+      // to endpoints per Hosking & Wallis 1997 §2.2 n>=1/(1-p) at p=0.9
+      // giving n>=10, deliberately looser than the P11.215 Bowley floor
+      // of 4 because deciles are one hinge level further into the
+      // tails); pool_count >= 10 with P90 == P10 emits distinct
+      // degenerate label (structural indeterminacy — flat middle-80%);
+      // pool_count >= 10 with P90 > P10 emits ks bounded [-1, +1] by
+      // construction rounded to 4 decimals. Cutoffs 0.1 / 0.3 mirror
+      // P11.215 Bowley (Kendall & Stuart §2.20; Bulmer 1979 §5.4) so a
+      // reader scanning the two hinge-based asymmetry surfaces sees the
+      // same label vocabulary. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolLCvSection AND IMMEDIATELY ABOVE
+      // perPairHotCellsSection per the P11.228 formatter docblock so
+      // the decile-hinge asymmetry surface closes off the ASYMMETRY
+      // axis's SCOPE × ROBUSTNESS grid after the L-moment triple.
+      // Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolKellySkewness =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewness(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolKellySkewnessSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewnessSection(
+          snapshotPerTransitionMagnitudeTop3PoolKellySkewness,
+        );
     }
   }
   if (
@@ -5387,6 +5442,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolLSkewnessSection ||
     perTransitionMagnitudeTop3PoolLKurtosisSection ||
     perTransitionMagnitudeTop3PoolLCvSection ||
+    perTransitionMagnitudeTop3PoolKellySkewnessSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5502,6 +5558,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolLSkewnessSection +
       perTransitionMagnitudeTop3PoolLKurtosisSection +
       perTransitionMagnitudeTop3PoolLCvSection +
+      perTransitionMagnitudeTop3PoolKellySkewnessSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -7904,6 +7961,37 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolLCv.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolLCv.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_kelly_skewness:
+      snapshotPerTransitionMagnitudeTop3PoolKellySkewness
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolKellySkewness.top_n,
+            min_pool_count_for_kelly:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.min_pool_count_for_kelly,
+            symmetric_kelly_abs_max:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.symmetric_kelly_abs_max,
+            strong_kelly_abs_min:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.strong_kelly_abs_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolKellySkewness.transitions,
           }
         : {
             skipped_reason:
