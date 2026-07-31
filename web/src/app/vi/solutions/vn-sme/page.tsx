@@ -11,7 +11,7 @@
 
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
-import { SolutionsPageShell } from "../../../solutions/solutions-shared";
+import { SolutionsPageShell } from "../../../(marketing)/solutions/solutions-shared";
 
 const SITE_URL = "https://blockid.au";
 const CANONICAL_EN = `${SITE_URL}/solutions/vn-sme`;
