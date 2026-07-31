@@ -16,6 +16,7 @@ import {
   PHASE_DISPLAY_NAMES,
   groupMilestonesByPhase,
 } from "@/lib/showcase/atlassian/fixture";
+import { BENCHMARK_DISCLAIMER } from "@/lib/showcase/atlassian/stage-benchmark";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,19 @@ export default function AtlassianShowcasePage() {
     <AtlassianWalkthroughProvider stepNumber={1}>
     <div className="min-h-screen bg-surface-50">
       <div className="mx-auto max-w-5xl p-6">
+        {/*
+          Atlassian is a real listed company (NASDAQ: TEAM) and is not a
+          BlockID customer. The sub-pages already carry this, but this is
+          the page a visitor lands on first — "Atlassian demo" alone could
+          be read as "a demo of Atlassian's BlockID account". State the
+          relationship before any of the data.
+        */}
+        <p
+          data-testid="benchmark-disclaimer"
+          className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+        >
+          {BENCHMARK_DISCLAIMER}
+        </p>
         <nav className="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm">
           <Link href="/showcase" className="text-brand-700 hover:underline">
             ← Showcase library
