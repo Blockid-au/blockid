@@ -393,6 +393,21 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Consumed by /admin/reseller-loop dashboard and the show-next-tick helper.
 * * * * * bash /home/dovanlong/blockid.au/scripts/cron/reseller-monitor.sh >> /tmp/blockid-reseller-monitor.log 2>&1
 
+# Unicorn nightly progress evaluator — Phase 6 Batch J sub-J4.
+# Master Upgrade Plan §17.8 nightly CEO-agent cadence. Iterates every
+# active business_stage_progress row (MAX_PER_INVOCATION=50), calls
+# computeStageProgress(), advances stages when exit predicates pass,
+# and writes an append-only stage_ai_runs snapshot.
+# 00:00 Sydney (AEST UTC+10) = 14:00 UTC.
+0 14 * * * bash $RUN unicorn-nightly-progress --timeout 300
+
+# Prompt registry nightly eval — Phase 6 Batch J sub-J4 STUB.
+# Reads prompt_versions rows status IN ('shadow','canary'), attempts to
+# load golden fixtures from web/test-fixtures/prompt-eval/. Returns
+# { evaluated: 0, promoted: 0 } until the eval loop ships (follow-up PR).
+# 02:00 Sydney = 16:00 UTC.
+0 16 * * * bash $RUN prompt-eval-nightly --timeout 300
+
 # 24/7 Uptime Guardian — multi-signal health check every 2 min:
 #   - disk pressure response (60/75/85% escalation, trims old releases)
 #   - memory pressure log (top RSS at >90%)
