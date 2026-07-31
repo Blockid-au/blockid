@@ -1234,3 +1234,6 @@
 {"tick_id":"2026-07-31T16-37-01-950Z","ts":"2026-07-31T16:42:23.138Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"e31ec996","last_deployed":"7cdcbc9"}
 {"tick_id":"2026-07-31T16-37-01-950Z","ts":"2026-07-31T16:49:39.274Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"e31ec996"}
 {"tick_id":"2026-07-31T16-37-01-950Z","ts":"2026-07-31T16:49:39.275Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T16:57:01.937Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T16:57:01.953Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts":"2026-07-31T17:02:00Z","goal":"atlassian-standard-mapping-v1","phase":"P9_ship","subtask":"P9-disclaimer-footer-lib-test","stage":"shipped","file":"web/src/lib/pdf/disclaimer-footer.test.ts","cases":24,"vitest_ms":571,"result":"24 passed"}
