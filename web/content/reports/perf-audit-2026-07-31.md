@@ -169,6 +169,20 @@ Connection hints only — no bytes, no script execution, and **no CSP change**
 (`connect-src` already allows google-analytics.com, `script-src` already
 allows googletagmanager.com).
 
+**Before → after** (Lighthouse re-run against production, isolating this fix —
+the baseline run below already included Fix 1):
+
+| | Before | After |
+| --- | --- | --- |
+| `uses-rel-preconnect` audit | Est. savings of 300 ms | **PASS — opportunity gone** |
+| Total Blocking Time | 1280 ms | **860 ms** (−420 ms) |
+| Performance score | 46 | **50** |
+
+The audit flipping to PASS is deterministic. The TBT movement is a
+single-run figure and Lighthouse TBT is noisy, so treat −420 ms as
+directional rather than exact; FCP (3.2→3.3 s), LCP (6.2→6.3 s) and Speed
+Index (3.2→3.3 s) were flat within noise.
+
 ---
 
 ## 3. After
@@ -201,6 +215,12 @@ The real, unambiguous win:
 | recharts on `/` | 307 KB | **0** | eliminated |
 | SVI feature UI on `/` | 228 KB | **0** | eliminated |
 | react-markdown on `/` | 110 KB | **0** | eliminated |
+| `/` Lighthouse Performance | 46 | **50** | +4 |
+| `/` Total Blocking Time | 1280 ms | **860 ms** | −420 ms |
+| `uses-rel-preconnect` | 300 ms opportunity | **PASS** | resolved |
+
+Accessibility (100), Best Practices (93), SEO (92) and CLS (0) were
+unchanged — no regression on any other category.
 
 Compression, cache headers and status codes were byte-identical before and
 after on all ten routes. The homepage still renders the V2 `HeroSearch` hero
@@ -216,8 +236,10 @@ Ordered by estimated win.
    single largest remaining item, roughly half the homepage's 1280 ms TBT.
    Not fixed because it is a business/analytics decision, not a code defect:
    deferring or self-hosting GTM changes analytics fidelity and attribution,
-   which is out of scope for a perf pass. *Estimated win: up to ~600 ms TBT,
-   which would likely move Lighthouse Performance from 46 into the 60s.*
+   which is out of scope for a perf pass. Fix 2 already recovered ~420 ms of
+   this by removing the connection-setup portion; the remaining cost is
+   GTM's own parse/execute. *Estimated win: a further ~400-600 ms TBT, which
+   would likely move Lighthouse Performance from 50 into the 60s-70s.*
    Recommended next step: load GTM after hydration / on first interaction.
 
 2. **`@supabase/supabase-js` (186 KB) is in the root-layout First Load**, so
