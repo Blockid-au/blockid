@@ -95,6 +95,7 @@ export const POOL_SHAPE_SURFACES: readonly PoolShapeSurface[] = [
   { slug: "peak-to-mean", axis: "DISPERSION" },
   { slug: "peak-to-geomean", axis: "DISPERSION" },
   { slug: "peak-to-harmean", axis: "DISPERSION" },
+  { slug: "peak-to-rms", axis: "DISPERSION" },
 ];
 
 export const POOL_SHAPE_MODULE_PREFIX =
