@@ -5592,6 +5592,51 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRangeSection(
           snapshotPerTransitionMagnitudeTop3PoolStudentizedRange,
         );
+      // P11.239 gini-mean-difference cron wiring — WHOLE-POOL
+      // PAIRWISE-DIFFERENCE scalar over the P11.161 pool. Folds
+      // every ordered pair of cells into ONE additive dispersion
+      // read that reports the AVERAGE ABSOLUTE DIFFERENCE between
+      // two distinct partners:
+      //   gmd = (2 / (n * (n - 1))) * sum_{i<j} |x_i - x_j|
+      // Uses the UNBIASED n*(n-1) denominator so GMD is an unbiased
+      // estimator of the population mean absolute difference across
+      // two distinct partners. Named after Corrado Gini's 1912
+      // monograph "Variabilita e mutabilita" where GMD is the
+      // primitive from which the Gini coefficient derives:
+      // G = GMD / (2 * mean). Unique DISPERSION-axis contribution:
+      // reads PAIRWISE difference with NO CENTER ANCHOR — every
+      // other DISPERSION surface either anchors on a center
+      // (P11.199 MAD / P11.145 CV on mean; P11.201 MedAD on
+      // median), on endpoints (P11.181 range / P11.213 COR /
+      // P11.237 studentized-range), or on hinges (P11.211 QCD /
+      // P11.201 IQR). GMD asks the pool the question "how far
+      // apart do two RANDOMLY CHOSEN distinct partners typically
+      // sit?" without picking a reference partner or reference
+      // summary statistic first. Guards: pool_count 0 → gmd null
+      // empty; pool_count 1 → gmd null solo (no pair exists);
+      // pool_count >=2 with pool_cells 0 → gmd null degenerate
+      // (guarded but structurally unreachable); pool_count >=2
+      // with pool_cells > 0 → gmd in [0, +Inf) rounded to 4
+      // decimals, zero iff all shares are equal (flat pool).
+      // Bands on raw gmd (fixed cutoffs, calibrated against n=10
+      // reference distributions): tight gmd < 1.0 (near-uniform
+      // pool), spread gmd in [1.0, 5.0) (uniform-ramp regime and
+      // single-outlier pools), wide gmd >= 5.0 (bimodal splits,
+      // two-partner pools, extreme outliers). Splices IMMEDIATELY
+      // BELOW perTransitionMagnitudeTop3PoolStudentizedRangeSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the
+      // P11.238 formatter docblock so the DISPERSION axis
+      // continues with pairwise-difference after the P11.237
+      // studentized-range peak-to-spread landing. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifferenceSection(
+          snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference,
+        );
     }
   }
   if (
@@ -5685,6 +5730,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolHooverSection ||
     perTransitionMagnitudeTop3PoolRosenbluthSection ||
     perTransitionMagnitudeTop3PoolStudentizedRangeSection ||
+    perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5805,6 +5851,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolHooverSection +
       perTransitionMagnitudeTop3PoolRosenbluthSection +
       perTransitionMagnitudeTop3PoolStudentizedRangeSection +
+      perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -8365,6 +8412,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_gini_mean_difference:
+      snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.top_n,
+            tight_gmd_max:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.tight_gmd_max,
+            wide_gmd_min:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.wide_gmd_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.transitions,
           }
         : {
             skipped_reason:
