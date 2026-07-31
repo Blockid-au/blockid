@@ -89,7 +89,11 @@ function arcPath(
   return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
 }
 
-// ─── 12-area radar layout ───────────────────────────────────────────
+// ─── 12-slot Unicorn Path radar layout ─────────────────────────────
+// This is the Unicorn Path dashboard radar (12 domain-specific stage
+// signals: identity / ownership / governance / ...). It is NOT the
+// Master Plan §6 13-area analysis framework — that lives in
+// showcase/atlassian/stage-benchmark.ts › ANALYSIS_AREA_IDS.
 
 export const RADAR_AREAS = [
   "identity",
