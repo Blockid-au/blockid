@@ -17,6 +17,12 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { t, type Messages } from "@/lib/i18n/t";
 import type { Locale } from "@/lib/i18n/locales";
 import type { PublicBusinessProfile } from "@/lib/business-id/public-profile";
+import {
+  profileChromeKeys,
+  isSampleProfile,
+  SAMPLE_DATA_JSONLD_NOTICE,
+  SAMPLE_DATA_CREDENTIAL_SUFFIX,
+} from "@/lib/business-id/profile-disclosure";
 
 const SITE_URL = "https://blockid.au";
 
@@ -75,16 +81,19 @@ export function buildProfileMetadata({
     };
   }
 
-  const suffix = t(m, "businessIdPublic.meta.title.suffix");
+  // Sample-data profiles get their own title suffix + description so the
+  // disclosure survives the places the page body never reaches: the
+  // browser tab, the SERP snippet, and the OG/Twitter card someone pastes
+  // into Slack. A "Verified Business Identity" title on a fictional
+  // company is exactly the misread this branch prevents.
+  const chrome = profileChromeKeys(profile.profileKind);
+  const suffix = t(m, chrome.metaTitleSuffixKey);
   const title = `${profile.legalName} — ${suffix}`;
-  const description = interpolate(
-    t(m, "businessIdPublic.meta.description.template"),
-    {
-      name: profile.legalName,
-      level: profile.verificationLevel,
-      score: profile.trustScore,
-    },
-  );
+  const description = interpolate(t(m, chrome.metaDescriptionKey), {
+    name: profile.legalName,
+    level: profile.verificationLevel,
+    score: profile.trustScore,
+  });
 
   const canonical =
     locale === "vi"
@@ -239,6 +248,8 @@ function PageBody({
 }) {
   const label = levelLabel(m, profile.verificationLevel);
   const verifiedOn = formatTimestamp(m, profile.lastVerifiedAt, locale);
+  const chrome = profileChromeKeys(profile.profileKind);
+  const sample = isSampleProfile(profile.profileKind);
 
   const ldOrg = {
     "@context": "https://schema.org",
@@ -249,18 +260,33 @@ function PageBody({
         ? `${SITE_URL}/vi/id/${profile.slug}`
         : profile.publicUrl,
     inLanguage: locale === "vi" ? "vi-VN" : "en-AU",
-    identifier: {
-      "@type": "PropertyValue",
-      propertyID: "ABN",
-      value: "pending",
-    },
+    // Structured-data consumers (search engines, aggregators, AI
+    // crawlers) never see the visual banner, so the sample-data
+    // disclosure has to travel in the JSON-LD too.
+    ...(sample
+      ? { disambiguatingDescription: SAMPLE_DATA_JSONLD_NOTICE }
+      : {}),
+    // An ABN identifier is only meaningful for a real entity. A fictional
+    // company has none, and emitting `"pending"` would imply one is on
+    // its way.
+    ...(sample
+      ? {}
+      : {
+          identifier: {
+            "@type": "PropertyValue",
+            propertyID: "ABN",
+            value: "pending",
+          },
+        }),
     address: {
       "@type": "PostalAddress",
       addressCountry: profile.jurisdiction,
     },
     hasCredential: {
       "@type": "EducationalOccupationalCredential",
-      name: `BlockID Verified Business Identity Level ${profile.verificationLevel}`,
+      name:
+        `BlockID Verified Business Identity Level ${profile.verificationLevel}` +
+        (sample ? SAMPLE_DATA_CREDENTIAL_SUFFIX : ""),
       credentialCategory: label,
       recognizedBy: {
         "@type": "Organization",
@@ -271,14 +297,12 @@ function PageBody({
     },
   };
 
-  const trustScoreLabel = interpolate(
-    t(m, "businessIdPublic.trustScore.label"),
-    { score: profile.trustScore },
-  );
-  const trustScoreAria = interpolate(
-    t(m, "businessIdPublic.trustScore.aria"),
-    { score: profile.trustScore },
-  );
+  const trustScoreLabel = interpolate(t(m, chrome.scoreLabelKey), {
+    score: profile.trustScore,
+  });
+  const trustScoreAria = interpolate(t(m, chrome.scoreAriaKey), {
+    score: profile.trustScore,
+  });
   const lastVerifiedLabel = interpolate(
     t(m, "businessIdPublic.lastVerified.label"),
     { date: verifiedOn },
@@ -300,6 +324,32 @@ function PageBody({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ldOrg) }}
       />
 
+      {/* ─── Sample-data disclosure ───────────────────────────────── */}
+      {/* Above the fold, before the name, before any score. A visitor
+          landing cold must learn this is sample data before they read
+          anything that looks like a verification claim. */}
+      {chrome.disclosure && (
+        <section
+          role="note"
+          aria-labelledby="sample-data-heading"
+          data-profile-kind={profile.profileKind}
+          className="mx-auto mt-6 max-w-5xl rounded-2xl border-2 border-amber-500/70 bg-amber-500/10 px-6 py-5"
+        >
+          <p className="text-xs font-bold uppercase tracking-widest text-amber-500">
+            {t(m, chrome.disclosure.chipKey)}
+          </p>
+          <h2
+            id="sample-data-heading"
+            className="mt-1 text-lg font-semibold md:text-xl"
+          >
+            {t(m, chrome.disclosure.titleKey)}
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm opacity-90">
+            {t(m, chrome.disclosure.bodyKey)}
+          </p>
+        </section>
+      )}
+
       {/* ─── Hero ─────────────────────────────────────────────────── */}
       <section
         aria-labelledby="profile-hero-heading"
@@ -308,7 +358,7 @@ function PageBody({
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-widest text-[var(--fintech-ink-muted,#8aa)] opacity-80">
-              {t(m, "businessIdPublic.eyebrow")}
+              {t(m, chrome.eyebrowKey)}
             </p>
             <h1
               id="profile-hero-heading"
@@ -317,6 +367,11 @@ function PageBody({
               {profile.legalName}
             </h1>
             <div className="mt-4 flex flex-wrap gap-2">
+              {chrome.disclosure && (
+                <span className="inline-flex items-center rounded-full bg-amber-500 px-3 py-1 text-sm font-bold uppercase tracking-wide text-black">
+                  {t(m, chrome.disclosure.chipKey)}
+                </span>
+              )}
               <span
                 className="inline-flex items-center gap-2 rounded-full border border-current px-3 py-1 text-sm font-semibold"
                 aria-label={verificationAria}
@@ -370,10 +425,10 @@ function PageBody({
           id="capability-heading"
           className="text-2xl font-semibold md:text-3xl"
         >
-          {t(m, "businessIdPublic.capability.heading")}
+          {t(m, chrome.capabilityHeadingKey)}
         </h2>
         <p className="mt-2 max-w-2xl text-sm opacity-80">
-          {t(m, "businessIdPublic.capability.intro")}
+          {t(m, chrome.capabilityIntroKey)}
         </p>
         <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Object.entries(profile.capabilityScores).map(([area, score]) => {
@@ -421,8 +476,13 @@ function PageBody({
           id="attestations-heading"
           className="text-2xl font-semibold md:text-3xl"
         >
-          {t(m, "businessIdPublic.attestations.heading")}
+          {t(m, chrome.attestationsHeadingKey)}
         </h2>
+        {sample && (
+          <p className="mt-2 max-w-2xl text-sm opacity-90">
+            {t(m, "businessIdPublic.demo.attestations.intro")}
+          </p>
+        )}
         {profile.attestations.length === 0 ? (
           <p className="mt-2 text-sm opacity-80">
             {t(m, "businessIdPublic.attestations.empty")}
