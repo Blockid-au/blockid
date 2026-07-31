@@ -1137,6 +1137,21 @@
         "href": "/tools/valuation-calculator"
       },
       "angle": "Explain how to determine a 'fair market value' for shares issued under an Employee Share Scheme (ESS) to avoid ATO penalties. Provide a step-by-step approach for founders to value shares for employees without over-inflating the price or triggering immediate tax liabilities."
+    },
+    {
+      "slug": "startup-valuation-for-employee-equity-grants",
+      "title": "Valuing Your Startup for Employee Equity Grants (Australia)",
+      "category": "valuation",
+      "keywords": [
+        "employee equity valuation",
+        "startup share price australia",
+        "equity grant valuation"
+      ],
+      "cta": {
+        "label": "Calculate Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      },
+      "angle": "Explain how to determine a fair share price for issuing options or shares to early hires without triggering immediate tax liabilities. Guide founders on balancing employee incentive with dilution and ATO compliance."
     }
   ]
 }

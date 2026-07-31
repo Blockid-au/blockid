@@ -1,6 +1,30 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-for-employee-equity-grants",
+      "title": "Employee Share Scheme Valuation Australia | BlockID",
+      "description": "Master your employee share scheme valuation in Australia. Ensure ATO compliance, set fair market values, and manage ESOP tax liabilities with ease.",
+      "keywords": [
+        "how to value startup shares for employees australia",
+        "employee share scheme valuation australia",
+        "startup share price for options australia",
+        "ATO employee share scheme tax",
+        "valuing early stage startup for equity grants",
+        "ESOP valuation australia",
+        "fair market value startup shares australia",
+        "startup equity dilution calculator australia",
+        "how to set strike price for employee options australia",
+        "employee equity tax liabilities australia"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-07-31",
+      "readingTime": 5,
+      "cta": {
+        "label": "Calculate Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      }
+    },
+    {
       "slug": "startup-valuation-for-employee-share-schemes-australia",
       "title": "ESS Valuation Australia: ATO Compliance for Startups",
       "description": "Ensure ATO compliance with expert ESS valuation in Australia. Get accurate fair market value for startup shares to manage employee tax liabilities.",
