@@ -23,6 +23,11 @@
 
 import type { NextRequest } from "next/server";
 import { readPublicProfile } from "@/lib/business-id/public-profile";
+import {
+  badgeChrome,
+  type BadgeChrome,
+  type ProfileKind,
+} from "@/lib/business-id/profile-disclosure";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,45 +61,39 @@ function formatVerifiedDate(iso: string | null): string {
 
 interface BadgeInputs {
   level: number;
-  levelLabel: string;
   verifiedOn: string;
   trustScore: number | null;
   size: Size;
-  verified: boolean;
+  /** Null when the slug resolved to nothing (unknown / unpublished). */
+  kind: ProfileKind | null;
+  chrome: BadgeChrome;
 }
 
-const LEVEL_LABELS: Record<number, string> = {
-  0: "Unverified",
-  1: "Self-declared",
-  2: "Evidence-checked",
-  3: "Trust tier",
-  4: "Attested",
-  5: "Continuously monitored",
-};
-
 function renderBadge({
-  level,
-  levelLabel,
   verifiedOn,
   trustScore,
   size,
-  verified,
+  chrome,
 }: BadgeInputs): string {
   const { w, h, fontLg, fontSm } = SIZE_PX[size];
-  const bg = verified ? "#0a1622" : "#3a3a3a";
-  const accent = verified ? "#4fd1c5" : "#999999";
   const ink = "#f2fbf9";
-  const chipText = verified ? `L${level}` : "N/A";
+  // The score only accompanies a real verification claim. Printing
+  // "81.3/100" on a sample badge would read as a measured result.
   const scoreLine =
-    verified && trustScore !== null ? ` · ${trustScore}/100` : "";
+    chrome.claimsVerified && trustScore !== null ? ` · ${trustScore}/100` : "";
 
-  // Chip width scales with size
-  const chipW = size === "lg" ? 44 : size === "md" ? 34 : 26;
+  // Chip width scales with size. "DEMO" needs more room than "L4".
+  const baseChipW = size === "lg" ? 44 : size === "md" ? 34 : 26;
+  const chipW = chrome.chipText.length > 2 ? baseChipW + 22 : baseChipW;
   const chipH = h - 12;
+  const chipFont = chrome.chipText.length > 2 ? fontLg - 4 : fontLg;
 
-  const title = verified
-    ? `BlockID Verified — Level ${level} ${levelLabel}`
-    : "BlockID — Unverified";
+  // Second line. For a real verification this is the verified-on date;
+  // for anything else it is the disclosure, and the word "Verified"
+  // never appears.
+  const subline = chrome.claimsVerified
+    ? `${chrome.sublinePrefix} ${verifiedOn} · blockid.au`
+    : `${chrome.sublinePrefix} · blockid.au`;
 
   // Escape XML-sensitive chars in dynamic text
   const esc = (s: string) =>
@@ -105,13 +104,13 @@ function renderBadge({
       .replace(/"/g, "&quot;");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${esc(title)}">
-  <title>${esc(title)}</title>
-  <rect x="0" y="0" width="${w}" height="${h}" rx="8" ry="8" fill="${bg}" />
-  <rect x="6" y="6" width="${chipW}" height="${chipH}" rx="6" ry="6" fill="${accent}" />
-  <text x="${6 + chipW / 2}" y="${6 + chipH / 2 + fontLg / 3}" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="${fontLg}" font-weight="700" fill="${bg}" text-anchor="middle">${esc(chipText)}</text>
-  <text x="${6 + chipW + 10}" y="${h / 2 - 2}" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="${fontLg - 2}" font-weight="600" fill="${ink}">${esc(levelLabel)}${esc(scoreLine)}</text>
-  <text x="${6 + chipW + 10}" y="${h / 2 + fontSm + 4}" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="${fontSm}" fill="${ink}" opacity="0.75">Verified ${esc(verifiedOn)} · blockid.au</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${esc(chrome.accessibleTitle)}">
+  <title>${esc(chrome.accessibleTitle)}</title>
+  <rect x="0" y="0" width="${w}" height="${h}" rx="8" ry="8" fill="${chrome.background}" />
+  <rect x="6" y="6" width="${chipW}" height="${chipH}" rx="6" ry="6" fill="${chrome.accent}" />
+  <text x="${6 + chipW / 2}" y="${6 + chipH / 2 + chipFont / 3}" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="${chipFont}" font-weight="700" fill="${chrome.background}" text-anchor="middle">${esc(chrome.chipText)}</text>
+  <text x="${6 + chipW + 10}" y="${h / 2 - 2}" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="${fontLg - 2}" font-weight="600" fill="${ink}">${esc(chrome.headline)}${esc(scoreLine)}</text>
+  <text x="${6 + chipW + 10}" y="${h / 2 + fontSm + 4}" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="${fontSm}" fill="${ink}" opacity="0.75">${esc(subline)}</text>
 </svg>`;
 }
 
@@ -121,7 +120,10 @@ function renderBadge({
  * across locales while the underlying data is unchanged.
  */
 function computeEtag(inputs: BadgeInputs): string {
-  const seed = `${inputs.verified ? "v" : "u"}|${inputs.level}|${inputs.trustScore ?? "-"}|${inputs.verifiedOn}|${inputs.size}`;
+  // `kind` is part of the seed: flipping a row from 'customer' to 'demo'
+  // changes the badge from a verification claim to a disclosure, and a
+  // stale CDN copy of the old one is exactly what must not happen.
+  const seed = `${inputs.kind ?? "none"}|${inputs.level}|${inputs.trustScore ?? "-"}|${inputs.verifiedOn}|${inputs.size}`;
   // Small, cheap hash — good enough for CDN revalidation.
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
@@ -136,39 +138,21 @@ export async function GET(req: NextRequest) {
   const slug = (url.searchParams.get("slug") ?? "").trim();
   const size = parseSize(url.searchParams.get("size"));
 
-  let inputs: BadgeInputs;
+  const profile = slug ? await readPublicProfile(slug) : null;
 
-  if (!slug) {
-    inputs = {
-      level: 0,
-      levelLabel: "Unverified",
-      verifiedOn: "—",
-      trustScore: null,
-      size,
-      verified: false,
-    };
-  } else {
-    const profile = await readPublicProfile(slug);
-    if (!profile) {
-      inputs = {
-        level: 0,
-        levelLabel: "Unverified",
-        verifiedOn: "—",
-        trustScore: null,
-        size,
-        verified: false,
-      };
-    } else {
-      inputs = {
-        level: profile.verificationLevel,
-        levelLabel: LEVEL_LABELS[profile.verificationLevel] ?? "Unverified",
-        verifiedOn: formatVerifiedDate(profile.lastVerifiedAt),
-        trustScore: profile.trustScore,
-        size,
-        verified: true,
-      };
-    }
-  }
+  // `kind === null` covers both "no slug given" and "slug resolved to
+  // nothing" — same generic placeholder either way.
+  const kind: ProfileKind | null = profile ? profile.profileKind : null;
+  const level = profile?.verificationLevel ?? 0;
+
+  const inputs: BadgeInputs = {
+    level,
+    verifiedOn: profile ? formatVerifiedDate(profile.lastVerifiedAt) : "—",
+    trustScore: profile ? profile.trustScore : null,
+    size,
+    kind,
+    chrome: badgeChrome({ kind, level }),
+  };
 
   const etag = computeEtag(inputs);
   const ifNoneMatch = req.headers.get("if-none-match");
