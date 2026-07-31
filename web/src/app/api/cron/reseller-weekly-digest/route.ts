@@ -538,6 +538,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-moors-kurtosis";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-crow-siddiqui-kurtosis";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2088,6 +2093,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis
     | null = null;
   let perTransitionMagnitudeTop3PoolMoorsKurtosisSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis
+    | null = null;
+  let perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5070,6 +5079,50 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolMoorsKurtosisSection =
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosisSection(
           snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis,
+        );
+      // P11.220 crow-siddiqui-kurtosis cron wiring — PERCENTILE-BASED
+      // ROBUST FAR-TAIL-EXTREME TAIL-WEIGHT scalar on the P11.161 pool
+      // (cs = (P97.5 - P2.5) / (P75 - P25) using R type-7 linear
+      // interpolation over the four percentile positions P2.5/P25/P75/
+      // P97.5; pool_count < 4 emits a small_pool null so the surface is
+      // distinct from the P11.181 range / P11.185 top1/bot1 / P11.213
+      // COR endpoint surfaces, and P75 == P25 emits a distinct degenerate
+      // label so structural indeterminacy is not confused with a measured
+      // mesokurtic verdict). Opens the PERCENTILE-DEPTH complement to the
+      // P11.217 Moors interior-octile axis — Moors reads INTERIOR SHOULDER
+      // shape via E1..E7 (12.5%-87.5% depth) whereas Crow-Siddiqui reads
+      // FAR-TAIL SPAN via P2.5/P97.5 near-extremes over the interior
+      // Tukey hinge box P25/P75. Read side-by-side to distinguish
+      // "tail-weight driven by interior shoulders" (Moors moves, cs stays
+      // near normal reference) from "tail-weight driven by far-tail
+      // extremes" (cs moves, Moors stays near normal reference) — the
+      // DEPTH-AXIS analogue of the way P11.207 IQR / P11.211 QCD
+      // interior pair sets up on the DISPERSION axis (IQR reads absolute
+      // hinge span; QCD reads ratio hinge span) but lifted to the
+      // TAIL-WEIGHT axis on interior-vs-extreme percentile-depth
+      // complementarity. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolMoorsKurtosisSection AND IMMEDIATELY
+      // ABOVE perPairHotCellsSection per the P11.219 formatter docblock
+      // so the two ROBUST KURTOSIS siblings (Moors interior-shoulder /
+      // Crow-Siddiqui far-tail) sit adjacent — the reader scans them
+      // together for the (INTERIOR-SHOULDER, FAR-TAIL) percentile-depth
+      // pair the same way (P11.215, P11.217) provides the ASYMMETRY /
+      // TAIL-WEIGHT pair on the interior surface. Cutoffs 0.3 / 0.7
+      // around the normal reference 2.906 are the classroom Crow-Siddiqui
+      // thresholds (Crow & Siddiqui 1967) — anchored on the
+      // excess-Crow-Siddiqui deviation (subtract 2.906 so mesokurtic
+      // reads zero, mirroring the P11.205 "subtract 3" excess-kurtosis
+      // convention and the P11.217 Moors "subtract 1.233" convention).
+      // Wider than Moors' 0.2 / 0.5 bands because Crow-Siddiqui's raw
+      // range spans roughly [1.5, 6.0] in practice while Moors spans
+      // roughly [0.5, 3.0]. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection(
+          snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis,
         );
     }
   }
