@@ -16,14 +16,23 @@ import type {
   GatherResults,
   CriterionData,
   AgentRole,
+  SectionAuditRecord,
 } from "./types";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
-import { WAVE_1, WAVE_2, WAVE_3, dispatchWave } from "./agent-dispatcher";
+import {
+  WAVE_1,
+  WAVE_2,
+  WAVE_3,
+  dispatchWave,
+  buildEvidenceCatalogue,
+  type DispatchOptions,
+} from "./agent-dispatcher";
 import { assembleReport } from "./section-assembler";
 import { buildAgentPrompt } from "./agent-prompts";
-import { auditText } from "./llm-auditor";
+import { auditSections, type AuditableSection } from "./llm-auditor";
 import { researchMarket } from "@/lib/adk/agents";
+import { getAIBudgetStatus } from "@/lib/ai-client";
 
 type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number) => Promise<string>;
 

@@ -101,6 +101,44 @@ export interface AgentAnalysisResult {
   confidence: number;
   wordCount: number;
   durationMs: number;
+
+  // ── G7 provenance (optional so existing consumers are unaffected) ────
+  /** True when the response passed the canonical Zod contract. */
+  schemaValidated?: boolean;
+  /** True when validation failed twice and prose fallback was used. */
+  degraded?: boolean;
+  /** Why the structured path failed (schema_fail / model_error / …). */
+  degradeReason?: string;
+  /** True when at least one citation resolved to a supplied evidence id. */
+  grounded?: boolean;
+  /** Citations that resolved against the evidence catalogue. */
+  citations?: Array<{ evidence_id: string; quote: string }>;
+  /** ai_runs.id for this agent call (migration 0231). */
+  runId?: string;
+}
+
+/** One citable source handed to an agent, with a deterministic uuid. */
+export interface EvidenceCatalogueEntry {
+  evidence_id: string;
+  label: string;
+  content: string;
+}
+
+// ── Section grounding audit (G8) ────────────────────────────────────────────
+
+export interface SectionAuditRecord {
+  /** Section identity — criterion key, or "executive" for the summary. */
+  sectionId: string;
+  /** Claims that carry no evidence_id citation. */
+  uncitedClaims: string[];
+  /** Critic findings when the LLM pass ran. */
+  findings: string[];
+  /** True when the section was rewritten by the reviser. */
+  revised: boolean;
+  /** True when the section is grounded (no uncited material claims). */
+  grounded: boolean;
+  /** Why the LLM pass was skipped, when it was. */
+  skipped?: "budget" | "tier" | "clean" | "cap";
 }
 
 // ── Gather Phase Results ────────────────────────────────────────────────────
@@ -140,6 +178,8 @@ export interface ReportContext {
   consistencyIssues?: string[];
   /** Unsupported/fabricated claims flagged by the LLM Auditor (Agent Garden pattern). */
   auditFindings?: string[];
+  /** Per-section grounding verdicts (§5.4 — G8). */
+  sectionAudits?: SectionAuditRecord[];
   /** Per-phase completed step IDs — phaseId → string[] of step IDs */
   phaseStepsCompleted?: Record<string, string[]>;
 }
