@@ -56,7 +56,7 @@ export const STAGE_GOALS: Record<UnicornStageId, StageSubGoal[]> = {
     { code: "esop_div_83a", label: "Div 83A ESOP live", ownerAgent: "chro" },
     { code: "modern_slavery_attest", label: "Modern-slavery attestation", ownerAgent: "clo" },
     { code: "ip_register", label: "IP register + assignment agreements", ownerAgent: "clo" },
-    { code: "twelve_area_coverage", label: "All 12 areas covered with fresh evidence", ownerAgent: "ceo" },
+    { code: "twelve_area_coverage", label: "All 13 areas covered with fresh evidence", ownerAgent: "ceo" },
   ],
   S4: [
     { code: "first_counterparty_share", label: "First verified counterparty share", ownerAgent: "ir" },
@@ -107,7 +107,7 @@ export const STAGE_MILESTONE_TEMPLATES: Record<
     { code: "soc2_lite", label: "SOC2-lite self-assessment", dueOffsetDays: 150, ownerAgent: "ciso" },
   ],
   S3: [
-    { code: "twelve_area_coverage", label: "12-area coverage complete", dueOffsetDays: 60, ownerAgent: "ceo" },
+    { code: "twelve_area_coverage", label: "13-area coverage complete", dueOffsetDays: 60, ownerAgent: "ceo" },
     { code: "board_cadence", label: "Board cadence live", dueOffsetDays: 90, ownerAgent: "clo" },
     { code: "esop_div_83a_live", label: "Div 83A ESOP live", dueOffsetDays: 120, ownerAgent: "chro" },
     { code: "modern_slavery_attest", label: "Modern-slavery attestation filed", dueOffsetDays: 180, ownerAgent: "clo" },

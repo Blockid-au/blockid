@@ -74,7 +74,7 @@ import {
   GROWTH_PHASE_LABELS,
   type GrowthPhaseId,
 } from "@/lib/growth/phase-taxonomy";
-// The 12 analysis areas / 4 pillars of Master Upgrade Plan §6 have exactly
+// The 13 analysis areas / 4 pillars of Master Upgrade Plan §6 have exactly
 // one in-code home: `showcase/atlassian/stage-benchmark.ts`. Importing it
 // (rather than re-declaring the list here) is deliberate — a rename or a
 // re-weighting there must break this fixture's test rather than silently

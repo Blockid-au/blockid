@@ -320,7 +320,7 @@ describe("ATLASSIAN_PHASE_BENCHMARKS", () => {
   });
 });
 
-// ── 12 analysis areas / 4 pillars ───────────────────────────────────────────
+// ── 13 analysis areas / 4 pillars ───────────────────────────────────────────
 
 describe("ANALYSIS_AREAS", () => {
   it("weights sum to 100 (Master Plan §6)", () => {
@@ -360,6 +360,21 @@ describe("ANALYSIS_AREAS", () => {
     expect(getAnalysisArea("financial_health").weight).toBe(12);
     // @ts-expect-error — deliberately unknown area id
     expect(() => getAnalysisArea("nope")).toThrow(/nope/);
+  });
+
+  // 13-area drift guard — pins the count to the Master Plan §6 canonical set.
+  // Fails loudly on either failure mode: a silent 14th area (docstrings / marketing
+  // / SVI weighted composite would go out of sync) OR a silent removal that
+  // orphans a Sprocketbay artefact or an ATLASSIAN_STAGE_BENCHMARKS area reading.
+  it("13-area drift guard: exactly the canonical Master Plan §6 set", () => {
+    const CANONICAL_13 = [
+      "founder_leadership", "team_culture", "hr_organisation",
+      "gtm_strategy", "revenue_model_sales", "marketing_brand", "competitive_positioning",
+      "operations_process", "business_performance_kpis", "financial_health", "governance_risk_compliance",
+      "technology_architecture", "website_digital_presence",
+    ] as const;
+    expect(ANALYSIS_AREA_IDS.length).toBe(13);
+    expect([...ANALYSIS_AREA_IDS].sort()).toEqual([...CANONICAL_13].sort());
   });
 });
 

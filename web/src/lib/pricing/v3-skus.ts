@@ -69,7 +69,7 @@ export const TRUST_REPORT_5AUD: V3Sku = {
   credits_per_cycle: 0,
   stripe_managed: true,
   description:
-    "Full 12-area Trust Business Report for one business, valid 90 days. Includes evidence citations, 30/60/90-day plan, PDF+DOCX export, share link with trust badge.",
+    "Full 13-area Trust Business Report for one business, valid 90 days. Includes evidence citations, 30/60/90-day plan, PDF+DOCX export, share link with trust badge.",
   display_price_label: "A$5.50 inc-GST",
 };
 
