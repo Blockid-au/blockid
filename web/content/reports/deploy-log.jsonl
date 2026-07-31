@@ -4009,3 +4009,6 @@
 {"ts":"2026-07-31T01:11:48.571Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-attribution): sub-M3 Stripe checkout cookie fallback + webhook reconciliation (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T01:11:53.884Z","event":"github-push-master","detail":"Blockid-au: docs(v3): sub-N3 refresh /roadmap page for v3.0 phase 1-6 (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T01:15:30Z","event":"v3-upgrade-milestone","detail":"Phase 1-6 core landed — HeroV3 + paywall + Business ID + verification ladder + consent + evidence pipeline + AI orchestration + programme+marketplace + Unicorn framework"}
+{"ts":"2026-07-31T01:14:21.143Z","event":"github-push-master","detail":"Blockid-au: docs(v3): sub-N4 bump version.json to v3.0.0-phase6-core + deploy-log (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:14:37.286Z","event":"github-push-master","detail":"Blockid-au: fix(reseller-promo): resolve stripe + supabase deps from web/node_modules (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:15:14.842Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-weekly-digest): P11.213 pool COEFFICIENT OF RANGE pure lib (1 commits)","source":"github-webhook"}
