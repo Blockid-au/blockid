@@ -1431,3 +1431,7 @@
 {"tick_id":"2026-07-31T23-07-01-813Z","ts":"2026-07-31T23:12:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9","subtask":"P9-kb-client-lib-test","tests":40,"test_file":"web/src/lib/kb-client.test.ts","target_lib":"web/src/lib/kb-client.ts"}
 {"tick_id":"2026-07-31T23-07-01-813Z","ts":"2026-07-31T23:14:20.437Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":438599,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-31T23-07-01-813Z","ts":"2026-07-31T23:14:20.470Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
+{"tick_id":"2026-07-31T23-07-01-813Z","ts":"2026-07-31T23:14:21.974Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-31T23-07-01-813Z","ts":"2026-07-31T23:14:21.984Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"0a0dec45","last_deployed":"37e554d"}
+{"tick_id":"2026-07-31T23-07-01-813Z","ts":"2026-07-31T23:21:45.133Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"0a0dec45"}
+{"tick_id":"2026-07-31T23-07-01-813Z","ts":"2026-07-31T23:21:45.134Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
