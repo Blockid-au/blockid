@@ -1,0 +1,40 @@
+{"ts":"2026-07-31T01:19:55Z","migration":"0202_business_profile_view.sql","status":"failed","rowcount":0,"error":"psql:/tmp/mig.sql:61: ERROR:  column p.public_slug does not exist LINE 10:   COALESCE(p.public_slug, p.slug)   AS slug,                     ^"}
+{"ts":"2026-07-31T01:19:55Z","migration":"0210_evidence.sql","status":"ok","rowcount":11,"error":""}
+{"ts":"2026-07-31T01:19:55Z","migration":"0211_evidence_versions.sql","status":"ok","rowcount":11,"error":""}
+{"ts":"2026-07-31T01:19:56Z","migration":"0212_evidence_extractions.sql","status":"ok","rowcount":8,"error":""}
+{"ts":"2026-07-31T01:19:56Z","migration":"0230_prompt_versions.sql","status":"ok","rowcount":9,"error":""}
+{"ts":"2026-07-31T01:19:56Z","migration":"0231_ai_runs.sql","status":"ok","rowcount":8,"error":""}
+{"ts":"2026-07-31T01:19:56Z","migration":"0250_consents.sql","status":"ok","rowcount":13,"error":""}
+{"ts":"2026-07-31T01:19:56Z","migration":"0251_share_packages.sql","status":"failed","rowcount":0,"error":"BEGIN psql:/tmp/mig.sql:65: ERROR:  relation \"public.report_orders\" does not exist"}
+{"ts":"2026-07-31T01:19:57Z","migration":"0252_revocations.sql","status":"ok","rowcount":6,"error":""}
+{"ts":"2026-07-31T01:19:57Z","migration":"0270_report_orders.sql","status":"ok","rowcount":12,"error":""}
+{"ts":"2026-07-31T01:19:57Z","migration":"0272_report_generation_queue.sql","status":"ok","rowcount":7,"error":""}
+{"ts":"2026-07-31T01:19:57Z","migration":"0273_public_business_profiles.sql","status":"ok","rowcount":18,"error":""}
+{"ts":"2026-07-31T01:19:57Z","migration":"0280_unicorn_stages.sql","status":"ok","rowcount":24,"error":""}
+{"ts":"2026-07-31T01:19:57Z","migration":"0290_programme_cohorts.sql","status":"ok","rowcount":15,"error":""}
+{"ts":"2026-07-31T01:19:58Z","migration":"0291_marketplace_opportunities.sql","status":"failed","rowcount":0,"error":"ALTER TABLE COMMENT psql:/tmp/mig.sql:140: ERROR:  relation \"public.share_packages\" does not exist"}
+{"ts":"2026-07-31T01:19:58Z","migration":"0292_oauth2_partners.sql","status":"ok","rowcount":10,"error":""}
+{"ts":"2026-07-31T01:19:58Z","migration":"0293_reseller_promotion_codes.sql","status":"ok","rowcount":12,"error":""}
+{"ts":"2026-07-31T01:19:58Z","migration":"0294_seed_infovision_dovanlong.sql","status":"ok","rowcount":7,"error":""}
+{"ts":"2026-07-31T01:19:58Z","migration":"0295_reseller_startup_roster_view.sql","status":"ok","rowcount":5,"error":""}
+{"ts":"2026-07-31T01:19:59Z","migration":"0296_reseller_notes_and_activity.sql","status":"ok","rowcount":11,"error":""}
+{"ts":"2026-07-31T01:20:04Z","migration":"0202_business_profile_view.sql","status":"ok","rowcount":4,"error":""}
+{"ts":"2026-07-31T01:20:04Z","migration":"0210_evidence.sql","status":"ok","rowcount":11,"error":""}
+{"ts":"2026-07-31T01:20:04Z","migration":"0211_evidence_versions.sql","status":"ok","rowcount":11,"error":""}
+{"ts":"2026-07-31T01:20:05Z","migration":"0212_evidence_extractions.sql","status":"ok","rowcount":8,"error":""}
+{"ts":"2026-07-31T01:20:05Z","migration":"0230_prompt_versions.sql","status":"ok","rowcount":9,"error":""}
+{"ts":"2026-07-31T01:20:05Z","migration":"0231_ai_runs.sql","status":"ok","rowcount":8,"error":""}
+{"ts":"2026-07-31T01:20:05Z","migration":"0250_consents.sql","status":"ok","rowcount":13,"error":""}
+{"ts":"2026-07-31T01:20:05Z","migration":"0251_share_packages.sql","status":"ok","rowcount":7,"error":""}
+{"ts":"2026-07-31T01:20:05Z","migration":"0252_revocations.sql","status":"ok","rowcount":6,"error":""}
+{"ts":"2026-07-31T01:20:06Z","migration":"0270_report_orders.sql","status":"ok","rowcount":12,"error":""}
+{"ts":"2026-07-31T01:20:06Z","migration":"0272_report_generation_queue.sql","status":"ok","rowcount":7,"error":""}
+{"ts":"2026-07-31T01:20:06Z","migration":"0273_public_business_profiles.sql","status":"ok","rowcount":18,"error":""}
+{"ts":"2026-07-31T01:20:06Z","migration":"0280_unicorn_stages.sql","status":"ok","rowcount":24,"error":""}
+{"ts":"2026-07-31T01:20:06Z","migration":"0290_programme_cohorts.sql","status":"ok","rowcount":15,"error":""}
+{"ts":"2026-07-31T01:20:06Z","migration":"0291_marketplace_opportunities.sql","status":"ok","rowcount":12,"error":""}
+{"ts":"2026-07-31T01:20:07Z","migration":"0292_oauth2_partners.sql","status":"ok","rowcount":10,"error":""}
+{"ts":"2026-07-31T01:20:07Z","migration":"0293_reseller_promotion_codes.sql","status":"ok","rowcount":12,"error":""}
+{"ts":"2026-07-31T01:20:07Z","migration":"0294_seed_infovision_dovanlong.sql","status":"ok","rowcount":7,"error":""}
+{"ts":"2026-07-31T01:20:07Z","migration":"0295_reseller_startup_roster_view.sql","status":"ok","rowcount":5,"error":""}
+{"ts":"2026-07-31T01:20:07Z","migration":"0296_reseller_notes_and_activity.sql","status":"ok","rowcount":11,"error":""}
