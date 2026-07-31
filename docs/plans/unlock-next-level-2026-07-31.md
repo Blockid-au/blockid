@@ -154,29 +154,17 @@ Translating by ordinal instead would have put R&D at `mentor_review` and GST at 
 - ✅ Tests: 13 new in `phase-taxonomy.test.ts`; 287 green across `growth/`, `nudge/`, `email/`, `dashboard/`.
 - Owner: `typescript-pro` + `architecture-designer`.
 
-### P1 — Phase gate engine *(new)*
-- New `web/src/lib/growth/phase-gate.ts`, mirroring the shape of `computeStageProgress()` in [`unicorn/framework.ts:196`](../../web/src/lib/unicorn/framework.ts#L196) so both engines stay comparable:
+### P1 — Phase gate engine *(new)* — ✅ **shipped**
+- ✅ `web/src/lib/growth/phase-gate.ts`, mirroring `computeStageProgress()` in [`unicorn/framework.ts:196`](../../web/src/lib/unicorn/framework.ts#L196) so both engines stay comparable.
+- ✅ `PHASE_EXIT_RULES` encodes the §2c table: required criteria + SVI dimension floors per phase, with `funding` requiring the full 13-criterion set.
+- ✅ Four typed blocker codes: `missing_required_criteria`, `criteria_below_threshold`, `dimension_below_floor`, `deliverables_incomplete`. `topBlockers()` ranks them worst-first for the P4 surface.
+- ✅ `completionPct` reports **partial credit** (share of conditions met), so a founder sees progress instead of a binary fail.
+- ✅ Deliverable tracking is **opt-in** — a caller passing no `completedDeliverables` is not gated on them, so existing callers do not regress.
+- ✅ Pure module: no I/O. Inputs are plain rows (`evaluation_criteria` + SVI dimension scores + current phase).
+- ✅ 32 tests: one per blocker code, a full 12-phase walk, inclusive-floor boundary, repeated-criterion resolution, unknown-quality-level handling, terminal-phase semantics.
 
-```ts
-export type PhaseBlockerCode =
-  | "criteria_below_threshold"
-  | "missing_required_criteria"
-  | "deliverables_incomplete"
-  | "dimension_below_floor"
-  | "compliance_unmet";
+**Design change vs the original sketch:** `PhaseGateResult` deliberately carries **no `unlockedFeatures`**. Nav items already declare `growthPhase` / `minPhase` in [`nav-groups.ts:79-196`](../../web/src/components/workspace/nav-groups.ts#L79-L196), so P3 derives visibility from `currentPhase` alone. Emitting a second feature registry from the engine would duplicate that and let the two drift.
 
-export interface PhaseGateResult {
-  currentPhase: GrowthPhaseId;
-  nextPhase: GrowthPhaseId | null;
-  completionPct: number;
-  canAdvance: boolean;
-  blockers: PhaseBlocker[];
-  unlockedFeatures: Feature[];
-}
-```
-
-- Pure module: no I/O, no network. Inputs = `evaluation_criteria` rows + SVI dimension scores + `startup_phase_progress`.
-- **Test:** one case per blocker code, plus a full 12-phase walk.
 - Owner: `typescript-pro` + `test-master`.
 
 ### P2 — Persist unlock state
