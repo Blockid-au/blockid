@@ -1239,3 +1239,10 @@
 {"ts":"2026-07-31T17:02:00Z","goal":"atlassian-standard-mapping-v1","phase":"P9_ship","subtask":"P9-disclaimer-footer-lib-test","stage":"shipped","file":"web/src/lib/pdf/disclaimer-footer.test.ts","cases":24,"vitest_ms":571,"result":"24 passed"}
 {"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T17:03:04.746Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":362791,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T17:03:04.787Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":14}
+{"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T17:03:07.415Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T17:03:07.426Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"558f66e4","last_deployed":"e31ec99"}
+{"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T17:03:07.437Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"558f66e4"}
+{"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T17:03:07.439Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T17-07-01-697Z","ts":"2026-07-31T17:07:01.698Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T17-07-01-697Z","ts":"2026-07-31T17:07:01.716Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"manual-2026-07-31T17:13:16Z","ts":"2026-07-31T17:13:16Z","loop_label":"atlassian-goal-loop","stage":"phase_test_added","phase":"P9_ship","subtask":"P9-telegram-lib-test","file":"web/src/lib/telegram.test.ts","cases":24,"head":"pending"}
