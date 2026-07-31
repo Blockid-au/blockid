@@ -31,7 +31,10 @@ import {
 } from "@/lib/exits/au-benchmark";
 
 export type Sector =
-  | "saas" | "fintech" | "marketplace" | "healthtech" | "ai" | "deeptech" | "ecommerce" | "default";
+  | "saas" | "fintech" | "marketplace" | "healthtech" | "ai" | "deeptech" | "ecommerce"
+  | "edtech" | "cleantech" | "proptech" | "agtech" | "biotech" | "cybertech"
+  | "wealthtech" | "insurtech" | "legaltech" | "gaming"
+  | "default";
 
 export interface VcBenchmark {
   sector: Sector;
@@ -198,6 +201,19 @@ export const VC_BENCHMARKS: Record<Sector, VcBenchmark> = {
   ai:          { sector: "ai",          arrMultiple: { low: 6, mid: 12, high: 25 }, ruleOf40Target: 40, grossMarginTarget: 60, ltvCacTarget: 3, cacPaybackMonthsTarget: 12, netRevenueRetentionTarget: 120, marketCagrPct: 28, sources: ["a16z AI 2025", "PitchBook AI/ML multiples"] },
   deeptech:    { sector: "deeptech",    arrMultiple: { low: 4, mid: 8, high: 15 }, ruleOf40Target: 30, grossMarginTarget: 60, ltvCacTarget: 4, cacPaybackMonthsTarget: 24, netRevenueRetentionTarget: 105, marketCagrPct: 18, sources: ["PitchBook deeptech", "AVCAL"] },
   ecommerce:   { sector: "ecommerce",   arrMultiple: { low: 1, mid: 2.5, high: 5 }, ruleOf40Target: 30, grossMarginTarget: 45, ltvCacTarget: 3, cacPaybackMonthsTarget: 12, netRevenueRetentionTarget: 95, marketCagrPct: 11, sources: ["PitchBook consumer", "Shopify benchmarks"] },
+  // T0167 — Sector-Specific Revenue Multiple Library expansion.
+  // Multiples calibrated from AU/global 2025 sources; keys align with detectSector() in svi-analysis.ts
+  // so a user's inferred vertical (edtech/cleantech/etc.) no longer collapses to the "default" bucket.
+  edtech:      { sector: "edtech",      arrMultiple: { low: 2, mid: 4, high: 7 },  ruleOf40Target: 35, grossMarginTarget: 70, ltvCacTarget: 3, cacPaybackMonthsTarget: 18, netRevenueRetentionTarget: 100, marketCagrPct: 14, sources: ["HolonIQ 2025 EdTech Report", "PitchBook edtech multiples"] },
+  cleantech:   { sector: "cleantech",   arrMultiple: { low: 3, mid: 6, high: 11 }, ruleOf40Target: 30, grossMarginTarget: 50, ltvCacTarget: 3, cacPaybackMonthsTarget: 24, netRevenueRetentionTarget: 105, marketCagrPct: 22, sources: ["Climate Salad 2025", "Climate Tech VC insights", "PitchBook climatetech"] },
+  proptech:    { sector: "proptech",    arrMultiple: { low: 2, mid: 4, high: 7 },  ruleOf40Target: 35, grossMarginTarget: 60, ltvCacTarget: 3, cacPaybackMonthsTarget: 18, netRevenueRetentionTarget: 100, marketCagrPct: 12, sources: ["PropTech Association Australia 2025", "PitchBook proptech"] },
+  agtech:      { sector: "agtech",      arrMultiple: { low: 2, mid: 4, high: 7 },  ruleOf40Target: 30, grossMarginTarget: 55, ltvCacTarget: 3, cacPaybackMonthsTarget: 24, netRevenueRetentionTarget: 100, marketCagrPct: 13, sources: ["AgFunder AgriFoodTech 2025", "Agthentic AU AgTech report"] },
+  biotech:     { sector: "biotech",     arrMultiple: { low: 4, mid: 10, high: 20 }, ruleOf40Target: 25, grossMarginTarget: 65, ltvCacTarget: 4, cacPaybackMonthsTarget: 30, netRevenueRetentionTarget: 105, marketCagrPct: 15, sources: ["Silicon Valley Bank Healthcare 2025", "PitchBook biotech multiples"] },
+  cybertech:   { sector: "cybertech",   arrMultiple: { low: 4, mid: 8, high: 14 }, ruleOf40Target: 40, grossMarginTarget: 75, ltvCacTarget: 3, cacPaybackMonthsTarget: 15, netRevenueRetentionTarget: 115, marketCagrPct: 18, sources: ["Momentum Cyber 2025", "PitchBook cybersecurity multiples"] },
+  wealthtech:  { sector: "wealthtech",  arrMultiple: { low: 3, mid: 6, high: 10 }, ruleOf40Target: 40, grossMarginTarget: 65, ltvCacTarget: 3, cacPaybackMonthsTarget: 15, netRevenueRetentionTarget: 108, marketCagrPct: 15, sources: ["FinTech Australia 2025", "CB Insights wealthtech"] },
+  insurtech:   { sector: "insurtech",   arrMultiple: { low: 2, mid: 5, high: 8 },  ruleOf40Target: 35, grossMarginTarget: 60, ltvCacTarget: 3, cacPaybackMonthsTarget: 18, netRevenueRetentionTarget: 105, marketCagrPct: 14, sources: ["Insurance Council of Australia 2025", "PitchBook insurtech multiples"] },
+  legaltech:   { sector: "legaltech",   arrMultiple: { low: 3, mid: 6, high: 9 },  ruleOf40Target: 40, grossMarginTarget: 75, ltvCacTarget: 3, cacPaybackMonthsTarget: 15, netRevenueRetentionTarget: 108, marketCagrPct: 12, sources: ["LegalGeek 2025", "PitchBook legaltech multiples"] },
+  gaming:      { sector: "gaming",      arrMultiple: { low: 1, mid: 3, high: 6 },  ruleOf40Target: 25, grossMarginTarget: 65, ltvCacTarget: 3, cacPaybackMonthsTarget: 12, netRevenueRetentionTarget: 90,  marketCagrPct: 11, sources: ["IGEA Australian Games Industry 2025", "PitchBook gaming multiples"] },
   default:     { sector: "default",     arrMultiple: { low: 3, mid: 5, high: 9 },  ruleOf40Target: 40, grossMarginTarget: 65, ltvCacTarget: 3, cacPaybackMonthsTarget: 15, netRevenueRetentionTarget: 105, marketCagrPct: 14, sources: ["PitchBook all-sector medians 2025"] },
 };
 
@@ -257,6 +273,16 @@ const AU_COMPARABLES: Partial<Record<string, string>> = {
   ai:          "Prolog AI, Aragon AI AU, Harrison.ai",
   deeptech:    "Fleet Space, Morse Micro, Vow Food",
   ecommerce:   "Afterpay, Shippit, Cin7",
+  edtech:      "OpenLearning, Cluey Learning, Vervoe, Skodel",
+  cleantech:   "SunDrive, Loam Bio, Amber Electric, Sicona Battery",
+  proptech:    ":Different, Openn Negotiation, PropTrack, Domain",
+  agtech:      "The Yield, Loam Bio, Provectus Algae, Beston Global Food",
+  biotech:     "Telix Pharmaceuticals, Mesoblast, Neuren, Nyrada",
+  cybertech:   "Secure Code Warrior, Kasada, Assetnote, Haventec",
+  wealthtech:  "Stake, Superhero, Selfwealth, Spaceship",
+  insurtech:   "Cover Genius, Honey Insurance, Kanopi, Upsure",
+  legaltech:   "LawPath, Josef, Immediation, PEXA",
+  gaming:      "League of Geeks, Big Ant Studios, Halfbrick, Mighty Kingdom",
   default:     "AU private SaaS / tech comparables (AVCAL 2025)",
 };
 

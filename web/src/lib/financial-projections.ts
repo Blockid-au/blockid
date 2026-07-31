@@ -361,25 +361,47 @@ export interface Projection {
 // ── Sector calibration (derived from VC_BENCHMARKS + AU norms) ──────────
 // Company-level baseline monthly growth (not market CAGR). Multiplied by
 // scenario factor, then decayed via an S-curve toward a 2% floor.
-const SECTOR_BASE_GROWTH_PCT: Record<Sector, number> = {
+// Partial: sectors not listed here (e.g. edtech, cleantech) fall back to `default`
+// at lookup sites via `?? SECTOR_BASE_GROWTH_PCT.default`.
+const SECTOR_BASE_GROWTH_PCT: Partial<Record<Sector, number>> & { default: number } = {
   ai: 12,
   saas: 8,
   fintech: 7,
+  cybertech: 7,
+  wealthtech: 7,
   healthtech: 6,
+  biotech: 5,
   deeptech: 5,
+  cleantech: 6,
   marketplace: 7,
   ecommerce: 6,
+  edtech: 6,
+  proptech: 5,
+  agtech: 5,
+  insurtech: 6,
+  legaltech: 6,
+  gaming: 5,
   default: 6,
 };
 
 // AusIndustry / ATO sector-typical R&D intensity as % of monthly opex.
-const SECTOR_RD_INTENSITY_PCT: Record<Sector, number> = {
+const SECTOR_RD_INTENSITY_PCT: Partial<Record<Sector, number>> & { default: number } = {
   deeptech: 40,
+  biotech: 40,
   healthtech: 30,
   ai: 30,
+  cleantech: 30,
+  cybertech: 25,
+  agtech: 25,
   saas: 20,
   fintech: 20,
+  wealthtech: 20,
+  insurtech: 20,
+  legaltech: 15,
+  edtech: 15,
+  proptech: 15,
   marketplace: 15,
+  gaming: 15,
   ecommerce: 10,
   default: 10,
 };
