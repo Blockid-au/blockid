@@ -1,6 +1,7 @@
 {
-  "updatedAt": "2026-07-31T06:00:06.266Z",
+  "updatedAt": "2026-07-31T20:04:42.353Z",
   "openrouter": [
+    "google/lyria-3-pro-preview",
     "openrouter/free",
     "cohere/north-mini-code:free",
     "nvidia/nemotron-3-nano-30b-a3b:free",
@@ -14,8 +15,7 @@
     "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "inclusionai/ling-3.0-flash:free",
-    "poolside/laguna-s-2.1:free"
+    "inclusionai/ling-3.0-flash:free"
   ],
   "groq": [
     "canopylabs/orpheus-arabic-saudi",
