@@ -1,19 +1,30 @@
 {
-  "version": "v2.0.0-beta.10",
-  "updated_at": "2026-07-17T16:00:00Z",
-  "git_sha": "0a807ac",
-  "release_id": "phase12-real-mrr-llm-clevel-vi-i18n-startup-index",
-  "task_ids": [
-    "T-1007 real MRR (migration 0083 v_mrr_active + v_mrr_by_segment + v_arr_run_rate applied to prod)",
-    "T-1007 lib/metrics/mrr.ts getRealMrrAud + admin/pricing-metrics real MRR tiles + segment breakdown",
-    "T-1102 Anthropic LLM wired into scripts/nightly-clevel-review.mjs (claude-sonnet-5 default; haiku-4-5 cheap fallback)",
-    "T-1102 6 persona prompts (cto/cfo/cdo/ciso/cro/cmo) as .md files + clevel-review-manifest.json evidence map",
-    "T-1300 Goal 5C startup index (migration 0082 startup_listings + startup_listing_events + v_startup_listing_public + generate_ticker RPC applied to prod)",
-    "T-1300 /listings directory + /listings/[ticker] detail + /workspace/listings/new + lib/listings/listings-db.ts",
-    "T-1300 sitemap /listings entry; existing /index BSI-AU brand page PRESERVED",
-    "T-1400 Goal 5D Vietnamese i18n scaffold (lib/i18n/{locales.ts, t.ts, messages/{en,vi}.json})",
-    "T-1400 /vi + /vi/pricing routes + locale-switcher client component + proxy.ts locale detection (CSP nonce preserved)",
-    "T-1400 nav-v2 mounts LocaleSwitcher; sitemap includes /vi entries with hreflang metadata"
+  "version": "v3.0.0-phase6-core",
+  "updated_at": "2026-07-31T01:15:00Z",
+  "git_sha": "65fc1d98",
+  "release_id": "v3-master-upgrade-phase-1-6-core",
+  "shipped_summary": [
+    "Phase 1 — HeroV3 + EmotionalBand v3 messaging behind NEXT_PUBLIC_UPGRADE_V3 + SSO-aware CTA via readSignedInHint()",
+    "Phase 1 — Report paywall (migration 0270_report_orders 9-state) + /api/reports/checkout A$5.50 + /api/reports/redeem 200 credits + <ReportPaywallGate/>",
+    "Stage 3 — Stripe webhook report_order branch + 0272 queue + report-order-worker + /api/cron/report-order-drain (2 min)",
+    "Stage 3 — 4 solution pages + /business-id + sitemap + robots + /for/* → /solutions/* 301s + PersonaRail + JourneySidebar + TierGate + UpgradeChip",
+    "Stage 4 — /id/[slug] public verified profile (SEO-indexable) + migration 0273 + PII whitelist + JSON-LD + /embed/badge SVG",
+    "Stage 4 — Consent domain 0250 + consent_state_events + 0251 share_packages + 0252 revocations (BCR-004) + enforceConsent middleware",
+    "Phase 2 — 0202_business_profile VIEW + ABR adapter (JSONP + Zod) + verification-level engine + POST /api/verification/abr",
+    "Phase 3 — Evidence pipeline: 0210_evidence + 0211_evidence_versions + 0212_evidence_extractions + hash-verify + state-machine",
+    "Phase 4 — AI orchestration: 0230_prompt_versions + 0231_ai_runs + Zod contracts + prompt-registry canary→prod + callStructured",
+    "Phase 5 — Programme + marketplace + partner API: 0290 + 0291 + 0292 + verifyPartnerBearer + /api/v1/id/[slug]",
+    "Phase 6 — Unicorn framework: 0280_unicorn_stages + framework.ts + goals.ts + <UnicornPathDashboard/> + 2 nightly crons",
+    "Agent K (in flight) — reseller_promotion_codes v3 schema + IFV/DVL seed + resolvePromoCode runtime helper",
+    "Agent L (in flight) — 0295 reseller_startup_roster view + readResellerRoster helper",
+    "Agent M (in flight) — ?ref= deep-link capture + first-touch cookie + POST /api/reseller/validate-promo"
   ],
-  "notes": "v2.0.0-beta.10 — Phase 12. First real implementation touches all 4 new Goals: 5A now has real LLM-driven nightly reviews (was stub); 5B untouched this phase; 5C has schema + directory + detail; 5D has locale routing + first VI surfaces. Plus T-1007 CFO real MRR closes the amendments plan H-task list. Migrations 0082 + 0083 applied to prod DB. tsc + verify-equity-gate clean."
+  "task_ids": [
+    "N1 marketing roadmap.md rewritten for v3.0 phase 1-6 (docs/N1)",
+    "N2 CHANGELOG.md v3.0 entry — 8 shipped pillars + reseller promo landed state (docs/N2)",
+    "N3 /roadmap page RECENTLY_LANDED + IN_PROGRESS + HUMAN_BLOCKED refreshed to master plan (docs/N3)",
+    "N4 version.json bumped to v3.0.0-phase6-core + deploy-log v3-upgrade-milestone appended (docs/N4)",
+    "Master plan reference: /home/dovanlong/.claude/plans/h-y-k-t-h-p-n-ng-hazy-sutton.md"
+  ],
+  "notes": "v3.0.0-phase6-core — v3 Master Upgrade Plan Phases 1-6 core landed across ~40 feat commits from 10+ parallel agents (2026-07-30 → 2026-07-31). Docs sync (N1-N4) reflects Business ID surface, verification ladder, evidence pipeline, AI orchestration, programme+marketplace, and Unicorn framework. Reseller promo/roster/attribution (Agents K/L/M) partial — Stripe checkout attribution + roster page + notes/activity migration (0296) still in flight. Human-blocked on CFO: migration 0271_grandfather_a149 and scripts/stripe/sync-plans.mjs live provisioning."
 }

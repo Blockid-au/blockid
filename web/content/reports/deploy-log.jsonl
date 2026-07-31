@@ -4005,3 +4005,7 @@
 {"ts":"2026-07-31T01:09:35.773Z","event":"github-push-master","detail":"Blockid-au: docs(v3): sub-N1 rewrite marketing roadmap for v3.0 phase 1-6 (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T01:10:04.321Z","event":"github-push-master","detail":"Blockid-au: docs(v3): sub-N2 add v3.0 upgrade entry to changelog (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T01:10:37.790Z","event":"github-push-master","detail":"Blockid-au: test(gst): P9-gst-lib-test — 29-case vitest for GST calculator + AU-only gate (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:10:44.465Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T01-07-01-098Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:11:48.571Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-attribution): sub-M3 Stripe checkout cookie fallback + webhook reconciliation (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:11:53.884Z","event":"github-push-master","detail":"Blockid-au: docs(v3): sub-N3 refresh /roadmap page for v3.0 phase 1-6 (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:15:30Z","event":"v3-upgrade-milestone","detail":"Phase 1-6 core landed — HeroV3 + paywall + Business ID + verification ladder + consent + evidence pipeline + AI orchestration + programme+marketplace + Unicorn framework"}
