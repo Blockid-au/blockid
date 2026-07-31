@@ -18,6 +18,14 @@
  *     — NEVER raw evidence/documents)
  *   - jurisdiction (country/state)
  *   - canonical public URL
+ *   - profile kind ('customer' | 'demo') — the migration-0298
+ *     discriminator. It carries NO information about the business; it
+ *     says only whether this row is a real verified customer or seeded
+ *     SAMPLE DATA. It is on the whitelist because every public surface
+ *     needs it to decide whether an unqualified "BlockID Verified" claim
+ *     is honest, and hiding it would force the renderers to special-case
+ *     demo slugs by name. Widening the whitelist by anything further —
+ *     anything that describes the business itself — is not permitted.
  *
  * Fields that MUST NEVER surface in this whitelist:
  *   - owner user_id / email / contact details
@@ -33,6 +41,11 @@
 import "server-only";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import {
+  PROFILE_KINDS,
+  coerceProfileKind,
+  type ProfileKind,
+} from "./profile-disclosure";
 
 // ─── Public schema ──────────────────────────────────────────────────
 
@@ -69,6 +82,12 @@ export const PublicBusinessProfileSchema = z.object({
   attestations: z.array(AttestationSummarySchema).max(50),
   jurisdiction: z.string().max(60),
   publicUrl: z.string().url(),
+  /**
+   * Migration-0298 discriminator. Non-PII: it describes the ROW, not the
+   * business. `'demo'` obliges every renderer to show the "Sample data"
+   * disclosure — see `profile-disclosure.ts`.
+   */
+  profileKind: z.enum(PROFILE_KINDS),
 });
 export type PublicBusinessProfile = z.infer<typeof PublicBusinessProfileSchema>;
 
@@ -89,6 +108,7 @@ const PUBLIC_COLUMNS = [
   "attestations",
   "industry",
   "public_index",
+  "profile_kind",
 ].join(", ");
 
 // ─── Derivation helpers ─────────────────────────────────────────────
@@ -210,6 +230,13 @@ export function projectRowToPublicProfile(
 
   const publicUrl = `${PUBLIC_PROFILE_BASE_URL}/id/${slug}`;
 
+  // Rows written before migration 0298 have no `profile_kind`; the
+  // coercion defaults them to 'customer', which is the correct
+  // (non-disclosing) rendering for a real business. Sample-data rows are
+  // always explicitly marked 'demo' by their seed migration, so this
+  // default can never strip a disclosure that was meant to be shown.
+  const profileKind: ProfileKind = coerceProfileKind(row.profile_kind);
+
   const candidate: PublicBusinessProfile = {
     slug,
     legalName,
@@ -221,6 +248,7 @@ export function projectRowToPublicProfile(
     attestations,
     jurisdiction,
     publicUrl,
+    profileKind,
   };
 
   const parsed = PublicBusinessProfileSchema.safeParse(candidate);

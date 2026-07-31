@@ -281,5 +281,21 @@
   "businessIdPublic.proof.srHeading": "Bằng chứng xác minh",
   "businessIdPublic.proof.prefix": "Tham chiếu bằng chứng xác minh:",
   "businessIdPublic.proof.suffix": ". Có thể kiểm chứng độc lập tại",
-  "businessIdPublic.proof.issuer": ". Đơn vị cấp credential: Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW."
+  "businessIdPublic.proof.issuer": ". Đơn vị cấp credential: Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW.",
+  "businessIdPublic.demo.eyebrow": "Dữ liệu mẫu — hồ sơ minh họa",
+  "businessIdPublic.demo.chip": "DỮ LIỆU MẪU",
+  "businessIdPublic.demo.banner.title": "Dữ liệu mẫu — đây không phải doanh nghiệp có thật",
+  "businessIdPublic.demo.banner.body": "Sprocketbay Demo Co là một công ty hư cấu do BlockID.au tạo ra để người xem thấy đầy đủ một Hồ sơ Doanh nghiệp Được xác minh công khai. Đây không phải pháp nhân có thật, không có ABN, và cấp độ xác minh, điểm năng lực cũng như các chứng thực đều là dữ liệu minh họa — không có nội dung nào trên trang này được xác minh với một công ty có thật, và mọi bên chứng thực bên dưới đều là hư cấu và được đánh dấu “(sample)”.",
+  "businessIdPublic.demo.meta.title.suffix": "Hồ sơ doanh nghiệp mẫu (dữ liệu demo)",
+  "businessIdPublic.demo.meta.description.template": "DỮ LIỆU MẪU — {name} là công ty hư cấu dùng để minh họa Hồ sơ Doanh nghiệp Được xác minh của BlockID. Không phải doanh nghiệp có thật; cấp độ {level} và điểm {score} là dữ liệu minh họa, không phải kết quả xác minh thật.",
+  "businessIdPublic.demo.score.label": "Điểm mẫu {score}/100",
+  "businessIdPublic.demo.score.aria": "Điểm mẫu minh họa {score} trên 100 — dữ liệu demo, không phải điểm tin cậy thật",
+  "businessIdPublic.demo.capability.heading": "Điểm năng lực (dữ liệu mẫu)",
+  "businessIdPublic.demo.capability.intro": "Mười hai lĩnh vực xác minh thuộc Lãnh đạo & Con người, Chiến lược & Thương mại, Vận hành & Hiệu suất, Công nghệ & Số. Các con số này là dữ liệu hư cấu cho một công ty hư cấu — chúng không đo lường bất kỳ điều gì có thật.",
+  "businessIdPublic.demo.attestations.heading": "Chứng thực (dữ liệu mẫu)",
+  "businessIdPublic.demo.attestations.intro": "Mọi bên chứng thực bên dưới đều là hư cấu và có hậu tố “(sample)”. Không bên nào là công ty có thật và không bên nào đã chứng thực điều gì.",
+  "businessIdPublic.demo.share.heading": "Đây là hình dạng của một hồ sơ thật",
+  "businessIdPublic.demo.share.body": "Hồ sơ mẫu không thể phát hành gói chia sẻ. Xem cách xác minh hoạt động, hoặc công bố hồ sơ doanh nghiệp của bạn.",
+  "businessIdPublic.demo.share.cta": "Cách xác minh hoạt động",
+  "businessIdPublic.demo.footer": "Dữ liệu mẫu được công bố bởi Auschain PTY LTD (ABN 79 659 615 111), thương hiệu BlockID.au. Công ty hư cấu, không thực hiện xác minh, không phát hành chứng chỉ thật."
 }

@@ -279,5 +279,21 @@
   "businessIdPublic.proof.srHeading": "Verification proof",
   "businessIdPublic.proof.prefix": "Verification proof reference:",
   "businessIdPublic.proof.suffix": ". Independently verifiable at",
-  "businessIdPublic.proof.issuer": ". Credential issuer: Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW."
+  "businessIdPublic.proof.issuer": ". Credential issuer: Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW.",
+  "businessIdPublic.demo.eyebrow": "Sample data — demonstration profile",
+  "businessIdPublic.demo.chip": "SAMPLE DATA",
+  "businessIdPublic.demo.banner.title": "Sample data — this is not a real business",
+  "businessIdPublic.demo.banner.body": "Sprocketbay Demo Co is a fictional company invented by BlockID.au so visitors can see a complete public Verified Business Profile end to end. It is not a real trading entity, it holds no ABN, and its verification level, capability scores and attestations are illustrative fixtures — nothing on this page was verified against a real company, and every attester named below is invented and marked “(sample)”.",
+  "businessIdPublic.demo.meta.title.suffix": "Sample Business Profile (demo data)",
+  "businessIdPublic.demo.meta.description.template": "SAMPLE DATA — {name} is a fictional company used to demonstrate the BlockID public Verified Business Profile. Not a real business; the Level {level} rating and score {score} are illustrative fixtures, not a real verification.",
+  "businessIdPublic.demo.score.label": "Sample score {score}/100",
+  "businessIdPublic.demo.score.aria": "Illustrative sample score {score} of 100 — demonstration data, not a real trust score",
+  "businessIdPublic.demo.capability.heading": "Capability scores (sample data)",
+  "businessIdPublic.demo.capability.intro": "Twelve verification areas across Leadership & People, Strategy & Commercial, Ops & Performance, and Tech & Digital. These numbers are invented fixtures for a fictional company — they are not a measurement of anything real.",
+  "businessIdPublic.demo.attestations.heading": "Attestations (sample data)",
+  "businessIdPublic.demo.attestations.intro": "Every attester below is invented and suffixed “(sample)”. None is a real firm and none has attested to anything.",
+  "businessIdPublic.demo.share.heading": "This is what a real profile looks like",
+  "businessIdPublic.demo.share.body": "Sample profiles cannot issue share packages. See how verification works, or publish your own business profile.",
+  "businessIdPublic.demo.share.cta": "How verification works",
+  "businessIdPublic.demo.footer": "Sample data published by Auschain PTY LTD (ABN 79 659 615 111) trading as BlockID.au. Fictional company, no verification performed, no real credential issued."
 }
