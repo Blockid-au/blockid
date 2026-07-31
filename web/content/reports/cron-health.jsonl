@@ -977,3 +977,4 @@
 {"ts":"2026-07-31T13:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":582,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 17, \"raw\": \"17% used (232235652 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273827792 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-31T13:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":614,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 17, \"raw\": \"17% used (232214528 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273827504 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-07-31T13:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16459,"detail":""}
+{"ts":"2026-07-31T13:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":219,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
