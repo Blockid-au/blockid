@@ -623,6 +623,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToRms,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-rms";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhingeSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-midhinge";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2241,6 +2246,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToRms
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToRmsSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToMidhingeSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -6040,6 +6049,58 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToRmsSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToRms,
         );
+      // P11.255 peak-to-midhinge cron wiring — WHOLE-POOL
+      // RANGE-AGAINST-HINGE-COMPOSITE scalar over the P11.161 pool.
+      // Folds every cell into ONE dispersion read that reports the
+      // pool's total RANGE in units of the Tukey MIDHINGE:
+      //   ptmh = (max - min) / midhinge
+      // where midhinge = (Q1 + Q3) / 2 uses the Tukey EXCLUSIVE
+      // hinges. Reads the peak spread against a ROBUST HINGE-COMPOSITE
+      // centre so an UPPER-OUTLIER pool that the P11.244 peak-to-Q3
+      // surface flags TIGHT (because Q3 sits in the upper cluster)
+      // and P11.242 peak-to-Q1 flags WIDE (because Q1 sits in the low
+      // cluster) reads WIDE here (because midhinge averages the two
+      // shoulders and stays near the low cluster while range tracks
+      // the outlier). Together with P11.242 PTQ1 (lower shoulder) +
+      // P11.244 PTQ3 (upper shoulder) completes the (Q1, midhinge,
+      // Q3) TRIAD of Tukey hinge-based anchors for the range-based
+      // dispersion read. By construction Q1 <= midhinge <= Q3, so by
+      // monotonicity of the reciprocal PTQ3 <= PTMH <= PTQ1 with
+      // equality iff Q1 == Q3. Composite regime labels emitted by
+      // joining the TRIAD: PTMH tight + PTQ1 spread + PTQ3 tight =
+      // UNIFORM RAMP; PTMH tight + PTQ1 wide + PTQ3 tight = BIMODAL
+      // SYMMETRIC SPLIT (midhinge sits between clusters); PTMH wide +
+      // PTQ1 wide + PTQ3 tight = UPPER-OUTLIER against UNIFORM FLOOR
+      // (Q3 lifted by the outlier so PTQ3 dampens; midhinge stays
+      // near the low cluster); all three wide = EXTREME OUTLIER.
+      // Guards: pool_count 0 → ptmh null empty; pool_count 1 → ptmh
+      // null solo (structural single partner); pool_count >=2 with
+      // pool_cells 0 → ptmh null degenerate (guarded but
+      // unreachable); pool_count >=2 with midhinge == 0 → ptmh null
+      // degenerate (guarded but unreachable since counts >= 1 so
+      // Q1 + Q3 >= 2); pool_count >=2 with midhinge > 0 → ptmh in
+      // [0, +Inf) rounded to 4 decimals, zero iff max == min (flat
+      // pool). Bands on raw ptmh (fixed cutoffs, calibrated against
+      // n=10 reference distributions): tight ptmh < 2.0 (flat,
+      // uniform ramp, bimodal-split, two-partner, small regimes),
+      // spread ptmh in [2.0, 5.0) (two-shoulders regime), wide ptmh
+      // >= 5.0 (upper-outlier + extreme-outlier regimes). Cutoffs
+      // mirror the P11.242 PTQ1 + P11.244 PTQ3 hinge-based siblings
+      // so the triad shares one vocabulary. Splices IMMEDIATELY
+      // BELOW perTransitionMagnitudeTop3PoolPeakToRmsSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.254
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-hinge-composite after the P11.252 range-
+      // against-quadratic-center landing. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToMidhingeSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhingeSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge,
+        );
     }
   }
   if (
@@ -6141,6 +6202,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToGeomeanSection ||
     perTransitionMagnitudeTop3PoolPeakToHarmeanSection ||
     perTransitionMagnitudeTop3PoolPeakToRmsSection ||
+    perTransitionMagnitudeTop3PoolPeakToMidhingeSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -6269,6 +6331,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToGeomeanSection +
       perTransitionMagnitudeTop3PoolPeakToHarmeanSection +
       perTransitionMagnitudeTop3PoolPeakToRmsSection +
+      perTransitionMagnitudeTop3PoolPeakToMidhingeSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -9069,6 +9132,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToRms.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToRms.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_midhinge:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.top_n,
+            tight_ptmh_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.tight_ptmh_max,
+            wide_ptmh_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.wide_ptmh_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.transitions,
           }
         : {
             skipped_reason:
