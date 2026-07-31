@@ -40,11 +40,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   if (!signedIn) {
     // Preserve the caller's original URL so post-login redirect returns
-    // them to the page they asked for.
+    // them to the page they asked for. `x-pathname` is stamped by
+    // middleware.ts (Server Components cannot otherwise see the URL);
+    // it carries path + search so deep links keep their query params.
     let next = "/dashboard";
     try {
       const h = await headers();
-      next = h.get("x-pathname") ?? h.get("x-invoke-path") ?? next;
+      const seen = h.get("x-pathname") ?? h.get("x-invoke-path");
+      // Only accept a same-origin absolute path, and never point back at
+      // an auth route — that would bounce the user in a loop.
+      if (
+        seen &&
+        seen.startsWith("/") &&
+        !seen.startsWith("//") &&
+        !seen.startsWith("/auth/")
+      ) {
+        next = seen;
+      }
     } catch {
       // headers() may be unavailable during static prerender — ignore.
     }

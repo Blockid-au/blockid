@@ -122,7 +122,7 @@ export async function middleware(req: NextRequest) {
     }
     // Attach ceiling headers to allowed responses too — clients can
     // back off gracefully before we start returning 429s.
-    const ok = NextResponse.next({ request: { headers: req.headers } });
+    const ok = NextResponse.next({ request: { headers: requestHeadersWithPath(req) } });
     ok.headers.set("X-RateLimit-Limit", String(result.limit));
     ok.headers.set("X-RateLimit-Remaining", String(result.remaining));
     ok.headers.set("X-RateLimit-Reset", String(Math.floor(result.resetAt / 1000)));
@@ -137,12 +137,37 @@ export async function middleware(req: NextRequest) {
   }
 
   // ── 3. Default path — SSO refresh + cookie + headers ───────────────
-  const res = NextResponse.next({ request: { headers: req.headers } });
+  const res = NextResponse.next({ request: { headers: requestHeadersWithPath(req) } });
   await refreshSessionAndInjectHeaders(req, res, {
     clientFactory: getMiddlewareClient,
   });
   seedJurisdictionCookie(req, res);
   return applyHeaders(res);
+}
+
+/**
+ * Clone the incoming request headers and stamp the resolved pathname
+ * (plus query) onto them.
+ *
+ * Server Components cannot read the current URL — `headers()` only
+ * exposes what the request carried, and Next does not add the path
+ * itself. The `(app)` route-group layout needs it to build
+ * `/auth/login?next=<original URL>` so an anonymous visitor returns to
+ * the page they actually asked for after signing in. Without this it
+ * fell back to a hardcoded `/dashboard`, which the post-deploy
+ * Playwright smoke correctly flagged (it asserts an exact
+ * `next=/workspace/audit-log`).
+ *
+ * `x-pathname` carries path + search so deep links with query params
+ * survive the round trip. `x-invoke-path` is kept as a path-only alias
+ * because some older call sites read that name.
+ */
+function requestHeadersWithPath(req: NextRequest): Headers {
+  const h = new Headers(req.headers);
+  const { pathname, search } = req.nextUrl;
+  h.set("x-pathname", `${pathname}${search}`);
+  h.set("x-invoke-path", pathname);
+  return h;
 }
 
 function seedJurisdictionCookie(req: NextRequest, res: NextResponse): void {
