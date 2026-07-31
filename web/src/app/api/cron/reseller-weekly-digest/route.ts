@@ -523,6 +523,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolQcd,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-qcd";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRangeSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-coefficient-of-range";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2061,6 +2066,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolQcd
     | null = null;
   let perTransitionMagnitudeTop3PoolQcdSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange
+    | null = null;
+  let perTransitionMagnitudeTop3PoolCoefficientOfRangeSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4946,6 +4955,38 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolQcdSection(
           snapshotPerTransitionMagnitudeTop3PoolQcd,
         );
+      // P11.214 coefficient-of-range cron wiring — BOUNDED ENDPOINT
+      // dispersion scalar on the P11.161 pool (cor = (max - min) /
+      // (max + min) — Yule 1911 classroom coefficient of range,
+      // identical to the Michelson-contrast scalar; pool_count < 2
+      // emits a small_pool null so a single-point pool cannot
+      // false-positive as level via max == min). Closes the LAST
+      // unfilled cell of the (unbounded, bounded) x (endpoint, interior,
+      // whole-pool) dispersion grid — BOUNDED + ENDPOINT was the only
+      // remaining hole after P11.211 QCD (BOUNDED + INTERIOR),
+      // P11.181 range (UNBOUNDED + ADDITIVE ENDPOINT), P11.185
+      // top1/bot1 ratio (UNBOUNDED + MULTIPLICATIVE ENDPOINT), P11.207
+      // IQR (UNBOUNDED + ADDITIVE INTERIOR), P11.209 IQR RATIO
+      // (UNBOUNDED + MULTIPLICATIVE INTERIOR), P11.199 MAD +
+      // P11.201 MADm (UNBOUNDED + ADDITIVE WHOLE-POOL). Splices
+      // IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolQcdSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.213
+      // formatter docblock so the two BOUNDED siblings (COR endpoint
+      // / QCD interior) sit adjacent — reader spots the
+      // endpoint-vs-interior BOUNDED dispersion contrast in one
+      // glance. SAME 0.2 / 0.5 anchors as P11.211 QCD so the two
+      // bounded scalars share a common label vocabulary; anchors map
+      // to raw top1/bot1 ratios via the closed-form
+      // r = (1+cor)/(1-cor) (cor 0.2 <-> r 1.5x, cor 0.5 <-> r 3.0x).
+      // Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolCoefficientOfRangeSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRangeSection(
+          snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange,
+        );
     }
   }
   if (
@@ -5027,6 +5068,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolIqrSection ||
     perTransitionMagnitudeTop3PoolIqrRatioSection ||
     perTransitionMagnitudeTop3PoolQcdSection ||
+    perTransitionMagnitudeTop3PoolCoefficientOfRangeSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5135,6 +5177,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolIqrSection +
       perTransitionMagnitudeTop3PoolIqrRatioSection +
       perTransitionMagnitudeTop3PoolQcdSection +
+      perTransitionMagnitudeTop3PoolCoefficientOfRangeSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -7309,6 +7352,38 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolQcd.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolQcd.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_coefficient_of_range:
+      snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.top_n,
+            min_pool_count_for_cor:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.min_pool_count_for_cor,
+            level_cor_max:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.level_cor_max,
+            stark_cor_min:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.stark_cor_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange.transitions,
           }
         : {
             skipped_reason:
