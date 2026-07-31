@@ -850,3 +850,5 @@
 {"tick_id":"2026-07-31T07-17-01-428Z","ts":"2026-07-31T07:17:01.429Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T07-17-01-428Z","ts":"2026-07-31T07:17:01.447Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"opus-manual-2026-07-31T07-22-00Z","ts":"2026-07-31T07:22:00Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","subtask":"P9-plans-v2-lib-test","tests":56,"file":"web/src/lib/plans-v2.test.ts","result":"56 passed / 419ms","typecheck":"clean for new file"}
+{"tick_id":"2026-07-31T07-17-01-428Z","ts":"2026-07-31T07:22:58.348Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":356898,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T07-17-01-428Z","ts":"2026-07-31T07:22:58.396Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
