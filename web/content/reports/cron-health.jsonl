@@ -1086,3 +1086,5 @@
 {"ts":"2026-07-31T22:30:01Z","endpoint":"security-posture","status":"ok","duration_ms":6932,"detail":"{\"date\": \"2026-07-31\", \"overall\": 26, \"status\": \"RED\", \"dimensions\": [{\"key\": \"auth_coverage\", \"score\": 8, \"detail\": \"324/402 guarded (Bearer / user-auth / public-tagged)\"}, {\"key\": \"rate_limit\", \"sco"}
 {"ts":"2026-07-31T22:30:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17097,"detail":""}
 {"ts":"2026-07-31T22:30:01Z","endpoint":"performance-audit","status":"fail","duration_ms":17339,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 __variable_6b9622 h-full antialiased\"><head"}
+{"ts":"2026-07-31T22:40:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2757,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 17, \"raw\": \"17% used (231985140 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273816820 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-31T22:45:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16459,"detail":""}
