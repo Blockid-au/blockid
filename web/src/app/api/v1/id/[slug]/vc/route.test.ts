@@ -80,10 +80,11 @@ import {
   verifyVc,
 } from "@/lib/vc/issuer-keypair";
 
+import type { NextRequest } from "next/server";
 import { GET } from "./route";
 
-function makeReq(url = "http://x/api/v1/id/acme/vc"): Request {
-  return new Request(url, { method: "GET" });
+function makeReq(url = "http://x/api/v1/id/acme/vc"): NextRequest {
+  return new Request(url, { method: "GET" }) as unknown as NextRequest;
 }
 
 function ctx(slug: string) {
