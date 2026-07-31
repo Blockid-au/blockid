@@ -885,3 +885,5 @@
 {"ts":"2026-07-31T04:00:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16903,"detail":""}
 {"ts":"2026-07-31T04:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16422,"detail":""}
 {"ts":"2026-07-31T04:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":553,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234309984 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274231140 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-31T04:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16471,"detail":""}
+{"ts":"2026-07-31T04:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":132,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
