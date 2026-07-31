@@ -123,11 +123,15 @@
 //                                     exceeds n^(1/19). Reference:
 //                                     [1x99, 100] reads PTNVM 1.2615
 //                                     wide.
-//   * PTNVM tight + PTSOM tight + PTSPM tight + PTSDM tight + PTQIM tight
+//   * PTNVM spread + PTSOM tight + PTSPM tight + PTSDM tight + PTQIM tight
 //                                     -> ISOLATED HIGH PARTNER (two-
-//                                     partner pool). Ref: [1, 100]
-//                                     reads PTNVM 1.0268 tight, PTSOM
-//                                     1.0289 tight, PTSPM 1.0312 tight.
+//                                     partner pool). The 1.02 tight/
+//                                     spread boundary at M_19 catches
+//                                     this regime for the first time
+//                                     in the power-mean cascade. Ref:
+//                                     [1, 100] reads PTNVM 1.0268
+//                                     spread, PTSOM 1.0289 tight,
+//                                     PTSPM 1.0312 tight.
 //   * PTNVM wide + PTSOM tight        -> unreachable because
 //                                     novemdecic_mean is ALWAYS >=
 //                                     octodecic_mean by Power Mean
@@ -209,10 +213,14 @@
 //   * two-partner [1, 9]            -> NVM ~= 8.6776, range 8, ptnvm
 //                                     ~= 0.9219 (tight).
 //   * two-partner [1, 100]          -> NVM ~= 96.4176, range 99,
-//                                     ptnvm ~= 1.0268 (tight --
-//                                     ISOLATED HIGH PARTNER;
-//                                     novemdecic mean captures the
-//                                     outlier).
+//                                     ptnvm ~= 1.0268 (SPREAD --
+//                                     ISOLATED HIGH PARTNER just
+//                                     crosses the 1.02 tight/spread
+//                                     boundary at M_19; the 0.01-per-
+//                                     step boundary tightening from
+//                                     P11.290's 1.03 finally catches
+//                                     this two-partner regime that
+//                                     PTSOM read tight at 1.0289).
 //   * small [10, 1, 1]              -> NVM ~= 9.4382, range 9, ptnvm
 //                                     ~= 0.9536 (TIGHT --
 //                                     SMALL-VALUE-DOMINATED with
@@ -657,7 +665,7 @@ export function formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdec
 
   return `
     <h3 style="margin-top:16px;font-family:Arial,sans-serif;font-size:14px">Per-transition magnitude TOP-${snapshot.top_n} pool PEAK-TO-NOVEMDECIC-MEAN across the ${snapshot.window_size}-week window (${firstWeek} &rarr; ${lastWeek}) at the ${thresholdPct}% magnitude threshold, sustained bar p90 &ge; ${snapshot.sustained_p90_threshold}</h3>
-    <p style="font-family:Arial,sans-serif;font-size:13px">WHOLE-POOL RANGE-AGAINST-NOVEMDECIC-CENTER scalar over the P11.161 pool &mdash; ptnvm = (max - min) / novemdecic_mean where novemdecic_mean = ((sum x_i^19) / n)^(1/19). Reads the pool's total RANGE in units of its NOVEMDECIC (power-mean-of-order-19, M_19) centre so a LARGE-VALUE-DOMINATED pool reads TIGHTER here than under P11.290 PTSOM because raising the large values to the NINETEENTH power before averaging lifts the anchor MORE than raising to the eighteenth does, dampening the ratio against the range even harder. Unique DISPERSION-axis contribution: reads range in units of the NOVEMDECIC (POWER-MEAN-OF-ORDER-19) CENTER &mdash; extends the (harmonic M_-1, geometric M_0, arithmetic M_1, quadratic M_2, cubic M_3, quartic M_4, quintic M_5, sextic M_6, septic M_7, octic M_8, nonic M_9, decic M_10, undecic M_11, duodecic M_12, tredecic M_13, quattuordecic M_14, quindecic M_15, sedecic M_16, septendecic M_17, octodecic M_18) power-mean vigesimet into a VIGESIMOPRIMET with the M_19 novemdecic mean. Asymptotic ceiling: for a pool of size n with a dominant outlier x_max &gt;&gt; x_min, ptnvm approaches n^(1/19) so 10-partner pools cap near 1.1288 and only pools with pool_count &gt;= 13 escape into wide (13^(1/19) ~= 1.1445 is just past the wide floor). Composite regime labels: PTNVM tight + PTSOM tight + PTSPM tight + PTSDM tight + PTQIM tight + PTRMS spread = MILD OUTLIER absorbed by novemdecic ([1x9, 10] reads PTNVM 1.016 tight); PTNVM spread + PTSOM spread + PTSPM spread = EXTREME OUTLIER only partially absorbed ([1x9, 100] reads PTNVM 1.1175 spread); PTNVM wide = RUNAWAY OUTLIER with a large pool ([1x99, 100] reads 1.2615 wide); PTNVM tight + PTSOM tight + PTSPM tight + PTSDM tight + PTQIM tight = ISOLATED HIGH PARTNER ([1, 100] reads 1.0268 tight). Labels: solo = pool_count == 1 (structural single partner), degenerate = pool_cells == 0 OR novemdecic_mean == 0 (guarded but unreachable), tight = ptnvm &lt; ${tight_ptnvm_max} (flat, uniform ramp, upper-outlier, two-shoulders, bimodal-split, two-partner, small regimes), spread = ptnvm in [${tight_ptnvm_max}, ${wide_ptnvm_min}) (extreme-outlier regime), wide = ptnvm &ge; ${wide_ptnvm_min} (runaway-outlier regime with pool_count &gt;= 13). Bands: small (1..${small_max}), medium (${small_max + 1}..${medium_max}), large (${medium_max + 1}+). Rotated + undecidable ship empty pools in medium + large bands by P11.139 design. Empty cells omitted from this table but stay on the JSONL envelope with pool_count 0 + ptnvm null.</p>
+    <p style="font-family:Arial,sans-serif;font-size:13px">WHOLE-POOL RANGE-AGAINST-NOVEMDECIC-CENTER scalar over the P11.161 pool &mdash; ptnvm = (max - min) / novemdecic_mean where novemdecic_mean = ((sum x_i^19) / n)^(1/19). Reads the pool's total RANGE in units of its NOVEMDECIC (power-mean-of-order-19, M_19) centre so a LARGE-VALUE-DOMINATED pool reads TIGHTER here than under P11.290 PTSOM because raising the large values to the NINETEENTH power before averaging lifts the anchor MORE than raising to the eighteenth does, dampening the ratio against the range even harder. Unique DISPERSION-axis contribution: reads range in units of the NOVEMDECIC (POWER-MEAN-OF-ORDER-19) CENTER &mdash; extends the (harmonic M_-1, geometric M_0, arithmetic M_1, quadratic M_2, cubic M_3, quartic M_4, quintic M_5, sextic M_6, septic M_7, octic M_8, nonic M_9, decic M_10, undecic M_11, duodecic M_12, tredecic M_13, quattuordecic M_14, quindecic M_15, sedecic M_16, septendecic M_17, octodecic M_18) power-mean vigesimet into a VIGESIMOPRIMET with the M_19 novemdecic mean. Asymptotic ceiling: for a pool of size n with a dominant outlier x_max &gt;&gt; x_min, ptnvm approaches n^(1/19) so 10-partner pools cap near 1.1288 and only pools with pool_count &gt;= 13 escape into wide (13^(1/19) ~= 1.1445 is just past the wide floor). Composite regime labels: PTNVM tight + PTSOM tight + PTSPM tight + PTSDM tight + PTQIM tight + PTRMS spread = MILD OUTLIER absorbed by novemdecic ([1x9, 10] reads PTNVM 1.016 tight); PTNVM spread + PTSOM spread + PTSPM spread = EXTREME OUTLIER only partially absorbed ([1x9, 100] reads PTNVM 1.1175 spread); PTNVM wide = RUNAWAY OUTLIER with a large pool ([1x99, 100] reads 1.2615 wide); PTNVM spread + PTSOM tight + PTSPM tight = ISOLATED HIGH PARTNER ([1, 100] reads 1.0268 spread — the 1.02 tight/spread boundary at M_19 catches this two-partner regime for the first time in the power-mean cascade). Labels: solo = pool_count == 1 (structural single partner), degenerate = pool_cells == 0 OR novemdecic_mean == 0 (guarded but unreachable), tight = ptnvm &lt; ${tight_ptnvm_max} (flat, uniform ramp, upper-outlier, two-shoulders, bimodal-split, two-partner, small regimes), spread = ptnvm in [${tight_ptnvm_max}, ${wide_ptnvm_min}) (extreme-outlier regime), wide = ptnvm &ge; ${wide_ptnvm_min} (runaway-outlier regime with pool_count &gt;= 13). Bands: small (1..${small_max}), medium (${small_max + 1}..${medium_max}), large (${medium_max + 1}+). Rotated + undecidable ship empty pools in medium + large bands by P11.139 design. Empty cells omitted from this table but stay on the JSONL envelope with pool_count 0 + ptnvm null.</p>
     <table style="font-family:Arial,sans-serif;font-size:13px;border-collapse:collapse;margin-top:4px">
       <thead>
         <tr><th style="padding:4px 8px;text-align:left;border-bottom:2px solid #333">transition</th><th style="padding:4px 8px;text-align:left;border-bottom:2px solid #333">magnitude band</th><th style="padding:4px 8px;text-align:left;border-bottom:2px solid #333">partner PTNVM</th><th style="padding:4px 8px;text-align:left;border-bottom:2px solid #333">KPI PTNVM</th></tr>
