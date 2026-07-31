@@ -1296,3 +1296,5 @@
 {"tick_id":"2026-07-31T18-37-01-343Z","ts":"2026-07-31T18:46:28.733Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"12439a88","last_deployed":"0c154c2"}
 {"tick_id":"2026-07-31T18-37-01-343Z","ts":"2026-07-31T18:54:01.177Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"12439a88"}
 {"tick_id":"2026-07-31T18-37-01-343Z","ts":"2026-07-31T18:54:01.179Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T18-57-01-531Z","ts":"2026-07-31T18:57:01.532Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T18-57-01-531Z","ts":"2026-07-31T18:57:01.546Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
