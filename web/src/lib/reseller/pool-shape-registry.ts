@@ -91,6 +91,7 @@ export const POOL_SHAPE_SURFACES: readonly PoolShapeSurface[] = [
   { slug: "gini-mean-difference", axis: "DISPERSION" },
   { slug: "peak-to-median", axis: "DISPERSION" },
   { slug: "peak-to-q1", axis: "DISPERSION" },
+  { slug: "peak-to-q3", axis: "DISPERSION" },
 ];
 
 export const POOL_SHAPE_MODULE_PREFIX =

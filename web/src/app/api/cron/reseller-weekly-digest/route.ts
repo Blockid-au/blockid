@@ -598,6 +598,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ1,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-q1";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3Section,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-q3";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2196,6 +2201,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ1
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToQ1Section = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToQ3:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToQ3Section = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5750,6 +5759,52 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ1Section(
           snapshotPerTransitionMagnitudeTop3PoolPeakToQ1,
         );
+      // P11.245 peak-to-Q3 cron wiring — WHOLE-POOL
+      // RANGE-AGAINST-UPPER-HINGE scalar over the P11.161 pool.
+      // Folds every cell into ONE dispersion read that reports the
+      // pool's total RANGE in units of the pool's UPPER TUKEY HINGE
+      // (Q3):
+      //   ptq3 = (max - min) / Q3
+      // Reads the peak spread against an upper-shoulder anchor so a
+      // BIMODAL SYMMETRIC split that the P11.242 peak-to-Q1 surface
+      // flags WIDE (because Q1 sits in the LOWER cluster) reads
+      // TIGHT here (because Q3 sits IN the upper cluster where the
+      // leader partner lives). Together with P11.242 PTQ1 (lower-
+      // shoulder) and P11.240 PTM (order-statistic centre) forms
+      // the complete (lower, centre, upper) triad of order-statistic
+      // anchors for the range-based dispersion read. When PTQ1 wide
+      // + PTQ3 tight the pool is bimodal-symmetric or top-heavy;
+      // when BOTH wide the pool is an upper-outlier against a
+      // uniformly-low floor — a first-class labelled regime pair
+      // that no single surface can flag alone.
+      // Guards: pool_count 0 → ptq3 null empty; pool_count 1 →
+      // ptq3 null solo (structural single partner); pool_count >=2
+      // with pool_cells 0 → ptq3 null degenerate (guarded but
+      // unreachable); pool_count >=2 with Q3 == 0 → ptq3 null
+      // degenerate (guarded but unreachable since counts >= 1 so
+      // the upper-half median is >= 1); pool_count >=2 with Q3 > 0
+      // → ptq3 in [0, +Inf) rounded to 4 decimals, zero iff
+      // max == min (flat pool). Bands on raw ptq3 (fixed cutoffs,
+      // calibrated against n=10 reference distributions): tight
+      // ptq3 < 2.0 (flat, uniform ramp, bimodal-symmetric, top-lean
+      // two-partner regimes), spread ptq3 in [2.0, 5.0) (two-
+      // shoulders regime), wide ptq3 >= 5.0 (single-outlier +
+      // extreme-outlier regimes where the peak sits above a
+      // uniformly-low floor). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToQ1Section AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.244
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-upper-hinge after the P11.242 range-against-
+      // lower-hinge landing. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQ3 =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToQ3Section =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3Section(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToQ3,
+        );
     }
   }
   if (
@@ -5846,6 +5901,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection ||
     perTransitionMagnitudeTop3PoolPeakToMedianSection ||
     perTransitionMagnitudeTop3PoolPeakToQ1Section ||
+    perTransitionMagnitudeTop3PoolPeakToQ3Section ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5969,6 +6025,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection +
       perTransitionMagnitudeTop3PoolPeakToMedianSection +
       perTransitionMagnitudeTop3PoolPeakToQ1Section +
+      perTransitionMagnitudeTop3PoolPeakToQ3Section +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -8619,6 +8676,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToQ1.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToQ1.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_q3:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQ3
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.top_n,
+            tight_ptq3_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.tight_ptq3_max,
+            wide_ptq3_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.wide_ptq3_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.transitions,
           }
         : {
             skipped_reason:
