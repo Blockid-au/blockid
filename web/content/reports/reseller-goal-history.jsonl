@@ -831,3 +831,7 @@
 {"tick_id":"2026-07-31T20-55-01-148Z","ts":"2026-07-31T21:09:30.113Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"truncation_guard_reverted","count":1,"files":[{"path":"web/src/lib/agents/cmo-market-research.ts","head_lines":243,"work_lines":142,"lost_pct":42}]}
 {"tick_id":"2026-07-31T20-55-01-148Z","ts":"2026-07-31T21:09:31.698Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-07-31T20-55-01-148Z","ts":"2026-07-31T21:09:31.710Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"855da618","last_deployed":"75cfdf3"}
+{"tick_id":"2026-07-31T20-55-01-148Z","ts":"2026-07-31T21:17:17.195Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"855da618"}
+{"tick_id":"2026-07-31T20-55-01-148Z","ts":"2026-07-31T21:17:17.196Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T21-20-01-112Z","ts":"2026-07-31T21:20:01.118Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T21-20-01-112Z","ts":"2026-07-31T21:20:01.189Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
