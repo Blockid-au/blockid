@@ -117,6 +117,36 @@ export default function ShowcaseMenuPage() {
           </p>
         </header>
 
+        {/*
+          Deliberately NOT a CaseCard. Every entry in the grid below is a
+          real listed or late-stage company benchmarked from public
+          filings. Sprocketbay is the opposite — a fictional company that
+          walks BlockID's own process — and putting it in the same grid
+          would blur exactly the line the sample-data disclosure exists to
+          protect. Separate block, separate framing, amber not white.
+        */}
+        <section className="mb-10 rounded-lg border-2 border-amber-400/70 bg-amber-50 p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-amber-700">
+            Sample data · not a real company
+          </p>
+          <h2 className="mt-1 text-xl font-semibold text-ink-900">
+            The process itself, walked end to end
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm text-ink-700">
+            The case studies below show what companies that already made it
+            look like. This one shows what <em>you</em> produce: a fictional
+            demo company walked through all six stages, with the evidence it
+            uploaded, the score each engine returned, the artefact that came
+            out and what it unlocked at every step.
+          </p>
+          <Link
+            href="/showcase/sprocketbay"
+            className="mt-3 inline-block rounded-md border border-amber-500 bg-amber-100 px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-amber-200"
+          >
+            Walk the process →
+          </Link>
+        </section>
+
         <section className="mb-10">
           <h2 className="mb-4 text-xl font-semibold text-ink-900">
             Available now ({live.length})
