@@ -214,11 +214,20 @@ export interface BenchmarkMilestone {
   headline: string;
   /** 1–3 sentences. Never states a number that is not also in `figures`. */
   detail: string;
-  /** 12-phase founder-journey id from GROWTH_PHASES. */
+  /**
+   * The 12-phase founder-journey id (from GROWTH_PHASES) whose lesson this
+   * milestone illustrates. NOT a chronology claim: GROWTH_PHASES is a
+   * checklist ordering, so `product_dev` sits at position 8 even though a
+   * real company ships product in year one.
+   */
   phase: GrowthPhaseId;
-  /** 1..12 ordinal, matching PHASE_LABELS / journey-map PhaseKey. */
+  /** 1..12 position of `phase` within GROWTH_PHASES. Kept in lock-step by the test. */
   phaseOrdinal: PhaseKey;
-  /** S0–S5 bucket. Stage placement is an interpretation — see STAGE_CALIBRATION_NOTE. */
+  /**
+   * Where in the S0–S5 arc the event actually sits. Independent of `phase`
+   * on purpose — a company revisits phases, but only moves forward through
+   * stages. Stage placement is an interpretation; see STAGE_CALIBRATION_NOTE.
+   */
   stage: UnicornStageId;
   /** Whether the milestone itself is documented or is our reading. */
   evidence: EvidenceGrade;
@@ -255,7 +264,7 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
     detail:
       "Issue- and project-tracking for software teams, sold online. The product, not a salesperson, is the distribution channel from day one.",
     phase: "product_dev",
-    phaseOrdinal: 4,
+    phaseOrdinal: 8,
     stage: "S1",
     evidence: "documented",
     figures: [],
@@ -268,7 +277,7 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
     detail:
       "A second product runs down the same self-serve pipe. The multi-product motion that later carries Bitbucket, Trello and Loom starts here.",
     phase: "product_dev",
-    phaseOrdinal: 4,
+    phaseOrdinal: 8,
     stage: "S1",
     evidence: "documented",
     figures: [],
@@ -281,7 +290,7 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
     detail:
       "Atlassian's own 2010 announcement states the company was self-funded and profitable since inception, and had taken no outside financing before that round. This is the single best-sourced statement about the bootstrapped years.",
     phase: "revenue_model",
-    phaseOrdinal: 6,
+    phaseOrdinal: 3,
     stage: "S2",
     evidence: "documented",
     figures: [
@@ -300,8 +309,8 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
     detail:
       "Atlassian announced the close of a US$60M investment from Accel for a minority equity position, with Accel's Rich Wong joining the board and the founders continuing as co-CEOs. Atlassian said the funds would fund expansion, M&A, and employee liquidity. Reported coverage describes the bulk of the money reaching existing shareholders and employees rather than the company's balance sheet.",
     phase: "funding",
-    phaseOrdinal: 10,
-    stage: "S4",
+    phaseOrdinal: 12,
+    stage: "S3",
     evidence: "documented",
     figures: [
       {
@@ -330,7 +339,7 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
       "Source hosting joins the portfolio, the first of the roughly twenty acquisitions that follow.",
     phase: "growth",
     phaseOrdinal: 11,
-    stage: "S4",
+    stage: "S3",
     evidence: "documented",
     figures: [
       {
@@ -349,7 +358,7 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
       "Team chat is folded in; HipChat's three co-founders join Atlassian. The product line is later wound down and its IP sold to Slack in 2018 — a reminder that acquisitions in a public benchmark are not all successes.",
     phase: "growth",
     phaseOrdinal: 11,
-    stage: "S4",
+    stage: "S3",
     evidence: "documented",
     figures: [
       {
@@ -367,7 +376,7 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
     detail:
       "Existing shareholders sold approximately US$150M of stock in a reported secondary. Atlassian did not publish a company announcement for this round, so it rests on reported coverage only.",
     phase: "funding",
-    phaseOrdinal: 10,
+    phaseOrdinal: 12,
     stage: "S4",
     evidence: "documented",
     figures: [
@@ -392,7 +401,7 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
       "The registration statement is the first moment anyone outside the company can check the numbers. Thirteen years of trading, and the record starts here.",
     phase: "investor_review",
     phaseOrdinal: 9,
-    stage: "S5",
+    stage: "S4",
     evidence: "documented",
     figures: [
       { label: "Revenue, fiscal 2013", value: "US$148.5M", source: SRC_424B4_2015 },
@@ -416,7 +425,7 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
       "Because the listing entity was Atlassian Corporation Plc, a UK company, Atlassian registered as a foreign private issuer on Form F-1. The prospectus states plainly that the company distributes and sells online without traditional sales infrastructure and does not have a direct salesforce or quota-carrying sales personnel.",
     phase: "investor_review",
     phaseOrdinal: 9,
-    stage: "S5",
+    stage: "S4",
     evidence: "documented",
     figures: [],
     sources: [SRC_F1_2015, SRC_424B4_2015],
@@ -428,7 +437,7 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
     detail:
       "Atlassian priced 22,000,000 Class A ordinary shares at US$21.00, above the marketed range, and began trading on 10 December 2015.",
     phase: "funding",
-    phaseOrdinal: 10,
+    phaseOrdinal: 12,
     stage: "S5",
     evidence: "documented",
     figures: [
@@ -460,8 +469,8 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
     headline: "Redomiciled from a UK plc to a Delaware corporation",
     detail:
       "The scheme became effective on 30 September 2022; Class A common stock of the new Delaware parent began trading on 3 October 2022 under the same ticker. Atlassian cited broader investor access, index inclusion, peer comparability and a simpler structure.",
-    phase: "funding",
-    phaseOrdinal: 12,
+    phase: "legal_equity",
+    phaseOrdinal: 6,
     stage: "S5",
     evidence: "documented",
     figures: [],
@@ -487,8 +496,8 @@ export const ATLASSIAN_BENCHMARK_MILESTONES: readonly BenchmarkMilestone[] = [
     headline: "Server end of support — the cloud transition lands",
     detail:
       "Support for self-managed Server products ended, completing a transition Atlassian announced in 2020. Customers not moving to Cloud were pointed at Data Center.",
-    phase: "growth",
-    phaseOrdinal: 11,
+    phase: "product_dev",
+    phaseOrdinal: 8,
     stage: "S5",
     evidence: "documented",
     figures: [],
