@@ -7687,6 +7687,37 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_per_transition_magnitude_top3_pool_l_skewness:
+      snapshotPerTransitionMagnitudeTop3PoolLSkewness
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolLSkewness.top_n,
+            min_pool_count_for_l_skewness:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.min_pool_count_for_l_skewness,
+            symmetric_l_skewness_abs_max:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.symmetric_l_skewness_abs_max,
+            strong_l_skewness_abs_min:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.strong_l_skewness_abs_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolLSkewness.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     snapshot_per_pair_hot_cells: snapshotPerPairHotCells
       ? {
           window_size: snapshotPerPairHotCells.window_size,
