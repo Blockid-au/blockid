@@ -628,6 +628,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-midhinge";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-trimean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2250,6 +2255,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToMidhingeSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToTrimeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -6101,6 +6110,43 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhingeSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge,
         );
+      // P11.256 PEAK-TO-TRIMEAN pool-shape surface. pttri =
+      // (max - min) / trimean where trimean = (Q1 + 2*median + Q3) /
+      // 4 uses the Tukey EXCLUSIVE hinges. Reads range in units of
+      // the ROBUST HINGE-AND-MEDIAN COMPOSITE (Tukey trimean) centre.
+      // Algebraic identity: trimean = (midhinge + median) / 2, so
+      // by monotonicity of the reciprocal min(PTM, PTMH) <= PTTRI <=
+      // max(PTM, PTMH) with equality iff median == midhinge. Guards:
+      // pool_count 0 -> pttri null (empty); pool_count 1 -> pttri
+      // null (solo); pool_cells 0 or trimean 0 -> pttri null
+      // (degenerate, guarded but unreachable since counts >= 1 so
+      // Q1 + 2*med + Q3 >= 4); pool_count >=2 with trimean > 0 ->
+      // pttri in [0, +Inf) rounded to 4 decimals, zero iff max ==
+      // min (flat pool). Bands on raw pttri (fixed cutoffs,
+      // calibrated against n=10 reference distributions): tight
+      // pttri < 2.0 (flat, uniform ramp, bimodal-split, two-partner
+      // regimes), spread pttri in [2.0, 5.0) (two-shoulders + small-
+      // pool-with-large-partner-promotion regimes -- PTTRI uniquely
+      // lands the [10, 1, 1] SMALL-VALUE-DOMINATED-with-PROMOTION
+      // regime here since PTM reads wide and PTMH reads tight),
+      // wide pttri >= 5.0 (upper-outlier + extreme-outlier regimes).
+      // Cutoffs mirror the P11.240 PTM + P11.242 PTQ1 + P11.244 PTQ3
+      // + P11.254 PTMH robust-anchor siblings so the quintet shares
+      // one vocabulary. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToMidhingeSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.256
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-hinge-and-median-composite after the P11.254
+      // range-against-hinge-composite landing. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToTrimeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean,
+        );
     }
   }
   if (
@@ -6203,6 +6249,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToHarmeanSection ||
     perTransitionMagnitudeTop3PoolPeakToRmsSection ||
     perTransitionMagnitudeTop3PoolPeakToMidhingeSection ||
+    perTransitionMagnitudeTop3PoolPeakToTrimeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -6332,6 +6379,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToHarmeanSection +
       perTransitionMagnitudeTop3PoolPeakToRmsSection +
       perTransitionMagnitudeTop3PoolPeakToMidhingeSection +
+      perTransitionMagnitudeTop3PoolPeakToTrimeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -9162,6 +9210,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_trimean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.top_n,
+            tight_pttri_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.tight_pttri_max,
+            wide_pttri_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.wide_pttri_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.transitions,
           }
         : {
             skipped_reason:
