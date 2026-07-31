@@ -794,3 +794,5 @@
 {"tick_id":"2026-07-31T05-47-01-799Z","ts":"2026-07-31T05:47:01.799Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T05-47-01-799Z","ts":"2026-07-31T05:47:01.817Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"P9-badges-lib-test","ts":"2026-07-31T05:51:53.000Z","loop_label":"atlassian-goal-loop","phase":"P9_ship","task":"P9-badges-lib-test","stage":"shipped","test_count":34,"file":"web/src/lib/badges.test.ts"}
+{"tick_id":"2026-07-31T05-47-01-799Z","ts":"2026-07-31T05:52:20.389Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":318569,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T05-47-01-799Z","ts":"2026-07-31T05:52:20.441Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
