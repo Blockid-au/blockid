@@ -674,3 +674,6 @@
 {"tick_id":"2026-07-31T03-27-01-265Z","ts":"2026-07-31T03:33:40.525Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"38d8242f","last_deployed":"0fdb48f"}
 {"tick_id":"2026-07-31T03-27-01-265Z","ts":"2026-07-31T03:34:12.072Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"38d8242f"}
 {"tick_id":"2026-07-31T03-27-01-265Z","ts":"2026-07-31T03:34:12.073Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T03-37-01-418Z","ts":"2026-07-31T03:37:01.419Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T03-37-01-418Z","ts":"2026-07-31T03:37:01.431Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"opus-manual-2026-07-31T03-41Z","ts":"2026-07-31T03:41:59Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P7_weekly_digest_integration","subtask":"P7-events-registry-lib-test","tests":19,"file":"web/src/lib/analytics/events.test.ts","result":"19 passed / 392ms","typecheck":"clean (only pre-existing valuation-module + scn-detect + steps.test.ts + reseller digest-snapshot drift)"}

@@ -553,6 +553,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosis,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-l-kurtosis";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolLCv,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolLCvSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolLCv,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-l-cv";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2115,6 +2120,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosis
     | null = null;
   let perTransitionMagnitudeTop3PoolLKurtosisSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolLCv:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolLCv
+    | null = null;
+  let perTransitionMagnitudeTop3PoolLCvSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5238,6 +5247,58 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosisSection(
           snapshotPerTransitionMagnitudeTop3PoolLKurtosis,
         );
+      // P11.226 l-cv cron wiring — L-MOMENT-BASED BOUNDED WHOLE-POOL
+      // DISPERSION scalar on the P11.161 pool (tau2 = lambda2 / lambda1
+      // where the L-moments are computed via unbiased sample PWMs b0/b1
+      // over sorted cells; pool_count < 3 emits a small_pool null so
+      // L-moment estimators are never leaked on endpoint-hostile sample
+      // sizes — floor of 3 one less than P11.221 L-skewness floor of 4
+      // per Hosking & Wallis 1997 §2.2 n>=r+1 since tau2 needs one
+      // fewer rank position r=2 vs r=3, and lambda1 == 0 emits a
+      // distinct degenerate label so a mass-empty pool is not confused
+      // with a measured balanced verdict). CLOSES the L-MOMENT TRIPLE
+      // by adding the DISPERSION axis complement to the P11.221
+      // L-skewness (ASYMMETRY) + P11.223 L-kurtosis (TAIL-WEIGHT) pair
+      // — the bounded-codomain analogue of the Fisher-Pearson (CV,
+      // skewness, excess-kurtosis) triple at P11.175 + P11.203 +
+      // P11.205 on the BOUNDED [0, +1] codomain rather than the
+      // UNBOUNDED codomain. Reading Pearson CV + tau2 side-by-side lets
+      // ops distinguish "dispersion driven by broadly spread cells"
+      // (both surfaces non-zero and same sign; magnitudes co-move on
+      // the raw scale) from "dispersion driven by a single outlier"
+      // (Pearson CV large, tau2 modest but still non-zero) from
+      // "structural balanced shape" (both near zero) — the same
+      // BOUNDEDNESS-axis contrast the P11.211 QCD / P11.213 COR
+      // bounded-dispersion pair surfaces on the DISPERSION axis
+      // (interior-quartile robust and endpoint robust respectively),
+      // lifted to the WHOLE-POOL BOUNDED DISPERSION axis. KEY SEMANTIC
+      // DIFFERENCE from the L-skewness/L-kurtosis siblings: tau2 uses
+      // lambda2 in the NUMERATOR (rather than the denominator like tau3
+      // and tau4), so a flat pool with lambda2==0 reads tau2=0 as a
+      // well-defined MEASURED balanced verdict (zero dispersion), NOT
+      // a degenerate indeterminacy. The 'degenerate' label is reserved
+      // for the lambda1==0 case (pool empty of mass), which cannot
+      // happen for our pool_cells count integers by construction but
+      // is guarded for future upstream robustness. Splices IMMEDIATELY
+      // BELOW perTransitionMagnitudeTop3PoolLKurtosisSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.225
+      // formatter docblock. Cutoffs 0.20 / 0.40 / 0.60 anchored to the
+      // non-negative-support references (uniform tau2=1/3, exponential
+      // tau2=1/2) rather than deviation-from-reference since the
+      // normal-reference tau2 is undefined (normal mean can be zero).
+      // Reference distributions land in distinct bands: flat pool
+      // (tau2=0) → balanced; uniform ramp (tau2=1/3) → moderate;
+      // exponential (tau2=0.5) → concentrated; single-outlier (tau2→1)
+      // → highly_concentrated. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolLCv =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolLCv(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolLCvSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolLCvSection(
+          snapshotPerTransitionMagnitudeTop3PoolLCv,
+        );
     }
   }
   if (
@@ -5325,6 +5386,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection ||
     perTransitionMagnitudeTop3PoolLSkewnessSection ||
     perTransitionMagnitudeTop3PoolLKurtosisSection ||
+    perTransitionMagnitudeTop3PoolLCvSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5439,6 +5501,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection +
       perTransitionMagnitudeTop3PoolLSkewnessSection +
       perTransitionMagnitudeTop3PoolLKurtosisSection +
+      perTransitionMagnitudeTop3PoolLCvSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
