@@ -613,6 +613,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-geomean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHarmean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHarmeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHarmean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-harmean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2223,6 +2228,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToGeomeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHarmean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToHarmeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5916,6 +5925,56 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean,
         );
+      // P11.251 peak-to-harmean cron wiring — WHOLE-POOL
+      // RANGE-AGAINST-HARMONIC-CENTER scalar over the P11.161 pool.
+      // Folds every cell into ONE dispersion read that reports the
+      // pool's total RANGE in units of the pool's HARMONIC MEAN:
+      //   pth = (max - min) / harmean
+      // where harmean = n / sum(1/x_i). Reads the peak spread against
+      // the INVERSE-ARITHMETIC centre so a SMALL-VALUE-DOMINATED pool
+      // that the P11.248 peak-to-geomean surface flags SPREAD (because
+      // the geometric mean is only partially pulled down toward the
+      // low cluster) reads WIDE here (because the harmonic mean is
+      // pulled EVEN MORE toward the low cluster by the inverse-
+      // arithmetic average and elevates the ratio against the range).
+      // Together with P11.248 PTGM (geometric centre) and P11.246
+      // PTMEAN (arithmetic centre) forms the complete (arithmetic,
+      // geometric, harmonic) centre-anchor triple for the range-
+      // based dispersion read. When PTH reads wide AND PTGM reads
+      // spread AND PTMEAN reads tight the pool is SMALL-VALUE-
+      // DOMINATED (harmonic centre pulled way down harder than
+      // geomean toward the low cluster); when PTH reads wide AND
+      // PTGM reads wide AND PTMEAN reads tight the pool has an
+      // ISOLATED HIGH PARTNER; when ALL THREE read wide the pool is
+      // an EXTREME OUTLIER — a first-class labelled regime triple
+      // that no two surfaces can flag alone.
+      // Guards: pool_count 0 → pth null empty; pool_count 1 →
+      // pth null solo (structural single partner); pool_count >=2
+      // with pool_cells 0 → pth null degenerate (guarded but
+      // unreachable); pool_count >=2 with min <= 0 → pth null
+      // degenerate (guarded but unreachable since counts >= 1);
+      // pool_count >=2 with min > 0 → pth in [0, +Inf) rounded to
+      // 4 decimals, zero iff max == min (flat pool). Bands on raw
+      // pth (fixed cutoffs, calibrated against n=10 reference
+      // distributions): tight pth < 3.0 (flat, uniform ramp
+      // regimes), spread pth in [3.0, 5.0) (two-shoulders + bimodal-
+      // split + two-partner-[1,9] regimes), wide pth >= 5.0 (single-
+      // outlier + isolated-high-partner + extreme-outlier + small-
+      // value-dominated regimes). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToGeomeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.250
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-harmonic-center after the P11.248 range-
+      // against-geometric-center landing. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHarmean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToHarmeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHarmeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean,
+        );
     }
   }
   if (
@@ -6015,6 +6074,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToQ3Section ||
     perTransitionMagnitudeTop3PoolPeakToMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToGeomeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToHarmeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -6141,6 +6201,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToQ3Section +
       perTransitionMagnitudeTop3PoolPeakToMeanSection +
       perTransitionMagnitudeTop3PoolPeakToGeomeanSection +
+      perTransitionMagnitudeTop3PoolPeakToHarmeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -8881,6 +8942,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_harmean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.top_n,
+            tight_pth_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.tight_pth_max,
+            wide_pth_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.wide_pth_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHarmean.transitions,
           }
         : {
             skipped_reason:
