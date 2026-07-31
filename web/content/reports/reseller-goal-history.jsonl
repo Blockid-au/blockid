@@ -982,3 +982,7 @@
 {"tick_id":"2026-07-31T09-45-01-755Z","ts":"2026-07-31T10:00:44.936Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
 {"tick_id":"2026-07-31T09-45-01-755Z","ts":"2026-07-31T10:00:46.478Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-07-31T09-45-01-755Z","ts":"2026-07-31T10:00:46.488Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"0f3d6e97","last_deployed":"d1a52a4"}
+{"tick_id":"2026-07-31T09-45-01-755Z","ts":"2026-07-31T10:07:35.780Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"0f3d6e97"}
+{"tick_id":"2026-07-31T09-45-01-755Z","ts":"2026-07-31T10:07:35.782Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T10-10-01-718Z","ts":"2026-07-31T10:10:01.722Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T10-10-01-718Z","ts":"2026-07-31T10:10:01.786Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
