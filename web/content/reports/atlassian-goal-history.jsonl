@@ -1071,3 +1071,5 @@
 {"tick_id":"2026-07-31T12-57-01-651Z","ts":"2026-07-31T12:57:01.672Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 
 {"tick_id":"manual-2026-07-31T13:04:15Z","ts":"2026-07-31T13:04:15Z","loop_label":"atlassian-goal-loop","stage":"phase_test_added","phase":"P9_ship","subtask":"P9-error-tracker-lib-test","file":"web/src/lib/error-tracker.test.ts","cases":32,"head":"pending"}
+{"tick_id":"2026-07-31T12-57-01-651Z","ts":"2026-07-31T13:04:50.373Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":468696,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T12-57-01-651Z","ts":"2026-07-31T13:04:50.427Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
