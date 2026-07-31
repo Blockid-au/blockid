@@ -568,6 +568,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPalma,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-palma";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolHoover,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolHooverSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolHoover,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-hoover";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2142,6 +2147,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPalma
     | null = null;
   let perTransitionMagnitudeTop3PoolPalmaSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolHoover:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolHoover
+    | null = null;
+  let perTransitionMagnitudeTop3PoolHooverSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5415,6 +5424,55 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPalmaSection(
           snapshotPerTransitionMagnitudeTop3PoolPalma,
         );
+      // P11.233 hoover cron wiring — WHOLE-POOL BOUNDED
+      // REDISTRIBUTION-SHARE inequality scalar over the P11.161 pool.
+      // Folds every cell into ONE bounded inequality read on [0, 1)
+      // using the Ricci-Schutz / Hoover / Robin Hood Index:
+      //   hoover = 0.5 * sum_i |x_i / S - 1/n|
+      // where x_i is the cell count contributed by partner i,
+      // S = sum(x_i) is the total pool cells, and n = pool_count.
+      // Interprets DIRECTLY as the FRACTION OF POOL MASS that would
+      // need to be transferred from above-mean to below-mean partners
+      // to reach perfect equality — the Robin Hood interpretation
+      // (Hoover 1936 "The Measurement of Industrial Localization";
+      // Schutz 1951 "On the Measurement of Income Inequality"). Sits
+      // alongside P11.169 Gini as the OTHER classical bounded [0, 1]
+      // whole-pool inequality read, but with a very different
+      // mathematical structure: Gini reads every pairwise gap and
+      // integrates them via the Lorenz-curve area (sensitive to the
+      // shape of the middle); Hoover reads only the deviation of each
+      // cell from the mean and interprets DIRECTLY as the fraction of
+      // pool mass that would need to move to reach equality. Every
+      // other bounded inequality surface reads as an abstract 0-to-1
+      // score, while Hoover reads as an interpretable ops number
+      // ("if we had to level this pool out today, X% of the cells
+      // would need to move"). Guards: pool_count 0 → empty; pool_count
+      // 1 → solo (hoover 0 by definition — one partner emits exactly
+      // the mean, no inequality possible); pool_count >= 2 with
+      // pool_cells 0 → degenerate null (guarded but structurally
+      // unreachable given count integers >= 1 by construction);
+      // pool_count >= 2 with pool_cells > 0 → hoover in [0, 1 - 1/n]
+      // rounded to 4 decimals, tiny negative float-noise clamped to 0.
+      // Bands anchored on flat 0 and highly-concentrated single-whale
+      // ~0.9 references: balanced hoover < 0.10 (near-uniform);
+      // moderate hoover in [0.10, 0.30) (uniform-ramp regime);
+      // concentrated hoover in [0.30, 0.50) (two-shoulders / modest-
+      // outlier); highly_concentrated hoover >= 0.50 (single-whale —
+      // more than half the pool mass needs to move). Splices
+      // IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolPalmaSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.232
+      // formatter docblock so the redistribution-share read closes off
+      // the CONCENTRATION axis's WHOLE-POOL bounded cell after the
+      // Palma tail-vs-tail landing. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolHoover =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolHoover(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolHooverSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolHooverSection(
+          snapshotPerTransitionMagnitudeTop3PoolHoover,
+        );
     }
   }
   if (
@@ -5505,6 +5563,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolLCvSection ||
     perTransitionMagnitudeTop3PoolKellySkewnessSection ||
     perTransitionMagnitudeTop3PoolPalmaSection ||
+    perTransitionMagnitudeTop3PoolHooverSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5622,6 +5681,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolLCvSection +
       perTransitionMagnitudeTop3PoolKellySkewnessSection +
       perTransitionMagnitudeTop3PoolPalmaSection +
+      perTransitionMagnitudeTop3PoolHooverSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -8088,6 +8148,37 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPalma.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPalma.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_hoover:
+      snapshotPerTransitionMagnitudeTop3PoolHoover
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolHoover.top_n,
+            balanced_hoover_max:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.balanced_hoover_max,
+            concentrated_hoover_min:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.concentrated_hoover_min,
+            highly_concentrated_hoover_min:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.highly_concentrated_hoover_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolHoover.transitions,
           }
         : {
             skipped_reason:
