@@ -578,6 +578,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluth,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-rosenbluth";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRange,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRangeSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRange,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-studentized-range";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2160,6 +2165,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluth
     | null = null;
   let perTransitionMagnitudeTop3PoolRosenbluthSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolStudentizedRange:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRange
+    | null = null;
+  let perTransitionMagnitudeTop3PoolStudentizedRangeSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5527,6 +5536,53 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluthSection(
           snapshotPerTransitionMagnitudeTop3PoolRosenbluth,
         );
+      // P11.237 studentized-range cron wiring — WHOLE-POOL PEAK-TO-SPREAD
+      // scalar over the P11.161 pool. Folds every cell into ONE
+      // dispersion read that reports the pool's total RANGE
+      // (max - min) in units of the pool's own STANDARD DEVIATION:
+      //   sr = (max - min) / sigma_population
+      // where sigma_population = sqrt(sum((x_i - mean)^2) / n) uses
+      // the biased-n denominator because the pool is a finite
+      // exhaustive population of partner counts, not a sample from a
+      // superpopulation. Name mirrors Tukey's HSD "studentized range"
+      // (q = range / standard-error) with the ratio applied to the
+      // raw pool rather than to group means. Unique DISPERSION-axis
+      // contribution: reads WHETHER the pool's total span is
+      // many-sigma wide (single-outlier regime) vs few-sigma wide
+      // (uniform regime) — a range-in-sigma-units read that no other
+      // DISPERSION surface (P11.181 range, P11.145 cv, P11.211 qcd,
+      // P11.213 coefficient-of-range) provides. Saturates near
+      // sqrt(n) for single-outlier regimes regardless of how extreme
+      // the outlier grows, so sr reads a REGIME rather than a
+      // magnitude — the extreme outlier [1×9, 100] and the mild
+      // outlier [1×9, 10] both give sr = 3.3333 for n=10. Guards:
+      // pool_count 0 → sr null empty; pool_count 1 → sr null solo
+      // (sigma = range = 0, ratio 0/0 undefined); pool_count >=2
+      // with pool_cells 0 → sr null degenerate (guarded but
+      // structurally unreachable); pool_count >=2 with sigma == 0
+      // (all shares equal) → sr null uniform (flat pool — both
+      // range and sigma collapse simultaneously); pool_count >=2
+      // with sigma > 0 → sr in [0, +Inf) rounded to 4 decimals,
+      // practically bounded above by ~sqrt(n) for single-outlier
+      // regimes. Bands on raw sr (fixed cutoffs since sqrt(n) is
+      // not stable across pool sizes): balanced sr < 1.5 (near-
+      // uniform), moderate sr in [1.5, 2.5), concentrated sr in
+      // [2.5, 3.0), highly_concentrated sr >= 3.0 (single-outlier
+      // regime for n=10 pools). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolRosenbluthSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.236
+      // formatter docblock so the DISPERSION axis picks up a
+      // peak-to-spread read after the CONCENTRATION axis closes
+      // with the P11.234 rank-weighted Rosenbluth anchor. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolStudentizedRange =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRange(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolStudentizedRangeSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRangeSection(
+          snapshotPerTransitionMagnitudeTop3PoolStudentizedRange,
+        );
     }
   }
   if (
@@ -5619,6 +5675,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPalmaSection ||
     perTransitionMagnitudeTop3PoolHooverSection ||
     perTransitionMagnitudeTop3PoolRosenbluthSection ||
+    perTransitionMagnitudeTop3PoolStudentizedRangeSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5738,6 +5795,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPalmaSection +
       perTransitionMagnitudeTop3PoolHooverSection +
       perTransitionMagnitudeTop3PoolRosenbluthSection +
+      perTransitionMagnitudeTop3PoolStudentizedRangeSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -8266,6 +8324,38 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolRosenbluth.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolRosenbluth.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_studentized_range:
+      snapshotPerTransitionMagnitudeTop3PoolStudentizedRange
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.top_n,
+            balanced_sr_max:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.balanced_sr_max,
+            concentrated_sr_min:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.concentrated_sr_min,
+            highly_concentrated_sr_min:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.highly_concentrated_sr_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolStudentizedRange.transitions,
           }
         : {
             skipped_reason:
