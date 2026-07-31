@@ -3978,3 +3978,6 @@
 {"ts":"2026-07-31T00:24:26.804Z","event":"github-push-master","detail":"Blockid-au: feat(oauth2): phase-5 sub-I3 partner clients + bearer verifier (0292) (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T00:25:30.035Z","event":"github-push-master","detail":"Blockid-au: feat(unicorn): phase-6 sub-J2 framework helpers + goal decomposition (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T00:27:16.777Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-weekly-digest): P11.209 pool IQR RATIO (Q3/Q1) pure lib (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T00:27:25.371Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T00-20-01-779Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T00:29:14.425Z","event":"github-push-master","detail":"Blockid-au: feat(api): phase-5 sub-I4 /api/v1/id/[slug] partner-callable JSON (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T00:31:04.326Z","event":"github-push-master","detail":"Blockid-au: test(vesting): P9-vesting-lib-test — 24-case vitest for previously-untested vesting.ts (1 commits)","source":"github-webhook"}
