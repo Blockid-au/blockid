@@ -1168,3 +1168,8 @@
 {"tick_id":"2026-07-31T00-30-01-421Z","ts":"2026-07-31T00:35:05.320Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T00-40-01-223Z","ts":"2026-07-31T00:40:01.227Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T00-40-01-223Z","ts":"2026-07-31T00:40:01.293Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
+{"tick_id":"2026-07-31T00-50-00-000Z","ts":"2026-07-31T00:49:07.559Z","loop_label":"reseller-goal-loop","stage":"tick_start","phase":"P11.211"}
+{"tick_id":"2026-07-31T00-50-00-000Z","ts":"2026-07-31T00:49:07.559Z","loop_label":"reseller-goal-loop","stage":"implement","phase":"P11.211","files_touched":["web/src/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-qcd.ts","web/src/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-qcd.test.ts"]}
+{"tick_id":"2026-07-31T00-50-00-000Z","ts":"2026-07-31T00:49:07.559Z","loop_label":"reseller-goal-loop","stage":"verify","phase":"P11.211","tests_pass":26,"tests_total":26,"suite":"src/lib/reseller"}
+{"tick_id":"2026-07-31T00-50-00-000Z","ts":"2026-07-31T00:49:07.559Z","loop_label":"reseller-goal-loop","stage":"sign_off","phase":"P11.211","verdict":"approved","tick":607}
+{"tick_id":"2026-07-31T00-50-00-000Z","ts":"2026-07-31T00:49:07.559Z","loop_label":"reseller-goal-loop","stage":"tick_end","phase":"P11.211"}
