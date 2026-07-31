@@ -17,7 +17,7 @@ import { generateSVIDocx } from "@/lib/docx/svi-report-docx";
 // delivery route (/api/reports/[orderId]) so both surfaces rebuild a
 // stored report identically. Lifted verbatim out of this file.
 import { reconstructAssembledReport } from "@/lib/paywall/report-delivery";
-import type { AssembledReport, ReportSection, VisualSpec, ConsistencyIssue } from "@/lib/report-pipeline/types";
+import type { AssembledReport, ReportSection } from "@/lib/report-pipeline/types";
 import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
