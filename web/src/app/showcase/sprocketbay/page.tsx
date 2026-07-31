@@ -147,7 +147,12 @@ export default async function SprocketbayWalkthroughPage() {
         type="application/ld+json"
         // The banner below is for humans; crawlers and AI agents read the
         // structured data. Both have to carry the disclosure.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(ldJson) }}
+        // `<` escaping per Next 16's JSON-LD guide — the payload is
+        // fixture text today, but the escape is what stops it becoming an
+        // injection vector if it ever stops being.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(ldJson).replace(/</g, "\\u003c"),
+        }}
       />
 
       <div className="mx-auto max-w-5xl p-6">
