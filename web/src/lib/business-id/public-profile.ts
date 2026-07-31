@@ -130,6 +130,28 @@ export function deriveBadges(
 }
 
 /**
+ * Normalise a timestamp to STRICT ISO-8601 with a `Z` suffix.
+ *
+ * Why this exists: PostgREST serialises `timestamptz` with a numeric
+ * offset (`2026-07-15T00:00:00+00:00`), but Zod's `.datetime()` only
+ * accepts the `Z` form. Feeding the raw PostgREST string straight into
+ * `PublicBusinessProfileSchema` made the WHOLE profile fail validation,
+ * which surfaced as a 404 on `/id/[slug]` for every profile that had
+ * ever been verified. Normalise once, here, so the schema stays strict.
+ *
+ * Returns null for anything that is not a parseable instant.
+ */
+export function toIsoZ(value: unknown): string | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+  if (typeof value !== "string" || value.trim() === "") return null;
+  const ms = Date.parse(value);
+  if (Number.isNaN(ms)) return null;
+  return new Date(ms).toISOString();
+}
+
+/**
  * Whitelist-only unpacker. Given a raw row, returns ONLY the fields
  * the schema permits. Nothing else can leak.
  */
@@ -162,22 +184,21 @@ export function projectRowToPublicProfile(
   const trustScore = deriveTrustScore(capabilityScoresRaw);
   const badges = deriveBadges(verificationLevel, trustScore);
 
-  const lastVerifiedAt =
-    typeof row.last_verified_at === "string"
-      ? row.last_verified_at
-      : row.last_verified_at instanceof Date
-        ? row.last_verified_at.toISOString()
-        : null;
+  const lastVerifiedAt = toIsoZ(row.last_verified_at);
 
   const attestationsRaw = Array.isArray(row.attestations) ? row.attestations : [];
   const attestations: AttestationSummary[] = [];
   for (const entry of attestationsRaw) {
     if (!entry || typeof entry !== "object") continue;
     const e = entry as Record<string, unknown>;
+    // issuedAt is normalised the same way as last_verified_at — an
+    // attestation authored with a `+10:00` offset must not silently
+    // drop out of the list.
+    const issuedAt = toIsoZ(e.issuedAt) ?? toIsoZ(e.issued_at);
     const parsed = AttestationSummarySchema.safeParse({
       attester: typeof e.attester === "string" ? e.attester : undefined,
       type: typeof e.type === "string" ? e.type : undefined,
-      issuedAt: typeof e.issuedAt === "string" ? e.issuedAt : typeof e.issued_at === "string" ? e.issued_at : undefined,
+      issuedAt: issuedAt ?? undefined,
     });
     if (parsed.success) attestations.push(parsed.data);
   }
