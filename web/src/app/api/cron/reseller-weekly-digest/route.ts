@@ -5208,6 +5208,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolCoefficientOfRangeSection ||
     perTransitionMagnitudeTop3PoolBowleySkewnessSection ||
     perTransitionMagnitudeTop3PoolMoorsKurtosisSection ||
+    perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5319,6 +5320,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolCoefficientOfRangeSection +
       perTransitionMagnitudeTop3PoolBowleySkewnessSection +
       perTransitionMagnitudeTop3PoolMoorsKurtosisSection +
+      perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -7591,6 +7593,40 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_crow_siddiqui_kurtosis:
+      snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.top_n,
+            min_pool_count_for_crow_siddiqui:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.min_pool_count_for_crow_siddiqui,
+            crow_siddiqui_normal_reference:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.crow_siddiqui_normal_reference,
+            mesokurtic_crow_siddiqui_deviation_max:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.mesokurtic_crow_siddiqui_deviation_max,
+            strong_crow_siddiqui_deviation_min:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.strong_crow_siddiqui_deviation_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis.transitions,
           }
         : {
             skipped_reason:
