@@ -4012,3 +4012,12 @@
 {"ts":"2026-07-31T01:14:21.143Z","event":"github-push-master","detail":"Blockid-au: docs(v3): sub-N4 bump version.json to v3.0.0-phase6-core + deploy-log (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T01:14:37.286Z","event":"github-push-master","detail":"Blockid-au: fix(reseller-promo): resolve stripe + supabase deps from web/node_modules (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T01:15:14.842Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-weekly-digest): P11.213 pool COEFFICIENT OF RANGE pure lib (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:15:26.881Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T01-05-01-327Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:19:52.362Z","event":"github-push-master","detail":"Blockid-au: chore(db): apply v3 migrations sub-O3 — reusable apply script (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:19:54.154Z","event":"github-push-master","detail":"Blockid-au: chore(deps): add @supabase/ssr for cross-marketing↔app SSO (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:20:06.648Z","event":"github-push-master","detail":"Blockid-au: fix(dataroom): correct SPDX OR semantics + surface proprietary licenses (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:20:42.312Z","event":"github-push-master","detail":"Blockid-au: chore(db): apply v3 migrations sub-O2 — 20 migrations applied (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:20:43.746Z","event":"github-push-master","detail":"Blockid-au: feat(sso): sub-P2 server-anon Supabase SSR client + middleware cookie adapter (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:22:25.331Z","event":"github-push-master","detail":"Blockid-au: feat(sso): sub-P3 middleware refresh Supabase JWT + inject identity headers (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:22:53.290Z","event":"github-push-master","detail":"Blockid-au: feat(ai-eval): sub-Q1 golden fixture set for AIR-001..AIR-010 (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:24:42.779Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-weekly-digest): P11.214 pool COEFFICIENT OF RANGE cron wiring (2 commits)","source":"github-webhook"}
