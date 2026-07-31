@@ -21,10 +21,9 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import {
-  processNextQueuedOrder,
-  type GenerateResult,
-} from "@/lib/paywall/report-order-worker";
+import { processNextQueuedOrder } from "@/lib/paywall/report-order-worker";
+import { generateTrustReportForOrder } from "@/lib/paywall/report-generator";
+import { refundFailedOrder } from "@/lib/paywall/report-refund";
 
 export const dynamic = "force-dynamic";
 
@@ -47,28 +46,27 @@ function isAuthorized(request: Request): boolean {
 }
 
 /**
- * Production generator hook. Wires the worker up to the real report
- * pipeline. Kept inline in the route (not the library) so the worker
- * library stays free of the heavy orchestrator import chain and its
- * tests do not need to mock the AI client.
- *
- * The orchestrator wiring lands in Phase 4 (Master Plan §8.6). Until
- * then this hook records a placeholder report id so the state machine
- * can still exercise the READY transition end-to-end — the caller sees
- * `ok:true` and the queue drains. The actual pipeline invocation
- * (fetching evidence, criteria, calling orchestrateReport) is one line
- * away and slots in without touching the worker signature.
+ * Refund hook (§8.8). Invoked by the worker only after an order has
+ * exhausted its retries and landed in FAILED. Never throws — a failed
+ * reversal is logged and the order stays FAILED for the next tick.
  */
-async function generateReportForOrder(input: {
+async function refundOrder(input: {
   orderId: string;
-  businessId: string;
-}): Promise<GenerateResult> {
-  // TODO(§8.6 Phase 4): swap the placeholder for a real orchestrator
-  // invocation once report_versions (migration 0242) lands. Until then
-  // we emit a deterministic placeholder id so the READY transition +
-  // dashboard hand-off can be smoke-tested end-to-end.
-  const reportId = `rpt-placeholder-${input.orderId.slice(0, 8)}`;
-  return { ok: true, reportId };
+  reason: string;
+}): Promise<void> {
+  const outcome = await refundFailedOrder(input);
+  if (!outcome.ok) {
+    console.error("[blockid:report-order-drain] refund failed", {
+      orderId: input.orderId,
+      reason: outcome.reason,
+    });
+    return;
+  }
+  console.warn("[blockid:report-order-drain] order refunded", {
+    orderId: input.orderId,
+    path: outcome.path,
+    refundId: outcome.refundId,
+  });
 }
 
 async function handle(request: Request): Promise<Response> {
@@ -91,6 +89,7 @@ async function handle(request: Request): Promise<Response> {
     orderId?: string;
     status?: string;
     reason?: string;
+    refunded?: boolean;
   }> = [];
   let processed = 0;
 
@@ -98,7 +97,12 @@ async function handle(request: Request): Promise<Response> {
     let outcome;
     try {
       outcome = await processNextQueuedOrder({
-        generateReport: generateReportForOrder,
+        // Real multi-agent pipeline (§8.6) — replaces the former
+        // `rpt-placeholder-…` stub that made READY orders resolve to
+        // nothing. Kept in @/lib/paywall/report-generator so the worker
+        // library stays free of the heavy orchestrator import chain.
+        generateReport: generateTrustReportForOrder,
+        refundOrder,
       });
     } catch (err) {
       console.error(
@@ -117,6 +121,7 @@ async function handle(request: Request): Promise<Response> {
       orderId: outcome.orderId,
       status: outcome.status,
       reason: outcome.reason,
+      refunded: outcome.refunded,
     });
   }
 
