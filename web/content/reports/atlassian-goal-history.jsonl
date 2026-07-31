@@ -775,3 +775,6 @@
 {"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:27:01.660Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:27:01.676Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id": "P9-segment-report-lib-test", "ts": "2026-07-31T05:31:30.000Z", "loop_label": "atlassian-goal-loop", "phase": "P9_ship", "task": "P9-segment-report-lib-test", "stage": "shipped", "test_count": 55, "file": "web/src/lib/retention/segment-report.test.ts"}
+{"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:02.300Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":300621,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:02.348Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":20}
+{"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:02.350Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"truncation_guard_failed","error":"ReferenceError: guardTruncations is not defined"}
