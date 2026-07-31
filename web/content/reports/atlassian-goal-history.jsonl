@@ -778,3 +778,7 @@
 {"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:02.300Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":300621,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:02.348Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":20}
 {"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:02.350Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"truncation_guard_failed","error":"ReferenceError: guardTruncations is not defined"}
+{"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:04.657Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:04.668Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"97ab3512","last_deployed":"0fdb48f"}
+{"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:04.681Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"97ab3512"}
+{"tick_id":"2026-07-31T05-27-01-659Z","ts":"2026-07-31T05:32:04.682Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
