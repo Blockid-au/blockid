@@ -5,6 +5,7 @@ import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-anal
 import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
+import { ResellerRefCapture } from "@/components/marketing/reseller-ref-capture";
 import { TranslationProvider } from "@/components/i18n/translation-provider";
 import { DEFAULT_LOCALE, LOCALE_HEADER, isLocale, type Locale } from "@/lib/i18n/locales";
 import { buildSeedCatalog } from "@/lib/i18n/seed-catalog";
@@ -127,6 +128,9 @@ export default async function RootLayout({
       <body className="min-h-full bg-surface-50 text-brand-900 dark:text-ink-800 font-sans flex flex-col">
         <GTMNoScript />
         <Providers>
+          {/* `?ref=<CODE>` deep-link capture — writes blockid_via cookie
+              before any signup flow reads it. Task M1 (v3 reseller upgrade). */}
+          <ResellerRefCapture />
           <TranslationProvider locale={locale} seed={seedCatalog}>
             {children}
           </TranslationProvider>
