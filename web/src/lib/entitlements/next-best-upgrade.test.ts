@@ -149,24 +149,33 @@ describe("nextBestUpgrade — score & tie-break ladder", () => {
   });
 
   it("tie on score → cheapest monthlyDeltaAud wins", () => {
-    // At scale tier / phase 8, only enterprise-rank sso remains
-    // (all growth-tier candidates are already ranked below or equal).
-    // Not a tie — swap to phase 10 free tier to force a 3-way phase-match
-    // tie at 100 pts, all $70:
-    //   share_management, data_room.access, term_sheet.ai
-    // All have same deltaAud so falls through to alphabetical.
-    // Explicit tie-break-by-price test: build synthetic scenario via ownership
-    // — free tier / phase 2, own svi.run so the next-cheapest tie is between
-    // report.premium (70) and accelerator.cohort (149), both next-tier @ 10.
+    // To isolate the PRICE tie-break we need a score tie whose cheapest
+    // member is unique — otherwise the sort falls through to the
+    // alphabetical rule and this test would silently be asserting that
+    // instead (the alphabetical case is covered by the next test).
+    //
+    // Setup: starter tier, phase 2. Every remaining candidate is ≥2 phases
+    // away from 2, so all score 10 ("next-tier"). Owning the other four
+    // $70 growth features leaves report.premium as the sole cheapest:
+    //   report.premium      $70   phase 4   ← unique cheapest, must win
+    //   accelerator.cohort  $149  phase 5
+    //   esop.manage         $200  phase 8
+    //   blockchain.sync     $200  phase 11
+    //   sso                 $500  phase 12
     const out = nextBestUpgrade({
-      currentTier: "free",
+      currentTier: "starter",
       currentPhase: 2,
-      ownedFeatures: ["svi.run"],
+      ownedFeatures: [
+        "cap_table.write",
+        "share_management",
+        "data_room.access",
+        "term_sheet.ai",
+      ],
     });
     expect(out).not.toBeNull();
-    // Cheapest at score=10 is report.premium ($70).
     expect(out!.feature).toBe("report.premium");
     expect(out!.rule).toBe("next-tier");
+    expect(out!.monthlyDeltaAud).toBe(70);
   });
 
   it("tie on score AND price → alphabetical by feature slug", () => {
