@@ -116,6 +116,28 @@ const INPUT_STYLE: React.CSSProperties = {
   outline: "none",
 };
 
+interface PromoValidation {
+  code: string;
+  discountPct: number;
+  resellerSlug: string | null;
+  resellerDisplayName: string | null;
+}
+
+function readViaCookie(): string {
+  if (typeof document === "undefined") return "";
+  for (const raw of document.cookie.split(";")) {
+    const [k, v] = raw.trim().split("=");
+    if (k === "blockid_via" && v) {
+      try {
+        return decodeURIComponent(v);
+      } catch {
+        return v;
+      }
+    }
+  }
+  return "";
+}
+
 function InnerForm(props: SignupFormProps) {
   const router = useRouter();
   const stripe = useStripe();
@@ -129,6 +151,65 @@ function InnerForm(props: SignupFormProps) {
   const [terms, setTerms] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Task M2 — promo code capture. Auto-fills from the blockid_via cookie
+  // (set by ResellerRefCapture on inbound ?ref=CODE links); founder can
+  // still overwrite manually. We validate on blur so they see inline
+  // confirmation before submitting the form.
+  const [promoCode, setPromoCode] = React.useState("");
+  const [promoValidation, setPromoValidation] =
+    React.useState<PromoValidation | null>(null);
+  const [promoError, setPromoError] = React.useState<string | null>(null);
+  const [promoValidating, setPromoValidating] = React.useState(false);
+
+  // Hydrate promo code from cookie on mount + revalidate once.
+  React.useEffect(() => {
+    const cached = readViaCookie();
+    if (cached && !promoCode) {
+      setPromoCode(cached);
+      void runPromoValidate(cached);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function runPromoValidate(raw: string) {
+    const code = raw.trim();
+    if (!code) {
+      setPromoValidation(null);
+      setPromoError(null);
+      return;
+    }
+    setPromoValidating(true);
+    setPromoError(null);
+    try {
+      const res = await fetch("/api/reseller/validate-promo-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | (PromoValidation & { ok: true })
+        | { ok: false; reason?: string }
+        | null;
+      if (json && "ok" in json && json.ok) {
+        setPromoValidation({
+          code: json.code,
+          discountPct: json.discountPct,
+          resellerSlug: json.resellerSlug,
+          resellerDisplayName: json.resellerDisplayName,
+        });
+        setPromoError(null);
+      } else {
+        setPromoValidation(null);
+        setPromoError("Unknown code");
+      }
+    } catch {
+      setPromoValidation(null);
+      setPromoError("Could not verify code — you can still continue.");
+    } finally {
+      setPromoValidating(false);
+    }
+  }
 
   const selectedPlan =
     props.trialPlans.find((p) => p.id === planId) ?? props.trialPlans[0];
@@ -181,6 +262,9 @@ function InnerForm(props: SignupFormProps) {
           plan_id: planId,
           payment_method_id: pm.paymentMethod.id,
           terms_accepted: true,
+          // Task M2 — pass promo code (validated or raw) so the server
+          // stamps app_users.attribution_reseller_id + refreshes cookie.
+          promo_code: promoValidation?.code ?? promoCode.trim() ?? undefined,
         }),
       });
       const json = (await res.json().catch(() => null)) as
@@ -271,6 +355,42 @@ function InnerForm(props: SignupFormProps) {
           </select>
         </label>
       </div>
+      <label style={{ display: "block", marginBottom: 14 }}>
+        {fieldLabel("Promotion code (optional)")}
+        <input
+          type="text"
+          value={promoCode}
+          onChange={(e) => {
+            setPromoCode(e.target.value);
+            // Clear stale validation state on edit.
+            if (promoValidation || promoError) {
+              setPromoValidation(null);
+              setPromoError(null);
+            }
+          }}
+          onBlur={(e) => void runPromoValidate(e.target.value)}
+          autoComplete="off"
+          maxLength={32}
+          placeholder="e.g. IFV20"
+          style={INPUT_STYLE}
+        />
+        {promoValidating ? (
+          <p style={{ margin: "6px 0 0 0", fontSize: 12, color: "#94A3B8" }}>
+            Checking…
+          </p>
+        ) : promoValidation ? (
+          <p style={{ margin: "6px 0 0 0", fontSize: 12, color: "#4ADE80" }}>
+            {promoValidation.code} — {promoValidation.discountPct}% off
+            {promoValidation.resellerDisplayName
+              ? ` from ${promoValidation.resellerDisplayName}`
+              : ""}
+          </p>
+        ) : promoError ? (
+          <p style={{ margin: "6px 0 0 0", fontSize: 12, color: "#F87171" }}>
+            {promoError}
+          </p>
+        ) : null}
+      </label>
       <label style={{ display: "block", marginBottom: 14 }}>
         {fieldLabel("Card details")}
         <div

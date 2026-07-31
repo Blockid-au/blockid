@@ -70,6 +70,10 @@ const BodySchema = z.object({
   plan_id: z.string().min(1).max(64),
   payment_method_id: z.string().min(4).max(128),
   terms_accepted: z.literal(true),
+  // Task M2 — optional reseller/promo code carried through from the signup
+  // form. Validated + normalised server-side; a bad code is silently
+  // dropped so signup itself never fails on attribution.
+  promo_code: z.string().trim().max(32).optional(),
 });
 
 function sanitizeName(raw: string | undefined): string | undefined {
@@ -275,6 +279,28 @@ export async function POST(request: Request) {
   await initializeCredits(userId).catch((err) =>
     console.error("[register-with-card] initializeCredits failed", err),
   );
+
+  // 6a. Reseller attribution — task M2. Priority list:
+  //   1. explicit body.promo_code (form-typed)
+  //   2. blockid_via cookie (?ref= capture — task M1)
+  // The processAttribution() helper caches app_users.attribution_reseller_id
+  // when the code resolves to an active reseller. Never throws.
+  try {
+    const cookieHeader = request.headers.get("cookie") ?? "";
+    const { extractViaFromCookieHeader } = await import(
+      "@/lib/reseller/attribution"
+    );
+    const { processAttribution } = await import(
+      "@/lib/reseller/process-attribution"
+    );
+    const cookieCode = extractViaFromCookieHeader(cookieHeader);
+    const resolvedCode = body.promo_code?.trim() || cookieCode;
+    if (resolvedCode) {
+      await processAttribution(userId, resolvedCode);
+    }
+  } catch (err) {
+    console.error("[register-with-card] reseller attribution failed", err);
+  }
 
   // 7. Log the user in.
   const sessionToken = await createSessionRow({
