@@ -24,8 +24,8 @@
  */
 
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
+import { resolvePromoCode } from "@/lib/reseller/resolve-promo";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIpFromHeaders } from "@/lib/iphash";
 
@@ -68,56 +68,32 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    // Fail-closed with a generic reason so the client renders "Unknown code"
-    // rather than a 500 the founder can't act on.
-    return NextResponse.json(
-      { ok: false, reason: "unknown" },
-      { status: 200 },
-    );
-  }
-
-  // Agent K's `resolvePromoCode()` helper is the preferred call-site; when
-  // it isn't available yet, fall back to reading the table inline so this
-  // endpoint doesn't block on the K rollout.
+  // Delegate to the canonical resolver rather than querying the promotion
+  // table inline. Two reasons this matters:
+  //   1. R-10 (typed-wrapper-audit): an inline read here would carry no
+  //      visible reseller_id scoping, because an anonymous prospect has no
+  //      reseller scope yet — resolving a globally-unique code IS the
+  //      point. Routing through the shared helper keeps that single
+  //      unscoped read in one audited place instead of duplicating it.
+  //   2. The previous inline version selected a `slug` column from
+  //      `resellers`, which does not exist (the table uses `code`).
+  //      Postgres errored, the catch swallowed it, and EVERY validation
+  //      silently returned "unknown" — that path never worked in prod.
+  //
+  // resolvePromoCode() already enforces active=true, normalises the code,
+  // joins the reseller row, and memoises for 60s.
   try {
-    const { data: promo } = await supabase
-      .from("reseller_promotion_codes")
-      .select("code, tier_pct, active, reseller_id, max_redemptions, redemption_count")
-      .eq("code", code)
-      .maybeSingle();
-
-    if (!promo || !promo.active) {
+    const resolved = await resolvePromoCode(code);
+    if (!resolved) {
       return NextResponse.json({ ok: false, reason: "unknown" });
-    }
-
-    // Guard against exhausted codes: reseller_promotion_codes.max_redemptions
-    // NULL = unlimited; otherwise reject once redemption_count >= max.
-    const maxR =
-      typeof promo.max_redemptions === "number" ? promo.max_redemptions : null;
-    const usedR =
-      typeof promo.redemption_count === "number" ? promo.redemption_count : 0;
-    if (maxR !== null && usedR >= maxR) {
-      return NextResponse.json({ ok: false, reason: "unknown" });
-    }
-
-    const { data: reseller } = await supabase
-      .from("resellers")
-      .select("slug, display_name, status")
-      .eq("id", promo.reseller_id)
-      .maybeSingle();
-
-    if (!reseller || reseller.status !== "active") {
-      return NextResponse.json({ ok: false, reason: "inactive" });
     }
 
     return NextResponse.json({
       ok: true,
-      code: promo.code,
-      discountPct: Number(promo.tier_pct ?? 0),
-      resellerSlug: reseller.slug ?? null,
-      resellerDisplayName: reseller.display_name ?? null,
+      code: resolved.code,
+      discountPct: resolved.discountPct,
+      resellerSlug: resolved.resellerSlug,
+      resellerDisplayName: resolved.resellerDisplayName,
     });
   } catch (err) {
     console.error("[validate-promo-code] lookup failed", err);
