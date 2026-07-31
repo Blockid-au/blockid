@@ -1008,3 +1008,5 @@
 {"tick_id":"2026-07-31T11-47-01-082Z","ts":"2026-07-31T11:47:01.083Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T11-47-01-082Z","ts":"2026-07-31T11:47:01.101Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"ts":"2026-07-31T11:52:00.000Z","tick":"P9-watchlist-lib-test","stage":"shipped","phase":"P9_ship","description":"colocated 16-case vitest for previously-untested web/src/lib/watchlist.ts (investor bookmark toggle, T_SVI_EXC_0001); pins (account_id,ticker) natural-key contract, delete-by-id fast-path, cross-account isolation guard; all 16 green, tsc clean"}
+{"tick_id":"2026-07-31T11-47-01-082Z","ts":"2026-07-31T11:52:40.525Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":339422,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T11-47-01-082Z","ts":"2026-07-31T11:52:40.576Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":8}
