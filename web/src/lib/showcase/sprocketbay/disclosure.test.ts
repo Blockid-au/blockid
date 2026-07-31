@@ -86,9 +86,9 @@ describe("walkthroughDisclosure", () => {
 describe("walkthroughLevelChrome", () => {
   it("delegates to badgeChrome so it cannot drift from the embed badge", () => {
     for (const level of [0, 1, 2, 3, 4, 5]) {
-      const chrome = walkthroughLevelChrome(level);
-      const { levelLabel: _levelLabel, ...rest } = chrome;
+      const { levelLabel, ...rest } = walkthroughLevelChrome(level);
       expect(rest).toEqual(badgeChrome({ kind: "demo", level }));
+      expect(levelLabel.length).toBeGreaterThan(0);
     }
   });
 
