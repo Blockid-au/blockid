@@ -92,15 +92,18 @@ describe("router.refresh throttled to max 1/sec", () => {
   it("suppresses a refresh triggered too soon after the previous one", () => {
     let state = initialState(OWN);
 
-    const first = handleMessage(state, msg({ at: 10 }), 10);
+    // Start at t=5000 so the initial refresh isn't blocked by the
+    // zero-baseline `lastRefreshAt`.
+    const T = 5000;
+    const first = handleMessage(state, msg({ at: T }), T);
     expect(first.decision.action).toBe("refresh");
     state = first.nextState;
 
     // Different message, but well inside the 1s throttle window.
     const second = handleMessage(
       state,
-      msg({ event: "SIGNED_OUT", at: 400, userId: undefined }),
-      400,
+      msg({ event: "SIGNED_OUT", at: T + 400, userId: undefined }),
+      T + 400,
     );
     expect(second.decision.action).toBe("ignore");
     if (second.decision.action === "ignore") {
