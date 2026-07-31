@@ -176,7 +176,7 @@ describe("keyToNavAction", () => {
     const action = keyToNavAction("ArrowRight", 1);
     expect(action).not.toBeNull();
     expect(action!.kind).toBe("next");
-    if (action!.kind === "next") expect(action.target.n).toBe(2);
+    if (action !== null && action.kind === "next") expect(action.target.n).toBe(2);
   });
 
   it("ArrowRight from the last step yields null", () => {
@@ -191,14 +191,14 @@ describe("keyToNavAction", () => {
     const action = keyToNavAction("ArrowLeft", 5);
     expect(action).not.toBeNull();
     expect(action!.kind).toBe("prev");
-    if (action!.kind === "prev") expect(action.target.n).toBe(4);
+    if (action !== null && action.kind === "prev") expect(action.target.n).toBe(4);
   });
 
   it("Escape yields an exit intent pointing at ATLASSIAN_WALKTHROUGH_EXIT_PATH", () => {
     const action = keyToNavAction("Escape", 4);
     expect(action).not.toBeNull();
     expect(action!.kind).toBe("exit");
-    if (action!.kind === "exit") {
+    if (action !== null && action.kind === "exit") {
       expect(action.targetPath).toBe(ATLASSIAN_WALKTHROUGH_EXIT_PATH);
     }
   });
@@ -219,7 +219,7 @@ describe("keyToNavAction", () => {
   it("ArrowLeft at currentN=2 lands on the landing step (n=1)", () => {
     const action = keyToNavAction("ArrowLeft", 2);
     expect(action).not.toBeNull();
-    if (action!.kind === "prev") {
+    if (action !== null && action.kind === "prev") {
       expect(action.target.n).toBe(1);
       expect(action.target.path).toBe("/showcase/atlassian");
     }
