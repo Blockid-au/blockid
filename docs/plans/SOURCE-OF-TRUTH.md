@@ -86,6 +86,22 @@
   6. This tick — P9 close-out: SOURCE-OF-TRUTH + `docs/user/menu-walkthrough.md` refreshed to reflect P5–P7 shipped; goal doc `phased_tracks.P9` flipped to `shipped`.
 - **Next action:** founder review of Q1–Q4 (top-nav phase-cluster count, DEMO placement, ladder collapse rule on mobile, returning-founder skip-tutorial). No code work queued.
 - **Blocker:** founder review only. No new deps, no CI touch, tsc clean.
+- **Successor:** G8 continues this lane — G7 built the IA, G8 makes it phase-aware and closes the chrome gaps G7 left untouched.
+
+### G8 — Progressive unlock & chrome parity
+- **Source:** [`docs/plans/unlock-next-level-2026-07-31.md`](./unlock-next-level-2026-07-31.md) · continues G7 · founder request 2026-07-31
+- **Decisions (founder, 2026-07-31):** unlock spine = **Growth phases 12** (`vision`…`funding`, the taxonomy `startup_phase_progress.phase_id` already stores) · lock policy = **hybrid** (progress-locked ⇒ hidden, tier-locked ⇒ dimmed + upgrade chip).
+- **Status:** P0–P8 all `open`. Audit complete, no code shipped yet.
+- **Audit findings (ranked):**
+  1. **⚠ Blocking defect** — two different 12-phase taxonomies are silently conflated. `startup_phase_progress.phase_id` stores string ids; `PHASE_CRITERION_SUBSET` + `COMPLIANCE_PHASE_GATES` key off numeric `PhaseKey 1-12` with **different phase-N semantics** (string #6 = `legal_equity`, numeric #6 = Revenue/Business Model). `web/src/lib/nudge/next-steps.ts:426` bridges via `indexOfGrowthPhase(id)+1` — mis-scores every founder. **P0 fixes this before any gate work.**
+  2. **No advance-gate exists for the 12-phase model** — only `completion_pct`. The engine must be built (P1); Unicorn S0–S5 has one (`computeStageProgress()`), Growth-12 does not.
+  3. **~70 pages render with no shell** — `/reseller/*` 13/13, `/showcase/*` 15, `/admin/*` 24/36, `/compliance/*` 7/7, `/workspace/*` orphans 8, marketing strays 7. Root layout renders no chrome (`web/src/app/layout.tsx:96-172`); shells are opt-in per file.
+  4. **No footer in `WorkspaceLayout` or `AdminLayout`** — ~107 pages have no bottom bar.
+  5. **Unlock machinery built but imported by nothing** — `web/src/lib/nav/filter-nav-for-user.ts:94` and `web/src/lib/nav/hide-when-locked.ts:47` already implement decision D2 exactly; the live renderer `workspace-layout.tsx:141-168` ignores `persona`, `journeyGroup`, `hideWhenLocked` and dims `minPhase` groups instead of hiding them.
+  6. `web/src/app/reseller/layout.tsx:11` carries a "P4 hardening will replace this with the reused WorkspaceLayout" TODO that was never executed.
+- **Evaluation criteria (§2c of goal doc):** 12 phase exit gates, each requiring named criteria at ≥ `good` (from the 13 in `web/src/lib/evaluation-criteria.ts:66`, weights = 100) **plus** an SVI dimension floor (from the 8 in `web/src/lib/svi-analysis.ts:1195-1275`). Compliance gates re-mapped by intent: `rd→product_dev`, `gst→go_to_market`, `esic→investor_review`, `s708→investor_review`.
+- **Next action:** P0 taxonomy unification (`typescript-pro` + `architecture-designer`) — blocks the whole unlock lane. P5 shell matrix can start in parallel.
+- **Blocker:** none for P0/P5. Q1–Q3 in the goal doc are founder-review only and non-blocking.
 
 ---
 
@@ -134,6 +150,16 @@
 | EXC-0013 | svi-exchange-tasks | investor EOI book | shipped | fullstack-guardian | v0.4.0 |
 | EXC-0014 | svi-exchange-tasks | institutional API tier | shipped | typescript-pro | marked_deployed |
 | SHOWCASE-ATL | atlassian-standard-mapping-goal | showcase-walkthrough | shipped | react-expert + nextjs-developer + test-master | fixture `aa2f8808`; shell test `5fed65f8`; guide `42bfad17`; summary + landing CTA `4bcd4c09` |
+| G8-P0 | unlock-next-level-2026-07-31 | taxonomy | open | typescript-pro | — (blocks G8-P1..P4) |
+| G8-P1 | unlock-next-level-2026-07-31 | gate-engine | open | typescript-pro | — |
+| G8-P2 | unlock-next-level-2026-07-31 | data-model | open | db-migrate | — (migration 0300) |
+| G8-P3 | unlock-next-level-2026-07-31 | nav-hybrid | open | react-expert | — |
+| G8-P4 | unlock-next-level-2026-07-31 | next-unlock UI | open | cpo | — |
+| G8-P5 | unlock-next-level-2026-07-31 | shell-matrix | open | nextjs-developer | — |
+| G8-P6 | unlock-next-level-2026-07-31 | chrome-backfill | open | nextjs-developer | — (~70 pages) |
+| G8-P7 | unlock-next-level-2026-07-31 | CI-guard | open | test-master | — |
+| G8-P8 | unlock-next-level-2026-07-31 | docs | open | code-documenter | — |
+| DR-SBOM-01 | dataroom license-risk review | licence-classifier | shipped | typescript-pro | `563a3124` |
 
 ---
 
