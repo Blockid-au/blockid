@@ -60,155 +60,161 @@ Received string:  "https://blockid.au/auth/login?next=%2Fdashboard"
       - generic [ref=e35]:
         - heading "Sign in to BlockID" [level=2] [ref=e37]
         - paragraph [ref=e38]: Own your cap table. Prove your equity. Raise with confidence.
-        - generic [ref=e43]: or continue with email
-        - generic [ref=e45]:
-          - button "Email & Password" [ref=e46] [cursor=pointer]
-          - button "Magic Link" [ref=e47] [cursor=pointer]
-        - generic [ref=e48]:
-          - generic [ref=e49]:
-            - button "Sign In" [ref=e50] [cursor=pointer]
-            - button "Create Account" [ref=e51] [cursor=pointer]
-          - textbox "Email address" [ref=e52]
-          - textbox "Password" [ref=e53]
-          - button "Sign In" [ref=e54] [cursor=pointer]
-          - button "Forgot your password?" [ref=e55] [cursor=pointer]
-        - button "Have a partner code?" [ref=e56]
-  - contentinfo [ref=e57]:
-    - generic [ref=e59]:
-      - generic [ref=e60]:
-        - generic [ref=e61]:
-          - link "BlockID home" [ref=e62] [cursor=pointer]:
+        - generic [ref=e41]:
+          - button "Sign in with Google. Opens in new tab" [ref=e43] [cursor=pointer]:
+            - generic [ref=e45]:
+              - img [ref=e47]
+              - generic [ref=e54]: Sign in with Google
+          - iframe
+        - generic [ref=e57]: or continue with email
+        - generic [ref=e59]:
+          - button "Email & Password" [ref=e60] [cursor=pointer]
+          - button "Magic Link" [ref=e61] [cursor=pointer]
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - button "Sign In" [ref=e64] [cursor=pointer]
+            - button "Create Account" [ref=e65] [cursor=pointer]
+          - textbox "Email address" [ref=e66]
+          - textbox "Password" [ref=e67]
+          - button "Sign In" [ref=e68] [cursor=pointer]
+          - button "Forgot your password?" [ref=e69] [cursor=pointer]
+        - button "Have a partner code?" [ref=e70]
+  - contentinfo [ref=e71]:
+    - generic [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - link "BlockID home" [ref=e76] [cursor=pointer]:
             - /url: /
-            - generic [ref=e64]: BlockID.au
-          - paragraph [ref=e65]: The all-in-one ownership and fundraising platform for Australian startups and SMEs.
-          - generic [ref=e66]:
-            - paragraph [ref=e67]:
-              - img [ref=e68]
-              - generic [ref=e71]: ABN 79 659 615 111
-            - paragraph [ref=e72]:
-              - img [ref=e73]
-              - generic [ref=e76]: AU data residency. SOC2 Type II in progress.
-        - generic [ref=e77]:
-          - heading "Product" [level=4] [ref=e78]
-          - list [ref=e79]:
-            - listitem [ref=e80]:
-              - link "Investor-Ready Score" [ref=e81] [cursor=pointer]:
+            - generic [ref=e78]: BlockID.au
+          - paragraph [ref=e79]: The all-in-one ownership and fundraising platform for Australian startups and SMEs.
+          - generic [ref=e80]:
+            - paragraph [ref=e81]:
+              - img [ref=e82]
+              - generic [ref=e85]: ABN 79 659 615 111
+            - paragraph [ref=e86]:
+              - img [ref=e87]
+              - generic [ref=e90]: AU data residency. SOC2 Type II in progress.
+        - generic [ref=e91]:
+          - heading "Product" [level=4] [ref=e92]
+          - list [ref=e93]:
+            - listitem [ref=e94]:
+              - link "Investor-Ready Score" [ref=e95] [cursor=pointer]:
                 - /url: /score
-            - listitem [ref=e82]:
-              - link "Cap Table" [ref=e83] [cursor=pointer]:
+            - listitem [ref=e96]:
+              - link "Cap Table" [ref=e97] [cursor=pointer]:
                 - /url: /tools/cap-table
-            - listitem [ref=e84]:
-              - link "Term Sheet AI" [ref=e85] [cursor=pointer]:
+            - listitem [ref=e98]:
+              - link "Term Sheet AI" [ref=e99] [cursor=pointer]:
                 - /url: /tools/term-sheet
-            - listitem [ref=e86]:
-              - link "Data Room" [ref=e87] [cursor=pointer]:
+            - listitem [ref=e100]:
+              - link "Data Room" [ref=e101] [cursor=pointer]:
                 - /url: /workspace/data-room
-        - generic [ref=e88]:
-          - heading "Tools" [level=4] [ref=e89]
-          - list [ref=e90]:
-            - listitem [ref=e91]:
-              - link "Dilution Calculator" [ref=e92] [cursor=pointer]:
+        - generic [ref=e102]:
+          - heading "Tools" [level=4] [ref=e103]
+          - list [ref=e104]:
+            - listitem [ref=e105]:
+              - link "Dilution Calculator" [ref=e106] [cursor=pointer]:
                 - /url: /tools/dilution
-            - listitem [ref=e93]:
-              - link "Cap Table Diff" [ref=e94] [cursor=pointer]:
+            - listitem [ref=e107]:
+              - link "Cap Table Diff" [ref=e108] [cursor=pointer]:
                 - /url: /tools/cap-table
-            - listitem [ref=e95]:
-              - link "Term Sheet AI" [ref=e96] [cursor=pointer]:
+            - listitem [ref=e109]:
+              - link "Term Sheet AI" [ref=e110] [cursor=pointer]:
                 - /url: /tools/term-sheet
-            - listitem [ref=e97]:
-              - link "Data Room Checklist" [ref=e98] [cursor=pointer]:
+            - listitem [ref=e111]:
+              - link "Data Room Checklist" [ref=e112] [cursor=pointer]:
                 - /url: /tools/data-room
-            - listitem [ref=e99]:
-              - link "Free Score" [ref=e100] [cursor=pointer]:
+            - listitem [ref=e113]:
+              - link "Free Score" [ref=e114] [cursor=pointer]:
                 - /url: /score
-        - generic [ref=e101]:
-          - heading "Case Studies" [level=4] [ref=e102]
-          - list [ref=e103]:
-            - listitem [ref=e104]:
-              - link "Atlassian (live demo)" [ref=e105] [cursor=pointer]:
+        - generic [ref=e115]:
+          - heading "Case Studies" [level=4] [ref=e116]
+          - list [ref=e117]:
+            - listitem [ref=e118]:
+              - link "Atlassian (live demo)" [ref=e119] [cursor=pointer]:
                 - /url: /showcase/atlassian?step=1
-            - listitem [ref=e106]:
-              - link "Canva" [ref=e107] [cursor=pointer]:
+            - listitem [ref=e120]:
+              - link "Canva" [ref=e121] [cursor=pointer]:
                 - /url: /showcase/canva
-            - listitem [ref=e108]:
-              - link "Xero" [ref=e109] [cursor=pointer]:
+            - listitem [ref=e122]:
+              - link "Xero" [ref=e123] [cursor=pointer]:
                 - /url: /showcase/xero
-            - listitem [ref=e110]:
-              - link "SafetyCulture" [ref=e111] [cursor=pointer]:
+            - listitem [ref=e124]:
+              - link "SafetyCulture" [ref=e125] [cursor=pointer]:
                 - /url: /showcase/safetyculture
-            - listitem [ref=e112]:
-              - link "All case studies" [ref=e113] [cursor=pointer]:
+            - listitem [ref=e126]:
+              - link "All case studies" [ref=e127] [cursor=pointer]:
                 - /url: /showcase
-        - generic [ref=e114]:
-          - heading "Company" [level=4] [ref=e115]
-          - list [ref=e116]:
-            - listitem [ref=e117]:
-              - link "About" [ref=e118] [cursor=pointer]:
+        - generic [ref=e128]:
+          - heading "Company" [level=4] [ref=e129]
+          - list [ref=e130]:
+            - listitem [ref=e131]:
+              - link "About" [ref=e132] [cursor=pointer]:
                 - /url: /about
-            - listitem [ref=e119]:
-              - link "AU Benchmarks" [ref=e120] [cursor=pointer]:
+            - listitem [ref=e133]:
+              - link "AU Benchmarks" [ref=e134] [cursor=pointer]:
                 - /url: /benchmarks
-            - listitem [ref=e121]:
-              - link "Insights" [ref=e122] [cursor=pointer]:
+            - listitem [ref=e135]:
+              - link "Insights" [ref=e136] [cursor=pointer]:
                 - /url: /insights
-            - listitem [ref=e123]:
-              - link "Investors" [ref=e124] [cursor=pointer]:
+            - listitem [ref=e137]:
+              - link "Investors" [ref=e138] [cursor=pointer]:
                 - /url: /investors
-            - listitem [ref=e125]:
-              - link "Contact" [ref=e126] [cursor=pointer]:
+            - listitem [ref=e139]:
+              - link "Contact" [ref=e140] [cursor=pointer]:
                 - /url: /contact
-        - generic [ref=e127]:
-          - heading "Legal" [level=4] [ref=e128]
-          - list [ref=e129]:
-            - listitem [ref=e130]:
-              - link "Privacy" [ref=e131] [cursor=pointer]:
+        - generic [ref=e141]:
+          - heading "Legal" [level=4] [ref=e142]
+          - list [ref=e143]:
+            - listitem [ref=e144]:
+              - link "Privacy" [ref=e145] [cursor=pointer]:
                 - /url: /privacy
-            - listitem [ref=e132]:
-              - link "Terms" [ref=e133] [cursor=pointer]:
+            - listitem [ref=e146]:
+              - link "Terms" [ref=e147] [cursor=pointer]:
                 - /url: /terms
-            - listitem [ref=e134]:
-              - link "Security" [ref=e135] [cursor=pointer]:
+            - listitem [ref=e148]:
+              - link "Security" [ref=e149] [cursor=pointer]:
                 - /url: /privacy#security
-      - generic "Accepted into" [ref=e137]:
-        - paragraph [ref=e138]: Accepted into
-        - list [ref=e139]:
-          - listitem [ref=e140]:
-            - link "Founder Institute — global pre-seed accelerator" [ref=e141] [cursor=pointer]:
+      - generic "Accepted into" [ref=e151]:
+        - paragraph [ref=e152]: Accepted into
+        - list [ref=e153]:
+          - listitem [ref=e154]:
+            - link "Founder Institute — global pre-seed accelerator" [ref=e155] [cursor=pointer]:
               - /url: https://fi.co
-              - img "Founder Institute — global pre-seed accelerator" [ref=e142]
-          - listitem [ref=e143]:
-            - link "NVIDIA Inception program member" [ref=e144] [cursor=pointer]:
+              - img "Founder Institute — global pre-seed accelerator" [ref=e156]
+          - listitem [ref=e157]:
+            - link "NVIDIA Inception program member" [ref=e158] [cursor=pointer]:
               - /url: https://www.nvidia.com/en-us/startups/
-              - img "NVIDIA Inception program member" [ref=e145]
-          - listitem [ref=e146]:
-            - link "Spacecubed AI Fellowship cohort" [ref=e147] [cursor=pointer]:
+              - img "NVIDIA Inception program member" [ref=e159]
+          - listitem [ref=e160]:
+            - link "Spacecubed AI Fellowship cohort" [ref=e161] [cursor=pointer]:
               - /url: https://spacecubed.com/labs/
-              - img "Spacecubed AI Fellowship cohort" [ref=e148]
-      - generic [ref=e149]:
-        - paragraph [ref=e150]: © 2026 Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
-        - paragraph [ref=e151]: Not financial advice. BlockID is a software platform — engage a licensed adviser for your raise.
-    - generic [ref=e154]:
-      - generic [ref=e155]:
-        - img [ref=e157]
-        - generic [ref=e159]: BlockID.au
-        - generic [ref=e160]: Valuation. Ownership. Growth.
-      - generic [ref=e161]:
-        - generic [ref=e162]:
-          - img [ref=e164]
-          - generic [ref=e167]:
-            - generic [ref=e168]: CLEAR OWNERSHIP
-            - generic [ref=e169]: Build trust from the idea stage
-        - generic [ref=e170]:
-          - img [ref=e172]
-          - generic [ref=e177]:
-            - generic [ref=e178]: SMARTER FUNDRAISING
-            - generic [ref=e179]: Be investor-ready, always
-        - generic [ref=e180]:
-          - img [ref=e182]
-          - generic [ref=e184]:
-            - generic [ref=e185]: REAL VALUE
-            - generic [ref=e186]: Track, understand and grow equity value
-  - alert [ref=e187]
+              - img "Spacecubed AI Fellowship cohort" [ref=e162]
+      - generic [ref=e163]:
+        - paragraph [ref=e164]: © 2026 Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
+        - paragraph [ref=e165]: Not financial advice. BlockID is a software platform — engage a licensed adviser for your raise.
+    - generic [ref=e168]:
+      - generic [ref=e169]:
+        - img [ref=e171]
+        - generic [ref=e173]: BlockID.au
+        - generic [ref=e174]: Valuation. Ownership. Growth.
+      - generic [ref=e175]:
+        - generic [ref=e176]:
+          - img [ref=e178]
+          - generic [ref=e181]:
+            - generic [ref=e182]: CLEAR OWNERSHIP
+            - generic [ref=e183]: Build trust from the idea stage
+        - generic [ref=e184]:
+          - img [ref=e186]
+          - generic [ref=e191]:
+            - generic [ref=e192]: SMARTER FUNDRAISING
+            - generic [ref=e193]: Be investor-ready, always
+        - generic [ref=e194]:
+          - img [ref=e196]
+          - generic [ref=e198]:
+            - generic [ref=e199]: REAL VALUE
+            - generic [ref=e200]: Track, understand and grow equity value
+  - alert [ref=e201]
 ```
 
 # Test source
