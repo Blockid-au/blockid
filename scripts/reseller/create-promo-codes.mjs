@@ -34,7 +34,17 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { appendFileSync } from "node:fs";
 import { resolve as pathResolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
+
+// The repo has no root-level package.json — `stripe` and `@supabase/supabase-js`
+// live inside web/node_modules. Resolve them from there so the script works
+// regardless of CWD.
+const requireFromWeb = createRequire(
+  pathToFileURL(
+    pathResolve(dirname(fileURLToPath(import.meta.url)), "../../web/package.json"),
+  ),
+);
 
 const args = process.argv.slice(2);
 const flagSet = new Set(args.filter((a) => !a.startsWith("--only=")));
@@ -93,10 +103,10 @@ async function main() {
     process.exit(2);
   }
 
-  const [{ default: Stripe }, supaMod] = await Promise.all([
-    import("stripe"),
-    DRY_RUN && !supaUrl ? Promise.resolve(null) : import("@supabase/supabase-js"),
-  ]);
+  // Resolve deps via web/node_modules (see requireFromWeb note at top).
+  const Stripe = requireFromWeb("stripe");
+  const supaMod =
+    DRY_RUN && !supaUrl ? null : requireFromWeb("@supabase/supabase-js");
 
   const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
   const supa =
