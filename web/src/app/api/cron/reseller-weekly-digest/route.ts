@@ -518,6 +518,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatio,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-iqr-ratio";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolQcd,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolQcdSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolQcd,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-qcd";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2052,6 +2057,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatio
     | null = null;
   let perTransitionMagnitudeTop3PoolIqrRatioSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolQcd:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolQcd
+    | null = null;
+  let perTransitionMagnitudeTop3PoolQcdSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4910,6 +4919,33 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatioSection(
           snapshotPerTransitionMagnitudeTop3PoolIqrRatio,
         );
+      // P11.212 quartile-coefficient-of-dispersion cron wiring —
+      // BOUNDED robust-stats INTERIOR-MASS dispersion scalar on the
+      // P11.161 pool (qcd = (Q3 - Q1) / (Q3 + Q1) using Tukey EXCLUSIVE
+      // hinges; pool_count < 4 emits a small_pool null so the surface is
+      // distinct from the P11.185 top1/bottom1 endpoint-only bounded
+      // multiplicative ratio). Closes the (unbounded, bounded) x
+      // (endpoint, interior, whole-pool) normalisation grid on the
+      // multiplicative dispersion axis opened by P11.209 IQR RATIO —
+      // the BOUNDED + INTERIOR-MASS corner was the only remaining
+      // unfilled cell after P11.207 IQR (additive interior-only) +
+      // P11.209 IQR RATIO (unbounded multiplicative interior-only) took
+      // the two neighbouring cells. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolIqrRatioSection AND IMMEDIATELY
+      // ABOVE perPairHotCellsSection per the P11.211 formatter docblock
+      // so IQR + IQR RATIO + QCD share the same Q1/Q3 hinge pair and
+      // sit adjacent — reader spots the raw-additive vs raw-multiplicative
+      // vs normalised-multiplicative interior dispersion contrast on
+      // the same interior mass in one glance. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolQcd =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolQcd(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolQcdSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolQcdSection(
+          snapshotPerTransitionMagnitudeTop3PoolQcd,
+        );
     }
   }
   if (
@@ -4990,6 +5026,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolExcessKurtosisSection ||
     perTransitionMagnitudeTop3PoolIqrSection ||
     perTransitionMagnitudeTop3PoolIqrRatioSection ||
+    perTransitionMagnitudeTop3PoolQcdSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5097,6 +5134,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolExcessKurtosisSection +
       perTransitionMagnitudeTop3PoolIqrSection +
       perTransitionMagnitudeTop3PoolIqrRatioSection +
+      perTransitionMagnitudeTop3PoolQcdSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -7239,6 +7277,38 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolIqrRatio.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolIqrRatio.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_qcd:
+      snapshotPerTransitionMagnitudeTop3PoolQcd
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.top_n,
+            min_pool_count_for_qcd:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.min_pool_count_for_qcd,
+            level_qcd_max:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.level_qcd_max,
+            stark_qcd_min:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.stark_qcd_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolQcd.transitions,
           }
         : {
             skipped_reason:
