@@ -699,3 +699,6 @@
 {"tick_id":"2026-07-31T03-57-01-482Z","ts":"2026-07-31T03:57:04.469Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"e312d427","last_deployed":"0fdb48f"}
 {"tick_id":"2026-07-31T03-57-01-482Z","ts":"2026-07-31T03:57:34.115Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"e312d427"}
 {"tick_id":"2026-07-31T03-57-01-482Z","ts":"2026-07-31T03:57:34.118Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T04-07-01-306Z","ts":"2026-07-31T04:07:01.306Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T04-07-01-306Z","ts":"2026-07-31T04:07:01.320Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"opus-manual-2026-07-31T04-12Z","ts":"2026-07-31T04:12:30Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P3_nudge_engine_impl","subtask":"P3-project-name-extractor-lib-test","tests":40,"file":"web/src/lib/project-name-extractor.test.ts","result":"40 passed / 290ms","typecheck":"clean (only pre-existing valuation-module drift)"}
