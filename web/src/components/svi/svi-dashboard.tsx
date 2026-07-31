@@ -17,7 +17,7 @@ import { SVIComparison } from "@/components/svi/svi-comparison";
 import { ComplianceChecker } from "@/components/svi/compliance-checker";
 import { RecentAnalyses } from "@/components/dashboard/recent-analyses";
 
-import type { ReportEntry, SVIHistoryPoint } from "@/app/dashboard/svi/page";
+import type { ReportEntry, SVIHistoryPoint } from "@/app/(app)/(founder)/dashboard/svi/page";
 
 // Dimension weight labels (for tooltip)
 const DIM_WEIGHTS: Record<string, string> = {
