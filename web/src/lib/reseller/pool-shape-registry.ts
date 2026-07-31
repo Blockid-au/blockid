@@ -135,6 +135,7 @@ export const POOL_SHAPE_SURFACES: readonly PoolShapeSurface[] = [
   { slug: "peak-to-hexatrigintic-mean", axis: "DISPERSION" },
   { slug: "peak-to-heptatrigintic-mean", axis: "DISPERSION" },
   { slug: "peak-to-octatrigintic-mean", axis: "DISPERSION" },
+  { slug: "peak-to-novemtrigintic-mean", axis: "DISPERSION" },
 ];
 
 export const POOL_SHAPE_MODULE_PREFIX =
