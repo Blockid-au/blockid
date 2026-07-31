@@ -88,6 +88,7 @@ export const POOL_SHAPE_SURFACES: readonly PoolShapeSurface[] = [
   { slug: "hoover", axis: "CONCENTRATION" },
   { slug: "rosenbluth", axis: "CONCENTRATION" },
   { slug: "studentized-range", axis: "DISPERSION" },
+  { slug: "gini-mean-difference", axis: "DISPERSION" },
 ];
 
 export const POOL_SHAPE_MODULE_PREFIX =
