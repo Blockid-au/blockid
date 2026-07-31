@@ -2,7 +2,7 @@
  * Colocated 8-case vitest for the Ed25519 VC issuer keypair.
  *
  * Uses `generateTestKeypair()` + `__setTestKeypair()` — NEVER touches the
- * production `BID_VC_ISSUER_PRIVATE_KEY_PEM` env. The suite pins:
+ * production `BID_VC_ISSUER_PRIVATE_KEY_PATH` env. The suite pins:
  *
  *   1. sign → verify round-trip returns the same payload,
  *   2. tampered signature is rejected,
@@ -23,6 +23,7 @@ import {
   publicJwk,
   signVc,
   verifyVc,
+  VC_ISSUER_KEY_PATH_ENV,
   VC_JWT_ALG,
 } from "./issuer-keypair";
 
@@ -125,12 +126,14 @@ describe("vc/issuer-keypair", () => {
 
   it("fail-fast: signVc throws when no issuer key is configured", async () => {
     __resetTestKeypair();
-    const priorEnv = process.env.BID_VC_ISSUER_PRIVATE_KEY_PEM;
-    delete process.env.BID_VC_ISSUER_PRIVATE_KEY_PEM;
+    const priorEnv = process.env[VC_ISSUER_KEY_PATH_ENV];
+    delete process.env[VC_ISSUER_KEY_PATH_ENV];
     try {
-      await expect(signVc(baseInput())).rejects.toThrow(/BID_VC_ISSUER_PRIVATE_KEY_PEM/);
+      await expect(signVc(baseInput())).rejects.toThrow(
+        new RegExp(VC_ISSUER_KEY_PATH_ENV),
+      );
     } finally {
-      if (priorEnv !== undefined) process.env.BID_VC_ISSUER_PRIVATE_KEY_PEM = priorEnv;
+      if (priorEnv !== undefined) process.env[VC_ISSUER_KEY_PATH_ENV] = priorEnv;
     }
     // Header alg pin so a silent switch to RSA/ES256 would fail the suite.
     expect(VC_JWT_ALG).toBe("EdDSA");
