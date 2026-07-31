@@ -648,6 +648,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuarticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quartic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2286,6 +2291,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuarticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToQuarticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToQuinticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -6273,6 +6282,34 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuarticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToQuarticMean,
         );
+      // P11.265 splice: perTransitionMagnitudeTop3PoolPeakToQuinticMean —
+      // WHOLE-POOL RANGE-AGAINST-QUINTIC-CENTER dispersion scalar over
+      // the P11.161 top-3 pool. ptqnm = (max - min) / quintic_mean
+      // where quintic_mean = ((sum x_i^5) / n)^(1/5) uses the M_5
+      // power mean. Bands tight < 1.5 (flat, uniform ramp, upper-
+      // outlier, two-shoulders, bimodal-split, two-partner, small
+      // regimes), spread in [1.5, 1.7) (extreme-outlier regime),
+      // wide >= 1.7 (runaway-outlier regime with pool_count much
+      // greater than 14). Cutoffs tighten P11.262 PTQCM's 1.7/2.0
+      // pair down to 1.5/1.7 because quintic_mean >= quartic_mean by
+      // Power Mean inequality (M_5 >= M_4) so ptqnm <= ptqcm for
+      // every non-flat pool — the wide cutoff drops from 2.0 to 1.7
+      // so only pool_count > 14 pools reach wide (14.2^(1/5) ~= 1.7
+      // is the exact asymptote crossing). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToQuarticMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.264
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-quintic-center after the P11.262 range-against-
+      // quartic-center landing. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToQuinticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean,
+        );
     }
   }
   if (
@@ -6379,6 +6416,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToQuartileMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToCubicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToQuarticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToQuinticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -6512,6 +6550,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToQuartileMeanSection +
       perTransitionMagnitudeTop3PoolPeakToCubicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToQuarticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToQuinticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -9462,6 +9501,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToQuarticMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToQuarticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_quintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.top_n,
+            tight_ptqnm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.tight_ptqnm_max,
+            wide_ptqnm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.wide_ptqnm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean.transitions,
           }
         : {
             skipped_reason:
