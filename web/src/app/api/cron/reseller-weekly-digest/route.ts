@@ -543,6 +543,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-crow-siddiqui-kurtosis";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolLSkewness,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolLSkewnessSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolLSkewness,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-l-skewness";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2097,6 +2102,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis
     | null = null;
   let perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolLSkewness:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolLSkewness
+    | null = null;
+  let perTransitionMagnitudeTop3PoolLSkewnessSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5124,6 +5133,50 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection(
           snapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis,
         );
+      // P11.222 l-skewness cron wiring — L-MOMENT-BASED BOUNDED
+      // WHOLE-POOL ASYMMETRY scalar on the P11.161 pool (tau3 =
+      // lambda3 / lambda2 where the L-moments are computed via unbiased
+      // sample PWMs b0/b1/b2 over sorted cells; pool_count < 4 emits a
+      // small_pool null so L-moment estimators are never leaked on
+      // Tukey-hinge-hostile sample sizes, and lambda2 == 0 emits a
+      // distinct degenerate label so a flat pool is not confused with
+      // a measured symmetric verdict). CLOSES the ASYMMETRY axis of the
+      // pool-shape family after the tail-weight family (P11.217 Moors +
+      // P11.219 Crow-Siddiqui) by adding the BOUNDED whole-pool cousin
+      // of the P11.203 Fisher-Pearson g1 surface — where g1 uses every
+      // cell via the third standardised moment and is unbounded in
+      // (-inf, +inf), L-skewness uses every ordered cell via unbiased
+      // linear PWM weights and is bounded on [-1, +1] by Hosking 1990
+      // §2.3. Reading g1 + L-skewness side-by-side lets ops distinguish
+      // "asymmetry driven by interior mass" (both surfaces non-zero and
+      // same sign; magnitudes bounded near each other on the raw scale)
+      // from "asymmetry driven by a single tail outlier" (g1 large,
+      // L-skewness modest but still same sign) from "structural
+      // symmetry" (both near zero) — the ASYMMETRY-axis analogue of
+      // the way P11.211 QCD / P11.213 COR bound the DISPERSION axis
+      // and P11.215 Bowley bounds the INTERIOR-MASS ASYMMETRY axis.
+      // Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.221
+      // formatter docblock so the g1/tau3 ASYMMETRY siblings close off
+      // the pool-shape family after the (P11.217 Moors, P11.219
+      // Crow-Siddiqui) TAIL-WEIGHT pair. Cutoffs 0.1 / 0.3 around zero
+      // are the classical L-moment textbook bands (Hosking & Wallis
+      // 1997 §2.2) so the reference distributions land in distinct
+      // bands: Normal + Uniform tau3=0 → symmetric; Gumbel tau3≈0.170
+      // → mild_right; Gamma shape=2 tau3≈0.286 → mild_right (edge of
+      // strong); Exponential tau3=1/3 → strong_right. Mirrors the
+      // P11.215 Bowley band shape since both surfaces read asymmetry
+      // on the bounded [-1, +1] codomain. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolLSkewness =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolLSkewness(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolLSkewnessSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolLSkewnessSection(
+          snapshotPerTransitionMagnitudeTop3PoolLSkewness,
+        );
     }
   }
   if (
@@ -5209,6 +5262,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolBowleySkewnessSection ||
     perTransitionMagnitudeTop3PoolMoorsKurtosisSection ||
     perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection ||
+    perTransitionMagnitudeTop3PoolLSkewnessSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5321,6 +5375,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolBowleySkewnessSection +
       perTransitionMagnitudeTop3PoolMoorsKurtosisSection +
       perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection +
+      perTransitionMagnitudeTop3PoolLSkewnessSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
