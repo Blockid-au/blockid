@@ -603,6 +603,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-q3";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2205,6 +2210,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToQ3Section = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5805,6 +5814,51 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3Section(
           snapshotPerTransitionMagnitudeTop3PoolPeakToQ3,
         );
+      // P11.247 peak-to-mean cron wiring — WHOLE-POOL
+      // RANGE-AGAINST-ARITHMETIC-CENTER scalar over the P11.161 pool.
+      // Folds every cell into ONE dispersion read that reports the
+      // pool's total RANGE in units of the pool's ARITHMETIC MEAN:
+      //   ptmean = (max - min) / mean
+      // Reads the peak spread against an ARITHMETIC center so a
+      // SINGLE-OUTLIER pool that the P11.240 peak-to-median surface
+      // flags WIDE (because the median stays anchored on the flat
+      // floor) reads much SPREAD here (because the mean is PULLED
+      // toward the outlier and dampens the ratio). Together with
+      // P11.240 PTM (order-statistic centre) forms the complete
+      // (arithmetic-center, order-statistic-center) centre-anchor
+      // pair for the range-based dispersion read. When PTMEAN
+      // reads spread AND PTM reads wide the pool is a MILD SINGLE
+      // OUTLIER; when BOTH read wide the pool is an EXTREME OUTLIER
+      // — a first-class labelled regime pair that no single
+      // surface can flag alone.
+      // Guards: pool_count 0 → ptmean null empty; pool_count 1 →
+      // ptmean null solo (structural single partner); pool_count >=2
+      // with pool_cells 0 → ptmean null degenerate (guarded but
+      // unreachable); pool_count >=2 with mean == 0 → ptmean null
+      // degenerate (guarded but unreachable since counts >= 1 so
+      // the mean is >= 1); pool_count >=2 with mean > 0 → ptmean
+      // in [0, +Inf) rounded to 4 decimals, zero iff max == min
+      // (flat pool). Bands on raw ptmean (fixed cutoffs, calibrated
+      // against n=10 reference distributions): tight ptmean < 2.0
+      // (flat, uniform ramp, bimodal-symmetric, two-partner regimes),
+      // spread ptmean in [2.0, 5.0) (two-shoulders + mild-single-
+      // outlier regimes), wide ptmean >= 5.0 (extreme-outlier regime
+      // where even the pulled mean stays small enough for the range
+      // to still flag wide). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToQ3Section AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.246
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-arithmetic-center after the P11.244 range-
+      // against-upper-hinge landing. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToMean,
+        );
     }
   }
   if (
@@ -5902,6 +5956,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToMedianSection ||
     perTransitionMagnitudeTop3PoolPeakToQ1Section ||
     perTransitionMagnitudeTop3PoolPeakToQ3Section ||
+    perTransitionMagnitudeTop3PoolPeakToMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -6026,6 +6081,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToMedianSection +
       perTransitionMagnitudeTop3PoolPeakToQ1Section +
       perTransitionMagnitudeTop3PoolPeakToQ3Section +
+      perTransitionMagnitudeTop3PoolPeakToMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -8706,6 +8762,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToQ3.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.top_n,
+            tight_ptmean_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.tight_ptmean_max,
+            wide_ptmean_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.wide_ptmean_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMean.transitions,
           }
         : {
             skipped_reason:
