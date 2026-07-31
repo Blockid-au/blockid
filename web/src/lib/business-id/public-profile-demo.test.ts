@@ -130,7 +130,12 @@ const DEMO_ROW: Record<string, unknown> = {
   profile_kind: "demo",
 };
 
-/** The 12 analysis areas the radar in public-profile-shared.tsx plots. */
+/**
+ * The 12 capability slots the radar in public-profile-shared.tsx plots.
+ * NOTE: this is a distinct 12-slot public-profile capability radar with its
+ * own domain-specific labels — NOT the Master Plan §6 13-area analysis
+ * framework (see ANALYSIS_AREA_IDS in showcase/atlassian/stage-benchmark.ts).
+ */
 const RADAR_AREAS = [
   "leadership",
   "people",
@@ -181,7 +186,7 @@ describe("/id/blockid-demo — marketing demo profile guard", () => {
     expect(profile?.verificationLevel).toBe(3);
   });
 
-  it("carries a plausible trust score derived from the 12 areas", async () => {
+  it("carries a plausible trust score derived from the 12 capability slots", async () => {
     const profile = await readPublicProfile("blockid-demo");
     expect(profile?.trustScore).toBe(77);
   });
