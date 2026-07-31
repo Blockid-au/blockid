@@ -1039,3 +1039,4 @@
 {"ts":"2026-07-31T18:00:02Z","endpoint":"ai-health","status":"ok","duration_ms":4807,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-07-31T18:00:02Z","endpoint":"growth-insights","status":"ok","duration_ms":9704,"detail":"{\"date\": \"2026-07-31\", \"metrics\": {\"totalUsers\": 63, \"newUsersWeek\": 17, \"newUsersToday\": 1, \"sviWeek\": 3, \"sviToday\": 1, \"leadsWeek\": 0, \"leadsToday\": 0, \"totalAccounts\": 68, \"payingUsers\": 5, \"evide"}
 {"ts":"2026-07-31T18:00:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17321,"detail":""}
+{"ts":"2026-07-31T18:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":3349,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 17, \"raw\": \"17% used (231343484 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273826004 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
