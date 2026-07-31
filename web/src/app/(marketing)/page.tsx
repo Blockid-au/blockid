@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Suspense } from "react";
-import { SVIEntrance } from "@/components/svi/svi-entrance";
+import { SVIEntranceLazy } from "@/components/svi/svi-entrance-lazy";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { HeroSearch } from "@/components/landing/hero-search";
 import { HeroV3, EmotionalBand } from "@/components/landing/hero-v3";
@@ -195,7 +195,7 @@ export default async function HomePage() {
 
   return (
     <Suspense>
-      <SVIEntrance />
+      <SVIEntranceLazy />
     </Suspense>
   );
 }
