@@ -513,6 +513,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolIqr,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-iqr";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatio,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatioSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatio,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-iqr-ratio";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2043,6 +2048,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolIqr
     | null = null;
   let perTransitionMagnitudeTop3PoolIqrSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolIqrRatio:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatio
+    | null = null;
+  let perTransitionMagnitudeTop3PoolIqrRatioSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4875,6 +4884,32 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolIqrSection(
           snapshotPerTransitionMagnitudeTop3PoolIqr,
         );
+      // P11.210 interquartile-ratio cron wiring — MULTIPLICATIVE
+      // robust-stats INTERIOR-MASS dispersion scalar on the P11.161
+      // pool (iqr_ratio = Q3 / Q1 using Tukey EXCLUSIVE hinges;
+      // pool_count < 4 emits a small_pool null so the surface is
+      // distinct from the P11.185 top1/bottom1 endpoint-only
+      // multiplicative ratio). Closes the (additive, multiplicative)
+      // x (endpoint, interior, whole-pool) dispersion grid opened by
+      // P11.207 IQR — the MULTIPLICATIVE + INTERIOR-MASS corner sits
+      // alongside CV (multiplicative whole-pool), range (additive
+      // endpoint-only), top1/bottom1 ratio (multiplicative
+      // endpoint-only), MAD/MADm (additive whole-pool) and IQR
+      // (additive interior-only). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolIqrSection AND IMMEDIATELY
+      // ABOVE perPairHotCellsSection per the P11.209 formatter
+      // docblock so IQR + IQR RATIO share the same Q1/Q3 hinge pair
+      // and sit adjacent — reader spots the additive-vs-multiplicative
+      // contrast on the same interior mass in one glance. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolIqrRatio =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatio(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolIqrRatioSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatioSection(
+          snapshotPerTransitionMagnitudeTop3PoolIqrRatio,
+        );
     }
   }
   if (
@@ -4954,6 +4989,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolSkewnessSection ||
     perTransitionMagnitudeTop3PoolExcessKurtosisSection ||
     perTransitionMagnitudeTop3PoolIqrSection ||
+    perTransitionMagnitudeTop3PoolIqrRatioSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5060,6 +5096,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolSkewnessSection +
       perTransitionMagnitudeTop3PoolExcessKurtosisSection +
       perTransitionMagnitudeTop3PoolIqrSection +
+      perTransitionMagnitudeTop3PoolIqrRatioSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -7170,6 +7207,38 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolIqr.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolIqr.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_iqr_ratio:
+      snapshotPerTransitionMagnitudeTop3PoolIqrRatio
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.top_n,
+            min_pool_count_for_iqr_ratio:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.min_pool_count_for_iqr_ratio,
+            level_ratio_max:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.level_ratio_max,
+            stark_ratio_min:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.stark_ratio_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolIqrRatio.transitions,
           }
         : {
             skipped_reason:
