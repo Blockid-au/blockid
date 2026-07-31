@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { getScannerVersion, scanBuffer } from "@/lib/security/clamav";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
@@ -131,6 +133,47 @@ function corsJson(data: any, origin?: string | null, init?: { status?: number })
   return NextResponse.json(data, { ...init, headers: corsHeaders(origin) });
 }
 
+interface ScanAudit {
+  userId: string | null;
+  filenameStored: string;
+  sizeBytes: number;
+  mimeType: string;
+  verdict: "clean" | "infected" | "scanner_error";
+  signature: string | null;
+}
+
+/**
+ * Best-effort audit-row write. NEVER blocks the upload response on Supabase
+ * being reachable — this is an observability signal, not a correctness gate.
+ * If SUPABASE_SERVICE_ROLE_KEY is unset we skip silently; the migration
+ * (0301_upload_scans.sql) still needs to be applied for the insert to land.
+ */
+async function recordScan(a: ScanAudit): Promise<void> {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return;
+    // user_id is NOT NULL in the schema — skip the insert on the shared-
+    // password path rather than 500'ing the upload. That path is deprecated
+    // and disabled by default (UPLOAD_PASSWORD env unset).
+    if (!a.userId) return;
+    const scannerVersion = await getScannerVersion();
+    const { error } = await supabase.from("upload_scans").insert({
+      user_id: a.userId,
+      filename_stored: a.filenameStored,
+      size_bytes: a.sizeBytes,
+      mime_type: a.mimeType,
+      verdict: a.verdict,
+      signature: a.signature,
+      scanner_version: scannerVersion === "unknown" ? null : scannerVersion,
+    });
+    if (error) {
+      console.error("[upload:audit] insert failed", error);
+    }
+  } catch (err) {
+    console.error("[upload:audit] unexpected error", err);
+  }
+}
+
 // No insecure default — password upload only works if UPLOAD_PASSWORD is
 // explicitly configured. When unset (the production default), uploads require
 // an authenticated session. This removes the previously hardcoded "1243".
@@ -175,7 +218,60 @@ export async function POST(request: Request) {
   const filepath = join(dir, filename);
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // Malware gate — clamd via INSTREAM (fail-CLOSED on timeout/unreachable).
+  // The extension fix (68994a3c) stops a legit MIME being served as HTML;
+  // this stops a legit-typed PDF/DOCX carrying a known exploit. Both layers
+  // are needed. `user` is truthy on the session path; on the (deprecated)
+  // shared-password path we still scan but record with a null user via a
+  // sentinel row — the password gate is gated behind an explicit env var
+  // and expected to disappear.
+  const scan = await scanBuffer(buffer);
+  if (!scan.ok && scan.verdict === "infected") {
+    await recordScan({
+      userId: user?.id ?? null,
+      filenameStored: filename,
+      sizeBytes: file.size,
+      mimeType: file.type,
+      verdict: "infected",
+      signature: scan.signature ?? null,
+    });
+    return corsJson(
+      {
+        error: `Upload rejected — malware signature detected: ${scan.signature ?? "unknown"}. The file was NOT stored.`,
+        signature: scan.signature ?? null,
+      },
+      origin,
+      { status: 422 },
+    );
+  }
+  if (!scan.ok && scan.verdict === "scanner_error") {
+    await recordScan({
+      userId: user?.id ?? null,
+      filenameStored: filename,
+      sizeBytes: file.size,
+      mimeType: file.type,
+      verdict: "scanner_error",
+      signature: null,
+    });
+    // 503 — fail-CLOSED. Never fail-open on scanner error, even for signed-in
+    // users, or a timeout budget becomes an upload bypass.
+    return corsJson(
+      { error: "Virus scanner unavailable — try again shortly." },
+      origin,
+      { status: 503 },
+    );
+  }
+
   await writeFile(filepath, buffer);
+  await recordScan({
+    userId: user?.id ?? null,
+    filenameStored: filename,
+    sizeBytes: file.size,
+    mimeType: file.type,
+    verdict: "clean",
+    signature: null,
+  });
 
   // Make file world-readable (nginx serves as different user)
   const { chmod } = await import("fs/promises");
