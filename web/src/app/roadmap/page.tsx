@@ -114,12 +114,13 @@ const PLATFORM_PHASES: Phase[] = [
 const CURRENT_PLATFORM_PHASE = 5;
 
 // ---------------------------------------------------------------------------
-// Snapshot as of 2026-07-23. Source: docs/plans/plan-delta-2026-07-23.md,
-// docs/plans/real-world-workflow-parity-audit-2026-07-23.md, and recent git
-// log. Refresh on each roadmap sync tick.
+// Snapshot as of 2026-07-31 — v3.0 Master Upgrade landing.
+// Source: /home/dovanlong/.claude/plans/h-y-k-t-h-p-n-ng-hazy-sutton.md,
+// docs/plans/plan-delta-2026-07-23.md, and recent git log. Refresh on each
+// roadmap sync tick.
 // ---------------------------------------------------------------------------
 
-const SNAPSHOT_DATE = "2026-07-23";
+const SNAPSHOT_DATE = "2026-07-31";
 
 type ShippedItem = {
   id: string;
