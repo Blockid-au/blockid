@@ -623,3 +623,5 @@
 {"tick_id":"2026-07-31T02-37-01-171Z","ts":"2026-07-31T02:37:01.172Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T02-37-01-171Z","ts":"2026-07-31T02:37:01.183Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-31T02-41-41-000Z","ts":"2026-07-31T02:41:41.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1-reseed-templates-route-test","summary":"12-case vitest for POST /api/dataroom/reseed-templates covering gate/rate-limit/project/seeder wire chain","result":"12 passed / 341ms","typecheck":"clean"}
+{"tick_id":"2026-07-31T02-37-01-171Z","ts":"2026-07-31T02:42:10.214Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":309029,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T02-37-01-171Z","ts":"2026-07-31T02:42:10.249Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}

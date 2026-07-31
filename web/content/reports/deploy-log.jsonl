@@ -1618,3 +1618,5 @@
 {"ts":"2026-07-31T02:27:50.452Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T02-17-01-934Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T02:33:20.302Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-weekly-digest): P11.220 cron wiring CROW-SIDDIQUI KURTOSIS (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T02:33:33.103Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T02-25-01-283Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T02:36:15.247Z","event":"github-push-master","detail":"Blockid-au: feat(i18n): sub-T4 VI mirror for /id/[slug] + sitemap hreflang (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T02:42:00.116Z","event":"github-push-master","detail":"Blockid-au: test(reseed-templates-route): P1-reseed-templates-route-test — 12-case colocated vitest for POST /api/dataroom/reseed-templates (1 commits)","source":"github-webhook"}
