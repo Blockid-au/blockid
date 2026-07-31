@@ -143,12 +143,15 @@ Translating by ordinal instead would have put R&D at `mentor_review` and GST at 
 
 ## 3. Phased implementation
 
-### P0 — Taxonomy unification *(blocking prerequisite)*
-- Declare string-id `GROWTH_PHASES` canonical for all progress/gating. Numeric survives **only** for showcase display.
-- Re-key `PHASE_CRITERION_SUBSET` and `COMPLIANCE_PHASE_GATES` to `GrowthPhaseId`.
-- Delete the `indexOfGrowthPhase(id) + 1` bridge at `next-steps.ts:426`.
-- Add a type-level guard so a numeric `PhaseKey` cannot be passed where a `GrowthPhaseId` is expected.
-- **Test:** snapshot pinning all 12 phase→criteria and 4 compliance→phase mappings.
+### P0 — Taxonomy unification *(blocking prerequisite)* — ✅ **shipped**
+- ✅ New `web/src/lib/growth/phase-taxonomy.ts` — canonical `GrowthPhaseId` keys, `GROWTH_PHASE_ORDER`, `GROWTH_PHASE_LABELS` (EN+VI), `isGrowthPhaseId()`, `orderToGrowthPhase()`, `nextGrowthPhase()`, `growthPhaseAtLeast()`.
+- ✅ `PHASE_CRITERION_SUBSET` re-keyed to `GrowthPhaseId` per §2c.
+- ✅ `COMPLIANCE_PHASE_GATES` re-keyed by intent: `rd→product_dev`, `gst→go_to_market`, `esic→investor_review`, `s708→investor_review`.
+- ✅ `indexOfGrowthPhase(id) + 1` bridge deleted. `detectCurrentPhase` now prefers a recognisable `phase_id` and reconstructs from `phase_order` only as a fallback, so the emitted (id, order) pair is always self-consistent even on legacy rows.
+- ✅ Phase labels now come from `GROWTH_PHASE_LABELS`, not `showcase/gallery.ts PHASE_LABELS` — `legal_equity` no longer renders as "Revenue / Business Model".
+- ✅ Crossing into the numeric taxonomy goes through `GROWTH_PHASE_TO_TEMPLATE_PHASE`, and a test asserts that bridge is only valid where `PHASE_TO_STAGE` and `GROWTH_PHASE_TO_STAGE` agree — a future re-order now fails loudly.
+- ✅ **Wire-format change:** `NudgeResult.current_phase.slug` and every `readiness_by_phase` key are now growth-phase ids (`"vision"`…`"funding"`) instead of `"1"`…`"12"`. Founder-facing copy still renders the ordinal via `growthPhaseOrder()`. Pre-G8 `svi_readiness_snapshots` rows carry numeric keys and gap-fill to `score=0` rather than erroring.
+- ✅ Tests: 13 new in `phase-taxonomy.test.ts`; 287 green across `growth/`, `nudge/`, `email/`, `dashboard/`.
 - Owner: `typescript-pro` + `architecture-designer`.
 
 ### P1 — Phase gate engine *(new)*

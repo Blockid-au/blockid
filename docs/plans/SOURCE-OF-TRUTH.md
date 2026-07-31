@@ -91,16 +91,16 @@
 ### G8 — Progressive unlock & chrome parity
 - **Source:** [`docs/plans/unlock-next-level-2026-07-31.md`](./unlock-next-level-2026-07-31.md) · continues G7 · founder request 2026-07-31
 - **Decisions (founder, 2026-07-31):** unlock spine = **Growth phases 12** (`vision`…`funding`, the taxonomy `startup_phase_progress.phase_id` already stores) · lock policy = **hybrid** (progress-locked ⇒ hidden, tier-locked ⇒ dimmed + upgrade chip).
-- **Status:** P0–P8 all `open`. Audit complete, no code shipped yet.
+- **Status:** **P0 shipped** (taxonomy unification — the blocking defect below is closed). P1–P8 `open`.
 - **Audit findings (ranked):**
-  1. **⚠ Blocking defect** — two different 12-phase taxonomies are silently conflated. `startup_phase_progress.phase_id` stores string ids; `PHASE_CRITERION_SUBSET` + `COMPLIANCE_PHASE_GATES` key off numeric `PhaseKey 1-12` with **different phase-N semantics** (string #6 = `legal_equity`, numeric #6 = Revenue/Business Model). `web/src/lib/nudge/next-steps.ts:426` bridges via `indexOfGrowthPhase(id)+1` — mis-scores every founder. **P0 fixes this before any gate work.**
+  1. **✅ FIXED (P0)** — two different 12-phase taxonomies were silently conflated. `startup_phase_progress.phase_id` stores string ids; `PHASE_CRITERION_SUBSET` + `COMPLIANCE_PHASE_GATES` key off numeric `PhaseKey 1-12` with **different phase-N semantics** (string #6 = `legal_equity`, numeric #6 = Revenue/Business Model). `web/src/lib/nudge/next-steps.ts:426` bridges via `indexOfGrowthPhase(id)+1` — mis-scored every founder. Closed by `web/src/lib/growth/phase-taxonomy.ts`: string ids are canonical, the numeric bridge is explicit and test-pinned, and `readiness_by_phase` + `current_phase.slug` now key on growth ids.
   2. **No advance-gate exists for the 12-phase model** — only `completion_pct`. The engine must be built (P1); Unicorn S0–S5 has one (`computeStageProgress()`), Growth-12 does not.
   3. **~70 pages render with no shell** — `/reseller/*` 13/13, `/showcase/*` 15, `/admin/*` 24/36, `/compliance/*` 7/7, `/workspace/*` orphans 8, marketing strays 7. Root layout renders no chrome (`web/src/app/layout.tsx:96-172`); shells are opt-in per file.
   4. **No footer in `WorkspaceLayout` or `AdminLayout`** — ~107 pages have no bottom bar.
   5. **Unlock machinery built but imported by nothing** — `web/src/lib/nav/filter-nav-for-user.ts:94` and `web/src/lib/nav/hide-when-locked.ts:47` already implement decision D2 exactly; the live renderer `workspace-layout.tsx:141-168` ignores `persona`, `journeyGroup`, `hideWhenLocked` and dims `minPhase` groups instead of hiding them.
   6. `web/src/app/reseller/layout.tsx:11` carries a "P4 hardening will replace this with the reused WorkspaceLayout" TODO that was never executed.
 - **Evaluation criteria (§2c of goal doc):** 12 phase exit gates, each requiring named criteria at ≥ `good` (from the 13 in `web/src/lib/evaluation-criteria.ts:66`, weights = 100) **plus** an SVI dimension floor (from the 8 in `web/src/lib/svi-analysis.ts:1195-1275`). Compliance gates re-mapped by intent: `rd→product_dev`, `gst→go_to_market`, `esic→investor_review`, `s708→investor_review`.
-- **Next action:** P0 taxonomy unification (`typescript-pro` + `architecture-designer`) — blocks the whole unlock lane. P5 shell matrix can start in parallel.
+- **Next action:** P1 phase-gate engine (`web/src/lib/growth/phase-gate.ts`) — P0 unblocked it. Note the autonomous loop is concurrently doing route-group moves that overlap P5/P6; coordinate before starting chrome backfill.
 - **Blocker:** none for P0/P5. Q1–Q3 in the goal doc are founder-review only and non-blocking.
 
 ---
@@ -150,7 +150,7 @@
 | EXC-0013 | svi-exchange-tasks | investor EOI book | shipped | fullstack-guardian | v0.4.0 |
 | EXC-0014 | svi-exchange-tasks | institutional API tier | shipped | typescript-pro | marked_deployed |
 | SHOWCASE-ATL | atlassian-standard-mapping-goal | showcase-walkthrough | shipped | react-expert + nextjs-developer + test-master | fixture `aa2f8808`; shell test `5fed65f8`; guide `42bfad17`; summary + landing CTA `4bcd4c09` |
-| G8-P0 | unlock-next-level-2026-07-31 | taxonomy | open | typescript-pro | — (blocks G8-P1..P4) |
+| G8-P0 | unlock-next-level-2026-07-31 | taxonomy | shipped | typescript-pro | `4f7a922f` + `6c8819f6` |
 | G8-P1 | unlock-next-level-2026-07-31 | gate-engine | open | typescript-pro | — |
 | G8-P2 | unlock-next-level-2026-07-31 | data-model | open | db-migrate | — (migration 0300) |
 | G8-P3 | unlock-next-level-2026-07-31 | nav-hybrid | open | react-expert | — |
