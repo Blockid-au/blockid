@@ -14,7 +14,7 @@ import { ActivityFeed } from "./activity-feed";
 import { DeepDiveUpsell } from "./deep-dive-upsell";
 import { InsightsPanel } from "./insights-panel";
 
-import type { ReportEntry, SVIHistoryPoint } from "@/app/dashboard/svi/page";
+import type { ReportEntry, SVIHistoryPoint } from "@/app/(app)/(founder)/dashboard/svi/page";
 
 interface UserProfile {
   displayName: string | null;
