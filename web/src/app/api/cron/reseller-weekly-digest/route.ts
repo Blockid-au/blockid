@@ -10651,6 +10651,36 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_duovigintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.top_n,
+            tight_ptdvim_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.tight_ptdvim_max,
+            wide_ptdvim_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.wide_ptdvim_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     snapshot_per_pair_hot_cells: snapshotPerPairHotCells
       ? {
           window_size: snapshotPerPairHotCells.window_size,
