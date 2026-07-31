@@ -633,6 +633,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-trimean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quartile-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2259,6 +2264,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToTrimeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToQuartileMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -6147,6 +6156,47 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean,
         );
+      // P11.258 PEAK-TO-QUARTILE-MEAN pool-shape surface. ptqm =
+      // (max - min) / quartile_mean where quartile_mean = (Q1 +
+      // median + Q3) / 3 uses the Tukey EXCLUSIVE hinges. Reads
+      // range in units of the UNWEIGHTED (equal-weight) QUARTILE
+      // COMPOSITE centre. Algebraic identity: quartile_mean =
+      // (2*midhinge + median) / 3, so QM sits BETWEEN midhinge and
+      // trimean on the number line, giving the sandwich PTMH <->
+      // PTQM <-> PTTRI. Guards: pool_count 0 -> ptqm null (empty);
+      // pool_count 1 -> ptqm null (solo); pool_cells 0 or
+      // quartile_mean 0 -> ptqm null (degenerate, guarded but
+      // unreachable since counts >= 1 so Q1 + med + Q3 >= 3);
+      // pool_count >=2 with quartile_mean > 0 -> ptqm in [0, +Inf)
+      // rounded to 4 decimals, zero iff max == min (flat pool).
+      // Bands on raw ptqm (fixed cutoffs, calibrated against n=10
+      // reference distributions): tight ptqm < 2.0 (flat, uniform
+      // ramp, bimodal-split, two-partner regimes), spread ptqm in
+      // [2.0, 5.0) (two-shoulders + small-pool-with-large-partner-
+      // promotion regimes -- PTQM lands the [10, 1, 1] SMALL-VALUE-
+      // DOMINATED-with-PROMOTION at 2.25 spread, TIGHTER than PTTRI
+      // 2.7692 spread since QM dilutes the small-median vote to 1/3
+      // vs trimean's 2/4; the (PTQM, PTTRI) SIGNED ordering pins
+      // the RIGHT-SKEWED interior since PTQM < PTTRI iff midhinge >
+      // median), wide ptqm >= 5.0 (upper-outlier + extreme-outlier
+      // regimes). Cutoffs mirror the P11.240 PTM + P11.242 PTQ1 +
+      // P11.244 PTQ3 + P11.254 PTMH + P11.256 PTTRI robust-anchor
+      // siblings so the sextet shares one vocabulary. Splices
+      // IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToTrimeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.258
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-unweighted-quartile-composite after the
+      // P11.256 range-against-hinge-and-median-composite landing.
+      // Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToQuartileMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean,
+        );
     }
   }
   if (
@@ -6250,6 +6300,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToRmsSection ||
     perTransitionMagnitudeTop3PoolPeakToMidhingeSection ||
     perTransitionMagnitudeTop3PoolPeakToTrimeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToQuartileMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -6380,6 +6431,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToRmsSection +
       perTransitionMagnitudeTop3PoolPeakToMidhingeSection +
       perTransitionMagnitudeTop3PoolPeakToTrimeanSection +
+      perTransitionMagnitudeTop3PoolPeakToQuartileMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -9240,6 +9292,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToTrimean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_quartile_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.top_n,
+            tight_ptqm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.tight_ptqm_max,
+            wide_ptqm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.wide_ptqm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean.transitions,
           }
         : {
             skipped_reason:
