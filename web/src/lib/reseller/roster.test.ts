@@ -48,7 +48,7 @@ function mockSupabase(opts: {
 }): RosterSupabaseLike {
   const admins = opts.admins ?? [];
   const roster = opts.roster ?? [];
-  return {
+  const impl = {
     from(table: string) {
       if (table === "reseller_admins") {
         return {
@@ -67,7 +67,7 @@ function mockSupabase(opts: {
               }),
             }),
           }),
-        } as ReturnType<RosterSupabaseLike["from"]> & unknown as never;
+        };
       }
       if (table === "reseller_startup_roster") {
         return {
@@ -86,18 +86,19 @@ function mockSupabase(opts: {
                           if (va === vb) return 0;
                           if (va == null) return 1;
                           if (vb == null) return -1;
-                          const cmp = va < vb ? -1 : 1;
+                          const cmp = (va as number | string) < (vb as number | string) ? -1 : 1;
                           return ascending ? cmp : -cmp;
                         }),
                   error: opts.rosterError ?? null,
                 }),
             }),
           }),
-        } as ReturnType<RosterSupabaseLike["from"]> & unknown as never;
+        };
       }
       throw new Error(`Unexpected table ${table}`);
     },
-  } as RosterSupabaseLike;
+  };
+  return impl as unknown as RosterSupabaseLike;
 }
 
 describe("RosterFiltersSchema", () => {
