@@ -34,8 +34,18 @@ reference_surfaces:
     atlassian_showcase: web/src/app/showcase/atlassian/page.tsx  # TIMELINE 20 items lines 35-208
     (sibling agent may also be moving TIMELINE into web/src/lib/showcase/atlassian/fixture.ts — DO NOT MODIFY)
   atlassian_public:
-    s1_index: https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001650372&type=S-1&dateb=&owner=include&count=40
-    s1_first_file: https://www.sec.gov/Archives/edgar/data/1650372/000119312515373798/d67899ds1.htm
+    # CORRECTION 2026-07-31: Atlassian did NOT file an S-1. The listing entity was
+    # Atlassian Corporation Plc, a UK company, so it registered as a foreign private
+    # issuer on Form F-1. The two keys below are kept only so older references in this
+    # file resolve; use f1_2015 / prospectus_424b4_2015 for anything new.
+    f1_2015: https://www.sec.gov/Archives/edgar/data/0001650372/000104746915008450/a2226437zf-1.htm  # filed 2015-11-09
+    prospectus_424b4_2015: https://www.sec.gov/Archives/edgar/data/1650372/000104746915009143/a2226831z424b4.htm
+    ipo_pricing_pr: https://www.atlassian.com/company/news/press-releases/atlassian-announces-pricing-of-initial-public-offering
+    accel_2010_blog: https://www.atlassian.com/blog/news/2010/07/atlassian_closes_60_million_investment_from_accel_partners
+    redomicile_8k_2022: https://www.sec.gov/Archives/edgar/data/1650372/000119312522256215/d583064dex991.htm
+    q4_fy25_release: https://www.sec.gov/Archives/edgar/data/1650372/000165037225000028/ex991q4fy25.htm
+    s1_index: https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001650372&type=S-1&dateb=&owner=include&count=40  # DEPRECATED — returns no S-1
+    s1_first_file: https://www.sec.gov/Archives/edgar/data/1650372/000119312515373798/d67899ds1.htm  # DEPRECATED — see f1_2015
     fy25_10k: https://www.sec.gov/Archives/edgar/data/1650372/000165037225000036/team-20250630.htm
     company_page: https://www.atlassian.com/company
     twenty_lessons_blog: https://www.atlassian.com/blog/announcements/atlassian-founders-20-years-20-lessons
@@ -217,7 +227,7 @@ Line references anchored to files current as of 2026-07-24; verify with `git bla
 
 **Note on count:** The spec said "60-item data room". The actual taxonomy in `web/src/lib/data-room-templates.ts:425-1443` currently has **102 items across 12 folders**. Mapping ≥ 90 of 102 per success_criteria.
 
-**Atlassian S-1 reference:** filed 2015-11-25, effective 2015-12-08, IPO 2015-12-10. Exhibit index reachable via [SEC EDGAR CIK 0001650372](https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001650372&type=S-1). Exhibit numbers below follow the S-1 exhibit-index conventions (3.x = charter/bylaws, 4.x = securities-instruments, 10.x = material-contracts, 21.1 = subsidiaries, 23.1 = auditor consent, 5.1 = legality opinion).
+**Atlassian registration-statement reference:** **Form F-1**, not Form S-1 — the listing entity was Atlassian Corporation Plc, a UK company, registering as a foreign private issuer. Filed 2015-11-09 ([SEC](https://www.sec.gov/Archives/edgar/data/0001650372/000104746915008450/a2226437zf-1.htm)); final prospectus filed under Rule 424(b)(4); IPO priced 2015-12-09 at US$21.00 and began trading 2015-12-10. Every "S-1" below should be read as "F-1" — the exhibit-numbering conventions are the same, but a founder using this as a template needs to know an F-1 filer carries different ongoing reporting obligations from a domestic filer (Atlassian only became a domestic filer after the 2022 Delaware redomiciliation). Correction landed 2026-07-31 with `web/src/lib/showcase/atlassian/stage-benchmark.ts`. Exhibit index reachable via [SEC EDGAR CIK 0001650372](https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001650372&type=S-1). Exhibit numbers below follow the S-1 exhibit-index conventions (3.x = charter/bylaws, 4.x = securities-instruments, 10.x = material-contracts, 21.1 = subsidiaries, 23.1 = auditor consent, 5.1 = legality opinion).
 
 ### Folder 1 — Corporate & Legal (`data-room-templates.ts:428-533`, 12 items)
 | # | BlockID item | Atlassian S-1 equivalent | Which phase gates it | BlockID capability today | Auto-gen? |
@@ -810,3 +820,53 @@ Each P1x / P2x / P3x / P4x / P5x / P6x / P7x / P8x / P10x / P11x / P12x / P1n-x 
 *Previous tick (P5b-next-step-tile-e2e — Playwright E2E at `web/tests/e2e/founder/next-step-tile.spec.ts` for `<NextStepTile />` on `/dashboard/svi` (mounted per P5b alongside `<InvestorReadinessTile />`). Closes the "route-level Playwright hook-in" gap on the founder-facing NextStepTile: the tile has shipped since P3 but had no direct UI-side spec — the sibling `next-step-nudge.spec.ts` covers the API contract only. Small source-code churn — `web/src/components/dashboard/next-step-tile.tsx` grows six `data-testid` hooks + a `data-state={loading|error|ready}` + a `data-phase-slug` root attribute so the spec can attach without brittle text queries: `next-step-tile` (root), `next-step-phase` (pill with `data-phase-slug`), `next-step-action-title` (h3), `next-step-action-cta` (Link with `data-category`), `next-step-readiness-score` (donut number), `next-step-missing` (ul with `data-raise-blocker` + `data-category` per `<li>`), `next-step-retry` (error-state button). Spec mirrors the `investor-readiness-tile.spec.ts` posture — `loginAs()` a seeded qa-founder (`QA_FOUNDER_NUDGE_EMAIL` env override, defaults to `qa-founder-1@blockid.au`), `page.route()` intercepts `/api/nudge/next-steps` and returns a deterministic FAKE_PAYLOAD (phase 6 Revenue / Business Model, `Wire your Stripe in live mode` next action, readiness overall 63, three missing items — two ESIC/GST raise-blockers + one non-blocker Cohort Revenue Analysis in that order), navigates to `/dashboard/svi`, and skips cleanly when the tile hasn't been mounted (auth redirect on a fresh clone). Assertions pin: (a) `data-state="ready"` + `data-phase-slug="6"` on the tile root, (b) phase pill contains "Phase 6" + "Revenue / Business Model" with `data-phase-slug="6"`, (c) next-action title reads "Wire your Stripe in live mode", (d) CTA renders "Open integrations" with `href="/dashboard/integrations"` + `data-category="phase_advance"`, (e) readiness donut score reads "63", (f) missing list has exactly 3 items with `data-raise-blocker` flags `["true", "true", "false"]` and the first is the ESIC entry. `npx playwright test tests/e2e/founder/next-step-tile.spec.ts --list` green (1 test discovered under chromium). Typecheck `npx tsc --noEmit -p tsconfig.json` green (exit 0). NextStepTile now ships end-to-end at every layer: pure lib (`computeNextSteps`) → auth-gated GET `/api/nudge/next-steps` → API contract Playwright spec (`next-step-nudge.spec.ts`) → dashboard tile mount on `/dashboard/svi` (P5b) → UI-side Playwright spec (this tick). The tile is now at Playwright parity with `<InvestorReadinessTile />`, `<MarketSizeTile />`, and the compliance form family (esic / s708 / gst / wgea / modern-slavery).)*
 
 *Previous tick (P4a-preview-ui-e2e — Playwright E2E at `web/tests/e2e/founder/landing-page-preview-panel.spec.ts` closing the last outstanding leg of the P4a chain (`P4a-landing-page-preview` pure renderer → `P4a-publish-route` POST route → `P4a-preview-ui` panel mounted on `/guide/04-mvp` + `/workspace/guide/04-mvp` → `P4a-cmo-draft` deterministic auto-draft builder → `P4a-cmo-draft-wire` UI wire-in of the auto-draft button → this Playwright round-trip). Zero source-code churn — the panel already exposes `data-testid="landing-page-preview-panel"` + `data-status={idle|loading|success|error}` root attributes plus per-field / per-button testids (`landing-page-preview-headline`, `landing-page-preview-subheadline`, `landing-page-preview-bullets`, `landing-page-preview-cta-label`, `landing-page-preview-cta-href`, `landing-page-preview-submit`, `landing-page-preview-iframe`, `landing-page-preview-validation`, `landing-page-preview-markdown`, `landing-page-preview-cmo-toggle`, `landing-page-preview-cmo-panel`, `landing-page-preview-cmo-oneliner`, `landing-page-preview-cmo-benefits`, `landing-page-preview-cmo-apply`) plus a `data-valid` attribute on the validation block and per-reason `data-reason` attributes on each invalid-reason chip from the P4a-preview-ui + P4a-cmo-draft-wire ships, so the spec attaches without any component edits. Anonymous public route (matches the `smoke/showcase-atlassian-walkthrough.spec.ts` posture) — `test.use({ storageState: { cookies: [], origins: [] } })` forces an anon session so the spec runs against `/guide/04-mvp` without a QA fixture. Drives the panel through four distinct states: (a) initial idle status + submit disabled on a blank form, (b) happy-path fill (headline + subheadline + one bullet + CTA label + `/signup` href) → submit → `data-status="success"` + iframe visible + `data-valid="true"` + markdown contains the founder-typed headline, (c) break the CTA href to `javascript:alert(1)` → resubmit → `data-valid="false"` + the exact `data-reason="cta_href_invalid"` chip present so a regression in the `isSafeCtaHref` neutraliser or the `reasonCopy` pack surfaces here, (d) toggle the CMO auto-draft panel → populate one-liner + two benefits → click Apply → non-destructive-merge invariant asserted (headline typed in step (b) survives the merge + bullets textarea remains non-empty because the founder-typed bullet from step (b) was not overwritten). `npx playwright test tests/e2e/founder/landing-page-preview-panel.spec.ts --list` green (1 test discovered under chromium). Typecheck `npx tsc --noEmit -p tsconfig.json` green (exit 0). Closes the P4a-preview-ui-e2e follow-up. The P4a landing-page chain now ships end-to-end at every layer: pure lib (`preview.ts`) → POST route (`/api/landing-page/preview`) → founder panel on `/guide/04-mvp` + `/workspace/guide/04-mvp` → auto-draft builder (`cmo-draft.ts`) → auto-draft UI button → Playwright round-trip (this tick). Durable persistence (`P4a-publish-storage` — nightly cron writes `landing-page-draft.md` + `landing-page-preview.html` into `dataroom_files` folder 4) + agent-side auto-firing (`P4a-cmo-draft-auto` — agent-dispatcher CMO branch pre-fills the panel from the Chapter 3 deep-pass without a founder having to re-paste) remain the two outstanding follow-ups on the chain, both blocked on sibling storage / agent-wiring passes.)*
+
+
+---
+
+## 8. Public-record benchmark layer — shipped 2026-07-31 (P8-benchmark-mapping)
+
+Adds the S0–S5 × 12-phase × 12-area sourced mapping the goal's `human_blocked`
+P8 item was waiting on — shipped as **flagged, not self-certified**, honouring
+the "mapping accuracy is a domain call; auto-loop cannot self-verify" reason.
+
+**Scope note (2026-07-31):** Atlassian is market-reference / benchmark data
+only. There is no Atlassian `/id/` profile and none is to be created. The
+mapping is surfaced exclusively on `/showcase/atlassian/*`.
+
+### Modules
+
+| Path | What |
+| --- | --- |
+| `web/src/lib/showcase/atlassian/stage-benchmark.ts` | Typed dataset: 16 sourced milestones, S0–S5 stage benchmarks (13-area readings × 5 SCN lenses × verification-ladder analogue × expected vs publicly-visible artefacts), 12 per-phase benchmarks keyed to `GROWTH_PHASES` ids, 6 folklore checks, 5 human-review flags. |
+| `web/src/lib/showcase/atlassian/stage-benchmark.test.ts` | 44 cases pinning sourcing, S0–S5 coverage, framework-id resolution, weights-sum-to-100, no-BlockID-score. |
+| `web/src/components/showcase/atlassian-benchmark.tsx` | Server-component renderers. |
+| `web/src/components/showcase/atlassian-benchmark.test.ts` | 15 cases pinning the framing contract (every surface renders `<BenchmarkNotice />`). |
+
+Surfaced on `/showcase/atlassian/growth-phases` (per-phase panel in each of the
+12 columns + the S0–S5 section + review flags) and `/showcase/atlassian/summary`
+(folklore checks + review flags). Both carry `BENCHMARK_DISCLAIMER`.
+
+### Accuracy corrections made this round
+
+| Claim as usually told | What the record supports |
+| --- | --- |
+| "Filed an S-1" | **Form F-1**, 9 Nov 2015 — UK plc, foreign private issuer. |
+| "Never took VC" | Atlassian's own 2010 announcement: US$60M from Accel for a minority position, Rich Wong to the board. No outside financing for the first eight years is the accurate version; a reported US$150M secondary followed in 2014. |
+| "Zero founder dilution" (was live copy in `steps.ts` + the summary page) | Not supportable. Corrected to "founders keeping voting control", which is what the dual-class disclosure supports. |
+| "No sales team" | The prospectus's precise claim is no *direct salesforce / quota-carrying* personnel. Marketing & sales was US$68.0M in FY2015 (≈21% of revenue) against R&D at ≈44%. |
+| "Started on A$10,000 of credit card debt" | Not in any filing or in Atlassian's own retrospective in citable form. Recorded as `NOT_PUBLICLY_DISCLOSED`. |
+| "Profitable since inception, still is" | First half is Atlassian's own 2010 claim. FY2025 was a **US$256.7M GAAP net loss** alongside US$1,415.5M free cash flow. |
+
+### Flagged for human review — NOT self-certified
+
+1. **S0–S5 placement.** The framework's stages are day-count windows (S0 = D0–14 … S5 = Y2+). Atlassian took ~13 years to satisfy the S5 exit criteria. Stages here are assigned by *exit criteria satisfied*, never by elapsed days; reading them as the same thing produces the false conclusion that Atlassian was "behind schedule" for a decade.
+2. **Verification-ladder analogue.** The ladder's predicates are BlockID constructs for AU private companies. Applying them to a UK-then-US listed issuer is an analogy; every level is marked `interpretation`.
+3. **Area ↔ SVI criterion linkage.** 9 of 13 areas map cleanly; 4 are left `null` rather than forced. Whether Marketing & Brand / Operations & Process / Business Performance & KPIs / Financial Health deserve criteria of their own is a product decision.
+4. **Pre-2015 area readings.** Almost no primary evidence exists before the registration statement. Most areas are recorded `not_public` for exactly this reason; the handful graded `strong`/`weak` need a human check before being presented as benchmark strength.
+5. **Phase-ordinal assignment.** A real company runs several phases at once; putting the 2010 Accel round at the fundraise phase rather than funding-ready or post-funding is a judgement about what the event best teaches.
+
+`P8` therefore moves from `human_blocked` to **`awaiting_human_review`**: the
+data and surfaces exist and are cited, and the five contested judgements above
+are named in code (`ATLASSIAN_HUMAN_REVIEW_FLAGS`) and rendered to the visitor
+rather than being quietly asserted.
