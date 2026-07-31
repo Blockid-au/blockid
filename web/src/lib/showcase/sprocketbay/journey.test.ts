@@ -623,7 +623,93 @@ describe("reconciliation with /id/sprocketbay-demo", () => {
   });
 });
 
-// ── 7. Shape guards ────────────────────────────────────────────────
+// ── 7. The seed migration must not drift from the fixture ──────────
+
+describe("migration 0300 seed", () => {
+  const sql = readFileSync(
+    join(REPO_WEB, "supabase", "migrations", "0300_seed_sprocketbay_journey.sql"),
+    "utf8",
+  );
+
+  it("seeds an evidence row for every artefact", () => {
+    for (const a of ARTEFACTS) {
+      expect(sql, `0300 missing evidence for ${a.id}`).toContain(
+        `"demo_artefact_id":"${a.id}"`,
+      );
+      expect(sql, `0300 missing state for ${a.id}`).toContain(
+        `'demo/sprocketbay/${a.id}.placeholder'`,
+      );
+    }
+  });
+
+  it("seeds a data-room document for every artefact", () => {
+    for (const a of ARTEFACTS) {
+      expect(sql, `0300 missing data-room doc ${a.dataRoomDocument}`).toContain(
+        `'${a.dataRoomDocument.replace(/'/g, "''")}'`,
+      );
+    }
+  });
+
+  it("seeds all 13 criteria with the scores and qualities the engine derives", () => {
+    const last = SPROCKETBAY_STAGES[SPROCKETBAY_STAGES.length - 1];
+    for (const a of last.answers) {
+      // `'<key>', '<files json>'::jsonb ... <score>, ... '<quality>'`
+      expect(sql, `0300 missing criterion ${a.criterion}`).toContain(
+        `'${a.criterion}'`,
+      );
+      const weight = CRITERIA.find((c) => c.key === a.criterion)?.weight;
+      expect(sql, `0300 score for ${a.criterion}`).toContain(
+        `, ${a.score}, 'SAMPLE DATA — weighted ${weight}% of the composite.`,
+      );
+      expect(sql, `0300 quality for ${a.criterion}`).toContain(
+        `'${qualityFor(a)}'`,
+      );
+    }
+  });
+
+  it("seeds a stage-progress row per stage carrying the computed verdict", () => {
+    for (const c of computeWalkthrough()) {
+      expect(sql, `0300 missing ${c.stage.stage}`).toContain(
+        `(proj_id, '${c.stage.stage}', timestamptz '${c.stage.enteredOn} 00:00:00+00'`,
+      );
+      expect(sql, `0300 trust score for ${c.stage.stage}`).toContain(
+        `"trust_score":${c.trustScore}`,
+      );
+      expect(sql, `0300 ladder for ${c.stage.stage}`).toContain(
+        `"verification_level":${c.verificationLevel}`,
+      );
+    }
+  });
+
+  it("labels everything it seeds as sample data and stores no binaries", () => {
+    expect(sql).toContain("SAMPLE DATA");
+    expect(sql).toContain('"sample_data":true');
+    // Deterministic digests of the artefact id, never of a file.
+    expect(sql).toContain("encode(sha256(('blockid-demo:sprocketbay:'");
+    expect(sql).not.toMatch(/\b\d{2}[ ]?\d{3}[ ]?\d{3}[ ]?\d{3}\b/);
+  });
+
+  it("stays idempotent — every write is guarded", () => {
+    expect(sql).toContain("ON CONFLICT (account_id, criterion_key) DO UPDATE");
+    expect(sql).toContain("AND metadata ? 'demo_artefact_id'");
+    expect(sql).toContain(
+      "DELETE FROM public.business_stage_progress WHERE business_id = proj_id",
+    );
+    expect(sql).toContain("DELETE FROM public.data_room_documents WHERE data_room_id = room_id");
+    // No hard-coded UUIDs — every FK is resolved by lookup.
+    expect(sql).not.toMatch(
+      /'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'/,
+    );
+  });
+
+  it("corrects the invalid growth phase 0299 wrote", () => {
+    expect(sql).toContain("growth_phase_current = 'funding'");
+    expect([...GROWTH_PHASE_IDS] as string[]).toContain("funding");
+    expect([...GROWTH_PHASE_IDS] as string[]).not.toContain("scale");
+  });
+});
+
+// ── 8. Shape guards ────────────────────────────────────────────────
 
 describe("shape", () => {
   it("keeps every reconciliation note substantive", () => {
