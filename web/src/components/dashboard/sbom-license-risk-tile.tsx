@@ -22,6 +22,7 @@ import {
   pickSbomTileView,
   RISK_BAND_COLOUR,
   RISK_BAND_LABEL,
+  RISK_BAND_ORDER,
   type SbomTileBand,
   type SbomTilePayload,
 } from "./sbom-license-risk-tile.helpers";
@@ -193,17 +194,9 @@ export function SbomLicenseRiskTile({ rowCap = DEFAULT_ROW_CAP }: SbomLicenseRis
       {/* Counts row — always render, even when 0, so the founder sees the shape. */}
       <ul
         data-testid="sbom-license-risk-counts"
-        className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5"
+        className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3 lg:grid-cols-6"
       >
-        {(
-          [
-            "strong_copyleft",
-            "weak_copyleft",
-            "unknown",
-            "permissive",
-            "other",
-          ] as const
-        ).map((band) => {
+        {RISK_BAND_ORDER.map((band) => {
           const bandStyles = BAND_STYLES[RISK_BAND_COLOUR[band]];
           return (
             <li
