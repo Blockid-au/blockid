@@ -438,11 +438,13 @@ function detectCurrentPhase(
     project?.growth_phase_current ?? GROWTH_PHASE_IDS[0]; // "vision"
 
   const rawPhaseId = chosen?.phase_id ?? fallbackId;
-  // G8-P0: everything downstream is keyed on the canonical growth taxonomy,
-  // so normalise unknown ids to `vision` rather than letting them leak.
+  // G8-P0: everything downstream is keyed on the canonical growth taxonomy.
+  // `startup_phase_progress` stores both phase_id and phase_order, which can
+  // disagree on legacy rows — prefer a recognisable id, else reconstruct the
+  // id from the order, so the pair we emit is always self-consistent.
   const growthPhaseId: GrowthPhaseId = isGrowthPhaseId(rawPhaseId)
     ? rawPhaseId
-    : GROWTH_PHASE_IDS[0];
+    : orderToGrowthPhase(chosen?.phase_order ?? 1);
   const phaseOrder = growthPhaseOrder(growthPhaseId);
 
   // Labels come from the growth taxonomy, NOT showcase/gallery.ts PHASE_LABELS
