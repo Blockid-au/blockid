@@ -1161,3 +1161,6 @@
 {"tick_id":"2026-07-31T14-47-01-289Z","ts":"2026-07-31T14:54:11.581Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"69a9dfc1","last_deployed":"a6ee8a6"}
 {"tick_id":"2026-07-31T14-47-01-289Z","ts":"2026-07-31T15:01:35.285Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"69a9dfc1"}
 {"tick_id":"2026-07-31T14-47-01-289Z","ts":"2026-07-31T15:01:35.286Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T15-07-01-870Z","ts":"2026-07-31T15:07:01.870Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T15-07-01-870Z","ts":"2026-07-31T15:07:01.885Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-31T15-07-01-870Z","ts":"2026-07-31T15:12:30.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","addendum":"P9-advisor-portal-lib-test","test_file":"web/src/lib/advisor-portal.test.ts","cases":33,"module":"web/src/lib/advisor-portal.ts"}
