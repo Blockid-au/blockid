@@ -56,6 +56,10 @@ We ship in public. Every release is tagged, every task ID lives in the changelog
 
 - **S0-S5 stage model** — migration `0280_unicorn_stages` + `framework.ts` + `goals.ts` decomposition + `<UnicornPathDashboard/>` server component + 2 nightly crons.
 
+### Master Upgrade Plan §16.5 — physical route-group reorg
+
+- **Route groups (marketing)/(app)/(persona)/* physical reorg** — App Router split of `web/src/app/*` into `(marketing)/*` (public surface: homepage, pricing, about, contact, solutions, business-id, insights, team, legal, changelog, roadmap) and `(app)/(founder|investor|accelerator|reseller|enterprise|admin)/*` (auth-gated surface: dashboard, workspace, checkout, onboarding, reseller, admin). URLs unchanged — parens folders don't add a URL segment. Public / auth-optional routes (api, id, verify, s, vi, signup, auth) preserved at top level. TSC clean; `next build` compiles.
+
 ## In progress
 
 ### Agent K — Reseller promotion codes (IFV / DVL prefixes)
@@ -79,7 +83,6 @@ We ship in public. Every release is tagged, every task ID lives in the changelog
 ## Next up
 
 - **Full `@supabase/ssr` middleware refresh** (§8.9 stage 2 of the master plan).
-- **Route groups reorganisation** — physical `(marketing)` / `(app)` / `(persona)/*` split.
 - **ClamAV daemon** integration for evidence malware scan on upload.
 - **Prompt-eval golden fixtures** — canonical outputs pinned per prompt version.
 - **Full `/vi/*` mirror** — D4 deferred beyond Phase 1 MVP.
