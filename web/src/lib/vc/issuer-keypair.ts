@@ -11,10 +11,18 @@
  * Keypair storage:
  *   • PUBLIC key is served at `/.well-known/did.json` (did:web:blockid.au).
  *     Anyone can retrieve it and verify a VC without contacting BlockID.
- *   • PRIVATE key is read from env `BID_VC_ISSUER_PRIVATE_KEY_PEM` (PKCS#8
- *     PEM). Production storage: Vault / GCP Secret Manager. NEVER logged,
- *     NEVER committed. If absent, `signVc()` throws — a fail-fast that
- *     stops us silently emitting unsigned garbage.
+ *   • PRIVATE key is read from a FILE whose absolute path is given in env
+ *     `BID_VC_ISSUER_PRIVATE_KEY_PATH` (PKCS#8 PEM). We deliberately do NOT
+ *     read the PEM bytes from an env variable itself: any value passed via
+ *     env leaks through `ps auxe`, `/proc/<pid>/environ`, `docker inspect`,
+ *     every heap snapshot the process takes, and every crash-report frame.
+ *     A path avoids all of that — the process opens the file once at
+ *     startup, keeps the parsed KeyObject in memory, and neither the raw
+ *     PEM bytes nor even the file path itself appears in the env table
+ *     beyond the pointer. Production storage: `/data/vault/blockid-vc-issuer/`
+ *     (0700 dir, 0600 file, deploy-user-owned) with Vault Shamir custody
+ *     as the eventual upgrade. If absent, `signVc()` throws — a fail-fast
+ *     that stops us silently emitting unsigned garbage.
  *
  * Test-time override: in vitest we materialise a fresh Ed25519 keypair via
  * `generateTestKeypair()` and bind it with `__setTestKeypair()` — this
@@ -41,6 +49,13 @@ import {
   verify as edVerify,
   type KeyObject,
 } from "crypto";
+import { readFileSync, statSync } from "fs";
+
+/**
+ * Env var name — a PATH to a PKCS#8 PEM file, not the PEM bytes. See the
+ * header comment for the rationale (never put private-key bytes in env).
+ */
+export const VC_ISSUER_KEY_PATH_ENV = "BID_VC_ISSUER_PRIVATE_KEY_PATH";
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -128,12 +143,36 @@ export function generateTestKeypair(): {
 
 function loadPrivateKey(): KeyObject {
   if (cachedPrivate) return cachedPrivate;
-  const pem = process.env.BID_VC_ISSUER_PRIVATE_KEY_PEM;
-  if (!pem || !pem.includes("PRIVATE KEY")) {
+  const keyPath = process.env[VC_ISSUER_KEY_PATH_ENV];
+  if (!keyPath) {
     throw new Error(
-      "[vc:issuer] BID_VC_ISSUER_PRIVATE_KEY_PEM missing — refusing to " +
-        "sign a Verifiable Credential without a real Ed25519 issuer key. " +
+      `[vc:issuer] ${VC_ISSUER_KEY_PATH_ENV} missing — refusing to sign a ` +
+        "Verifiable Credential without a real Ed25519 issuer key. " +
         "See web/.env.example for the openssl one-liner and Vault path.",
+    );
+  }
+  // Refuse to read a key file with loose perms — a world-readable private
+  // key is a bug we want the process to fail on, not to paper over.
+  let pem: string;
+  try {
+    const st = statSync(keyPath);
+    if ((st.mode & 0o077) !== 0) {
+      throw new Error(
+        `[vc:issuer] ${keyPath} has group/other bits set (mode=` +
+          `${(st.mode & 0o777).toString(8)}). Expected 0600. Refusing to load.`,
+      );
+    }
+    pem = readFileSync(keyPath, "utf8");
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("[vc:issuer]")) throw err;
+    throw new Error(
+      `[vc:issuer] Could not read issuer key at ${keyPath}: ` +
+        (err instanceof Error ? err.message : String(err)),
+    );
+  }
+  if (!pem.includes("PRIVATE KEY")) {
+    throw new Error(
+      `[vc:issuer] ${keyPath} does not contain a PKCS#8 PEM PRIVATE KEY block.`,
     );
   }
   cachedPrivate = createPrivateKey({ key: pem, format: "pem" });
@@ -166,8 +205,18 @@ export function publicJwk(): { kty: string; crv: string; x: string } {
  */
 export function issuerKeyConfigured(): boolean {
   if (testOverride) return cachedPrivate !== null;
-  return typeof process.env.BID_VC_ISSUER_PRIVATE_KEY_PEM === "string" &&
-    process.env.BID_VC_ISSUER_PRIVATE_KEY_PEM.includes("PRIVATE KEY");
+  const keyPath = process.env[VC_ISSUER_KEY_PATH_ENV];
+  if (!keyPath) return false;
+  try {
+    // Existence + mode check only — we do NOT read the file here, so this
+    // stays cheap enough for a per-request health probe.
+    const st = statSync(keyPath);
+    if (!st.isFile()) return false;
+    if ((st.mode & 0o077) !== 0) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ─── base64url helpers ──────────────────────────────────────────────

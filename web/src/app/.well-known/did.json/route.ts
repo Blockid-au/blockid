@@ -38,7 +38,7 @@ export async function GET() {
           code: "issuer_key_not_provisioned",
           message:
             "BlockID VC issuer key is not yet configured on this instance. " +
-            "Retry once BID_VC_ISSUER_PRIVATE_KEY_PEM is provisioned.",
+            "Retry once BID_VC_ISSUER_PRIVATE_KEY_PATH is provisioned.",
         },
       },
       {
