@@ -1,5 +1,22 @@
 # BlockID.au Changelog
 
+## 2026-07-31 — v3.0 upgrade: Verified Business Identity foundation
+
+BlockID v3.0 lands the first-half of the Master Upgrade Plan (`h-y-k-t-h-p-n-ng-hazy-sutton.md`) — six phases across paywall, verified identity surface, verification ladder, evidence pipeline, AI orchestration, programme+marketplace, and the Unicorn framework. Approx. 40 feature commits from ten parallel agents.
+
+- **Report paywall** — A$5.50 inc-GST one-off or 200 credits, 9-state lifecycle (`0270_report_orders`), confirm-before-charge modal, Stripe webhook + reconciliation, and a 2-minute worker cron draining the generation queue (`0272_report_generation_queue`).
+- **Verified Business ID surface** — public SEO-indexable `/id/[slug]` profile (migration `0273`) with PII whitelist, JSON-LD, and `/embed/badge` SVG widget for external sites.
+- **5-level verification ladder + ABR adapter** — `POST /api/verification/abr` with JSONP + Zod normalisation and a verification-level engine backed by the `0202_business_profile` view.
+- **Evidence pipeline with versioning + extraction** — migrations `0210_evidence` / `0211_evidence_versions` / `0212_evidence_extractions`, hash-verify, state-machine transitions.
+- **AI orchestration** — prompt registry with `0230_prompt_versions` + `0231_ai_runs`, canonical Zod output contracts, canary→prod prompt swap, and a `callStructured` wrapper for typed LLM outputs.
+- **Consent-based sharing + revocation** — `0250_consents` + `consent_state_events` + `0251_share_packages` + `0252_revocations` (BCR-004) enforced by middleware on every read path.
+- **Programme + marketplace + partner API** — `0290_programme_cohorts` + `0291_marketplace_opportunities` + `0292_oauth2_partners` with `verifyPartnerBearer` guarding `GET /api/v1/id/[slug]`.
+- **Unicorn framework S0-S5** — migration `0280_unicorn_stages`, framework + goals decomposition libs, `<UnicornPathDashboard/>` server component, 2 nightly crons.
+- **Reseller promo codes (IFV / DVL prefixes)** — schema extension, seed script, and `resolvePromoCode` runtime helper landed (Agent K). Roster view + `?ref=` first-touch capture + signup validate endpoint also landed (Agents L / M); dashboard page + Stripe checkout attribution still in flight.
+- **HeroV3 + PersonaRail + JourneySidebar** — "One Business. One Trusted Identity." locked v3 messaging behind `NEXT_PUBLIC_UPGRADE_V3`, six personas across eight journey groups, SSO-aware CTA via cookie hint.
+
+Master plan: `/home/dovanlong/.claude/plans/h-y-k-t-h-p-n-ng-hazy-sutton.md`.
+
 ## 2026-07-25 — Startup Package (Ship 1)
 
 - **startup-package** New guided founder journey — A$149 one-off unlock (+ 25 pre-loaded credits), 8-step interview auto-fed to CEO/CMO/CFO/CTO agents, day-0 dataroom seed, public `/startup/[slug]` listing, phase-aware weekly progress emails.
