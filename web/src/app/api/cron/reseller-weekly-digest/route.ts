@@ -588,6 +588,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-gini-mean-difference";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMedian,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMedianSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMedian,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-median";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2178,6 +2183,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference
     | null = null;
   let perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToMedian:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMedian
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToMedianSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5637,6 +5646,54 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifferenceSection(
           snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference,
         );
+      // P11.241 peak-to-median cron wiring — WHOLE-POOL
+      // RANGE-AGAINST-ROBUST-CENTER scalar over the P11.161 pool.
+      // Folds every cell into ONE dispersion read that reports the
+      // pool's total RANGE in units of the pool's MEDIAN:
+      //   ptm = (max - min) / median
+      // Reads the peak spread against a ROBUST reference point so a
+      // single outlier that would distort a mean-anchored ratio
+      // (P11.145 CV) does not distort the denominator here — the
+      // median is the archetypal outlier-robust center.
+      // Unique DISPERSION-axis contribution: reads range in units of
+      // a ROBUST LOCATION statistic — every other range-based
+      // DISPERSION surface either reports range raw (P11.181),
+      // scales it against sigma (P11.237 studentized-range), or
+      // scales it against the total span (P11.213 coefficient-of-
+      // range). Known dampening on SYMMETRIC BIMODAL splits: the
+      // median falls between the two clusters so ptm reads modest
+      // on pool [1x5, 10x5] (ptm 1.6364 tight) — intended contrast
+      // with P11.238 GMD which reads the same split at 5.0 exactly
+      // (wide floor). When PTM reads tight but SR + GMD read wide
+      // the pool is bimodal-symmetric rather than outlier-dominated.
+      // Guards: pool_count 0 → ptm null empty; pool_count 1 → ptm
+      // null solo (structural single partner); pool_count >=2 with
+      // pool_cells 0 → ptm null degenerate (guarded but
+      // unreachable); pool_count >=2 with median 0 → ptm null
+      // degenerate (guarded but unreachable since counts >= 1);
+      // pool_count >=2 with median > 0 → ptm in [0, +Inf) rounded
+      // to 4 decimals, zero iff max == min (flat pool). Bands on
+      // raw ptm (fixed cutoffs, calibrated against n=10 reference
+      // distributions): tight ptm < 2.0 (near-uniform pool and
+      // symmetric bimodal splits), spread ptm in [2.0, 5.0)
+      // (moderate outlier and two-shoulders regime), wide
+      // ptm >= 5.0 (single-outlier and extreme-outlier regime;
+      // median robustness lands the ratio well above the spread
+      // ceiling). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the
+      // P11.240 formatter docblock so the DISPERSION axis
+      // continues with range-against-robust-center after the
+      // P11.238 GMD pairwise-difference landing. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToMedian =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMedian(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToMedianSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMedianSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToMedian,
+        );
     }
   }
   if (
@@ -5731,6 +5788,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolRosenbluthSection ||
     perTransitionMagnitudeTop3PoolStudentizedRangeSection ||
     perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection ||
+    perTransitionMagnitudeTop3PoolPeakToMedianSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5852,6 +5910,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolRosenbluthSection +
       perTransitionMagnitudeTop3PoolStudentizedRangeSection +
       perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection +
+      perTransitionMagnitudeTop3PoolPeakToMedianSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -8442,6 +8501,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_median:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToMedian
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.top_n,
+            tight_ptm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.tight_ptm_max,
+            wide_ptm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.wide_ptm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToMedian.transitions,
           }
         : {
             skipped_reason:
