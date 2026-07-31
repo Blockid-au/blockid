@@ -1007,3 +1007,4 @@
 {"tick_id":"2026-07-31T11-27-01-922Z","ts":"2026-07-31T11:41:30.989Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T11-47-01-082Z","ts":"2026-07-31T11:47:01.083Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T11-47-01-082Z","ts":"2026-07-31T11:47:01.101Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts":"2026-07-31T11:52:00.000Z","tick":"P9-watchlist-lib-test","stage":"shipped","phase":"P9_ship","description":"colocated 16-case vitest for previously-untested web/src/lib/watchlist.ts (investor bookmark toggle, T_SVI_EXC_0001); pins (account_id,ticker) natural-key contract, delete-by-id fast-path, cross-account isolation guard; all 16 green, tsc clean"}
