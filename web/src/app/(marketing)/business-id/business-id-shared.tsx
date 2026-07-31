@@ -204,7 +204,7 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
           </ol>
         </section>
 
-        {/* (c) 12-area analysis pillars */}
+        {/* (c) 13-area analysis pillars */}
         <section
           aria-labelledby="business-id-pillars"
           className="mx-auto max-w-5xl px-6 py-12"

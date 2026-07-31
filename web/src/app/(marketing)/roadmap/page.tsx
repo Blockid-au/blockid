@@ -176,7 +176,7 @@ const RECENTLY_LANDED: ShippedItem[] = [
     id: "v3-ai-orchestration",
     title: "Phase 4 — AI orchestration: prompt registry + Zod contracts",
     detail:
-      "0230_prompt_versions + 0231_ai_runs, canonical Zod output contracts, canary→prod prompt swap, callStructured wrapper for typed LLM outputs — foundation for the 12-area analysis engine.",
+      "0230_prompt_versions + 0231_ai_runs, canonical Zod output contracts, canary→prod prompt swap, callStructured wrapper for typed LLM outputs — foundation for the 13-area analysis engine.",
     ticket: "Phase 4 · H1-H3",
   },
   {
