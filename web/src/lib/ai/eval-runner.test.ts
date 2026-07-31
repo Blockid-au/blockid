@@ -62,18 +62,22 @@ function mockRunner(
   meta: { latencyMs?: number[]; costUsd?: number[] } = {},
 ): CaseRunner {
   let i = 0;
-  return vi.fn(async (c: FixtureCase) => {
+  const impl: CaseRunner = async (c: FixtureCase) => {
     const idx = i++;
     const out = outputs[idx];
     const latencyMs = meta.latencyMs?.[idx] ?? 100;
     const costUsd = meta.costUsd?.[idx] ?? 0.001;
     const runId = `run-${idx + 1}`;
     if (out && typeof out === "object" && "__fail" in out) {
-      return { ok: false, reason: out.reason, latencyMs, costUsd, runId };
+      const reason = typeof (out as { reason?: unknown }).reason === "string"
+        ? ((out as { reason: string }).reason)
+        : "unknown";
+      return { ok: false, reason, latencyMs, costUsd, runId };
     }
     const data = typeof out === "function" ? out(c) : (out ?? {});
-    return { ok: true, data, latencyMs, costUsd, runId };
-  });
+    return { ok: true, data: data as Record<string, unknown>, latencyMs, costUsd, runId };
+  };
+  return vi.fn(impl) as unknown as CaseRunner;
 }
 
 // ── Tests ────────────────────────────────────────────────────────────
@@ -249,13 +253,14 @@ describe("runEval — run failures", () => {
         },
       },
     ]);
-    const runner: CaseRunner = vi.fn(async () => ({
+    const runnerImpl: CaseRunner = async () => ({
       ok: false,
       reason: "schema_fail: missing proposed_score",
       latencyMs: 42,
       costUsd: 0.0001,
       runId: "run-x",
-    }));
+    });
+    const runner = vi.fn(runnerImpl) as unknown as CaseRunner;
     const res = await runEval(fx, promptVersion, { runCase: runner });
     expect(res.hard_fail).toBe(true);
     expect(res.per_case[0]!.ok).toBe(false);
