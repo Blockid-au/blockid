@@ -10,9 +10,14 @@ import {
   ATLASSIAN_DATAROOM_TEMPLATE,
   type DataRoomTemplateRow,
 } from "@/lib/dataroom/atlassian-template";
-import { GROWTH_PHASE_IDS } from "@/lib/journey-map";
-import { PHASE_LABELS } from "@/lib/showcase/gallery";
-import { phaseToStageLabel } from "@/lib/journey-map";
+import { growthPhaseToStageLabel } from "@/lib/journey-map";
+import {
+  GROWTH_PHASE_IDS,
+  GROWTH_PHASE_LABELS,
+  growthPhaseOrder,
+  isGrowthPhaseId,
+  type GrowthPhaseId,
+} from "@/lib/growth/phase-taxonomy";
 import {
   computeReadinessByPhase,
   type ReadinessByPhase,
@@ -286,11 +291,22 @@ export function computeNextSteps(input: ComputeNextStepsInput): NudgeResult {
 //   - Phase 9+ → ESIC self-assessment must exist.
 //   - Phase 9+ → at least one valid or expiring-soon s708(8) cert on file.
 
+// G8-P0: re-keyed to the canonical growth-phase taxonomy. The old numeric
+// values were compared against a *growth*-phase ordinal, so `rd: 5` fired at
+// `mentor_review` and `gst: 6` at `legal_equity`. Re-mapped by intent, not by
+// ordinal — see docs/plans/unlock-next-level-2026-07-31.md §2c.
 const COMPLIANCE_PHASE_GATES = {
-  rd: 5,
-  gst: 6,
-  esic: 9,
-  s708: 9,
+  rd: "product_dev",        // R&D incentive needs real development spend
+  gst: "go_to_market",      // registration bites at A$75k rolling turnover
+  esic: "investor_review",  // ESIC self-assessment runs at raise time
+  s708: "investor_review",  // sophisticated-investor certificates
+} as const satisfies Record<string, GrowthPhaseId>;
+
+const COMPLIANCE_GATE_ORDER = {
+  rd: growthPhaseOrder(COMPLIANCE_PHASE_GATES.rd),
+  gst: growthPhaseOrder(COMPLIANCE_PHASE_GATES.gst),
+  esic: growthPhaseOrder(COMPLIANCE_PHASE_GATES.esic),
+  s708: growthPhaseOrder(COMPLIANCE_PHASE_GATES.s708),
 } as const;
 
 function deriveComplianceMissing(
@@ -301,7 +317,7 @@ function deriveComplianceMissing(
   const out: NudgeMissingItem[] = [];
   const phaseOrder = phase.phase_order;
 
-  if (phaseOrder >= COMPLIANCE_PHASE_GATES.rd) {
+  if (phaseOrder >= COMPLIANCE_GATE_ORDER.rd) {
     if (status.rdHasOverdue) {
       out.push({
         category: "11. Tax (AU)",
@@ -328,7 +344,7 @@ function deriveComplianceMissing(
     }
   }
 
-  if (phaseOrder >= COMPLIANCE_PHASE_GATES.gst) {
+  if (phaseOrder >= COMPLIANCE_GATE_ORDER.gst) {
     if (!status.hasGstAssessment) {
       out.push({
         category: "11. Tax (AU)",
@@ -357,7 +373,7 @@ function deriveComplianceMissing(
     }
   }
 
-  if (phaseOrder >= COMPLIANCE_PHASE_GATES.esic && !status.hasEsicAssessment) {
+  if (phaseOrder >= COMPLIANCE_GATE_ORDER.esic && !status.hasEsicAssessment) {
     out.push({
       category: "12. AU Compliance",
       title: "ESIC eligibility assessment",
@@ -370,7 +386,7 @@ function deriveComplianceMissing(
   }
 
   if (
-    phaseOrder >= COMPLIANCE_PHASE_GATES.s708 &&
+    phaseOrder >= COMPLIANCE_GATE_ORDER.s708 &&
     !status.hasValidOrExpiringS708
   ) {
     out.push({
