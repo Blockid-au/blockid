@@ -906,3 +906,5 @@
 {"tick_id":"2026-07-31T08-57-01-105Z","ts":"2026-07-31T08:57:01.105Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T08-57-01-105Z","ts":"2026-07-31T08:57:01.124Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"P4-cofounder-match-lib-test","ts":"2026-07-31T09:03:55.000Z","loop_label":"atlassian-goal-loop","phase":"P4_walkthrough_wiring","task":"P4-cofounder-match-lib-test","stage":"shipped","test_count":39,"file":"web/src/lib/cofounder-match.test.ts"}
+{"tick_id":"2026-07-31T08-57-01-105Z","ts":"2026-07-31T09:04:18.968Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":437842,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T08-57-01-105Z","ts":"2026-07-31T09:04:19.008Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
