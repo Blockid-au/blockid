@@ -857,3 +857,7 @@
 {"ts":"2026-07-25T00:15:01Z","endpoint":"dunning-retry","status":"fail","duration_ms":16723,"detail":""}
 {"ts":"2026-07-25T00:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16808,"detail":""}
 {"ts":"2026-07-25T00:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":275,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-07-31T02:15:01Z","endpoint":"bq-export","status":"fail","duration_ms":1636,"detail":"{\"ok\":false,\"exit_code\":127,\"stdout\":\"\",\"stderr\":\"sh: 1: tsx: not found\\n\",\"duration_ms\":1498}"}
+{"ts":"2026-07-31T02:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17995,"detail":""}
+{"ts":"2026-07-31T02:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":288,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-07-31T02:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2644,"detail":"{\"status\": \"CRITICAL\", \"metrics\": {\"disk\": {\"value\": 15, \"raw\": \"15% used (235498156 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274231156 free, 300GB)\", \"level\": \"ok\"}, \"memory"}
