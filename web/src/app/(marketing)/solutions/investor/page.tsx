@@ -1,114 +1,115 @@
 /**
- * /solutions/investor — Investor Analyst persona landing (P-03).
+ * /solutions/investor — Investor & Analyst persona landing (P-03).
  *
- * Master Upgrade Plan §7.1 sitemap + §7.2 persona surface. Uses the shared
- * SolutionsPageShell for consistent anatomy (hero + benefits + journey +
- * FAQ + disclaimer). Locked §2 messaging embedded verbatim.
+ * Master Upgrade Plan §7.1 sitemap + §7.2 persona surface + §7.7 bilingual
+ * rules. All copy resolves through `t()` so the /vi/solutions/investor
+ * mirror can re-use the same shell.
  *
  * Server component. No client state, no data fetch.
  */
 
 import type { Metadata } from "next";
+import { getMessages, t } from "@/lib/i18n/t";
 import { SolutionsPageShell } from "../solutions-shared";
 
 const SITE_URL = "https://blockid.au";
-const CANONICAL = `${SITE_URL}/solutions/investor`;
+const CANONICAL_EN = `${SITE_URL}/solutions/investor`;
+const CANONICAL_VI = `${SITE_URL}/vi/solutions/investor`;
 
-export const metadata: Metadata = {
-  title: "For Investors & Analysts — Verified diligence in seconds | BlockID.au",
-  description:
-    "Cut first-pass diligence from days to minutes. Every Business ID ships with a verified identity, evidence pack and audited Trust Report — same rubric across every deal.",
-  alternates: { canonical: CANONICAL },
-  openGraph: {
-    title: "For Investors & Analysts — BlockID.au",
-    description:
-      "Verified Business ID + audited Trust Report — same rubric across every deal.",
-    url: CANONICAL,
-    siteName: "BlockID.au",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "For Investors & Analysts — BlockID.au",
-    description:
-      "Verified Business ID + audited Trust Report — same rubric across every deal.",
-  },
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getMessages("en");
+  const title = t(m, "meta.solutions.investor.title");
+  const description = t(m, "meta.solutions.investor.description");
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: CANONICAL_EN,
+      languages: {
+        en: CANONICAL_EN,
+        vi: CANONICAL_VI,
+        "x-default": CANONICAL_EN,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: CANONICAL_EN,
+      siteName: "BlockID.au",
+      type: "website",
+      locale: "en_AU",
+    },
+    twitter: { card: "summary_large_image", title, description },
+    robots: { index: true, follow: true },
+  };
+}
 
-export default function SolutionsInvestorPage() {
+export default async function SolutionsInvestorPage() {
+  const m = await getMessages("en");
+
   return (
     <SolutionsPageShell
       slug="investor"
       lang="en"
-      eyebrow="For Investors & Analysts (P-03)"
-      headline="Verified diligence in seconds — the same rubric across every deal."
-      personaLine="Stop chasing founders for the same six documents. Every Business ID on BlockID.au ships with a verified identity, evidence pack and audited Trust Report scored on the same 12-area rubric — so you compare apples with apples."
-      emotionalLine="A business should not have to rebuild trust from zero every time."
-      outcomeLine="Be discovered. Be understood. Be trusted."
-      primaryCtaLabel="Create Your Business ID"
-      secondaryCtaLabel="See a sample Trust Report (A$5.50)"
-      benefitsTitle="What investors get on Day 1"
+      eyebrow={t(m, "solutions.investor.eyebrow")}
+      headline={t(m, "solutions.investor.headline")}
+      personaLine={t(m, "solutions.investor.persona")}
+      emotionalLine={t(m, "hero.v3.emotional")}
+      outcomeLine={t(m, "hero.v3.outcome")}
+      primaryCtaLabel={t(m, "hero.v3.cta.primary.signedOut")}
+      secondaryCtaLabel={t(m, "hero.v3.cta.secondary")}
+      benefitsTitle={t(m, "solutions.investor.benefits.title")}
       benefits={[
         {
-          title: "One rubric across every deal",
-          body: "12-area analysis (Leadership & People / Strategy & Commercial / Ops & Performance / Tech & Digital) scored consistently. Portfolio benchmarking becomes a spreadsheet-free operation.",
+          title: t(m, "solutions.investor.benefit1.title"),
+          body: t(m, "solutions.investor.benefit1.body"),
         },
         {
-          title: "Verified evidence, not founder claims",
-          body: "Every finding is evidence-cited. Verification level (L1-L5) is visible on the profile — you know instantly whether financials are self-declared, accountant-attested or independently audited.",
+          title: t(m, "solutions.investor.benefit2.title"),
+          body: t(m, "solutions.investor.benefit2.body"),
         },
         {
-          title: "Access without account friction",
-          body: "Founders send a signed share link. You open, review, comment — no account required for read-only diligence. Every view is logged for their audit trail, not yours.",
+          title: t(m, "solutions.investor.benefit3.title"),
+          body: t(m, "solutions.investor.benefit3.body"),
         },
       ]}
-      journeyTitle="Your first 90 days on BlockID.au"
+      journeyTitle={t(m, "solutions.investor.journey.title")}
       journey={[
         {
-          window: "Day 0-30",
-          headline: "Onboard your first cohort",
+          window: t(m, "solutions.investor.journey.window1"),
+          headline: t(m, "solutions.investor.journey.step1.head"),
           bullets: [
-            "Sign up free, create an Investor Business ID.",
-            "Invite portfolio founders to publish their Business ID.",
-            "Open your first 10 shared Trust Reports (unlock A$5.50 each, or credits).",
+            t(m, "solutions.investor.journey.step1.b1"),
+            t(m, "solutions.investor.journey.step1.b2"),
+            t(m, "solutions.investor.journey.step1.b3"),
           ],
         },
         {
-          window: "Day 31-60",
-          headline: "Standardise diligence",
+          window: t(m, "solutions.investor.journey.window2"),
+          headline: t(m, "solutions.investor.journey.step2.head"),
           bullets: [
-            "Configure the 12-area rubric weights to match your thesis.",
-            "Filter incoming pitches by verification level (L3+ recommended).",
-            "Export cohort benchmarks (DOCX/PDF) for IC papers.",
+            t(m, "solutions.investor.journey.step2.b1"),
+            t(m, "solutions.investor.journey.step2.b2"),
+            t(m, "solutions.investor.journey.step2.b3"),
           ],
         },
         {
-          window: "Day 61-90",
-          headline: "Scale sourcing",
+          window: t(m, "solutions.investor.journey.window3"),
+          headline: t(m, "solutions.investor.journey.step3.head"),
           bullets: [
-            "Publish your own thesis on your Investor Business ID.",
-            "Receive inbound share packages from L3+ founders across AU + VN.",
-            "Reach Verification Level 4 (AFSL disclosure, if applicable).",
+            t(m, "solutions.investor.journey.step3.b1"),
+            t(m, "solutions.investor.journey.step3.b2"),
+            t(m, "solutions.investor.journey.step3.b3"),
           ],
         },
       ]}
-      faqTitle="Frequently asked"
+      faqTitle={t(m, "solutions.investor.faq.title")}
       faqs={[
-        {
-          q: "When does the paywall apply to me as a reviewer?",
-          a: "If a founder shares a Trust Report with you via a signed link, you can read it without paying — they've already unlocked it. The paywall (A$5.50 one-off or credits) only applies when you generate a fresh Trust Report on a Business ID that hasn't been unlocked yet. Preview mode (10 pages) is always free.",
-        },
-        {
-          q: "What verification level should I require from portfolio candidates?",
-          a: "L2 is the minimum for a public /id/{slug} profile. For seed-stage diligence, L3 (financials attested by a qualified accountant) is the practical bar. Series A+ typically requires L4 (independent audit) or L5 (cross-jurisdictional evidence for VN corridor deals). Each level's requirements are on /business-id.",
-        },
-        {
-          q: "What's the refund policy on the A$5.50 Trust Report?",
-          a: "Technical failures refund automatically to your original payment method. Successful generations are non-refundable — the audited output is delivered instantly. Under Australian Consumer Law, accidental purchases refunded within 14 days are honoured. Nothing on the platform is financial or investment advice.",
-        },
+        { q: t(m, "solutions.investor.faq.q1"), a: t(m, "solutions.investor.faq.a1") },
+        { q: t(m, "solutions.investor.faq.q2"), a: t(m, "solutions.investor.faq.a2") },
+        { q: t(m, "solutions.investor.faq.q3"), a: t(m, "solutions.investor.faq.a3") },
       ]}
-      disclaimer="Not financial, investment or legal advice. Trust Reports summarise founder-supplied evidence; investment decisions remain your own. Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW."
+      disclaimer={t(m, "solutions.investor.disclaimer")}
     />
   );
 }
