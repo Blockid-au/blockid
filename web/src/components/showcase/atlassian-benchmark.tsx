@@ -1,5 +1,5 @@
 // Renderers for the Atlassian public-record benchmark (S0–S5 × 12-phase ×
-// 12-area). Server components only — pure props in, markup out, no I/O.
+// 13-area). Server components only — pure props in, markup out, no I/O.
 //
 // Framing rule, enforced by the colocated test: every surface that renders any
 // of this data renders <BenchmarkNotice /> with it. Atlassian is a market
