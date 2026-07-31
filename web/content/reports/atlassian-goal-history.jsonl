@@ -849,3 +849,4 @@
 {"tick_id":"2026-07-31T06-57-01-537Z","ts":"2026-07-31T07:13:04.169Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T07-17-01-428Z","ts":"2026-07-31T07:17:01.429Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T07-17-01-428Z","ts":"2026-07-31T07:17:01.447Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"opus-manual-2026-07-31T07-22-00Z","ts":"2026-07-31T07:22:00Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","subtask":"P9-plans-v2-lib-test","tests":56,"file":"web/src/lib/plans-v2.test.ts","result":"56 passed / 419ms","typecheck":"clean for new file"}
