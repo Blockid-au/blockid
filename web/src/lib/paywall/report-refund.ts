@@ -78,6 +78,7 @@ export interface RefundCapableStripe {
 }
 
 export interface RefundDeps {
+  /** Pass `null` to assert "no database"; omit to use getSupabaseAdmin(). */
   supabase?: RefundSupabase | null;
   /** Pass `null` to assert "Stripe unavailable"; omit to use getStripe(). */
   stripe?: RefundCapableStripe | null;
@@ -109,8 +110,10 @@ export async function refundFailedOrder(
   input: { orderId: string; reason: string },
   deps: RefundDeps = {},
 ): Promise<RefundOutcome> {
-  const supabase = (deps.supabase ??
-    (getSupabaseAdmin() as SupabaseClient | null)) as RefundSupabase | null;
+  const supabase =
+    deps.supabase !== undefined
+      ? deps.supabase
+      : ((getSupabaseAdmin() as SupabaseClient | null) as RefundSupabase | null);
   if (!supabase) return { ok: false, reason: "supabase_not_configured" };
 
   const now = deps.now ?? (() => new Date());
