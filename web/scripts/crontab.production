@@ -104,6 +104,14 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Weekly disk cleanup — prune docker, /tmp logs, JSONL state, releases (Sun 03:30 UTC = 13:30 AEST)
 30 3 * * 0 /home/dovanlong/blockid.au/web/scripts/weekly-disk-cleanup.sh
 
+# Migration audit guardian — weekly Sun 04:45 UTC (14:45 AEST). Parses every
+# web/supabase/migrations/*.sql for declared tables/views/functions and asks
+# the live DB whether each exists. Appends a summary line to
+# web/content/reports/migration-audit.jsonl. REPORT-ONLY — never auto-applies
+# a migration (unattended apply of a migration with unmet forward
+# dependencies is exactly how production breaks). See scripts/db/audit-migrations.mjs.
+45 4 * * 0 cd /home/dovanlong/blockid.au && node scripts/db/audit-migrations.mjs --no-markdown >> /tmp/blockid-migration-audit.log 2>&1
+
 # Verify-models (CTO) — weekly proactive live-call test of every model in
 # ai-free-models.json. Writes ai-free-models-verified.json (ok + rate_limited
 # entries). Telegrams admin immediately if any model returns payment_required.

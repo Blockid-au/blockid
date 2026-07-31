@@ -102,3 +102,71 @@ describe("upload filename extension is derived from the validated MIME", () => {
     expect(allowedMimes()).not.toContain("image/svg+xml");
   });
 });
+
+/**
+ * Structural guards for the ClamAV malware gate wired in ahead of writeFile.
+ *
+ * Same source-assertion strategy as the extension tests above: importing
+ * the route runs the auth+fs+supabase side of the module at load, which
+ * would fight vitest with a hot mock jungle. The properties being pinned
+ * are structural — a future edit that removes the scan or flips it
+ * fail-open would visibly fail here. Real end-to-end proof lives in the
+ * live-deploy curl transcripts in the task report.
+ */
+describe("upload malware scan is wired ahead of the disk write", () => {
+  it("imports scanBuffer from the security lib", () => {
+    expect(SOURCE).toMatch(
+      /import\s*\{[^}]*scanBuffer[^}]*\}\s*from\s*"@\/lib\/security\/clamav"/,
+    );
+  });
+
+  it("calls scanBuffer(buffer) BEFORE writeFile", () => {
+    const scanAt = SOURCE.indexOf("scanBuffer(buffer)");
+    const writeAt = SOURCE.indexOf("writeFile(filepath, buffer)");
+    expect(scanAt).toBeGreaterThan(0);
+    expect(writeAt).toBeGreaterThan(0);
+    expect(scanAt).toBeLessThan(writeAt);
+  });
+
+  it("returns 422 on the infected branch (bytes rejected, not stored)", () => {
+    // The infected branch responds 422 and carries the signature name.
+    expect(SOURCE).toMatch(/verdict === "infected"[\s\S]{0,1200}status:\s*422/);
+  });
+
+  it("returns 503 on scanner_error — fail-CLOSED, never fail-open", () => {
+    expect(SOURCE).toMatch(
+      /verdict === "scanner_error"[\s\S]{0,1200}status:\s*503/,
+    );
+  });
+
+  it("does not treat scanner_error as a soft-pass anywhere", () => {
+    // Any code path that ignored scanner_error and still fell through to
+    // writeFile would be a fail-open bug. Forbid the specific shape.
+    expect(SOURCE).not.toMatch(/scanner_error[\s\S]{0,200}writeFile/);
+    // And no early-continue on !scan.ok that lets writeFile run.
+    expect(SOURCE).not.toMatch(/if\s*\(\s*!scan\.ok\s*\)\s*\{\s*\/\/[^\n]*\n\s*\}/);
+  });
+
+  it("writes an audit row on every scan outcome", () => {
+    // recordScan must be called on all three verdicts.
+    const infectedBlock = SOURCE.slice(
+      SOURCE.indexOf("verdict === \"infected\""),
+      SOURCE.indexOf("verdict === \"scanner_error\""),
+    );
+    const scannerErrBlock = SOURCE.slice(
+      SOURCE.indexOf("verdict === \"scanner_error\""),
+      SOURCE.indexOf("await writeFile(filepath, buffer)"),
+    );
+    const cleanBlock = SOURCE.slice(
+      SOURCE.indexOf("await writeFile(filepath, buffer)"),
+      SOURCE.indexOf("await chmod(filepath"),
+    );
+    expect(infectedBlock).toMatch(/recordScan\(/);
+    expect(scannerErrBlock).toMatch(/recordScan\(/);
+    expect(cleanBlock).toMatch(/recordScan\(/);
+  });
+
+  it("audit row inserts into public.upload_scans (matches migration 0301)", () => {
+    expect(SOURCE).toMatch(/from\("upload_scans"\)/);
+  });
+});
