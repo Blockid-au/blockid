@@ -1280,3 +1280,6 @@
 {"tick_id":"2026-07-31T17-57-01-687Z","ts":"2026-07-31T18:02:45.242Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"54901db9","last_deployed":"c6d9905"}
 {"tick_id":"2026-07-31T17-57-01-687Z","ts":"2026-07-31T18:10:29.911Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"54901db9"}
 {"tick_id":"2026-07-31T17-57-01-687Z","ts":"2026-07-31T18:10:29.913Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T18-17-01-273Z","ts":"2026-07-31T18:17:01.274Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T18-17-01-273Z","ts":"2026-07-31T18:17:01.293Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-31T18-21-manual","ts":"2026-07-31T18:22:00.000Z","loop_label":"atlassian-goal-loop","phase":"P9_ship","stage":"lib_test_shipped","file":"web/src/lib/i18n/seed-catalog.test.ts","cases":27,"target_lib":"web/src/lib/i18n/seed-catalog.ts","note":"P9-seed-catalog-lib-test — vi.mock on messages/en.json + messages/vi.json to drive every (enVal,targetVal) branch"}
