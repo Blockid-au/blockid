@@ -50,6 +50,52 @@ const ALLOWED_TYPES: Record<string, string[]> = {
 
 const ALL_ALLOWED = Object.values(ALLOWED_TYPES).flat();
 
+/**
+ * Extension is derived from the VALIDATED MIME type, never from the
+ * client-supplied filename.
+ *
+ * Uploads land in a directory nginx serves publicly, and nginx picks the
+ * response Content-Type from the file extension — not from whatever MIME
+ * the uploader claimed. Taking the extension from `originalName` therefore
+ * let a caller decouple the two: send `Content-Type: application/pdf` so
+ * the allowlist above passes, name the file `payload.html`, and the bytes
+ * get written as `.html` and served back as `text/html` from blockid.au.
+ * That is stored XSS on the app's own origin — the attacker's script runs
+ * same-origin against a signed-in victim. The same trick reinstated the
+ * SVG vector the allowlist comment above explicitly set out to block
+ * (claim `image/png`, name it `.svg`).
+ *
+ * `X-Content-Type-Options: nosniff` does not help here: nosniff stops the
+ * browser guessing a type *other* than the declared one, and nginx is
+ * declaring `text/html` quite correctly for a `.html` file.
+ *
+ * Mapping from the allowlist means an extension can only ever be one we
+ * already decided is safe to serve.
+ */
+const EXT_BY_MIME: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/gif": "gif",
+  "image/webp": "webp",
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
+  "video/x-msvideo": "avi",
+  "video/x-matroska": "mkv",
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "text/csv": "csv",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+  "text/plain": "txt",
+  "text/markdown": "md",
+  "application/zip": "zip",
+  "application/gzip": "gz",
+};
+
 function getSubdir(mimeType: string): string {
   for (const [category, types] of Object.entries(ALLOWED_TYPES)) {
     if (types.includes(mimeType)) {
@@ -61,8 +107,13 @@ function getSubdir(mimeType: string): string {
   return "files";
 }
 
-function generateFilename(originalName: string): string {
-  const ext = originalName.split(".").pop() ?? "bin";
+/**
+ * @param mimeType MUST already have passed the ALL_ALLOWED check.
+ */
+function generateFilename(mimeType: string): string {
+  // `bin` is unreachable while EXT_BY_MIME covers every ALL_ALLOWED entry
+  // (asserted in the colocated test), and is inert if that ever drifts.
+  const ext = EXT_BY_MIME[mimeType] ?? "bin";
   const id = randomBytes(8).toString("hex");
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   return `${date}-${id}.${ext}`;
@@ -118,7 +169,9 @@ export async function POST(request: Request) {
   const dir = join(UPLOAD_DIR, subdir);
   if (!existsSync(dir)) await mkdir(dir, { recursive: true });
 
-  const filename = generateFilename(file.name);
+  // file.type, not file.name — see generateFilename's comment. file.type has
+  // just been checked against ALL_ALLOWED; file.name is attacker-controlled.
+  const filename = generateFilename(file.type);
   const filepath = join(dir, filename);
 
   const buffer = Buffer.from(await file.arrayBuffer());
