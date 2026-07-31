@@ -658,3 +658,4 @@
 {"tick_id":"2026-07-31T03-07-01-868Z","ts":"2026-07-31T03:13:19.140Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T03-17-01-266Z","ts":"2026-07-31T03:17:01.267Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T03-17-01-266Z","ts":"2026-07-31T03:17:01.282Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"opus-manual-2026-07-31T03-20Z","ts":"2026-07-31T03:22:00Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P3_nudge_engine_impl","subtask":"P3-credits-shared-lib-test","tests":34,"file":"web/src/lib/credits-shared.test.ts","result":"34 passed / 290ms","typecheck":"clean (only pre-existing valuation-module drift)"}
