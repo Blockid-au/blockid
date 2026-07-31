@@ -86,6 +86,7 @@ export const POOL_SHAPE_SURFACES: readonly PoolShapeSurface[] = [
   { slug: "kelly-skewness", axis: "ASYMMETRY" },
   { slug: "palma", axis: "CONCENTRATION" },
   { slug: "hoover", axis: "CONCENTRATION" },
+  { slug: "rosenbluth", axis: "CONCENTRATION" },
 ];
 
 export const POOL_SHAPE_MODULE_PREFIX =
