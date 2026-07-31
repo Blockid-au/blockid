@@ -528,6 +528,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-coefficient-of-range";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewness,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewnessSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewness,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-bowley-skewness";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2070,6 +2075,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange
     | null = null;
   let perTransitionMagnitudeTop3PoolCoefficientOfRangeSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolBowleySkewness:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewness
+    | null = null;
+  let perTransitionMagnitudeTop3PoolBowleySkewnessSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -4987,6 +4996,37 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRangeSection(
           snapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange,
         );
+      // P11.216 bowley-skewness cron wiring — BOUNDED INTERIOR-MASS
+      // asymmetry scalar on the P11.161 pool (bs = (Q3 + Q1 - 2*Q2) /
+      // (Q3 - Q1) using Tukey EXCLUSIVE hinges; pool_count < 4 emits a
+      // small_pool null so the surface is distinct from the P11.181
+      // range / P11.185 top1/bot1 / P11.213 COR endpoint surfaces, and
+      // Q3 == Q1 emits a distinct degenerate label so structural
+      // indeterminacy is not confused with a measured symmetric verdict).
+      // Opens the BOUNDED INTERIOR-MASS asymmetry axis and pairs on the
+      // ASYMMETRY axis with the P11.203 whole-pool skewness (unbounded
+      // Fisher-Pearson g1) the same way P11.211 QCD + P11.213 COR pair
+      // on the DISPERSION axis — read side-by-side to distinguish
+      // "asymmetry driven by interior distribution" (both non-zero)
+      // from "asymmetry driven by a tail outlier" (g1 non-zero, bs ~0).
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolCoefficientOfRangeSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.215
+      // formatter docblock so the two BOUNDED siblings (COR endpoint
+      // dispersion / Bowley interior asymmetry) sit adjacent — reader
+      // spots the endpoint-vs-interior contrast on both DISPERSION and
+      // ASYMMETRY axes in one visual scan. Cutoffs 0.1 / 0.3 are the
+      // classroom Bowley thresholds (Kendall & Stuart §2.20) —
+      // deliberately tighter than the P11.203 |g1| 0.5 edge because
+      // Bowley's [-1, +1] codomain makes 0.5 an extreme value.
+      // Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolBowleySkewness =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewness(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolBowleySkewnessSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewnessSection(
+          snapshotPerTransitionMagnitudeTop3PoolBowleySkewness,
+        );
     }
   }
   if (
@@ -5069,6 +5109,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolIqrRatioSection ||
     perTransitionMagnitudeTop3PoolQcdSection ||
     perTransitionMagnitudeTop3PoolCoefficientOfRangeSection ||
+    perTransitionMagnitudeTop3PoolBowleySkewnessSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5178,6 +5219,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolIqrRatioSection +
       perTransitionMagnitudeTop3PoolQcdSection +
       perTransitionMagnitudeTop3PoolCoefficientOfRangeSection +
+      perTransitionMagnitudeTop3PoolBowleySkewnessSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
