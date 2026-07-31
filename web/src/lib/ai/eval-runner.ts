@@ -61,7 +61,7 @@ export type ExpectedConstraints = z.infer<typeof ExpectedConstraints>;
 export const FixtureCase = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
   expected: ExpectedConstraints,
 });
 export type FixtureCase = z.infer<typeof FixtureCase>;
