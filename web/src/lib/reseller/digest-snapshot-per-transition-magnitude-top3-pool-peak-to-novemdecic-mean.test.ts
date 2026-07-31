@@ -317,7 +317,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMea
     );
   });
 
-  it("two-partner pool [1, 100] → NVM 96.4176, range 99, ptnvm 1.0268 (TIGHT — ISOLATED HIGH PARTNER; novemdecic mean captures the outlier)", () => {
+  it("two-partner pool [1, 100] → NVM 96.4176, range 99, ptnvm 1.0268 (SPREAD — ISOLATED HIGH PARTNER just crosses the 1.02 tight/spread boundary at M_19; the 0.01-per-step boundary tightening finally catches this two-partner regime that P11.290 PTSOM read tight at 1.0289 < 1.03)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean(
         envelope(partnerPool([1, 100])),
@@ -326,8 +326,11 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMea
     expect(band.partner_pool_count).toBe(2);
     expect(band.partner_pool_cells).toBe(101);
     expect(band.partner_peak_to_novemdecic_mean).toBe(1.0268);
-    expect(band.partner_peak_to_novemdecic_mean!).toBeLessThan(
+    expect(band.partner_peak_to_novemdecic_mean!).toBeGreaterThanOrEqual(
       out.tight_ptnvm_max,
+    );
+    expect(band.partner_peak_to_novemdecic_mean!).toBeLessThan(
+      out.wide_ptnvm_min,
     );
   });
 
