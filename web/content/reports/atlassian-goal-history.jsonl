@@ -1415,3 +1415,5 @@
 {"tick_id":"2026-07-31T22-27-01-121Z","ts":"2026-07-31T22:34:04.971Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1,"unrunnable":[],"skipped":null}
 {"tick_id":"2026-07-31T22-27-01-121Z","ts":"2026-07-31T22:34:10.222Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-07-31T22-27-01-121Z","ts":"2026-07-31T22:34:10.229Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"432a01df","last_deployed":"8e90aec"}
+{"tick_id":"2026-07-31T22-27-01-121Z","ts":"2026-07-31T22:41:34.052Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"432a01df"}
+{"tick_id":"2026-07-31T22-27-01-121Z","ts":"2026-07-31T22:41:34.053Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
