@@ -25,7 +25,11 @@ import {
   CRITERIA,
   type CriterionKey,
 } from "@/lib/evaluation-criteria";
-import { ALL_PHASE_KEYS, type PhaseKey } from "@/lib/journey-map";
+import {
+  GROWTH_PHASE_IDS,
+  templatePhaseFor,
+  type GrowthPhaseId,
+} from "@/lib/growth/phase-taxonomy";
 import {
   ATLASSIAN_DATAROOM_TEMPLATE,
   type DataRoomTemplateRow,
@@ -46,29 +50,38 @@ export interface PhaseReadinessEntry {
   criteria_used: CriterionKey[];
 }
 
-export type ReadinessByPhase = Record<PhaseKey, PhaseReadinessEntry>;
+export type ReadinessByPhase = Record<GrowthPhaseId, PhaseReadinessEntry>;
 
 // ---------------------------------------------------------------------------
-// Phase → SVI criterion subset. Sourced from §1 of the goal file (each
-// row's "AU investor standard artefacts expected here" column) crossed
-// with evaluation-criteria.ts CRITERION_KEYS. Missing keys are OK — a
-// phase can care about a criterion that has no evidence yet (it just
-// drags the score down).
+// Phase → SVI criterion subset.
+//
+// G8-P0: re-keyed from the numeric taxonomy to the canonical string one.
+// The old table was keyed 1..12 against showcase/gallery.ts PHASE_LABELS
+// while callers passed a *growth-phase* ordinal, so a founder at
+// `legal_equity` was scored against "Revenue / Business Model" criteria.
+// Subsets below follow the phase exit gates in
+// docs/plans/unlock-next-level-2026-07-31.md §2c.
+//
+// Missing keys are OK — a phase can care about a criterion that has no
+// evidence yet (it just drags the score down).
 // ---------------------------------------------------------------------------
 
-export const PHASE_CRITERION_SUBSET: Record<PhaseKey, readonly CriterionKey[]> = {
-  1: ["idea", "founder_profile"],
-  2: ["idea", "market", "founder_profile", "customer_size"],
-  3: ["market", "customer_size", "gtm_strategy"],
-  4: ["code_git", "website", "roadmap"],
-  5: ["customer_size", "revenue", "roadmap"],
-  6: ["revenue", "gtm_strategy", "dataroom"],
-  7: ["revenue", "customer_size", "gtm_strategy", "website"],
-  8: ["team", "team_structure", "founder_profile", "documents"],
-  9: ["documents", "dataroom", "revenue", "team", "gtm_strategy"],
-  10: ["documents", "dataroom", "revenue", "team_structure"],
-  11: ["revenue", "team", "team_structure", "dataroom"],
-  12: ["revenue", "documents", "team_structure", "dataroom"],
+export const PHASE_CRITERION_SUBSET: Record<
+  GrowthPhaseId,
+  readonly CriterionKey[]
+> = {
+  vision: ["idea", "founder_profile"],
+  customer_dev: ["idea", "market", "founder_profile", "customer_size"],
+  revenue_model: ["revenue", "gtm_strategy", "market"],
+  pitch: ["documents", "website", "idea"],
+  mentor_review: ["roadmap", "founder_profile", "idea"],
+  legal_equity: ["team_structure", "documents", "founder_profile"],
+  go_to_market: ["gtm_strategy", "customer_size", "revenue", "website"],
+  product_dev: ["code_git", "website", "roadmap"],
+  investor_review: ["dataroom", "documents", "revenue", "team", "gtm_strategy"],
+  team: ["team", "team_structure", "founder_profile"],
+  growth: ["revenue", "customer_size", "team", "dataroom"],
+  funding: ["revenue", "documents", "dataroom", "team_structure"],
 } as const;
 
 const CRITERION_WEIGHT: Record<CriterionKey, number> = CRITERIA.reduce(
@@ -95,7 +108,7 @@ export function computeReadinessByPhase(
   const presentKeys = indexDataroomPresent(input.dataroomRows);
 
   const out = {} as ReadinessByPhase;
-  for (const phase of ALL_PHASE_KEYS) {
+  for (const phase of GROWTH_PHASE_IDS) {
     const criteria = PHASE_CRITERION_SUBSET[phase];
     const score = weightedScore(criteria, criterionScores);
     const missing_top3 = phaseMissing(phase, presentKeys).slice(0, 3);
@@ -165,13 +178,16 @@ function bandOfScore(score: number): ReadinessBand {
 }
 
 function phaseMissing(
-  phase: PhaseKey,
+  phase: GrowthPhaseId,
   presentKeys: Set<string>,
 ): NudgeMissingItem[] {
+  // The template's phaseSlug is a *numeric*-taxonomy ordinal, so cross over
+  // through the explicit bridge rather than reusing the growth ordinal.
+  const cutoff = templatePhaseFor(phase);
   const inScope: DataRoomTemplateRow[] = ATLASSIAN_DATAROOM_TEMPLATE.filter(
     (r) => {
       const p = Number.parseInt(r.phaseSlug, 10);
-      return Number.isFinite(p) && p <= phase;
+      return Number.isFinite(p) && p <= cutoff;
     },
   );
 
