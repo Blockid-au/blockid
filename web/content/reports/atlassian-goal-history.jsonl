@@ -1198,3 +1198,6 @@
 {"tick_id":"2026-07-31T15-57-01-801Z","ts":"2026-07-31T16:03:52.091Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"ee6cac8c","last_deployed":"260925b"}
 {"tick_id":"2026-07-31T15-57-01-801Z","ts":"2026-07-31T16:04:31.481Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"ee6cac8c"}
 {"tick_id":"2026-07-31T15-57-01-801Z","ts":"2026-07-31T16:04:31.482Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-07-31T16-07-01-285Z","ts":"2026-07-31T16:07:01.286Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-07-31T16-07-01-285Z","ts":"2026-07-31T16:07:01.307Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-31T16-07-01-285Z","ts":"2026-07-31T16:12:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9","sub_tick":"P9-svi-recompute-lib-test","test_file":"web/src/lib/startup-package/svi-recompute.test.ts","cases":28,"module":"web/src/lib/startup-package/svi-recompute.ts","result":"passed"}
