@@ -15,6 +15,22 @@ import { t, type Messages } from "@/lib/i18n/t";
 
 const SIGNUP_HREF = "/signup?intent=business_id";
 
+/**
+ * The public sample Business ID this page previews.
+ *
+ * Backed by a real row — `public_slug='blockid-demo'` seeded by
+ * supabase/migrations/0297_seed_demo_business_profile.sql, owned by the
+ * operator account and pinned at verification level 3. It is clearly
+ * labelled sample data ("BlockID Demo Co (Sample Profile)", fictional
+ * attesters, no ABN) so nothing here can be mistaken for a real
+ * verified business.
+ *
+ * src/lib/business-id/public-profile-demo.test.ts guards the row's
+ * published state so this preview cannot silently go back to 404ing.
+ */
+const DEMO_SLUG = "blockid-demo";
+const DEMO_BADGE_SRC = `/embed/badge?slug=${DEMO_SLUG}`;
+
 interface VerificationLevel {
   level: string;
   title: string;
@@ -32,6 +48,11 @@ export interface BusinessIdBodyProps {
 }
 
 export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
+  // Keep the reader inside their locale — the VI mirror of the profile
+  // lives at /vi/id/[slug] (§7.7 bilingual rule).
+  const demoProfileHref =
+    lang === "vi" ? `/vi/id/${DEMO_SLUG}` : `/id/${DEMO_SLUG}`;
+
   const verificationLevels: VerificationLevel[] = [
     { level: "L1", title: t(m, "businessId.level1.title"), body: t(m, "businessId.level1.body") },
     { level: "L2", title: t(m, "businessId.level2.title"), body: t(m, "businessId.level2.body") },
@@ -280,56 +301,42 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
           </p>
           <div className="mt-8 flex justify-center">
             <figure className="max-w-md">
-              <svg
-                role="img"
-                aria-labelledby="badge-preview-title"
-                viewBox="0 0 320 120"
-                className="h-auto w-full"
-              >
-                <title id="badge-preview-title">
-                  Sample BlockID Trust badge — Verified L3, updated Jul 2026
-                </title>
-                <rect
-                  x="4"
-                  y="4"
-                  width="312"
-                  height="112"
-                  rx="14"
-                  fill="var(--fintech-bg-elevated)"
-                  stroke="var(--fintech-accent)"
-                  strokeWidth="1.5"
-                />
-                <g transform="translate(24 24)">
-                  <circle cx="22" cy="22" r="20" fill="var(--fintech-accent)" fillOpacity="0.15" />
-                  <path
-                    d="M22 8 L34 14 L34 24 A14 14 0 0 1 22 36 A14 14 0 0 1 10 24 L10 14 Z"
-                    fill="var(--fintech-accent)"
-                    fillOpacity="0.9"
-                  />
-                  <path
-                    d="M17 22 L21 26 L28 18"
-                    stroke="var(--fintech-bg-primary)"
-                    strokeWidth="2.5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-                <g transform="translate(84 30)" fill="var(--fintech-ink)">
-                  <text x="0" y="14" fontFamily="var(--font-display, sans-serif)" fontSize="14" fontWeight="600">
-                    Verified Business ID
-                  </text>
-                  <text x="0" y="34" fontFamily="var(--font-mono, monospace)" fontSize="11" fill="var(--fintech-ink-muted)">
-                    Level 3 · Updated Jul 2026
-                  </text>
-                  <text x="0" y="52" fontFamily="var(--font-mono, monospace)" fontSize="10" fill="var(--fintech-accent)">
-                    blockid.au/id/blockid-demo
-                  </text>
-                </g>
-              </svg>
+              {/*
+                Live badge, not a mock-up. This is the very same
+                /embed/badge SVG a third-party site would hotlink,
+                rendered for the seeded demo profile (migration 0297).
+                Previously this was a hand-drawn SVG with "Level 3 ·
+                Updated Jul 2026" baked into the markup, which meant the
+                preview could drift from what the endpoint actually
+                returns. Pointing at the endpoint keeps them in lockstep.
+
+                The route always answers 200 image/svg+xml (unknown slugs
+                get an "Unverified" placeholder), so this can never show
+                a broken-image icon. Plain <img> rather than next/image:
+                the payload is a dynamic SVG route, so there is nothing
+                for the image optimiser to do.
+              */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`${DEMO_BADGE_SRC}&size=lg`}
+                alt={t(m, "businessId.badge.caption")}
+                width={300}
+                height={88}
+                loading="lazy"
+                className="mx-auto h-auto w-full max-w-[300px]"
+              />
               <figcaption className="mt-3 text-center text-xs text-[var(--fintech-ink-muted)]">
                 {t(m, "businessId.badge.caption")}
               </figcaption>
+              <div className="mt-4 text-center">
+                <Link
+                  href={demoProfileHref}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--fintech-accent)] underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                >
+                  {t(m, "businessId.badge.viewDemo")}
+                  <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                </Link>
+              </div>
             </figure>
           </div>
         </section>

@@ -243,6 +243,7 @@
   "businessId.badge.title": "Widget huy hiệu",
   "businessId.badge.intro": "Nhúng huy hiệu đã xác minh của bạn lên website, LinkedIn hoặc chữ ký email. Hiển thị cấp độ xác minh hiện tại, ngày cập nhật gần nhất và liên kết đến hồ sơ công khai /id/{slug} — cập nhật thời gian thực khi cấp của bạn thay đổi.",
   "businessId.badge.caption": "Huy hiệu mẫu: Verified Business ID · Level 3 · cập nhật tháng 7/2026. Sao chép snippet nhúng từ dashboard.",
+  "businessId.badge.viewDemo": "Xem hồ sơ demo trực tiếp",
   "businessId.cta.title": "Tạo Business ID của bạn",
   "businessId.disclaimer": "Không có nội dung nào trên trang này là tư vấn tài chính hay pháp lý. Việc xác minh chỉ khẳng định điều bản ghi nói, không phải quyết định kinh doanh nằm phía sau. Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW.",
   "meta.businessId.title": "Business ID là gì? — BlockID.au",
