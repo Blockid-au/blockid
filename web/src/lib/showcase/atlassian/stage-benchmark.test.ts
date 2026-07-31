@@ -97,6 +97,26 @@ describe("ATLASSIAN_BENCHMARK_MILESTONES", () => {
     }
   });
 
+  it("phaseOrdinal is the phase's actual position in GROWTH_PHASES", () => {
+    // Pins the two in lock-step: reordering GROWTH_PHASES breaks this rather
+    // than silently pointing a milestone at the wrong phase.
+    for (const m of ATLASSIAN_BENCHMARK_MILESTONES) {
+      const idx = GROWTH_PHASES.findIndex((p) => p.id === m.phase);
+      expect(idx, `${m.id}: phase '${m.phase}' not found`).toBeGreaterThanOrEqual(0);
+      expect(m.phaseOrdinal, `${m.id}: ordinal drifted from GROWTH_PHASES`).toBe(idx + 1);
+    }
+  });
+
+  it("stage assignment moves forward only (a company never re-enters a stage)", () => {
+    const order = new Map(UNICORN_STAGE_IDS.map((s, i) => [s, i]));
+    let high = -1;
+    for (const m of ATLASSIAN_BENCHMARK_MILESTONES) {
+      const rank = order.get(m.stage)!;
+      expect(rank, `${m.id}: stage ${m.stage} goes backwards`).toBeGreaterThanOrEqual(high);
+      high = rank;
+    }
+  });
+
   it("every milestone resolves to a real S0–S5 stage id", () => {
     for (const m of ATLASSIAN_BENCHMARK_MILESTONES) {
       expect(UNICORN_STAGE_IDS, `${m.id}: stage ${m.stage} invalid`).toContain(m.stage);
