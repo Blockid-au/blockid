@@ -1039,4 +1039,4 @@
 {"tick_id":"2026-07-31T12-17-01-993Z","ts":"2026-07-31T12:24:00.671Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T12-27-01-354Z","ts":"2026-07-31T12:27:01.355Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T12-27-01-354Z","ts":"2026-07-31T12:27:01.368Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
-{"tick_id": "manual-2026-07-31T12:31:45Z", "ts": "2026-07-31T12:31:45Z", "loop_label": "atlassian-goal-loop", "stage": "phase_test_added", "phase": "P9_ship", "subtask": "P9-tokenization-lib-test", "file": "web/src/lib/tokenization.test.ts", "cases": 46, "head": "pending"}
+{"tick_id": "manual-2026-07-31T12:31:45Z", "ts": "2026-07-31T12:31:45Z", "loop_label": "atlassian-goal-loop", "stage": "phase_test_added", "phase": "P9_ship", "subtask": "P9-tokenization-lib-test", "file": "web/src/lib/tokenization.test.ts", "cases": 46, "head": "ec5f9a85"}
