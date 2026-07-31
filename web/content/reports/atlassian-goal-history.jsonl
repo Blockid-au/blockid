@@ -1237,3 +1237,5 @@
 {"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T16:57:01.937Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T16:57:01.953Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"ts":"2026-07-31T17:02:00Z","goal":"atlassian-standard-mapping-v1","phase":"P9_ship","subtask":"P9-disclaimer-footer-lib-test","stage":"shipped","file":"web/src/lib/pdf/disclaimer-footer.test.ts","cases":24,"vitest_ms":571,"result":"24 passed"}
+{"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T17:03:04.746Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":362791,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T16-57-01-936Z","ts":"2026-07-31T17:03:04.787Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":14}
