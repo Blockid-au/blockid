@@ -13,6 +13,7 @@ import type {
   ReadinessBand,
 } from "@/lib/nudge/readiness-by-phase";
 import type { BandDirection } from "@/lib/nudge/readiness-snapshots";
+import { GROWTH_PHASE_IDS } from "@/lib/growth/phase-taxonomy";
 
 export interface BuildFounderDigestInput {
   name: string;
@@ -123,9 +124,10 @@ const CLIMB_BAND_FILL: Record<ReadinessBand, string> = {
   "investor-ready": "#bbf7d0",
 };
 
-const PHASE_ORDINALS: readonly string[] = [
-  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
-];
+// G8-P0: readiness_by_phase is keyed by the canonical growth-phase taxonomy
+// ("vision".."funding"), not the numeric one. Snapshots written before that
+// change carry "1".."12" keys and simply gap-fill to score=0 here.
+const PHASE_ORDINALS: readonly string[] = GROWTH_PHASE_IDS;
 
 interface ClimbCell {
   phase: string;
@@ -135,7 +137,7 @@ interface ClimbCell {
 }
 
 /**
- * Project a `readinessByPhase` map into 12 cells (ordered 1..12) with
+ * Project a `readinessByPhase` map into 12 cells (ordered vision→funding) with
  * gap-fill (score=0 / band="not-ready") for missing phases and a single
  * `isCurrent` flag on the phase matching `currentPhaseSlug`. Pure, exported
  * for the vitest fixture.

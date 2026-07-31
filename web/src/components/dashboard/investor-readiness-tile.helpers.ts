@@ -6,16 +6,18 @@
 //   §P5_investor_readiness_score (blended sub-scores — legacy view)
 //   §P5a per-phase readiness (readiness_by_phase[currentPhase] — new view)
 
+import {
+  GROWTH_PHASE_IDS,
+  type GrowthPhaseId,
+} from "@/lib/growth/phase-taxonomy";
+
 export type ReadinessBand = "not-ready" | "warming-up" | "investor-ready";
 
-export type PhaseSlug =
-  | "1" | "2" | "3" | "4" | "5" | "6"
-  | "7" | "8" | "9" | "10" | "11" | "12";
+// G8-P0: phase slugs are the canonical growth-phase ids, matching
+// NudgeResult.current_phase.slug and the readiness_by_phase keys.
+export type PhaseSlug = GrowthPhaseId;
 
-export const ALL_PHASE_SLUGS: readonly PhaseSlug[] = [
-  "1", "2", "3", "4", "5", "6",
-  "7", "8", "9", "10", "11", "12",
-] as const;
+export const ALL_PHASE_SLUGS: readonly PhaseSlug[] = GROWTH_PHASE_IDS;
 
 export interface PhaseMissingItem {
   category: string;
@@ -66,7 +68,8 @@ export function pickPhaseEntry(
 }
 
 /**
- * Project the readiness_by_phase map into a stable 12-point series for the
+ * Project the readiness_by_phase map into a stable 12-point series (ordered
+ * vision→funding) for the
  * inline SVG mini-chart. Missing phase entries render as score=0 / not-ready
  * so the chart never shows a hole.
  */
