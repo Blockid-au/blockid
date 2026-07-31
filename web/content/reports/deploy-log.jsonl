@@ -4022,3 +4022,9 @@
 {"ts":"2026-07-31T01:22:53.290Z","event":"github-push-master","detail":"Blockid-au: feat(ai-eval): sub-Q1 golden fixture set for AIR-001..AIR-010 (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T01:24:42.779Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-weekly-digest): P11.214 pool COEFFICIENT OF RANGE cron wiring (2 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T01:24:59.087Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T01-20-01-510Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:25:05.707Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T01-17-02-046Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:26:27.130Z","event":"github-push-master","detail":"Blockid-au: feat(ai-eval): sub-Q2 eval-runner library + 16-case colocated test (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:27:50.062Z","event":"github-push-master","detail":"Blockid-au: feat(sso): sub-P4 cross-tab BroadcastChannel sync + logic test (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:31:30.511Z","event":"github-push-master","detail":"Blockid-au: feat(ai-eval): sub-Q3 wire eval-runner into prompt-eval-nightly cron (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:33:27.423Z","event":"github-push-master","detail":"Blockid-au: docs(plan): G8 progressive unlock + chrome parity goal (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:33:36.177Z","event":"github-push-master","detail":"Blockid-au: test(iphash): P9-iphash-lib-test — 28-case colocated vitest for hashIp + clientIpFromHeaders (1 commits)","source":"github-webhook"}
