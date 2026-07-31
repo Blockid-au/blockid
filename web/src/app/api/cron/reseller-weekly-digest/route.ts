@@ -803,6 +803,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToPentatriginticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-pentatrigintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-hexatrigintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2565,6 +2570,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToPentatriginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToPentatriginticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToHexatriginticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -7362,6 +7371,39 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToPentatriginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToPentatriginticMean,
         );
+      // P11.327: PEAK-TO-HEXATRIGINTIC-MEAN (M_36). pthtm = (max - min) /
+      // hexatrigintic_mean where hexatrigintic_mean = ((sum x_i^36) / n)^(1/36)
+      // is the M_36 power mean. Bands tight < 1.005, spread [1.005, 1.09),
+      // wide >= 1.09. Tight boundary holds at P11.324 PTPTM's 1.005 (MILD
+      // OUTLIER at M_36 is 0.9594, well below the buffer) and the wide
+      // boundary HOLDS at P11.324 PTPTM's 1.09 since the 10-partner
+      // asymptote drops from 1.0680 (M_35) to 1.0661 (M_36), the 11-partner
+      // asymptote drops from 1.0709 to 1.0689, the 12-partner asymptote
+      // drops from 1.0736 to 1.0715, the 13-partner asymptote drops
+      // from 1.0760 to 1.0738, the 14-partner asymptote drops from
+      // 1.0783 to 1.0761, the 15-partner asymptote drops from 1.0804 to
+      // 1.0781, the 16-partner asymptote drops from 1.0824 to 1.0801,
+      // the 17-partner asymptote drops from 1.0843 to 1.0819, the
+      // 18-partner asymptote drops from 1.0861 to 1.0836, the 19-partner
+      // asymptote drops from 1.0878 to 1.0852, the 20-partner asymptote
+      // drops from 1.0894 to 1.0868, the 21-partner asymptote drops from
+      // 1.0909 to 1.0882 and the 22-partner asymptote lands at 1.0897
+      // (all under wide), so pool_count >= 23 (23^(1/36) ~= 1.0910) is
+      // required to escape into wide with a modest outlier. Since
+      // hexatrigintic_mean >= pentatrigintic_mean by Power Mean inequality
+      // (M_36 >= M_35), pthtm <= ptptm for every non-flat pool. Splices
+      // IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToPentatriginticMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.326 formatter
+      // docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToHexatriginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean,
+        );
     }
   }
   if (
@@ -7499,6 +7541,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToTretriginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToTetratriginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToPentatriginticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToHexatriginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -7663,6 +7706,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToTretriginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToTetratriginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToPentatriginticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToHexatriginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -11543,6 +11587,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToPentatriginticMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToPentatriginticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_hexatrigintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.top_n,
+            tight_pthtm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.tight_pthtm_max,
+            wide_pthtm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.wide_pthtm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean.transitions,
           }
         : {
             skipped_reason:
