@@ -78,6 +78,24 @@ export interface WorkerDeps {
   generateReport: (input: GenerateInput) => Promise<GenerateResult>;
 
   /**
+   * Compensating action invoked once — and only once — an order has
+   * failed permanently (retries exhausted, or a permanent error). Per
+   * Master Upgrade Plan §8.8 the money must be returned: the cron route
+   * wires this to `refundFailedOrder()` (report-refund.ts), which issues
+   * the Stripe refund or reverses the credit debit and moves the order
+   * FAILED → REFUNDED.
+   *
+   * Optional and never throws out of the worker — a refund failure
+   * leaves the order in FAILED for an operator/next tick to retry, and
+   * never rolls back the queue-side bookkeeping that already landed.
+   * Omitting it (as the unit tests do) keeps the pre-refund behaviour.
+   */
+  refundOrder?: (input: {
+    orderId: string;
+    reason: string;
+  }) => Promise<void>;
+
+  /**
    * Injectable clock so tests can pin `now()`. Defaults to `Date.now`.
    */
   now?: () => Date;
@@ -88,6 +106,12 @@ export interface ProcessOutcome {
   orderId?: string;
   status?: "done" | "failed" | "requeued";
   reason?: string;
+  /**
+   * Set only on the permanent-failure path when a `refundOrder` hook was
+   * supplied: `true` when the reversal completed, `false` when it threw.
+   * Absent otherwise, so pre-refund callers see an unchanged shape.
+   */
+  refunded?: boolean;
 }
 
 // A thin Supabase surface — the worker only uses the query builder shape
@@ -196,11 +220,36 @@ export async function processNextQueuedOrder(
       transition: "generation_failed",
       patch: { failure_reason: result.reason, retry_count: nextRetry },
     });
+
+    // §8.8 — the customer paid and got nothing, so give the money back.
+    // Runs AFTER the FAILED flip so `refundFailedOrder()` sees a legal
+    // FAILED → REFUNDED transition.
+    let refunded: boolean | undefined;
+    if (deps.refundOrder) {
+      try {
+        await deps.refundOrder({
+          orderId: claim.order_id,
+          reason: result.reason,
+        });
+        refunded = true;
+      } catch (err) {
+        refunded = false;
+        console.error(
+          "[blockid:report-order-worker] refund hook threw — order left FAILED",
+          {
+            orderId: claim.order_id,
+            error: err instanceof Error ? err.message : String(err),
+          },
+        );
+      }
+    }
+
     return {
       processed: true,
       orderId: claim.order_id,
       status: "failed",
       reason: result.reason,
+      refunded,
     };
   }
 
