@@ -1,0 +1,68 @@
+{
+  "agent": "AIR-008",
+  "version": "1.0.0",
+  "purpose": "Procurement — grade a vendor package against a buyer's requirements",
+  "cases": [
+    {
+      "id": "case_sig_lite",
+      "name": "SIG Lite — 65% of questions answered, 12% N/A, 23% blank",
+      "input": {
+        "businessId": "88888888-8888-4888-8888-888888880001",
+        "areaId": "compliance",
+        "package": "sig_lite",
+        "responseStats": {
+          "answered_pct": 65,
+          "not_applicable_pct": 12,
+          "blank_pct": 23
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 30, "max": 60 },
+        "confidence": { "min": 0.6 },
+        "must_have_gaps": ["complete_blank_responses", "attach_supporting_evidence"],
+        "must_not_hallucinate": ["buyer_specific_thresholds", "presumed_deal_size"]
+      }
+    },
+    {
+      "id": "case_insurance_evidence",
+      "name": "Insurance evidence — PL A$10M current, PI A$5M expired",
+      "input": {
+        "businessId": "88888888-8888-4888-8888-888888880002",
+        "areaId": "compliance",
+        "package": "insurance_pack",
+        "policies": [
+          { "type": "public_liability", "cover_aud": 10000000, "expiry": "2027-01-15" },
+          { "type": "professional_indemnity", "cover_aud": 5000000, "expiry": "2025-11-30" }
+        ]
+      },
+      "expected": {
+        "proposed_score": { "min": 30, "max": 60 },
+        "confidence": { "min": 0.7 },
+        "must_have_gaps": ["professional_indemnity_renewal"],
+        "must_not_hallucinate": ["cyber_cover_amount", "workers_comp_state_details"]
+      }
+    },
+    {
+      "id": "case_abn_verification",
+      "name": "ABN verification — ABN active, GST registered, entity name matches",
+      "input": {
+        "businessId": "88888888-8888-4888-8888-888888880003",
+        "areaId": "identity",
+        "package": "abn_verification",
+        "abrLookup": {
+          "abn": "79 659 615 111",
+          "status": "active",
+          "gst_registered": true,
+          "entity_name": "Auschain PTY LTD",
+          "entity_name_matches_submitted": true
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 80, "max": 100 },
+        "confidence": { "min": 0.85 },
+        "must_have_gaps": [],
+        "must_not_hallucinate": ["director_id_verified_without_check", "credit_score_from_abn"]
+      }
+    }
+  ]
+}

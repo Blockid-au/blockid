@@ -1,0 +1,69 @@
+{
+  "agent": "AIR-010",
+  "version": "1.0.0",
+  "purpose": "Report composer — assemble executive summary + sections with citation coverage",
+  "cases": [
+    {
+      "id": "case_exec_summary",
+      "name": "Executive summary — synthesise 3 findings without introducing new facts",
+      "input": {
+        "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa001",
+        "areaId": "governance",
+        "section": "executive_summary",
+        "sourceFindings": [
+          { "area": "financials", "score": 62, "headline": "runway 11 months, gross margin 71%" },
+          { "area": "governance", "score": 78, "headline": "clean cap table, 2 independent directors" },
+          { "area": "compliance", "score": 44, "headline": "ISO 27001 gap, ISMS not documented" }
+        ]
+      },
+      "expected": {
+        "proposed_score": { "min": 50, "max": 75 },
+        "confidence": { "min": 0.6 },
+        "must_have_gaps": [],
+        "must_not_hallucinate": ["revenue_projection_not_in_source", "unstated_customer_names", "invented_board_member"]
+      }
+    },
+    {
+      "id": "case_citation_coverage",
+      "name": "Citation coverage — every paragraph must reference at least one evidence_id",
+      "input": {
+        "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa002",
+        "areaId": "traction",
+        "section": "traction_section",
+        "sourceFindings": [
+          {
+            "area": "traction",
+            "score": 58,
+            "headline": "40 paying customers, 12% MoM growth",
+            "evidence_ids": ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaae01", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaae02"]
+          }
+        ]
+      },
+      "expected": {
+        "proposed_score": { "min": 50, "max": 85 },
+        "confidence": { "min": 0.65 },
+        "must_have_gaps": [],
+        "must_not_hallucinate": ["evidence_id_not_in_source_list", "cited_pdf_page_number_not_supplied"]
+      }
+    },
+    {
+      "id": "case_tone_check",
+      "name": "Tone check — founder-facing mentoring tone (§Report Tone & Structure memory)",
+      "input": {
+        "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa003",
+        "areaId": "team",
+        "section": "growth_recommendations",
+        "audience": "founder_facing",
+        "sourceFindings": [
+          { "area": "team", "score": 48, "headline": "single-founder risk, no COO or CTO yet" }
+        ]
+      },
+      "expected": {
+        "proposed_score": { "min": 45, "max": 75 },
+        "confidence": { "min": 0.55 },
+        "must_have_gaps": ["mentoring_tone_step_by_step_guidance"],
+        "must_not_hallucinate": ["specific_candidate_referral", "quoted_salary_offer"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "agent": "AIR-003",
+  "version": "1.0.0",
+  "purpose": "Assessment — grade a §6 pillar (L&P, S&C, O&P) from collected evidence",
+  "cases": [
+    {
+      "id": "case_lp_strong_governance",
+      "name": "L&P pillar strong — clean cap table, board minutes, IP assigned",
+      "input": {
+        "businessId": "33333333-3333-4333-8333-333333330001",
+        "areaId": "governance",
+        "pillar": "leadership_and_purpose",
+        "evidenceSummary": {
+          "cap_table_reviewed": true,
+          "board_minutes_last_90d": 3,
+          "ip_assignment_deeds_signed": true,
+          "founder_conflict_declared": false
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 70, "max": 90 },
+        "confidence": { "min": 0.65 },
+        "must_have_gaps": [],
+        "must_not_hallucinate": ["board_resolution_wording_not_supplied"]
+      }
+    },
+    {
+      "id": "case_sc_weak_sales",
+      "name": "S&C pillar weak — no repeatable motion, single-channel dependence",
+      "input": {
+        "businessId": "33333333-3333-4333-8333-333333330002",
+        "areaId": "traction",
+        "pillar": "sales_and_customers",
+        "evidenceSummary": {
+          "customer_count": 6,
+          "channel_concentration_top1_pct": 92,
+          "sales_playbook_documented": false,
+          "nps": null
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 10, "max": 40 },
+        "confidence": { "min": 0.6 },
+        "must_have_gaps": ["channel_concentration_risk", "sales_playbook_missing"],
+        "must_not_hallucinate": ["nps_estimate", "assumed_churn_rate"]
+      }
+    },
+    {
+      "id": "case_op_mixed_operations",
+      "name": "O&P pillar mixed — decent runway, weak observability",
+      "input": {
+        "businessId": "33333333-3333-4333-8333-333333330003",
+        "areaId": "tech",
+        "pillar": "operations_and_platform",
+        "evidenceSummary": {
+          "runway_months": 14,
+          "sla_documented": false,
+          "incident_response_runbook": false,
+          "monitoring_tool_in_use": true
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 40, "max": 65 },
+        "confidence": { "min": 0.55 },
+        "must_have_gaps": ["sla_documented", "incident_response_runbook"],
+        "must_not_hallucinate": ["uptime_pct", "mttr_minutes"]
+      }
+    }
+  ]
+}

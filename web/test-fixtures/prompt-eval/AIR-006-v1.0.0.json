@@ -1,0 +1,68 @@
+{
+  "agent": "AIR-006",
+  "version": "1.0.0",
+  "purpose": "Growth coach — diagnose plateau/blocker and prescribe 30/60/90 actions",
+  "cases": [
+    {
+      "id": "case_revenue_plateau",
+      "name": "Revenue plateau — flat MRR 6 months, no new logo growth",
+      "input": {
+        "businessId": "66666666-6666-4666-8666-666666660001",
+        "areaId": "traction",
+        "problem": "revenue_plateau",
+        "signals": {
+          "mrr_trailing_6mo_aud": [42000, 41500, 42200, 42100, 41800, 42500],
+          "new_logos_last_qtr": 2,
+          "churn_pct_annual": 8
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 30, "max": 55 },
+        "confidence": { "min": 0.6 },
+        "must_have_gaps": ["outbound_pipeline_reset", "icp_re_qualification"],
+        "must_not_hallucinate": ["exact_win_rate", "attributed_conversion_by_channel"]
+      }
+    },
+    {
+      "id": "case_hiring_block",
+      "name": "Hiring block — 3 senior roles open >90 days, offer-accept 20%",
+      "input": {
+        "businessId": "66666666-6666-4666-8666-666666660002",
+        "areaId": "team",
+        "problem": "hiring_block",
+        "signals": {
+          "open_senior_roles": 3,
+          "median_days_open": 105,
+          "offer_accept_rate_pct": 20,
+          "esop_pool_pct": 5
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 25, "max": 55 },
+        "confidence": { "min": 0.55 },
+        "must_have_gaps": ["compensation_benchmark_refresh", "esop_pool_expansion"],
+        "must_not_hallucinate": ["specific_candidate_names", "recruiter_contract_terms"]
+      }
+    },
+    {
+      "id": "case_pm_misfit",
+      "name": "Product-market misfit — high signups, low activation (12%)",
+      "input": {
+        "businessId": "66666666-6666-4666-8666-666666660003",
+        "areaId": "product",
+        "problem": "product_market_misfit",
+        "signals": {
+          "signups_last_30d": 1400,
+          "activation_pct": 12,
+          "day7_retention_pct": 6
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 10, "max": 40 },
+        "confidence": { "min": 0.6 },
+        "must_have_gaps": ["activation_flow_rework", "icp_narrowing"],
+        "must_not_hallucinate": ["specific_feature_removal_list", "assumed_root_cause_without_evidence"]
+      }
+    }
+  ]
+}

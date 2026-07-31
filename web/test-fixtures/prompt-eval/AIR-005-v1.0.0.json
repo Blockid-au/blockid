@@ -1,0 +1,70 @@
+{
+  "agent": "AIR-005",
+  "version": "1.0.0",
+  "purpose": "Investment readiness — grade a startup's readiness for the next round",
+  "cases": [
+    {
+      "id": "case_preseed",
+      "name": "Pre-seed — solo founder, MVP prototype, no revenue",
+      "input": {
+        "businessId": "55555555-5555-4555-8555-555555550001",
+        "areaId": "market",
+        "roundTarget": "pre_seed",
+        "signals": {
+          "founder_count": 1,
+          "mvp_status": "prototype",
+          "monthly_revenue_aud": 0,
+          "letters_of_intent": 0
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 10, "max": 40 },
+        "confidence": { "min": 0.55 },
+        "must_have_gaps": ["co_founder_or_advisory_board", "signed_lois_from_target_icp"],
+        "must_not_hallucinate": ["term_sheet_offered", "specific_angel_names"]
+      }
+    },
+    {
+      "id": "case_seed",
+      "name": "Seed — MVP live, A$18k MRR, 3 FTE, 20% MoM growth",
+      "input": {
+        "businessId": "55555555-5555-4555-8555-555555550002",
+        "areaId": "traction",
+        "roundTarget": "seed",
+        "signals": {
+          "monthly_revenue_aud": 18000,
+          "mom_growth_pct": 20,
+          "team_size": 3,
+          "product_stage": "live"
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 45, "max": 70 },
+        "confidence": { "min": 0.6 },
+        "must_have_gaps": ["scalable_channel_evidence", "unit_economics_ltv_cac"],
+        "must_not_hallucinate": ["fund_names", "closing_date"]
+      }
+    },
+    {
+      "id": "case_series_a",
+      "name": "Series A — A$3.4M ARR, 22 FTE, net-neg-churn cohort proof",
+      "input": {
+        "businessId": "55555555-5555-4555-8555-555555550003",
+        "areaId": "financials",
+        "roundTarget": "series_a",
+        "signals": {
+          "arr_aud": 3400000,
+          "net_dollar_retention_pct": 118,
+          "team_size": 22,
+          "gross_margin_pct": 74
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 70, "max": 95 },
+        "confidence": { "min": 0.7 },
+        "must_have_gaps": ["cfo_hire_or_fractional", "board_composition_for_series_a"],
+        "must_not_hallucinate": ["valuation_estimate", "specific_lead_investor"]
+      }
+    }
+  ]
+}

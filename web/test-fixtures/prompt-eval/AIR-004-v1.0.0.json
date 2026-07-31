@@ -1,0 +1,67 @@
+{
+  "agent": "AIR-004",
+  "version": "1.0.0",
+  "purpose": "Risk finder — grade risks by likelihood + impact and attach mitigation plan",
+  "cases": [
+    {
+      "id": "case_cyber_incident",
+      "name": "Cyber — recent phishing incident, no MFA on admin console",
+      "input": {
+        "businessId": "44444444-4444-4444-8444-444444440001",
+        "areaId": "risk",
+        "riskDomain": "cyber",
+        "signals": {
+          "mfa_enforced_admin": false,
+          "past_incident_last_90d": true,
+          "essential_eight_maturity": 1
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 5, "max": 30 },
+        "confidence": { "min": 0.7 },
+        "must_have_gaps": ["mfa_admin_enforcement", "essential_eight_ml2_uplift"],
+        "must_not_hallucinate": ["ransom_amount", "specific_threat_actor_name"]
+      }
+    },
+    {
+      "id": "case_governance_gap",
+      "name": "Governance — no board, sole director, no shareholder agreement",
+      "input": {
+        "businessId": "44444444-4444-4444-8444-444444440002",
+        "areaId": "governance",
+        "riskDomain": "governance",
+        "signals": {
+          "board_size": 0,
+          "sole_director": true,
+          "shareholder_agreement_signed": false
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 10, "max": 40 },
+        "confidence": { "min": 0.65 },
+        "must_have_gaps": ["independent_director", "shareholder_agreement"],
+        "must_not_hallucinate": ["proposed_director_names", "esop_pool_size"]
+      }
+    },
+    {
+      "id": "case_financial_risk_runway",
+      "name": "Financial — 4-month runway, single revenue source, no invoice factoring",
+      "input": {
+        "businessId": "44444444-4444-4444-8444-444444440003",
+        "areaId": "financials",
+        "riskDomain": "financial",
+        "signals": {
+          "runway_months": 4,
+          "revenue_concentration_top1_pct": 88,
+          "cash_at_bank_aud": 120000
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 5, "max": 30 },
+        "confidence": { "min": 0.7 },
+        "must_have_gaps": ["extend_runway_to_12mo", "diversify_revenue_top1_under_40pct"],
+        "must_not_hallucinate": ["specific_lender_name", "guaranteed_bridge_amount"]
+      }
+    }
+  ]
+}
