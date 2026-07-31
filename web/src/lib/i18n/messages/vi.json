@@ -265,7 +265,7 @@
   "businessIdPublic.lastVerified.label": "Xác minh gần nhất {date}",
   "businessIdPublic.badges.aria": "Huy hiệu xác minh",
   "businessIdPublic.verificationAria": "Cấp độ xác minh {level}: {label}",
-  "businessIdPublic.radar.aria": "Biểu đồ radar năng lực cho {name} trên 13 vùng xác minh",
+  "businessIdPublic.radar.aria": "Biểu đồ radar năng lực cho {name} trên 12 vùng xác minh",
   "businessIdPublic.radar.title": "Biểu đồ radar năng lực cho {name}",
   "businessIdPublic.capability.heading": "Điểm năng lực",
   "businessIdPublic.capability.intro": "Mười hai vùng xác minh gồm Lãnh đạo & Con người, Chiến lược & Thương mại, Vận hành & Hiệu quả, và Công nghệ & Số hoá. Chỉ điểm công khai — bằng chứng gốc không bao giờ được công bố.",
