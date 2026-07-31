@@ -916,6 +916,51 @@ export async function POST(request: Request) {
         sku,
       },
     });
+
+    // ── Task M3 · reseller_attributions reconciliation ─────────────────
+    // /api/reports/checkout writes reseller_attributions synchronously when
+    // resolvedPromo is truthy — but that write is best-effort (wrapped in
+    // try/catch so a Supabase blip never blocks checkout). Verify the row
+    // exists here and insert from session metadata if it doesn't, mirroring
+    // the report_orders reconciliation path above.
+    const bidResellerId = session.metadata?.bid_reseller_id;
+    const bidPromoTier = session.metadata?.bid_promo_tier_pct;
+    if (bidResellerId && typeof bidResellerId === "string") {
+      try {
+        const { data: existingAttr } = await supabase
+          .from("reseller_attributions")
+          .select("id")
+          .eq("subject_type", "user")
+          .eq("subject_user_id", userId)
+          .eq("reseller_id", bidResellerId)
+          .eq("status", "active")
+          .contains("metadata", { stripe_session_id: session.id })
+          .limit(1);
+        if (!existingAttr || existingAttr.length === 0) {
+          await supabase.from("reseller_attributions").insert({
+            reseller_id: bidResellerId,
+            subject_type: "user",
+            subject_user_id: userId,
+            status: "active",
+            source: "code",
+            promotion_code_id: null,
+            metadata: {
+              scope: "report_order",
+              business_id: businessId,
+              stripe_session_id: session.id,
+              reconciled_from_webhook: true,
+              stripe_event_id: event.id,
+              applied_discount_pct: bidPromoTier ? Number(bidPromoTier) : 0,
+            },
+          });
+        }
+      } catch (err) {
+        console.warn(
+          "[blockid:stripe] reseller_attributions reconciliation failed",
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    }
   }
 
   // -------------------------------------------------------------------------

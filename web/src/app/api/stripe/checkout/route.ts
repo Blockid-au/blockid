@@ -6,6 +6,7 @@ import { getPlan, isGrowthEarlyBird } from "@/lib/plans";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
+import { resolvePromoCode } from "@/lib/reseller/resolve-promo";
 import { hashUserId } from "@/lib/reseller/hash";
 import { buildCheckoutSuccessUrl } from "@/lib/stripe/checkout-success-url";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
     plan: planId,
     couponCode,
     resellerCode: bodyResellerCode,
+    promoCode: bodyPromoCode,
     origin: bodyOrigin,
     projectId: bodyProjectId,
   } =
@@ -56,6 +58,12 @@ export async function POST(request: Request) {
       plan?: string;
       couponCode?: string;
       resellerCode?: string;
+      // Sub-K4: optional reseller promotion code the founder typed on the
+      // pricing page (e.g. "IFV20", "DVL10"). Resolved via
+      // @/lib/reseller/resolve-promo and 400s if unknown/expired. When
+      // provided, wins over the blockid_via cookie so an explicit user
+      // action beats a stale attribution.
+      promoCode?: string;
       // Iteration-6 task #2: the onboarding wizard passes `origin:"onboarding"`
       // so the success_url can steer the Stripe-hosted return back to Step 6
       // ("Create your first startup"). Standalone callers (upgrade, add-on,
@@ -70,9 +78,30 @@ export async function POST(request: Request) {
 
   // Reseller attribution — priority: body param (from onboarding wizard state)
   // → cookie blockid_via. Per docs/plans/reseller-module-plan.md § C.2 / U.6.
+  //
+  // Sub-K4: `promoCode` (explicit founder-typed reseller promo) is resolved
+  // FIRST via resolvePromoCode() so we can 400 on an unknown/expired code
+  // before touching Stripe. When a promoCode resolves it also pre-populates
+  // the resellerAttribution object so the inline lookup further down is a
+  // no-op — same downstream flow (discounts, metadata stamping, audit log).
   const cookieStore = await cookies();
-  const rawResellerCode = bodyResellerCode ?? cookieStore.get("blockid_via")?.value ?? null;
+  const rawResellerCode =
+    bodyPromoCode ?? bodyResellerCode ?? cookieStore.get("blockid_via")?.value ?? null;
   const resellerCode = normaliseResellerCode(rawResellerCode);
+
+  let promoRowId: string | null = null;
+  let promoExplicitlyRequested = false;
+  if (typeof bodyPromoCode === "string" && bodyPromoCode.trim().length > 0) {
+    promoExplicitlyRequested = true;
+    const resolved = await resolvePromoCode(bodyPromoCode);
+    if (!resolved) {
+      return NextResponse.json(
+        { ok: false, reason: "Unknown or expired promotion code" },
+        { status: 400 },
+      );
+    }
+    promoRowId = resolved.promoRowId;
+  }
 
   if (!planId || typeof planId !== "string") {
     return NextResponse.json(
@@ -412,7 +441,56 @@ export async function POST(request: Request) {
       ua: extractUserAgent(request.headers),
     });
 
-    return NextResponse.json({ ok: true, url: session.url });
+    // Sub-K4 tail work — only when the founder explicitly typed a promoCode:
+    //   1. Write a reseller_attributions row so the payout ledger sees the
+    //      user-level attribution at PAYMENT_SUCCEEDED time. Project-level
+    //      attribution is left to the webhook path (has projectId context).
+    //   2. Bump redemption_count so the admin console can show usage. This
+    //      is a select-then-update; concurrency is bounded by Stripe
+    //      checkout latency and the counter is analytics-only, so a rare
+    //      double-count is acceptable (documented follow-up: add an RPC for
+    //      atomic increment in a subsequent migration).
+    let appliedDiscount: { pct: number; code: string; resellerSlug: string } | null = null;
+    if (promoExplicitlyRequested && resellerAttribution && promoRowId) {
+      appliedDiscount = {
+        pct: resellerAttribution.tier_pct,
+        code: resellerAttribution.code,
+        resellerSlug: resellerAttribution.code,
+      };
+      try {
+        const supabase = getSupabaseAdmin();
+        if (supabase) {
+          await supabase
+            .from("reseller_attributions")
+            .insert({
+              reseller_id: resellerAttribution.reseller_id,
+              subject_type: "user",
+              subject_user_id: user.id,
+              status: "active",
+              source: "code",
+              promotion_code_id: promoRowId,
+              metadata: { plan_id: planId, checkout_session_id: session.id },
+            });
+          const { data: current } = await supabase
+            .from("reseller_promotion_codes")
+            .select("redemption_count")
+            .eq("id", promoRowId)
+            .maybeSingle();
+          if (current) {
+            await supabase
+              .from("reseller_promotion_codes")
+              .update({ redemption_count: Number(current.redemption_count ?? 0) + 1 })
+              .eq("id", promoRowId);
+          }
+        }
+      } catch (attrErr) {
+        // Never fail the checkout on attribution write — the webhook path
+        // is a second chance to reconcile.
+        console.warn("[blockid:stripe] promo attribution write failed", attrErr);
+      }
+    }
+
+    return NextResponse.json({ ok: true, url: session.url, appliedDiscount });
   } catch (err) {
     console.error("[blockid:stripe] checkout session creation failed", err);
     return NextResponse.json(

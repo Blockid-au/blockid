@@ -3992,3 +3992,16 @@
 {"ts":"2026-07-31T00:51:48.989Z","event":"github-push-master","detail":"Blockid-au: test(proofs): P9-proofs-lib-test — 40-case vitest for canonical-json + hash (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T00:52:00.194Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T00-47-01-828Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T00:59:50.775Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-weekly-digest): P11.212 QCD cron wiring (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:00:04.422Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T00-55-01-098Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:01:32.140Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-promo): sub-K1 extend reseller_promotion_codes for v3 (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:02:26.680Z","event":"github-push-master","detail":"Blockid-au: test(svi-badges): P9-svi-badges-lib-test — 35-case vitest for milestone badge registry + award engine (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:03:59.154Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-promo): sub-K2 seed IFV+DVL codes and provisioning script (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:04:31.572Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-roster): sub-L1 add reseller_startup_roster view (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:05:02.089Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-attribution): sub-M1 ?ref= deep-link capture + first-touch cookie (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:05:21.359Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-promo): sub-K3 resolvePromoCode runtime helper + 8-case test (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:07:18.975Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-roster): sub-L2 add readResellerRoster helper + tests (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:08:12.185Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-attribution): sub-M2 signup promo-code input + validate endpoint (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:09:08.601Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-roster): sub-L3 add /reseller/roster page + client table (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:09:35.773Z","event":"github-push-master","detail":"Blockid-au: docs(v3): sub-N1 rewrite marketing roadmap for v3.0 phase 1-6 (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:10:04.321Z","event":"github-push-master","detail":"Blockid-au: docs(v3): sub-N2 add v3.0 upgrade entry to changelog (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T01:10:37.790Z","event":"github-push-master","detail":"Blockid-au: test(gst): P9-gst-lib-test — 29-case vitest for GST calculator + AU-only gate (1 commits)","source":"github-webhook"}
