@@ -821,3 +821,4 @@
 {"tick_id":"2026-07-31T06-17-01-811Z","ts":"2026-07-31T06:22:29.656Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T06-27-01-664Z","ts":"2026-07-31T06:27:01.665Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T06-27-01-664Z","ts":"2026-07-31T06:27:01.682Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"opus-manual-2026-07-31T06-33-23Z","ts":"2026-07-31T06:33:23Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","subtask":"P9-pricing-data-lib-test","tests":63,"file":"web/src/lib/pricing-data.test.ts","result":"63 passed / 455ms","typecheck":"skipped (test-only addition; no source edits)"}
