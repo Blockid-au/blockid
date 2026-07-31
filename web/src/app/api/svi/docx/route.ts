@@ -13,6 +13,10 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { canAfford, spendCredits } from "@/lib/credits";
 import { generateSVIDocx } from "@/lib/docx/svi-report-docx";
+// Row → AssembledReport reconstruction is shared with the order-scoped
+// delivery route (/api/reports/[orderId]) so both surfaces rebuild a
+// stored report identically. Lifted verbatim out of this file.
+import { reconstructAssembledReport } from "@/lib/paywall/report-delivery";
 import type { AssembledReport, ReportSection, VisualSpec, ConsistencyIssue } from "@/lib/report-pipeline/types";
 import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 
@@ -106,7 +110,7 @@ export async function POST(request: Request) {
     startupName = String(reportRow.title ?? "Unknown Startup").replace(/^SVI Enhanced Report:\s*/i, "");
 
     // Reconstruct AssembledReport from stored data
-    report = reconstructReport(reportRow);
+    report = reconstructAssembledReport(reportRow);
   } else {
     // Load from latest analysis + existing report sections
     const projectId = await getProjectIdFromRequest();
@@ -137,7 +141,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (latestReportRaw) {
-      report = reconstructReport(latestReportRaw as any);
+      report = reconstructAssembledReport(latestReportRaw as any);
     } else {
       // Fallback: build a minimal report from the latest full_report content
       const latestAnalysis = await findLatestAnalysisWithFallback(
@@ -235,65 +239,6 @@ export async function POST(request: Request) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function reconstructReport(row: Record<string, unknown>): AssembledReport {
-  const sectionsJson = row.sections_json as Array<Record<string, unknown>> | null;
-  const fullMarkdown = String(row.full_markdown ?? "");
-
-  // Reconstruct sections from stored JSON + markdown
-  const sections: ReportSection[] = (sectionsJson ?? []).map((s) => {
-    // Try to extract section content from the full markdown
-    const sectionTitle = String(s.title ?? "");
-    const sectionContent = extractSectionContent(fullMarkdown, sectionTitle);
-
-    return {
-      id: String(s.id ?? ""),
-      title: sectionTitle,
-      agentRole: String(s.agentRole ?? "ceo") as ReportSection["agentRole"],
-      criterion: (s.criterion as ReportSection["criterion"]) ?? undefined,
-      content: sectionContent,
-      score: typeof s.score === "number" ? s.score : undefined,
-      visuals: [] as VisualSpec[],
-      wordCount: Number(s.wordCount ?? sectionContent.split(/\s+/).length),
-    };
-  });
-
-  return {
-    id: String(row.id ?? ""),
-    title: String(row.title ?? "SVI Report"),
-    tier: String(row.tier ?? "standard") as AssembledReport["tier"],
-    sections,
-    charts: (row.charts_json as VisualSpec[]) ?? [],
-    executiveSummary: String(row.executive_summary ?? ""),
-    qualityScore: Number(row.quality_score ?? 0),
-    totalWords: Number(row.total_words ?? 0),
-    consistencyIssues: (row.consistency_issues as ConsistencyIssue[]) ?? [],
-    agentContributions: (row.agent_contributions as AssembledReport["agentContributions"]) ?? {},
-    markdown: fullMarkdown,
-    createdAt: String(row.created_at ?? new Date().toISOString()),
-  };
-}
-
-function extractSectionContent(markdown: string, sectionTitle: string): string {
-  if (!markdown || !sectionTitle) return "";
-
-  // Escape regex special chars in the title
-  const escaped = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const headingPattern = new RegExp(
-    `^##\\s+${escaped}\\s*$`,
-    "mi",
-  );
-
-  const match = headingPattern.exec(markdown);
-  if (!match) return "";
-
-  const startIdx = match.index + match[0].length;
-  // Find the next ## heading or end of string
-  const nextHeading = markdown.indexOf("\n## ", startIdx);
-  const endIdx = nextHeading === -1 ? markdown.length : nextHeading;
-
-  return markdown.slice(startIdx, endIdx).trim();
-}
 
 function buildReportFromMarkdown(
   startupName: string,
