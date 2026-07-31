@@ -230,7 +230,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     expect(band.partner_peak_to_quinvigintic_mean).toBe(0);
   });
 
-  it("uniform ramp [1..10] → QVIM 9.1160, range 9, ptqivm 0.9873 (tight)", () => {
+  it("uniform ramp [1..10] → QIVM 9.1468, range 9, ptqivm 0.9840 (tight)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])),
@@ -238,13 +238,13 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(10);
     expect(band.partner_pool_cells).toBe(55);
-    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9873);
+    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9840);
     expect(band.partner_peak_to_quinvigintic_mean!).toBeLessThan(
       out.tight_ptqivm_max,
     );
   });
 
-  it("upper-outlier [1×9, 10] → QVIM 9.0852, range 9, ptqivm 0.9906 (TIGHT — MILD OUTLIER absorbed by quattuorvigintic mean; sits FURTHER BELOW the arithmetic-max dampening threshold of 1.0 than P11.300 PTRVM's 0.9948 tight landing)", () => {
+  it("upper-outlier [1×9, 10] → QIVM 9.1201, range 9, ptqivm 0.9868 (TIGHT — MILD OUTLIER absorbed by quinvigintic mean; sits FURTHER BELOW the arithmetic-max dampening threshold of 1.0 than P11.302 PTQVIM's 0.9906 tight landing)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 1, 1, 1, 1, 1, 1, 1, 1, 10])),
@@ -252,13 +252,13 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(10);
     expect(band.partner_pool_cells).toBe(19);
-    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9906);
+    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9868);
     expect(band.partner_peak_to_quinvigintic_mean!).toBeLessThan(
       out.tight_ptqivm_max,
     );
   });
 
-  it("two-shoulders [1×8, 5×2] → QVIM 4.6757, range 4, ptqivm 0.8555 (tight)", () => {
+  it("two-shoulders [1×8, 5×2] → QIVM 4.6883, range 4, ptqivm 0.8532 (tight)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 1, 1, 1, 1, 1, 1, 1, 5, 5])),
@@ -266,13 +266,13 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(10);
     expect(band.partner_pool_cells).toBe(18);
-    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.8555);
+    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.8532);
     expect(band.partner_peak_to_quinvigintic_mean!).toBeLessThan(
       out.tight_ptqivm_max,
     );
   });
 
-  it("50/50 split [1×5, 10×5] → QVIM 9.7153, range 9, ptqivm 0.9264 (tight — BIMODAL SPLIT well-absorbed)", () => {
+  it("50/50 split [1×5, 10×5] → QIVM 9.7265, range 9, ptqivm 0.9253 (tight — BIMODAL SPLIT well-absorbed)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 1, 1, 1, 1, 10, 10, 10, 10, 10])),
@@ -280,13 +280,13 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(10);
     expect(band.partner_pool_cells).toBe(55);
-    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9264);
+    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9253);
     expect(band.partner_peak_to_quinvigintic_mean!).toBeLessThan(
       out.tight_ptqivm_max,
     );
   });
 
-  it("extreme outlier [1×9, 100] → QVIM 90.8518, range 99, ptqivm 1.0897 (SPREAD — EXTREME OUTLIER approaches 10^(1/24) asymptote ~ 1.1007)", () => {
+  it("extreme outlier [1×9, 100] → QIVM 91.2011, range 99, ptqivm 1.0855 (SPREAD — EXTREME OUTLIER approaches 10^(1/25) asymptote ~ 1.0965)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 1, 1, 1, 1, 1, 1, 1, 1, 100])),
@@ -294,7 +294,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(10);
     expect(band.partner_pool_cells).toBe(109);
-    expect(band.partner_peak_to_quinvigintic_mean).toBe(1.0897);
+    expect(band.partner_peak_to_quinvigintic_mean).toBe(1.0855);
     expect(
       band.partner_peak_to_quinvigintic_mean!,
     ).toBeGreaterThanOrEqual(out.tight_ptqivm_max);
@@ -303,7 +303,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     );
   });
 
-  it("two-partner pool [1, 9] → QVIM 8.7438, range 8, ptqivm 0.9149 (tight)", () => {
+  it("two-partner pool [1, 9] → QIVM 8.7539, range 8, ptqivm 0.9139 (tight)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 9])),
@@ -311,13 +311,13 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(2);
     expect(band.partner_pool_cells).toBe(10);
-    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9149);
+    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9139);
     expect(band.partner_peak_to_quinvigintic_mean!).toBeLessThan(
       out.tight_ptqivm_max,
     );
   });
 
-  it("two-partner pool [1, 100] → QVIM 97.1532, range 99, ptqivm 1.0190 (SPREAD — ISOLATED HIGH PARTNER remains above the 1.005 tight/spread boundary at M_24; P11.294 PTVIM caught this at 1.01 with 1.0249 and PTQIVM stays spread at 1.0190)", () => {
+  it("two-partner pool [1, 100] → QIVM 97.2655, range 99, ptqivm 1.0178 (SPREAD — ISOLATED HIGH PARTNER remains above the 1.005 tight/spread boundary at M_25; P11.294 PTVIM caught this at 1.01 with 1.0249 and PTQIVM stays spread at 1.0178)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 100])),
@@ -325,7 +325,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(2);
     expect(band.partner_pool_cells).toBe(101);
-    expect(band.partner_peak_to_quinvigintic_mean).toBe(1.019);
+    expect(band.partner_peak_to_quinvigintic_mean).toBe(1.0178);
     expect(
       band.partner_peak_to_quinvigintic_mean!,
     ).toBeGreaterThanOrEqual(out.tight_ptqivm_max);
@@ -334,7 +334,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     );
   });
 
-  it("small pool [10, 1, 1] → QVIM 9.5526, range 9, ptqivm 0.9422 (TIGHT — SMALL-VALUE-DOMINATED with LARGE-PARTNER DAMPENING; approaches 3-partner asymptote 3^(1/24) ~ 1.0468)", () => {
+  it("small pool [10, 1, 1] → QIVM 9.5701, range 9, ptqivm 0.9404 (TIGHT — SMALL-VALUE-DOMINATED with LARGE-PARTNER DAMPENING; approaches 3-partner asymptote 3^(1/25) ~ 1.0468)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([10, 1, 1])),
@@ -342,7 +342,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(3);
     expect(band.partner_pool_cells).toBe(12);
-    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9422);
+    expect(band.partner_peak_to_quinvigintic_mean).toBe(0.9404);
     expect(band.partner_peak_to_quinvigintic_mean!).toBeLessThan(
       out.tight_ptqivm_max,
     );
@@ -386,14 +386,14 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     }
   });
 
-  it("Power Mean invariant: PTQIVM <= PTRVM for every non-flat pool (quattuorvigintic_mean >= tresvigintic_mean by M_24 >= M_23)", () => {
-    // Algebraic identity: for non-negative reals quattuorvigintic_mean =
-    // (mean of x^24)^(1/24) >= (mean of x^23)^(1/23) = tresvigintic_mean
-    // by the Power Mean inequality (M_24 >= M_23). By monotonicity of
+  it("Power Mean invariant: PTQIVM <= PTQVIM for every non-flat pool (quinvigintic_mean >= quattuorvigintic_mean by M_25 >= M_24)", () => {
+    // Algebraic identity: for non-negative reals quinvigintic_mean =
+    // (mean of x^25)^(1/25) >= (mean of x^24)^(1/24) = quattuorvigintic_mean
+    // by the Power Mean inequality (M_25 >= M_24). By monotonicity of
     // the reciprocal on positive denominators, ptqivm =
-    // range/quattuorvigintic_mean <= range/tresvigintic_mean = ptrvm. We
-    // reproduce tresvigintic_mean + quattuorvigintic_mean here and verify
-    // the invariant on non-flat pools + equality on flat pools.
+    // range/quinvigintic_mean <= range/quattuorvigintic_mean = ptqvim.
+    // We reproduce quattuorvigintic_mean + quinvigintic_mean here and
+    // verify the invariant on non-flat pools + equality on flat pools.
     const cases: { pool: number[]; nonFlat: boolean }[] = [
       { pool: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], nonFlat: true },
       { pool: [1, 1, 1, 1, 1, 1, 1, 1, 1, 10], nonFlat: true },
@@ -413,22 +413,22 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
       const min = Math.min(...values);
       const max = Math.max(...values);
       const range = max - min;
-      const tresvigintic_mean = Math.pow(
+      const quattuorvigintic_mean = Math.pow(
         values.reduce((a, v) => {
           const sq = v * v;
           const quad = sq * sq;
           const oct = quad * quad;
-          // x^23 = x^8 * x^8 * x^4 * x^2 * x
-          return a + oct * oct * quad * sq * v;
+          // x^24 = x^8 * x^8 * x^8
+          return a + oct * oct * oct;
         }, 0) / values.length,
-        1 / 23,
+        1 / 24,
       );
-      const ptrvm =
-        tresvigintic_mean === 0 ? null : range / tresvigintic_mean;
-      if (nonFlat && ptrvm !== null) {
-        // ptqivm is rounded to 4 decimals; ptrvm here is raw, so
+      const ptqvim =
+        quattuorvigintic_mean === 0 ? null : range / quattuorvigintic_mean;
+      if (nonFlat && ptqvim !== null) {
+        // ptqivm is rounded to 4 decimals; ptqvim here is raw, so
         // allow a 5e-4 slack to absorb the quantization gap.
-        expect(ptqivm).toBeLessThanOrEqual(ptrvm + 5e-4);
+        expect(ptqivm).toBeLessThanOrEqual(ptqvim + 5e-4);
       } else if (!nonFlat) {
         expect(ptqivm).toBe(0);
       }
@@ -437,7 +437,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
 });
 
 describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean — metric-pool parity", () => {
-  it("metric_peak_to_quinvigintic_mean computed identically from KPI-count map (10-KPI uniform ramp → 0.9873)", () => {
+  it("metric_peak_to_quinvigintic_mean computed identically from KPI-count map (10-KPI uniform ramp → 0.9840)", () => {
     const rows: PerPairHotCellRow[] = [];
     const kpiCounts: [KnownKpiSection, number][] = [
       ["attributed_mrr", 10],
@@ -464,7 +464,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticM
     const band = out.transitions.improved.bands.medium;
     expect(band.metric_pool_count).toBe(10);
     expect(band.metric_pool_cells).toBe(55);
-    expect(band.metric_peak_to_quinvigintic_mean).toBe(0.9873);
+    expect(band.metric_peak_to_quinvigintic_mean).toBe(0.9840);
   });
 });
 
@@ -564,8 +564,8 @@ describe("formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMe
     expect(html).toContain("PEAK-TO-QUINVIGINTIC-MEAN");
     expect(html).toContain("PTQIVM ");
     expect(html).toContain("spread");
-    expect(html).toContain("partner PTQVIM");
-    expect(html).toContain("KPI PTQVIM");
+    expect(html).toContain("partner PTQIVM");
+    expect(html).toContain("KPI PTQIVM");
   });
 
   it("renders solo label for pool_count == 1", () => {
@@ -592,7 +592,7 @@ describe("formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMe
     expect(html).toContain("tight");
   });
 
-  it("renders tight label for uniform ramp (ptqivm = 0.9873)", () => {
+  it("renders tight label for uniform ramp (ptqivm = 0.9840)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])),
@@ -604,7 +604,7 @@ describe("formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMe
     expect(html).toContain("tight");
   });
 
-  it("renders tight label for MILD OUTLIER [1×9, 10] (ptqivm = 0.9906; where PTRVM reads tight + PTDVIM reads tight + PTUVM reads tight + PTVIM reads tight + PTSOM reads tight + PTSPM reads tight + PTSDM reads tight + PTQIM reads tight + PTQTM reads tight + PTTRM reads tight + PTDUM reads tight + PTUM reads tight + PTDM reads tight + PTNM reads tight + PTOM reads tight + PTSEM reads tight + PTRMS reads spread + PTGM + PTH read wide)", () => {
+  it("renders tight label for MILD OUTLIER [1×9, 10] (ptqivm = 0.9868; where PTRVM reads tight + PTDVIM reads tight + PTUVM reads tight + PTVIM reads tight + PTSOM reads tight + PTSPM reads tight + PTSDM reads tight + PTQIM reads tight + PTQTM reads tight + PTTRM reads tight + PTDUM reads tight + PTUM reads tight + PTDM reads tight + PTNM reads tight + PTOM reads tight + PTSEM reads tight + PTRMS reads spread + PTGM + PTH read wide)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 1, 1, 1, 1, 1, 1, 1, 1, 10])),
@@ -616,7 +616,7 @@ describe("formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMe
     expect(html).toContain("tight");
   });
 
-  it("renders spread label for EXTREME OUTLIER [1×9, 100] (ptqivm = 1.0897)", () => {
+  it("renders spread label for EXTREME OUTLIER [1×9, 100] (ptqivm = 1.0855)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean(
         envelope(partnerPool([1, 1, 1, 1, 1, 1, 1, 1, 1, 100])),
