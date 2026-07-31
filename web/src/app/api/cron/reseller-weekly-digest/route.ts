@@ -723,6 +723,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemdecic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToViginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-vigintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2421,6 +2426,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToViginticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -6812,6 +6821,31 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean,
         );
+      // P11.295: PER-TRANSITION MAGNITUDE TOP-3 POOL PEAK-TO-VIGINTIC-MEAN.
+      // ptvim = (max - min) / vigintic_mean where vigintic_mean =
+      // ((sum x_i^20) / n)^(1/20) uses the M_20 power mean. Bands tight <
+      // 1.01 (flat, uniform ramp, upper-outlier, two-shoulders, bimodal-
+      // split, two-partner, small regimes), spread in [1.01, 1.13)
+      // (extreme-outlier regime), wide >= 1.13 (runaway-outlier regime
+      // with pool_count >= 13). Cutoffs tighten P11.292 PTNVM's 1.02/1.14
+      // pair down to 1.01/1.13 because vigintic_mean >= novemdecic_mean
+      // by Power Mean inequality (M_20 >= M_19) so ptvim <= ptnvm for
+      // every non-flat pool — the wide cutoff drops from 1.14 to 1.13 so
+      // only pool_count >= 13 pools reach wide (13^(1/20) ~= 1.1368 is
+      // just past the wide floor). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.294 formatter
+      // docblock so the DISPERSION axis continues with range-against-
+      // vigintic-center after the P11.292 range-against-novemdecic-
+      // center landing. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToViginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToViginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean,
+        );
     }
   }
   if (
@@ -6933,6 +6967,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToSeptendecicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToOctodecicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToViginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -7081,6 +7116,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToSeptendecicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToOctodecicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToViginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -10481,6 +10517,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_vigintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.top_n,
+            tight_ptvim_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.tight_ptvim_max,
+            wide_ptvim_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.wide_ptvim_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean.transitions,
           }
         : {
             skipped_reason:

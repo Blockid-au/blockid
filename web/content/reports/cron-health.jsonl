@@ -1014,3 +1014,8 @@
 {"ts":"2026-07-31T16:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16500,"detail":""}
 {"ts":"2026-07-31T16:10:01Z","endpoint":"nurture","status":"ok","duration_ms":195,"detail":"{\"sent\": 0, \"skipped\": 0, \"ts\": \"2026-07-31T16:10:01.137Z\", \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
 {"ts":"2026-07-31T16:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":3113,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 17, \"raw\": \"17% used (232136560 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273826068 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-31T16:15:01Z","endpoint":"vesting","status":"ok","duration_ms":231,"detail":"{\"processed\": 1, \"completed\": 0, \"emailed\": 0}"}
+{"ts":"2026-07-31T16:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16499,"detail":""}
+{"ts":"2026-07-31T16:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":190,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-07-31T16:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2669,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 17, \"raw\": \"17% used (231389972 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273826120 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-31T16:20:01Z","endpoint":"lead-nurture","status":"ok","duration_ms":152999,"detail":"{\"sent\": 9, \"skipped\": 26, \"opted_out\": 0, \"policy\": \"d1_d4_d9_sequence\"}"}
