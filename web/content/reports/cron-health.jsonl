@@ -888,3 +888,8 @@
 {"ts":"2026-07-31T04:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16471,"detail":""}
 {"ts":"2026-07-31T04:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":132,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
 {"ts":"2026-07-31T04:20:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":3637,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234307956 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274231140 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-31T04:30:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":716,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234304812 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274231140 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-31T04:30:01Z","endpoint":"reseller-manifest-drift","status":"ok","duration_ms":1867,"detail":"{\"ran_at\": \"2026-07-31T04:30:01.752Z\", \"drift\": {\"missing\": [], \"phantom_missing_file\": [\"api/ai/esop/route.ts\", \"api/ai/vesting-review/route.ts\", \"api/ai/vesting/route.ts\", \"api/blockchain/create-tok"}
+{"ts":"2026-07-31T04:30:01Z","endpoint":"nightly-clevel-review","status":"fail","duration_ms":16566,"detail":""}
+{"ts":"2026-07-31T04:30:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16638,"detail":""}
+{"ts":"2026-07-31T04:30:01Z","endpoint":"performance-audit","status":"fail","duration_ms":17079,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 __variable_6b9622 h-full antialiased\"><head"}
