@@ -28,8 +28,8 @@ const CRON_ROUTE_ABS = repoAbs(
 const CRON_ROUTE_SOURCE: string = readFileSync(CRON_ROUTE_ABS, "utf8");
 
 describe("pool-shape registry — shape", () => {
-  it("registers sixty-nine pool-shape surfaces (matches on-disk file count)", () => {
-    expect(POOL_SHAPE_SURFACES.length).toBe(69);
+  it("registers seventy pool-shape surfaces (matches on-disk file count)", () => {
+    expect(POOL_SHAPE_SURFACES.length).toBe(70);
   });
 
   it("emits no duplicate slugs", () => {
