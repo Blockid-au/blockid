@@ -548,6 +548,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolLSkewness,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-l-skewness";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosis,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosisSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosis,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-l-kurtosis";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2106,6 +2111,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolLSkewness
     | null = null;
   let perTransitionMagnitudeTop3PoolLSkewnessSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolLKurtosis:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosis
+    | null = null;
+  let perTransitionMagnitudeTop3PoolLKurtosisSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5177,6 +5186,58 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolLSkewnessSection(
           snapshotPerTransitionMagnitudeTop3PoolLSkewness,
         );
+      // P11.224 l-kurtosis cron wiring — L-MOMENT-BASED BOUNDED
+      // WHOLE-POOL TAIL-WEIGHT scalar on the P11.161 pool (tau4 =
+      // lambda4 / lambda2 where the L-moments are computed via unbiased
+      // sample PWMs b0/b1/b2/b3 over sorted cells; pool_count < 5 emits
+      // a small_pool null so L-moment estimators are never leaked on
+      // Tukey-hinge-hostile sample sizes — floor of 5 one greater than
+      // P11.221 L-skewness floor of 4 per Hosking & Wallis 1997 §2.2
+      // n>=r+1, and lambda2 == 0 emits a distinct degenerate label so
+      // a flat pool is not confused with a measured mesokurtic verdict).
+      // CLOSES the L-moment family on the TAIL-WEIGHT axis after the
+      // ASYMMETRY sibling (P11.221 L-skewness) by adding the BOUNDED
+      // whole-pool cousin of the P11.205 Fisher-Pearson excess-kurtosis
+      // g2 surface — where g2 uses every cell via the fourth
+      // standardised moment and is unbounded in (-inf, +inf), L-kurtosis
+      // uses every ordered cell via unbiased linear PWM weights and is
+      // bounded on [-0.25, +1] by Hosking 1990 §2.3. Reading g2 + tau4
+      // side-by-side lets ops distinguish "tail-weight driven by
+      // broadly heavy tails" (both surfaces non-zero and same sign;
+      // magnitudes bounded near each other on the raw scale) from
+      // "tail-weight driven by a single outlier" (g2 large, tau4
+      // modest but still same sign) from "structural mesokurtic"
+      // (both near their normal references) — the TAIL-WEIGHT axis
+      // analogue of the way P11.211 QCD / P11.213 COR bound the
+      // DISPERSION axis and P11.221 L-skewness bounds the ASYMMETRY
+      // axis. Also complements the P11.217 Moors interior-shoulder +
+      // P11.219 Crow-Siddiqui far-tail robust surfaces: Moors reads
+      // interior shoulder shape (E1..E7 octiles), Crow-Siddiqui reads
+      // far-tail span (P2.5/P97.5), tau4 reads whole-pool tail-weight
+      // via rank-weighted linear combinations of every cell.
+      // Splices IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolLSkewnessSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.223
+      // formatter docblock so the two L-MOMENT siblings (tau3 P11.221
+      // → tau4 here) close off the L-moment family after the tail-weight
+      // family (P11.217 Moors + P11.219 Crow-Siddiqui). Cutoffs 0.05 /
+      // 0.15 around the normal reference 0.1226 are narrower than
+      // Moors' 0.2/0.5 and Crow-Siddiqui's 0.3/0.7 bands because
+      // L-kurtosis has a compact codomain [-0.25, +1] roughly ten times
+      // narrower than Moors' [0.5, 3.0] and twenty times narrower than
+      // Crow-Siddiqui's [1.5, 6.0]. Reference distributions land in
+      // distinct bands: uniform (tau4=0) → platykurtic; normal
+      // (tau4=0.1226) → mesokurtic; exponential/logistic (tau4=0.1667)
+      // → mesokurtic (edge); gumbel (tau4≈0.1504) → mesokurtic;
+      // laplace (tau4≈0.2357) → leptokurtic. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolLKurtosis =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosis(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolLKurtosisSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosisSection(
+          snapshotPerTransitionMagnitudeTop3PoolLKurtosis,
+        );
     }
   }
   if (
@@ -5263,6 +5324,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolMoorsKurtosisSection ||
     perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection ||
     perTransitionMagnitudeTop3PoolLSkewnessSection ||
+    perTransitionMagnitudeTop3PoolLKurtosisSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5376,6 +5438,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolMoorsKurtosisSection +
       perTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection +
       perTransitionMagnitudeTop3PoolLSkewnessSection +
+      perTransitionMagnitudeTop3PoolLKurtosisSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -7713,6 +7776,39 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolLSkewness.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolLSkewness.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_l_kurtosis:
+      snapshotPerTransitionMagnitudeTop3PoolLKurtosis
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolLKurtosis.top_n,
+            min_pool_count_for_l_kurtosis:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.min_pool_count_for_l_kurtosis,
+            l_kurtosis_normal_reference:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.l_kurtosis_normal_reference,
+            mesokurtic_l_kurtosis_deviation_max:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.mesokurtic_l_kurtosis_deviation_max,
+            strong_l_kurtosis_deviation_min:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.strong_l_kurtosis_deviation_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolLKurtosis.transitions,
           }
         : {
             skipped_reason:
