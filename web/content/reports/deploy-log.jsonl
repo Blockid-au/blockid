@@ -1797,3 +1797,4 @@
 {"ts":"2026-07-31T10:42:40.852Z","event":"github-push-master","detail":"Blockid-au: feat(report-pipeline): G7 schema-validated agent dispatch + G8 grounding on every section (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T10:46:08.565Z","event":"github-push-master","detail":"Blockid-au: feat(business-id): wire the /business-id badge preview to the live demo profile (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T10:47:08.135Z","event":"github-push-master","detail":"Blockid-au: fix(seo): drop stale static public/sitemap.xml that shadowed the dynamic route (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T10:49:02.710Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-digest): P11.262+P11.263 peak-to-quartic-mean pool-shape surface (1 commits)","source":"github-webhook"}
