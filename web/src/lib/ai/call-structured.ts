@@ -73,7 +73,38 @@ export interface CallStructuredArgs<TIn, TOut> {
   apiKey?: string;
   /** Injectable fetch — tests stub this. Defaults to global fetch. */
   fetchImpl?: typeof fetch;
+  /**
+   * Optional transport override. When supplied, the wrapper sends the
+   * conversation through this function instead of POSTing directly to the
+   * Anthropic Messages API — everything else (input hashing, Zod parse,
+   * the single repair pass, the `ai_runs` row) is identical.
+   *
+   * The report pipeline uses this to keep running on the free
+   * multi-provider chain in ai-client.ts while still getting schema
+   * validation and the audit trail.
+   */
+  modelCaller?: StructuredModelCaller;
 }
+
+// ── Injectable transport ─────────────────────────────────────────────
+
+export interface StructuredModelRequest {
+  model: string;
+  system: string;
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+}
+
+export type StructuredModelResult =
+  | { ok: true; text: string; tokensIn?: number; tokensOut?: number }
+  | {
+      ok: false;
+      status: "model_error" | "rate_limited" | "rejected";
+      reason: string;
+    };
+
+export type StructuredModelCaller = (
+  req: StructuredModelRequest,
+) => Promise<StructuredModelResult>;
 
 export type CallStructuredResult<T> =
   | { ok: true; data: T; runId: string }
@@ -105,7 +136,16 @@ export async function callStructured<TIn, TOut>(
     evidenceIds = [],
     apiKey = process.env.ANTHROPIC_API_KEY,
     fetchImpl = fetch,
+    modelCaller,
   } = args;
+
+  // Transport: injected caller when present, direct Anthropic POST otherwise.
+  const invoke = (
+    messages: Array<{ role: "user" | "assistant"; content: string }>,
+  ): Promise<AnthropicResult> =>
+    modelCaller
+      ? callInjected(modelCaller, { model, system: systemPrompt, messages })
+      : callAnthropic({ apiKey, fetchImpl, model, system: systemPrompt, messages });
 
   // Step 1 — hash the input for reproducibility.
   const canonical = canonicalizeScore(input as unknown as object);
@@ -122,13 +162,7 @@ export async function callStructured<TIn, TOut>(
   // First call to the model.
   const userMessage = renderUser(input);
   const started = Date.now();
-  const firstCall = await callAnthropic({
-    apiKey,
-    fetchImpl,
-    model,
-    system: systemPrompt,
-    messages: [{ role: "user", content: userMessage }],
-  });
+  const firstCall = await invoke([{ role: "user", content: userMessage }]);
 
   if (!firstCall.ok) {
     const runId = await insertRun({
@@ -174,24 +208,18 @@ export async function callStructured<TIn, TOut>(
 
   // Step 4b — ONE repair pass. Append the parse error and the raw
   // response to the conversation so the model can correct itself.
-  const repairCall = await callAnthropic({
-    apiKey,
-    fetchImpl,
-    model,
-    system: systemPrompt,
-    messages: [
-      { role: "user", content: userMessage },
-      { role: "assistant", content: firstCall.text },
-      {
-        role: "user",
-        content:
-          "Your previous response failed schema validation with the " +
-          `following error: ${firstParse.error}\n\n` +
-          "Return ONLY valid JSON matching the schema. No prose, no " +
-          "markdown fences, no commentary — just the JSON object.",
-      },
-    ],
-  });
+  const repairCall = await invoke([
+    { role: "user", content: userMessage },
+    { role: "assistant", content: firstCall.text },
+    {
+      role: "user",
+      content:
+        "Your previous response failed schema validation with the " +
+        `following error: ${firstParse.error}\n\n` +
+        "Return ONLY valid JSON matching the schema. No prose, no " +
+        "markdown fences, no commentary — just the JSON object.",
+    },
+  ]);
 
   const totalTokensIn = firstCall.tokensIn + (repairCall.ok ? repairCall.tokensIn : 0);
   const totalTokensOut = firstCall.tokensOut + (repairCall.ok ? repairCall.tokensOut : 0);
@@ -264,6 +292,38 @@ type AnthropicResult =
       status: "model_error" | "rate_limited" | "rejected";
       reason: string;
     };
+
+/**
+ * Run the conversation through an injected transport. Mirrors
+ * callAnthropic's contract exactly: never throws, always returns a
+ * terminal status, and treats an empty completion as a model error so the
+ * repair pass / `schema_fail` path behaves identically to the HTTP path.
+ */
+async function callInjected(
+  caller: StructuredModelCaller,
+  req: StructuredModelRequest,
+): Promise<AnthropicResult> {
+  let res: StructuredModelResult;
+  try {
+    res = await caller(req);
+  } catch (err) {
+    return {
+      ok: false,
+      status: "model_error",
+      reason: err instanceof Error ? err.message : String(err),
+    };
+  }
+  if (!res.ok) return res;
+  if (!res.text || !res.text.trim()) {
+    return { ok: false, status: "model_error", reason: "empty response" };
+  }
+  return {
+    ok: true,
+    text: res.text,
+    tokensIn: res.tokensIn ?? 0,
+    tokensOut: res.tokensOut ?? 0,
+  };
+}
 
 async function callAnthropic(opts: {
   apiKey: string | undefined;
