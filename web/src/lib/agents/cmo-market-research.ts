@@ -83,6 +83,100 @@ export const MARKET_BENCHMARKS = {
 /** Positioning strategies for 'Startup Navigation System' */
 export type PositioningAngle = 'NAVIGATION_MAP' | 'EQUITY_VALUATION_TOOL' | 'HYBRID_GROWTH_OS';
 
+/**
+ * Flat AU market anchors — the stable public surface of this module.
+ *
+ * Derived from MARKET_BENCHMARKS above so there is exactly one source of truth
+ * for every research figure. The CMO agent loop periodically restructures the
+ * nested MARKET_BENCHMARKS shape; this flat view is the contract consumers and
+ * `cmo-market-research.test.ts` pin against, so keep the seven keys stable and
+ * only refresh their values from new research.
+ */
+export const AU_MARKET_DATA = {
+  ACTIVE_STARTUPS: MARKET_BENCHMARKS.AUSTRALIA.ACTIVE_STARTUPS_Q2_2024,
+  TOTAL_VC_FUNDING_H1_2026: MARKET_BENCHMARKS.AUSTRALIA.TOTAL_VC_FUNDING_H1_2026,
+  UNICORN_COUNT: MARKET_BENCHMARKS.AUSTRALIA.UNICORN_COUNT_2026,
+  SEED_MONTHLY_FUNDING_INTENSITY: MARKET_BENCHMARKS.AUSTRALIA.SEED_MONTHLY_FUNDING_INTENSITY,
+  TOTAL_STARTUP_EMPLOYMENT_FTE: MARKET_BENCHMARKS.AUSTRALIA.STARTUP_EMPLOYMENT_FTE_Q2_2026,
+  GLOBAL_SAAS_MARKET_SIZE_2024: MARKET_BENCHMARKS.GLOBAL.ECOSYSTEM_SAAS_MARKET_SIZE,
+  NAVIGATION_TOOL_CAGR: MARKET_BENCHMARKS.GLOBAL.NAVIGATION_TOOLS_CAGR,
+};
+
+/** Content / SEO benchmarks used by the content-planning helpers below. */
+export interface ContentBenchmarks {
+  /** Target length for B2B SEO dominance (words). */
+  targetB2BBlogLength: number;
+  /** Expected organic traffic lift for AI-assisted long-form content (ratio). */
+  aiContentTrafficLift: number;
+  /** Average LinkedIn organic CTR (ratio). */
+  linkedinOrganicCTR: number;
+  /** Impact of high E-E-A-T scores on CTR (ratio). */
+  eeatCTRBoost: number;
+  /** Average organic traffic drop for high-risk sites after a Core Update (ratio). */
+  coreUpdateRiskDrop: number;
+}
+
+/** Flat content/SEO view over MARKET_BENCHMARKS.CONTENT_SEO. */
+export const CONTENT_BENCHMARKS: ContentBenchmarks = {
+  targetB2BBlogLength: MARKET_BENCHMARKS.CONTENT_SEO.B2B_TOP_RANKING_AVG_LENGTH,
+  aiContentTrafficLift: MARKET_BENCHMARKS.CONTENT_SEO.AI_LONGFORM_TRAFFIC_LIFT,
+  linkedinOrganicCTR: MARKET_BENCHMARKS.CONTENT_SEO.LINKEDIN_ORGANIC_CTR,
+  eeatCTRBoost: MARKET_BENCHMARKS.CONTENT_SEO.EEAT_CTR_IMPROVEMENT,
+  coreUpdateRiskDrop: MARKET_BENCHMARKS.CONTENT_SEO.AVG_CORE_UPDATE_TRAFFIC_DROP,
+};
+
+/**
+ * Projects the startup-navigation-tool market forward at the published CAGR.
+ *
+ * @param currentVal Current estimated market value.
+ * @param years Projection horizon in years (fractional years supported).
+ * @returns Projected market value.
+ */
+export function calculateMarketProjection(currentVal: number, years: number): number {
+  return currentVal * Math.pow(1 + AU_MARKET_DATA.NAVIGATION_TOOL_CAGR, years);
+}
+
+/**
+ * Whether a draft meets the current B2B SEO "power page" bar — both the length
+ * threshold and the E-E-A-T signal are required.
+ *
+ * @param wordCount Length of the content.
+ * @param hasEEATSignals Whether the content carries expert citations / authoritative data.
+ */
+export function isContentCompetitive(wordCount: number, hasEEATSignals: boolean): boolean {
+  return wordCount >= CONTENT_BENCHMARKS.targetB2BBlogLength && hasEEATSignals;
+}
+
+/**
+ * AU seed-stage "funding velocity": average raise per startup expressed as a
+ * fraction of the national monthly seed-funding intensity.
+ *
+ * @param totalRaised Total raised by the cohort (AUD).
+ * @param cohortSize Number of startups in the cohort.
+ */
+export function calculateAUFundingVelocity(totalRaised: number, cohortSize: number): number {
+  const avgPerStartup = totalRaised / cohortSize;
+  return avgPerStartup / AU_MARKET_DATA.SEED_MONTHLY_FUNDING_INTENSITY;
+}
+
+/**
+ * Core-update risk for a domain, from its E-E-A-T score and content freshness.
+ *
+ * @param eeatScore Normalised E-E-A-T score (0-1).
+ * @param lastUpdateDate Date of the last major content overhaul.
+ * @returns Risk in the [0, 1] band.
+ */
+export function calculateSEOUpdateRisk(eeatScore: number, lastUpdateDate: Date): number {
+  const now = new Date();
+  const monthsSinceUpdate = (now.getTime() - lastUpdateDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+
+  let risk = CONTENT_BENCHMARKS.coreUpdateRiskDrop;
+  if (eeatScore > 0.8) risk -= 0.05;
+  if (monthsSinceUpdate > 6) risk += 0.05;
+
+  return Math.max(0, Math.min(1, risk));
+}
+
 /** 
  * Calculates the potential Addressable Market Value for the AU region 
  * based on active startups and tool adoption projections.
