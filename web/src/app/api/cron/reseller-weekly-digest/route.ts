@@ -6541,6 +6541,34 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUndecicMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToUndecicMean,
         );
+      // P11.279 splice: perTransitionMagnitudeTop3PoolPeakToDuodecicMean —
+      // WHOLE-POOL RANGE-AGAINST-DUODECIC-CENTER dispersion scalar over
+      // the P11.161 top-3 pool. ptdum = (max - min) / duodecic_mean
+      // where duodecic_mean = ((sum x_i^12) / n)^(1/12) uses the M_12
+      // power mean. Bands tight < 1.10 (flat, uniform ramp, upper-
+      // outlier, two-shoulders, bimodal-split, two-partner, small
+      // regimes), spread in [1.10, 1.22) (extreme-outlier regime),
+      // wide >= 1.22 (runaway-outlier regime with pool_count >= 12).
+      // Cutoffs tighten P11.276 PTUM's 1.12/1.24 pair down to
+      // 1.10/1.22 because duodecic_mean >= undecic_mean by Power Mean
+      // inequality (M_12 >= M_11) so ptdum <= ptum for every non-flat
+      // pool — the wide cutoff drops from 1.24 to 1.22 so only
+      // pool_count >= 12 pools reach wide (12^(1/12) ~= 1.2301 is
+      // just past the wide floor). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToUndecicMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.278
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-duodecic-center after the P11.276 range-
+      // against-undecic-center landing. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToDuodecicMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean,
+        );
     }
   }
   if (
@@ -6654,6 +6682,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToNonicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToDecicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToUndecicMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToDuodecicMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -6794,6 +6823,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToNonicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToDecicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToUndecicMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToDuodecicMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -9954,6 +9984,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToUndecicMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToUndecicMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_duodecic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.top_n,
+            tight_ptdum_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.tight_ptdum_max,
+            wide_ptdum_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.wide_ptdum_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean.transitions,
           }
         : {
             skipped_reason:
