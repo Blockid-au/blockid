@@ -608,6 +608,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-geomean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2214,6 +2219,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToGeomeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5859,6 +5868,54 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToMean,
         );
+      // P11.249 peak-to-geomean cron wiring — WHOLE-POOL
+      // RANGE-AGAINST-GEOMETRIC-CENTER scalar over the P11.161 pool.
+      // Folds every cell into ONE dispersion read that reports the
+      // pool's total RANGE in units of the pool's GEOMETRIC MEAN:
+      //   ptgm = (max - min) / geomean
+      // computed via exp(mean(log(x_i))) for float stability. Reads
+      // the peak spread against a MULTIPLICATIVE center so a BIMODAL-
+      // SPLIT pool that the P11.246 peak-to-mean surface flags TIGHT
+      // (because the arithmetic mean sits between the two clusters)
+      // reads SPREAD here (because the geometric mean is PULLED DOWN
+      // toward the low cluster by the multiplicative average and
+      // elevates the ratio against the range). Together with P11.246
+      // PTMEAN (arithmetic centre) forms the complete (arithmetic-
+      // center, geometric-center) centre-anchor pair for the range-
+      // based dispersion read. When PTGM reads spread AND PTMEAN
+      // reads tight the pool is a BIMODAL SPLIT (two-cluster
+      // divide); when PTGM reads wide AND PTMEAN reads tight the
+      // pool has an ISOLATED HIGH PARTNER (two-partner large-gap);
+      // when BOTH read wide the pool is an EXTREME OUTLIER — a
+      // first-class labelled regime triple that no single surface
+      // can flag alone.
+      // Guards: pool_count 0 → ptgm null empty; pool_count 1 →
+      // ptgm null solo (structural single partner); pool_count >=2
+      // with pool_cells 0 → ptgm null degenerate (guarded but
+      // unreachable); pool_count >=2 with min <= 0 → ptgm null
+      // degenerate (guarded but unreachable since counts >= 1);
+      // pool_count >=2 with min > 0 → ptgm in [0, +Inf) rounded to
+      // 4 decimals, zero iff max == min (flat pool). Bands on raw
+      // ptgm (fixed cutoffs, calibrated against n=10 reference
+      // distributions): tight ptgm < 2.0 (flat, uniform ramp
+      // regimes), spread ptgm in [2.0, 5.0) (two-shoulders + bimodal-
+      // split + two-partner-[1,9] + small-three-partner regimes),
+      // wide ptgm >= 5.0 (single-outlier + isolated-high-partner +
+      // extreme-outlier regimes). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.248
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-geometric-center after the P11.246 range-
+      // against-arithmetic-center landing. Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToGeomeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean,
+        );
     }
   }
   if (
@@ -5957,6 +6014,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToQ1Section ||
     perTransitionMagnitudeTop3PoolPeakToQ3Section ||
     perTransitionMagnitudeTop3PoolPeakToMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToGeomeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -6082,6 +6140,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToQ1Section +
       perTransitionMagnitudeTop3PoolPeakToQ3Section +
       perTransitionMagnitudeTop3PoolPeakToMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToGeomeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -8792,6 +8851,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_geomean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.top_n,
+            tight_ptgm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.tight_ptgm_max,
+            wide_ptgm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.wide_ptgm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToGeomean.transitions,
           }
         : {
             skipped_reason:
