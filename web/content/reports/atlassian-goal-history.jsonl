@@ -1246,3 +1246,6 @@
 {"tick_id":"2026-07-31T17-07-01-697Z","ts":"2026-07-31T17:07:01.698Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T17-07-01-697Z","ts":"2026-07-31T17:07:01.716Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"manual-2026-07-31T17:13:16Z","ts":"2026-07-31T17:13:16Z","loop_label":"atlassian-goal-loop","stage":"phase_test_added","phase":"P9_ship","subtask":"P9-telegram-lib-test","file":"web/src/lib/telegram.test.ts","cases":24,"head":"pending"}
+{"tick_id":"2026-07-31T17-07-01-697Z","ts":"2026-07-31T17:14:12.736Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":431018,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T17-07-01-697Z","ts":"2026-07-31T17:14:12.771Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":14}
+{"tick_id":"2026-07-31T17-07-01-697Z","ts":"2026-07-31T17:14:14.095Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1,"unrunnable":[],"skipped":null}

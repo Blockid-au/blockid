@@ -733,6 +733,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnviginticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unvigintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duovigintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2439,6 +2444,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnviginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToUnviginticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToDuoviginticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -6877,6 +6886,31 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnviginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToUnviginticMean,
         );
+      // P11.299: PER-TRANSITION MAGNITUDE TOP-3 POOL PEAK-TO-DUOVIGINTIC-MEAN.
+      // ptdvim = (max - min) / duovigintic_mean where duovigintic_mean =
+      // ((sum x_i^22) / n)^(1/22) uses the M_22 power mean. Bands
+      // tight < 1.005, spread [1.005, 1.11), wide >= 1.11. Tight
+      // boundary holds at P11.296 PTUVM's 1.005 (MILD OUTLIER at M_22
+      // is 0.9993, already well below the 1.005 buffer) while the
+      // wide boundary tightens P11.296 PTUVM's 1.12 down to 1.11 in
+      // a full 0.01 step matching the M_20 -> M_21 (1.13 -> 1.12)
+      // step, because duovigintic_mean >= unvigintic_mean by Power
+      // Mean inequality (M_22 >= M_21) so ptdvim <= ptuvm for every
+      // non-flat pool. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToUnviginticMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.298
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-duovigintic-center after the P11.296 range-
+      // against-unvigintic-center landing. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToDuoviginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean,
+        );
     }
   }
   if (
@@ -7000,6 +7034,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToViginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToUnviginticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToDuoviginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -7150,6 +7185,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToViginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToUnviginticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToDuoviginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
