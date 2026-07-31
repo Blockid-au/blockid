@@ -668,6 +668,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOcticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonicMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-nonic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2322,6 +2327,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOcticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToOcticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToNonicMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -6421,6 +6430,34 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOcticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToOcticMean,
         );
+      // P11.273 splice: perTransitionMagnitudeTop3PoolPeakToNonicMean —
+      // WHOLE-POOL RANGE-AGAINST-NONIC-CENTER dispersion scalar over
+      // the P11.161 top-3 pool. ptnm = (max - min) / nonic_mean
+      // where nonic_mean = ((sum x_i^9) / n)^(1/9) uses the M_9
+      // power mean. Bands tight < 1.20 (flat, uniform ramp, upper-
+      // outlier, two-shoulders, bimodal-split, two-partner, small
+      // regimes), spread in [1.20, 1.30) (extreme-outlier regime),
+      // wide >= 1.30 (runaway-outlier regime with pool_count >= 11).
+      // Cutoffs tighten P11.270 PTOM's 1.25/1.35 pair down to
+      // 1.20/1.30 because nonic_mean >= octic_mean by Power Mean
+      // inequality (M_9 >= M_8) so ptnm <= ptom for every non-flat
+      // pool — the wide cutoff drops from 1.35 to 1.30 so only
+      // pool_count >= 11 pools reach wide (11^(1/9) ~= 1.3053 is
+      // just past the wide floor). Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToOcticMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.272
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-nonic-center after the P11.270 range-against-
+      // octic-center landing. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToNonicMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonicMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean,
+        );
     }
   }
   if (
@@ -6531,6 +6568,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToSexticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToSepticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToOcticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToNonicMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
