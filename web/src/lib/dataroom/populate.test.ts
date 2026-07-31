@@ -20,7 +20,10 @@ import { ATLASSIAN_DATAROOM_TEMPLATE } from "./atlassian-template";
 // Failures are injected via `state.fail = { fetch?|insert?|archive? }`.
 // ---------------------------------------------------------------------------
 
-interface DbRow {
+// Declared as a type alias (not an interface) so it carries an implicit index
+// signature and stays assignable to the `Record<string, unknown>` constraint on
+// applyFilters() below — interfaces do not get one.
+type DbRow = {
   id: string;
   user_id: string;
   email: string;
@@ -32,7 +35,7 @@ interface DbRow {
   storage_path?: string | null;
   template_slug?: string | null;
   template_version?: string | null;
-}
+};
 
 interface FakeState {
   rows: DbRow[];
