@@ -7367,3 +7367,7 @@
 {"tick_id":"2026-07-31T01-57-01-556Z","ts":"2026-07-31T02:02:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","sub_ticket":"P9-agent-goal-tree-lib-test","test_file":"web/src/lib/agent-goals/goal-tree.test.ts","cases":101,"status":"green","duration_ms":340}
 {"tick_id":"2026-07-31T01-57-01-556Z","ts":"2026-07-31T02:02:07.247Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":305673,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-31T01-57-01-556Z","ts":"2026-07-31T02:02:07.290Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":14}
+{"tick_id":"2026-07-31T01-57-01-556Z","ts":"2026-07-31T02:02:09.151Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-31T01-57-01-556Z","ts":"2026-07-31T02:02:09.162Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"b40cb4b6","last_deployed":"0fdb48f"}
+{"tick_id":"2026-07-31T01-57-01-556Z","ts":"2026-07-31T02:02:40.059Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"b40cb4b6"}
+{"tick_id":"2026-07-31T01-57-01-556Z","ts":"2026-07-31T02:02:40.060Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
