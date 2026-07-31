@@ -366,7 +366,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolGini — Gini arith
       cell("A", "contribution_margin_pct", "improved", 2),
       cell("A", "clawback_exposure", "improved", 2),
       cell("A", "budget_utilization", "improved", 2),
-      cell("A", "ai_credits_granted", "improved", 2),
+      cell("A", "tier_mix", "improved", 2),
       cell("A", "attributed_churn_30d", "improved", 2),
       cell("A", "ledger_drift_events", "improved", 2),
       cell("B", "attributed_mrr", "improved", 2),
