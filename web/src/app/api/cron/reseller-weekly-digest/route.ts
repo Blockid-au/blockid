@@ -693,6 +693,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTredecicMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tredecic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuordecic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2367,6 +2372,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTredecicMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToTredecicMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToQuattuordecicMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -6606,6 +6615,33 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTredecicMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToTredecicMean,
         );
+      // P11.283 splice: perTransitionMagnitudeTop3PoolPeakToQuattuordecicMean
+      // — WHOLE-POOL RANGE-AGAINST-QUATTUORDECIC-CENTER dispersion scalar
+      // over the P11.161 top-3 pool. ptqtm = (max - min) / quattuordecic_mean
+      // where quattuordecic_mean = ((sum x_i^14) / n)^(1/14) uses the M_14
+      // power mean. Bands tight < 1.07 (flat, uniform ramp, upper-outlier,
+      // two-shoulders, bimodal-split, two-partner, small regimes), spread
+      // in [1.07, 1.19) (extreme-outlier regime), wide >= 1.19 (runaway-
+      // outlier regime with pool_count >= 12). Cutoffs tighten P11.280
+      // PTTRM's 1.08/1.20 pair down to 1.07/1.19 because quattuordecic_mean
+      // >= tredecic_mean by Power Mean inequality (M_14 >= M_13) so
+      // ptqtm <= pttrm for every non-flat pool — the wide cutoff drops
+      // from 1.20 to 1.19 so only pool_count >= 12 pools reach wide
+      // (12^(1/14) ~= 1.1942 is just past the wide floor). Splices
+      // IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolPeakToTredecicMeanSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.282
+      // formatter docblock so the DISPERSION axis continues with
+      // range-against-quattuordecic-center after the P11.280 range-
+      // against-tredecic-center landing. Consumes snapshotPerPairHotCells
+      // directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToQuattuordecicMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean,
+        );
     }
   }
   if (
@@ -6721,6 +6757,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToUndecicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToDuodecicMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToTredecicMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToQuattuordecicMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -6863,6 +6900,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToUndecicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToDuodecicMeanSection +
       perTransitionMagnitudeTop3PoolPeakToTredecicMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToQuattuordecicMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -10083,6 +10121,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToTredecicMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToTredecicMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_quattuordecic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.top_n,
+            tight_ptqtm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.tight_ptqtm_max,
+            wide_ptqtm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.wide_ptqtm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean.transitions,
           }
         : {
             skipped_reason:
