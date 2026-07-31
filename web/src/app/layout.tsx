@@ -119,6 +119,22 @@ export default async function RootLayout({
         <meta name="theme-color" content="#0F172A" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* GA/GTM connection warm-up. Lighthouse (mobile, throttled) flagged
+            "Preconnect to required origins" against
+            https://www.google-analytics.com at an estimated 300 ms saving:
+            Next already emits <link rel="preload" as="script"> for the
+            googletagmanager gtag bundle, so that origin's connection is
+            opened early, but google-analytics.com is only reached later from
+            inside gtag.js — paying full DNS + TCP + TLS on the critical path.
+            These are connection hints only; they add no bytes, execute no
+            script, and do not touch the nonce-based CSP (connect-src already
+            allows google-analytics.com, script-src already allows
+            googletagmanager.com). dns-prefetch is the graceful fallback for
+            browsers that ignore preconnect. */}
+        <link rel="preconnect" href="https://www.google-analytics.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{
