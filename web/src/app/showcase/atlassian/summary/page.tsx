@@ -85,12 +85,12 @@ export default function AtlassianSummaryMirrorPage() {
               Wrap-up · Step 9 of 9
             </p>
             <h1 className="mt-1 text-3xl font-semibold text-ink-900">
-              You've walked through Atlassian's 24-year journey — here's your
-              recap
+              You&apos;ve walked through Atlassian&apos;s documented arc — here&apos;s
+              your recap
             </h1>
             <p className="mt-2 max-w-3xl text-base text-ink-700">
               Nine steps, one demo. Every screen you just saw uses the same
-              components that render your own startup's workspace in BlockID —
+              components that render your own startup&apos;s workspace in BlockID —
               only the data changes. Below: the recap of what you covered, the
               headline KPIs of the journey, and three suggested next steps.
             </p>
@@ -224,21 +224,21 @@ export default function AtlassianSummaryMirrorPage() {
           <footer className="rounded-lg border border-brand-200 bg-brand-50 p-5 text-sm text-brand-900">
             <p className="font-semibold">A closing note from a founder-mentor</p>
             <p className="mt-2 text-brand-900">
-              Mike Cannon-Brookes has said in more than one 2018 fireside that
-              the single most valuable thing Atlassian ever did in the open was
-              publish its numbers — pricing, gross margin, retention, values —
-              before it had to. Showing your work publicly forces you to think
-              clearly, invites feedback that private slide decks can't, and
-              turns customers and future hires into collaborators years before
-              you would otherwise reach them.
+              The most useful thing about this case study is where it goes
+              quiet. For thirteen years Atlassian published almost nothing a
+              third party could check; the record only starts at the 2015
+              registration statement. Every &ldquo;not publicly disclosed&rdquo;
+              above is that gap showing through — and it is a fair warning
+              about how much of any founder story is reconstructed after the
+              fact.
             </p>
             <p className="mt-2 text-brand-900">
-              This demo is BlockID's version of that same instinct. We showed
+              This demo is BlockID&apos;s version of that same instinct. We showed
               you every screen the platform can render, populated with real
               citations, so you can judge the guidance quality without needing
               to sign up first. If it earns your trust, the next step is to
               open your own workspace — and let the same agents write against
-              your startup instead of Atlassian's.
+              your startup instead of Atlassian&apos;s.
             </p>
           </footer>
         </div>
