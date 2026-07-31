@@ -583,6 +583,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRange,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-studentized-range";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifferenceSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-gini-mean-difference";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2169,6 +2174,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRange
     | null = null;
   let perTransitionMagnitudeTop3PoolStudentizedRangeSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference
+    | null = null;
+  let perTransitionMagnitudeTop3PoolGiniMeanDifferenceSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
