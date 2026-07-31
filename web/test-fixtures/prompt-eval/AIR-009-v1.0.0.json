@@ -1,0 +1,72 @@
+{
+  "agent": "AIR-009",
+  "version": "1.0.0",
+  "purpose": "Grant eligibility — score the fit of a startup against a specific grant program",
+  "cases": [
+    {
+      "id": "case_rdti",
+      "name": "R&D Tax Incentive — 4 eligible core activities, notebook records",
+      "input": {
+        "businessId": "99999999-9999-4999-8999-999999990001",
+        "areaId": "financials",
+        "program": "rd_tax_incentive",
+        "signals": {
+          "core_rd_activities": 4,
+          "supporting_activities": 6,
+          "notebook_records_maintained": true,
+          "eligible_expenditure_aud": 380000,
+          "aggregated_turnover_aud": 4200000
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 60, "max": 90 },
+        "confidence": { "min": 0.65 },
+        "must_have_gaps": ["ausindustry_registration_timing", "tax_agent_review"],
+        "must_not_hallucinate": ["guaranteed_refundable_amount", "ato_pre_approval"]
+      }
+    },
+    {
+      "id": "case_esic",
+      "name": "ESIC — passes principles test, expenses A$180k, incorporated 22 months ago",
+      "input": {
+        "businessId": "99999999-9999-4999-8999-999999990002",
+        "areaId": "financials",
+        "program": "esic",
+        "signals": {
+          "incorporated_months_ago": 22,
+          "prior_year_expenses_aud": 180000,
+          "prior_year_income_aud": 45000,
+          "asx_listed": false,
+          "principles_test_pass": true
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 65, "max": 95 },
+        "confidence": { "min": 0.7 },
+        "must_have_gaps": ["investor_disclosure_letter", "annual_esic_report"],
+        "must_not_hallucinate": ["ato_private_ruling_confirmed", "specific_investor_tax_offset_amount"]
+      }
+    },
+    {
+      "id": "case_emdg",
+      "name": "Export Market Development Grant — first-time exporter, tier 1 spend",
+      "input": {
+        "businessId": "99999999-9999-4999-8999-999999990003",
+        "areaId": "market",
+        "program": "emdg",
+        "signals": {
+          "first_time_exporter": true,
+          "emdg_tier": 1,
+          "eligible_export_spend_aud": 42000,
+          "target_markets": ["US", "SG"]
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 50, "max": 85 },
+        "confidence": { "min": 0.6 },
+        "must_have_gaps": ["export_plan_documented", "austrade_registration"],
+        "must_not_hallucinate": ["approved_grant_amount", "austrade_case_officer_name"]
+      }
+    }
+  ]
+}

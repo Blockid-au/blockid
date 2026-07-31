@@ -1,0 +1,58 @@
+{
+  "agent": "AIR-002",
+  "version": "1.0.0",
+  "purpose": "Evidence classifier — extract structured facts + confidence from uploaded documents",
+  "cases": [
+    {
+      "id": "case_valid_invoice_pdf",
+      "name": "Valid invoice PDF — clean OCR, ABN matches business record",
+      "input": {
+        "businessId": "22222222-2222-4222-8222-222222220001",
+        "areaId": "financials",
+        "evidenceId": "22222222-2222-4222-8222-2222222200a1",
+        "documentType": "invoice_pdf",
+        "ocrText": "TAX INVOICE 4471\nBill to: Auschain PTY LTD ABN 79 659 615 111\nAmount: A$12,450.00 incl GST\nDate: 2026-06-14\nPayment terms: NET 30"
+      },
+      "expected": {
+        "proposed_score": { "min": 70, "max": 100 },
+        "confidence": { "min": 0.75 },
+        "must_have_gaps": [],
+        "must_not_hallucinate": ["signed_contract", "purchase_order_number_not_present"]
+      }
+    },
+    {
+      "id": "case_expired_insurance",
+      "name": "Expired insurance certificate — flag stale-evidence gap",
+      "input": {
+        "businessId": "22222222-2222-4222-8222-222222220002",
+        "areaId": "compliance",
+        "evidenceId": "22222222-2222-4222-8222-2222222200a2",
+        "documentType": "insurance_certificate",
+        "ocrText": "Certificate of Currency — Public Liability A$20M — Policy period 01/07/2024 to 30/06/2025 — Insured: Auschain PTY LTD"
+      },
+      "expected": {
+        "proposed_score": { "min": 15, "max": 45 },
+        "confidence": { "min": 0.7 },
+        "must_have_gaps": ["policy_expired", "renewal_certificate_required"],
+        "must_not_hallucinate": ["current_cover_confirmed", "renewed_2026"]
+      }
+    },
+    {
+      "id": "case_malformed_bank_statement",
+      "name": "Malformed bank statement — OCR noise, refuse-to-extract expected",
+      "input": {
+        "businessId": "22222222-2222-4222-8222-222222220003",
+        "areaId": "financials",
+        "evidenceId": "22222222-2222-4222-8222-2222222200a3",
+        "documentType": "bank_statement",
+        "ocrText": "########## p@ge 1 of ??? \\x00\\x00\\x00 BALANCE UNKNOWN ###\nline items unreadable"
+      },
+      "expected": {
+        "proposed_score": { "min": 0, "max": 25 },
+        "confidence": { "max": 0.45 },
+        "must_have_gaps": ["ocr_quality_insufficient", "resubmit_document"],
+        "must_not_hallucinate": ["closing_balance_aud", "transaction_count", "average_daily_balance"]
+      }
+    }
+  ]
+}

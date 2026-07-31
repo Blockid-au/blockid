@@ -1,0 +1,73 @@
+{
+  "agent": "AIR-007",
+  "version": "1.0.0",
+  "purpose": "Compliance mapping — map current posture to a target framework and score the gap",
+  "cases": [
+    {
+      "id": "case_asd_e8",
+      "name": "ASD Essential Eight — self-assessed maturity ML1 across all 8",
+      "input": {
+        "businessId": "77777777-7777-4777-8777-777777770001",
+        "areaId": "compliance",
+        "framework": "asd_essential_eight",
+        "currentPosture": {
+          "application_control": 1,
+          "patch_applications": 1,
+          "office_macro_settings": 1,
+          "user_application_hardening": 1,
+          "restrict_admin_privileges": 1,
+          "patch_operating_systems": 1,
+          "multi_factor_authentication": 1,
+          "regular_backups": 1
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 25, "max": 55 },
+        "confidence": { "min": 0.65 },
+        "must_have_gaps": ["ml2_uplift_plan", "backup_restore_test_cadence"],
+        "must_not_hallucinate": ["ml3_certification", "asd_audit_scheduled"]
+      }
+    },
+    {
+      "id": "case_iso27001_gap",
+      "name": "ISO 27001 — no ISMS documented, controls partial",
+      "input": {
+        "businessId": "77777777-7777-4777-8777-777777770002",
+        "areaId": "compliance",
+        "framework": "iso_27001",
+        "currentPosture": {
+          "isms_documented": false,
+          "risk_register_maintained": false,
+          "annex_a_controls_covered": 22,
+          "annex_a_controls_total": 93
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 5, "max": 35 },
+        "confidence": { "min": 0.65 },
+        "must_have_gaps": ["isms_scope_statement", "risk_register", "annex_a_gap_analysis"],
+        "must_not_hallucinate": ["certification_body_selected", "stage2_audit_booked"]
+      }
+    },
+    {
+      "id": "case_modern_slavery",
+      "name": "Modern Slavery — consolidated revenue A$120M, no statement filed",
+      "input": {
+        "businessId": "77777777-7777-4777-8777-777777770003",
+        "areaId": "esg",
+        "framework": "modern_slavery_act_2018",
+        "currentPosture": {
+          "consolidated_revenue_aud": 120000000,
+          "statement_filed_last_year": false,
+          "supplier_risk_survey_completed": false
+        }
+      },
+      "expected": {
+        "proposed_score": { "min": 5, "max": 30 },
+        "confidence": { "min": 0.7 },
+        "must_have_gaps": ["modern_slavery_statement_filing", "supplier_risk_survey"],
+        "must_not_hallucinate": ["confirmed_supplier_violations", "afp_investigation"]
+      }
+    }
+  ]
+}
