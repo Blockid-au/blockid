@@ -14,13 +14,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Only rows with public_index=true AND verification_level >= 2 make it
   // in; L1 self-declared is not sufficient for public discovery.
   const publicSlugs = await listPublicSlugsForSitemap();
-  const businessIdEntries: MetadataRoute.Sitemap = publicSlugs.map((entry) => ({
-    url: `${SITE_URL}/id/${entry.slug}`,
-    lastModified: entry.lastVerifiedAt,
-    changeFrequency: "weekly" as const,
+  const businessIdEntries: MetadataRoute.Sitemap = publicSlugs.flatMap((entry) => {
     // L2 = 0.6 baseline, +0.1 per level up to L5 = 0.9
-    priority: Math.min(0.9, 0.6 + (entry.verificationLevel - 2) * 0.1),
-  }));
+    const priority = Math.min(0.9, 0.6 + (entry.verificationLevel - 2) * 0.1);
+    const enUrl = `${SITE_URL}/id/${entry.slug}`;
+    const viUrl = `${SITE_URL}/vi/id/${entry.slug}`;
+    const languages = {
+      en: enUrl,
+      vi: viUrl,
+      "x-default": enUrl,
+    };
+    return [
+      {
+        url: enUrl,
+        lastModified: entry.lastVerifiedAt,
+        changeFrequency: "weekly" as const,
+        priority,
+        alternates: { languages },
+      },
+      // Sub-T4 — VI mirror only for L2+ profiles (same gate as EN); the
+      // reader-language toggle is discoverable via hreflang on both sides.
+      {
+        url: viUrl,
+        lastModified: entry.lastVerifiedAt,
+        changeFrequency: "weekly" as const,
+        priority,
+        alternates: { languages },
+      },
+    ];
+  });
 
   // Dynamic insight articles — recent (last 30d) get weekly crawl + higher priority
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -249,6 +271,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/founder`,
+          vi: `${SITE_URL}/vi/solutions/founder`,
+          "x-default": `${SITE_URL}/solutions/founder`,
+        },
+      },
+    },
+    // Sub-T4 (§7.7) — VI mirror of the Founder persona page.
+    {
+      url: `${SITE_URL}/vi/solutions/founder`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/founder`,
+          vi: `${SITE_URL}/vi/solutions/founder`,
+          "x-default": `${SITE_URL}/solutions/founder`,
+        },
+      },
     },
     {
       url: `${SITE_URL}/solutions/vn-sme`,
