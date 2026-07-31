@@ -533,6 +533,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewness,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-bowley-skewness";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosisSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-moors-kurtosis";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2079,6 +2084,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewness
     | null = null;
   let perTransitionMagnitudeTop3PoolBowleySkewnessSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis
+    | null = null;
+  let perTransitionMagnitudeTop3PoolMoorsKurtosisSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5027,6 +5036,41 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewnessSection(
           snapshotPerTransitionMagnitudeTop3PoolBowleySkewness,
         );
+      // P11.218 moors-kurtosis cron wiring — OCTILE-BASED ROBUST
+      // INTERIOR-MASS TAIL-WEIGHT scalar on the P11.161 pool
+      // (moors = ((E7-E5)+(E3-E1))/(E6-E2) using R type-7 linear
+      // interpolation over the seven octiles; pool_count < 8 emits a
+      // small_pool null so the surface is distinct from the P11.181
+      // range / P11.185 top1/bot1 / P11.213 COR endpoint surfaces, and
+      // E6 == E2 emits a distinct degenerate label so structural
+      // indeterminacy is not confused with a measured mesokurtic
+      // verdict). Opens the OCTILE-BASED ROBUST INTERIOR-MASS TAIL-WEIGHT
+      // axis and pairs on the TAIL-WEIGHT axis with the P11.205
+      // whole-pool excess-kurtosis (unbounded Fisher-Pearson g2) the same
+      // way P11.215 Bowley + P11.203 skewness pair on the ASYMMETRY axis
+      // and P11.211 QCD + P11.213 COR pair on the DISPERSION axis — read
+      // side-by-side to distinguish "tail-weight driven by interior
+      // distribution" (both non-zero) from "tail-weight driven by a tail
+      // outlier" (g2 non-zero, moors degenerate). Splices IMMEDIATELY
+      // BELOW perTransitionMagnitudeTop3PoolBowleySkewnessSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.217
+      // formatter docblock so the (Bowley robust asymmetry, Moors robust
+      // tail-weight) octile pair sits adjacent — the reader scans them
+      // together as the (g1, g2) → (bowley, moors) higher-moment shape
+      // descriptor pair lifted onto the octile-robust surface. Cutoffs
+      // 0.2 / 0.5 around the normal reference 1.2330 are the classroom
+      // Moors thresholds (Moors 1988 §3) — anchored on the excess-Moors
+      // deviation (subtract 1.2330 so mesokurtic reads zero, mirroring
+      // the P11.205 "subtract 3" excess-kurtosis convention). Consumes
+      // snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolMoorsKurtosisSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosisSection(
+          snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis,
+        );
     }
   }
   if (
@@ -5110,6 +5154,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolQcdSection ||
     perTransitionMagnitudeTop3PoolCoefficientOfRangeSection ||
     perTransitionMagnitudeTop3PoolBowleySkewnessSection ||
+    perTransitionMagnitudeTop3PoolMoorsKurtosisSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5220,6 +5265,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolQcdSection +
       perTransitionMagnitudeTop3PoolCoefficientOfRangeSection +
       perTransitionMagnitudeTop3PoolBowleySkewnessSection +
+      perTransitionMagnitudeTop3PoolMoorsKurtosisSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -7458,6 +7504,40 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolBowleySkewness.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolBowleySkewness.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_moors_kurtosis:
+      snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.top_n,
+            min_pool_count_for_moors:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.min_pool_count_for_moors,
+            moors_normal_reference:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.moors_normal_reference,
+            mesokurtic_moors_deviation_max:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.mesokurtic_moors_deviation_max,
+            strong_moors_deviation_min:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.strong_moors_deviation_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis.transitions,
           }
         : {
             skipped_reason:
