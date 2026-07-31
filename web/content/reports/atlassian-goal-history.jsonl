@@ -861,3 +861,7 @@
 {"tick_id":"opus-manual-2026-07-31T07-31-30Z","ts":"2026-07-31T07:31:30Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","subtask":"P9-clevel-valuation-lib-test","tests":49,"file":"web/src/lib/clevel-valuation.test.ts","result":"49 passed / 548ms","typecheck":"clean for new file (only pre-existing env errors)"}
 {"tick_id":"2026-07-31T07-27-01-567Z","ts":"2026-07-31T07:31:54.808Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":293224,"signal":null,"label":"delegated"}
 {"tick_id":"2026-07-31T07-27-01-567Z","ts":"2026-07-31T07:31:54.851Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
+{"tick_id":"2026-07-31T07-27-01-567Z","ts":"2026-07-31T07:31:56.434Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-07-31T07-27-01-567Z","ts":"2026-07-31T07:31:56.444Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"1f76d961","last_deployed":"5f53be1"}
+{"tick_id":"2026-07-31T07-27-01-567Z","ts":"2026-07-31T07:39:48.714Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"1f76d961"}
+{"tick_id":"2026-07-31T07-27-01-567Z","ts":"2026-07-31T07:39:48.716Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
