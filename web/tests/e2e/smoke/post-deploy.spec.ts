@@ -144,21 +144,29 @@ test.describe("Post-deploy hydrated smoke", () => {
     page,
     context,
   }) => {
-    // iter-18 hardening: the loop above accepts either the raw path or a
-    // percent-encoded fallback in `next=`. This narrower assertion pins
-    // the Next 16 emission shape (raw `/workspace/audit-log`) so a silent
-    // change to the redirect helper — e.g. dropping the `next` param or
-    // encoding it inconsistently — fails loudly on the audit-log surface
-    // that the compliance team relies on for deep-linking back after
+    // iter-18 hardening: the loop above only checks that *some* next param
+    // survives. This narrower assertion pins the exact target so a silent
+    // change to the redirect helper — dropping `next`, pointing it at a
+    // fallback like /dashboard, or double-encoding it — fails loudly on
+    // the audit-log surface the compliance team deep-links into after
     // sign-in. Anonymous only; no auth-fixture needed.
+    //
+    // Compared after one decode rather than as a raw substring. The proxy
+    // builds `next` with encodeURIComponent (required: an unencoded `&`
+    // in a deep link would truncate the value at the query parser), and
+    // login-form.tsx reads it via searchParams.get(), which decodes once.
+    // Asserting the decoded value pins the contract that actually matters
+    // — where the user lands — and still catches double-encoding, since
+    // `%252F…` decodes to `%2F…` and fails this equality.
     await context.clearCookies();
     await page.goto("/workspace/audit-log", { waitUntil: "domcontentloaded" });
     await page.waitForURL(/\/auth\/login/, { timeout: PAGE_TIMEOUT });
     const finalUrl = page.url();
+    const nextParam = new URL(finalUrl).searchParams.get("next");
     expect(
-      finalUrl.includes("next=/workspace/audit-log"),
-      `expected exact next=/workspace/audit-log substring, got ${finalUrl}`,
-    ).toBe(true);
+      nextParam,
+      `expected next=/workspace/audit-log after one decode, got ${finalUrl}`,
+    ).toBe("/workspace/audit-log");
   });
 
   test("/dashboard/portfolio — post-redirect login shell hydrates", async ({
