@@ -822,3 +822,5 @@
 {"tick_id":"2026-07-31T06-27-01-664Z","ts":"2026-07-31T06:27:01.665Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T06-27-01-664Z","ts":"2026-07-31T06:27:01.682Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"opus-manual-2026-07-31T06-33-23Z","ts":"2026-07-31T06:33:23Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","subtask":"P9-pricing-data-lib-test","tests":63,"file":"web/src/lib/pricing-data.test.ts","result":"63 passed / 455ms","typecheck":"skipped (test-only addition; no source edits)"}
+{"tick_id":"2026-07-31T06-27-01-664Z","ts":"2026-07-31T06:34:03.938Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":422254,"signal":null,"label":"delegated"}
+{"tick_id":"2026-07-31T06-27-01-664Z","ts":"2026-07-31T06:34:03.980Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":8}
