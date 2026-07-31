@@ -32,6 +32,11 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 
+// Guard rails for the `git add -A` safety net below. See web/AGENTS.md
+// § "Autonomous loop guard rails".
+import { guardTruncations } from './truncation-guard.mjs'
+import { runTestGate } from './test-gate.mjs'
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, '..', '..')
 
@@ -163,6 +168,38 @@ export async function runGoalLoop(config) {
         }
       } catch (err) {
         await log(ctx, { stage: 'truncation_guard_failed', error: String(err) })
+      }
+
+      // Second guard rail: run the colocated tests for the modules this tick
+      // edited, and revert the edits that break them. The truncation guard
+      // only catches a file that got *smaller*; it cannot catch a confident,
+      // complete rewrite that deletes half the module's public API. That is
+      // what happened to cmo-market-research.ts at d3953e1e — six exports
+      // deleted three hours after d9cc2878 landed the 31-case suite pinning
+      // them, which the loop never ran. Failures revert only the offending
+      // source; every other edit in the tick still commits.
+      try {
+        const gate = runTestGate(REPO_ROOT)
+        if (gate.failed.length > 0 || gate.reverted.length > 0) {
+          await log(ctx, {
+            stage: 'test_gate_reverted',
+            pairs: gate.pairs,
+            ran: gate.ran.length,
+            failed: gate.failed.map((f) => ({ test: f.test, source: f.source, output: f.output })),
+            reverted: gate.reverted,
+          })
+        } else if (gate.ran.length > 0 || gate.unrunnable.length > 0) {
+          await log(ctx, {
+            stage: 'test_gate_passed',
+            pairs: gate.pairs,
+            ran: gate.ran.length,
+            unrunnable: gate.unrunnable,
+            skipped: gate.skipped,
+          })
+        }
+      } catch (err) {
+        // Never let the gate itself wedge the cron.
+        await log(ctx, { stage: 'test_gate_failed', error: String(err) })
       }
 
       spawnSync('git', ['add', '-A'], { cwd: REPO_ROOT, stdio: 'ignore' })
