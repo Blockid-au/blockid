@@ -9,7 +9,7 @@ import {
   type NudgeSviScoreRow,
 } from "./next-steps";
 import { ATLASSIAN_DATAROOM_TEMPLATE } from "@/lib/dataroom/atlassian-template";
-import { ALL_PHASE_KEYS } from "@/lib/journey-map";
+import { GROWTH_PHASE_IDS, orderToGrowthPhase } from "@/lib/growth/phase-taxonomy";
 
 // Colocated vitest for the pure nudge engine
 // (docs/plans/atlassian-standard-mapping-goal.md §P3_nudge_engine_impl).
@@ -39,7 +39,7 @@ function progressRow(
   updatedIso?: string,
 ): NudgePhaseProgressRow {
   return {
-    phase_id: `p${phase_order}`,
+    phase_id: orderToGrowthPhase(phase_order),
     phase_order,
     status,
     completion_pct: status === "completed" ? 100 : 25,
@@ -56,7 +56,7 @@ describe("computeNextSteps — phase detection", () => {
   it("falls back to Phase 1 when the founder has no project and no progress rows", () => {
     const out = computeNextSteps(baseInput());
     expect(out.current_phase.phase_order).toBe(1);
-    expect(out.current_phase.slug).toBe("1");
+    expect(out.current_phase.slug).toBe("vision");
     expect(out.current_phase.label).toMatch(/Vision/);
     expect(out.current_phase.canonical_stage).toBe("idea");
   });
@@ -371,13 +371,13 @@ describe("computeNextSteps — compliance enrichment", () => {
     };
     const nudgeCheck = computeNextSteps(
       baseInput({
-        phaseProgress: [progressRow(6, "in_progress", "2026-06-01T00:00:00Z")],
+        phaseProgress: [progressRow(7, "in_progress", "2026-06-01T00:00:00Z")],
         complianceStatus: check,
       }),
     );
     const nudgeEscalate = computeNextSteps(
       baseInput({
-        phaseProgress: [progressRow(6, "in_progress", "2026-06-01T00:00:00Z")],
+        phaseProgress: [progressRow(7, "in_progress", "2026-06-01T00:00:00Z")],
         complianceStatus: escalate,
       }),
     );
@@ -389,7 +389,7 @@ describe("computeNextSteps — compliance enrichment", () => {
     ).toBe(true);
   });
 
-  it("flags an overdue R&D registration for a Phase-5 founder", () => {
+  it("flags an overdue R&D registration once the founder reaches product_dev", () => {
     const status: NudgeComplianceStatus = {
       hasEsicAssessment: true,
       hasValidOrExpiringS708: true,
@@ -400,7 +400,7 @@ describe("computeNextSteps — compliance enrichment", () => {
     };
     const out = computeNextSteps(
       baseInput({
-        phaseProgress: [progressRow(5, "in_progress", "2026-06-01T00:00:00Z")],
+        phaseProgress: [progressRow(8, "in_progress", "2026-06-01T00:00:00Z")],
         complianceStatus: status,
       }),
     );
@@ -416,11 +416,12 @@ describe("computeNextSteps — compliance enrichment", () => {
 // ---------------------------------------------------------------------------
 
 describe("computeNextSteps — readiness_by_phase + category helper", () => {
-  it("re-keys readiness_by_phase to string ordinals covering every phase 1..12", () => {
+  it("keys readiness_by_phase by growth-phase id, covering all 12", () => {
     const out = computeNextSteps(baseInput());
-    for (const p of ALL_PHASE_KEYS) {
-      expect(out.readiness_by_phase).toHaveProperty(String(p));
+    for (const p of GROWTH_PHASE_IDS) {
+      expect(out.readiness_by_phase).toHaveProperty(p);
     }
+    expect(Object.keys(out.readiness_by_phase)).toHaveLength(12);
     // Every value must carry the {score, band, missing_top3, criteria_used} shape.
     for (const [, v] of Object.entries(out.readiness_by_phase)) {
       expect(typeof v.score).toBe("number");

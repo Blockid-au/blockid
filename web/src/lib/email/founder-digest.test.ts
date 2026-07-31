@@ -54,7 +54,7 @@ describe("buildFounderDigest — subject line", () => {
   it("celebrates a band-up crossing", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "9",
+      phaseSlug: "investor_review",
       phaseLabel: "Funding-Ready",
       readinessScore: 78,
       band: "investor-ready",
@@ -72,7 +72,7 @@ describe("buildFounderDigest — subject line", () => {
   it("flags a band-down slip with a fix-blocker subject", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "6",
+      phaseSlug: "legal_equity",
       phaseLabel: "Revenue / Business Model",
       readinessScore: 48,
       band: "not-ready",
@@ -90,7 +90,7 @@ describe("buildFounderDigest — subject line", () => {
   it("uses the neutral phase subject when the band is stable", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "5",
+      phaseSlug: "mentor_review",
       phaseLabel: "PMF / Early Traction",
       readinessScore: 62,
       band: "warming-up",
@@ -109,7 +109,7 @@ describe("buildFounderDigest — HTML body", () => {
   it("renders score + band + delta + next action + all three gaps", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "9",
+      phaseSlug: "investor_review",
       phaseLabel: "Funding-Ready",
       readinessScore: 78,
       band: "investor-ready",
@@ -144,7 +144,7 @@ describe("buildFounderDigest — HTML body", () => {
   it("renders the caught-up copy when nextAction is null", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "5",
+      phaseSlug: "mentor_review",
       phaseLabel: "PMF",
       readinessScore: 90,
       band: "investor-ready",
@@ -162,7 +162,7 @@ describe("buildFounderDigest — HTML body", () => {
   it("clamps out-of-range scores into [0,100]", () => {
     const outHigh = buildFounderDigest({
       name: "S",
-      phaseSlug: "1",
+      phaseSlug: "vision",
       phaseLabel: "Vision",
       readinessScore: 999,
       band: "investor-ready",
@@ -175,7 +175,7 @@ describe("buildFounderDigest — HTML body", () => {
     expect(outHigh.html).toContain(">100<");
     const outLow = buildFounderDigest({
       name: "S",
-      phaseSlug: "1",
+      phaseSlug: "vision",
       phaseLabel: "Vision",
       readinessScore: Number.NaN,
       band: "not-ready",
@@ -191,7 +191,7 @@ describe("buildFounderDigest — HTML body", () => {
   it("escapes name + attributes to prevent HTML/attribute injection", () => {
     const out = buildFounderDigest({
       name: '<script>alert(1)</script>',
-      phaseSlug: "1",
+      phaseSlug: "vision",
       phaseLabel: "Vision",
       readinessScore: 20,
       band: "not-ready",
@@ -216,17 +216,17 @@ describe("buildFounderDigest — HTML body", () => {
 
 describe("buildFounderDigest — readiness climb (P7a-readiness-climb)", () => {
   const climb: Record<string, PhaseReadinessEntry> = {
-    "1": { score: 90, band: "investor-ready", missing_top3: [], criteria_used: [] },
-    "3": { score: 62, band: "warming-up", missing_top3: [], criteria_used: [] },
-    "5": { score: 45, band: "not-ready", missing_top3: [], criteria_used: [] },
+    vision: { score: 90, band: "investor-ready", missing_top3: [], criteria_used: [] },
+    revenue_model: { score: 62, band: "warming-up", missing_top3: [], criteria_used: [] },
+    mentor_review: { score: 45, band: "not-ready", missing_top3: [], criteria_used: [] },
     // Phase 9 deliberately omitted → gap-fill to 0 / not-ready
-    "12": { score: 15, band: "not-ready", missing_top3: [], criteria_used: [] },
+    funding: { score: 15, band: "not-ready", missing_top3: [], criteria_used: [] },
   };
 
   it("omits the section when readinessByPhase is absent (back-compat)", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "5",
+      phaseSlug: "mentor_review",
       phaseLabel: "PMF",
       readinessScore: 45,
       band: "not-ready",
@@ -243,7 +243,7 @@ describe("buildFounderDigest — readiness climb (P7a-readiness-climb)", () => {
   it("renders the 12-phase spark with the current phase outlined", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "5",
+      phaseSlug: "mentor_review",
       phaseLabel: "PMF",
       readinessScore: 45,
       band: "not-ready",
@@ -272,24 +272,24 @@ describe("buildFounderDigest — readiness climb (P7a-readiness-climb)", () => {
 
   it("gap-fills missing phases + clamps non-finite scores", () => {
     const messy: Record<string, PhaseReadinessEntry> = {
-      "1": { score: 999, band: "investor-ready", missing_top3: [], criteria_used: [] },
-      "2": { score: Number.NaN, band: "not-ready", missing_top3: [], criteria_used: [] },
-      "4": { score: -20, band: "not-ready", missing_top3: [], criteria_used: [] },
+      vision: { score: 999, band: "investor-ready", missing_top3: [], criteria_used: [] },
+      customer_dev: { score: Number.NaN, band: "not-ready", missing_top3: [], criteria_used: [] },
+      pitch: { score: -20, band: "not-ready", missing_top3: [], criteria_used: [] },
     };
-    const series = buildReadinessClimbSeries(messy, "4");
+    const series = buildReadinessClimbSeries(messy, "pitch");
     expect(series).toHaveLength(12);
-    expect(series[0]).toMatchObject({ phase: "1", score: 100, band: "investor-ready" });
-    expect(series[1]).toMatchObject({ phase: "2", score: 0, band: "not-ready" });
-    expect(series[3]).toMatchObject({ phase: "4", score: 0, isCurrent: true });
+    expect(series[0]).toMatchObject({ phase: "vision", score: 100, band: "investor-ready" });
+    expect(series[1]).toMatchObject({ phase: "customer_dev", score: 0, band: "not-ready" });
+    expect(series[3]).toMatchObject({ phase: "pitch", score: 0, isCurrent: true });
     // Gap fills for the untouched phases.
-    expect(series[2]).toMatchObject({ phase: "3", score: 0, band: "not-ready", isCurrent: false });
+    expect(series[2]).toMatchObject({ phase: "revenue_model", score: 0, band: "not-ready", isCurrent: false });
     // Exactly one cell is flagged current.
     expect(series.filter((c) => c.isCurrent)).toHaveLength(1);
   });
 
   it("escapes phase labels + tooltips (no HTML injection from band data)", () => {
     const evil: Record<string, PhaseReadinessEntry> = {
-      "1": {
+      vision: {
         score: 30,
         band: "not-ready",
         missing_top3: [],
@@ -298,7 +298,7 @@ describe("buildFounderDigest — readiness climb (P7a-readiness-climb)", () => {
     };
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "1",
+      phaseSlug: "vision",
       phaseLabel: "Vision",
       readinessScore: 30,
       band: "not-ready",
@@ -318,22 +318,22 @@ describe("buildFounderDigest — readiness climb (P7a-readiness-climb)", () => {
 
 describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", () => {
   const currentClimb: Record<string, PhaseReadinessEntry> = {
-    "1": { score: 90, band: "investor-ready", missing_top3: [], criteria_used: [] },
-    "3": { score: 65, band: "warming-up", missing_top3: [], criteria_used: [] },
-    "5": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
-    "9": { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
+    vision: { score: 90, band: "investor-ready", missing_top3: [], criteria_used: [] },
+    revenue_model: { score: 65, band: "warming-up", missing_top3: [], criteria_used: [] },
+    mentor_review: { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+    investor_review: { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
   };
   const previousClimb: Record<string, PhaseReadinessEntry> = {
-    "1": { score: 88, band: "investor-ready", missing_top3: [], criteria_used: [] },
-    "3": { score: 70, band: "warming-up", missing_top3: [], criteria_used: [] },
-    "5": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+    vision: { score: 88, band: "investor-ready", missing_top3: [], criteria_used: [] },
+    revenue_model: { score: 70, band: "warming-up", missing_top3: [], criteria_used: [] },
+    mentor_review: { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
     // Phase 9 absent from previous → this week's 40 is "new" for phase 9.
   };
 
   it("silently omits the delta section when previous snapshot is absent", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "5",
+      phaseSlug: "mentor_review",
       phaseLabel: "PMF",
       readinessScore: 55,
       band: "warming-up",
@@ -351,7 +351,7 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
   it("renders the delta table with signed +/-, ★ new, — same, and highlights the current phase", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "9",
+      phaseSlug: "investor_review",
       phaseLabel: "Funding-Ready",
       readinessScore: 40,
       band: "not-ready",
@@ -384,11 +384,11 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
 
   it("omits the delta section entirely when nothing moved (all same-band + zero delta)", () => {
     const flat: Record<string, PhaseReadinessEntry> = {
-      "1": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] },
+      vision: { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] },
     };
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "1",
+      phaseSlug: "vision",
       phaseLabel: "Vision",
       readinessScore: 50,
       band: "warming-up",
@@ -405,9 +405,9 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
   });
 
   it("buildReadinessClimbDeltaSeries — pure helper branch matrix", () => {
-    const series = buildReadinessClimbDeltaSeries(currentClimb, previousClimb, "9");
+    const series = buildReadinessClimbDeltaSeries(currentClimb, previousClimb, "investor_review");
     expect(series).toHaveLength(12);
-    const phase1 = series.find((c) => c.phase === "1")!;
+    const phase1 = series.find((c) => c.phase === "vision")!;
     expect(phase1).toMatchObject({
       currScore: 90,
       prevScore: 88,
@@ -415,17 +415,17 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
       direction: "up",
       isCurrent: false,
     });
-    const phase3 = series.find((c) => c.phase === "3")!;
+    const phase3 = series.find((c) => c.phase === "revenue_model")!;
     expect(phase3).toMatchObject({
       currScore: 65,
       prevScore: 70,
       delta: -5,
       direction: "down",
     });
-    const phase5 = series.find((c) => c.phase === "5")!;
+    const phase5 = series.find((c) => c.phase === "mentor_review")!;
     expect(phase5.direction).toBe("same");
     expect(phase5.delta).toBe(0);
-    const phase9 = series.find((c) => c.phase === "9")!;
+    const phase9 = series.find((c) => c.phase === "investor_review")!;
     expect(phase9).toMatchObject({
       currScore: 40,
       prevScore: 0,
@@ -433,7 +433,7 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
       isCurrent: true,
     });
     // Gap-filled phases still return same/0.
-    const phase12 = series.find((c) => c.phase === "12")!;
+    const phase12 = series.find((c) => c.phase === "funding")!;
     expect(phase12).toMatchObject({
       currScore: 0,
       prevScore: 0,
@@ -446,13 +446,13 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
 
   it("buildReadinessClimbDeltaSeries — non-finite previous scores fall back to 0 (no NaN leak)", () => {
     const messyPrev: Record<string, PhaseReadinessEntry> = {
-      "1": {
+      vision: {
         score: Number.NaN,
         band: "not-ready",
         missing_top3: [],
         criteria_used: [],
       },
-      "2": {
+      customer_dev: {
         score: 40,
         band: "not-ready",
         missing_top3: [],
@@ -460,16 +460,16 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
       },
     };
     const curr: Record<string, PhaseReadinessEntry> = {
-      "1": { score: 30, band: "not-ready", missing_top3: [], criteria_used: [] },
-      "2": { score: 30, band: "not-ready", missing_top3: [], criteria_used: [] },
+      vision: { score: 30, band: "not-ready", missing_top3: [], criteria_used: [] },
+      customer_dev: { score: 30, band: "not-ready", missing_top3: [], criteria_used: [] },
     };
-    const series = buildReadinessClimbDeltaSeries(curr, messyPrev, "1");
-    const p1 = series.find((c) => c.phase === "1")!;
+    const series = buildReadinessClimbDeltaSeries(curr, messyPrev, "vision");
+    const p1 = series.find((c) => c.phase === "vision")!;
     // NaN previous → treated as no-prior → direction "new" (curr > 0).
     expect(p1.direction).toBe("new");
     expect(p1.prevScore).toBe(0);
     expect(Number.isFinite(p1.delta)).toBe(true);
-    const p2 = series.find((c) => c.phase === "2")!;
+    const p2 = series.find((c) => c.phase === "customer_dev")!;
     // Real 40 previous → -10 down.
     expect(p2.direction).toBe("down");
     expect(p2.delta).toBe(-10);
@@ -478,21 +478,21 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
 
 describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () => {
   const currentClimb: Record<string, PhaseReadinessEntry> = {
-    "1": { score: 90, band: "investor-ready", missing_top3: [], criteria_used: [] },
-    "3": { score: 65, band: "warming-up", missing_top3: [], criteria_used: [] },
-    "5": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
-    "9": { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
+    vision: { score: 90, band: "investor-ready", missing_top3: [], criteria_used: [] },
+    revenue_model: { score: 65, band: "warming-up", missing_top3: [], criteria_used: [] },
+    mentor_review: { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+    investor_review: { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
   };
   const previousClimb: Record<string, PhaseReadinessEntry> = {
-    "1": { score: 88, band: "investor-ready", missing_top3: [], criteria_used: [] },
-    "3": { score: 70, band: "warming-up", missing_top3: [], criteria_used: [] },
-    "5": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+    vision: { score: 88, band: "investor-ready", missing_top3: [], criteria_used: [] },
+    revenue_model: { score: 70, band: "warming-up", missing_top3: [], criteria_used: [] },
+    mentor_review: { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
   };
 
   it("renders the biggest-mover callout above the delta table when climb moved", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "9",
+      phaseSlug: "investor_review",
       phaseLabel: "Funding-Ready",
       readinessScore: 40,
       band: "not-ready",
@@ -519,11 +519,11 @@ describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () 
 
   it("omits the callout when nothing moved (mirrors the delta-table omit rule)", () => {
     const flat: Record<string, PhaseReadinessEntry> = {
-      "1": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] },
+      vision: { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] },
     };
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "1",
+      phaseSlug: "vision",
       phaseLabel: "Vision",
       readinessScore: 50,
       band: "warming-up",
@@ -542,7 +542,7 @@ describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () 
   it("omits the callout when previous snapshot is absent (first digest)", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "5",
+      phaseSlug: "mentor_review",
       phaseLabel: "PMF",
       readinessScore: 55,
       band: "warming-up",
@@ -561,55 +561,55 @@ describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () 
     // A down-move of -8 beats an up-move of +5.
     const series = buildReadinessClimbDeltaSeries(
       {
-        "3": { score: 62, band: "warming-up", missing_top3: [], criteria_used: [] },
-        "7": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+        revenue_model: { score: 62, band: "warming-up", missing_top3: [], criteria_used: [] },
+        go_to_market: { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
       },
       {
-        "3": { score: 70, band: "warming-up", missing_top3: [], criteria_used: [] },
-        "7": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] },
+        revenue_model: { score: 70, band: "warming-up", missing_top3: [], criteria_used: [] },
+        go_to_market: { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] },
       },
       "3",
     );
     const mover = pickBiggestMover(series);
-    expect(mover?.phase).toBe("3");
+    expect(mover?.phase).toBe("revenue_model");
     expect(mover?.direction).toBe("down");
     expect(mover?.delta).toBe(-8);
 
     // Ties: same magnitude, current phase wins.
     const tie = buildReadinessClimbDeltaSeries(
       {
-        "2": { score: 60, band: "warming-up", missing_top3: [], criteria_used: [] },
-        "6": { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
+        customer_dev: { score: 60, band: "warming-up", missing_top3: [], criteria_used: [] },
+        legal_equity: { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
       },
       {
-        "2": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
-        "6": { score: 45, band: "not-ready", missing_top3: [], criteria_used: [] },
+        customer_dev: { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+        legal_equity: { score: 45, band: "not-ready", missing_top3: [], criteria_used: [] },
       },
-      "6",
+      "legal_equity",
     );
     const tieMover = pickBiggestMover(tie);
-    // Both have magnitude 5; the current phase (6) wins over phase 2.
-    expect(tieMover?.phase).toBe("6");
+    // Both have magnitude 5; the current phase (legal_equity) wins over customer_dev.
+    expect(tieMover?.phase).toBe("legal_equity");
     expect(tieMover?.isCurrent).toBe(true);
 
     // Ties with no current phase in the tied set: earlier phase wins.
     const tieAscending = buildReadinessClimbDeltaSeries(
       {
-        "2": { score: 60, band: "warming-up", missing_top3: [], criteria_used: [] },
-        "6": { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
+        customer_dev: { score: 60, band: "warming-up", missing_top3: [], criteria_used: [] },
+        legal_equity: { score: 40, band: "not-ready", missing_top3: [], criteria_used: [] },
       },
       {
-        "2": { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
-        "6": { score: 45, band: "not-ready", missing_top3: [], criteria_used: [] },
+        customer_dev: { score: 55, band: "warming-up", missing_top3: [], criteria_used: [] },
+        legal_equity: { score: 45, band: "not-ready", missing_top3: [], criteria_used: [] },
       },
-      "10",
+      "team",
     );
-    expect(pickBiggestMover(tieAscending)?.phase).toBe("2");
+    expect(pickBiggestMover(tieAscending)?.phase).toBe("customer_dev");
 
     // Flat series → null.
     const flat = buildReadinessClimbDeltaSeries(
-      { "1": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] } },
-      { "1": { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] } },
+      { vision: { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] } },
+      { vision: { score: 50, band: "warming-up", missing_top3: [], criteria_used: [] } },
       "1",
     );
     expect(pickBiggestMover(flat)).toBeNull();
@@ -617,7 +617,7 @@ describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () 
 
   it("formatMoverCallout — per-direction copy pack + colour + icon", () => {
     const up = formatMoverCallout({
-      phase: "1",
+      phase: "vision",
       currScore: 90,
       prevScore: 80,
       delta: 10,
@@ -632,7 +632,7 @@ describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () 
     expect(up.hint).toMatch(/biggest week-over-week gain/i);
 
     const down = formatMoverCallout({
-      phase: "3",
+      phase: "revenue_model",
       currScore: 40,
       prevScore: 55,
       delta: -15,
@@ -647,7 +647,7 @@ describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () 
     expect(down.hint).toMatch(/data room since the last digest/i);
 
     const fresh = formatMoverCallout({
-      phase: "9",
+      phase: "investor_review",
       currScore: 40,
       prevScore: 0,
       delta: 40,
@@ -667,7 +667,7 @@ describe("buildFounderDigest — plain text body", () => {
   it("mirrors the HTML content in a readable format", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "9",
+      phaseSlug: "investor_review",
       phaseLabel: "Funding-Ready",
       readinessScore: 78,
       band: "investor-ready",
@@ -780,7 +780,7 @@ describe("buildFounderDigest — package block prepend", () => {
   it("prepends the Package block above the readiness climb when set", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "6",
+      phaseSlug: "legal_equity",
       phaseLabel: "Revenue / Business Model",
       readinessScore: 62,
       band: "warming-up",
@@ -810,7 +810,7 @@ describe("buildFounderDigest — package block prepend", () => {
   it("renders unchanged when packageProgress is omitted", () => {
     const out = buildFounderDigest({
       name: "Sam",
-      phaseSlug: "6",
+      phaseSlug: "legal_equity",
       phaseLabel: "Revenue / Business Model",
       readinessScore: 62,
       band: "warming-up",

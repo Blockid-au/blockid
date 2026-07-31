@@ -13,7 +13,7 @@ import type {
   ReadinessBand,
 } from "@/lib/nudge/readiness-by-phase";
 import type { BandDirection } from "@/lib/nudge/readiness-snapshots";
-import { GROWTH_PHASE_IDS } from "@/lib/growth/phase-taxonomy";
+import { GROWTH_PHASE_IDS, growthPhaseOrder } from "@/lib/growth/phase-taxonomy";
 
 export interface BuildFounderDigestInput {
   name: string;
@@ -213,7 +213,7 @@ export function pickBiggestMover(
       }
       if (
         cell.isCurrent === best.isCurrent &&
-        Number(cell.phase) < Number(best.phase)
+        growthPhaseOrder(cell.phase) < growthPhaseOrder(best.phase)
       ) {
         best = cell;
         bestMagnitude = magnitude;
@@ -364,7 +364,7 @@ export function buildFounderDigest(
       ? `Readiness up — you're now ${BAND_LABEL[input.band].toLowerCase()} (${score}/100)`
       : input.bandDirection === "down"
         ? `Readiness slipped — top raise-blocker to fix this week`
-        : `Your BlockID readiness — ${score}/100 · Phase ${input.phaseSlug}`;
+        : `Your BlockID readiness — ${score}/100 · Phase ${growthPhaseOrder(input.phaseSlug)}`;
 
   const html = renderHtml(input, score);
   const text = renderText(input, score);
@@ -452,7 +452,7 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
                 : "";
               return `
           <tr style="${rowStyle}">
-            <td style="font-size:12px;color:#0f172a;padding:4px 6px">Phase ${escapeHtml(c.phase)}${c.isCurrent ? " · you are here" : ""}</td>
+            <td style="font-size:12px;color:#0f172a;padding:4px 6px">Phase ${growthPhaseOrder(c.phase)}${c.isCurrent ? " · you are here" : ""}</td>
             <td align="right" style="font-size:12px;color:#475569;padding:4px 6px">${c.prevScore}/100</td>
             <td align="right" style="font-size:12px;color:#0f172a;padding:4px 6px">${c.currScore}/100</td>
             <td align="right" style="font-size:12px;color:${deltaColour};padding:4px 6px">${arrow} ${signed}</td>
@@ -472,15 +472,15 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
             ${climbCells
               .map(
                 (c) => `
-            <td style="padding:0 3px;vertical-align:bottom" title="Phase ${escapeAttr(c.phase)} — ${c.score}/100 (${escapeAttr(BAND_LABEL[c.band])})">
+            <td style="padding:0 3px;vertical-align:bottom" title="Phase ${growthPhaseOrder(c.phase)} — ${c.score}/100 (${escapeAttr(BAND_LABEL[c.band])})">
               <div style="width:24px;height:${Math.max(4, Math.round((c.score / 100) * 48))}px;background:${CLIMB_BAND_FILL[c.band]};border:${c.isCurrent ? "2px solid #0f766e" : "1px solid #e2e8f0"};border-radius:3px"></div>
-              <div style="font-size:10px;color:${c.isCurrent ? "#0f766e" : "#64748b"};text-align:center;margin-top:2px;font-weight:${c.isCurrent ? "700" : "400"}">${escapeHtml(c.phase)}</div>
+              <div style="font-size:10px;color:${c.isCurrent ? "#0f766e" : "#64748b"};text-align:center;margin-top:2px;font-weight:${c.isCurrent ? "700" : "400"}">${growthPhaseOrder(c.phase)}</div>
             </td>`,
               )
               .join("")}
           </tr>
         </table>
-        <p style="margin:8px 0 0;font-size:11px;color:#64748b">Your Phase ${escapeHtml(input.phaseSlug)} column is outlined in teal. Bars use band colours: red = not-ready, amber = warming-up, green = investor-ready.</p>
+        <p style="margin:8px 0 0;font-size:11px;color:#64748b">Your Phase ${growthPhaseOrder(input.phaseSlug)} column is outlined in teal. Bars use band colours: red = not-ready, amber = warming-up, green = investor-ready.</p>
       </div>`
     : "";
 
@@ -556,7 +556,7 @@ function renderText(input: BuildFounderDigestInput, score: number): string {
     const block = buildPackageProgressBlock(input.packageProgress);
     lines.push(block.text, "");
   }
-  lines.push(`Phase ${input.phaseSlug} — ${input.phaseLabel}`);
+  lines.push(`Phase ${growthPhaseOrder(input.phaseSlug)} — ${input.phaseLabel}`);
   lines.push(`Readiness: ${score}/100 (${BAND_LABEL[input.band]})`);
   lines.push(input.deltaSummary, "");
   if (input.readinessByPhase) {
@@ -564,7 +564,9 @@ function renderText(input: BuildFounderDigestInput, score: number): string {
     lines.push("Readiness across all 12 phases:");
     for (const c of cells) {
       const marker = c.isCurrent ? "▶ " : "  ";
-      lines.push(`  ${marker}Phase ${c.phase}: ${c.score}/100 (${BAND_LABEL[c.band]})`);
+      lines.push(
+        `  ${marker}Phase ${growthPhaseOrder(c.phase)}: ${c.score}/100 (${BAND_LABEL[c.band]})`,
+      );
     }
     lines.push("");
   }
@@ -601,7 +603,7 @@ function renderText(input: BuildFounderDigestInput, score: number): string {
                 ? `${c.delta}`
                 : "0";
         lines.push(
-          `  ${marker}Phase ${c.phase}: ${c.prevScore}/100 → ${c.currScore}/100 (${arrow} ${signed})`,
+          `  ${marker}Phase ${growthPhaseOrder(c.phase)}: ${c.prevScore}/100 → ${c.currScore}/100 (${arrow} ${signed})`,
         );
       }
       lines.push("");
@@ -645,7 +647,7 @@ interface MoverCallout {
  * source of truth. Exported for the vitest fixture.
  */
 export function formatMoverCallout(cell: ClimbDeltaCell): MoverCallout {
-  const phaseLabel = `Phase ${cell.phase}`;
+  const phaseLabel = `Phase ${growthPhaseOrder(cell.phase)}`;
   const hereChip = cell.isCurrent ? " (you are here)" : "";
   if (cell.direction === "new") {
     return {

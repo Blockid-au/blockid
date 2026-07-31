@@ -16,6 +16,7 @@ import {
   GROWTH_PHASE_LABELS,
   growthPhaseOrder,
   isGrowthPhaseId,
+  orderToGrowthPhase,
   type GrowthPhaseId,
 } from "@/lib/growth/phase-taxonomy";
 import {
@@ -112,7 +113,8 @@ export interface ComputeNextStepsInput {
 // ---------------------------------------------------------------------------
 
 export interface NudgeCurrentPhase {
-  slug: string; // "1".."12"
+  /** Canonical growth-phase id ("vision".."funding"). Same value as growth_phase_id. */
+  slug: string;
   label: string;
   label_vi: string;
   canonical_stage: string;
@@ -154,10 +156,12 @@ export interface NudgeResult {
   missing: NudgeMissingItem[];
   readiness_score: NudgeReadinessScore;
   /**
-   * Per-phase readiness slice (P5a) — one entry per PhaseKey (1..12) with
-   * a weighted score, band, and top-3 missing artefacts scoped to that
-   * phase. Keys are stringified PhaseKey ordinals to keep the JSON valid
-   * across serializers. See web/src/lib/nudge/readiness-by-phase.ts.
+   * Per-phase readiness slice (P5a) — one entry per growth phase with a
+   * weighted score, band, and top-3 missing artefacts scoped to that phase.
+   *
+   * G8-P0: keys are canonical growth-phase ids ("vision".."funding"), not the
+   * numeric ordinals used before. Snapshots written pre-G8 carry "1".."12"
+   * keys; consumers gap-fill rather than fail. See readiness-by-phase.ts.
    */
   readiness_by_phase: Record<string, ReadinessByPhase[keyof ReadinessByPhase]>;
   nudge_reason: string;
@@ -635,7 +639,7 @@ function buildNudgeReason(
   const nMissing = missing.length;
   const nBlockers = missing.filter((m) => m.raise_blocker).length;
   const parts: string[] = [];
-  parts.push(`You're in Phase ${phase.slug} — ${phase.label}.`);
+  parts.push(`You're in Phase ${phase.phase_order} — ${phase.label}.`);
   if (nBlockers > 0) {
     parts.push(
       `${nBlockers} raise-blocker${nBlockers === 1 ? "" : "s"} still open — investors will ask about ${missing[0].title.toLowerCase()} at term-sheet.`,

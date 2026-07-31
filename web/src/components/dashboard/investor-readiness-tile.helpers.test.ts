@@ -118,9 +118,9 @@ describe("investor-readiness-tile helpers", () => {
 // ---------------------------------------------------------------------------
 
 const SAMPLE_BY_PHASE: Record<string, PhaseReadinessLike> = {
-  "1": { score: 82, band: "investor-ready" },
-  "3": { score: 55, band: "warming-up" },
-  "6": {
+  vision: { score: 82, band: "investor-ready" },
+  revenue_model: { score: 55, band: "warming-up" },
+  legal_equity: {
     score: 63,
     band: "warming-up",
     missing_top3: [
@@ -147,10 +147,10 @@ const SAMPLE_BY_PHASE: Record<string, PhaseReadinessLike> = {
 
 describe("investor-readiness-tile phase helpers (P5a)", () => {
   describe("ALL_PHASE_SLUGS", () => {
-    it("enumerates 12 phases as string ordinals in ascending order", () => {
+    it("enumerates the 12 growth phases in journey order", () => {
       expect(ALL_PHASE_SLUGS).toHaveLength(12);
-      expect(ALL_PHASE_SLUGS[0]).toBe("1");
-      expect(ALL_PHASE_SLUGS[11]).toBe("12");
+      expect(ALL_PHASE_SLUGS[0]).toBe("vision");
+      expect(ALL_PHASE_SLUGS[11]).toBe("funding");
     });
   });
 
@@ -169,36 +169,36 @@ describe("investor-readiness-tile phase helpers (P5a)", () => {
 
   describe("pickPhaseEntry", () => {
     it("returns the entry when phase and slug are present", () => {
-      const entry = pickPhaseEntry(SAMPLE_BY_PHASE, "6");
+      const entry = pickPhaseEntry(SAMPLE_BY_PHASE, "legal_equity");
       expect(entry?.score).toBe(63);
       expect(entry?.band).toBe("warming-up");
     });
     it("returns null when the map or slug is missing", () => {
-      expect(pickPhaseEntry(undefined, "6")).toBeNull();
+      expect(pickPhaseEntry(undefined, "legal_equity")).toBeNull();
       expect(pickPhaseEntry(SAMPLE_BY_PHASE, undefined)).toBeNull();
       expect(pickPhaseEntry(SAMPLE_BY_PHASE, "99")).toBeNull();
     });
     it("returns null when the entry has no numeric score", () => {
       const bad = {
-        "6": { score: undefined as unknown as number, band: "warming-up" as const },
+        legal_equity: { score: undefined as unknown as number, band: "warming-up" as const },
       };
-      expect(pickPhaseEntry(bad, "6")).toBeNull();
+      expect(pickPhaseEntry(bad, "legal_equity")).toBeNull();
     });
   });
 
   describe("buildPhaseSeries", () => {
     it("returns 12 points in phase order with the current one flagged", () => {
-      const series = buildPhaseSeries(SAMPLE_BY_PHASE, "6");
+      const series = buildPhaseSeries(SAMPLE_BY_PHASE, "legal_equity");
       expect(series).toHaveLength(12);
       expect(series.map((p) => p.slug)).toEqual(ALL_PHASE_SLUGS);
       const current = series.find((p) => p.isCurrent);
-      expect(current?.slug).toBe("6");
+      expect(current?.slug).toBe("legal_equity");
       expect(current?.score).toBe(63);
       expect(current?.band).toBe("warming-up");
     });
     it("fills gaps with score=0 / band=not-ready so the chart never has holes", () => {
-      const series = buildPhaseSeries(SAMPLE_BY_PHASE, "6");
-      const p2 = series.find((p) => p.slug === "2");
+      const series = buildPhaseSeries(SAMPLE_BY_PHASE, "legal_equity");
+      const p2 = series.find((p) => p.slug === "customer_dev");
       expect(p2?.score).toBe(0);
       expect(p2?.band).toBe("not-ready");
       expect(p2?.isCurrent).toBe(false);
@@ -211,10 +211,10 @@ describe("investor-readiness-tile phase helpers (P5a)", () => {
     });
     it("clamps out-of-range scores via safeScore", () => {
       const overshoot: Record<string, PhaseReadinessLike> = {
-        "4": { score: 250, band: "investor-ready" },
+        pitch: { score: 250, band: "investor-ready" },
       };
-      const series = buildPhaseSeries(overshoot, "4");
-      const p4 = series.find((p) => p.slug === "4");
+      const series = buildPhaseSeries(overshoot, "pitch");
+      const p4 = series.find((p) => p.slug === "pitch");
       expect(p4?.score).toBe(100);
     });
   });
