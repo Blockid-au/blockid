@@ -381,6 +381,123 @@ describe("processNextQueuedOrder — permanent fail path", () => {
     expect(orderWrites[0]?.patch.status).toBe("FAILED");
   });
 
+  it("invokes the refund hook once the order is FAILED (§8.8)", async () => {
+    const state: FakeState = {
+      queueRow: queuedRow({ retry_count: MAX_RETRIES - 1 }),
+      updates: {},
+    };
+    const supabase = makeSupabase(state);
+    const gen = vi.fn<() => Promise<GenerateResult>>().mockResolvedValue({
+      ok: false,
+      transient: true,
+      reason: "still timing out",
+    });
+    const refundOrder = vi
+      .fn<(input: { orderId: string; reason: string }) => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    const out = await processNextQueuedOrder({
+      supabase,
+      generateReport: gen as unknown as (args: {
+        orderId: string;
+        businessId: string;
+      }) => Promise<GenerateResult>,
+      refundOrder,
+      now,
+    });
+
+    expect(refundOrder).toHaveBeenCalledTimes(1);
+    expect(refundOrder).toHaveBeenCalledWith({
+      orderId: "order-1",
+      reason: "still timing out",
+    });
+    expect(out.status).toBe("failed");
+    expect(out.refunded).toBe(true);
+
+    // The refund must run AFTER report_orders lands on FAILED, otherwise
+    // refundFailedOrder() sees an illegal PAID/GENERATING transition.
+    expect(state.updates.report_orders?.[0]?.patch.status).toBe("FAILED");
+  });
+
+  it("keeps the order FAILED (not thrown) when the refund hook rejects", async () => {
+    const state: FakeState = { queueRow: queuedRow(), updates: {} };
+    const supabase = makeSupabase(state);
+    const gen = vi.fn<() => Promise<GenerateResult>>().mockResolvedValue({
+      ok: false,
+      transient: false,
+      reason: "invalid business_id",
+    });
+    const refundOrder = vi
+      .fn<(input: { orderId: string; reason: string }) => Promise<void>>()
+      .mockRejectedValue(new Error("stripe down"));
+
+    const out = await processNextQueuedOrder({
+      supabase,
+      generateReport: gen as unknown as (args: {
+        orderId: string;
+        businessId: string;
+      }) => Promise<GenerateResult>,
+      refundOrder,
+      now,
+    });
+
+    expect(out.status).toBe("failed");
+    expect(out.refunded).toBe(false);
+    expect(state.updates.report_orders?.[0]?.patch.status).toBe("FAILED");
+  });
+
+  it("does NOT refund on a transient retry — the order is still in flight", async () => {
+    const state: FakeState = {
+      queueRow: queuedRow({ retry_count: 0 }),
+      updates: {},
+    };
+    const supabase = makeSupabase(state);
+    const gen = vi.fn<() => Promise<GenerateResult>>().mockResolvedValue({
+      ok: false,
+      transient: true,
+      reason: "AI timeout",
+    });
+    const refundOrder = vi
+      .fn<(input: { orderId: string; reason: string }) => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    const out = await processNextQueuedOrder({
+      supabase,
+      generateReport: gen as unknown as (args: {
+        orderId: string;
+        businessId: string;
+      }) => Promise<GenerateResult>,
+      refundOrder,
+      now,
+    });
+
+    expect(out.status).toBe("requeued");
+    expect(refundOrder).not.toHaveBeenCalled();
+  });
+
+  it("does NOT refund on the success path", async () => {
+    const state: FakeState = { queueRow: queuedRow(), updates: {} };
+    const supabase = makeSupabase(state);
+    const gen = vi
+      .fn<() => Promise<GenerateResult>>()
+      .mockResolvedValue({ ok: true, reportId: "rpt-abc" });
+    const refundOrder = vi
+      .fn<(input: { orderId: string; reason: string }) => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    await processNextQueuedOrder({
+      supabase,
+      generateReport: gen as unknown as (args: {
+        orderId: string;
+        businessId: string;
+      }) => Promise<GenerateResult>,
+      refundOrder,
+      now,
+    });
+
+    expect(refundOrder).not.toHaveBeenCalled();
+  });
+
   it("truncates a huge error_reason to stay under 500 chars", async () => {
     const huge = "x".repeat(2000);
     const state: FakeState = { queueRow: queuedRow(), updates: {} };

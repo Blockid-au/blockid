@@ -91,6 +91,7 @@ export interface GeneratorSupabase {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface GeneratorDeps {
+  /** Pass `null` to assert "no database"; omit to use getSupabaseAdmin(). */
   supabase?: GeneratorSupabase | null;
   orchestrate?: typeof orchestrateReport;
   aiConfigured?: () => boolean;
@@ -232,8 +233,10 @@ export async function generateTrustReportForOrder(
   input: GenerateInput,
   deps: GeneratorDeps = {},
 ): Promise<GenerateResult> {
-  const supabase = (deps.supabase ??
-    (getSupabaseAdmin() as SupabaseClient | null)) as GeneratorSupabase | null;
+  const supabase =
+    deps.supabase !== undefined
+      ? deps.supabase
+      : ((getSupabaseAdmin() as SupabaseClient | null) as GeneratorSupabase | null);
   if (!supabase) return fail(true, "supabase_not_configured");
 
   const orchestrate = deps.orchestrate ?? orchestrateReport;
