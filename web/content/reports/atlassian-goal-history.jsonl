@@ -764,3 +764,4 @@
 {"tick_id":"2026-07-31T05-07-02-099Z","ts":"2026-07-31T05:11:24.265Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T05-17-01-259Z","ts":"2026-07-31T05:17:01.260Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T05-17-01-259Z","ts":"2026-07-31T05:17:01.281Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"P9-mentor-access-tiers-lib-test","ts":"2026-07-31T05:20:30.000Z","loop_label":"atlassian-goal-loop","phase":"P9_ship","task":"P9-mentor-access-tiers-lib-test","stage":"shipped","test_count":46,"file":"web/src/lib/mentor/access-tiers.test.ts"}
