@@ -25,11 +25,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * Supabase is MOCKED. This test never touches the live database.
  *
  * Note on `publicIndex`: it is deliberately NOT a field on
- * `PublicBusinessProfile` — the §11.1 whitelist exposes only the ten
- * public fields, and adding an eleventh to satisfy a test would weaken
- * it. `public_index = true` is instead asserted structurally: the reader
- * issues `.eq("public_index", true)`, so a non-null return IS proof the
- * row is published. Both halves are checked below.
+ * `PublicBusinessProfile` — the §11.1 whitelist exposes only the
+ * enumerated public fields, and adding one merely to satisfy a test
+ * would weaken it. `public_index = true` is instead asserted
+ * structurally: the reader issues `.eq("public_index", true)`, so a
+ * non-null return IS proof the row is published. Both halves are checked
+ * below.
+ *
+ * (`profileKind` IS on the whitelist, but for a different reason: it
+ * describes the row rather than the business, and the page and badge
+ * cannot render an honest disclosure without it. See migration 0298 and
+ * `profile-disclosure.test.ts`.)
  */
 
 interface FakeState {
@@ -118,6 +124,10 @@ const DEMO_ROW: Record<string, unknown> = {
     },
   ],
   industry: "Software & SaaS",
+  // Migration 0298 back-filled this row to 'demo' — it is a fictional
+  // company with fictional attesters, so its public surfaces must carry
+  // the "Sample data" disclosure rather than a bare verification claim.
+  profile_kind: "demo",
 };
 
 /** The 12 analysis areas the radar in public-profile-shared.tsx plots. */
@@ -190,6 +200,11 @@ describe("/id/blockid-demo — marketing demo profile guard", () => {
     for (const a of profile?.attestations ?? []) {
       expect(a.attester).toContain("(sample)");
     }
+  });
+
+  it("is marked as sample data so the disclosure renders", async () => {
+    const profile = await readPublicProfile("blockid-demo");
+    expect(profile?.profileKind).toBe("demo");
   });
 
   it("earns the L3 badge ladder", async () => {

@@ -203,7 +203,14 @@ describe("projectRowToPublicProfile — PII whitelist", () => {
     if (!profile) return;
 
     const keys = Object.keys(profile);
-    // Whitelist is exactly these 10 fields — nothing else.
+    // Whitelist is exactly these 11 fields — nothing else.
+    //
+    // It was 10 until migration 0298 added `profileKind`. That is the
+    // ONLY permitted widening: it is a discriminator describing the ROW
+    // ('customer' vs seeded sample data), not the business, and every
+    // public surface needs it to decide whether an unqualified "BlockID
+    // Verified" claim is honest. Adding a 12th field that describes the
+    // business itself is a leak — this assertion is what stops it.
     expect(keys.sort()).toEqual(
       [
         "slug",
@@ -216,6 +223,7 @@ describe("projectRowToPublicProfile — PII whitelist", () => {
         "attestations",
         "jurisdiction",
         "publicUrl",
+        "profileKind",
       ].sort(),
     );
 
