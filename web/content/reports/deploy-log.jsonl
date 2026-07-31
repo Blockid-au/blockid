@@ -1791,3 +1791,9 @@
 {"ts":"2026-07-31T10:31:47.714Z","event":"github-push-master","detail":"Blockid-au: fix(business-id): seed /id/blockid-demo public profile + fix PostgREST timestamptz 404 (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T10:33:44.269Z","event":"github-push-master","detail":"Blockid-au: feat(paywall): replace rpt-placeholder stub with real Trust Report generator + §8.8 refunds (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T10:34:31.854Z","event":"github-push-master","detail":"Blockid-au: test(stripe-verify): 23-case colocated vitest — P9-verify-lib-test (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T10:34:47.238Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-07-31T10-27-01-867Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T10:40:19.611Z","event":"github-push-master","detail":"Blockid-au: test(paywall): e2e guard that a READY order's report_id resolves to a stored report (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T10:42:22Z","status":"success","gates":"9/9","pid":"3049534","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-31T10:42:40.852Z","event":"github-push-master","detail":"Blockid-au: feat(report-pipeline): G7 schema-validated agent dispatch + G8 grounding on every section (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T10:46:08.565Z","event":"github-push-master","detail":"Blockid-au: feat(business-id): wire the /business-id badge preview to the live demo profile (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T10:47:08.135Z","event":"github-push-master","detail":"Blockid-au: fix(seo): drop stale static public/sitemap.xml that shadowed the dynamic route (1 commits)","source":"github-webhook"}
