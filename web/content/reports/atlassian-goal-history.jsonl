@@ -7301,3 +7301,4 @@
 {"tick_id":"2026-07-31T00-37-01-838Z","ts":"2026-07-31T00:45:10.066Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T00-47-01-828Z","ts":"2026-07-31T00:47:01.829Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T00-47-01-828Z","ts":"2026-07-31T00:47:01.844Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-07-31T00-50-manual","ts":"2026-07-31T00:50:20.000Z","loop_label":"atlassian-goal-loop","stage":"phase_advanced","phase":"P9_ship","subtask":"P9-proofs-lib-test","status":"shipped","tests_added":40,"vitest_ms":260,"note":"colocated vitest for canonical-json.ts + hash.ts — score-proof tamper-evidence chain"}
