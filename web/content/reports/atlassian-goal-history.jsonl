@@ -885,3 +885,4 @@
 {"tick_id":"2026-07-31T08-07-01-529Z","ts":"2026-07-31T08:19:56.372Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-07-31T08-27-01-374Z","ts":"2026-07-31T08:27:01.375Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-07-31T08-27-01-374Z","ts":"2026-07-31T08:27:01.390Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts": "2026-07-31T08:33:16.982Z", "phase": "P9_ship", "stage": "shipped", "artifact": "P9-api-docs-registry-lib-test", "path": "web/src/lib/api-docs-registry.test.ts", "tests": 59, "note": "59-case vitest for previously-untested api-docs-registry.ts \u2014 registry integrity + per-endpoint shape + PII/secret guard + getEndpointBySlug branch matrix"}
