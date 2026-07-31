@@ -563,6 +563,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewness,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-kelly-skewness";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPalma,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPalmaSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPalma,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-palma";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2133,6 +2138,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewness
     | null = null;
   let perTransitionMagnitudeTop3PoolKellySkewnessSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPalma:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPalma
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPalmaSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -5354,6 +5363,58 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewnessSection(
           snapshotPerTransitionMagnitudeTop3PoolKellySkewness,
         );
+      // P11.231 palma cron wiring — TOP-DECILE-OVER-BOTTOM-4-DECILES
+      // concentration ratio over the P11.161 pool. Folds the sorted-
+      // ascending cell-count vector into ONE unbounded concentration
+      // read on [0, +Inf): palma = sum_top10 / sum_bottom40 where
+      // top10 slice = max(1, round(0.10 * n)) partners and bottom40
+      // slice = max(1, round(0.40 * n)) partners, middle 50%
+      // intentionally IGNORED (Palma 2011 — "homogeneous middles vs
+      // heterogeneous tails"). Fills the TAIL-VS-TAIL cell on the
+      // CONCENTRATION axis, complementing the extreme-cell family
+      // (P11.165 top1-share, P11.167 top2-share, P11.179 bottom1-share,
+      // P11.183 bottom2-share, P11.185 top1/bot1, P11.187 top2/bot2)
+      // which reads WHERE THE TIPS ARE and the whole-pool inequality
+      // family (P11.169 Gini, P11.171 Theil, P11.173 Atkinson) which
+      // reads HOW THE WHOLE POOL IS SHAPED — Palma reads WHERE THE
+      // TAILS ARE by ignoring the middle 50%. Reading the trio side-
+      // by-side lets ops distinguish concentration signals by their
+      // SPATIAL LOCUS: top1 large + Palma modest + Gini modest =
+      // single-outlier only; top1 modest + Palma large + Gini large =
+      // structural tail concentration; top1 modest + Palma modest +
+      // Gini large = interior redistribution driven by mid-pool
+      // heterogeneity (P11.189 mid-mass-share reads this too). Guards:
+      // pool_count 0 → empty; pool_count in [1, 9] → small_pool null
+      // (floor of 10 matches the P11.228 Kelly floor for the same "at
+      // least one rank per decile" logic — below n=10 the top10/
+      // bottom40/middle slices collide or collapse defeating the
+      // surface's purpose); pool_count >= 10 with bottom40_cells==0 →
+      // degenerate null (structural indeterminacy — cannot happen for
+      // count integers >= 1 by construction, guarded for future
+      // upstream robustness); pool_count >= 10 with bottom40_cells > 0
+      // → palma bounded [0, +Inf) rounded to 4 decimals. Cutoffs
+      // 0.5 / 1.5 / 3.0 anchored on the flat pool 0.25 (bottom 40%
+      // mass is 4x top 10% simply because it has 4x more partners)
+      // and uniform-ramp balanced 1.0 references, widening
+      // geometrically so highly_concentrated captures single-whale
+      // regimes. Codomain [0, +Inf) matches the P11.185 top1/bot1 and
+      // P11.187 top2/bot2 UNBOUNDED family rather than the [-1, +1]
+      // bounded family shared by Bowley/Kelly/L-skewness — Palma
+      // reads WHERE THE TAILS ARE in absolute mass ratio, not a
+      // normalised asymmetry read. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolKellySkewnessSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.230
+      // formatter docblock so the top-decile-over-bottom-four-deciles
+      // concentration read closes off the CONCENTRATION axis's
+      // TAIL-VS-TAIL cell. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPalma =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPalma(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPalmaSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPalmaSection(
+          snapshotPerTransitionMagnitudeTop3PoolPalma,
+        );
     }
   }
   if (
@@ -5443,6 +5504,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolLKurtosisSection ||
     perTransitionMagnitudeTop3PoolLCvSection ||
     perTransitionMagnitudeTop3PoolKellySkewnessSection ||
+    perTransitionMagnitudeTop3PoolPalmaSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -5559,6 +5621,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolLKurtosisSection +
       perTransitionMagnitudeTop3PoolLCvSection +
       perTransitionMagnitudeTop3PoolKellySkewnessSection +
+      perTransitionMagnitudeTop3PoolPalmaSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -7992,6 +8055,39 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolKellySkewness.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolKellySkewness.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_palma:
+      snapshotPerTransitionMagnitudeTop3PoolPalma
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.total_hot_cells,
+            top_n: snapshotPerTransitionMagnitudeTop3PoolPalma.top_n,
+            min_pool_count_for_palma:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.min_pool_count_for_palma,
+            egalitarian_palma_max:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.egalitarian_palma_max,
+            concentrated_palma_min:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.concentrated_palma_min,
+            highly_concentrated_palma_min:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.highly_concentrated_palma_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPalma.transitions,
           }
         : {
             skipped_reason:
