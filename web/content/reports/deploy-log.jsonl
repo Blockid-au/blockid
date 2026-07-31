@@ -1835,3 +1835,6 @@
 {"ts":"2026-07-31T11:57:25.646Z","event":"github-push-master","detail":"Blockid-au: feat(showcase): Sprocketbay process walkthrough — per-stage artefacts, engine-computed scores, /showcase/sprocketbay (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T11:58:30.195Z","event":"github-push-master","detail":"Blockid-au: fix(security): upload extension came from the caller-supplied filename (1 commits)","source":"github-webhook"}
 {"ts":"2026-07-31T12:01:40.102Z","event":"github-push-master","detail":"Blockid-au: test(utils): P9-utils-lib-test — 33-case vitest for en-AU render helpers (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T12:07:04.574Z","event":"github-push-master","detail":"Blockid-au: fix(showcase): escape < in the Sprocketbay JSON-LD payload per Next 16 guide (1 commits)","source":"github-webhook"}
+{"ts":"2026-07-31T12:08:07Z","status":"success","gates":"11/11","pid":"3394839","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-07-31T12:11:20.985Z","event":"github-push-master","detail":"Blockid-au: test(roles): P9-role-guiding-copy-lib-test — 46-case vitest for the bilingual role landing/next-step copy registry (1 commits)","source":"github-webhook"}
