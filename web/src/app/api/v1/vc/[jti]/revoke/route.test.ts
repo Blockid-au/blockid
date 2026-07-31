@@ -88,14 +88,15 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => makeAdmin(),
 }));
 
+import type { NextRequest } from "next/server";
 import { POST } from "./route";
 
-function makeReq(body: unknown): Request {
+function makeReq(body: unknown): NextRequest {
   return new Request("http://x/api/v1/vc/urn:uuid:abc/revoke", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  });
+  }) as unknown as NextRequest;
 }
 
 function ctx(jti: string) {
