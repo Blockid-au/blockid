@@ -17,29 +17,55 @@ const APP_ROOT = path.resolve(__dirname, "../../..", "app");
  * A route resolves if either:
  *   - the exact segment folder exists (e.g. `/dashboard/cfo` → `app/dashboard/cfo`), or
  *   - a dynamic-segment sibling exists (e.g. `/guide/01-vision` matches
- *     `app/guide/[chapter]`).
- * The Next.js App Router accepts both forms; we only care that a live
- * founder clicking the route lands somewhere real.
+ *     `app/guide/[chapter]`), or
+ *   - the segment can be reached by descending through one or more
+ *     App Router route groups — parens folders like `(marketing)` /
+ *     `(app)` / `(founder)` that group routes without adding URL
+ *     segments (Master Upgrade Plan §16.5).
+ * The Next.js App Router accepts all three forms; we only care that a
+ * live founder clicking the route lands somewhere real.
  */
 function routeResolvesToAppFolder(route: string): boolean {
   if (!route.startsWith("/")) return false;
   const segments = route.split("/").filter(Boolean);
-  let current = APP_ROOT;
-  for (const segment of segments) {
-    const direct = path.join(current, segment);
-    if (fs.existsSync(direct) && fs.statSync(direct).isDirectory()) {
-      current = direct;
-      continue;
+
+  // DFS: at each dir, try (a) exact-name match, (b) dynamic-segment
+  // sibling, or (c) descend into any route-group `(name)` sibling and
+  // retry the same segment. Route groups are transparent to URLs, so
+  // consuming zero URL segments per group hop is correct.
+  const resolveFrom = (dir: string, index: number): boolean => {
+    if (index === segments.length) return true;
+    if (!fs.existsSync(dir)) return false;
+    const segment = segments[index];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    // (a) exact folder name
+    const direct = entries.find(
+      (e) => e.isDirectory() && e.name === segment,
+    );
+    if (direct && resolveFrom(path.join(dir, direct.name), index + 1)) {
+      return true;
     }
-    // fall back to any dynamic segment sibling ([chapter], [id], etc.)
-    if (!fs.existsSync(current)) return false;
-    const dynamic = fs
-      .readdirSync(current, { withFileTypes: true })
-      .find((entry) => entry.isDirectory() && entry.name.startsWith("[") && entry.name.endsWith("]"));
-    if (!dynamic) return false;
-    current = path.join(current, dynamic.name);
-  }
-  return true;
+
+    // (b) dynamic segment sibling
+    const dynamic = entries.find(
+      (e) => e.isDirectory() && e.name.startsWith("[") && e.name.endsWith("]"),
+    );
+    if (dynamic && resolveFrom(path.join(dir, dynamic.name), index + 1)) {
+      return true;
+    }
+
+    // (c) route groups — parens folders don't consume a URL segment
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (!entry.name.startsWith("(") || !entry.name.endsWith(")")) continue;
+      if (resolveFrom(path.join(dir, entry.name), index)) return true;
+    }
+
+    return false;
+  };
+
+  return resolveFrom(APP_ROOT, 0);
 }
 
 describe("INVESTOR_READINESS_CALLOUTS", () => {
