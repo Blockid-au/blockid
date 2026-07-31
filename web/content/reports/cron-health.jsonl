@@ -952,3 +952,4 @@
 {"ts":"2026-07-31T00:30:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16588,"detail":""}
 {"ts":"2026-07-31T00:30:01Z","endpoint":"performance-audit","status":"fail","duration_ms":16614,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 __variable_6b9622 h-full antialiased\"><head"}
 {"ts":"2026-07-31T00:40:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":596,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234981712 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274282072 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-07-31T00:45:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16612,"detail":""}
