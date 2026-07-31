@@ -22,11 +22,20 @@ const FIXTURE = {
     "node_modules/strong-sspl": { version: "1.0.0", license: "SSPL-1.0" },
     "node_modules/no-license": { version: "0.1.0" }, // → UNKNOWN
     "node_modules/dev-only-gpl": { version: "1.0.0", license: "GPL-2.0", dev: true },
-    "node_modules/compound-worst-wins": {
+    "node_modules/dual-or-licensed": {
       version: "1.2.3",
-      license: "MIT OR GPL-3.0", // worst-band wins → weak_copyleft
+      license: "MIT OR GPL-3.0", // OR = licensee's choice → permissive
     },
-    "node_modules/other-weird": { version: "1.0.0", license: "SEE-LICENSE-IN-README" },
+    "node_modules/stacked-and-licensed": {
+      version: "4.0.0",
+      license: "Apache-2.0 AND LGPL-3.0-or-later", // AND stacks → weak_copyleft
+    },
+    "node_modules/prop-unlicensed": { version: "1.0.0", license: "UNLICENSED" },
+    "node_modules/prop-see-license": {
+      version: "1.0.0",
+      license: "SEE LICENSE IN LICENSE.md",
+    },
+    "node_modules/other-cc-by": { version: "1.0.0", license: "CC-BY-4.0" },
   },
 };
 
@@ -52,17 +61,43 @@ describe("classifyLicense", () => {
     expect(classifyLicense("unknown")).toBe("unknown");
   });
 
-  it("takes the worst band in a compound SPDX expression", () => {
-    // `MIT OR GPL-3.0` — permissive alternative exists but a founder
-    // must see the worst-case exposure.
-    expect(classifyLicense("MIT OR GPL-3.0")).toBe("weak_copyleft");
-    expect(classifyLicense("(MIT OR AGPL-3.0)")).toBe("strong_copyleft");
-    expect(classifyLicense("Apache-2.0 WITH LLVM-exception")).toBe("permissive");
-    expect(classifyLicense("MIT AND BSD-3-Clause")).toBe("permissive");
+  it("takes the least restrictive alternative across an SPDX OR", () => {
+    // OR is the licensee's choice — taking MIT discharges the GPL branch.
+    expect(classifyLicense("MIT OR GPL-3.0")).toBe("permissive");
+    expect(classifyLicense("(MIT OR AGPL-3.0)")).toBe("permissive");
+    expect(classifyLicense("(MIT OR GPL-3.0-or-later)")).toBe("permissive");
+    expect(classifyLicense("AGPL-3.0 OR GPL-3.0")).toBe("weak_copyleft");
   });
 
-  it("falls through to 'other' for recognised-but-uncategorised licenses", () => {
-    expect(classifyLicense("SEE-LICENSE-IN-README")).toBe("other");
+  it("takes the worst conjunct across an SPDX AND", () => {
+    expect(classifyLicense("MIT AND BSD-3-Clause")).toBe("permissive");
+    expect(classifyLicense("Apache-2.0 AND LGPL-3.0-or-later")).toBe("weak_copyleft");
+    expect(classifyLicense("Apache-2.0 AND LGPL-3.0-or-later AND MIT")).toBe(
+      "weak_copyleft",
+    );
+    expect(classifyLicense("(MIT AND Zlib)")).toBe("permissive");
+  });
+
+  it("strips WITH-exception clauses without switching bands", () => {
+    expect(classifyLicense("Apache-2.0 WITH LLVM-exception")).toBe("permissive");
+    expect(classifyLicense("GPL-2.0 WITH Classpath-exception-2.0")).toBe(
+      "weak_copyleft",
+    );
+  });
+
+  it("bands proprietary and unverifiable license strings as proprietary", () => {
+    expect(classifyLicense("UNLICENSED")).toBe("proprietary");
+    expect(classifyLicense("SEE LICENSE IN LICENSE.md")).toBe("proprietary");
+    expect(classifyLicense("SEE-LICENSE-IN-README")).toBe("proprietary");
+    expect(classifyLicense("LicenseRef-Remotion")).toBe("proprietary");
+    // Free-form prose is not an SPDX identifier — nothing here is verifiable.
+    expect(classifyLicense("Remotion License https://remotion.dev/license")).toBe(
+      "proprietary",
+    );
+  });
+
+  it("falls through to 'other' for recognised-but-uncategorised SPDX ids", () => {
+    expect(classifyLicense("CC-BY-4.0")).toBe("other");
     expect(classifyLicense("Custom-Commercial")).toBe("other");
   });
 });
@@ -78,14 +113,16 @@ describe("classifySbomLicenseRisk", () => {
 
     expect(report.counts_runtime).toEqual({
       strong_copyleft: 2, // agpl + sspl
-      weak_copyleft: 4, // gpl + lgpl + mpl + compound-worst-wins
+      proprietary: 2, // UNLICENSED + SEE LICENSE IN
+      weak_copyleft: 4, // gpl + lgpl + mpl + stacked-and-licensed
       unknown: 1, // no-license
-      permissive: 3, // mit + apache + bsd
-      other: 1, // SEE-LICENSE-IN-README
+      permissive: 4, // mit + apache + bsd + dual-or-licensed
+      other: 1, // CC-BY-4.0
     });
     // Only dev-only-gpl is a devDependency
     expect(report.counts_dev).toEqual({
       strong_copyleft: 0,
+      proprietary: 0,
       weak_copyleft: 1,
       unknown: 0,
       permissive: 0,
@@ -95,12 +132,14 @@ describe("classifySbomLicenseRisk", () => {
     const riskyKeys = report.runtime_risky.map(
       (e) => `${e.name}@${e.version}:${e.band}`,
     );
-    // Sorted band-desc: strong_copyleft > unknown > weak_copyleft. Within band, name-asc.
+    // Sorted band-desc: strong_copyleft > proprietary > unknown > weak_copyleft. Within band, name-asc.
     expect(riskyKeys).toEqual([
       "strong-agpl@3.0.0:strong_copyleft",
       "strong-sspl@1.0.0:strong_copyleft",
+      "prop-see-license@1.0.0:proprietary",
+      "prop-unlicensed@1.0.0:proprietary",
       "no-license@0.1.0:unknown",
-      "compound-worst-wins@1.2.3:weak_copyleft",
+      "stacked-and-licensed@4.0.0:weak_copyleft",
       "weak-gpl@1.0.0:weak_copyleft",
       "weak-lgpl@2.1.0:weak_copyleft",
       "weak-mpl@2.0.0:weak_copyleft",
@@ -114,6 +153,7 @@ describe("classifySbomLicenseRisk", () => {
     const report = classifySbomLicenseRisk(sbom);
     expect(report.counts_runtime).toEqual({
       strong_copyleft: 0,
+      proprietary: 0,
       weak_copyleft: 0,
       unknown: 0,
       permissive: 0,

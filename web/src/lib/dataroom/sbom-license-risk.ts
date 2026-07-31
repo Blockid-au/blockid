@@ -14,10 +14,11 @@ import type { Sbom, SbomEntry } from "./sbom";
 
 export type LicenseRiskBand =
   | "strong_copyleft" // AGPL / SSPL / Commons Clause — network + distribution copyleft
+  | "proprietary"     // UNLICENSED / "SEE LICENSE IN …" / LicenseRef-* — no open-source grant
   | "weak_copyleft"   // GPL / LGPL / MPL / EPL — file/library-scoped copyleft
   | "unknown"         // no license field in the package's own package.json
   | "permissive"      // MIT / Apache-2.0 / BSD / ISC / CC0 / Unlicense
-  | "other";          // recognised but not slotted (e.g. custom, proprietary)
+  | "other";          // a recognised SPDX id that is not slotted (e.g. CC-BY-4.0)
 
 export interface LicenseRiskEntry {
   readonly name: string;
@@ -29,6 +30,7 @@ export interface LicenseRiskEntry {
 
 export interface LicenseRiskCounts {
   readonly strong_copyleft: number;
+  readonly proprietary: number;
   readonly weak_copyleft: number;
   readonly unknown: number;
   readonly permissive: number;
@@ -41,13 +43,13 @@ export interface LicenseRiskReport {
   readonly root_version: string;
   readonly counts_runtime: LicenseRiskCounts;
   readonly counts_dev: LicenseRiskCounts;
-  /** Runtime-only entries in strong_copyleft, weak_copyleft, or unknown bands — sorted band-desc, then name-asc. */
+  /** Runtime-only entries in strong_copyleft, proprietary, weak_copyleft, or unknown bands — sorted band-desc, then name-asc. */
   readonly runtime_risky: LicenseRiskEntry[];
   readonly disclaimer: string;
 }
 
 export const LICENSE_RISK_DISCLAIMER =
-  "Risk bands are heuristic — they map SPDX-style license identifiers onto strong-copyleft / weak-copyleft / permissive / unknown buckets to help spot exposure. This is not a legal opinion. Runtime AGPL / SSPL / GPL and UNKNOWN packages should be confirmed with counsel before shipping a distributed product; dev-only entries usually do not trigger distribution obligations but should still be tracked.";
+  "Risk bands are heuristic — they map SPDX-style license identifiers onto strong-copyleft / proprietary / weak-copyleft / permissive / unknown buckets to help spot exposure. This is not a legal opinion. Runtime AGPL / SSPL / GPL, proprietary (UNLICENSED or 'SEE LICENSE IN …') and UNKNOWN packages should be confirmed with counsel before shipping a distributed product; dev-only entries usually do not trigger distribution obligations but should still be tracked. A dual-licensed 'A OR B' package is banded on the least restrictive option, since the licensee chooses.";
 
 function upperSet(members: string[]): Set<string> {
   return new Set(members.map((m) => m.toUpperCase()));
@@ -117,53 +119,68 @@ function normaliseSpdxToken(raw: string): string {
   return raw.trim().toUpperCase();
 }
 
+/** npm's conventions for "this package grants you no open-source license". */
+const PROPRIETARY_MARKER = /^(UNLICENSED$|SEE[ -]LICEN[SC]E\b|LICENSEREF-)/;
+
+/** Severity ordering — drives worst-wins for AND and best-wins for OR. */
+const BAND_SEVERITY: Record<LicenseRiskBand, number> = {
+  strong_copyleft: 5,
+  proprietary: 4,
+  weak_copyleft: 3,
+  unknown: 2,
+  other: 1,
+  permissive: 0,
+};
+
+function classifyToken(token: string): LicenseRiskBand {
+  if (STRONG_COPYLEFT.has(token)) return "strong_copyleft";
+  if (WEAK_COPYLEFT.has(token)) return "weak_copyleft";
+  if (PERMISSIVE.has(token)) return "permissive";
+  if (PROPRIETARY_MARKER.test(token)) return "proprietary";
+  // A valid SPDX identifier is a single word. Free-form prose such as
+  // "Remotion License https://remotion.dev/license" grants nothing a tool
+  // can verify, so it belongs beside UNLICENSED rather than in `other`.
+  if (/\s|:\/\//.test(token)) return "proprietary";
+  return "other";
+}
+
 /**
- * Classify a single license string. Handles compound SPDX expressions
- * (`"MIT OR Apache-2.0"`, `"(MIT AND BSD-3-Clause)"`) by taking the
- * *worst* band present so a `(GPL-3.0 OR MIT)` package still shows up
- * as weak_copyleft — a founder needs to see the worst-case exposure
- * even if a permissive alternative exists.
+ * Classify a single license string, honouring SPDX expression semantics:
+ * `AND` stacks obligations so the *worst* conjunct wins, while `OR` is the
+ * licensee's choice so the *least restrictive* alternative wins — a
+ * `(MIT OR GPL-3.0)` package carries no copyleft obligation if you take MIT.
  */
 export function classifyLicense(license: string): LicenseRiskBand {
   const trimmed = (license ?? "").trim();
   if (!trimmed || trimmed.toUpperCase() === "UNKNOWN") return "unknown";
 
-  // Split compound SPDX expressions on OR/AND and take the worst band
-  // present. WITH-exceptions (e.g. "Apache-2.0 WITH LLVM-exception")
-  // do not switch licenses — strip the exception clause instead.
-  const withStripped = trimmed.replace(/\s+WITH\s+[^\s()]+/gi, "");
-  const tokens = withStripped
+  // WITH-exceptions (e.g. "Apache-2.0 WITH LLVM-exception") do not switch
+  // licenses — strip the exception clause before splitting.
+  const cleaned = trimmed
+    .replace(/\s+WITH\s+[^\s()]+/gi, "")
     .replace(/[()]/g, " ")
-    .split(/\s+(?:OR|AND)\s+/i)
-    .map(normaliseSpdxToken)
-    .filter(Boolean);
+    .trim();
 
-  const targets = tokens.length > 0 ? tokens : [normaliseSpdxToken(trimmed)];
-
-  const rank: Record<LicenseRiskBand, number> = {
-    strong_copyleft: 4,
-    weak_copyleft: 3,
-    other: 2,
-    permissive: 1,
-    unknown: 0,
-  };
-
-  let worst: LicenseRiskBand | null = null;
-  for (const token of targets) {
-    let band: LicenseRiskBand;
-    if (STRONG_COPYLEFT.has(token)) band = "strong_copyleft";
-    else if (WEAK_COPYLEFT.has(token)) band = "weak_copyleft";
-    else if (PERMISSIVE.has(token)) band = "permissive";
-    else band = "other";
-    if (worst === null || rank[band] > rank[worst]) worst = band;
+  let best: LicenseRiskBand | null = null;
+  for (const alternative of cleaned.split(/\s+OR\s+/i)) {
+    let worst: LicenseRiskBand | null = null;
+    for (const conjunct of alternative.split(/\s+AND\s+/i)) {
+      const token = normaliseSpdxToken(conjunct);
+      if (!token) continue;
+      const band = classifyToken(token);
+      if (worst === null || BAND_SEVERITY[band] > BAND_SEVERITY[worst]) worst = band;
+    }
+    if (worst === null) continue;
+    if (best === null || BAND_SEVERITY[worst] < BAND_SEVERITY[best]) best = worst;
   }
 
-  return worst ?? "other";
+  return best ?? "other";
 }
 
 function emptyCounts(): LicenseRiskCounts {
   return {
     strong_copyleft: 0,
+    proprietary: 0,
     weak_copyleft: 0,
     unknown: 0,
     permissive: 0,
@@ -176,12 +193,20 @@ function bumpCount(counts: LicenseRiskCounts, band: LicenseRiskBand): LicenseRis
 }
 
 const RISKY_BAND_RANK: Record<LicenseRiskBand, number> = {
-  strong_copyleft: 3,
+  strong_copyleft: 4,
+  proprietary: 3,
   unknown: 2,
   weak_copyleft: 1,
   other: 0,
   permissive: 0,
 };
+
+const RISKY_BANDS: ReadonlySet<LicenseRiskBand> = new Set<LicenseRiskBand>([
+  "strong_copyleft",
+  "proprietary",
+  "weak_copyleft",
+  "unknown",
+]);
 
 export function classifySbomLicenseRisk(sbom: Sbom): LicenseRiskReport {
   let runtimeCounts = emptyCounts();
@@ -194,7 +219,7 @@ export function classifySbomLicenseRisk(sbom: Sbom): LicenseRiskReport {
       devCounts = bumpCount(devCounts, band);
     } else {
       runtimeCounts = bumpCount(runtimeCounts, band);
-      if (band === "strong_copyleft" || band === "weak_copyleft" || band === "unknown") {
+      if (RISKY_BANDS.has(band)) {
         runtimeRisky.push({
           name: entry.name,
           version: entry.version,

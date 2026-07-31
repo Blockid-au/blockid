@@ -30,7 +30,13 @@ const ROUTE = "/dashboard/data-room";
 const FOUNDER_EMAIL =
   process.env.QA_FOUNDER_SBOM_TILE_EMAIL ?? "qa-founder-1@blockid.au";
 
-type Band = "strong_copyleft" | "weak_copyleft" | "unknown" | "permissive" | "other";
+type Band =
+  | "strong_copyleft"
+  | "proprietary"
+  | "weak_copyleft"
+  | "unknown"
+  | "permissive"
+  | "other";
 
 interface RiskEntry {
   readonly name: string;
@@ -42,6 +48,7 @@ interface RiskEntry {
 
 interface Counts {
   readonly strong_copyleft: number;
+  readonly proprietary: number;
   readonly weak_copyleft: number;
   readonly unknown: number;
   readonly permissive: number;
@@ -50,6 +57,7 @@ interface Counts {
 
 const ZERO_COUNTS: Counts = {
   strong_copyleft: 0,
+  proprietary: 0,
   weak_copyleft: 0,
   unknown: 0,
   permissive: 0,
@@ -57,7 +65,7 @@ const ZERO_COUNTS: Counts = {
 };
 
 const DISCLAIMER =
-  "Risk bands are heuristic — they map SPDX-style license identifiers onto strong-copyleft / weak-copyleft / permissive / unknown buckets to help spot exposure. This is not a legal opinion. Runtime AGPL / SSPL / GPL and UNKNOWN packages should be confirmed with counsel before shipping a distributed product; dev-only entries usually do not trigger distribution obligations but should still be tracked.";
+  "Risk bands are heuristic — they map SPDX-style license identifiers onto strong-copyleft / proprietary / weak-copyleft / permissive / unknown buckets to help spot exposure. This is not a legal opinion. Runtime AGPL / SSPL / GPL, proprietary (UNLICENSED or 'SEE LICENSE IN …') and UNKNOWN packages should be confirmed with counsel before shipping a distributed product; dev-only entries usually do not trigger distribution obligations but should still be tracked. A dual-licensed 'A OR B' package is banded on the least restrictive option, since the licensee chooses.";
 
 function makeBody({
   runtime,

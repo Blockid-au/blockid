@@ -40,6 +40,7 @@ export interface SbomTileView {
 /** Human-readable label per risk band — used in the counts row + row chips. */
 export const RISK_BAND_LABEL: Record<LicenseRiskBand, string> = {
   strong_copyleft: "Strong copyleft",
+  proprietary: "Proprietary",
   weak_copyleft: "Weak copyleft",
   unknown: "Unknown",
   permissive: "Permissive",
@@ -49,17 +50,29 @@ export const RISK_BAND_LABEL: Record<LicenseRiskBand, string> = {
 /** Row-chip colour per band. `slate` covers permissive/other so risky bands stand out. */
 export const RISK_BAND_COLOUR: Record<LicenseRiskBand, SbomTileBand> = {
   strong_copyleft: "red",
+  proprietary: "amber",
   unknown: "amber",
   weak_copyleft: "amber",
   other: "slate",
   permissive: "emerald",
 };
 
+/** Render order for the counts row — worst band first. */
+export const RISK_BAND_ORDER = [
+  "strong_copyleft",
+  "proprietary",
+  "weak_copyleft",
+  "unknown",
+  "permissive",
+  "other",
+] as const satisfies readonly LicenseRiskBand[];
+
 const DEFAULT_ROW_CAP = 5;
 
 function sumCounts(counts: LicenseRiskCounts): number {
   return (
     counts.strong_copyleft +
+    counts.proprietary +
     counts.weak_copyleft +
     counts.unknown +
     counts.permissive +
@@ -70,7 +83,7 @@ function sumCounts(counts: LicenseRiskCounts): number {
 /**
  * Overall traffic-light band for the tile header.
  *   red     → runtime has ≥ 1 strong_copyleft entry (AGPL / SSPL / Commons-Clause / BUSL / Elastic-2.0)
- *   amber   → runtime has ≥ 1 unknown or weak_copyleft entry
+ *   amber   → runtime has ≥ 1 proprietary, unknown, or weak_copyleft entry
  *   emerald → runtime is permissive / other only (no risky rows)
  *   slate   → no runtime entries at all (unusual — e.g. lockfile only has devDependencies)
  * Dev-only strong-copyleft entries stay slate at the header level (see
@@ -82,6 +95,7 @@ export function pickSbomTileBand(report: LicenseRiskReport): SbomTileBand {
   if (runtimeTotal === 0) return "slate";
   if (report.counts_runtime.strong_copyleft > 0) return "red";
   if (
+    report.counts_runtime.proprietary > 0 ||
     report.counts_runtime.unknown > 0 ||
     report.counts_runtime.weak_copyleft > 0
   ) {
@@ -97,6 +111,7 @@ function pluralise(n: number, singular: string, plural: string): string {
 function formatChip(report: LicenseRiskReport): string {
   const c = report.counts_runtime;
   if (c.strong_copyleft > 0) return `${c.strong_copyleft} strong-copyleft`;
+  if (c.proprietary > 0) return `${c.proprietary} proprietary`;
   if (c.unknown > 0) return `${c.unknown} unknown license`;
   if (c.weak_copyleft > 0) return `${c.weak_copyleft} weak-copyleft`;
   if (sumCounts(c) === 0) return "No runtime deps";
@@ -108,6 +123,9 @@ function formatHeadline(report: LicenseRiskReport): string {
   if (runtimeTotal === 0) return "License risk — no runtime dependencies";
   if (report.counts_runtime.strong_copyleft > 0) {
     return `License risk — strong-copyleft in runtime`;
+  }
+  if (report.counts_runtime.proprietary > 0) {
+    return `License risk — proprietary licenses in runtime`;
   }
   if (report.counts_runtime.unknown > 0) {
     return `License risk — unknown-license packages in runtime`;
@@ -129,7 +147,7 @@ function formatBody(report: LicenseRiskReport): string {
   const risky = report.runtime_risky.length;
   const riskySuffix =
     risky === 0
-      ? "No runtime rows in strong-copyleft / weak-copyleft / unknown bands — investors will not flag license exposure at signature."
+      ? "No runtime rows in strong-copyleft / proprietary / weak-copyleft / unknown bands — investors will not flag license exposure at signature."
       : `${pluralise(risky, "runtime row needs", "runtime rows need")} counsel review before shipping a distributed product.`;
   return `${runtimeCopy} · ${devCopy}. ${riskySuffix}`;
 }

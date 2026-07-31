@@ -11,12 +11,14 @@ import {
   pickSbomTileView,
   RISK_BAND_COLOUR,
   RISK_BAND_LABEL,
+  RISK_BAND_ORDER,
   type SbomTilePayload,
 } from "./sbom-license-risk-tile.helpers";
 
 function counts(overrides: Partial<LicenseRiskCounts> = {}): LicenseRiskCounts {
   return {
     strong_copyleft: 0,
+    proprietary: 0,
     weak_copyleft: 0,
     unknown: 0,
     permissive: 0,
@@ -83,6 +85,14 @@ describe("pickSbomTileBand", () => {
     expect(
       pickSbomTileBand(
         report({ counts_runtime: counts({ weak_copyleft: 3, permissive: 10 }) }),
+      ),
+    ).toBe("amber");
+  });
+
+  it("returns amber when runtime has proprietary entries (no strong-copyleft)", () => {
+    expect(
+      pickSbomTileBand(
+        report({ counts_runtime: counts({ proprietary: 4, permissive: 20 }) }),
       ),
     ).toBe("amber");
   });
@@ -193,19 +203,14 @@ describe("pickSbomTileView", () => {
 
 describe("band tables", () => {
   it("covers every LicenseRiskBand with a label and a tile-band colour", () => {
-    const bands: Array<keyof typeof RISK_BAND_LABEL> = [
-      "strong_copyleft",
-      "weak_copyleft",
-      "unknown",
-      "permissive",
-      "other",
-    ];
-    for (const b of bands) {
+    for (const b of RISK_BAND_ORDER) {
       expect(RISK_BAND_LABEL[b]).toBeTruthy();
       expect(RISK_BAND_COLOUR[b]).toBeTruthy();
     }
-    // strong_copyleft = red; unknown / weak_copyleft = amber; permissive = emerald; other = slate
+    expect(new Set(RISK_BAND_ORDER).size).toBe(RISK_BAND_ORDER.length);
+    // strong_copyleft = red; proprietary / unknown / weak_copyleft = amber; permissive = emerald; other = slate
     expect(RISK_BAND_COLOUR.strong_copyleft).toBe("red");
+    expect(RISK_BAND_COLOUR.proprietary).toBe("amber");
     expect(RISK_BAND_COLOUR.unknown).toBe("amber");
     expect(RISK_BAND_COLOUR.weak_copyleft).toBe("amber");
     expect(RISK_BAND_COLOUR.permissive).toBe("emerald");

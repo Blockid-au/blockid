@@ -50,7 +50,7 @@ describe("GET /api/dataroom/sbom", () => {
     expect(Array.isArray(body.license_risk.runtime_risky)).toBe(true);
     for (const risky of body.license_risk.runtime_risky) {
       expect(risky.dev).toBe(false);
-      expect(["strong_copyleft", "weak_copyleft", "unknown"]).toContain(
+      expect(["strong_copyleft", "proprietary", "weak_copyleft", "unknown"]).toContain(
         risky.band,
       );
     }
