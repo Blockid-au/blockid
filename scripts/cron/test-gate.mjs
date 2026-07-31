@@ -216,7 +216,7 @@ export function runTestGate(repoRoot, opts = {}) {
     let run
     try {
       run = runner(repoRoot, pair.test)
-    } catch (err) {
+    } catch {
       result.unrunnable.push(pair.test)
       continue
     }
