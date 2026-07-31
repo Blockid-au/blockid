@@ -42,7 +42,12 @@ export const ATLASSIAN_WALKTHROUGH: WalkthroughStep[] = [
     path: "/showcase/atlassian",
     title: "Landing — the founder story",
     guideText:
-      "Start here. The Atlassian story in one page: bootstrap Sydney to NASDAQ, two secondaries, zero founder dilution.",
+      // "zero founder dilution" was the earlier wording. It is not supportable:
+      // employee equity, an institutional round and a listing all move the
+      // founders' percentage. What the prospectus does support is that they
+      // kept voting control through the dual-class structure. See
+      // ATLASSIAN_FOLKLORE_CHECKS['zero-founder-dilution'].
+      "Start here. The Atlassian story in one page: self-funded Sydney to NASDAQ, two secondaries, founders keeping voting control.",
     phaseSlug: "1",
   },
   {

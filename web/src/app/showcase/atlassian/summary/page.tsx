@@ -11,6 +11,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import {
+  BenchmarkNotice,
+  FolkloreChecksSection,
+  HumanReviewFlagsSection,
+} from "@/components/showcase/atlassian-benchmark";
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
 import { ATLASSIAN_DEMO } from "@/lib/showcase/atlassian/fixture";
 import {
@@ -30,10 +35,10 @@ export const metadata: Metadata = {
 // standalone recap; each string is the takeaway a visitor should carry away
 // after seeing the corresponding step.
 const STEP_TAKEAWAY: Record<number, string> = {
-  1: "Bootstrap Sydney to NASDAQ, two secondaries, zero founder dilution.",
+  1: "Self-funded Sydney to NASDAQ, two secondaries, founders kept voting control.",
   2: "A live dashboard is what BlockID would show for your own startup.",
-  3: "SVI grades a startup across 13 criteria — with citations, not vibes.",
-  4: "12 phases, one advice pack per phase; skip the phase-mismatch trap.",
+  3: "The 13 criteria are graded from evidence with citations, not vibes.",
+  4: "12 phases mapped to S0\u2013S5, with what the filings do and don\u0027t show.",
   5: "Seven C-Level agents brief you where their advice matters most.",
   6: "The data room is 65+ documents grouped into 12 categories, AU-first.",
   7: "Four valuation methods across four points in time — see which fits when.",
@@ -90,6 +95,10 @@ export default function AtlassianSummaryMirrorPage() {
               headline KPIs of the journey, and three suggested next steps.
             </p>
           </header>
+
+          <div className="mb-8">
+            <BenchmarkNotice />
+          </div>
 
           <section aria-labelledby="kpi-heading" className="mb-8">
             <h2 id="kpi-heading" className="sr-only">
@@ -203,6 +212,14 @@ export default function AtlassianSummaryMirrorPage() {
               />
             </div>
           </section>
+
+          <div className="mb-10">
+            <FolkloreChecksSection />
+          </div>
+
+          <div className="mb-10">
+            <HumanReviewFlagsSection />
+          </div>
 
           <footer className="rounded-lg border border-brand-200 bg-brand-50 p-5 text-sm text-brand-900">
             <p className="font-semibold">A closing note from a founder-mentor</p>

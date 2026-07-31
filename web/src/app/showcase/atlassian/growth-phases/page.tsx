@@ -302,6 +302,14 @@ export default function AtlassianGrowthPhasesMirrorPage() {
             </div>
           </section>
 
+          <div className="mb-10">
+            <StageBenchmarkSection />
+          </div>
+
+          <div className="mb-10">
+            <HumanReviewFlagsSection />
+          </div>
+
           <section
             aria-labelledby="compare-cta"
             className="rounded-lg border border-brand-200 bg-brand-50 p-6 dark:border-emerald-900 dark:bg-emerald-950/30"
