@@ -1,7 +1,7 @@
 {
-  "git_sha": "260925b996922d319fdea407777562a7dd1643ac",
-  "deployed_at": "2026-07-31T15:51:57Z",
-  "next_hash": "f8dd526fb0ef68f4c0059e69ea179984",
+  "git_sha": "2adc95cde9b40466da392e8bcce86a7634f85faf",
+  "deployed_at": "2026-07-31T16:13:43Z",
+  "next_hash": "0ee7d6c83a2f51a362760db9bd48ed54",
   "task_id": "manual",
   "version": "v3.0.0-phase6-core"
 }
