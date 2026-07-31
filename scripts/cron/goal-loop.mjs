@@ -138,6 +138,33 @@ export async function runGoalLoop(config) {
     const dirty = (status.stdout ?? '').trim()
     if (dirty) {
       await log(ctx, { stage: 'auto_commit_started', dirty_files: dirty.split('\n').length })
+
+      // Veto accidental truncations before staging. The Claude subprocess
+      // sometimes rewrites a large module and emits only a partial version;
+      // `git add -A` would happily commit and push that. This has silently
+      // broken the build at least four times (cfo-valuation.ts: 766->208 at
+      // c86b2365, 539->151 at b39c5819, plus commit 8354fe01 "undo accidental
+      // truncation"), each time blocking every deploy because Gate 3 of
+      // deploy-live.sh requires zero TypeScript errors. The guard restores
+      // only the truncated files; the rest of the tick still commits.
+      try {
+        const { restored } = guardTruncations(REPO_ROOT)
+        if (restored.length > 0) {
+          await log(ctx, {
+            stage: 'truncation_guard_reverted',
+            count: restored.length,
+            files: restored.map((r) => ({
+              path: r.path,
+              head_lines: r.headLines,
+              work_lines: r.workLines,
+              lost_pct: Math.round(r.lostPct * 100),
+            })),
+          })
+        }
+      } catch (err) {
+        await log(ctx, { stage: 'truncation_guard_failed', error: String(err) })
+      }
+
       spawnSync('git', ['add', '-A'], { cwd: REPO_ROOT, stdio: 'ignore' })
       const msg = `chore(loop): autonomous tick ${ctx.TICK_ID} — commit uncommitted edits\n\nSafety-net commit from ${ctx.loopLabel}: the claude CLI subprocess landed edits but did not commit them itself. See ${relFromRepo(ctx.historyFile)} for phase provenance.\n`
       const c = spawnSync('git', ['commit', '-m', msg], { cwd: REPO_ROOT, encoding: 'utf8' })
