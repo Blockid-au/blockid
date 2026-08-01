@@ -832,3 +832,7 @@
 {"ts": "2026-08-01T07:56:09.329330Z", "loop": "reseller-goal", "phase": "P11.375", "stage": "phase_done", "tick": 722, "summary": "P11.375 cron-wiring peak-to-sexagintic-mean \u2014 106th pool-shape surface; registry+50 tests green"}
 {"tick_id":"2026-08-01T07-50-01-454Z","ts":"2026-08-01T07:56:41.836Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":400299,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-01T07-50-01-454Z","ts":"2026-08-01T07:56:41.874Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
+{"tick_id":"2026-08-01T07-50-01-454Z","ts":"2026-08-01T07:56:43.462Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-01T07-50-01-454Z","ts":"2026-08-01T07:56:43.471Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"e6dd04b3","last_deployed":"ba21cf4"}
+{"tick_id":"2026-08-01T07-50-01-454Z","ts":"2026-08-01T08:03:14.491Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"e6dd04b3"}
+{"tick_id":"2026-08-01T07-50-01-454Z","ts":"2026-08-01T08:03:14.492Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
