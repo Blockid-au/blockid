@@ -1511,3 +1511,4 @@
 {"tick_id":"2026-08-01T01-17-01-565Z","ts":"2026-08-01T01:22:03.801Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-01T01-27-01-502Z","ts":"2026-08-01T01:27:01.503Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-01T01-27-01-502Z","ts":"2026-08-01T01:27:01.517Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts":"2026-08-01T01:35:00.000Z","loop":"atlassian-goal","phase":"P9_ship","stage":"lib_test_added","file":"web/src/lib/adk/agents/financial-advisor.test.ts","cases":32,"target":"web/src/lib/adk/agents/financial-advisor.ts","result":"32 passed / 328 ms"}
