@@ -29,7 +29,7 @@ interface HeroV3Props {
   verifiedCount?: number;
 }
 
-const DEFAULT_SIGNUP_HREF = "/signup?intent=business_id";
+const DEFAULT_SIGNUP_HREF = "/founding-50";
 const DEFAULT_SAMPLE_HREF = "/reports/samples";
 
 export function HeroV3({
