@@ -923,6 +923,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemquinquagintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexagintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2781,6 +2786,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToSexaginticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -8213,6 +8222,31 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMean,
         );
+      // P11.375 — per-transition magnitude TOP-3 pool peak-to-sexagintic-mean.
+      // PTSXQM = (max - min) / sexagintic_mean where sexagintic_mean =
+      // ((sum x_i^60) / n)^(1/60) is the M_60 power mean. Bands tight < 1.005,
+      // spread [1.005, 1.09), wide >= 1.09. Tight boundary holds at P11.344
+      // PTQIQM's 1.005 (MILD OUTLIER at M_60 is 0.9352, well below buffer) and
+      // wide boundary HOLDS at P11.344 PTQIQM's 1.09 since the 10..89-partner
+      // asymptotes all sit below wide (10-partner 1.0391, 89-partner 1.0777);
+      // pool_count >= 97 (97^(1/60) ~= 1.0792) is required to escape into wide
+      // with a modest outlier. Since sexagintic_mean >= novemquinquagintic_mean
+      // by Power Mean inequality (M_60 >= M_59), ptsxqm <= ptnqqm for every
+      // non-flat pool. FURTHER ABSORPTION at M_60: pool_count=100 [1x99,100]
+      // reads 1.0690 SPREAD at M_60 (was 1.0704 spread at M_59) — the M_60
+      // center is taller than M_59's, compressing the 100-partner extreme pool
+      // deeper into the spread band. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.374 formatter
+      // docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToSexaginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean,
+        );
     }
   }
   if (
@@ -8374,6 +8408,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToSeptemquinquaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToOctoquinquaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToSexaginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -8562,6 +8597,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToSeptemquinquaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToOctoquinquaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToSexaginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -13162,6 +13198,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_sexagintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.top_n,
+            tight_ptsxqm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.tight_ptsxqm_max,
+            wide_ptsxqm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.wide_ptsxqm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean.transitions,
           }
         : {
             skipped_reason:
