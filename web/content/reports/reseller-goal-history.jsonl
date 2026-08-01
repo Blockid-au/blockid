@@ -868,3 +868,4 @@
 {"tick_id":"2026-08-01T08-45-01-188Z","ts":"2026-08-01T08:58:55.467Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-01T09-00-02-087Z","ts":"2026-08-01T09:00:02.089Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-01T09-00-02-087Z","ts":"2026-08-01T09:00:02.171Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
+{"ts": "2026-08-01T09:05:30.000000Z", "loop": "reseller-goal", "phase": "P11.380", "stage": "phase_done", "tick": 727, "summary": "P11.380 pure-lib peak-to-tresexagintic-mean (M_63) — 34/34 vitest green, pttsxqm <= ptdsxqm invariant locked, registry unchanged pending P11.381 cron-wiring"}
