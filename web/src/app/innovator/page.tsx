@@ -70,18 +70,33 @@ export default function InnovatorHomePage() {
 
       <section
         data-tour="innovator-thesis"
-        className="rounded-2xl border border-surface-200 bg-white p-5 dark:border-surface-700 dark:bg-surface-900"
+        className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-surface-50 p-5 dark:border-brand-800/40 dark:from-brand-950/30 dark:via-surface-900 dark:to-surface-900"
       >
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500">
-          Your thesis (TODO)
-        </h2>
-        <p className="mt-2 text-sm text-ink-700 dark:text-ink-200">
-          Corporate innovation themes are not yet wired to a backend table.
-          Once <code className="rounded bg-surface-100 px-1 py-0.5 text-[11px] dark:bg-surface-800">innovator_theses</code>{" "}
-          lands (see innovator.md § Implementation notes), the wizard here
-          will collect 3 strategic themes and use them to filter the map and
-          seed the watchlist.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-300">
+              Your innovation thesis
+            </h2>
+            <p className="mt-2 text-sm text-ink-700 dark:text-ink-200">
+              Define up to 3 strategic themes — e.g. "AI in logistics", "climate
+              fintech", "B2B SaaS under $5M ARR" — and the Industry Map will
+              pre-filter results to match, while your watchlist digest highlights
+              the startups that move the needle on each theme.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-brand-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:bg-brand-900/60 dark:text-brand-200">
+            Coming soon
+          </span>
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+          <Link
+            href="/founding-50"
+            className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+          >
+            Join Founding 50 for early access
+            <ArrowRight className="h-3 w-3" aria-hidden />
+          </Link>
+        </div>
       </section>
 
       <section
@@ -119,14 +134,20 @@ export default function InnovatorHomePage() {
         <div className="sm:col-span-2">
           <RoleNextStep role="innovator" />
         </div>
-        <div className="rounded-xl border border-dashed border-surface-300 bg-white/60 p-4 text-xs text-ink-500 dark:border-surface-700 dark:bg-surface-900/60">
-          <p className="font-semibold uppercase tracking-wider text-ink-500">
+        <div className="rounded-xl border border-surface-200 bg-white/60 p-4 text-xs text-ink-500 dark:border-surface-700 dark:bg-surface-900/60">
+          <p className="font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
             Board pack export
           </p>
-          <p className="mt-2">
-            Ventures Quarterly PDF will assemble from live pipeline + watchlist
-            data once the innovator report pipeline lands.
+          <p className="mt-2 text-ink-600 dark:text-ink-400">
+            Ventures Quarterly PDF — assembled from live pipeline and watchlist
+            data — is part of the full Innovator Console launch.
           </p>
+          <Link
+            href="/founding-50"
+            className="mt-3 inline-flex items-center gap-1 text-brand-700 hover:underline dark:text-brand-300"
+          >
+            Get early access <ArrowRight className="h-3 w-3" aria-hidden />
+          </Link>
         </div>
       </div>
     </div>
