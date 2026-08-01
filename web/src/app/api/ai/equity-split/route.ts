@@ -31,6 +31,7 @@ export async function POST(request: Request) {
 
     if (isSupabaseConfigured()) {
       await getSupabaseAdmin()!.from("ai_equity_recommendations").insert({
+        account_id: user.id,
         recommendation_type: "equity_split",
         input_context: { founders },
         recommendation,

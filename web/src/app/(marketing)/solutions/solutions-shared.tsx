@@ -5,7 +5,7 @@
  *
  * Anatomy (locked by plan):
  *   1. Persona hero — headline + emotional line + 2 CTAs
- *      (primary: /signup?intent=business_id, secondary: sample Trust Report A$5.50)
+ *      (primary: /founding-50, secondary: sample Trust Report A$5.50)
  *   2. 3-card benefit grid
  *   3. 30 / 60 / 90-day journey preview
  *   4. FAQ (paywall + verification level + refund)
@@ -60,7 +60,7 @@ export interface SolutionPageProps {
   disclaimer: ReactNode;
 }
 
-const SIGNUP_HREF = "/signup?intent=business_id";
+const SIGNUP_HREF = "/founding-50";
 const SAMPLE_REPORT_HREF = "/reports/samples";
 
 export function SolutionsPageShell(props: SolutionPageProps) {

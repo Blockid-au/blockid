@@ -13,7 +13,7 @@ import { ArrowRight, Check, Shield, Users, Layers } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { t, type Messages } from "@/lib/i18n/t";
 
-const SIGNUP_HREF = "/signup?intent=business_id";
+const SIGNUP_HREF = "/founding-50";
 
 /**
  * The public sample Business ID this page previews.
