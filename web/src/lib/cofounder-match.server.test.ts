@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { CofounderProfileInput } from "./cofounder-match";
 
 // Colocated vitest for the previously-untested server-only
 // `cofounder-match.server.ts` — the Supabase adapter that (a) reads
@@ -413,7 +414,7 @@ describe("fetchRecentDirectoryProfiles — DB error", () => {
 // insertCofounderProfile — graceful degradation (no Supabase)
 // ---------------------------------------------------------------------------
 
-function baseInsertInput() {
+function baseInsertInput(): CofounderProfileInput {
   return {
     fullName: "Ada Lovelace",
     email: "ada@example.com",
@@ -422,7 +423,7 @@ function baseInsertInput() {
     iAm: ["Commercial cofounder"],
     timeCommitment: "FT-now",
     stage: "Idea",
-    visibility: "directory" as const,
+    visibility: "directory",
   };
 }
 

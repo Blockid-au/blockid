@@ -80,7 +80,7 @@ const H = vi.hoisted(() => {
     >,
     auditCalls: [] as AuditCall[],
     auditScript: [] as unknown[],
-    assembleSpy: null as null | ReturnType<typeof vi.fn>,
+    assembleSpy: null as null | ReturnType<typeof vi.fn<(context: unknown, tier: unknown, reportId: string) => unknown>>,
     researchMarketSpy: vi.fn(),
     budgetStatus: { spent: 0, limit: 100 },
   };
