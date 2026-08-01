@@ -1103,3 +1103,8 @@
 {"ts":"2026-08-01T00:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":4700,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-08-01T00:00:01Z","endpoint":"ceo-daily-summary","status":"ok","duration_ms":6162,"detail":"{\"date\": \"2026-08-01\", \"status\": \"YELLOW\", \"agents\": {\"green\": 0, \"yellow\": 14, \"red\": 0, \"missing\": 0}, \"deploys\": 0, \"budget\": {\"month\": \"2026-08\", \"spent\": 0, \"limit\": 100, \"percent\": 0, \"calls\": 0"}
 {"ts":"2026-08-01T00:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17079,"detail":""}
+{"ts":"2026-08-01T00:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2039,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 17, \"raw\": \"17% used (231948600 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273816360 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-01T00:15:01Z","endpoint":"dunning-retry","status":"fail","duration_ms":16493,"detail":""}
+{"ts":"2026-08-01T00:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16498,"detail":""}
+{"ts":"2026-08-01T00:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":187,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-08-01T00:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2230,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 17, \"raw\": \"17% used (231478552 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273816264 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
