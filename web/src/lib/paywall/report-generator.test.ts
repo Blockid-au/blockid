@@ -564,7 +564,7 @@ describe("generateTrustReportForOrder — orchestrate", () => {
       ...baseOrder(),
       metadata: { quote: { depth: "deep" } },
     };
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({ tier: "premium" }),
@@ -577,7 +577,7 @@ describe("generateTrustReportForOrder — orchestrate", () => {
       ...baseOrder(),
       metadata: { quote: { depth: "standard" }, locale: "vi" },
     };
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({ locale: "vi" }),
@@ -590,7 +590,7 @@ describe("generateTrustReportForOrder — orchestrate", () => {
       ...baseOrder(),
       metadata: { quote: { depth: "standard" } },
     };
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({ locale: "en" }),
@@ -600,7 +600,7 @@ describe("generateTrustReportForOrder — orchestrate", () => {
   it("defaults locale to 'en' when metadata is entirely absent", async () => {
     const state = happyState();
     state.rows!.report_orders = { ...baseOrder(), metadata: undefined };
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({ locale: "en", tier: "standard" }),
@@ -609,7 +609,7 @@ describe("generateTrustReportForOrder — orchestrate", () => {
 
   it("uses 'Unknown Startup' when the SVI account has no startup_name", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, {
       orchestrate: spy,
       findAccount: async () => baseAccount({ startup_name: null }),
@@ -621,7 +621,7 @@ describe("generateTrustReportForOrder — orchestrate", () => {
 
   it("passes an empty rawText when the analysis has no raw_input", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, {
       orchestrate: spy,
       findAnalysis: async () => baseAnalysis({ raw_input: null }),
@@ -832,7 +832,7 @@ describe("generateTrustReportForOrder — agent_report_tasks", () => {
 describe("generateTrustReportForOrder — sviAnalysis fallbacks", () => {
   it("prefers account.current_stage over analysis_json.stage", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, {
       orchestrate: spy,
       findAccount: async () => baseAccount({ current_stage: 6 }),
@@ -845,7 +845,7 @@ describe("generateTrustReportForOrder — sviAnalysis fallbacks", () => {
 
   it("falls back to analysis_json.stage when the account has no current_stage", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, {
       orchestrate: spy,
       findAccount: async () => baseAccount({ current_stage: undefined }),
@@ -858,7 +858,7 @@ describe("generateTrustReportForOrder — sviAnalysis fallbacks", () => {
 
   it("falls back to stage 0 → 'Concept' label when nothing supplies a stage", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, {
       orchestrate: spy,
       findAccount: async () => baseAccount({ current_stage: undefined }),
@@ -872,7 +872,7 @@ describe("generateTrustReportForOrder — sviAnalysis fallbacks", () => {
 
   it("uses account.current_svi when analysis.total_svi is missing", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, {
       orchestrate: spy,
       findAccount: async () => baseAccount({ current_svi: 275 }),
@@ -884,7 +884,7 @@ describe("generateTrustReportForOrder — sviAnalysis fallbacks", () => {
 
   it("falls back to 100 for totalSVI when neither the account nor the analysis has one", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, {
       orchestrate: spy,
       findAccount: async () =>
@@ -897,7 +897,7 @@ describe("generateTrustReportForOrder — sviAnalysis fallbacks", () => {
 
   it("handles a null analysis_json without throwing (all fields land on defaults)", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, {
       orchestrate: spy,
       findAnalysis: async () => baseAnalysis({ analysis_json: null }),
@@ -917,7 +917,7 @@ describe("generateTrustReportForOrder — sviAnalysis fallbacks", () => {
 describe("generateTrustReportForOrder — criteriaData shape", () => {
   it("fills every CRITERION_KEY, populating only the ones that have a row", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     const call = spy.mock.calls[0]![0];
     const data = call.criteriaData;
@@ -944,7 +944,7 @@ describe("generateTrustReportForOrder — criteriaData shape", () => {
         quality_level: "good",
       },
     ];
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     const call = spy.mock.calls[0]![0];
     expect(call.criteriaData.market.files).toEqual([]);
@@ -963,7 +963,7 @@ describe("generateTrustReportForOrder — criteriaData shape", () => {
         ai_score: "not-a-number",
       },
     ];
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     const call = spy.mock.calls[0]![0];
     expect(call.criteriaData.market.aiScore).toBeUndefined();
@@ -977,7 +977,7 @@ describe("generateTrustReportForOrder — criteriaData shape", () => {
 describe("generateTrustReportForOrder — evidenceItems shape", () => {
   it("maps svi_evidence rows into the EvidenceItem shape", async () => {
     const state = happyState();
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     const call = spy.mock.calls[0]![0];
     expect(call.evidenceItems).toEqual([
@@ -993,7 +993,7 @@ describe("generateTrustReportForOrder — evidenceItems shape", () => {
   it("passes an empty evidenceItems array when the table returns no rows", async () => {
     const state = happyState();
     state.list!.svi_evidence = [];
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     const call = spy.mock.calls[0]![0];
     expect(call.evidenceItems).toEqual([]);
@@ -1002,7 +1002,7 @@ describe("generateTrustReportForOrder — evidenceItems shape", () => {
   it("coerces missing evidence fields to '' rather than dropping the row", async () => {
     const state = happyState();
     state.list!.svi_evidence = [{}];
-    const spy = vi.fn(async () => baseReport());
+    const spy = vi.fn(async (_input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => baseReport());
     await run(state, { orchestrate: spy });
     const call = spy.mock.calls[0]![0];
     expect(call.evidenceItems).toEqual([
