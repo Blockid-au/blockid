@@ -1503,3 +1503,5 @@
 {"tick_id":"2026-08-01T01-17-01-565Z","ts":"2026-08-01T01:17:01.565Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-01T01-17-01-565Z","ts":"2026-08-01T01:17:01.583Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"ts":"2026-08-01T01:21:31.618Z","loop":"atlassian-goal","phase":"P9_ship","stage":"lib_test_added","file":"web/src/lib/mentor/access-tiers-server.test.ts","cases":43,"target":"web/src/lib/mentor/access-tiers-server.ts","result":"43 passed / 380 ms"}
+{"tick_id":"2026-08-01T01-17-01-565Z","ts":"2026-08-01T01:22:01.965Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":300379,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-01T01-17-01-565Z","ts":"2026-08-01T01:22:02.003Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
