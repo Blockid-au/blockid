@@ -1514,3 +1514,10 @@
 {"ts":"2026-08-01T01:35:00.000Z","loop":"atlassian-goal","phase":"P9_ship","stage":"lib_test_added","file":"web/src/lib/adk/agents/financial-advisor.test.ts","cases":32,"target":"web/src/lib/adk/agents/financial-advisor.ts","result":"32 passed / 328 ms"}
 {"tick_id":"2026-08-01T01-27-01-502Z","ts":"2026-08-01T01:34:44.427Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":462908,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-01T01-27-01-502Z","ts":"2026-08-01T01:34:44.485Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
+{"tick_id":"2026-08-01T01-27-01-502Z","ts":"2026-08-01T01:34:46.229Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-01T01-27-01-502Z","ts":"2026-08-01T01:34:46.241Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"13c549b9","last_deployed":"ba21cf4"}
+{"tick_id":"2026-08-01T01-27-01-502Z","ts":"2026-08-01T01:34:46.252Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"13c549b9"}
+{"tick_id":"2026-08-01T01-27-01-502Z","ts":"2026-08-01T01:34:46.254Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-01T01-37-01-179Z","ts":"2026-08-01T01:37:01.179Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-01T01-37-01-179Z","ts":"2026-08-01T01:37:01.198Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts":"2026-08-01T01:41:00.000Z","loop":"atlassian-goal","phase":"P9_ship","stage":"lib_test_added","file":"web/src/lib/github.test.ts","cases":59,"target":"web/src/lib/github.ts","result":"59 passed / 348 ms"}
