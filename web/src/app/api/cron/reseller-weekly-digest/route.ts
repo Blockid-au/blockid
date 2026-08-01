@@ -838,6 +838,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoquadraginticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duoquadragintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresquadragintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2628,6 +2633,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoquadraginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToDuoquadraginticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToTresquadraginticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -7650,6 +7659,28 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoquadraginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToDuoquadraginticMean,
         );
+      // P11.341: PEAK-TO-TRESQUADRAGINTIC-MEAN (M_43). pttm = (max - min) /
+      // tresquadragintic_mean where tresquadragintic_mean = ((sum x_i^43) / n)^(1/43)
+      // is the M_43 power mean. Bands tight < 1.005, spread [1.005, 1.09),
+      // wide >= 1.09. Tight boundary holds at P11.338 PTDM's 1.005 (MILD
+      // OUTLIER at M_43 is 0.9495, well below the buffer) and the wide
+      // boundary HOLDS at P11.338 PTDM's 1.09 since the 10..40-partner
+      // asymptotes all sit below wide (10-partner 1.0550, 40-partner
+      // 1.0896); pool_count >= 41 (41^(1/43) ~= 1.0902) is required to
+      // escape into wide with a modest outlier. Since tresquadragintic_mean >=
+      // duoquadragintic_mean by Power Mean inequality (M_43 >= M_42), pttm
+      // <= ptdm for every non-flat pool. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToDuoquadraginticMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.340 formatter
+      // docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToTresquadraginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMean,
+        );
     }
   }
   if (
@@ -7794,6 +7825,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToQuadraginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToUnquadraginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToDuoquadraginticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToTresquadraginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -7965,6 +7997,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToQuadraginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToUnquadraginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToDuoquadraginticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToTresquadraginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
