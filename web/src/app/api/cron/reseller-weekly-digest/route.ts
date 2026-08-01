@@ -903,6 +903,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquequinquagintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sesquinquagintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2745,6 +2750,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToSesquinquaginticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -8076,6 +8085,31 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMeanSection =
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMean,
+        );
+      // P11.367 — per-transition magnitude TOP-3 pool peak-to-sesquinquagintic-mean.
+      // PTSEQQM = (max - min) / sesquinquagintic_mean where sesquinquagintic_mean =
+      // ((sum x_i^56) / n)^(1/56) is the M_56 power mean. Bands tight < 1.005,
+      // spread [1.005, 1.09), wide >= 1.09. Tight boundary holds at P11.344
+      // PTQIQM's 1.005 (MILD OUTLIER at M_56 is 0.9378, well below buffer) and
+      // wide boundary HOLDS at P11.344 PTQIQM's 1.09 since the 10..89-partner
+      // asymptotes all sit below wide (10-partner 1.0420, 89-partner 1.0835);
+      // pool_count >= 97 (97^(1/56) ~= 1.0851) is required to escape into wide
+      // with a modest outlier. Since sesquinquagintic_mean >= quinquequinquagintic_mean
+      // by Power Mean inequality (M_56 >= M_55), ptseqqm <= ptqiqqm for every
+      // non-flat pool. FURTHER ABSORPTION at M_56: pool_count=100 [1x99,100]
+      // reads 1.0749 SPREAD at M_56 (was 1.0765 spread at M_55) — the M_56
+      // center is taller than M_55's, compressing the 100-partner extreme pool
+      // deeper into the spread band. Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMeanSection AND
+      // IMMEDIATELY ABOVE perPairHotCellsSection per the P11.366 formatter
+      // docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToSesquinquaginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMean,
         );
     }
   }
