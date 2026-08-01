@@ -11,7 +11,7 @@
  * Emotional:     A business should not have to rebuild trust from zero
  *                every time.
  * Core outcome:  Be discovered. Be understood. Be trusted.
- * Primary CTA:   Create Your Business ID
+ * Primary CTA:   Claim Your Founding Spot (A$5)
  * Secondary CTA: See a sample Trust Report (A$5.50)  ← D1 GST-inclusive
  *
  * Signed-in context (persistent SSO §8.9): parent server component reads
@@ -41,7 +41,7 @@ export function HeroV3({
   const primaryCtaHref = signedInHref ?? DEFAULT_SIGNUP_HREF;
   const primaryCtaCopy = isSignedIn
     ? "Continue to your Business ID"
-    : "Create Your Business ID";
+    : "Claim Your Founding Spot — A$5";
 
   return (
     <section

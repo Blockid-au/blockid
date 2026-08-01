@@ -25,7 +25,7 @@
     "video:render": "remotion render ../remotion/index.tsx HowItWorks public/media/how-it-works.mp4 --overwrite --crf 28 --props {}"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.95.0",
+    "@anthropic-ai/sdk": "^0.115.0",
     "@google/generative-ai": "^0.24.1",
     "@react-pdf/renderer": "^4.5.1",
     "@remotion/bundler": "^4.0.463",
