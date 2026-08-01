@@ -2341,3 +2341,7 @@
 {"tick_id":"2026-08-01T21-07-01-149Z","ts":"2026-08-01T21:07:02.571Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":1,"elapsed_ms":1401,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-01T21-07-01-149Z","ts":"2026-08-01T21:07:02.607Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
 {"tick_id":"2026-08-01T21-07-01-149Z","ts":"2026-08-01T21:07:02.652Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"truncation_guard_reverted","count":1,"files":[{"path":"web/src/lib/agents/cfo-valuation.ts","head_lines":861,"work_lines":170,"lost_pct":80}]}
+{"tick_id":"2026-08-01T21-07-01-149Z","ts":"2026-08-01T21:07:04.382Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-01T21-07-01-149Z","ts":"2026-08-01T21:07:04.387Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"8145157f","last_deployed":"ba21cf4"}
+{"tick_id":"2026-08-01T21-07-01-149Z","ts":"2026-08-01T21:07:47.028Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"8145157f"}
+{"tick_id":"2026-08-01T21-07-01-149Z","ts":"2026-08-01T21:07:47.030Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
