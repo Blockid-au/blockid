@@ -1493,3 +1493,6 @@
 {"tick_id":"2026-08-01T00-57-01-455Z","ts":"2026-08-01T00:57:01.456Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-01T00-57-01-455Z","ts":"2026-08-01T00:57:01.474Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-01T01-03-manual","ts":"2026-08-01T01:03:10.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9-email-drip-lib-test","cases":55,"module":"web/src/lib/email-drip.ts","test":"web/src/lib/email-drip.test.ts","result":"passed"}
+{"tick_id":"2026-08-01T00-57-01-455Z","ts":"2026-08-01T01:04:49.254Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":467778,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-01T00-57-01-455Z","ts":"2026-08-01T01:04:49.294Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":12}
+{"tick_id":"2026-08-01T00-57-01-455Z","ts":"2026-08-01T01:04:50.830Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1,"unrunnable":[],"skipped":null}
