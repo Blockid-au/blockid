@@ -1,10 +1,10 @@
-// /innovator/watchlist — corporate innovator watchlist (stub).
+// /innovator/watchlist — corporate innovator watchlist.
 //
-// TODO: backend not ready. When `innovator_watchlist` (user_id, project_id,
-// theme, added_at, owner_teammate) lands (see innovator.md § Implementation
-// notes), swap the placeholder rows for a live query via
-// `resellerSupabase()`-equivalent helper. Empty state guides the user to
-// the Industry Map because that is where bulk-add lives.
+// Currently rendered as a coming-soon shell with an empty table and CTA.
+// Live data will be backed by `innovator_watchlist` (user_id, project_id,
+// theme, added_at, owner_teammate) and queried via a supabase helper
+// equivalent to `resellerSupabase()`. Empty state guides users to the
+// Industry Map where bulk-add will live. Ships in Innovator Console v2.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -71,19 +71,35 @@ export default function InnovatorWatchlistPage() {
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href="/innovator/industry-map"
-          className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
-        >
-          Open Industry Map
-          <ArrowRight className="h-3 w-3" aria-hidden />
-        </Link>
-        <p className="text-xs text-ink-500">
-          Backend TODO — <code className="rounded bg-surface-100 px-1 py-0.5 text-[11px] dark:bg-surface-800">innovator_watchlist</code>{" "}
-          table + <code className="rounded bg-surface-100 px-1 py-0.5 text-[11px] dark:bg-surface-800">POST /api/innovator/watchlist</code>{" "}
-          route not yet shipped.
-        </p>
+      <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-800/40 dark:bg-brand-950/20">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-300">
+              Live watchlist coming soon
+            </p>
+            <p className="mt-1 text-xs text-ink-600 dark:text-ink-400">
+              Real-time SVI delta alerts, weekly digest emails, and bulk-add
+              from the Industry Map are all part of the full Innovator Console
+              launch. Join Founding 50 to be first in.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Link
+              href="/innovator/industry-map"
+              className="inline-flex items-center gap-1.5 rounded-md border border-brand-300 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-300"
+            >
+              Browse Industry Map
+              <ArrowRight className="h-3 w-3" aria-hidden />
+            </Link>
+            <Link
+              href="/founding-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+            >
+              Join Founding 50
+              <ArrowRight className="h-3 w-3" aria-hidden />
+            </Link>
+          </div>
+        </div>
       </div>
 
       <RoleNextStep role="innovator" />

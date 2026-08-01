@@ -1,9 +1,9 @@
-// /innovator/deal-pipeline — kanban board for POC / partnership flow (stub).
+// /innovator/deal-pipeline — kanban board for POC / partnership flow.
 //
-// TODO: no backend yet. Once `innovator_pipeline_cards` (id, project_id,
-// stage, owner_teammate, moved_at) lands (see innovator.md § Implementation
-// notes) the columns render live cards and support drag-and-drop across
-// stages. Anchor `innovator-pipeline` matches the first-run tour.
+// Currently rendered as a coming-soon shell with empty-state columns.
+// Full drag-and-drop kanban backed by `innovator_pipeline_cards` (id,
+// project_id, stage, owner_teammate, moved_at) will ship in the Innovator
+// Console v2 milestone. Anchor `innovator-pipeline` matches the first-run tour.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -96,19 +96,35 @@ export default function InnovatorDealPipelinePage() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href="/innovator/watchlist"
-          className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
-        >
-          Promote from Watchlist
-          <ArrowRight className="h-3 w-3" aria-hidden />
-        </Link>
-        <p className="text-xs text-ink-500">
-          Backend TODO — <code className="rounded bg-surface-100 px-1 py-0.5 text-[11px] dark:bg-surface-800">innovator_pipeline_cards</code>{" "}
-          table + <code className="rounded bg-surface-100 px-1 py-0.5 text-[11px] dark:bg-surface-800">POST /api/innovator/pipeline</code>{" "}
-          route not yet shipped.
-        </p>
+      <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-4 dark:border-brand-800/40 dark:bg-brand-950/20">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-300">
+              Full pipeline coming soon
+            </p>
+            <p className="mt-1 text-xs text-ink-600 dark:text-ink-400">
+              Drag-and-drop cards, team assignment, and automated stage
+              notifications are launching with the full Innovator Console.
+              Join Founding 50 to get first access.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Link
+              href="/innovator/watchlist"
+              className="inline-flex items-center gap-1.5 rounded-md border border-brand-300 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-300"
+            >
+              View Watchlist
+              <ArrowRight className="h-3 w-3" aria-hidden />
+            </Link>
+            <Link
+              href="/founding-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+            >
+              Join Founding 50
+              <ArrowRight className="h-3 w-3" aria-hidden />
+            </Link>
+          </div>
+        </div>
       </div>
 
       <RoleNextStep role="innovator" />
