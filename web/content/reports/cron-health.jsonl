@@ -1128,3 +1128,7 @@
 {"ts":"2026-08-01T02:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16916,"detail":""}
 {"ts":"2026-08-01T02:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16448,"detail":""}
 {"ts":"2026-08-01T02:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2451,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 17, \"raw\": \"17% used (231882664 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273815828 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-01T02:15:01Z","endpoint":"bq-export","status":"fail","duration_ms":1818,"detail":"{\"ok\":false,\"exit_code\":127,\"stdout\":\"\",\"stderr\":\"sh: 1: tsx: not found\\n\",\"duration_ms\":1678}"}
+{"ts":"2026-08-01T02:15:01Z","endpoint":"credit-reset","status":"fail","duration_ms":1956,"detail":"{\"ok\":false,\"reason\":\"insert_failed\",\"error\":\"null value in column \\\"balance_after\\\" of relation \\\"credit_transactions\\\" violates not-null constraint\"}"}
+{"ts":"2026-08-01T02:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":18156,"detail":""}
+{"ts":"2026-08-01T02:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":136,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
