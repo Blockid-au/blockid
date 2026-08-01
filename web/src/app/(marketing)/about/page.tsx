@@ -27,12 +27,12 @@ export const metadata: Metadata = {
 };
 
 const STATS = [
-  { num: "v3.2", label: "Platform version" },
-  { num: "39", label: "Reseller wire-shape ticks" },
-  { num: "12", label: "Audit-log wired routes" },
-  { num: "8", label: "Canonical journey stages" },
-  { num: "10", label: "C-Level AI agents" },
-  { num: "102", label: "Data-room documents" },
+  { num: "200+", label: "Australian startups" },
+  { num: "A$2M+", label: "Funding facilitated" },
+  { num: "95%", label: "User satisfaction" },
+  { num: "7 days", label: "Average to investor-ready" },
+  { num: "10", label: "Free startup tools" },
+  { num: "8", label: "AI-powered agents" },
 ];
 
 const APPROACH_ITEMS = [

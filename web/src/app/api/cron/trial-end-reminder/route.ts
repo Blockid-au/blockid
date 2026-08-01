@@ -22,7 +22,7 @@ const REMINDER_KEY = "trial_reminder_t3d";
 
 function authorised(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true; // dev: no secret configured
+  if (!secret) return false; // dev: no secret configured
   const header = request.headers.get("x-cron-secret");
   if (header && header === secret) return true;
   const auth = request.headers.get("authorization") ?? "";

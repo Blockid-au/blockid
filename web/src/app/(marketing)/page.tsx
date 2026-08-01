@@ -11,6 +11,7 @@ import {
   readSignedInHint,
   SIGNED_IN_LANDING_HREF,
 } from "@/lib/supabase/session-hint";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const metadata = {
   title:
@@ -62,6 +63,21 @@ export default async function HomePage() {
   if (upgradeV3) {
     const version = readVersionString();
     const isSignedIn = await readSignedInHint();
+
+    // Fetch verified business count for social proof in HeroV3 trust bar
+    let verifiedCount = 0;
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      if (supabaseAdmin) {
+        const { count } = await supabaseAdmin
+          .from("app_users")
+          .select("*", { count: "exact", head: true })
+          .eq("is_verified", true);
+        verifiedCount = count ?? 0;
+      }
+    } catch {
+      // Non-fatal — trust bar is hidden when count is 0
+    }
     const entityLine = [
       "Auschain PTY LTD",
       "ACN 659 615 111",
@@ -83,12 +99,13 @@ export default async function HomePage() {
         <main id="main-content">
           <HeroV3
             signedInHref={isSignedIn ? SIGNED_IN_LANDING_HREF : undefined}
+            verifiedCount={verifiedCount}
           />
           <EmotionalBand />
           <section
             id="how"
             aria-labelledby="how-it-works-heading"
-            className="border-t border-brand-navy/10 py-16"
+            className="border-t border-white/10 py-16"
           >
             <h2 id="how-it-works-heading" className="sr-only">
               How BlockID.au works
@@ -98,7 +115,7 @@ export default async function HomePage() {
           <section
             id="partners"
             aria-labelledby="partners-heading"
-            className="border-t border-brand-navy/10 py-12"
+            className="border-t border-white/10 py-12"
           >
             <h2 id="partners-heading" className="sr-only">
               Programs and integrations
@@ -111,7 +128,7 @@ export default async function HomePage() {
           <section
             id="trust"
             aria-labelledby="trust-heading"
-            className="border-t border-brand-navy/10 py-12"
+            className="border-t border-white/10 py-12"
           >
             <h2 id="trust-heading" className="sr-only">
               About BlockID.au
@@ -153,7 +170,7 @@ export default async function HomePage() {
           <section
             id="how"
             aria-labelledby="how-it-works-heading"
-            className="border-t border-brand-navy/10 py-16"
+            className="border-t border-white/10 py-16"
           >
             <h2 id="how-it-works-heading" className="sr-only">
               How BlockID.au works
@@ -163,7 +180,7 @@ export default async function HomePage() {
           <section
             id="partners"
             aria-labelledby="partners-heading"
-            className="border-t border-brand-navy/10 py-12"
+            className="border-t border-white/10 py-12"
           >
             <h2 id="partners-heading" className="sr-only">
               Programs and integrations
@@ -176,7 +193,7 @@ export default async function HomePage() {
           <section
             id="trust"
             aria-labelledby="trust-heading"
-            className="border-t border-brand-navy/10 py-12"
+            className="border-t border-white/10 py-12"
           >
             <h2 id="trust-heading" className="sr-only">
               About BlockID.au

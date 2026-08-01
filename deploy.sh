@@ -11,7 +11,7 @@
 #   ./deploy.sh --status     # Show container status
 # ═══════════════════════════════════════════════════════════════
 
-set -e
+set -eo pipefail
 
 PROJECT_DIR="/home/dovanlong/blockid.au"
 WEB_DIR="${PROJECT_DIR}/web"
@@ -62,7 +62,7 @@ if [ "$1" != "--restart" ]; then
   # Without it, Docker layer cache may serve stale builds with wrong keys.
   echo ""
   echo "Building Docker image (--no-cache)..."
-  docker build --no-cache -t "$IMAGE" . 2>&1 | tail -5
+  docker build --no-cache -t "$IMAGE" . 2>&1
   log "Image built: $IMAGE"
 fi
 

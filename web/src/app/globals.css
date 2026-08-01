@@ -707,3 +707,18 @@ body {
     transform: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   NAV V2 — dropdown panel entrance keyframes
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes nav-v2-panel-in {
+  from { opacity: 0; transform: translate(-50%, -4px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+.nav-v2-panel-enter {
+  animation: nav-v2-panel-in 120ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-v2-panel-enter { animation: none; }
+}
