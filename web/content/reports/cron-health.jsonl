@@ -1200,3 +1200,7 @@
 {"ts":"2026-08-01T08:30:01Z","endpoint":"agent-auto-improve","status":"rate_limited","duration_ms":440997,"detail":"{\"error\":\"Rate limited\",\"resetIn\":3294326}"}
 {"ts":"2026-08-01T08:40:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":527,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 21, \"raw\": \"21% used (219897008 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273731596 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-08-01T08:50:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":2824,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 21, \"raw\": \"21% used (219893984 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273731592 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-01T09:00:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":709,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 21, \"raw\": \"21% used (219890760 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273731588 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-01T09:00:02Z","endpoint":"ai-health","status":"ok","duration_ms":5437,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
+{"ts":"2026-08-01T09:00:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17111,"detail":""}
+{"ts":"2026-08-01T09:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16522,"detail":""}

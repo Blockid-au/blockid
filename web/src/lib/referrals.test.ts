@@ -148,7 +148,7 @@ vi.mock("./supabase", () => ({
   },
 }));
 
-const grantCreditsMock = vi.fn(async () => ({ ok: true }));
+const grantCreditsMock = vi.fn(async (..._args: unknown[]) => ({ ok: true }));
 vi.mock("./credits", () => ({
   grantCredits: (...args: unknown[]) => grantCreditsMock(...args),
 }));
