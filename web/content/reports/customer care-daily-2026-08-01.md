@@ -4,7 +4,7 @@
 
 ## Tasks (1/1 passed)
 
-- **Generate personalized startup insights for active users**: ✅ Generated 0 insights for 10 active users
+- **Generate personalized startup insights for active users**: ✅ Generated 1 insights for 10 active users
 
 ---
-Generated: 2026-08-01T17:02:09.990Z | Budget: $0.06/$100
+Generated: 2026-08-01T22:31:10.150Z | Budget: $0.08/$100
