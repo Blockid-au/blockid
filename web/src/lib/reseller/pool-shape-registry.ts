@@ -139,6 +139,7 @@ export const POOL_SHAPE_SURFACES: readonly PoolShapeSurface[] = [
   { slug: "peak-to-quadragintic-mean", axis: "DISPERSION" },
   { slug: "peak-to-unquadragintic-mean", axis: "DISPERSION" },
   { slug: "peak-to-duoquadragintic-mean", axis: "DISPERSION" },
+  { slug: "peak-to-tresquadragintic-mean", axis: "DISPERSION" },
 ];
 
 export const POOL_SHAPE_MODULE_PREFIX =
