@@ -831,3 +831,4 @@
 {"ts":"2026-08-01T16:15:01Z","endpoint":"vesting","status":"ok","duration_ms":1853,"detail":"{\"processed\": 1, \"completed\": 0, \"emailed\": 1}"}
 {"ts":"2026-08-01T16:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":128,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
 {"ts":"2026-08-01T16:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":546,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 20, \"raw\": \"20% used (221738192 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273731264 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-01T16:20:01Z","endpoint":"lead-nurture","status":"ok","duration_ms":9352,"detail":"{\"sent\": 4, \"skipped\": 0, \"opted_out\": 0, \"policy\": \"d1_d4_d9_sequence\"}"}
