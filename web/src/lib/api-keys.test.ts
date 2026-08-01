@@ -134,7 +134,7 @@ vi.mock("./supabase", () => ({
   },
 }));
 
-const canMock = vi.fn(async () => true);
+const canMock = vi.fn(async (..._args: unknown[]) => true as boolean);
 vi.mock("@/lib/entitlements", () => ({
   can: (...args: unknown[]) => canMock(...args),
 }));
