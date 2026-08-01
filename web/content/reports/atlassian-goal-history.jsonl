@@ -1719,3 +1719,4 @@
 {"tick_id":"2026-08-01T06-57-01-318Z","ts":"2026-08-01T07:11:39.608Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-01T07-17-02-074Z","ts":"2026-08-01T07:17:02.075Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-01T07-17-02-074Z","ts":"2026-08-01T07:17:02.096Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts":"2026-08-01T07:27:00Z","tick":"P5-investor-pack-assembler-lib-test","phase":"P5_investor_readiness_score","action":"colocated_vitest_added","file":"web/src/lib/investor-pack-assembler.test.ts","cases":83,"status":"passed","duration_ms":492,"note":"first test coverage for investor-pack-assembler.ts — pins SVI grade ladder, stage mapping, cap-table % + ESOP tail, contact fallback, team assembly, sector preference, and Div 83A gate wiring"}
