@@ -102,7 +102,7 @@ export default async function IndexExchangePage() {
                 <Sparkles className="h-3 w-3 text-amber-600" />
                 <span className="text-[10px] font-bold text-amber-700 uppercase tracking-[0.15em]">BlockID Startup Value Index™</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink-900">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-ink-900">
                 BSI-AU
               </h1>
               <p className="text-sm text-ink-600 mt-1">

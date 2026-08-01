@@ -110,6 +110,10 @@ export async function POST(request: Request) {
     // empty body is fine
   }
 
+  if (body.target_sha !== undefined && !/^[0-9a-f]{7,40}$/.test(body.target_sha)) {
+    return NextResponse.json({ error: "invalid target_sha format" }, { status: 400 });
+  }
+
   const preSha = await readManifestSha();
   const extraArgs = body.target_sha ? ["--target", body.target_sha] : [];
 

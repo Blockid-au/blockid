@@ -109,7 +109,7 @@ export default async function Founding50Page() {
             </div>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-ink-900 mb-4">
             Claim Your{" "}
             <span className="text-brand-600">{cfg.founding_plan_name}</span>{" "}
             Account
