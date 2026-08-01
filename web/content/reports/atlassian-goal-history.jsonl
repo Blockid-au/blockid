@@ -1557,3 +1557,5 @@
 {"tick_id":"2026-08-01T02-37-01-510Z","ts":"2026-08-01T02:37:01.510Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-01T02-37-01-510Z","ts":"2026-08-01T02:37:01.526Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-01T02-40-manual","ts":"2026-08-01T02:41:00.000Z","loop_label":"atlassian-goal-loop","stage":"P9_ship_progress","phase":"P9_ship","action":"added_colocated_vitest","module":"src/lib/adk/agents/customer-service.ts","test_file":"src/lib/adk/agents/customer-service.test.ts","test_count":57,"result":"passed"}
+{"tick_id":"2026-08-01T02-37-01-510Z","ts":"2026-08-01T02:41:43.124Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":281595,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-01T02-37-01-510Z","ts":"2026-08-01T02:41:43.184Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":4}
