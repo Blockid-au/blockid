@@ -1132,3 +1132,4 @@
 {"ts":"2026-08-01T02:15:01Z","endpoint":"credit-reset","status":"fail","duration_ms":1956,"detail":"{\"ok\":false,\"reason\":\"insert_failed\",\"error\":\"null value in column \\\"balance_after\\\" of relation \\\"credit_transactions\\\" violates not-null constraint\"}"}
 {"ts":"2026-08-01T02:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":18156,"detail":""}
 {"ts":"2026-08-01T02:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":136,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-08-01T02:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":577,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 16, \"raw\": \"16% used (234101308 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273815828 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
