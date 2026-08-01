@@ -20,7 +20,7 @@ const LOG_PATH = "/tmp/blockid-cleanup.log";
 
 function authorised(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
+  if (!secret) return false;
   const header = request.headers.get("x-cron-secret");
   if (header && header === secret) return true;
   const auth = request.headers.get("authorization") ?? "";

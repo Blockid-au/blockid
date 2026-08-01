@@ -119,7 +119,7 @@ export function EmotionalBand() {
   return (
     <section
       aria-labelledby="emotional-band-heading"
-      className="border-t border-brand-navy/10 py-16"
+      className="border-t border-white/10 py-16"
     >
       <div className="mx-auto max-w-3xl px-6 text-center">
         <h2 id="emotional-band-heading" className="sr-only">

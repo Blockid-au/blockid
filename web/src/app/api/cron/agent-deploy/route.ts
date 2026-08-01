@@ -23,7 +23,18 @@ export const maxDuration = 300; // 5 min for build
 
 // process.cwd() in standalone = .next/standalone/, not the web/ source dir
 const WEB_DIR = process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
+const RESOLVED_WEB_DIR = path.resolve(WEB_DIR);
 const CRON_SECRET = process.env.CRON_SECRET;
+
+/** Resolve a relative path inside WEB_DIR and throw if it escapes the sandbox. */
+function safeJoin(relPath: string): string {
+  const fullPath = path.join(RESOLVED_WEB_DIR, relPath);
+  if (!fullPath.startsWith(RESOLVED_WEB_DIR + path.sep)) {
+    console.error(`[agent-deploy] Path traversal blocked: ${relPath}`);
+    throw new Error(`Path traversal attempt: ${relPath}`);
+  }
+  return fullPath;
+}
 
 // ── Autofix CI Agent ────────────────────────────────────────────────────
 // Runs tsc + lint. If either fails, asks AI to fix the code and retries once.
@@ -100,7 +111,7 @@ async function autofixErrors(
     .filter(f => f.action === "write" && f.path.startsWith("src/"))
     .map(f => {
       try {
-        const content = fs.readFileSync(path.join(WEB_DIR, f.path), "utf8");
+        const content = fs.readFileSync(safeJoin(f.path), "utf8");
         return `--- ${f.path} ---\n${content}`;
       } catch { return ""; }
     })
@@ -130,7 +141,7 @@ async function autofixErrors(
       // Strip markdown fences
       content = content.replace(/^```(?:typescript|ts)?\s*\n/m, "").replace(/\n```\s*$/m, "").trim();
       if (content.length > 50) {
-        fs.writeFileSync(path.join(WEB_DIR, f.path), content + "\n", "utf8");
+        fs.writeFileSync(safeJoin(f.path), content + "\n", "utf8");
       }
     }
   }
@@ -202,7 +213,7 @@ export async function POST(request: Request) {
   try {
     // Step 1: Backup existing files
     for (const f of files) {
-      const fullPath = path.join(WEB_DIR, f.path);
+      const fullPath = safeJoin(f.path);
       try {
         const existing = fs.readFileSync(fullPath, "utf8");
         backups.push({ path: f.path, content: existing });
@@ -213,7 +224,7 @@ export async function POST(request: Request) {
 
     // Step 2: Apply changes
     for (const f of files) {
-      const fullPath = path.join(WEB_DIR, f.path);
+      const fullPath = safeJoin(f.path);
       if (f.action === "delete") {
         fs.unlinkSync(fullPath);
         results.push(`Deleted: ${f.path}`);
@@ -294,7 +305,7 @@ export async function POST(request: Request) {
   } catch (err) {
     // Revert all changes
     for (const b of backups) {
-      const fullPath = path.join(WEB_DIR, b.path);
+      const fullPath = safeJoin(b.path);
       try {
         if (b.content === null) {
           fs.unlinkSync(fullPath);

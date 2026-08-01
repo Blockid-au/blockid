@@ -27,6 +27,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { LocaleSwitcher } from "./locale-switcher";
 
@@ -423,19 +424,7 @@ export function NavV2() {
       ref={navRef}
       className="sticky top-0 z-50 border-b border-white/5 bg-brand-navy/85 backdrop-blur"
     >
-      <style>{`
-        @keyframes nav-v2-panel-in {
-          from { opacity: 0; transform: translate(-50%, -4px); }
-          to   { opacity: 1; transform: translate(-50%, 0); }
-        }
-        .nav-v2-panel-enter {
-          animation: nav-v2-panel-in 120ms ease-out both;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .nav-v2-panel-enter { animation: none; }
-        }
-      `}</style>
-      <nav
+<nav
         aria-label="Primary"
         className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6"
       >
@@ -445,15 +434,13 @@ export function NavV2() {
           className="flex items-center gap-2.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
         >
           {/* Logo mark (octagon + star) — 32px square */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="/images/logo-icon-transparent.webp"
-            alt=""
+            alt="BlockID logo"
             width={32}
             height={32}
             className="h-8 w-8 shrink-0 select-none"
-            loading="eager"
-            decoding="async"
+            priority
           />
           <span className="flex items-baseline gap-1 text-base font-semibold text-brand-ink">
             BlockID<span className="text-brand-cyan">.au</span>

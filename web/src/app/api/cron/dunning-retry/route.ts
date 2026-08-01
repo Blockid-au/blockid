@@ -22,7 +22,7 @@ const RETRY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 function authorised(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
+  if (!secret) return false;
   const header = request.headers.get("x-cron-secret");
   if (header && header === secret) return true;
   const auth = request.headers.get("authorization") ?? "";
