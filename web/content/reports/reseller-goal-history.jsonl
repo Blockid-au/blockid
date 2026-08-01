@@ -848,3 +848,5 @@
 {"tick_id":"2026-08-01T08-20-02-030Z","ts":"2026-08-01T08:20:02.033Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-01T08-20-02-030Z","ts":"2026-08-01T08:20:02.105Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
 {"ts": "2026-08-01T08:24:00.000000Z", "loop": "reseller-goal", "phase": "P11.377", "stage": "phase_done", "tick": 724, "summary": "P11.377 cron-wiring peak-to-unsexagintic-mean — 107th pool-shape surface; registry+50 tests green"}
+{"tick_id":"2026-08-01T08-20-02-030Z","ts":"2026-08-01T08:24:47.293Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":285182,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-01T08-20-02-030Z","ts":"2026-08-01T08:24:47.333Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":8}
