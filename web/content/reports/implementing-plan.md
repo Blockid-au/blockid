@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.1.0  ·  **Updated:** 2026-07-30T14:00:01.911Z  ·  **Decided by:** ceo (2026-07-25T12:04:02.737Z)
+**Version:** v3.1.0  ·  **Updated:** 2026-08-01T12:04:02.026Z  ·  **Decided by:** ceo (2026-08-01T12:04:02.026Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -26,6 +26,9 @@
 | T0175 | CMO | Create Competitor Feature Release Tracker module | minor | ⬜ pending |
 | T0176 | CRO | Implement Pricing Psychology Engine for subscription tier optimization | minor | ⬜ pending |
 | T0177 | RND | Deploy Founder Pain‑Point Insight Service (API) | minor | ⬜ pending |
+| T0178 | CFO | Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator | minor | ⬜ pending |
+| T0179 | CFO | Build Financial Projection Norms Library (Rule of 40, LTV/CAC) | minor | ⬜ pending |
+| T0180 | CFO | Implement Cap Table Dilution & Round Sizing Simulator | minor | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0236` **RND** — T0111 AI Idea Lab — sector-aware angle generator
