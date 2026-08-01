@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth";
 import { sendMagicLink } from "@/lib/email";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 // POST /api/auth/request
 // Body: { email, intent?, pendingPayload? }
@@ -48,6 +49,10 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  // Rate-limit: max 5 magic-link requests per email per 15 minutes
+  const rateLimited = enforceRateLimit("magic-link", email, request, 5, 15 * 60 * 1000);
+  if (rateLimited) return rateLimited;
 
   const safeIntent: MagicLinkIntent =
     intent === "login" ? "login" : "save_founder_pack";

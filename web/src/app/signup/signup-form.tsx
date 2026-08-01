@@ -63,14 +63,7 @@ export function SignupForm(props: SignupFormProps) {
     return (
       <div
         role="alert"
-        style={{
-          color: "#F87171",
-          fontSize: 14,
-          padding: 16,
-          border: "1px solid #7f1d1d",
-          borderRadius: 10,
-          background: "#1c0b0b",
-        }}
+        className="text-red-400 text-sm p-4 border border-red-900 rounded-xl bg-red-950"
       >
         Stripe is not configured on this environment (missing
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY). Signup is temporarily disabled —
@@ -91,30 +84,14 @@ export function SignupForm(props: SignupFormProps) {
 
 function fieldLabel(children: React.ReactNode): React.ReactElement {
   return (
-    <span
-      style={{
-        display: "block",
-        fontSize: 12,
-        color: "#94A3B8",
-        marginBottom: 6,
-        fontWeight: 500,
-      }}
-    >
+    <span className="block text-xs text-slate-400 mb-1.5 font-medium">
       {children}
     </span>
   );
 }
 
-const INPUT_STYLE: React.CSSProperties = {
-  width: "100%",
-  background: "#0B1220",
-  border: "1px solid #1F2A44",
-  borderRadius: 10,
-  padding: "10px 12px",
-  color: "#F8FAFC",
-  fontSize: 15,
-  outline: "none",
-};
+const inputClass =
+  "w-full bg-[#0B1220] border border-[#1F2A44] rounded-xl px-3 py-2.5 text-slate-50 text-[15px] outline-none focus:border-blue-500 transition-colors";
 
 interface PromoValidation {
   code: string;
@@ -293,7 +270,7 @@ function InnerForm(props: SignupFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <label style={{ display: "block", marginBottom: 14 }}>
+      <label className="block mb-3.5">
         {fieldLabel("Email")}
         <input
           type="email"
@@ -301,10 +278,10 @@ function InnerForm(props: SignupFormProps) {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          style={INPUT_STYLE}
+          className={inputClass}
         />
       </label>
-      <label style={{ display: "block", marginBottom: 14 }}>
+      <label className="block mb-3.5">
         {fieldLabel("Password (min 8 characters)")}
         <input
           type="password"
@@ -313,10 +290,10 @@ function InnerForm(props: SignupFormProps) {
           required
           minLength={8}
           autoComplete="new-password"
-          style={INPUT_STYLE}
+          className={inputClass}
         />
       </label>
-      <label style={{ display: "block", marginBottom: 14 }}>
+      <label className="block mb-3.5">
         {fieldLabel("Display name (optional)")}
         <input
           type="text"
@@ -324,16 +301,16 @@ function InnerForm(props: SignupFormProps) {
           onChange={(e) => setDisplayName(e.target.value)}
           autoComplete="name"
           maxLength={100}
-          style={INPUT_STYLE}
+          className={inputClass}
         />
       </label>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+      <div className="grid grid-cols-2 gap-3 mb-3.5">
         <label>
           {fieldLabel("Account type")}
           <select
             value={accountType}
             onChange={(e) => setAccountType(e.target.value)}
-            style={INPUT_STYLE}
+            className={inputClass}
           >
             {ACCOUNT_TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
@@ -345,7 +322,7 @@ function InnerForm(props: SignupFormProps) {
           <select
             value={planId}
             onChange={(e) => setPlanId(e.target.value)}
-            style={INPUT_STYLE}
+            className={inputClass}
           >
             {props.trialPlans.map((p) => (
               <option key={p.id} value={p.id} disabled={!p.hasStripePrice}>
@@ -355,7 +332,7 @@ function InnerForm(props: SignupFormProps) {
           </select>
         </label>
       </div>
-      <label style={{ display: "block", marginBottom: 14 }}>
+      <label className="block mb-3.5">
         {fieldLabel("Promotion code (optional)")}
         <input
           type="text"
@@ -372,76 +349,48 @@ function InnerForm(props: SignupFormProps) {
           autoComplete="off"
           maxLength={32}
           placeholder="e.g. IFV20"
-          style={INPUT_STYLE}
+          className={inputClass}
         />
         {promoValidating ? (
-          <p style={{ margin: "6px 0 0 0", fontSize: 12, color: "#94A3B8" }}>
-            Checking…
-          </p>
+          <p className="mt-1.5 text-xs text-slate-400">Checking…</p>
         ) : promoValidation ? (
-          <p style={{ margin: "6px 0 0 0", fontSize: 12, color: "#4ADE80" }}>
+          <p className="mt-1.5 text-xs text-green-400">
             {promoValidation.code} — {promoValidation.discountPct}% off
             {promoValidation.resellerDisplayName
               ? ` from ${promoValidation.resellerDisplayName}`
               : ""}
           </p>
         ) : promoError ? (
-          <p style={{ margin: "6px 0 0 0", fontSize: 12, color: "#F87171" }}>
-            {promoError}
-          </p>
+          <p className="mt-1.5 text-xs text-red-400">{promoError}</p>
         ) : null}
       </label>
-      <label style={{ display: "block", marginBottom: 14 }}>
+      <label className="block mb-3.5">
         {fieldLabel("Card details")}
-        <div
-          style={{
-            background: "#0B1220",
-            border: "1px solid #1F2A44",
-            borderRadius: 10,
-            padding: "12px 12px",
-          }}
-        >
+        <div className="bg-[#0B1220] border border-[#1F2A44] rounded-xl px-3 py-3">
           <CardElement options={CARD_STYLE} />
         </div>
       </label>
 
-      <label
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 10,
-          fontSize: 13,
-          color: "#94A3B8",
-          marginBottom: 16,
-        }}
-      >
+      <label className="flex items-start gap-2.5 text-xs text-slate-400 mb-4">
         <input
           type="checkbox"
           checked={terms}
           onChange={(e) => setTerms(e.target.checked)}
           required
-          style={{ marginTop: 3 }}
+          className="mt-0.5 shrink-0"
         />
         <span>
           I accept the{" "}
-          <a href="/legal/terms" style={{ color: "#3B7DD8" }}>terms of service</a>
+          <a href="/legal/terms" className="text-blue-400 hover:underline">terms of service</a>
           {" "}and{" "}
-          <a href="/legal/privacy" style={{ color: "#3B7DD8" }}>privacy policy</a>.
+          <a href="/legal/privacy" className="text-blue-400 hover:underline">privacy policy</a>.
         </span>
       </label>
 
       {error ? (
         <div
           role="alert"
-          style={{
-            color: "#F87171",
-            fontSize: 13,
-            padding: 12,
-            border: "1px solid #7f1d1d",
-            borderRadius: 10,
-            marginBottom: 14,
-            background: "#1c0b0b",
-          }}
+          className="text-red-400 text-[13px] p-3 border border-red-900 rounded-xl mb-3.5 bg-red-950"
         >
           {error}
         </div>
@@ -450,40 +399,21 @@ function InnerForm(props: SignupFormProps) {
       <button
         type="submit"
         disabled={submitting || !stripe}
-        style={{
-          width: "100%",
-          background: submitting ? "#1F2A44" : "#3B7DD8",
-          color: submitting ? "#94A3B8" : "#0B1220",
-          fontWeight: 600,
-          padding: "12px 16px",
-          borderRadius: 10,
-          border: "none",
-          fontSize: 15,
-          cursor: submitting ? "wait" : "pointer",
-        }}
+        className={[
+          "w-full font-semibold px-4 py-3 rounded-xl border-0 text-[15px] transition-colors",
+          submitting
+            ? "bg-[#1F2A44] text-slate-400 cursor-wait"
+            : "bg-blue-600 text-[#0B1220] hover:bg-blue-500 cursor-pointer",
+        ].join(" ")}
       >
         {submitting ? "Starting trial…" : TRIAL_COPY.cta}
       </button>
 
-      <p
-        style={{
-          marginTop: 12,
-          fontSize: 12,
-          color: "#64748B",
-          lineHeight: 1.5,
-        }}
-      >
+      <p className="mt-3 text-xs text-slate-500 leading-relaxed">
         {TRIAL_COPY.fine_print}
         {selectedPlan ? " " + priceLine : ""}
       </p>
-      <p
-        style={{
-          marginTop: 6,
-          fontSize: 11,
-          color: "#475569",
-          lineHeight: 1.5,
-        }}
-      >
+      <p className="mt-1.5 text-[11px] text-slate-600 leading-relaxed">
         No indefinite free tier — every account starts with a {TRIAL_DAYS}-day trial.
       </p>
     </form>

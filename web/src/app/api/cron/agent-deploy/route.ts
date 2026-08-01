@@ -26,6 +26,21 @@ const WEB_DIR = process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
 const RESOLVED_WEB_DIR = path.resolve(WEB_DIR);
 const CRON_SECRET = process.env.CRON_SECRET;
 
+/** Validate a file path: only alphanumerics, dots, hyphens, underscores, and forward slashes. No spaces or shell metacharacters. */
+const SAFE_PATH_RE = /^[a-zA-Z0-9._\-\/]+$/;
+
+function assertSafePath(p: string): void {
+  if (!SAFE_PATH_RE.test(p)) {
+    throw new Error(`Unsafe file path rejected: ${p}`);
+  }
+}
+
+/** Strip shell metacharacters from a string intended for a commit message. */
+function sanitiseForShell(s: string): string {
+  // Remove backticks, $, (, ), ;, |, &, <, >, newlines, null bytes
+  return s.replace(/[`$();|&<>\n\r\0]/g, "");
+}
+
 /** Resolve a relative path inside WEB_DIR and throw if it escapes the sandbox. */
 function safeJoin(relPath: string): string {
   const fullPath = path.join(RESOLVED_WEB_DIR, relPath);
@@ -75,9 +90,11 @@ async function runCIWithAutofix(
       if (attempt < MAX_RETRIES) {
         // Try eslint --fix first
         try {
-          const fixPaths = files.filter(f => f.path.startsWith("src/")).map(f => f.path).join(" ");
-          if (fixPaths) {
-            execSync(`npx eslint --fix ${fixPaths} 2>/dev/null || true`, { cwd: WEB_DIR, timeout: 30_000 });
+          const srcFiles = files.filter(f => f.path.startsWith("src/") && SAFE_PATH_RE.test(f.path));
+          if (srcFiles.length > 0) {
+            // Pass each path as a separate argument to avoid shell injection
+            const args = ["eslint", "--fix", ...srcFiles.map(f => f.path)];
+            execSync(args.map(a => `'${a}'`).join(" ") + " 2>/dev/null || true", { cwd: WEB_DIR, timeout: 30_000 });
           }
           // Re-check
           execSync("npm run lint 2>&1", { cwd: WEB_DIR, timeout: 60_000 });
@@ -250,11 +267,16 @@ export async function POST(request: Request) {
 
     // Step 5: Git commit + push to GitHub
     try {
-      const branch = `agent/${agent}-${new Date().toISOString().slice(0, 10)}`;
-      const filePaths = files.map(f => f.path).join(" ");
+      const safeAgent = sanitiseForShell(agent);
+      const safeDescription = sanitiseForShell(description);
+      const branch = `agent/${safeAgent}-${new Date().toISOString().slice(0, 10)}`;
       execSync(`git checkout -b ${branch} 2>/dev/null || git checkout ${branch}`, { cwd: WEB_DIR });
-      execSync(`git add ${filePaths}`, { cwd: WEB_DIR });
-      execSync(`git commit -m "feat(${agent}): ${description}\n\nAuto-deployed by agent-deploy API.\n\nCo-Authored-By: BlockID ${agent.toUpperCase()} Agent <${agent}@blockid.au>"`, { cwd: WEB_DIR });
+      // Add each validated file path individually via -- to prevent shell injection
+      for (const f of files) {
+        assertSafePath(f.path);
+        execSync(`git add -- ${f.path}`, { cwd: WEB_DIR });
+      }
+      execSync(`git commit -m "feat(${safeAgent}): ${safeDescription}\n\nAuto-deployed by agent-deploy API.\n\nCo-Authored-By: BlockID ${safeAgent.toUpperCase()} Agent <${safeAgent}@blockid.au>"`, { cwd: WEB_DIR });
       execSync("git checkout master", { cwd: WEB_DIR });
       execSync(`git merge ${branch} --no-edit`, { cwd: WEB_DIR });
       results.push(`Git: committed + merged to master`);
