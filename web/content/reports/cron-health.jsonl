@@ -826,3 +826,4 @@
 {"ts":"2026-08-01T16:00:01Z","endpoint":"svi-snapshot","status":"ok","duration_ms":86977,"detail":"{\"processed\": 51, \"date\": \"2026-08-01\"}"}
 {"ts":"2026-08-01T16:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":89957,"detail":""}
 {"ts":"2026-08-01T16:05:01Z","endpoint":"svi-notify","status":"ok","duration_ms":168,"detail":"{\"notified\": 0, \"emailed\": 0, \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
+{"ts":"2026-08-01T16:10:01Z","endpoint":"nurture","status":"ok","duration_ms":171,"detail":"{\"sent\": 0, \"skipped\": 0, \"ts\": \"2026-08-01T16:10:01.793Z\", \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
