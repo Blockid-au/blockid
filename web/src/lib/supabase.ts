@@ -11,7 +11,7 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-let cached: SupabaseClient | null | undefined;
+let cached: SupabaseClient | null = null;
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(
@@ -20,11 +20,8 @@ export function isSupabaseConfigured(): boolean {
 }
 
 export function getSupabaseAdmin(): SupabaseClient | null {
-  if (cached !== undefined) return cached;
-  if (!isSupabaseConfigured()) {
-    cached = null;
-    return null;
-  }
+  if (cached) return cached;
+  if (!isSupabaseConfigured()) return null; // don't cache null; allow retry once env is available
   cached = createClient(
     process.env.SUPABASE_URL as string,
     process.env.SUPABASE_SERVICE_ROLE_KEY as string,
