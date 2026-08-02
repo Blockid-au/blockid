@@ -1,18 +1,19 @@
 {
-  "verifiedAt": "2026-07-26T03:00:39.190Z",
+  "verifiedAt": "2026-08-02T03:00:47.301Z",
   "source": "ai-free-models.json",
   "verified": {
     "openrouter": [
+      "openai/gpt-oss-20b:free",
       "nvidia/nemotron-3-ultra-550b-a55b:free",
       "nvidia/nemotron-3-super-120b-a12b:free",
       "google/gemma-4-31b-it:free",
       "google/gemma-4-26b-a4b-it:free",
       "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
       "inclusionai/ling-3.0-flash:free",
-      "poolside/laguna-s-2.1:free",
-      "poolside/laguna-m.1:free"
+      "poolside/laguna-s-2.1:free"
     ],
     "groq": [
+      "groq/compound-mini",
       "qwen/qwen3.6-27b",
       "openai/gpt-oss-120b",
       "llama-3.3-70b-versatile",
@@ -29,6 +30,7 @@
     "sambanova": [
       "DeepSeek-V3.1",
       "DeepSeek-V3.2",
+      "gpt-oss-120b",
       "Meta-Llama-3.3-70B-Instruct",
       "gemma-4-31B-it"
     ]
@@ -38,10 +40,28 @@
     "notFound": [],
     "other": [
       {
+        "provider": "openrouter",
+        "model": "google/lyria-3-pro-preview",
+        "status": "other",
+        "detail": "502 {\"error\":{\"message\":\"Provider returned error\",\"code\":502,\"metadata\":{\"raw\":\"{\\n  \\\"error\\\": {\\n    \\\"code\\\": 500,\\n    \\\"message\\\": \\\"Internal error encountered"
+      },
+      {
+        "provider": "openrouter",
+        "model": "google/lyria-3-clip-preview",
+        "status": "other",
+        "detail": "502 {\"error\":{\"message\":\"Provider returned error\",\"code\":502,\"metadata\":{\"raw\":\"{\\n  \\\"error\\\": {\\n    \\\"code\\\": 500,\\n    \\\"message\\\": \\\"Internal error encountered"
+      },
+      {
         "provider": "groq",
         "model": "canopylabs/orpheus-v1-english",
         "status": "other",
         "detail": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com"
+      },
+      {
+        "provider": "groq",
+        "model": "canopylabs/orpheus-arabic-saudi",
+        "status": "other",
+        "detail": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-arabic-saudi` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.c"
       }
     ]
   }
