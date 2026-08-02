@@ -1152,6 +1152,21 @@
         "href": "/tools/pre-money-valuation-calculator"
       },
       "angle": "Explain how to determine a fair share price for issuing options or shares to early hires without triggering immediate tax liabilities. Guide founders on balancing employee incentive with dilution and ATO compliance."
+    },
+    {
+      "slug": "startup-valuation-for-secondary-sales-australia",
+      "title": "Startup Valuation for Secondary Sales in Australia",
+      "category": "valuation",
+      "keywords": [
+        "secondary sale valuation",
+        "founder liquidity australia",
+        "secondary shares startup"
+      ],
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      },
+      "angle": "Explain how founders and early employees can determine a fair price for secondary share sales without triggering a new priced round. Provide a framework for balancing liquidity needs with the impact on the current cap table and investor relations."
     }
   ]
 }
