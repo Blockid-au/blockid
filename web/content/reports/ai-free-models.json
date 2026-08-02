@@ -1,6 +1,9 @@
 {
-  "updatedAt": "2026-08-01T23:27:16.502Z",
+  "updatedAt": "2026-08-02T04:00:02.657Z",
   "openrouter": [
+    "nvidia/nemotron-3-nano-30b-a3b:free",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "poolside/laguna-xs-2.1:free",
     "google/lyria-3-pro-preview",
     "google/lyria-3-clip-preview",
     "openai/gpt-oss-20b:free",
