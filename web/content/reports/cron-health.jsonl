@@ -927,3 +927,4 @@
 {"ts":"2026-08-02T03:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":6815,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-08-02T03:00:01Z","endpoint":"verify-models","status":"ok","duration_ms":45600,"detail":"{\"total\": 29, \"verified\": {\"openrouter\": 8, \"groq\": 8, \"cerebras\": 3, \"sambanova\": 5}, \"paidLeaks\": 0, \"paidLeakDetails\": [], \"notFound\": 0, \"notFoundDetails\": []}"}
 {"ts":"2026-08-02T03:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":487,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 20, \"raw\": \"20% used (224000612 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273730940 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-02T03:15:01Z","endpoint":"reseller-clear-commissions","status":"ok","duration_ms":216,"detail":"{\"cleared\": 0, \"message\": \"no pending rows past window\"}"}
