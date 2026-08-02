@@ -1,6 +1,30 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-for-secondary-sales-australia",
+      "title": "Secondary Sale Valuation for Startups Australia | Guide",
+      "description": "Master secondary sale valuation for your Australian startup. Learn how to price secondary shares and manage founder liquidity with our expert framework.",
+      "keywords": [
+        "secondary sale valuation startup australia",
+        "how to value secondary shares australia",
+        "founder liquidity options australia",
+        "secondary share price calculation startup",
+        "startup secondary market australia",
+        "valuing early employee shares australia",
+        "secondary sale vs priced round",
+        "cap table impact secondary sale",
+        "fair market value startup shares australia",
+        "secondary transaction framework for founders"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-08-02",
+      "readingTime": 5,
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      }
+    },
+    {
       "slug": "startup-valuation-for-employee-equity-grants",
       "title": "Employee Share Scheme Valuation Australia | BlockID",
       "description": "Master your employee share scheme valuation in Australia. Ensure ATO compliance, set fair market values, and manage ESOP tax liabilities with ease.",
