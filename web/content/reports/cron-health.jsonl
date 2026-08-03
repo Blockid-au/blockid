@@ -959,3 +959,4 @@
 {"ts":"2026-08-03T22:00:01Z","endpoint":"agent-healthcheck","status":"ok","duration_ms":89588,"detail":"{\"date\": \"2026-08-03\", \"status\": \"RED\", \"summary\": {\"passed\": 15, \"warned\": 3, \"failed\": 2, \"fixed\": 0, \"total\": 20}, \"checks\": [{\"category\": \"code\", \"check\": \"TypeScript\", \"status\": \"pass\", \"detail\":"}
 {"ts":"2026-08-03T22:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":98929,"detail":""}
 {"ts":"2026-08-03T22:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":3474,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 23, \"raw\": \"23% used (214002488 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274183724 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-03T22:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":128,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
