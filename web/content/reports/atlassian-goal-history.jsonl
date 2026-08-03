@@ -4649,3 +4649,7 @@
 {"tick_id":"2026-08-03T21-07-01-706Z","ts":"2026-08-03T21:07:03.166Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":1,"elapsed_ms":1429,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-03T21-07-01-706Z","ts":"2026-08-03T21:07:03.210Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
 {"tick_id":"2026-08-03T21-07-01-706Z","ts":"2026-08-03T21:07:03.260Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"truncation_guard_reverted","count":2,"files":[{"path":"web/src/lib/agents/cmo-market-research.ts","head_lines":243,"work_lines":101,"lost_pct":58},{"path":"web/src/lib/agents/cto-cost-modeling.ts","head_lines":296,"work_lines":150,"lost_pct":49}]}
+{"tick_id":"2026-08-03T21-07-01-706Z","ts":"2026-08-03T21:07:05.066Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-03T21-07-01-706Z","ts":"2026-08-03T21:07:05.071Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"af87fb760","last_deployed":"ba21cf4"}
+{"tick_id":"2026-08-03T21-07-01-706Z","ts":"2026-08-03T21:07:58.799Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"af87fb760"}
+{"tick_id":"2026-08-03T21-07-01-706Z","ts":"2026-08-03T21:07:58.807Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
