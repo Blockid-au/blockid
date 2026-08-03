@@ -844,3 +844,4 @@
 {"ts":"2026-08-03T09:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16601,"detail":""}
 {"ts":"2026-08-03T09:00:01Z","endpoint":"weekly-metrics","status":"fail","duration_ms":16638,"detail":""}
 {"ts":"2026-08-03T09:05:02Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16550,"detail":""}
+{"ts":"2026-08-03T09:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2967,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 22, \"raw\": \"22% used (216809748 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274184004 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
