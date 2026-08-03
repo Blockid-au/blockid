@@ -1,6 +1,6 @@
 {
   "version": "3.1.0",
-  "updatedAt": "2026-08-02T16:00:02.277Z",
+  "updatedAt": "2026-08-03T12:04:01.776Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-07-22T14:00:02.174Z",
@@ -32,7 +32,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-08-01T12:04:02.026Z",
+    "decidedAt": "2026-08-03T12:04:01.776Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1303,6 +1303,33 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-08-01T12:04:02.026Z"
+      },
+      {
+        "id": "T0181",
+        "agent": "cfo",
+        "title": "Implement Financial Projection Norms Library (Rule of 40, LTV/CAC)",
+        "rationale": "Provides the necessary benchmarks for the Multi-Method Valuation Engine to move from raw data to comparative analysis.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-03T12:04:01.776Z"
+      },
+      {
+        "id": "T0182",
+        "agent": "cro",
+        "title": "Develop Next-Best-Action/DIRECTION engine for SCN layer sequencing",
+        "rationale": "Transforms the SCN framework from a static set of tools into a navigation system by sequencing actions based on the weakest layer.",
+        "versionImpact": "major",
+        "status": "pending",
+        "createdAt": "2026-08-03T12:04:01.776Z"
+      },
+      {
+        "id": "T0183",
+        "agent": "ciso",
+        "title": "Integrate ACSC Essential Eight Compliance Scanner",
+        "rationale": "Translates recent CISO research on ACSC alerts into a tangible security posture feature for AU founders.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-03T12:04:01.776Z"
       }
     ]
   },
