@@ -949,3 +949,4 @@
 {"ts":"2026-08-03T21:05:01Z","endpoint":"trial-end-reminder","status":"error","duration_ms":64980,"detail":"curl exit 56 (timeout or connection refused)"}
 {"ts":"2026-08-03T21:00:01Z","endpoint":"agent-auto-improve","status":"error","duration_ms":485243,"detail":"curl exit 52 (timeout or connection refused)"}
 {"ts":"2026-08-03T21:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":619,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 23, \"raw\": \"23% used (214217388 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274183776 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-03T21:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":146,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
