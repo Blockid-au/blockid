@@ -1,6 +1,6 @@
 {
-  "date": "2026-08-02",
-  "overall": 26,
+  "date": "2026-08-03",
+  "overall": 29,
   "status": "RED",
   "dimensions": [
     {
@@ -64,11 +64,11 @@
     {
       "key": "deps",
       "label": "Dependency vulnerabilities",
-      "score": 1,
-      "detail": "crit 0, high 9, mod 2",
+      "score": 3,
+      "detail": "crit 0, high 6, mod 5",
       "findings": [
-        "9 high CVE(s)",
-        "2 moderate CVE(s)"
+        "6 high CVE(s)",
+        "5 moderate CVE(s)"
       ]
     },
     {
