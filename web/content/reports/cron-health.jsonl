@@ -843,3 +843,4 @@
 {"ts":"2026-08-03T09:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":4992,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-08-03T09:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16601,"detail":""}
 {"ts":"2026-08-03T09:00:01Z","endpoint":"weekly-metrics","status":"fail","duration_ms":16638,"detail":""}
+{"ts":"2026-08-03T09:05:02Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16550,"detail":""}
