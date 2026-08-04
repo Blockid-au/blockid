@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.1.0  ·  **Updated:** 2026-08-03T16:00:02.012Z  ·  **Decided by:** ceo (2026-08-03T12:04:01.776Z)
+**Version:** v3.1.0  ·  **Updated:** 2026-08-04T12:04:02.269Z  ·  **Decided by:** ceo (2026-08-04T12:04:02.269Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -32,6 +32,7 @@
 | T0181 | CFO | Implement Financial Projection Norms Library (Rule of 40, LTV/CAC) | minor | ⬜ pending |
 | T0182 | CRO | Develop Next-Best-Action/DIRECTION engine for SCN layer sequencing | major | ⬜ pending |
 | T0183 | CISO | Integrate ACSC Essential Eight Compliance Scanner | minor | ⬜ pending |
+| T0184 | RND | Deploy Founder Pain-Point Insight Service (API) | minor | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0236` **RND** — T0111 AI Idea Lab — sector-aware angle generator
