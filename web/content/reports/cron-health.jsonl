@@ -833,3 +833,4 @@
 {"ts":"2026-08-04T18:00:01Z","endpoint":"agent-orchestrator","status":"ok","duration_ms":95478,"detail":"{\"stagesRun\": [\"qa\", \"report\"], \"results\": [{\"stage\": \"qa\", \"ok\": true, \"message\": \"QA: ?/20 pass, 0 fail\"}, {\"stage\": \"report\", \"ok\": true, \"message\": \"Telegram sent, 0 AI calls\"}], \"dailyStagesCompl"}
 {"ts":"2026-08-04T18:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":99558,"detail":""}
 {"ts":"2026-08-04T18:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":1878,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 25, \"raw\": \"25% used (209840040 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274148496 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-04T18:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":172,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
