@@ -1018,3 +1018,4 @@
 {"ts":"2026-08-05T16:10:01Z","endpoint":"nurture","status":"ok","duration_ms":649,"detail":"{\"sent\": 0, \"skipped\": 0, \"ts\": \"2026-08-05T16:10:02.091Z\", \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
 {"ts":"2026-08-05T16:15:01Z","endpoint":"vesting","status":"ok","duration_ms":234,"detail":"{\"processed\": 1, \"completed\": 0, \"emailed\": 0}"}
 {"ts":"2026-08-05T16:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":158,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-08-05T16:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":646,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 26, \"raw\": \"26% used (205141224 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274112660 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
