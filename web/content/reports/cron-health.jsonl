@@ -1036,3 +1036,4 @@
 {"ts":"2026-08-05T18:00:01Z","endpoint":"agent-orchestrator","status":"ok","duration_ms":95066,"detail":"{\"stagesRun\": [\"qa\", \"report\"], \"results\": [{\"stage\": \"qa\", \"ok\": true, \"message\": \"QA: ?/20 pass, 0 fail\"}, {\"stage\": \"report\", \"ok\": true, \"message\": \"Telegram sent, 0 AI calls\"}], \"dailyStagesCompl"}
 {"ts":"2026-08-05T18:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":95507,"detail":""}
 {"ts":"2026-08-05T18:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":99009,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
+{"ts":"2026-08-05T18:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2152,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 27, \"raw\": \"27% used (204729336 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274112580 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
