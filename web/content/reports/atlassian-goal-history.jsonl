@@ -6749,3 +6749,7 @@
 {"tick_id":"2026-08-05T16-47-01-224Z","ts":"2026-08-05T16:47:05.728Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"4c94bb229","last_deployed":"ba21cf4"}
 {"tick_id":"2026-08-05T16-47-01-224Z","ts":"2026-08-05T16:47:57.080Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"4c94bb229"}
 {"tick_id":"2026-08-05T16-47-01-224Z","ts":"2026-08-05T16:47:57.083Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-05T16-57-01-151Z","ts":"2026-08-05T16:57:01.152Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-05T16-57-01-151Z","ts":"2026-08-05T16:57:01.169Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-05T16-57-01-151Z","ts":"2026-08-05T16:57:02.766Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":1,"elapsed_ms":1595,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-05T16-57-01-151Z","ts":"2026-08-05T16:57:02.811Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":5}
