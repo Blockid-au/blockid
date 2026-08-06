@@ -7769,3 +7769,4 @@
 {"tick_id":"2026-08-06T14-07-01-798Z","ts":"2026-08-06T14:20:20.611Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-06T14-27-01-805Z","ts":"2026-08-06T14:27:01.806Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-06T14-27-01-805Z","ts":"2026-08-06T14:27:01.823Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"atlassian-goal-loop-manual-2026-08-06T14-31","ts":"2026-08-06T14:31:30.000Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"phase_worked","phase":"P9_ship","work":"P9-credit-packs-lib-test","target":"web/src/lib/credit-packs.ts","test_file":"web/src/lib/credit-packs.test.ts","test_count":34,"test_status":"passed","duration_ms":404}
