@@ -7719,3 +7719,4 @@
 {"tick_id":"2026-08-06T12-57-02-064Z","ts":"2026-08-06T12:57:51.118Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-06T13-07-01-810Z","ts":"2026-08-06T13:07:01.810Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-06T13-07-01-810Z","ts":"2026-08-06T13:07:01.831Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"atlassian-goal-loop-manual-2026-08-06T13-14","ts":"2026-08-06T13:13:38.940Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"phase_worked","phase":"P9_ship","work":"P9-founder-digest-route-test","target":"web/src/app/api/cron/founder-weekly-digest/route.ts","test_file":"web/src/app/api/cron/founder-weekly-digest/route.test.ts","test_count":21,"test_status":"passed","duration_ms":753}
