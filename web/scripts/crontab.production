@@ -322,6 +322,13 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Dunning retry (past_due Stripe subs, 4-attempt cap) — every 6h
 15 */6 * * * bash $RUN dunning-retry --timeout 90
 
+# Stripe reconcile — safety net for missed checkout.session.completed webhooks.
+# Scans last 48h of paid sessions and auto-grants Founding 100 / credit packs
+# whose revenue_events row is missing. Alerts on Telegram for anything unknown.
+# Added after 2026-08-06 Zenya incident (Stripe endpoint was not subscribed to
+# checkout.session.completed — root cause resolved, this is defense-in-depth).
+45 */6 * * * bash $RUN stripe-reconcile --timeout 120
+
 # Lifecycle mailer (day0/3/5/6/7/14/winback drip) — every 15 min
 */15 * * * * bash $RUN lifecycle-mailer --timeout 90
 
