@@ -49,17 +49,15 @@ vi.mock("./svi-analysis", () => ({
   detectSector: mocks.detectSectorMock,
 }));
 
-const SECTION_DEPTH_CONFIG_FIXTURE = {
-  scan: { label: "Scan", words: 100, credits: 0.1, description: "" },
-  summary: { label: "Summary", words: 300, credits: 0.25, description: "" },
-  standard: { label: "Standard", words: 500, credits: 0.5, description: "" },
-  deep: { label: "Deep", words: 1000, credits: 1, description: "" },
-  expert: { label: "Expert", words: 2000, credits: 2, description: "" },
-  maximum: { label: "Maximum", words: 3000, credits: 3, description: "" },
-} as const;
-
 vi.mock("./credits", () => ({
-  SECTION_DEPTH_CONFIG: SECTION_DEPTH_CONFIG_FIXTURE,
+  SECTION_DEPTH_CONFIG: {
+    scan: { label: "Scan", words: 100, credits: 0.1, description: "" },
+    summary: { label: "Summary", words: 300, credits: 0.25, description: "" },
+    standard: { label: "Standard", words: 500, credits: 0.5, description: "" },
+    deep: { label: "Deep", words: 1000, credits: 1, description: "" },
+    expert: { label: "Expert", words: 2000, credits: 2, description: "" },
+    maximum: { label: "Maximum", words: 3000, credits: 3, description: "" },
+  },
   calculateReportCost: mocks.calculateReportCostMock,
 }));
 
@@ -86,16 +84,16 @@ function makeSVI(overrides: Partial<SVIAnalysis> = {}): SVIAnalysis {
     netAdjustment: 40,
     confidenceMultiplier: 0.75,
     subs: [
-      { key: "PTD", label: "Problem-Solution Fit", value: 60, adjustment: 5, rationale: "clear pain" },
-      { key: "SVM", label: "Market", value: 70, adjustment: 10, rationale: "large TAM" },
-    ] as SVIAnalysis["subs"],
+      { key: "PTD", label: "Problem-Solution Fit", value: 60, adjustment: 5, rationale: "clear pain", evidence: [], gaps: [] },
+      { key: "SVM", label: "Market", value: 70, adjustment: 10, rationale: "large TAM", evidence: [], gaps: [] },
+    ],
     riskPenalties: [
-      { key: "regulation", label: "Regulatory risk", points: 4, reason: "AFSL" },
-    ] as SVIAnalysis["riskPenalties"],
+      { label: "Regulatory risk", points: 4, reason: "AFSL" },
+    ],
     evidenceGaps: [
-      { key: "cap", label: "Cap table", priority: "P0", action: "Upload cap table", impact: 8 },
-      { key: "deck", label: "Pitch deck", priority: "P1", action: "Upload deck", impact: 5 },
-    ] as SVIAnalysis["evidenceGaps"],
+      { label: "Cap table", priority: "P0", action: "Upload cap table", impact: 8, evidenceType: "document" },
+      { label: "Pitch deck", priority: "P1", action: "Upload deck", impact: 5, evidenceType: "document" },
+    ],
     nextActions: [],
     signals: {} as SVIAnalysis["signals"],
     summary: "",
@@ -293,9 +291,9 @@ describe("generateRndReport", () => {
     const svi = makeSVI({
       totalSVI: 290,
       evidenceGaps: [
-        { key: "a", label: "A", priority: "P0", action: "act", impact: 20 },
-        { key: "b", label: "B", priority: "P1", action: "act", impact: 20 },
-      ] as SVIAnalysis["evidenceGaps"],
+        { label: "A", priority: "P0", action: "act", impact: 20, evidenceType: "document" },
+        { label: "B", priority: "P1", action: "act", impact: 20, evidenceType: "document" },
+      ],
     });
     const report = await generateRndReport("startup", svi, "idea");
     // gapPoints = 40, +round(40*0.7) = +28 → 318, clamped to 300.
@@ -307,9 +305,9 @@ describe("generateRndReport", () => {
     const svi = makeSVI({
       totalSVI: 100,
       evidenceGaps: [
-        { key: "a", label: "A", priority: "P0", action: "act", impact: 10 },
-        { key: "b", label: "B", priority: "P1", action: "act", impact: 10 },
-      ] as SVIAnalysis["evidenceGaps"],
+        { label: "A", priority: "P0", action: "act", impact: 10, evidenceType: "document" },
+        { label: "B", priority: "P1", action: "act", impact: 10, evidenceType: "document" },
+      ],
     });
     const report = await generateRndReport("startup", svi, "idea");
     // gapPoints = 20, +round(20*0.7)=+14 → 114.
@@ -321,7 +319,7 @@ describe("generateRndReport", () => {
     const svi = makeSVI({
       totalSVI: 100,
       evidenceGaps: [
-        { key: "a", label: "A", priority: "P0", action: "act" } as unknown as SVIAnalysis["evidenceGaps"][number],
+        { label: "A", priority: "P0", action: "act", evidenceType: "document" } as unknown as SVIAnalysis["evidenceGaps"][number],
       ],
     });
     const report = await generateRndReport("startup", svi, "idea");
@@ -432,15 +430,32 @@ describe("generateRndReport", () => {
     expect(call.system).not.toMatch(/tiếng Việt/);
   });
 
-  it("uses the standard tier system prompt when tier is unspecified", async () => {
+  it("uses the free-tier system prompt + 2000 tokens/page for tier='preview'", async () => {
     callAIMock.mockResolvedValue(aiOk(pageResponse(PAGE_DEFS.map((p) => p.id))));
-    await generateRndReport("startup", makeSVI(), "idea");
+    await generateRndReport(
+      "startup",
+      makeSVI(),
+      "idea",
+      undefined,
+      undefined,
+      "preview",
+    );
     const call = callAIMock.mock.calls[0][0] as { system: string; maxTokens: number };
-    // The free / no-tier path uses SYSTEM_STANDARD which carries the
-    // "Free users: 200-350 words/page with lockedPreview…" copy.
+    // preview tier routes to SYSTEM_STANDARD (the not-isPaid branch) which
+    // carries the "Free users: 200-350 words/page with lockedPreview…" copy.
     expect(call.system).toMatch(/Free users: 200-350/);
-    // 2000 tokens/page * 1 page = 2000
+    // 2000 tokens/page * 1 page = 2000 (per-page batches).
     expect(call.maxTokens).toBe(2000);
+  });
+
+  it("defaults tier to 'standard' when the caller omits it (isPaid branch)", async () => {
+    callAIMock.mockResolvedValue(aiOk(pageResponse(PAGE_DEFS.map((p) => p.id))));
+    const report = await generateRndReport("startup", makeSVI(), "idea");
+    expect(report.tier).toBe("standard");
+    const call = callAIMock.mock.calls[0][0] as { system: string; maxTokens: number };
+    // Default tier is 'standard' → isPaid branch → SYSTEM_DEEP_DIVE + 3000 max tokens.
+    expect(call.system).toMatch(/consultant-grade NARRATIVE ANALYSIS/);
+    expect(call.maxTokens).toBe(3000);
   });
 
   it("uses the Deep-Dive system prompt + 4096 tokens/page when tier='deep_dive'", async () => {
