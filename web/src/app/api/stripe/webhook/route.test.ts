@@ -38,14 +38,38 @@ const fromCalls: string[] = [];
 const insertCalls: Array<{ table: string; row: Row | Row[] }> = [];
 const updateCalls: Array<{ table: string; row: Row }> = [];
 const upsertCalls: Array<{ table: string; row: Row | Row[] }> = [];
-const selectResponses = new Map<string, { data: unknown; error: null | { code?: string; message?: string } }>();
+// Per-(table, opKind) preset responses. opKind is one of:
+//   "select"  — chain started with .select() (used to look for existing rows)
+//   "insert"  — chain started with .insert()
+//   "update"  — chain started with .update()
+//   "upsert"  — chain started with .upsert()
+// Default when no preset is present: { data: null, error: null } → the code
+// path treats it as "no existing row" for select, and "no data back" for
+// insert. Tests can preset e.g. selectResponses.set("report_orders:insert",
+// { data: { id: "order-new-1" }, error: null }).
+const selectResponses = new Map<
+  string,
+  { data: unknown; error: null | { code?: string; message?: string } }
+>();
 
 function makeChain(table: string): unknown {
   const chain: Record<string, unknown> = {};
+  let opKind: "select" | "insert" | "update" | "upsert" | "delete" | null = null;
   const terminal = (method: string) => (...args: unknown[]) => {
-    if (method === "insert") insertCalls.push({ table, row: args[0] as Row });
-    if (method === "update") updateCalls.push({ table, row: args[0] as Row });
-    if (method === "upsert") upsertCalls.push({ table, row: args[0] as Row });
+    if (method === "insert") {
+      insertCalls.push({ table, row: args[0] as Row });
+      opKind = "insert";
+    } else if (method === "update") {
+      updateCalls.push({ table, row: args[0] as Row });
+      opKind = "update";
+    } else if (method === "upsert") {
+      upsertCalls.push({ table, row: args[0] as Row });
+      opKind = "upsert";
+    } else if (method === "select" && opKind === null) {
+      opKind = "select";
+    } else if (method === "delete" && opKind === null) {
+      opKind = "delete";
+    }
     return chain; // still awaitable + chainable
   };
   for (const m of [
@@ -57,7 +81,8 @@ function makeChain(table: string): unknown {
   }
   // Make the chain a thenable so `await supabase.from(x).select(...)` resolves.
   chain.then = (resolve: (v: unknown) => unknown) => {
-    const preset = selectResponses.get(table);
+    const key = `${table}:${opKind ?? "select"}`;
+    const preset = selectResponses.get(key) ?? selectResponses.get(table);
     resolve(preset ?? { data: null, error: null });
     return chain;
   };
@@ -316,6 +341,11 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
   });
 
   it("trust_report (report_order): inserts report_orders + revenue_events(trust_report_5aud)", async () => {
+    // The reconciliation branch does `.insert(...).select("id").single()` and
+    // expects a real row back. Preset the terminal await for report_orders so
+    // the handler proceeds past the insert-verify guard.
+    selectResponses.set("report_orders:insert", { data: { id: "order-new-1" }, error: null });
+
     verifyWebhookSignature.mockReturnValue(
       buildCheckoutEvent({
         id: "evt_trust_report",
