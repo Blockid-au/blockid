@@ -1033,6 +1033,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnoctoginticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unoctogintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duooctogintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2979,6 +2984,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnoctoginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToUnoctoginticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToDuooctoginticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -8902,6 +8911,25 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnoctoginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToUnoctoginticMean,
         );
+      // P11.419 — per-transition magnitude TOP-3 pool peak-to-duooctogintic-mean.
+      // PTDOGM = (max - min) / duooctogintic_mean where
+      // duooctogintic_mean = ((sum x_i^82) / n)^(1/82) is the M_82 power
+      // mean. Bands tight < 1.005, spread [1.005, 1.09), wide >= 1.09.
+      // Since duooctogintic_mean >= unoctogintic_mean by Power
+      // Mean inequality (M_82 >= M_81), ptdogm <= ptuogm for every
+      // non-flat pool. FURTHER ABSORPTION at M_82: pool_count=100 [1x99,100]
+      // reads 1.0472 SPREAD at M_82 (was 1.0479 spread at M_81). Splices
+      // IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolPeakToUnoctoginticMeanSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.418
+      // formatter docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToDuooctoginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean,
+        );
     }
   }
   if (
@@ -9085,6 +9113,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToNovenseptuaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToOctoginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToUnoctoginticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToDuooctoginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -9295,6 +9324,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToNovenseptuaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToOctoginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToUnoctoginticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToDuooctoginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -14555,6 +14585,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToUnoctoginticMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToUnoctoginticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_duooctogintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.top_n,
+            tight_ptdogm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.tight_ptdogm_max,
+            wide_ptdogm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.wide_ptdogm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean.transitions,
           }
         : {
             skipped_reason:
