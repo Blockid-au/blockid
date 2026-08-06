@@ -1,6 +1,6 @@
 {
   "version": "3.1.0",
-  "updatedAt": "2026-08-05T16:00:02.347Z",
+  "updatedAt": "2026-08-06T12:04:02.588Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-07-22T14:00:02.174Z",
@@ -32,7 +32,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-08-05T12:04:01.932Z",
+    "decidedAt": "2026-08-06T12:04:02.588Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1339,6 +1339,33 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-08-04T12:04:02.269Z"
+      },
+      {
+        "id": "T0185",
+        "agent": "cfo",
+        "title": "Implement AU R&D Tax Incentive & ESIC logic into Valuation Engine",
+        "rationale": "Translates CFO's recent research on AU-specific tax incentives into a concrete valuation uplift, providing unique local value over global competitors like Carta.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-06T12:04:02.588Z"
+      },
+      {
+        "id": "T0186",
+        "agent": "cro",
+        "title": "Implement DIRECTION engine for SCN layer sequencing",
+        "rationale": "Moves the 'Next-Best-Action' research into a shippable module that tells founders exactly which SCN layer to fix first based on their current stage.",
+        "versionImpact": "major",
+        "status": "pending",
+        "createdAt": "2026-08-06T12:04:02.588Z"
+      },
+      {
+        "id": "T0187",
+        "agent": "rnd",
+        "title": "Deploy Founder Pain-Point Insight API",
+        "rationale": "Provides the underlying data layer for the CMO and CPO to iterate on landing page copy and feature sets based on actual emerging founder struggles.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-06T12:04:02.588Z"
       }
     ]
   },
