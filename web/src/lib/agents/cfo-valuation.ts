@@ -577,6 +577,106 @@ export function berkusMethod(input: VcValuationInput): ValuationMethodResult {
   };
 }
 
+// ── Scorecard method (Bill Payne) — reference for early-stage rounds ────────
+// Multiplies a regional angel/seed pre-money median by a weighted sum of seven
+// factors, each scored 0.5x-2.5x relative to the average deal (1.0x = median).
+// Weights are Bill Payne's canonical values, still used by AngelList Australia
+// and Sydney/Melbourne angel groups. Baseline pre-money uses the midpoint of
+// AU_FINANCIAL_RESEARCH.fundingBenchmarks.seed.avgValuationRange so the anchor
+// tracks Cut Through Venture / AVCAL each time the research constant refreshes.
+// Emitted with weight=0 by default — surfaces in report.methods for
+// transparency but never shifts the blended valuation on its own.
+
+export interface ScorecardFactor {
+  name: string;
+  weight: number; // 0-1, sums to 1
+  multiplier: number; // 0.5–2.5, 1.0 = market median
+}
+
+const SCORECARD_MIN = 0.5;
+const SCORECARD_MAX = 2.5;
+
+export function scorecardFactors(input: VcValuationInput): ScorecardFactor[] {
+  const stage = normStage(input.stage);
+  const hasRevenue = (input.mrrAud ?? 0) > 0;
+  const mrr = input.mrrAud ?? 0;
+  const growth = Math.max(0, input.monthlyGrowthRatePct ?? 0);
+  const ue = unitEconomics(input);
+
+  const teamBase = stage === "series-a" ? 1.8 : stage === "seed" ? 1.3 : stage === "pre-seed" ? 0.9 : 1.0;
+  const teamBonus = (input.hasFounderVesting ? 0.1 : 0) + (input.hasShareholdersAgreement ? 0.1 : 0);
+  const teamScore = clamp(teamBase + teamBonus, SCORECARD_MIN, SCORECARD_MAX);
+
+  const bm = vcBenchmark(input.sector);
+  const opportunityScore = clamp(
+    bm.marketCagrPct >= 20 ? 1.9 : bm.marketCagrPct >= 15 ? 1.5 : bm.marketCagrPct >= 10 ? 1.1 : 0.8,
+    SCORECARD_MIN,
+    SCORECARD_MAX,
+  );
+
+  const productScore = clamp(
+    hasRevenue ? 1.7 : stage === "seed" || stage === "series-a" ? 1.2 : 0.8,
+    SCORECARD_MIN,
+    SCORECARD_MAX,
+  );
+
+  const competitiveScore = clamp(
+    ue.verdict === "strong" ? 1.6 : ue.verdict === "healthy" ? 1.2 : ue.verdict === "watch" ? 0.9 : 0.7,
+    SCORECARD_MIN,
+    SCORECARD_MAX,
+  );
+
+  const salesBase = hasRevenue ? 1.0 + Math.min(1.0, growth / 15) : 0.7;
+  const salesScore = clamp(salesBase, SCORECARD_MIN, SCORECARD_MAX);
+
+  // Bill Payne uses this factor inversely: less need for follow-on capital
+  // increases the multiplier. We proxy it from cash-on-hand vs monthly opex.
+  const monthlyOpex = input.monthlyOpexAud ?? Math.max(15000, mrr * 1.4);
+  const runwayMonths = monthlyOpex > 0 ? (input.cashOnHandAud ?? 0) / monthlyOpex : 0;
+  const capitalScore = clamp(
+    runwayMonths >= 18 ? 1.6 : runwayMonths >= 12 ? 1.2 : runwayMonths >= 6 ? 0.9 : 0.7,
+    SCORECARD_MIN,
+    SCORECARD_MAX,
+  );
+
+  const otherScore = clamp(
+    (input.esicQualifies ? 0.3 : 0) + (input.hasDataRoom ? 0.3 : 0) + (input.hasEsopPool ? 0.2 : 0) + 1.0,
+    SCORECARD_MIN,
+    SCORECARD_MAX,
+  );
+
+  return [
+    { name: "Strength of Team", weight: 0.30, multiplier: teamScore },
+    { name: "Size of Opportunity", weight: 0.25, multiplier: opportunityScore },
+    { name: "Product / Technology", weight: 0.15, multiplier: productScore },
+    { name: "Competitive Environment", weight: 0.10, multiplier: competitiveScore },
+    { name: "Marketing / Sales / Partnerships", weight: 0.10, multiplier: salesScore },
+    { name: "Need for Additional Investment", weight: 0.05, multiplier: capitalScore },
+    { name: "Other (ESIC, data room, ESOP)", weight: 0.05, multiplier: otherScore },
+  ];
+}
+
+export function scorecardMethod(input: VcValuationInput): ValuationMethodResult {
+  // AU angel/seed pre-money median — anchor moves whenever the CFO research
+  // constant refreshes, so the Scorecard tracks Cut Through Venture / AVCAL.
+  const seed = AU_FINANCIAL_RESEARCH.fundingBenchmarks.seed.avgValuationRange;
+  const basePreMoneyAud = round((seed.min + seed.max) / 2);
+  const factors = scorecardFactors(input);
+  const factorSum = factors.reduce((s, f) => s + f.weight * f.multiplier, 0);
+  const mid = round(basePreMoneyAud * factorSum);
+  const factorLines = factors
+    .map((f) => `${f.name} ${(f.weight * 100).toFixed(0)}%×${f.multiplier.toFixed(2)}`)
+    .join("; ");
+  return {
+    method: "scorecard",
+    lowAud: round(mid * 0.75),
+    midAud: mid,
+    highAud: round(mid * 1.25),
+    weight: 0, // reference only — never shifts the blended valuation
+    rationale: `Scorecard (Bill Payne) base A$${basePreMoneyAud.toLocaleString()} pre-money × ${factorSum.toFixed(2)} weighted factor sum. Factors: ${factorLines}. Source: AVCAL / Cut Through Venture seed medians.`,
+  };
+}
+
 // ── Financial injection (the "ask") ─────────────────────────────────────────
 
 export function financialInjection(input: VcValuationInput, projection: ProjectionRow[], preMoneyAud: number): FinancialInjection {
@@ -741,9 +841,12 @@ export function buildVcValuationReport(input: VcValuationInput): VcValuationRepo
     rfs.weight = 0.10;
   }
 
+  // Scorecard is always emitted as a reference (weight=0) so investor packs
+  // can show the Bill Payne cross-check alongside the blended valuation.
+  const scorecard = scorecardMethod(input);
   const methods = isPreRevenue
-    ? [berkus, comparables, vc, dcf, rfs]
-    : [comparables, vc, dcf, rfs, { ...berkus, weight: 0 }];
+    ? [berkus, comparables, vc, dcf, rfs, scorecard]
+    : [comparables, vc, dcf, rfs, { ...berkus, weight: 0 }, scorecard];
 
   const totalW = methods.reduce((s, m) => s + m.weight, 0);
   const blendedMid = round(methods.reduce((s, m) => s + m.midAud * m.weight, 0) / totalW);
