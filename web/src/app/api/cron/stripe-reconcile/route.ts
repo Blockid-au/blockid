@@ -173,6 +173,9 @@ export async function GET(request: Request) {
   });
 }
 
+// cron-runner.sh calls all cron endpoints via POST — alias to GET so both work.
+export const POST = GET;
+
 async function autoGrantFounding50(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,

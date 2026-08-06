@@ -480,7 +480,7 @@ export function isProjectionScenario(v: unknown): v is ProjectionScenario {
 
 export function generateProjection(input: ProjectionInput): Projection {
   const sector = normaliseSector(input.sector);
-  const bm = VC_BENCHMARKS[sector];
+  const bm = VC_BENCHMARKS[sector] ?? VC_BENCHMARKS.default;
   const baseGrowth = SECTOR_BASE_GROWTH_PCT[sector] ?? SECTOR_BASE_GROWTH_PCT.default;
   const scenarioMult = SCENARIO_MULTIPLIER[input.scenario] ?? 1;
   const effectiveBaseGrowthPct = baseGrowth * scenarioMult;
