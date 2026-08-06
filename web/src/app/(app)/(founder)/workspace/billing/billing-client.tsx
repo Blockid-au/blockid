@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { LegacyPlan as Plan } from "@/lib/plans";
 import { isGrowthEarlyBird, GROWTH_STANDARD_PRICE } from "@/lib/plans";
+import { CREDIT_PACKS } from "@/lib/credits";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { ShareMgmtDrawer } from "@/components/billing/share-mgmt-drawer";
 
@@ -604,14 +605,6 @@ export function BillingClient({
 // Credit Packs Section
 // ---------------------------------------------------------------------------
 
-/** Must stay in sync with CREDIT_PACKS in lib/credits.ts (server-only). */
-const CREDIT_PACK_OPTIONS = [
-  { amount: 10,  price: 5,  label: "10 credits",  priceLabel: "A$5",  perCredit: "A$0.50/credit",  savings: null },
-  { amount: 25,  price: 9,  label: "25 credits",  priceLabel: "A$9",  perCredit: "A$0.36/credit",  savings: "Save 28%" },
-  { amount: 50,  price: 15, label: "50 credits",  priceLabel: "A$15", perCredit: "A$0.30/credit",  savings: "Save 40%" },
-  { amount: 100, price: 25, label: "100 credits", priceLabel: "A$25", perCredit: "A$0.25/credit",  savings: "Save 50%" },
-] as const;
-
 const FEATURE_COST_LIST = [
   { feature: "SVI Standard Report", cost: 0.50 },
   { feature: "R&D Report (SSE)", cost: 1.00 },
@@ -717,9 +710,13 @@ function CreditsPurchaseSection() {
 
         {/* Pack grid */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {CREDIT_PACK_OPTIONS.map((pack) => (
+          {CREDIT_PACKS.map((pack) => {
+            const priceDollars = pack.priceAudCents / 100;
+            const priceLabel = `A$${priceDollars}`;
+            const perCredit = `A$${(pack.priceAudCents / pack.credits / 100).toFixed(2)}/credit`;
+            return (
             <div
-              key={pack.amount}
+              key={pack.credits}
               className="rounded-xl border border-surface-200 bg-surface-50 p-4 flex flex-col items-center text-center"
             >
               <div className="flex items-center gap-1.5 mb-1">
@@ -729,9 +726,9 @@ function CreditsPurchaseSection() {
                 </span>
               </div>
               <p className="text-sm font-semibold text-brand-600 mb-0.5">
-                {pack.priceLabel}
+                {priceLabel}
               </p>
-              <p className="text-[11px] text-ink-500 mb-1">{pack.perCredit}</p>
+              <p className="text-[11px] text-ink-500 mb-1">{perCredit}</p>
               {pack.savings && (
                 <span className="inline-block text-[10px] uppercase tracking-wider font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mb-3">
                   {pack.savings}
@@ -740,14 +737,14 @@ function CreditsPurchaseSection() {
               {!pack.savings && <div className="mb-3" />}
               <button
                 type="button"
-                onClick={() => handlePurchase(pack.amount)}
+                onClick={() => handlePurchase(pack.credits)}
                 disabled={loadingPack !== null}
                 className={cn(
                   "w-full h-9 rounded-lg bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5",
-                  loadingPack === pack.amount && "opacity-60 cursor-wait",
+                  loadingPack === pack.credits && "opacity-60 cursor-wait",
                 )}
               >
-                {loadingPack === pack.amount ? (
+                {loadingPack === pack.credits ? (
                   <Loader2
                     strokeWidth={1.75}
                     className="h-4 w-4 animate-spin"
@@ -758,7 +755,8 @@ function CreditsPurchaseSection() {
                 Buy
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* What can I do with credits? — expandable */}
