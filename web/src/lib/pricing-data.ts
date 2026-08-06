@@ -205,29 +205,14 @@ export const PRICING_TIERS: PricingTier[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Credit packs
+// Credit packs — re-exported from the isomorphic single source of truth at
+// lib/credit-packs.ts so marketing (this file, /pricing SSR) and workspace
+// billing (billing-client.tsx) can never drift again. See that file for the
+// ladder rationale and the Aug 2026 Zenya incident that motivated centralising.
 // ---------------------------------------------------------------------------
 
-export interface CreditPack {
-  credits: number;
-  /** Price in AUD dollars. */
-  price: number;
-  /** Display savings badge (e.g. "Save 40%"). null = no badge. */
-  savings: string | null;
-  /** Link to purchase. */
-  href: string;
-}
-
-// Mirrors CREDIT_PACKS in lib/credits.ts (server-authoritative single source
-// of truth). Any drift here silently mis-advertises bundle sizes on the
-// marketing /pricing surface — historically caused customer refund disputes.
-export const CREDIT_PACKS: CreditPack[] = [
-  { credits: 5, price: 5, savings: null, href: "/workspace/billing#credits" },
-  { credits: 10, price: 9, savings: "Save 10%", href: "/workspace/billing#credits" },
-  { credits: 25, price: 20, savings: "Save 20%", href: "/workspace/billing#credits" },
-  { credits: 50, price: 15, savings: "Save 70%", href: "/workspace/billing#credits" },
-  { credits: 100, price: 25, savings: "Save 75%", href: "/workspace/billing#credits" },
-];
+export { CREDIT_PACKS } from "./credit-packs";
+export type { CreditPack } from "./credit-packs";
 
 // ---------------------------------------------------------------------------
 // Feature comparison (used by /pricing page)
