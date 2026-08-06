@@ -1007,3 +1007,4 @@
 {"ts":"2026-08-06T18:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":60301,"detail":""}
 {"ts":"2026-08-06T18:00:01Z","endpoint":"agent-orchestrator","status":"ok","duration_ms":60303,"detail":"{\"stagesRun\": [\"qa\", \"report\"], \"results\": [{\"stage\": \"qa\", \"ok\": true, \"message\": \"QA: ?/21 pass, 0 fail\"}, {\"stage\": \"report\", \"ok\": true, \"message\": \"Telegram sent, 0 AI calls\"}], \"dailyStagesCompl"}
 {"ts":"2026-08-06T18:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16478,"detail":""}
+{"ts":"2026-08-06T18:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":3207,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 28, \"raw\": \"28% used (199499208 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274082952 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
