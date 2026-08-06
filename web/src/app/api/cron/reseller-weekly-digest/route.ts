@@ -8419,6 +8419,32 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquasexaginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquasexaginticMean,
         );
+      // P11.387 — per-transition magnitude TOP-3 pool peak-to-sesexagintic-mean.
+      // PTSSXQM = (max - min) / sesexagintic_mean where
+      // sesexagintic_mean = ((sum x_i^66) / n)^(1/66) is the M_66 power
+      // mean. Bands tight < 1.005, spread [1.005, 1.09), wide >= 1.09. Tight
+      // boundary holds at P11.344 PTQIQM's 1.005 (MILD OUTLIER at M_66 is
+      // 0.9320, well below buffer) and wide boundary HOLDS at P11.344
+      // PTQIQM's 1.09 since the 10..89-partner asymptotes all sit below
+      // wide (10-partner 1.0355, 89-partner 1.0704); pool_count >= 97
+      // (97^(1/66) ~= 1.0718) is required to escape into wide with a
+      // modest outlier. Since sesexagintic_mean >= quinquasexagintic_mean
+      // by Power Mean inequality (M_66 >= M_65), ptssxqm <= ptqisxqm for
+      // every non-flat pool. FURTHER ABSORPTION at M_66: pool_count=100
+      // [1x99,100] reads 1.0615 SPREAD at M_66 (was 1.0627 spread at
+      // M_65) — the M_66 center is taller than M_65's, compressing the
+      // 100-partner extreme pool deeper into the spread band. Splices
+      // IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolPeakToQuinquasexaginticMeanSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.386
+      // formatter docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToSesexaginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesexaginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToSesexaginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesexaginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToSesexaginticMean,
+        );
     }
   }
   if (

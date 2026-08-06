@@ -144,3 +144,5 @@
 {"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":127,"timestamp":"2026-08-05T18:01:36.560Z"}
 {"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240003,"timestamp":"2026-08-06T12:04:01.832Z"}
 {"stage":"plan","ok":true,"message":"CEO implementing plan updated — 3 new task(s), 29 pending","aiCalls":1,"durationMs":757,"timestamp":"2026-08-06T12:04:02.590Z"}
+{"stage":"code","ok":false,"message":"Code stage failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240002,"timestamp":"2026-08-06T14:04:02.124Z"}
+{"stage":"deploy","ok":true,"message":"Production running — HTTP 200","aiCalls":0,"durationMs":317,"timestamp":"2026-08-06T14:04:02.441Z"}
