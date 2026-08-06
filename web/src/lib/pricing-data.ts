@@ -218,11 +218,15 @@ export interface CreditPack {
   href: string;
 }
 
+// Mirrors CREDIT_PACKS in lib/credits.ts (server-authoritative single source
+// of truth). Any drift here silently mis-advertises bundle sizes on the
+// marketing /pricing surface — historically caused customer refund disputes.
 export const CREDIT_PACKS: CreditPack[] = [
-  { credits: 5, price: 2, savings: null, href: "/workspace/billing#credits" },
-  { credits: 15, price: 5, savings: "Save 33%", href: "/workspace/billing#credits" },
-  { credits: 35, price: 9, savings: "Save 49%", href: "/workspace/billing#credits" },
-  { credits: 100, price: 19, savings: "Save 62%", href: "/workspace/billing#credits" },
+  { credits: 5, price: 5, savings: null, href: "/workspace/billing#credits" },
+  { credits: 10, price: 9, savings: "Save 10%", href: "/workspace/billing#credits" },
+  { credits: 25, price: 20, savings: "Save 20%", href: "/workspace/billing#credits" },
+  { credits: 50, price: 15, savings: "Save 70%", href: "/workspace/billing#credits" },
+  { credits: 100, price: 25, savings: "Save 75%", href: "/workspace/billing#credits" },
 ];
 
 // ---------------------------------------------------------------------------

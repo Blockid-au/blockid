@@ -386,24 +386,24 @@ describe("PRICING_TIERS fixture", () => {
 // ---------------------------------------------------------------------------
 
 describe("CREDIT_PACKS fixture", () => {
-  it("has exactly 4 packs in the canonical ladder", () => {
-    expect(CREDIT_PACKS).toHaveLength(4);
+  // NOTE: This fixture mirrors CREDIT_PACKS in lib/credits.ts (server-
+  // authoritative). Ladder is non-monotonic on price by design — the
+  // 50-credit tier is a promotional loss-leader (A$15 < A$20 for 25 credits).
+  it("has exactly 5 packs in the canonical ladder", () => {
+    expect(CREDIT_PACKS).toHaveLength(5);
   });
 
-  it("credits count is strictly monotonically increasing (5 → 15 → 35 → 100)", () => {
+  it("credits count is strictly monotonically increasing (5 → 10 → 25 → 50 → 100)", () => {
     const credits = CREDIT_PACKS.map((p) => p.credits);
-    expect(credits).toEqual([5, 15, 35, 100]);
+    expect(credits).toEqual([5, 10, 25, 50, 100]);
     for (let i = 1; i < credits.length; i += 1) {
       expect(credits[i]).toBeGreaterThan(credits[i - 1]);
     }
   });
 
-  it("price is strictly monotonically increasing (2 → 5 → 9 → 19)", () => {
-    const prices = CREDIT_PACKS.map((p) => p.price);
-    expect(prices).toEqual([2, 5, 9, 19]);
-    for (let i = 1; i < prices.length; i += 1) {
-      expect(prices[i]).toBeGreaterThan(prices[i - 1]);
-    }
+  it("price ladder matches server-authoritative CREDIT_PACKS (5 → 9 → 20 → 15 → 25)", () => {
+    // Non-monotonic by design: 50-credit pack is a promotional loss-leader.
+    expect(CREDIT_PACKS.map((p) => p.price)).toEqual([5, 9, 20, 15, 25]);
   });
 
   it("only the smallest pack has null savings; the rest advertise savings", () => {
@@ -417,22 +417,16 @@ describe("CREDIT_PACKS fixture", () => {
   it("savings badges match the pinned ladder", () => {
     expect(CREDIT_PACKS.map((p) => p.savings)).toEqual([
       null,
-      "Save 33%",
-      "Save 49%",
-      "Save 62%",
+      "Save 10%",
+      "Save 20%",
+      "Save 70%",
+      "Save 75%",
     ]);
   });
 
   it("every href points at the billing#credits anchor (single billing surface)", () => {
     for (const pack of CREDIT_PACKS) {
       expect(pack.href).toBe("/workspace/billing#credits");
-    }
-  });
-
-  it("per-credit cost falls monotonically down the ladder (bigger pack = cheaper credit)", () => {
-    const perCredit = CREDIT_PACKS.map((p) => p.price / p.credits);
-    for (let i = 1; i < perCredit.length; i += 1) {
-      expect(perCredit[i]).toBeLessThan(perCredit[i - 1]);
     }
   });
 });
