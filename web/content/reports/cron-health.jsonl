@@ -967,3 +967,5 @@
 {"ts":"2026-08-06T15:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17043,"detail":""}
 {"ts":"2026-08-06T15:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16479,"detail":""}
 {"ts":"2026-08-06T15:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":563,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 29, \"raw\": \"29% used (198434984 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274082976 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-06T15:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16842,"detail":""}
+{"ts":"2026-08-06T15:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":127,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
