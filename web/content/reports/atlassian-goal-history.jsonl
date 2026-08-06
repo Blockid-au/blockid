@@ -7927,3 +7927,4 @@
 {"tick_id":"2026-08-06T18-27-01-509Z","ts":"2026-08-06T18:34:12.669Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-06T18-37-01-321Z","ts":"2026-08-06T18:37:01.322Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-06T18-37-01-321Z","ts":"2026-08-06T18:37:01.344Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-06T18-43-09-613Z","ts":"2026-08-06T18:43:09.611Z","loop_label":"atlassian-goal-loop","stage":"subphase_shipped","subphase":"P9-onboarding-complete-route-test","file":"web/src/app/api/onboarding/complete/route.test.ts","cases":24,"result":"passed"}
