@@ -998,6 +998,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorseptuagintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquaseptuagintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2916,6 +2921,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -8705,6 +8714,25 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMeanSection =
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMean,
+        );
+      // P11.405 — per-transition magnitude TOP-3 pool peak-to-quinquaseptuagintic-mean.
+      // PTQISPQM = (max - min) / quinquaseptuagintic_mean where
+      // quinquaseptuagintic_mean = ((sum x_i^75) / n)^(1/75) is the M_75 power
+      // mean. Bands tight < 1.005, spread [1.005, 1.09), wide >= 1.09.
+      // Since quinquaseptuagintic_mean >= quattuorseptuagintic_mean by Power
+      // Mean inequality (M_75 >= M_74), ptqispqm <= ptqspqm for every
+      // non-flat pool. FURTHER ABSORPTION at M_75: pool_count=100 [1x99,100]
+      // reads 1.0527 SPREAD at M_75 (was 1.0536 spread at M_74). Splices
+      // IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMeanSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.404
+      // formatter docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMean,
         );
     }
   }
