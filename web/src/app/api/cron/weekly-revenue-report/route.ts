@@ -3,7 +3,7 @@
 // Weekly revenue + credit-spend summary emailed to admin@blockid.au.
 // Authoritative dollars come from Stripe (payment_intents.succeeded), credit
 // spend by feature comes from credit_transactions (negative amounts), founding
-// 100 cumulative count comes from app_users.plan.
+// 100 cumulative count comes from app_users.plan (live plan id: "founding50").
 //
 // Schedule: Mondays 09:00 UTC (covers prior 7-day window).
 
@@ -91,8 +91,8 @@ export async function POST(request: Request) {
   }
 
   const [foundingNowRes, foundingPrevRes, newUsersRes, spendRes, feedbackRes] = await Promise.all([
-    supabase.from("app_users").select("id", { count: "exact", head: true }).eq("plan", "founding_100"),
-    supabase.from("app_users").select("id", { count: "exact", head: true }).eq("plan", "founding_100").lt("plan_started_at", startThisIso),
+    supabase.from("app_users").select("id", { count: "exact", head: true }).eq("plan", "founding50"),
+    supabase.from("app_users").select("id", { count: "exact", head: true }).eq("plan", "founding50").lt("plan_started_at", startThisIso),
     supabase.from("app_users").select("id", { count: "exact", head: true }).gte("created_at", startThisIso),
     supabase.from("credit_transactions").select("amount, reason").lt("amount", 0).gte("created_at", startThisIso),
     supabase.from("user_feedback").select("credits_awarded").gte("created_at", startThisIso),
