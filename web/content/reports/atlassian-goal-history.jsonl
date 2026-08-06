@@ -7780,3 +7780,5 @@
 {"tick_id":"2026-08-06T14-37-02-022Z","ts":"2026-08-06T14:37:02.023Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-06T14-37-02-022Z","ts":"2026-08-06T14:37:02.055Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id": "2026-08-06T14-37-02-022Z", "ts": "2026-08-06T14:43:08.000Z", "loop_label": "atlassian-goal-loop", "human_review_minutes_7d": 0, "stage": "phase_shipped", "phase": "P9_ship", "shipped_slug": "P9-supabase-admin-lib-test", "test_file": "web/src/lib/supabase.test.ts", "cases": 38, "passed": 38, "target": "web/src/lib/supabase.ts"}
+{"tick_id":"2026-08-06T14-37-02-022Z","ts":"2026-08-06T14:43:31.625Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":389568,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-06T14-37-02-022Z","ts":"2026-08-06T14:43:31.669Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
