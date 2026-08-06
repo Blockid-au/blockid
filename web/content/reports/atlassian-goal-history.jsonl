@@ -7934,3 +7934,6 @@
 {"tick_id":"2026-08-06T18-37-01-321Z","ts":"2026-08-06T18:46:34.473Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"0cc389a75","last_deployed":"ba21cf4"}
 {"tick_id":"2026-08-06T18-37-01-321Z","ts":"2026-08-06T18:49:36.589Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"0cc389a75"}
 {"tick_id":"2026-08-06T18-37-01-321Z","ts":"2026-08-06T18:49:36.590Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-06T18-57-01-967Z","ts":"2026-08-06T18:57:01.968Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-06T18-57-01-967Z","ts":"2026-08-06T18:57:01.986Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id": "2026-08-06T19-02-00-884Z", "ts": "2026-08-06T19:02:00.884Z", "loop_label": "atlassian-goal-loop", "stage": "subphase_shipped", "subphase": "P9-save-progress-route-test", "file": "web/src/app/api/onboarding/save-progress/route.test.ts", "cases": 26, "result": "passed"}
