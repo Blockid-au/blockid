@@ -194,7 +194,7 @@ const nudgeResultFixture = {
   next_step_confidence: "high" as const,
 };
 
-const computeNextStepsMock = vi.fn(() => nudgeResultFixture);
+const computeNextStepsMock = vi.fn((_input: unknown) => nudgeResultFixture);
 vi.mock("@/lib/nudge/next-steps", async () => {
   // Keep the exported type surface intact by re-exporting the real module,
   // then override the pure function only.
@@ -241,7 +241,7 @@ const toSnapshotRowMock = vi.fn(
     source: opts.source ?? "nudge_engine",
   }),
 );
-const computeReadinessDeltaMock = vi.fn(() => ({
+const computeReadinessDeltaMock = vi.fn((_curr: unknown, _prev: unknown) => ({
   score_delta: 5,
   summary: "Readiness moved +5 points up to 42/100 (band unchanged).",
   band_direction: "same",
