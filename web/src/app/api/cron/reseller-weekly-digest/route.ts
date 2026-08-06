@@ -973,6 +973,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemsexaginticMean,
 } from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemsexagintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptuaginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptuaginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptuaginticMean,
+} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septuagintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -2871,6 +2876,10 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemsexaginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToNovemsexaginticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToSeptuaginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptuaginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToSeptuaginticMeanSection = "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
