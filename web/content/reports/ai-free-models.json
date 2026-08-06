@@ -1,6 +1,9 @@
 {
-  "updatedAt": "2026-08-05T21:05:02.926Z",
+  "updatedAt": "2026-08-06T13:30:26.976Z",
   "openrouter": [
+    "google/lyria-3-pro-preview",
+    "google/lyria-3-clip-preview",
+    "openai/gpt-oss-20b:free",
     "nvidia/nemotron-3-ultra-550b-a55b:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
     "google/gemma-4-31b-it:free",
@@ -11,6 +14,8 @@
     "nvidia/nemotron-nano-12b-v2-vl:free"
   ],
   "groq": [
+    "canopylabs/orpheus-v1-english",
+    "groq/compound-mini",
     "qwen/qwen3.6-27b",
     "openai/gpt-oss-120b",
     "llama-3.3-70b-versatile",
