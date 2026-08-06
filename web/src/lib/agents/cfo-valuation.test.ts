@@ -5,6 +5,8 @@ import {
   estimateMarketSizing,
   growthTierAdjustment,
   projectFinancials,
+  scorecardFactors,
+  scorecardMethod,
   unitEconomics,
   vcBenchmark,
   VC_BENCHMARKS,
@@ -123,6 +125,54 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
     expect(fastComp.midAud).toBeGreaterThan(slowComp.midAud);
     expect(fastComp.rationale).toMatch(/growth tier/);
     expect(fastComp.rationale).toMatch(/Bessemer Cloud Index/);
+  });
+
+  // Scorecard method (Bill Payne) — reference-only cross-check
+  describe("scorecardMethod (Bill Payne)", () => {
+    it("emits 7 factors whose weights sum to 1", () => {
+      const factors = scorecardFactors(input);
+      expect(factors).toHaveLength(7);
+      const wSum = factors.reduce((s, f) => s + f.weight, 0);
+      expect(wSum).toBeCloseTo(1, 5);
+      // Each multiplier stays within Bill Payne's 0.5–2.5 band
+      for (const f of factors) {
+        expect(f.multiplier).toBeGreaterThanOrEqual(0.5);
+        expect(f.multiplier).toBeLessThanOrEqual(2.5);
+      }
+    });
+
+    it("produces an ordered mid valuation and cites the AU seed anchor", () => {
+      const s = scorecardMethod(input);
+      expect(s.method).toBe("scorecard");
+      expect(s.midAud).toBeGreaterThan(0);
+      expect(s.lowAud).toBeLessThan(s.midAud);
+      expect(s.highAud).toBeGreaterThan(s.midAud);
+      expect(s.rationale).toMatch(/Bill Payne/);
+      expect(s.rationale).toMatch(/AVCAL|Cut Through Venture/);
+    });
+
+    it("stronger governance + ESIC lifts the mid valuation", () => {
+      const bare = scorecardMethod(input);
+      const strong = scorecardMethod({
+        ...input,
+        hasFounderVesting: true,
+        hasShareholdersAgreement: true,
+        hasEsopPool: true,
+        hasDataRoom: true,
+        esicQualifies: true,
+      });
+      expect(strong.midAud).toBeGreaterThan(bare.midAud);
+    });
+
+    it("is included in report.methods as a reference (weight=0) and never shifts blended", () => {
+      const r = buildVcValuationReport(input);
+      const s = r.methods.find((m) => m.method === "scorecard");
+      expect(s).toBeDefined();
+      expect(s!.weight).toBe(0);
+      // Method weights (excluding scorecard) still sum to 1.
+      const wSum = r.methods.filter((m) => m.method !== "scorecard").reduce((sum, m) => sum + m.weight, 0);
+      expect(wSum).toBeCloseTo(1, 1);
+    });
   });
 
   // P12b-cfo — AU exit realisation cross-check anchors VC-Method exit assumption
