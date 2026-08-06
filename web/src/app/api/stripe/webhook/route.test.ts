@@ -115,9 +115,9 @@ vi.mock("@/lib/stripe", () => ({
 }));
 
 // Signature verification + idempotency claim.
-const verifyWebhookSignature = vi.fn();
-const claimWebhookEvent = vi.fn();
-const markWebhookEventProcessed = vi.fn(async () => undefined);
+const verifyWebhookSignature = vi.fn<(raw: string, sig: string) => unknown>();
+const claimWebhookEvent = vi.fn<(event: unknown) => Promise<{ duplicate: boolean }>>();
+const markWebhookEventProcessed = vi.fn<(id: string, err?: string) => Promise<undefined>>();
 vi.mock("@/lib/stripe/verify", () => ({
   verifyWebhookSignature: (raw: string, sig: string) => verifyWebhookSignature(raw, sig),
   claimWebhookEvent: (event: unknown) => claimWebhookEvent(event),
@@ -125,7 +125,8 @@ vi.mock("@/lib/stripe/verify", () => ({
 }));
 
 // Credit grants — count invocations per SKU test.
-const grantCreditsMock = vi.fn(async () => ({ ok: true }));
+const grantCreditsMock =
+  vi.fn<(userId: string, amount: number, reason: string, detail: unknown) => Promise<{ ok: boolean }>>();
 vi.mock("@/lib/credits", () => ({
   grantCredits: (userId: string, amount: number, reason: string, detail: unknown) =>
     grantCreditsMock(userId, amount, reason, detail),
