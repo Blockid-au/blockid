@@ -31,7 +31,24 @@ import {
 } from "@/lib/exits/au-benchmark";
 
 export type Sector =
-  | "saas" | "fintech" | "marketplace" | "healthtech" | "ai" | "deeptech" | "ecommerce" | "default";
+  | "saas"
+  | "fintech"
+  | "marketplace"
+  | "healthtech"
+  | "ai"
+  | "deeptech"
+  | "ecommerce"
+  | "cybertech"
+  | "wealthtech"
+  | "biotech"
+  | "cleantech"
+  | "edtech"
+  | "proptech"
+  | "agtech"
+  | "insurtech"
+  | "legaltech"
+  | "gaming"
+  | "default";
 
 export interface VcBenchmark {
   sector: Sector;
@@ -190,7 +207,7 @@ export interface VcValuationInput {
 
 // ── Research-backed benchmarks (refresh from daily CFO research) ──────────
 
-export const VC_BENCHMARKS: Record<Sector, VcBenchmark> = {
+export const VC_BENCHMARKS: Partial<Record<Sector, VcBenchmark>> & { default: VcBenchmark } = {
   saas:        { sector: "saas",        arrMultiple: { low: 4, mid: 7, high: 12 }, ruleOf40Target: 40, grossMarginTarget: 80, ltvCacTarget: 3, cacPaybackMonthsTarget: 12, netRevenueRetentionTarget: 110, marketCagrPct: 13, sources: ["Bessemer Cloud Index 2025", "SaaS Capital 2025 valuation survey"] },
   fintech:     { sector: "fintech",     arrMultiple: { low: 3, mid: 6, high: 10 }, ruleOf40Target: 40, grossMarginTarget: 65, ltvCacTarget: 3, cacPaybackMonthsTarget: 15, netRevenueRetentionTarget: 105, marketCagrPct: 17, sources: ["CB Insights State of Fintech 2025", "PitchBook fintech multiples"] },
   marketplace: { sector: "marketplace", arrMultiple: { low: 2, mid: 4, high: 8 },  ruleOf40Target: 35, grossMarginTarget: 55, ltvCacTarget: 3, cacPaybackMonthsTarget: 18, netRevenueRetentionTarget: 100, marketCagrPct: 14, sources: ["a16z marketplace benchmarks", "PitchBook"] },
@@ -274,7 +291,7 @@ function normStage(s?: string): string {
 }
 
 export function vcBenchmark(sector?: string): VcBenchmark {
-  return VC_BENCHMARKS[normSector(sector)];
+  return VC_BENCHMARKS[normSector(sector)] ?? VC_BENCHMARKS.default;
 }
 
 // ── Market sizing (TAM / SAM / SOM) ────────────────────────────────────────

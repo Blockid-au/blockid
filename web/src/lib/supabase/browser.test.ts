@@ -143,8 +143,8 @@ describe("getBrowserSupabase — memoisation", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon.jwt.value";
     const { getBrowserSupabase } = await loadFresh();
-    const a = getBrowserSupabase() as { n: number };
-    const b = getBrowserSupabase() as { n: number };
+    const a = getBrowserSupabase() as unknown as { n: number };
+    const b = getBrowserSupabase() as unknown as { n: number };
     expect(a.n).toBe(1);
     expect(b.n).toBe(1);
     expect(a).toBe(b);
