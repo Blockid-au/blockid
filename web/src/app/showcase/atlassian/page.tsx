@@ -12,6 +12,31 @@ import Link from "next/link";
 
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
 
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://blockid.au",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Showcase",
+      item: "https://blockid.au/showcase",
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Atlassian",
+      item: "https://blockid.au/showcase/atlassian",
+    },
+  ],
+};
+
 export const metadata: Metadata = {
   title: "Atlassian on BlockID.au — Full Founder Journey",
   description:
@@ -32,6 +57,11 @@ export default function AtlassianShowcasePage() {
 
   return (
     <AtlassianWalkthroughProvider stepNumber={1}>
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+    />
     <div className="min-h-screen bg-surface-50">
       <div className="mx-auto max-w-5xl p-6">
         {/*
@@ -178,6 +208,7 @@ export default function AtlassianShowcasePage() {
         </footer>
       </div>
     </div>
+    </>
     </AtlassianWalkthroughProvider>
   );
 }
