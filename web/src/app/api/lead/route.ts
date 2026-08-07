@@ -4,6 +4,7 @@ import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan } from "@/lib/plans";
 import { sendPaymentLink } from "@/lib/email";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
+import { isFoundingPromoActive } from "@/lib/founding-promo";
 
 // POST /api/lead
 // Captures a lead from the marketing surfaces. Persists to Supabase if
@@ -84,6 +85,23 @@ export async function POST(request: Request) {
 
   // --- Founding 50: create Stripe Checkout Session + email payment link ------
   let checkoutUrl: string | undefined;
+
+  // Post-cutover guard — refuse to mint Stripe checkout sessions for the
+  // Founding 100 A$5 promo once the window has closed (2026-09-01 UTC).
+  // Mirrors /api/stripe/checkout so a stale /founding-50 page or an old
+  // email link cannot backdoor a new founding50 subscription after cutover.
+  // Waitlist inserts (this route always writes to `leads`) still succeed —
+  // only the Stripe side-effect is gated.
+  if (source === "founding50" && !isFoundingPromoActive()) {
+    return NextResponse.json(
+      {
+        ok: true,
+        message:
+          "The Founding 100 A$5 promo ended on 2026-08-31. See /pricing for the Growth plan.",
+        promo_ended: true,
+      },
+    );
+  }
 
   if (source === "founding50") {
     const priceId = STRIPE_PRICE_MAP.founding50;
