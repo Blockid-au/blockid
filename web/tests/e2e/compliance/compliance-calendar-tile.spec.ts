@@ -47,6 +47,8 @@ function isoDaysFromNow(days: number): string {
 const NEXT_EVENT_DATE = isoDaysFromNow(9);
 const NEXT_EVENT_DATE_END = isoDaysFromNow(10);
 
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:4001";
+
 const FAKE_PAYLOAD = {
   ok: true,
   total: 3,
@@ -62,8 +64,8 @@ const FAKE_PAYLOAD = {
     source_url: "https://www.ato.gov.au/business/business-activity-statements-(bas)/",
   },
   subscribe: {
-    webcal: "webcal://blockid.au/api/compliance/calendar",
-    https: "https://blockid.au/api/compliance/calendar",
+    webcal: `webcal://${new URL(BASE_URL).host}/api/compliance/calendar`,
+    https: `${BASE_URL}/api/compliance/calendar`,
   },
   disclaimer:
     "Not tax or legal advice — BAS due dates assume standard 1-July-to-30-June FY and self-lodgment.",
