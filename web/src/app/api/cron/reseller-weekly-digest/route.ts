@@ -1278,6 +1278,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMean,
 } from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-trigintcentinagintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean,
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-untrigintcentinagintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -3421,6 +3426,11 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMeanSection =
+    "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMeanSection =
     "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
@@ -10276,6 +10286,25 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMean,
         );
+      // P11.517 — per-transition magnitude TOP-3 pool peak-to-untrigintcentinagintic-mean.
+      // PTUTCNM = (max - min) / untrigintcentinagintic_mean where
+      // untrigintcentinagintic_mean = ((sum x_i^131) / n)^(1/131) is the
+      // M_131 power mean. Bands tight < 1.005, spread [1.005, 1.09), wide >= 1.09.
+      // Since untrigintcentinagintic_mean >= trigintcentinagintic_mean by
+      // Power Mean inequality (M_131 >= M_130), ptutcnm <= pttcnm for every
+      // non-flat pool. FURTHER ABSORPTION at M_131: pool_count=100 [1x99,100]
+      // reads 1.0254 SPREAD at M_131 (was 1.0257 spread at M_130). Splices
+      // IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMeanSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.516
+      // formatter docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean,
+        );
     }
   }
   if (
@@ -10508,6 +10537,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -10767,6 +10797,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -17497,6 +17528,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToTrigintcentinaginticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_untrigintcentinagintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.top_n,
+            tight_ptutcnm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.tight_ptutcnm_max,
+            wide_ptutcnm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.wide_ptutcnm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToUntrigintcentinaginticMean.transitions,
           }
         : {
             skipped_reason:
