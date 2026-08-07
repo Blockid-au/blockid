@@ -8655,3 +8655,5 @@
 {"ts": "2026-08-07T15:21:23.820297Z", "phase": "P9_ship", "task": "P9-equity-split-route-test", "stage": "shipped", "artifact": "web/src/app/api/ai/equity-split/route.test.ts", "tests": 15, "result": "15 passed / 382ms", "typecheck": "clean"}
 {"tick_id":"2026-08-07T15-17-01-936Z","ts":"2026-08-07T15:21:39.903Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":277941,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-07T15-17-01-936Z","ts":"2026-08-07T15:21:39.941Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
+{"tick_id":"2026-08-07T15-17-01-936Z","ts":"2026-08-07T15:21:42.215Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-07T15-17-01-936Z","ts":"2026-08-07T15:21:42.225Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"abdf7cfd9","last_deployed":"958bfc0"}
