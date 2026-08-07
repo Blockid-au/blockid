@@ -8320,3 +8320,6 @@
 {"tick_id":"2026-08-07T05-27-01-536Z","ts":"2026-08-07T05:33:02.720Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"57e6cff14","last_deployed":"9f99cad"}
 {"tick_id":"2026-08-07T05-27-01-536Z","ts":"2026-08-07T05:40:55.786Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"57e6cff14"}
 {"tick_id":"2026-08-07T05-27-01-536Z","ts":"2026-08-07T05:40:55.787Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-07T05-47-01-320Z","ts":"2026-08-07T05:47:01.321Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-07T05-47-01-320Z","ts":"2026-08-07T05:47:01.338Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-07T05-47-01-320Z","ts":"2026-08-07T05:53:39.847Z","loop_label":"atlassian-goal-loop","stage":"phase_progress","phase":"P9_ship","action":"P9-index-listings-route-test","artefact":"web/src/app/api/index/listings/route.test.ts","tests":43,"result":"passed","head":"d470d0eb4"}
