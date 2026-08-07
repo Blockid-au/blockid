@@ -149,7 +149,7 @@ describe("CONFIG_DEFAULTS — canonical fixture", () => {
   it("pins the Founding plan name/spots/credits (marketing surface)", () => {
     expect(CONFIG_DEFAULTS.founding_plan_name).toBe("Founding 100");
     expect(CONFIG_DEFAULTS.founding_spots_total).toBe(100);
-    expect(CONFIG_DEFAULTS.founding_credits).toBe(100);
+    expect(CONFIG_DEFAULTS.founding_credits).toBe(50);
   });
 
   it("pins the current Founding price at 500 cents (A$5, per 2026-06-21 bump)", () => {
