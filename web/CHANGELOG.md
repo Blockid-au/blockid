@@ -1,5 +1,30 @@
 # BlockID.au Changelog
 
+## 2026-08-07 — v3.3.4: Clean-code P2B + security hardening + SEO
+
+### Security
+- **fix(P0)** `/api/admin/users/manage` + `/api/admin/users/[id]/plan` now refuse `founding50` grants post-cutover (2026-09-01) — admin backdoor fully closed.
+- **fix(P1)** `/api/svi-accounts` default plan changed from `"founding50"` to `"free"` — new SVI accounts no longer silently inherit the promo plan after cutover.
+- **fix(security)** Removed 4 PII-leaking `console.log` calls in nps, testimonial, rnd, and data-room routes.
+
+### Clean Code
+- **feat** Founding 100 promo auto-cutover (`FOUNDING_PROMO_END = 2026-09-01`) — checkout 410, page redirect, webhook guard, reconcile guard, and guardrail cron all wired end-to-end.
+- **refactor(clean-p2b)** 422 `digest-snapshot-per-*` modules moved to `digest-snapshot-per-modules/` subdir — top-level `reseller/` now shows ~12 files.
+- **chore(cleanup)** Removed 8 stray `console.log` calls in cron routes; promoted 13 `console.log` → `console.info` for structured log levels.
+- **fix(playwright)** Removed `waitForTimeout` calls and hardcoded prod URLs from 3 spec files.
+
+### Testing
+- **test** 21,932 vitest cases (was ~20,955) across 826 test files — all green.
+
+### SEO / UX
+- **feat(seo)** Added `metadata` to `/showcase`, `/showcase/atlassian`, `/showcase/canva`, `/showcase/xero`, `/showcase/safetyculture`, and `/contact`.
+- **feat(nextjs)** Added `loading.tsx` skeletons for `/founding-50` and `/svi`; error boundary for `(app)` segment.
+
+### Docs
+- **feat(docs)** `ARCHITECTURE.md` + `TEAM_STRUCTURE.md` with Mermaid diagrams — v4.0 edition.
+
+---
+
 ## 2026-08-07 — v3.3.3: Code-review sweep (5 stale-copy fixes + earlier checkout guard)
 
 Post-v3.3.2 code review turned up 5 places the A$5 / 50-credit correction hadn't reached, plus one prod-safety tightening on the checkout guard. All shipped in one patch.
