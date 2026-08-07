@@ -16630,6 +16630,36 @@ export async function GET(req: Request) {
             skipped_reason:
               previousSnapshotSkipReason ?? "no_previous_snapshot",
           },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_sedecicentinagintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.top_n,
+            tight_ptsdcnm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.tight_ptsdcnm_max,
+            wide_ptsdcnm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.wide_ptsdcnm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToSedecicentinaginticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
     snapshot_per_pair_hot_cells: snapshotPerPairHotCells
       ? {
           window_size: snapshotPerPairHotCells.window_size,
