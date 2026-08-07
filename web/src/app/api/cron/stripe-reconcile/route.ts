@@ -98,6 +98,25 @@ export async function GET(request: Request) {
 
       // ── Auto-grant path 1: Founding 100 ─────────────────────────────
       if (md.blockid_plan === "founding50") {
+        // Cutover safety: only auto-grant when the session was CREATED
+        // before the promo ended (2026-09-01 UTC). Stripe's `created` field
+        // is unix seconds; FOUNDING_PROMO_END.getTime() is JS ms. A session
+        // created after cutover is either a Stripe-dashboard mistake or a
+        // guard-bypass bug — alert only, never silently issue lifetime
+        // access + credits for A$5 after the window has closed.
+        const promoCutoverSec = Math.floor(FOUNDING_PROMO_END.getTime() / 1000);
+        if (typeof s.created === "number" && s.created >= promoCutoverSec) {
+          misses.push({
+            session_id: s.id,
+            user_id: userId,
+            email: s.customer_email ?? null,
+            amount_cents: s.amount_total ?? 0,
+            kind: "founding50",
+            action: "alert_only",
+            detail: `post-cutover session (created=${new Date(s.created * 1000).toISOString()} >= ${FOUNDING_PROMO_END.toISOString()}) — refusing auto-grant`,
+          });
+          continue;
+        }
         const outcome = await autoGrantFounding50(supabase, userId, s.id, s.amount_total ?? 0);
         misses.push({
           session_id: s.id,
