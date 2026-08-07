@@ -8716,3 +8716,5 @@
 {"tick_id":"2026-08-07T17-07-01-736Z","ts":"2026-08-07T17:07:01.737Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-07T17-07-01-736Z","ts":"2026-08-07T17:07:01.756Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-07T17-11-20Z","ts":"2026-08-07T17:11:20.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","subtask":"P9-investor-preferences-route-test","commit":"d7ebb5a3a","tests":22}
+{"tick_id":"2026-08-07T17-07-01-736Z","ts":"2026-08-07T17:11:31.381Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":269623,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-07T17-07-01-736Z","ts":"2026-08-07T17:11:31.423Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
