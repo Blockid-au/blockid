@@ -8662,3 +8662,5 @@
 {"tick_id":"2026-08-07T15-37-02-082Z","ts":"2026-08-07T15:37:02.083Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-07T15-37-02-082Z","ts":"2026-08-07T15:37:02.129Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"ts": "2026-08-07T15:42:00.000Z", "phase": "P9_ship", "task": "P9-data-room-engage-route-test", "stage": "shipped", "artifact": "web/src/app/api/data-room/engage/route.test.ts", "tests": 32, "result": "32 passed / 515ms", "typecheck": "clean"}
+{"tick_id":"2026-08-07T15-37-02-082Z","ts":"2026-08-07T15:43:09.031Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":366899,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-07T15-37-02-082Z","ts":"2026-08-07T15:43:09.075Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
