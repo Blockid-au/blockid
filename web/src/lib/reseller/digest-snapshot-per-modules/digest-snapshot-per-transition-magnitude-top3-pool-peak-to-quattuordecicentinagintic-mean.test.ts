@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { KnownKpiSection } from "./digest-snapshot";
+import type { KnownKpiSection } from "../digest-snapshot";
 import type {
   DigestSnapshotPerPairHotCells,
   PerPairHotCellRow,
