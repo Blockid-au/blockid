@@ -874,3 +874,5 @@
 {"tick_id":"2026-08-07T17-45-01-574Z","ts":"2026-08-07T17:54:24.992Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":563330,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-07T17-45-01-574Z","ts":"2026-08-07T17:54:25.029Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":11}
 {"tick_id":"2026-08-07T17-45-01-574Z","ts":"2026-08-07T17:54:26.310Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1,"unrunnable":[],"skipped":null}
+{"tick_id":"2026-08-07T17-45-01-574Z","ts":"2026-08-07T17:54:28.426Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-07T17-45-01-574Z","ts":"2026-08-07T17:54:28.434Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"68cd19bce","last_deployed":"bc61654"}
