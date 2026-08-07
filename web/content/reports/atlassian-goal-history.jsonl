@@ -8799,3 +8799,5 @@
 {"tick_id": "2026-08-07T19-30-manual", "ts": "2026-08-07T19:32:00.000Z", "loop_label": "atlassian-goal-loop", "stage": "phase_shipped", "phase": "P9_ship", "sub_task": "P9-admin-goals-route-test", "file": "web/src/app/api/admin/goals/route.test.ts", "tests_passed": 28, "duration_ms": 429}
 {"tick_id":"2026-08-07T19-27-01-082Z","ts":"2026-08-07T19:33:47.062Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":405957,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-07T19-27-01-082Z","ts":"2026-08-07T19:33:47.102Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":12}
+{"tick_id":"2026-08-07T19-27-01-082Z","ts":"2026-08-07T19:33:50.724Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-07T19-27-01-082Z","ts":"2026-08-07T19:33:50.735Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"0a1652711","last_deployed":"7933f01"}
