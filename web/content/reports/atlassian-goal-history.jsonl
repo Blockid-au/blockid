@@ -8287,3 +8287,5 @@
 {"tick_id":"2026-08-07T04-37-01-130Z","ts":"2026-08-07T04:37:01.131Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-07T04-37-01-130Z","ts":"2026-08-07T04:37:01.154Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id": "2026-08-07T04-37-01-130Z", "ts": "2026-08-07T04:42:48.965Z", "loop_label": "atlassian-goal-loop", "human_review_minutes_7d": 0, "stage": "phase_shipped", "phase": "P9_ship", "note": "P9-lead-route-test: 53-case colocated vitest for POST /api/lead"}
+{"tick_id":"2026-08-07T04-37-01-130Z","ts":"2026-08-07T04:43:12.793Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":371636,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-07T04-37-01-130Z","ts":"2026-08-07T04:43:12.836Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
