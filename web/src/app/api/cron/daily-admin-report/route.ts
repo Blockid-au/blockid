@@ -460,8 +460,6 @@ Write 3-5 concise recommendations. Focus on growth, conversion, and operational 
       html: emailHtml,
     });
 
-    console.log("[daily-admin-report] Email sent:", emailResult);
-
     return NextResponse.json({
       ok: true,
       date: dateStr,

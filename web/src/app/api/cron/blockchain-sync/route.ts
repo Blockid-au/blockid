@@ -44,10 +44,6 @@ export async function GET(request: Request) {
       results.push({ accountId: account.account_id, result });
     }
 
-    console.log(
-      `[blockid:blockchain-sync-cron] done: accounts=${accounts.length}, processed=${totalProcessed}, synced=${totalSynced}, failed=${totalFailed}`,
-    );
-
     return NextResponse.json({
       ok: true,
       accounts: accounts.length,

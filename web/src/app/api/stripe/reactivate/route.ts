@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       // Non-fatal: the Stripe reactivation already went through.
     }
 
-    console.log(
+    console.info(
       `[blockid:stripe] reactivated subscription ${pendingCancelSub.id} for user ${user.id}`,
     );
 

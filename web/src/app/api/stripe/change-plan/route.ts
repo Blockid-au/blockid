@@ -215,7 +215,7 @@ export async function POST(request: Request) {
         proration_behavior: "create_prorations",
       });
 
-      console.log(
+      console.info(
         `[blockid:stripe] changed plan to "${newPlanId}" for customer ${customerId} (subscription ${activeSub.id})`,
       );
 
@@ -255,7 +255,7 @@ export async function POST(request: Request) {
     // Changing to a one-off plan.
     if (activeSub) {
       await stripe.subscriptions.cancel(activeSub.id);
-      console.log(
+      console.info(
         `[blockid:stripe] cancelled subscription ${activeSub.id} for one-off plan change`,
       );
     }
@@ -529,7 +529,7 @@ async function handleAddItem(args: {
       },
     });
 
-    console.log(
+    console.info(
       `[blockid:stripe] added share-mgmt add-on ${priceId} to sub ${updated.id} for customer ${customerId}`,
     );
 
@@ -651,7 +651,7 @@ async function handleRemoveItem(args: {
       },
     });
 
-    console.log(
+    console.info(
       `[blockid:stripe] scheduled share-mgmt add-on removal on sub ${activeSub.id} at period_end via schedule ${updated.id}`,
     );
 

@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   // Idempotency: insert into stripe_webhook_events. Duplicate delivery → 200.
   const claim = await claimWebhookEvent(event);
   if (claim.duplicate) {
-    console.log(`[blockid:stripe] Skipping duplicate event ${event.id}`);
+    console.info(`[blockid:stripe] Skipping duplicate event ${event.id}`);
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -199,7 +199,7 @@ export async function POST(request: Request) {
           });
         }
 
-        console.log(`[blockid:stripe] analysis credit added for ${email}`);
+        console.info(`[blockid:stripe] analysis credit added for ${email}`);
 
         const { sendAnalysisPurchaseConfirmation } = await import("@/lib/email");
         sendAnalysisPurchaseConfirmation({ to: email }).catch((err) => {
@@ -234,7 +234,7 @@ export async function POST(request: Request) {
           },
         );
         if (grantResult.ok) {
-          console.log(
+          console.info(
             `[blockid:stripe] granted ${creditAmount} credits to user ${creditUserId}`,
           );
 
@@ -290,7 +290,7 @@ export async function POST(request: Request) {
 
         if (userByEmail) {
           userId = userByEmail.id;
-          console.log(
+          console.info(
             `[blockid:stripe] resolved user by email ${lookupEmail} → ${userId}`,
           );
         }
@@ -366,7 +366,7 @@ export async function POST(request: Request) {
       throw new Error(`user plan update failed: ${updateErr.message}`);
     }
 
-    console.log(
+    console.info(
       `[blockid:stripe] activated plan "${planId}" for user ${userId}`,
     );
 
@@ -419,7 +419,7 @@ export async function POST(request: Request) {
         { plan: planId, stripe_event_id: e.id },
       );
       if (grantResult.ok) {
-        console.log(
+        console.info(
           `[blockid:stripe] granted ${planCredits.amount} credits to user ${userId} for plan "${planId}"`,
         );
       }
@@ -520,7 +520,7 @@ export async function POST(request: Request) {
         );
     }
 
-    console.log(`[blockid:stripe] downgraded customer ${customerId} to free`);
+    console.info(`[blockid:stripe] downgraded customer ${customerId} to free`);
 
     if (userRow?.email) {
       sendSubscriptionCancelled({ to: userRow.email }).catch((err) => {
@@ -612,7 +612,7 @@ export async function POST(request: Request) {
           throw new Error(`plan change update failed: ${updateErr.message}`);
         }
 
-        console.log(
+        console.info(
           `[blockid:stripe] plan changed to "${newPlanId}" for customer ${customerId}`,
         );
       }
@@ -665,7 +665,7 @@ export async function POST(request: Request) {
         { onConflict: "user_id" },
       );
 
-    console.log(
+    console.info(
       `[blockid:stripe] trial_will_end queued T-3d nudge for user ${userRow.id}`,
     );
   }
@@ -695,7 +695,7 @@ export async function POST(request: Request) {
         { onConflict: "user_id" },
       );
 
-    console.log(
+    console.info(
       `[blockid:stripe] setup_intent.succeeded — PM saved for user ${userRow.id}`,
     );
   }
@@ -728,7 +728,7 @@ export async function POST(request: Request) {
       .update({ payment_failed_at: new Date().toISOString() })
       .eq("stripe_customer_id", customerId);
 
-    console.log(`[blockid:stripe] payment failed for customer ${customerId}`);
+    console.info(`[blockid:stripe] payment failed for customer ${customerId}`);
   }
 
   async function handleInvoicePaid(e: Stripe.Event): Promise<void> {
@@ -776,7 +776,7 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log(
+    console.info(
       `[blockid:stripe] invoice paid for customer ${customerId}, amount: ${amountCents}`,
     );
   }

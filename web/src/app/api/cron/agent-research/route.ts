@@ -222,10 +222,6 @@ export async function GET(request: Request) {
     });
   }
 
-  console.log(
-    `[agent-research] Starting research for ${scheduledAgents.length} agents: ${scheduledAgents.map((a: AgentGoal) => a.agent).join(", ")}`,
-  );
-
   // Run research for each scheduled agent
   const results: ResearchResult[] = [];
   const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -256,9 +252,6 @@ export async function GET(request: Request) {
       try {
         const result = await researchTopic(agentGoal, topic);
         results.push(result);
-        console.log(
-          `[agent-research] ${agentGoal.agent}/${topic}: ${result.status}${result.summary ? ` — ${result.summary.slice(0, 100)}` : ""}`,
-        );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         results.push({
@@ -309,10 +302,6 @@ export async function GET(request: Request) {
     tasksNoNewData: results.filter((r) => r.status === "no_new_data").length,
     results,
   };
-
-  console.log(
-    `[agent-research] Complete: ${summary.tasksCompleted} ok, ${summary.tasksSkipped} skipped, ${summary.tasksFailed} failed, ${summary.tasksNoNewData} no new data`,
-  );
 
   return NextResponse.json(summary);
 }

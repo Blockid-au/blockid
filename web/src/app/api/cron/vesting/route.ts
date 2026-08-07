@@ -137,12 +137,6 @@ export async function GET(request: Request) {
         current.percent < 100 &&
         !isCliffToday
       ) {
-        // Log monthly milestone
-        console.log(
-          `[blockid:vesting-cron] monthly vest: ${row.shareholder_name} — ` +
-            `${previousVested} -> ${newVested} shares (${current.percent.toFixed(1)}%)`,
-        );
-
         // Send monthly vest email
         if (row.shareholder_email) {
           try {
@@ -200,10 +194,6 @@ export async function GET(request: Request) {
         }
       }
     }
-
-    console.log(
-      `[blockid:vesting-cron] done: processed=${processed}, completed=${completed}, emailed=${emailed}`,
-    );
 
     return NextResponse.json({
       ok: true,
