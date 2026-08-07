@@ -1167,6 +1167,21 @@
         "href": "/tools/pre-money-valuation-calculator"
       },
       "angle": "Explain how founders and early employees can determine a fair price for secondary share sales without triggering a new priced round. Provide a framework for balancing liquidity needs with the impact on the current cap table and investor relations."
+    },
+    {
+      "slug": "startup-valuation-report-for-investors-australia",
+      "title": "How to Create a Startup Valuation Report for Investors",
+      "category": "valuation",
+      "keywords": [
+        "startup valuation report",
+        "investor valuation deck",
+        "valuation justification australia"
+      ],
+      "cta": {
+        "label": "Get Your Valuation Score",
+        "href": "/score"
+      },
+      "angle": "A practical guide on how to document and justify a valuation to investors beyond just a number. Teach founders how to combine qualitative milestones with quantitative data to create a professional 'Valuation Memo' that reduces negotiation friction."
     }
   ]
 }
