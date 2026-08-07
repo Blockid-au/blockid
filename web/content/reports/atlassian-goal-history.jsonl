@@ -8429,3 +8429,5 @@
 {"tick_id":"2026-08-07T08-57-01-135Z","ts":"2026-08-07T08:57:01.136Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-07T08-57-01-135Z","ts":"2026-08-07T08:57:01.151Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-07T09-00-00-000Z","ts":"2026-08-07T09:02:00.000Z","loop_label":"atlassian-goal-loop","stage":"tick_complete","phase_id":"P9-idea-questions-route-test","result":"shipped","surface":"web/src/app/api/idea-questions/route.ts","tests_added":33,"tests_passed":33,"typecheck":"green","files_added":1,"files_modified":1}
+{"tick_id":"2026-08-07T08-57-01-135Z","ts":"2026-08-07T09:06:00.548Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":539395,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-07T08-57-01-135Z","ts":"2026-08-07T09:06:00.585Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":11}
