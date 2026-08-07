@@ -191,15 +191,16 @@ export default function AboutPage() {
               BlockID was built by an experienced founder who has lived the
               startup journey — raising capital, negotiating term sheets, and
               building cap tables from scratch. Instead of assembling a
-              traditional team of dozens, BlockID is powered by 8 specialized AI
-              agents, each purpose-built for a critical domain: valuation,
-              competitive research, R&D eligibility, financial modelling,
-              compliance, and more.
+              traditional team of dozens, BlockID is powered by 11 specialized
+              C-Level AI agents (CTO, CFO, CPO, CMO, CRO, CLO, CHRO, CISO, CDO,
+              COO, plus a Customer Success lead), each purpose-built for a
+              critical domain: valuation, competitive research, R&D eligibility,
+              financial modelling, compliance, and more.
             </p>
             <p className="text-base leading-relaxed text-ink-600">
               The result: a platform that would typically require a team of 20+
               engineers, delivered with the speed and precision of AI-native
-              development. The current build — v3.2.0 — spans 340+ TypeScript
+              development. The current build — v3.3.0 — spans 340+ TypeScript
               files, 65+ pages, 90+ API endpoints, 47 database tables, 11 AI
               agents, and 40+ free models. Recent shipping includes the full
               reseller / wholesale module (P0–P10, 39 wire-shape ticks), Q4
