@@ -24,14 +24,23 @@ export const runtime = "nodejs";
 // Every event type our webhook handler branches on. Keep in sync with
 // web/src/app/api/stripe/webhook/route.ts — the tests assert this list matches
 // the switch arms.
+// IMPORTANT: This list MUST exactly match the `case '...':` arms of the
+// switch in web/src/app/api/stripe/webhook/route.ts. The sync is enforced by
+// route.test.ts — it parses both files and asserts set equality. Adding a
+// case without adding it here (or vice-versa) breaks CI.
 export const REQUIRED_WEBHOOK_EVENTS = [
   "checkout.session.completed",
-  "invoice.payment_succeeded",
-  "invoice.payment_failed",
-  "customer.subscription.updated",
   "customer.subscription.deleted",
-  "payment_intent.succeeded",
-  "payment_intent.payment_failed",
+  "customer.subscription.updated",
+  "customer.subscription.trial_will_end",
+  "setup_intent.succeeded",
+  "invoice.payment_failed",
+  "invoice.paid",
+  "charge.refunded",
+  "charge.dispute.created",
+  "charge.dispute.closed",
+  "credit_note.created",
+  "invoice.voided",
 ] as const;
 
 const WEBHOOK_URL_MATCH = /blockid\.au\/api\/stripe\/webhook/i;

@@ -6,6 +6,8 @@
 // live endpoint is missing a subscription.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 vi.mock("server-only", () => ({}));
 
@@ -98,5 +100,34 @@ describe("GET /api/health/stripe", () => {
     const body = await res.json();
     expect(body.ok).toBe(false);
     expect(body.error).toMatch(/stripe unreachable/);
+  });
+});
+
+describe("REQUIRED_WEBHOOK_EVENTS drift guard", () => {
+  // Parses the webhook route file for `case "..."` (or 'case ...') arms in
+  // the top-level `switch (event.type)` and asserts the set matches
+  // REQUIRED_WEBHOOK_EVENTS exactly. If this test fails, either add the
+  // event to REQUIRED_WEBHOOK_EVENTS or remove the unused case — do not
+  // silence the assertion.
+  it("matches the switch arms in web/src/app/api/stripe/webhook/route.ts exactly", () => {
+    const webhookPath = resolve(
+      __dirname,
+      "../../stripe/webhook/route.ts",
+    );
+    const src = readFileSync(webhookPath, "utf8");
+    // Match either single- or double-quoted case labels.
+    const caseRe = /case\s+["']([^"']+)["']\s*:/g;
+    const cases = new Set<string>();
+    for (const m of src.matchAll(caseRe)) cases.add(m[1]!);
+
+    const required = new Set<string>(REQUIRED_WEBHOOK_EVENTS);
+
+    const missingFromRequired = [...cases].filter((c) => !required.has(c));
+    const extraInRequired = [...required].filter((c) => !cases.has(c));
+
+    expect(
+      { missingFromRequired, extraInRequired },
+      `REQUIRED_WEBHOOK_EVENTS drift: switch has [${missingFromRequired.join(", ")}] not in required; required has [${extraInRequired.join(", ")}] not in switch`,
+    ).toEqual({ missingFromRequired: [], extraInRequired: [] });
   });
 });
