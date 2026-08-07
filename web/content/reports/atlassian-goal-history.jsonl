@@ -8734,3 +8734,5 @@
 {"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:47:01.965Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:47:01.986Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:51:00.000Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"phase_shipped","phase":"P9_ship","subtask":"P9-pitch-1min-lib-test","file":"web/src/remotion/scripts/pitch-1min.test.ts","cases":44,"result":"44 passed / 287 ms"}
+{"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:54:53.732Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":471743,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:54:53.824Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":3}
