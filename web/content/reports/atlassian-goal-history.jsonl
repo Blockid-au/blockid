@@ -8530,3 +8530,6 @@
 {"tick_id":"2026-08-07T11-57-01-428Z","ts":"2026-08-07T11:57:01.450Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-07T11-57-01-428Z","ts":"2026-08-07T12:03:15.000Z","loop_label":"atlassian-goal-loop","stage":"phase_action","phase":"P9","action":"P9-founder-profile-route-test","path":"web/src/app/api/founder-profile/route.test.ts","cases":20,"result":"green"}
 {"tick_id":"2026-08-07T11-57-01-428Z","ts":"2026-08-07T12:04:24.000Z","loop_label":"atlassian-goal-loop","stage":"tick_end","note":"P9-founder-profile-route-test already committed by sibling tick d4cd0dec6; no new code, history row logged only"}
+{"tick_id":"2026-08-07T11-57-01-428Z","ts":"2026-08-07T12:04:35.759Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":454306,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-07T11-57-01-428Z","ts":"2026-08-07T12:04:35.808Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":13}
+{"tick_id":"2026-08-07T11-57-01-428Z","ts":"2026-08-07T12:04:37.475Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1,"unrunnable":[],"skipped":null}

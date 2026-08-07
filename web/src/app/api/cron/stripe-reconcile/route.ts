@@ -20,6 +20,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { grantCredits, PLAN_CREDITS } from "@/lib/credits";
 import { sendTelegram } from "@/lib/telegram";
+import { FOUNDING_PROMO_END } from "@/lib/founding-promo";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
