@@ -307,7 +307,7 @@ export function CreditGate({
                   Founding 100 Lifetime Deal
                 </p>
                 <p className="text-xs text-brand-600 mt-0.5 leading-relaxed">
-                  Get 100 credits + full platform access for A$1 one-time. Limited to 100 spots.
+                  Get 50 credits + full platform access for A$5 one-time. Limited to 100 spots.
                 </p>
                 <button
                   type="button"

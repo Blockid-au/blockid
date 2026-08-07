@@ -67,8 +67,8 @@ export function UpgradePrompt() {
       <p className="flex-1 text-xs leading-snug">
         <span className="font-semibold">Credits running low.</span>{" "}
         Upgrade to{" "}
-        <span className="font-semibold">Founding 100</span> — A$1 one-time for
-        100 credits, Evidence Vault &amp; cap table tools.{" "}
+        <span className="font-semibold">Founding 100</span> — A$5 one-time for
+        50 credits, Evidence Vault &amp; cap table tools.{" "}
         <span className="opacity-75 text-[10px]">Only 100 spots.</span>
       </p>
       <Founding50Spots className="hidden sm:block w-36 shrink-0 mx-2" />

@@ -1622,10 +1622,10 @@ export function SVIEntrance() {
               <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
               <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">Founding 100 Account</h3>
-              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$1</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$5</p>
               <p className="text-xs text-ink-500 mb-4">Lifetime access &middot; Only 100 spots</p>
               <ul className="text-left text-sm text-ink-700 space-y-2 mb-6 mx-auto max-w-xs">
-                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 100 credits included</li>
+                <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> 50 credits included</li>
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Unlimited dashboard</li>
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Evidence vault</li>
                 <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Cap table tools</li>
@@ -1956,10 +1956,10 @@ function SVIPaywall({
           >
             <div>
               <p className="text-sm font-bold text-ink-900">C. Founder Plan</p>
-              <p className="text-xs text-ink-500 mt-0.5">100 credits + unlimited platform access</p>
+              <p className="text-xs text-ink-500 mt-0.5">50 credits + unlimited platform access</p>
             </div>
             <div className="text-right shrink-0 ml-3">
-              <p className="text-lg font-bold text-brand-600">A$1</p>
+              <p className="text-lg font-bold text-brand-600">A$5</p>
               <p className="text-[10px] text-ink-500">one-time</p>
             </div>
           </button>
