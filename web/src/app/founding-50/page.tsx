@@ -24,6 +24,9 @@ import {
   Star,
 } from "lucide-react";
 
+// Force dynamic — reads Supabase (spots-remaining count), platform_config,
+// and the isFoundingPromoActive() cutover check on every request. A stale
+// render past 2026-09-01T00:00:00Z would leak the closed promo to new users.
 export const dynamic = "force-dynamic";
 
 const INCLUDES = [
