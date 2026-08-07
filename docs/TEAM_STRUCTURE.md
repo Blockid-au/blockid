@@ -1,8 +1,44 @@
 # BlockID.au — Team Structure (C-Level AI Agents)
 
-> Last updated: 2026-06-17 (v2.6 deployed)
+> Doc rev: 4.0 | Platform build: **v3.3.2** (2026-08-07)
+> Roster source of truth: `web/content/team-roster.json` (11 active agents)
 
 BlockID.au runs as an **autonomous multi-agent organization**. Each C-Level agent owns one domain, runs a daily research/build/report cron, and reports to the CEO orchestrator. Founder (Aus Dvl) reviews via Telegram + dashboards.
+
+---
+
+## Org Chart
+
+```mermaid
+graph TD
+  Founder(["👤 Founder<br/>Aus Dvl<br/>Telegram + dashboards"])
+  CEO["🎯 CEO Orchestrator<br/>ceo-orchestrator.ts<br/>routes strategic asks, owns roadmap"]
+
+  Founder <-->|approvals · goals| CEO
+
+  CEO --> COO["🛠️ COO<br/>ops · daily reports"]
+  CEO --> CTO["⚙️ CTO<br/>platform · infra · NBA engine"]
+  CEO --> CFO["💰 CFO<br/>valuation · projections · ESOP"]
+  CEO --> CPO["🧭 CPO<br/>product · SCN journey · UX"]
+  CEO --> CMO["📈 CMO<br/>growth · SEO · content pillars"]
+  CEO --> CRO["🎯 CRO<br/>conversion · A/B · sales pipeline"]
+  CEO --> CLO["⚖️ CLO<br/>ASIC · ESIC · R&D · term sheets"]
+  CEO --> CHRO["👥 CHRO<br/>team · salary · ESOP admin"]
+  CEO --> CISO["🛡️ CISO<br/>security · SOC2-lite · Essential Eight"]
+  CEO --> CDO["📊 CDO<br/>data quality · cohort percentile"]
+  CEO --> CS["🤝 Customer Success<br/>onboarding · NPS · churn"]
+
+  CISO --> GUARDIAN["🔔 Guardian cron<br/>10-min health + auto-rollback"]
+  COO --> QA["✅ QA<br/>vitest 20 011 tests · Playwright 11"]
+  COO --> AUTODEPLOY["🚀 Auto-Deploy<br/>agent-deploy cron · 11-gate pipeline"]
+
+  classDef leadership fill:#312e81,stroke:#818cf8,color:#eef2ff;
+  classDef ops fill:#065f46,stroke:#34d399,color:#ecfdf5;
+  classDef safety fill:#7c2d12,stroke:#fb923c,color:#fff7ed;
+  class CEO,Founder leadership;
+  class COO,CTO,CFO,CPO,CMO,CRO,CLO,CHRO,CDO,CS ops;
+  class CISO,GUARDIAN,QA,AUTODEPLOY safety;
+```
 
 ---
 
