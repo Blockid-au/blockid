@@ -24,13 +24,13 @@ test.describe("Journey 02 — upgrade mid-trial", () => {
     await expect(page.getByText(/prorat/i)).toBeVisible();
     await page.getByRole("button", { name: /confirm|upgrade/i }).click();
 
-    // Plan chip flip
+    // Plan chip flip — wait up to 10 s for the backend to write the new plan.
     await expect(page.getByTestId("current-plan-chip")).toContainText(/scale/i, {
       timeout: 10_000,
     });
 
-    // Entitlement propagates within 2s
-    await page.waitForTimeout(2000);
+    // Entitlement propagates with the same server event that flips the chip;
+    // assert immediately now that the chip DOM confirmation is our gate.
     await assertEntitlement(page, account.email, "esop.manage", true);
   });
 });
