@@ -73,9 +73,9 @@
 //     signal.
 
 import type { DigestSnapshotPersistenceScorecardVerdictTransitionDistribution } from "./digest-snapshot-persistence-scorecard-verdict-transition-distribution";
-import type { DigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistribution } from "./digest-snapshot-per-metric-persistence-scorecard-verdict-transition-distribution";
-import type { DigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistribution } from "./digest-snapshot-per-reseller-persistence-scorecard-verdict-transition-distribution";
-import type { DigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution } from "./digest-snapshot-per-reseller-metric-persistence-scorecard-verdict-transition-distribution";
+import type { DigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistribution } from "./digest-snapshot-per-modules/digest-snapshot-per-metric-persistence-scorecard-verdict-transition-distribution";
+import type { DigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistribution } from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-persistence-scorecard-verdict-transition-distribution";
+import type { DigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution } from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict-transition-distribution";
 
 export type PersistenceScorecardDistributionFamilyGrain =
   | "portfolio"

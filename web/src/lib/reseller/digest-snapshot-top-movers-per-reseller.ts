@@ -48,7 +48,7 @@ import { HEADLINE_METRICS, type HeadlineMetricUnit } from "./digest-snapshot-met
 import type {
   DigestSnapshotPerResellerRollingTrend,
   PerResellerMetricTrend,
-} from "./digest-snapshot-per-reseller-rolling-trend";
+} from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-rolling-trend";
 import type { KnownKpiSection } from "./digest-snapshot";
 
 export const DEFAULT_TOP_N_PER_RESELLER = 1;

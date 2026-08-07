@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildDigestSnapshot } from "./digest-snapshot";
-import { computeDigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-reseller-rolling-trend";
+import { computeDigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-rolling-trend";
 import {
   DEFAULT_TOP_N,
   computeDigestSnapshotTopMovers,
