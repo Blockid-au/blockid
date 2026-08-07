@@ -8329,3 +8329,6 @@
 {"tick_id":"2026-08-07T05-47-01-320Z","ts":"2026-08-07T05:54:07.082Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"a8c4c6852","last_deployed":"b2bbc4c"}
 {"tick_id":"2026-08-07T05-47-01-320Z","ts":"2026-08-07T06:01:59.201Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"a8c4c6852"}
 {"tick_id":"2026-08-07T05-47-01-320Z","ts":"2026-08-07T06:01:59.202Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-07T06-07-01-155Z","ts":"2026-08-07T06:07:01.155Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-07T06-07-01-155Z","ts":"2026-08-07T06:07:01.195Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-07T06-07-01-155Z","ts":"2026-08-07T06:12:04.403Z","loop_label":"atlassian-goal-loop","stage":"phase_progress","phase":"P9_ship","action":"P9-index-svi-route-test","artefact":"web/src/app/api/index/svi/route.test.ts","tests":39,"result":"passed","head":"e2b57a389d624407216c3b323607fe7b23ebd1b6"}
