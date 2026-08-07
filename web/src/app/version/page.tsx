@@ -147,6 +147,21 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.3.2",
+    date: "2026-08-07",
+    title: "Founding 100 auto-cutover on 2026-09-01 + full-site copy sweep",
+    changes: [
+      "New helper lib/founding-promo.ts — isFoundingPromoActive(date) hard-gated to 2026-09-01T00:00:00Z (no admin flag can re-open the promo)",
+      "/founding-50 landing page — server-side redirect to /pricing after the promo window closes",
+      "/api/stripe/checkout — refuses planId=founding50 with HTTP 410 + guidance copy after cutover",
+      "tiersForNewSignup() — drops founding50 from the /pricing surface once the promo ends; Growth (A$99/mo) + Growth annual (A$950/yr) become the only new-signup tiers",
+      "Marketing copy sweep for the Founding 100 offer: A$1 / 100 credits stale references across investors page, credit-gate, upgrade-prompt, svi-entrance, onboarding-sequence email, pitch-deck PDF, and 3 remotion pitch videos are now A$5 / 50 credits",
+      "Onboarding Day-7 email realigned: subject + body + CTA all speak the A$5 / 50-credit deal",
+      "6 new tests for founding-promo (cutover edge cases: -1s active, exact tick inactive, +1h inactive)",
+      "Fixed pre-existing TS strict-mode errors in api/lead/route.test.ts (insertMock signature was () → () with an arg mock; also 8 casts routed through unknown)",
+    ],
+  },
+  {
     version: "3.3.1",
     date: "2026-08-07",
     title: "Founding 100 pricing correction — A$5 / 50 credits until Aug 31, then A$99",

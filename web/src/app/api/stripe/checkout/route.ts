@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan, isGrowthEarlyBird } from "@/lib/plans";
+import { isFoundingPromoActive } from "@/lib/founding-promo";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
@@ -128,6 +129,17 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { ok: false, reason: "Invalid or free plan" },
       { status: 400 },
+    );
+  }
+
+  if (planId === "founding50" && !isFoundingPromoActive()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason:
+          "The Founding 100 A$5 promo ended on 2026-08-31. Please select the Growth plan (A$99/mo).",
+      },
+      { status: 410 },
     );
   }
 

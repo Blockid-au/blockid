@@ -14,6 +14,7 @@
 //   TRIAL_COPY in `@/lib/plans/trial-copy`.
 
 import { TRIAL_COPY, TRIAL_DAYS } from "./plans/trial-copy";
+import { isFoundingPromoActive } from "./founding-promo";
 
 /** Plan IDs offered to *new* signups. Free tier deliberately excluded. */
 export const NEW_SIGNUP_TIER_IDS: readonly string[] = [
@@ -22,9 +23,20 @@ export const NEW_SIGNUP_TIER_IDS: readonly string[] = [
   "growth_annual",
 ];
 
-/** Filter PRICING_TIERS down to the plans a new signup may pick. */
-export function tiersForNewSignup(tiers: PricingTier[]): PricingTier[] {
-  return tiers.filter((t) => NEW_SIGNUP_TIER_IDS.includes(t.id));
+/**
+ * Filter PRICING_TIERS down to the plans a new signup may pick.
+ * After the Founding 100 promo window closes (2026-09-01 UTC) the
+ * founding50 tier is dropped so only Growth (A$99/mo) + Growth annual
+ * remain visible. Grandfathered Founding 100 buyers keep their access.
+ */
+export function tiersForNewSignup(
+  tiers: PricingTier[],
+  now: Date = new Date(),
+): PricingTier[] {
+  const promoActive = isFoundingPromoActive(now);
+  return tiers
+    .filter((t) => NEW_SIGNUP_TIER_IDS.includes(t.id))
+    .filter((t) => promoActive || t.id !== "founding50");
 }
 
 // ---------------------------------------------------------------------------

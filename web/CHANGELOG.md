@@ -1,5 +1,15 @@
 # BlockID.au Changelog
 
+## 2026-08-07 — v3.3.2: Founding 100 auto-cutover (2026-09-01) + full-site copy sweep
+
+- **cutover** New helper `lib/founding-promo.ts` — `isFoundingPromoActive()` hard-gated to `2026-09-01T00:00:00Z`. Deliberately hard-coded (not in `platform_config`) so a Supabase outage cannot accidentally re-open the promo window.
+- **cutover** `/founding-50` landing page — server-side `redirect("/pricing")` after the promo window closes.
+- **cutover** `POST /api/stripe/checkout` — refuses `planId=founding50` with HTTP 410 + `"The Founding 100 A$5 promo ended on 2026-08-31. Please select the Growth plan (A$99/mo)."` after cutover.
+- **cutover** `tiersForNewSignup(tiers, now)` in `pricing-data.ts` — drops `founding50` from every new-signup pricing surface once the promo ends. Grandfathered Founding 100 buyers keep their access (they're on the legacy plan).
+- **copy** Site-wide sweep of the Founding 100 offer copy — A$1 / 100 credits stale references replaced with A$5 / 50 credits across: `investors/page.tsx`, `credit-gate.tsx`, `upgrade-prompt.tsx`, `svi/svi-entrance.tsx` (card + paywall option C), `api/cron/onboarding-sequence/route.ts` (subject + body + CTA), `pdf/pitch-deck-pdf.tsx`, `remotion/scripts/pitch-3min.ts`, `remotion/compositions/PitchAntler.tsx`, `remotion/compositions/PitchVideo3Min.tsx`.
+- **stripe** No Stripe API mutation required — `STRIPE_PRICE_FOUNDING50` already points at the A$5 price and `STRIPE_PRICE_GROWTH` at A$99/mo. Cutover is handled entirely in the code path.
+- **tests** 6 new tests for `founding-promo` (edge cases: −1s active, exact tick inactive, +1h inactive). Fixed pre-existing TS strict errors in `api/lead/route.test.ts` (`insertMock` signature + 8 `as unknown as` casts).
+
 ## 2026-08-07 — v3.3.1: Founding 100 pricing correction (A$5 / 50 credits until Aug 31, then A$99)
 
 - **pricing** Founding 100 credit grant lowered from **100 → 50** in the three sources of truth: `platform-config.ts` (`founding_credits: 50`), `credits.ts` (`PLAN_CREDITS.founding50.amount = 50`), and `plans.ts` (`DEFAULT_FOUNDING_CREDITS = 50`).

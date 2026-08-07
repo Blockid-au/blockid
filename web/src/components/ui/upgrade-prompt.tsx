@@ -83,7 +83,7 @@ export function UpgradePrompt() {
         ) : (
           <>
             <Sparkles strokeWidth={1.75} className="h-3 w-3" />
-            Upgrade A$1
+            Upgrade A$5
           </>
         )}
       </button>
