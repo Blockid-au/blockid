@@ -170,7 +170,7 @@ describe("PLAN_CREDITS", () => {
     // Non-recurring one-time grants for the two legacy signup / lifetime plans.
     expect(PLAN_CREDITS.free.recurring).toBe(false);
     expect(PLAN_CREDITS.founding50.recurring).toBe(false);
-    expect(PLAN_CREDITS.founding50.amount).toBe(100);
+    expect(PLAN_CREDITS.founding50.amount).toBe(50);
     // Recurring for the legacy growth plans (matches v2 founder_growth).
     expect(PLAN_CREDITS.growth.recurring).toBe(true);
     expect(PLAN_CREDITS.growth_annual.recurring).toBe(true);
