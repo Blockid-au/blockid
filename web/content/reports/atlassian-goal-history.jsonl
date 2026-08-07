@@ -8447,3 +8447,5 @@
 {"tick_id":"2026-08-07T09-37-01-469Z","ts":"2026-08-07T09:37:01.469Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-07T09-37-01-469Z","ts":"2026-08-07T09:37:01.491Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id": "2026-08-07T09-41-00-000Z", "ts": "2026-08-07T09:44:31.000Z", "loop_label": "atlassian-goal-loop", "stage": "tick_complete", "phase_id": "P9-funding-readiness-route-test", "result": "shipped", "surface": "web/src/app/api/funding-readiness/route.ts", "tests_added": 39, "tests_passed": 39, "typecheck": "green", "files_added": 1, "files_modified": 2}
+{"tick_id":"2026-08-07T09-37-01-469Z","ts":"2026-08-07T09:46:03.485Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":541992,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-07T09-37-01-469Z","ts":"2026-08-07T09:46:03.526Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":5}
