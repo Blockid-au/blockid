@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { grantCredits, PLAN_CREDITS } from "@/lib/credits";
+import { isFoundingPromoActive } from "@/lib/founding-promo";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,17 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { ok: false, error: `plan must be one of: ${VALID_PLANS.join(", ")}` },
       { status: 400 },
+    );
+  }
+
+  // Cutover guard: after 2026-09-01 UTC, refuse admin grants of the
+  // founding50 promo plan. A grandfather grant must go through a separate
+  // deliberate flow — silently minting Founding 100 lifetime access post-
+  // cutover defeats the promo's whole time-box.
+  if (field === "plan" && value === "founding50" && !isFoundingPromoActive()) {
+    return NextResponse.json(
+      { ok: false, error: "The founding50 promo ended on 2026-08-31. Use 'growth' or add explicit grandfather handling." },
+      { status: 410 },
     );
   }
 

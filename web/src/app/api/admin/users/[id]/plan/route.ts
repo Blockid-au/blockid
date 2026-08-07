@@ -30,6 +30,7 @@ import { appendAudit } from "@/lib/audit";
 import { grantCredits } from "@/lib/credits";
 import { getPlanCached } from "@/lib/plans-db";
 import { decidePlanChange, validatePlanBody } from "@/lib/admin/plan-mutation";
+import { isFoundingPromoActive } from "@/lib/founding-promo";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,13 @@ export async function POST(
     return NextResponse.json({ ok: false, reason: parsed.reason }, { status: 400 });
   }
   const { plan, reconcile_credits } = parsed.value;
+
+  if (plan === "founding50" && !isFoundingPromoActive()) {
+    return NextResponse.json(
+      { ok: false, reason: "promo_ended" },
+      { status: 410 },
+    );
+  }
 
   // Resolve against plans-db so a slug that matches PLAN_SLUG but resolves to
   // neither v2 nor legacy is rejected. getPlanCached falls through to the
