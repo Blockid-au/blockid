@@ -400,7 +400,7 @@ export const PitchAntler: React.FC = () => {
             />
             <div style={{ position: "absolute", bottom: 120, left: 80, right: 80, display: "flex", gap: 32 }}>
               <StatCounter target={0} prefix="$" label="Free tier" color={BRAND.colors.slate400} duration={40} delay={30} />
-              <StatCounter target={49} prefix="A$" label="Founding 50 lifetime" color={BRAND.colors.brand500} duration={40} delay={45} />
+              <StatCounter target={5} prefix="A$" label="Founding 100 lifetime" color={BRAND.colors.brand500} duration={40} delay={45} />
               <StatCounter target={99} prefix="A$" suffix="/mo" label="Growth plan" color={BRAND.colors.emerald500} duration={40} delay={60} />
               <StatCounter target={250} prefix="A$" suffix="K" label="Year 1 ARR target" color={BRAND.colors.gold} duration={40} delay={75} />
             </div>

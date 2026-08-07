@@ -620,7 +620,7 @@ export const PitchVideo3Min: React.FC = () => {
                       },
                       {
                         name: "Founder",
-                        price: "A$49",
+                        price: "A$5",
                         desc: "Lifetime access",
                         highlight: true,
                       },
