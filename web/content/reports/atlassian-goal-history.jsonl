@@ -8713,3 +8713,6 @@
 {"tick_id":"2026-08-07T16-47-01-793Z","ts":"2026-08-07T16:53:01.273Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"70fcaa9d5","last_deployed":"0cb3bca"}
 {"tick_id":"2026-08-07T16-47-01-793Z","ts":"2026-08-07T17:00:54.422Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"70fcaa9d5"}
 {"tick_id":"2026-08-07T16-47-01-793Z","ts":"2026-08-07T17:00:54.423Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-07T17-07-01-736Z","ts":"2026-08-07T17:07:01.737Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-07T17-07-01-736Z","ts":"2026-08-07T17:07:01.756Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-07T17-11-20Z","ts":"2026-08-07T17:11:20.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","subtask":"P9-investor-preferences-route-test","commit":"d7ebb5a3a","tests":22}
