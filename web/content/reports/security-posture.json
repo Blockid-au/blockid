@@ -1,13 +1,13 @@
 {
-  "date": "2026-08-06",
-  "overall": 29,
+  "date": "2026-08-07",
+  "overall": 24,
   "status": "RED",
   "dimensions": [
     {
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "325/404 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "326/405 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/abr/lookup/route.ts",
@@ -23,7 +23,7 @@
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 1,
-      "detail": "23/404 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "23/405 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/abr/lookup/route.ts",
@@ -64,10 +64,10 @@
     {
       "key": "deps",
       "label": "Dependency vulnerabilities",
-      "score": 3,
-      "detail": "crit 0, high 6, mod 5",
+      "score": 0,
+      "detail": "crit 0, high 9, mod 5",
       "findings": [
-        "6 high CVE(s)",
+        "9 high CVE(s)",
         "5 moderate CVE(s)"
       ]
     },
@@ -93,6 +93,6 @@
   "recommendations": [
     "Move leaked secret patterns out of repo; rotate any exposed credentials immediately",
     "Add missing security headers to src/middleware.ts (CSP, X-Frame, X-Content-Type, Referrer, Permissions)",
-    "Add checkRateLimit() to every /api/* route or tag with @rate-limit-exempt comment"
+    "Run `npm audit fix` for moderate; manually upgrade high/critical"
   ]
 }
