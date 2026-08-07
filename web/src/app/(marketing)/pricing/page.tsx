@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
-import { Building2, Check } from "lucide-react";
+import { Building2, Check, Flame } from "lucide-react";
+import Link from "next/link";
 import { FAQV2 } from "@/components/landing/faq-v2";
 import { SegmentTabs } from "@/components/landing/segment-tabs";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
@@ -113,6 +114,27 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
     <MarketingShell>
       <FAQJsonLd items={FAQ_JSONLD} />
       <PageViewTracker event="pricing_viewed" params={{}} />
+
+      {/* Founding 50 urgency banner — A$5 promo ends 31 Aug 2026 */}
+      <div className="mx-auto max-w-5xl px-6 pt-6">
+        <Link
+          href="/founding-50"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-3 hover:bg-red-100 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Flame strokeWidth={1.75} className="h-4 w-4 text-red-600 shrink-0" />
+            <span className="text-sm font-semibold text-red-800">
+              Founding 50 — A$5 lifetime deal
+            </span>
+            <span className="hidden sm:inline text-sm text-red-700">
+              · 50 credits, no recurring fees, Founding Member badge
+            </span>
+          </div>
+          <span className="text-xs font-bold text-red-700 uppercase tracking-wide">
+            Promo ends 31 Aug 2026 →
+          </span>
+        </Link>
+      </div>
 
       {/* Above-the-fold hero — ONE primary CTA + text-link secondary, per
           CRO §06. Height reserved with min-h to keep CLS < 0.02 across the
