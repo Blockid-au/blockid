@@ -26,6 +26,20 @@ type DocEntry = {
 
 const RECENTLY_UPDATED_DOCS: DocEntry[] = [
   {
+    slug: "docs/ARCHITECTURE.md",
+    title: "System Architecture (v3.3.2) — Stack + Architecture Diagrams",
+    updated: "2026-08-07",
+    summary:
+      "Mermaid diagrams for the full BlockID.au stack (Cloudflare → Nginx → Next.js 16 standalone → Supabase/Redis/Stripe → AI fallback chain) and the App Router request path. Includes the SVI enrichment pipeline and admin drill-down surfaces.",
+  },
+  {
+    slug: "docs/TEAM_STRUCTURE.md",
+    title: "Team Structure (v3.3.2) — C-Level AI Agent Org Chart",
+    updated: "2026-08-07",
+    summary:
+      "Mermaid org chart of the 11-member C-Level AI agent roster (CTO/CFO/CPO/CMO/CRO/CLO/CHRO/CISO/CDO/COO + Customer Success), plus reporting cadence for Guardian, QA, and auto-deploy. Roster source of truth: web/content/team-roster.json.",
+  },
+  {
     slug: "docs/plans/real-world-workflow-parity-audit-2026-07-23.md",
     title: "Real-World Workflow Parity Audit (2026-07-23)",
     updated: "2026-07-23",

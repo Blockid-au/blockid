@@ -1,9 +1,97 @@
 # BlockID.au -- System Architecture
 
-> Version: 3.6 | Last updated: 2026-06-17 (v2.6 deployed)
-> Stack: Next.js (App Router, standalone output) + Supabase + Stripe + Claude/OpenAI/Gemini/Groq/Cerebras/SambaNova/OpenRouter + Google Drive + Gmail SMTP
+> Doc rev: 4.0 | Platform build: **v3.3.2** (2026-08-07 deployed, 11/11 gates)
+> Stack: Next.js 16 (App Router, standalone output, `next build --webpack`) + Supabase (Postgres/Auth/Storage) + Stripe + BlockID EVM (Anvil) + Otterscan + Cloudflare + Claude 4.7 / OpenAI / Gemini / Groq / Cerebras / SambaNova / OpenRouter + Google Drive + Gmail SMTP + Telegram
+> Bare-metal deploy: `bash web/scripts/deploy-live.sh` (11-gate pipeline, zero-downtime port swap)
 
 ---
+
+## 1 · Stack Diagram
+
+```mermaid
+graph TB
+  subgraph Edge["Edge · Cloudflare"]
+    CF["Cloudflare Proxy<br/>TLS 1.3 · HSTS · WAF"]
+  end
+
+  subgraph Host["Bare-metal host (blockid.au)"]
+    NGINX["Nginx reverse proxy<br/>localhost:3000 → :443"]
+    subgraph App["Next.js 16 · Standalone build"]
+      APP["App Router (server components)<br/>60+ marketing + workspace pages"]
+      API["/api routes<br/>90+ endpoints (Stripe, SVI, cron, admin)"]
+      MW["Middleware<br/>Auth cookie · CSP nonce · Reseller attribution"]
+    end
+    CRON["node-cron runner<br/>34+ scheduled routines"]
+    EVM["BlockID EVM (Anvil, zero-gas)<br/>Otterscan explorer :5173"]
+    UPLOAD["Upload service<br/>Evidence Vault I/O"]
+  end
+
+  subgraph Data["Managed data plane"]
+    SB[("Supabase Postgres<br/>47 tables · RLS · migrations")]
+    STORAGE[("Supabase Storage<br/>Evidence + PDF report bucket")]
+    REDIS[("Redis (Upstash) · optional<br/>rate-limit + idempotency")]
+  end
+
+  subgraph AI["AI fallback chain"]
+    CLAUDE["Claude 4.7 (Sonnet/Opus)<br/>primary orchestrator"]
+    GROQ["Groq · Cerebras · SambaNova<br/>fast-token providers"]
+    OPENROUTER["OpenRouter<br/>terminal fallback"]
+  end
+
+  subgraph Ext["External SaaS"]
+    STRIPE["Stripe<br/>Checkout + webhooks + billing portal"]
+    ABR["ABR Australian Business Register<br/>ABN lookup + JSONP"]
+    GDRIVE["Google Drive<br/>data-room export"]
+    GMAIL["Gmail SMTP<br/>nurture + transactional"]
+    TG["Telegram Bot API<br/>ops alerts + agent commands"]
+  end
+
+  CF --> NGINX --> APP
+  APP --> API
+  APP -.-> MW
+  API --> SB
+  API --> STORAGE
+  API --> REDIS
+  API --> STRIPE
+  API --> ABR
+  API --> CLAUDE
+  CLAUDE -.->|rate-limit| GROQ --> OPENROUTER
+  API --> EVM
+  API --> UPLOAD
+  API --> GDRIVE
+  API --> GMAIL
+  CRON --> API
+  CRON --> TG
+  STRIPE -->|webhook| API
+```
+
+## 2 · System Architecture (v3.3.2)
+
+```mermaid
+graph LR
+  USER([Founder / Investor])
+  USER -->|HTTPS| CF["Cloudflare + Nginx"]
+  CF --> ROUTER{Next.js<br/>App Router}
+
+  ROUTER -->|marketing<br/>SSR| MARKET["Marketing shell<br/>/, /pricing, /founding-50,<br/>/svi, /docs, /team"]
+  ROUTER -->|workspace<br/>auth-gated| WORKSPACE["Workspace shell<br/>/dashboard/*, /admin/*,<br/>/settings, /billing"]
+  ROUTER -->|api| API_LAYER["API layer<br/>/api/**"]
+
+  API_LAYER --> ENGINE["SVI Engine<br/>computeSVI() + 6 enrichment modules"]
+  API_LAYER --> BILLING["Billing<br/>Stripe checkout + webhook + reconcile cron"]
+  API_LAYER --> AUTH["Auth<br/>Supabase magic-link + session cookie"]
+  API_LAYER --> ADMIN_API["Admin<br/>/api/admin/**, platform_config CRUD"]
+  API_LAYER --> RESELLER["Reseller<br/>IFV/DVL promo codes, commissions, digest"]
+
+  ENGINE --> SB[(Supabase)]
+  BILLING --> SB
+  BILLING --> STRIPE_EXT["Stripe"]
+  AUTH --> SB
+  RESELLER --> SB
+  ADMIN_API --> SB
+```
+
+## 3 · SVI Analysis Pipeline (v3.x)
 
 ## Recent Architecture Additions (v2.3 – v2.6, June 2026)
 
