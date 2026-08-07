@@ -1268,6 +1268,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMean,
 } from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octvigintcentinagintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMean,
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemvigintcentinagintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -3402,6 +3407,11 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMeanSection = "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMeanSection =
+    "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -10218,6 +10228,25 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMean,
         );
+      // P11.513 — per-transition magnitude TOP-3 pool peak-to-novemvigintcentinagintic-mean.
+      // PTNVCNM = (max - min) / novemvigintcentinagintic_mean where
+      // novemvigintcentinagintic_mean = ((sum x_i^129) / n)^(1/129) is the
+      // M_129 power mean. Bands tight < 1.005, spread [1.005, 1.09), wide >= 1.09.
+      // Since novemvigintcentinagintic_mean >= octvigintcentinagintic_mean by
+      // Power Mean inequality (M_129 >= M_128), ptnvcnm <= ptovcnm for every
+      // non-flat pool. FURTHER ABSORPTION at M_129: pool_count=100 [1x99,100]
+      // reads 1.0260 SPREAD at M_129 (was 1.0263 spread at M_128). Splices
+      // IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMeanSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.512
+      // formatter docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMean,
+        );
     }
   }
   if (
@@ -10448,6 +10477,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToSesvigintcentinaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToSeptvigintcentinaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -10705,6 +10735,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToSesvigintcentinaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToSeptvigintcentinaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToOctvigintcentinaginticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToNovemvigintcentinaginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
