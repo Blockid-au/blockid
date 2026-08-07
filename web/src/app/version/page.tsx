@@ -147,6 +147,24 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.3.4",
+    date: "2026-08-07",
+    title: "Clean-code P2B + security hardening + SEO",
+    changes: [
+      "[Security] /api/admin/users/manage + /api/admin/users/[id]/plan refuse founding50 grants post-cutover — admin backdoor fully closed (P0)",
+      "[Security] /api/svi-accounts default plan changed from 'founding50' → 'free' — no silent promo plan grant after cutover (P1)",
+      "[Security] Removed 4 PII-leaking console.log calls in nps, testimonial, rnd, and data-room routes",
+      "[Clean Code] Founding 100 promo auto-cutover (FOUNDING_PROMO_END = 2026-09-01) — checkout 410, page redirect, webhook guard, reconcile guard, guardrail cron",
+      "[Clean Code] 422 digest-snapshot-per-* modules moved to digest-snapshot-per-modules/ subdir — top-level reseller/ now shows ~12 files",
+      "[Clean Code] Removed 8 stray console.log in cron routes; promoted 13 to console.info",
+      "[Clean Code] Removed waitForTimeout + hardcoded prod URLs from 3 Playwright spec files",
+      "[Testing] 21,932 vitest cases (was ~20,955), 826 test files — all green",
+      "[SEO/UX] metadata added to /showcase, /showcase/atlassian, /showcase/canva, /showcase/xero, /showcase/safetyculture, /contact",
+      "[SEO/UX] loading.tsx skeletons for /founding-50 and /svi; error boundary for (app) segment",
+      "[Docs] ARCHITECTURE.md + TEAM_STRUCTURE.md with Mermaid diagrams — v4.0",
+    ],
+  },
+  {
     version: "3.3.3",
     date: "2026-08-07",
     title: "Code-review sweep — 5 stale copy fixes + earlier checkout guard",
