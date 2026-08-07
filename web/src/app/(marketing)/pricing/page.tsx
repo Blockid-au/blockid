@@ -13,6 +13,9 @@ import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import type { Segment } from "@/lib/plans-v2";
 
+// Force dynamic — pricing reads platform_config (Supabase) + evaluates the
+// Founding 100 promo window on every request, and searchParams (?tier=…)
+// picks the initial tab. ISR would serve stale cutover state at 2026-09-01.
 export const dynamic = "force-dynamic";
 
 // iter-19 Gate 11 flake hardening: allow deep-linking a specific segment via
