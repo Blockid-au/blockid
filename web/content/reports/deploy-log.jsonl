@@ -4836,3 +4836,8 @@
 {"ts":"2026-08-07T12:04:14.183Z","event":"github-push-master","detail":"Blockid-au: fix(cutover): guard /api/lead founding50 Stripe fork with isFoundingPromoActive (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-07T12:04:16.789Z","event":"github-push-master","detail":"Blockid-au: chore(nextjs-audit): add loading.tsx skeletons for /founding-50 and /svi (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-07T12:04:27.163Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-07T11-57-01-428Z — no-op (dup of sibling) (3 commits)","source":"github-webhook"}
+{"ts":"2026-08-07T12:04:40.781Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-07T11-57-01-428Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-07T12:06:15.159Z","event":"github-push-master","detail":"Blockid-au: test(playwright-cutover): add founding-promo cutover smoke spec (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-07T12:06:16.652Z","event":"github-push-master","detail":"Blockid-au: fix(cutover): stripe-reconcile refuses founding50 auto-grant on post-cutover sessions (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-07T12:09:50.415Z","event":"github-push-master","detail":"Blockid-au: fix(cutover): webhook refuses founding50 grant when session.created >= cutover (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-07T12:22:10.699Z","event":"github-push-master","detail":"Blockid-au: feat(reseller-digest): P11.478 M_112 duodecicentinagintic peak-to-mean pure-lib (1 commits)","source":"github-webhook"}
