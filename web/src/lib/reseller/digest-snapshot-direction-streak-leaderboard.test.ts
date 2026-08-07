@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { buildDigestSnapshot } from "./digest-snapshot";
-import { computeDigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-reseller-rolling-trend";
-import { DEFAULT_MIN_STREAK_LENGTH } from "./digest-snapshot-per-reseller-direction-streaks";
+import { computeDigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-rolling-trend";
+import { DEFAULT_MIN_STREAK_LENGTH } from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-direction-streaks";
 import {
   DEFAULT_LEADERBOARD_TOP_N,
   computeDigestSnapshotDirectionStreakLeaderboard,

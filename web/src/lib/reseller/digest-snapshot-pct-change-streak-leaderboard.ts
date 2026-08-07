@@ -72,11 +72,11 @@ import {
   type HeadlineMetricUnit,
 } from "./digest-snapshot-metric-delta";
 import { PCT_CHANGE_MATERIAL_THRESHOLD } from "./digest-snapshot-metric-pct-change";
-import type { DigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-reseller-rolling-trend";
+import type { DigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-rolling-trend";
 import {
   DEFAULT_MIN_STREAK_LENGTH,
   computeDigestSnapshotPerResellerPctChangeStreaks,
-} from "./digest-snapshot-per-reseller-pct-change-streaks";
+} from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-pct-change-streaks";
 import type { KnownKpiSection } from "./digest-snapshot";
 
 export const DEFAULT_LEADERBOARD_TOP_N = 10;

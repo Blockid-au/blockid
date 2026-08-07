@@ -68,12 +68,12 @@ import type {
 import {
   DEFAULT_SUSTAINED_P90_THRESHOLD,
   type PersistenceScorecardVerdictToken,
-} from "./digest-snapshot-persistence-scorecard-verdict";
+} from "../digest-snapshot-persistence-scorecard-verdict";
 import type { HeadlineMetricUnit } from "../digest-snapshot-metric-delta";
 import type { KnownKpiSection } from "../digest-snapshot";
 
-export { DEFAULT_SUSTAINED_P90_THRESHOLD } from "./digest-snapshot-persistence-scorecard-verdict";
-export type { PersistenceScorecardVerdictToken } from "./digest-snapshot-persistence-scorecard-verdict";
+export { DEFAULT_SUSTAINED_P90_THRESHOLD } from "../digest-snapshot-persistence-scorecard-verdict";
+export type { PersistenceScorecardVerdictToken } from "../digest-snapshot-persistence-scorecard-verdict";
 
 export interface PerMetricPersistenceScorecardVerdictRow {
   readonly key: KnownKpiSection;

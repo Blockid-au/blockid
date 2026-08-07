@@ -66,12 +66,12 @@ import {
   HEADLINE_METRICS,
   type HeadlineMetricUnit,
 } from "./digest-snapshot-metric-delta";
-import type { DigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-reseller-rolling-trend";
+import type { DigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-rolling-trend";
 import {
   DEFAULT_MIN_STREAK_LENGTH,
   computeDigestSnapshotPerResellerDirectionStreaks,
   type StreakDirection,
-} from "./digest-snapshot-per-reseller-direction-streaks";
+} from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-direction-streaks";
 import type { KnownKpiSection } from "./digest-snapshot";
 
 export const DEFAULT_LEADERBOARD_TOP_N = 10;
