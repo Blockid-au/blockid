@@ -8311,3 +8311,6 @@
 {"tick_id":"2026-08-07T05-07-01-694Z","ts":"2026-08-07T05:14:44.463Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"aa94c30ac","last_deployed":"38324e7"}
 {"tick_id":"2026-08-07T05-07-01-694Z","ts":"2026-08-07T05:23:03.480Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"aa94c30ac"}
 {"tick_id":"2026-08-07T05-07-01-694Z","ts":"2026-08-07T05:23:03.481Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-07T05-27-01-536Z","ts":"2026-08-07T05:27:01.537Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-07T05-27-01-536Z","ts":"2026-08-07T05:27:01.560Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id": "2026-08-07T05-27-01-536Z", "ts": "2026-08-07T05:32:31.015Z", "loop_label": "atlassian-goal-loop", "stage": "phase_shipped", "phase": "P9-index-headlines-route-test", "files_changed": ["web/src/app/api/index/headlines/route.test.ts", "docs/plans/atlassian-standard-mapping-goal.md"], "tests": {"passed": 24, "failed": 0}, "note": "24-case colocated vitest for GET /api/index/headlines (BSI-AU public snapshot)"}
