@@ -854,3 +854,8 @@
 {"ts":"2026-08-07T03:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2198,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 30, \"raw\": \"30% used (195130928 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274054184 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-08-07T03:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":5036,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-08-07T03:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16594,"detail":""}
+{"ts":"2026-08-07T03:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":1199,"detail":"{\"status\": \"DANGER\", \"metrics\": {\"disk\": {\"value\": 30, \"raw\": \"30% used (195093304 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274054180 free, 300GB)\", \"level\": \"ok\"}, \"memory\":"}
+{"ts":"2026-08-07T03:15:01Z","endpoint":"reseller-clear-commissions","status":"ok","duration_ms":229,"detail":"{\"cleared\": 0, \"message\": \"no pending rows past window\"}"}
+{"ts":"2026-08-07T03:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16545,"detail":""}
+{"ts":"2026-08-07T03:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":131,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-08-07T03:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":514,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 30, \"raw\": \"30% used (195056956 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274054180 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
