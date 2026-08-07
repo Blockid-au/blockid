@@ -103,11 +103,54 @@ const CASES: CaseStudy[] = [
   },
 ];
 
+const itemListJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "BlockID.au Startup Showcase — Australian Case Studies",
+  url: "https://blockid.au/showcase",
+  numberOfItems: 4,
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Atlassian — Bootstrap to NASDAQ",
+      url: "https://blockid.au/showcase/atlassian",
+      description: "Bootstrapped Jira + Confluence in Sydney, took a single Accel secondary, listed on NASDAQ with dual-class control intact.",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Canva — Decacorn without IPO",
+      url: "https://blockid.au/showcase/canva",
+      description: "Sydney design tool from Melanie Perkins — decacorn without IPO, 9 private rounds.",
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Xero — Early IPO SaaS accounting",
+      url: "https://blockid.au/showcase/xero",
+      description: "Cloud-first SaaS accounting from Wellington. NZX IPO 6 months after founding, dual-listed ASX 2012.",
+    },
+    {
+      "@type": "ListItem",
+      position: 4,
+      name: "SafetyCulture — Regional Aussie unicorn",
+      url: "https://blockid.au/showcase/safetyculture",
+      description: "Townsville-founded workplace-safety unicorn — 12yr bootstrap → Series A/B/C → Softbank round.",
+    },
+  ],
+};
+
 export default function ShowcaseMenuPage() {
   const live = CASES.filter((c) => c.status === "live");
   const soon = CASES.filter((c) => c.status === "coming_soon");
 
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+    />
     <div className="min-h-screen bg-surface-50">
       <div className="mx-auto max-w-6xl p-6">
         <header className="mb-8">
@@ -186,6 +229,7 @@ export default function ShowcaseMenuPage() {
         </footer>
       </div>
     </div>
+    </>
   );
 }
 
