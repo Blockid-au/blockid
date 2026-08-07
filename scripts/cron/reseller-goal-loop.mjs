@@ -20,7 +20,7 @@
 
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
-import { runGoalLoop } from './goal-loop.mjs'
+import { runGoalLoop } from './goal-loop-v2.mjs'
 import { sumHumanReviewMinutes7d } from './human-review-minutes.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
