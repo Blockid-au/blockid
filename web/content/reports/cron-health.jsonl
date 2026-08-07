@@ -884,3 +884,4 @@
 {"ts":"2026-08-07T06:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":720,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 30, \"raw\": \"30% used (194364308 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274019972 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-08-07T06:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":5380,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-08-07T06:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16557,"detail":""}
+{"ts":"2026-08-07T06:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2541,"detail":"{\"status\": \"WATCH\", \"metrics\": {\"disk\": {\"value\": 30, \"raw\": \"30% used (193868304 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274019928 free, 300GB)\", \"level\": \"ok\"}, \"memory\":"}
