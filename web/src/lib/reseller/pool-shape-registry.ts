@@ -213,7 +213,7 @@ export const POOL_SHAPE_SURFACES: readonly PoolShapeSurface[] = [
 ];
 
 export const POOL_SHAPE_MODULE_PREFIX =
-  "digest-snapshot-per-transition-magnitude-top3-pool-";
+  "digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-";
 
 export function modulePathForSlug(slug: string): string {
   return `web/src/lib/reseller/${POOL_SHAPE_MODULE_PREFIX}${slug}.ts`;
