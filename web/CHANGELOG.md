@@ -1,5 +1,20 @@
 # BlockID.au Changelog
 
+## 2026-08-07 — v3.3.3: Code-review sweep (5 stale-copy fixes + earlier checkout guard)
+
+Post-v3.3.2 code review turned up 5 places the A$5 / 50-credit correction hadn't reached, plus one prod-safety tightening on the checkout guard. All shipped in one patch.
+
+- **copy** `credit-gate.tsx:325` CTA "Get Founding 100 for A$1" → "**A$5**" (stale from the 2026-06-17 A$1 launch).
+- **copy** `svi/rnd-page-lock.tsx:38` link button "A$1 (unlimited)" → "**A$5 (50 credits, lifetime)**". The sibling per-page unlock button (`Unlock — A$1`) is a different SKU and stays.
+- **copy** `pricing-data.ts:274` (FAQ answer): "one-off A$5 payment for 100 full-page analyses" → **50**.
+- **copy** `pricing-data.ts:242` (`COMPARISON_ROWS` SVI row) — founding column "100 (lifetime)" → "**50 (lifetime)**"; matching pin-test at `pricing-data.test.ts:460` realigned.
+- **safety** `/api/stripe/checkout` — the HTTP 410 `founding50` guard moved BEFORE `resolvePromoCode()`. Post-cutover requests no longer burn a Supabase promo-code lookup on a doomed checkout.
+- **hygiene** `cron/stripe-reconcile/route.ts:11` doc comment updated to reference `PLAN_CREDITS.founding50.amount` instead of a hard-coded "100 credits" — avoids the same drift recurring.
+- **tests** 20,175 / 20,175 vitest tests green. `tsc --noEmit` clean.
+
+Flagged for a follow-up ticket (NOT fixed in this release):
+- **loop pollution** — `web/src/lib/reseller/digest-snapshot-per-*.ts`: 396 near-identical auto-generated files from the PTSNGM / PT*NNM dispersion loop. Recommend a consolidation pass.
+
 ## 2026-08-07 — v3.3.2: Founding 100 auto-cutover (2026-09-01) + full-site copy sweep
 
 - **cutover** New helper `lib/founding-promo.ts` — `isFoundingPromoActive()` hard-gated to `2026-09-01T00:00:00Z`. Deliberately hard-coded (not in `platform_config`) so a Supabase outage cannot accidentally re-open the promo window.

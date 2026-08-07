@@ -147,6 +147,19 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.3.3",
+    date: "2026-08-07",
+    title: "Code-review sweep — 5 stale copy fixes + earlier checkout guard",
+    changes: [
+      "credit-gate CTA fixed: 'Get Founding 100 for A$1' → A$5 (was stale from the 2026-06-17 A$1 launch)",
+      "svi/rnd-page-lock CTA fixed: 'A$1 (unlimited)' → 'A$5 (50 credits, lifetime)'",
+      "Pricing FAQ + COMPARISON_ROWS: 100 → 50 for the Founding SVI-analyses claim, plus pin-test alignment",
+      "/api/stripe/checkout: 410 founding50 guard moved BEFORE the resolvePromoCode DB call — post-cutover requests no longer burn a Supabase query on a doomed checkout",
+      "cron/stripe-reconcile doc comment retargeted from '100 credits' to PLAN_CREDITS.founding50.amount reference (avoids future drift)",
+      "20,175/20,175 vitest tests green, tsc clean, deploy 11/11 gates",
+    ],
+  },
+  {
     version: "3.3.2",
     date: "2026-08-07",
     title: "Founding 100 auto-cutover on 2026-09-01 + full-site copy sweep",

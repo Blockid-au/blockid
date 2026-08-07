@@ -8,7 +8,7 @@
 // auto-grant the entitlement if we can identify the SKU with high confidence.
 //
 // Scoped to two SKU families we can grant safely:
-//   1. Founding 100 (metadata.blockid_plan === "founding50") — plan + 100 credits
+//   1. Founding 100 (metadata.blockid_plan === "founding50") — plan + PLAN_CREDITS.founding50.amount credits
 //   2. Credit pack (metadata.type === "credit_purchase") — N credits from
 //      metadata.blockid_credits
 //
