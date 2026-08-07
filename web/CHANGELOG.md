@@ -1,5 +1,14 @@
 # BlockID.au Changelog
 
+## 2026-08-07 — v3.3.0: Team refresh, expanded early-bird, redirects
+
+- **team** About page team card refreshed to reflect the full 11-member C-Level AI agent roster (CTO, CFO, CPO, CMO, CRO, CLO, CHRO, CISO, CDO, COO + Customer Success lead) — was hard-coded at 8.
+- **pricing** Early-bird deadline extended to Dec 31, 2026 in the Growth monthly + annual tier urgency copy (the 2026-08-01 date had already expired; `platform-config.ts` default is admin-overridable via `/admin/config`).
+- **routing** `/founding-100` now permanently redirects to `/founding-50` — matches the trademarked Founding 100 offer at A$5 lifetime.
+- **routing** `/login` → `/auth/login` temporary redirect fixes the 404 on the common short URL.
+- **version** Version history page + `project-state.json` pinned to `3.3.0` (project-state was drifted at `3.1.0`).
+- **release-notes** Version history entry for 3.3.0 added to `/version` page under `VERSION_HISTORY`.
+
 ## 2026-07-31 — v3.0 upgrade: Verified Business Identity foundation
 
 BlockID v3.0 lands the first-half of the Master Upgrade Plan (`h-y-k-t-h-p-n-ng-hazy-sutton.md`) — six phases across paywall, verified identity surface, verification ladder, evidence pipeline, AI orchestration, programme+marketplace, and the Unicorn framework. Approx. 40 feature commits from ten parallel agents.
