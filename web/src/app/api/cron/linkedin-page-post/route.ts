@@ -354,7 +354,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: result.error, source }, { status: 502 });
   }
 
-  console.log(`[blockid:cron:linkedin-page-post] posted week=${weekNum} source=${source} id=${result.id}`);
   return NextResponse.json({ ok: true, postId: result.id, source, week: weekNum });
 }
 

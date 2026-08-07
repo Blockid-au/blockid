@@ -211,7 +211,7 @@ export async function POST(request: Request) {
       console.error("[blockid:stripe] cancellation email send error", err);
     });
 
-    console.log(
+    console.info(
       `[blockid:stripe] subscription ${activeSub.id} scheduled for cancellation at ${periodEnd} for user ${user.id}`,
     );
 

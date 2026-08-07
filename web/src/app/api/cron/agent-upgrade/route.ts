@@ -710,7 +710,6 @@ async function sendWeeklyGrowthReport(
       subject: `BlockID Weekly Growth Report — ${dateStr}`,
       html,
     });
-    console.log("[agent-upgrade] Weekly growth report sent to admin@blockid.au");
   } catch (err) {
     console.error("[agent-upgrade] Failed to send weekly growth report", err);
   }
