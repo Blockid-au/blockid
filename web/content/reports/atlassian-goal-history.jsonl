@@ -8619,3 +8619,10 @@
 {"tick_id":"2026-08-07T14-35-22-356Z","ts":"2026-08-07T14:35:22.354Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","sub_item":"P9-data-room-goals-route-test","file":"web/src/app/api/data-room/goals/route.test.ts","tests":34,"vitest":"passed"}
 {"tick_id":"2026-08-07T14-27-01-461Z","ts":"2026-08-07T14:35:51.282Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":529797,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-07T14-27-01-461Z","ts":"2026-08-07T14:35:51.319Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":6}
+{"tick_id":"2026-08-07T14-27-01-461Z","ts":"2026-08-07T14:35:53.293Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-07T14-27-01-461Z","ts":"2026-08-07T14:35:53.305Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"c244324f6","last_deployed":"07c4cde"}
+{"tick_id":"2026-08-07T14-27-01-461Z","ts":"2026-08-07T14:35:53.318Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"c244324f6"}
+{"tick_id":"2026-08-07T14-27-01-461Z","ts":"2026-08-07T14:35:53.320Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-07T14-37-01-866Z","ts":"2026-08-07T14:37:01.867Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-07T14-37-01-866Z","ts":"2026-08-07T14:37:01.889Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-07T14-41-07-310Z","ts":"2026-08-07T14:41:07.312Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","sub_item":"P9-actions-route-test","file":"web/src/app/api/actions/route.test.ts","tests":20,"vitest":"passed"}
