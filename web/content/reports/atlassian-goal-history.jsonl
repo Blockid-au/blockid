@@ -8680,3 +8680,5 @@
 {"tick_id":"2026-08-07T16-07-01-810Z","ts":"2026-08-07T16:07:01.811Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-07T16-07-01-810Z","ts":"2026-08-07T16:07:01.828Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-07T16-11-manual","ts":"2026-08-07T16:11:53.000Z","loop_label":"atlassian-goal-loop","stage":"phase_advance","phase":"P9_ship","action":"P9-cap-table-health-route-test","artefact":"web/src/app/api/cap-table/health/route.test.ts","cases":34,"target":"web/src/app/api/cap-table/health/route.ts","target_lines":149,"vitest":"passed","duration_ms":523}
+{"tick_id":"2026-08-07T16-07-01-810Z","ts":"2026-08-07T16:12:19.840Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":318009,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-07T16-07-01-810Z","ts":"2026-08-07T16:12:19.886Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
