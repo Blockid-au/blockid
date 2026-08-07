@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { LegacyPlan as Plan } from "@/lib/plans";
 import { isGrowthEarlyBird, GROWTH_STANDARD_PRICE } from "@/lib/plans";
-import { CREDIT_PACKS } from "@/lib/credits";
+import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { ShareMgmtDrawer } from "@/components/billing/share-mgmt-drawer";
 
