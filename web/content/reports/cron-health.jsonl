@@ -888,3 +888,4 @@
 {"ts":"2026-08-07T06:15:02Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16698,"detail":""}
 {"ts":"2026-08-07T06:15:02Z","endpoint":"dunning-retry","status":"fail","duration_ms":16771,"detail":""}
 {"ts":"2026-08-07T06:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":243,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-08-07T06:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":7503,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 30, \"raw\": \"30% used (194569056 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274019924 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
