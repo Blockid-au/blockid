@@ -150,3 +150,5 @@
 {"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":43,"timestamp":"2026-08-06T16:00:02.250Z"}
 {"stage":"qa","ok":true,"message":"QA: ?/21 pass, 0 fail","aiCalls":0,"durationMs":60028,"timestamp":"2026-08-06T18:01:01.905Z"}
 {"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":129,"timestamp":"2026-08-06T18:01:02.034Z"}
+{"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240002,"timestamp":"2026-08-07T12:04:02.288Z"}
+{"stage":"plan","ok":true,"message":"CEO implementing plan updated — 0 new task(s), 29 pending","aiCalls":1,"durationMs":3067,"timestamp":"2026-08-07T12:04:05.356Z"}
