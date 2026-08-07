@@ -9,6 +9,8 @@ import { Founding50Waitlist } from "@/components/ui/founding50-waitlist";
 import { FoundingCountdown } from "@/components/ui/founding-countdown";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlatformConfig, founding_price_aud } from "@/lib/platform-config";
+import { isFoundingPromoActive } from "@/lib/founding-promo";
+import { redirect } from "next/navigation";
 import {
   CheckCircle2,
   Clock,
@@ -82,6 +84,7 @@ export async function generateMetadata() {
 }
 
 export default async function Founding50Page() {
+  if (!isFoundingPromoActive()) redirect("/pricing");
   const cfg = await getPlatformConfig();
   const priceAud = founding_price_aud(cfg);
   const spotsRemaining = await getSpotsRemaining(cfg.founding_spots_total);
