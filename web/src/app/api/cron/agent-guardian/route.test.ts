@@ -79,9 +79,39 @@ beforeEach(() => {
   mocks.sendTelegramMock.mockReset().mockResolvedValue(undefined);
   mocks.sendEmailMock.mockReset().mockResolvedValue(undefined);
   mocks.checkRateLimitMock.mockReset().mockReturnValue({ allowed: true, resetIn: 0 });
-  // Default every metric to "50% used" → level="ok" → no fix path
-  // triggered so the response is fully deterministic.
-  mocks.execSyncMock.mockReset().mockImplementation(() => "50 100");
+  // Route the exec mock so every metric parser lands in the "ok" band
+  // (<=60%). The route runs many small commands via `run()`; we key on
+  // substring so the shell pipelines stay opaque to the test.
+  mocks.execSyncMock.mockReset().mockImplementation((cmd: string) => {
+    // pgrep for the server pid → return a fake pid.
+    if (cmd.includes("pgrep")) return "12345";
+    // /proc/<pid>/fd count for open-files → 100.
+    if (cmd.includes("/proc/") && cmd.includes("/fd")) return "100";
+    // /proc/<pid>/limits Max open files → 65536.
+    if (cmd.includes("Max open files")) return "65536";
+    // nproc — many cores so load/cores stays low.
+    if (cmd.trim() === "nproc") return "50";
+    // load average → 0.1 → 0/50 cores → 0%.
+    if (cmd.includes("/proc/loadavg")) return "0.10";
+    // Zombie count → 0 → 0%.
+    if (cmd.includes("$8==\"Z\"")) return "0";
+    // /tmp size in MB → 100 → below every band.
+    if (cmd.includes("du -sm /tmp")) return "100";
+    // Node RSS (MB) → 0 → 0%.
+    if (cmd.includes("next-server")) return "0";
+    // free -m totalMem → 1024.
+    if (cmd.includes("free -m")) return "1024";
+    // free (swap NR==3) → 0 used / 100 total → 0%.
+    if (cmd.includes("free ") && cmd.includes("NR==3")) return "0";
+    // free (memory NR==2) → 30% used, 300MB / 1000MB.
+    if (cmd.includes("free ") && cmd.includes("NR==2")) return "30 300 1000";
+    // df / and df /data — 30% used.
+    if (cmd.startsWith("df /") || cmd.includes("df /data")) return "30 500G";
+    // df -i / inodes — 30%.
+    if (cmd.includes("df -i")) return "30";
+    // Everything else → empty string (route already null-guards).
+    return "";
+  });
   mocks.readFileSyncMock.mockReset().mockImplementation(() => JSON.stringify({ lastAlerts: {} }));
   mocks.writeFileSyncMock.mockReset();
   mocks.appendFileSyncMock.mockReset();
