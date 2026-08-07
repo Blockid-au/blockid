@@ -78,7 +78,7 @@ test.describe("Reseller co-branding pill — P10 dry-run", () => {
       process.env.PLAYWRIGHT_BASE_URL ??
       process.env.BASE_URL ??
       process.env.DEMO_URL ??
-      "https://blockid.au";
+      "http://localhost:4001";
     await context.addCookies([
       { name: "blockid_lang", value: "vi", url: baseUrl },
     ]);
@@ -242,7 +242,7 @@ test.describe("Reseller co-branding pill — P10 wave-5 row 163", () => {
       process.env.PLAYWRIGHT_BASE_URL ??
       process.env.BASE_URL ??
       process.env.DEMO_URL ??
-      "https://blockid.au";
+      "http://localhost:4001";
     await context.addCookies([
       { name: "blockid_lang", value: "vi", url: baseUrl },
     ]);
