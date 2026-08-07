@@ -8697,3 +8697,4 @@
 {"tick_id":"2026-08-07T16-17-01-126Z","ts":"2026-08-07T16:33:00.118Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-07T16-37-01-131Z","ts":"2026-08-07T16:37:01.132Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-07T16-37-01-131Z","ts":"2026-08-07T16:37:01.158Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id": "2026-08-07T16-41-manual", "ts": "2026-08-07T16:41:53.000Z", "loop_label": "atlassian-goal-loop", "stage": "phase_advance", "phase": "P9_ship", "action": "P9-admin-leads-route-test", "artefact": "web/src/app/api/admin/leads/route.test.ts", "cases": 26, "target": "web/src/app/api/admin/leads/route.ts", "target_lines": 37, "vitest": "passed", "duration_ms": 489}
