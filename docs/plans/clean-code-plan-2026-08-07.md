@@ -1,6 +1,6 @@
 ---
 plan_id: clean-code-2026-08-07
-status: proposed
+status: p2_revision_needed
 owner: admin@blockid.au
 created: 2026-08-07
 priority: P2 (tech-debt, non-blocking)
@@ -97,3 +97,15 @@ web/src/lib/reseller/digest-snapshots/
 
 - Same consolidation pattern likely applies to `web/src/app/api/cron/reseller-weekly-digest/route.ts` (currently a giant switch over metric slugs — swap to registry lookup).
 - Audit `web/src/lib/reseller/` for other loop-emitted family clusters (`peak-to-*`, `direction-streak-*`, `cross-partner-*`).
+
+## P2 revision note (2026-08-07)
+
+**P2 as written is NOT executable.** Agent audit found the "stubs" are 220–500-line bespoke modules each with 3 exports (`compute*`, `format*Section`, `type`) and cross-module imports. One-line re-exports would fail typecheck immediately.
+
+**Revised P2 options (pending human decision):**
+
+- **(A)** Expand registry module to fully implement all ~210 compute+format+type shapes — multi-day effort, correct long-term.
+- **(B)** Move stubs into `digest-snapshots-legacy/` subdir + add 1-line re-export shims at original paths — cheap, quiets top-level `ls`, no behaviour change. **Recommended quick win.**
+- **(C)** Audit which of the 210 PT*NM slugs are actually rendered in weekly-digest emails → delete unused ones (~60-70% may be dead), then consolidate survivors — medium effort, best ROI.
+
+P1 registry (additive, shipped 2026-08-07) remains valid as the future home for new metrics.
