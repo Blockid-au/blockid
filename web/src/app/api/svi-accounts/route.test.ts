@@ -34,9 +34,10 @@ function makeSb(opts?: { existing?: { id: string } | null; upsertData?: unknown;
     ? { data: null, error: opts.upsertError }
     : { data: opts?.upsertData ?? { id: "svi-1", email: "founder@example.com" }, error: null };
 
-  const chain = {
-    eq: vi.fn().mockReturnThis() as unknown as () => typeof chain,
-    is: vi.fn().mockReturnThis() as unknown as () => typeof chain,
+  type Chain = { eq: () => Chain; is: () => Chain; maybeSingle: () => unknown };
+  const chain: Chain = {
+    eq: vi.fn().mockReturnThis() as unknown as () => Chain,
+    is: vi.fn().mockReturnThis() as unknown as () => Chain,
     maybeSingle: vi.fn().mockReturnValue(existingResult),
   };
 

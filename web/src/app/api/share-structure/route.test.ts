@@ -338,7 +338,7 @@ describe("POST /api/share-structure", () => {
       authorized_shares: 12_345_678,
       auto_recompute: true,
     });
-    expect(typeof (captured as Record<string, unknown>).updated_at).toBe("string");
+    expect(typeof (captured as unknown as Record<string, unknown>).updated_at).toBe("string");
   });
 
   it("upsert uses onConflict=account_id (natural key)", async () => {
