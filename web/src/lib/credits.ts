@@ -232,7 +232,7 @@ export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : 2;
 export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }> = {
   // ── Legacy (grandfathered) ──────────────────────────────────────────────
   free:           { amount: isPromoActive() ? 5 : 2, recurring: false },  // 5 during promo, 2 after
-  founding50:     { amount: 100,    recurring: false },  // 100 credits lifetime (matches founding_credits default)
+  founding50:     { amount: 50,     recurring: false },  // 50 credits lifetime (matches founding_credits default; A$5 promo until 2026-08-31, then A$99)
   growth:         { amount: 200,    recurring: true  },  // 200 credits/month (matches growth_plan_credits_monthly default)
   growth_annual:  { amount: 200,    recurring: true  },  // 200 credits/month (annual billing)
 

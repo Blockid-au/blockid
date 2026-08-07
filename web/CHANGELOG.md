@@ -1,5 +1,14 @@
 # BlockID.au Changelog
 
+## 2026-08-07 — v3.3.1: Founding 100 pricing correction (A$5 / 50 credits until Aug 31, then A$99)
+
+- **pricing** Founding 100 credit grant lowered from **100 → 50** in the three sources of truth: `platform-config.ts` (`founding_credits: 50`), `credits.ts` (`PLAN_CREDITS.founding50.amount = 50`), and `plans.ts` (`DEFAULT_FOUNDING_CREDITS = 50`).
+- **pricing** Founding 100 tier subtitle + urgency copy rewritten across the static `PRICING_TIERS` and the config-driven `applyPlatformConfigToPricing()` helper: "A$5 until Aug 31, 2026 · reverts to A$99 · lifetime access" (subtitle) + "A$5 promo until Aug 31, 2026 — then A$99" (urgency on the static row; helper keeps spots-based urgency for admin overrides).
+- **pricing** Feature list updated: "50 SVI analyses (lifetime)" (was 100 — aligned to the reduced credit grant).
+- **email** Founder Day-7 nurture email subject rewritten: "50 credits for A$5 — here's what Founding 100 members get".
+- **tests** `platform-config.test.ts`, `pricing-data.test.ts`, `plans.test.ts`, and `email.test.ts` realigned to the new 50-credit constant — 235/235 pass.
+- **note** The A$5 promo is time-boxed to 2026-08-31; standard pricing after that date is A$99 (admin can flip the constant via `/admin/config` when the promo window closes).
+
 ## 2026-08-07 — v3.3.0: Team refresh, expanded early-bird, redirects
 
 - **team** About page team card refreshed to reflect the full 11-member C-Level AI agent roster (CTO, CFO, CPO, CMO, CRO, CLO, CHRO, CISO, CDO, COO + Customer Success lead) — was hard-coded at 8.

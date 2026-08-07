@@ -781,7 +781,7 @@ describe("nurture legacy aliases delegate to the current impls", () => {
   it("sendNurtureFreeDay14 delegates to sendNurtureFreeDay7 (Founding 100 upsell)", async () => {
     const { sendNurtureFreeDay14 } = await import("./email");
     await sendNurtureFreeDay14({ to: "a@b.co" });
-    expect(lastMail().subject).toContain("100 credits");
+    expect(lastMail().subject).toContain("50 credits");
   });
 
   it("sendNurturePaidDay14 delegates to sendNurturePaidDay7 (Week 1 progress)", async () => {

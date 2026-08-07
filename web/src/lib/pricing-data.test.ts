@@ -364,9 +364,9 @@ describe("PRICING_TIERS fixture", () => {
     );
   });
 
-  it("founding50 default credits string mentions '100 credits' + 'never expires'", () => {
+  it("founding50 default credits string mentions '50 credits' + 'never expires'", () => {
     const f = PRICING_TIERS.find((t) => t.id === "founding50")!;
-    expect(f.credits).toBe("100 credits (never expires)");
+    expect(f.credits).toBe("50 credits (never expires)");
   });
 
   it("founding50 numericPrice matches the display price ($5)", () => {

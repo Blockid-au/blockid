@@ -200,7 +200,7 @@ export default function AboutPage() {
             <p className="text-base leading-relaxed text-ink-600">
               The result: a platform that would typically require a team of 20+
               engineers, delivered with the speed and precision of AI-native
-              development. The current build — v3.3.0 — spans 340+ TypeScript
+              development. The current build — v3.3.1 — spans 340+ TypeScript
               files, 65+ pages, 90+ API endpoints, 47 database tables, 11 AI
               agents, and 40+ free models. Recent shipping includes the full
               reseller / wholesale module (P0–P10, 39 wire-shape ticks), Q4
