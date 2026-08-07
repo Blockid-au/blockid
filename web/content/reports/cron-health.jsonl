@@ -971,3 +971,4 @@
 {"ts":"2026-08-07T15:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":4236,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-08-07T15:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16576,"detail":""}
 {"ts":"2026-08-07T15:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16461,"detail":""}
+{"ts":"2026-08-07T15:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2494,"detail":"{\"status\": \"DANGER\", \"metrics\": {\"disk\": {\"value\": 30, \"raw\": \"30% used (194374544 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274015072 free, 300GB)\", \"level\": \"ok\"}, \"memory\":"}
