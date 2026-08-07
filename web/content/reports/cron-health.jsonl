@@ -1042,3 +1042,4 @@
 {"ts":"2026-08-07T20:45:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16480,"detail":""}
 {"ts":"2026-08-07T20:50:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":527,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 31, \"raw\": \"31% used (191281556 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274014516 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-08-07T21:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":51899,"detail":""}
+{"ts":"2026-08-07T21:00:01Z","endpoint":"agent-auto-improve","status":"rate_limited","duration_ms":460394,"detail":"{\"error\":\"Rate limited\",\"resetIn\":3272830}"}
