@@ -82,7 +82,7 @@ export async function POST(request: Request) {
           email,
           name: name ?? null,
           startup_name: startup_name ?? null,
-          plan: plan ?? "founding50",
+          plan: plan ?? "free",
           project_id: projectId,
           last_active_at: new Date().toISOString(),
         })

@@ -20,6 +20,7 @@ Error: expect(locator).toBeVisible() failed
 
 Locator: getByText(/cohort enterprise/i).first()
 Expected: visible
+Timeout: 30000ms
 Error: element(s) not found
 
 Call log:
