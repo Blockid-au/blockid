@@ -1,6 +1,30 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-report-for-investors-australia",
+      "title": "Startup Valuation Report: How to Justify Your Valuation",
+      "description": "Learn how to create a startup valuation report that wins over investors. Professional frameworks and justification methods for Australian founders.",
+      "keywords": [
+        "how to create a startup valuation report",
+        "startup valuation justification australia",
+        "valuation memo for investors",
+        "how to justify startup valuation to investors",
+        "pre-seed valuation report australia",
+        "startup valuation deck template",
+        "valuing early stage startups australia",
+        "investor ready valuation report",
+        "startup valuation methods for aussie founders",
+        "how to document startup valuation for venture capital"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-08-07",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Your Valuation Score",
+        "href": "/score"
+      }
+    },
+    {
       "slug": "startup-valuation-for-secondary-sales-australia",
       "title": "Secondary Sale Valuation for Startups Australia | Guide",
       "description": "Master secondary sale valuation for your Australian startup. Learn how to price secondary shares and manage founder liquidity with our expert framework.",
