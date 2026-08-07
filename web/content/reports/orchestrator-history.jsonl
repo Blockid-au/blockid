@@ -155,3 +155,5 @@
 {"stage":"deploy","ok":false,"message":"Deploy failed: ❌ Another deploy is already running (lock: /tmp/blockid-deploy.lock).\n   Aborting to avoid a build race. Retry after it finishes.","aiCalls":0,"durationMs":260,"timestamp":"2026-08-07T14:02:15.186Z"}
 {"stage":"update_artifacts","ok":true,"message":"29 task(s) still in flight","aiCalls":0,"durationMs":146,"timestamp":"2026-08-07T16:00:02.348Z"}
 {"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":34,"timestamp":"2026-08-07T16:00:02.383Z"}
+{"stage":"qa","ok":true,"message":"QA: ?/22 pass, 0 fail","aiCalls":0,"durationMs":91992,"timestamp":"2026-08-07T18:01:33.691Z"}
+{"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":134,"timestamp":"2026-08-07T18:01:33.826Z"}
