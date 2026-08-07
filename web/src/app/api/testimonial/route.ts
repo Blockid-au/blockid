@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
         approved: false,
       });
     } else {
-      console.log("[Testimonial]", { text, name, company, user: user?.email });
+      // Supabase not configured — silently drop (no PII to logs).
+      // Testimonials are non-critical; user is not blocked.
     }
     return NextResponse.json({ ok: true });
   } catch {

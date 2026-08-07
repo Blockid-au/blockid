@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         completed_at: new Date().toISOString(),
       });
     } else {
-      console.log("[NPS]", { score, comment, user: user?.email });
+      // Supabase not configured — silently drop (no PII/comment to logs).
     }
     return NextResponse.json({ ok: true });
   } catch {

@@ -158,10 +158,9 @@ const DATA_ROOM_ITEMS: DataRoomItemDef[] = [
   { id: "ndb_readiness", category: "AU Compliance", label: "Notifiable Data Breaches scheme readiness", description: "Documented process for assessing suspected data breaches within 30 days and notifying the OAIC and affected individuals as required by Part IIIC of the Privacy Act 1988", dimension: "lco", required_for_stage: "seed" },
 ];
 
-// Diagnostic — logs the runtime data-room item count at module load.
-// Used to verify the data room meets the ≥60-item Series-A acquirer standard.
-// eslint-disable-next-line no-console
-console.log(`data-room-templates.count: ${DATA_ROOM_ITEMS.length}`);
+// DATA_ROOM_ITEMS should stay ≥60 to meet the Series-A acquirer standard.
+// Diagnostic console.log removed — it fired on every Server Component render
+// which polluted prod logs. Add a colocated test instead if we want a hard gate.
 
 // Group items by category for the client
 const CATEGORIES = Array.from(new Set(DATA_ROOM_ITEMS.map((i) => i.category)));

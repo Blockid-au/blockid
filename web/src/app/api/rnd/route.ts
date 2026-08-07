@@ -158,7 +158,7 @@ export async function POST(request: Request) {
       .maybeSingle()).data : null);
 
     if (hit?.analysis_json && hit?.rnd_report_json) {
-      console.log("[rnd] Cache hit for", email, "slug:", hit.id);
+      // Cache hit — do not log email PII.
 
       // Return cached result as SSE stream with a single complete event
       const { readable: cachedReadable, writable: cachedWritable } = new TransformStream();
