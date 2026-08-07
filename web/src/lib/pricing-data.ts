@@ -239,7 +239,7 @@ export interface ComparisonRow {
 }
 
 export const COMPARISON_ROWS: ComparisonRow[] = [
-  { feature: "SVI Analyses", free: "5 free (instant)", founding: "100 (lifetime)", growth: "Unlimited" },
+  { feature: "SVI Analyses", free: "5 free (instant)", founding: "50 (lifetime)", growth: "Unlimited" },
   { feature: "PDF Export", free: "-", founding: "Yes", growth: "Yes" },
   { feature: "Evidence Vault", free: "-", founding: "Yes", growth: "Yes" },
   { feature: "Term Sheet AI", free: "-", founding: "Yes", growth: "Unlimited" },
@@ -271,7 +271,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How does billing work?",
-    a: "Founding 100 is a one-off A$5 payment for 100 full-page analyses (lifetime access). Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD and processed securely via Stripe.",
+    a: "Founding 100 is a one-off A$5 payment for 50 full-page analyses (lifetime access). Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD and processed securely via Stripe.",
   },
   {
     q: "Can I cancel anytime?",

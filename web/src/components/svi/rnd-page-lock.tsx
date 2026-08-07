@@ -35,7 +35,7 @@ export function RndPageLock({ children, onUnlock }: RndPageLockProps) {
           </Button>
           <Link href="/founding-50">
             <Button variant="secondary" size="md">
-              Get Founding 100 — A$1 (unlimited)
+              Get Founding 100 — A$5 (50 credits, lifetime)
             </Button>
           </Link>
         </div>

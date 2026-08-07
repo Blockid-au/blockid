@@ -77,6 +77,21 @@ export async function POST(request: Request) {
       projectId?: string;
     }) ?? {};
 
+  // Post-cutover fast-fail — refuse Founding 100 checkouts once the A$5 promo
+  // window closes (2026-09-01 UTC). Placed here (before the reseller /
+  // resolvePromoCode DB lookup) so post-cutover requests don't burn a
+  // Supabase query on a doomed checkout.
+  if (planId === "founding50" && !isFoundingPromoActive()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason:
+          "The Founding 100 A$5 promo ended on 2026-08-31. Please select the Growth plan (A$99/mo).",
+      },
+      { status: 410 },
+    );
+  }
+
   // Reseller attribution — priority: body param (from onboarding wizard state)
   // → cookie blockid_via. Per docs/plans/reseller-module-plan.md § C.2 / U.6.
   //
@@ -129,17 +144,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { ok: false, reason: "Invalid or free plan" },
       { status: 400 },
-    );
-  }
-
-  if (planId === "founding50" && !isFoundingPromoActive()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        reason:
-          "The Founding 100 A$5 promo ended on 2026-08-31. Please select the Growth plan (A$99/mo).",
-      },
-      { status: 410 },
     );
   }
 

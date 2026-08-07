@@ -322,7 +322,7 @@ export function CreditGate({
                     </span>
                   ) : (
                     <>
-                      Get Founding 100 for A$1
+                      Get Founding 100 for A$5
                       <Sparkles strokeWidth={1.75} className="h-3 w-3" />
                     </>
                   )}

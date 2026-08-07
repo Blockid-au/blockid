@@ -457,7 +457,7 @@ describe("COMPARISON_ROWS fixture", () => {
   it("first row pins the SVI-analyses count contract per tier", () => {
     const svi = COMPARISON_ROWS.find((r) => r.feature === "SVI Analyses")!;
     expect(svi.free).toBe("5 free (instant)");
-    expect(svi.founding).toBe("100 (lifetime)");
+    expect(svi.founding).toBe("50 (lifetime)");
     expect(svi.growth).toBe("Unlimited");
   });
 
