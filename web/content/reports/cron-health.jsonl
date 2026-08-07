@@ -822,3 +822,4 @@
 {"ts":"2026-08-07T00:00:01Z","endpoint":"ceo-daily-summary","status":"ok","duration_ms":7768,"detail":"{\"date\": \"2026-08-07\", \"status\": \"YELLOW\", \"agents\": {\"green\": 0, \"yellow\": 14, \"red\": 0, \"missing\": 0}, \"deploys\": 0, \"budget\": {\"month\": \"2026-08\", \"spent\": 1.01, \"limit\": 100, \"percent\": 1, \"calls\""}
 {"ts":"2026-08-07T00:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16570,"detail":""}
 {"ts":"2026-08-07T00:05:02Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16498,"detail":""}
+{"ts":"2026-08-07T00:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2225,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 29, \"raw\": \"29% used (198090064 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274054200 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
