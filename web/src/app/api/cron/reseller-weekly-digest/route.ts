@@ -47,7 +47,7 @@ import {
   computeDigestSnapshotPerResellerDelta,
   formatDigestSnapshotPerResellerDeltaSection,
   type DigestSnapshotPerResellerDelta,
-} from "@/lib/reseller/digest-snapshot-per-reseller-delta";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-delta";
 import {
   computeDigestSnapshotRollingTrend,
   formatDigestSnapshotRollingTrendSection,
@@ -57,32 +57,32 @@ import {
   computeDigestSnapshotPerResellerRollingTrend,
   formatDigestSnapshotPerResellerRollingTrendSection,
   type DigestSnapshotPerResellerRollingTrend,
-} from "@/lib/reseller/digest-snapshot-per-reseller-rolling-trend";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-rolling-trend";
 import {
   computeDigestSnapshotPerResellerMetricPctChange,
   formatDigestSnapshotPerResellerMetricPctChangeSection,
   type DigestSnapshotPerResellerMetricPctChange,
-} from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-metric-pct-change";
 import {
   computeDigestSnapshotPerResellerMetricPctChangePerMetric,
   formatDigestSnapshotPerResellerMetricPctChangePerMetricSection,
   type DigestSnapshotPerResellerMetricPctChangePerMetric,
-} from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change-per-metric";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-metric-pct-change-per-metric";
 import {
   computeDigestSnapshotPerResellerMetricPctChangeCoverage,
   formatDigestSnapshotPerResellerMetricPctChangeCoverageSection,
   type DigestSnapshotPerResellerMetricPctChangeCoverage,
-} from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change-coverage";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-metric-pct-change-coverage";
 import {
   computeDigestSnapshotPerResellerPctChangeCoverage,
   formatDigestSnapshotPerResellerPctChangeCoverageSection,
   type DigestSnapshotPerResellerPctChangeCoverage,
-} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-coverage";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-pct-change-coverage";
 import {
   computeDigestSnapshotPerResellerMetricPctChangePerReseller,
   formatDigestSnapshotPerResellerMetricPctChangePerResellerSection,
   type DigestSnapshotPerResellerMetricPctChangePerReseller,
-} from "@/lib/reseller/digest-snapshot-per-reseller-metric-pct-change-per-reseller";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-metric-pct-change-per-reseller";
 import {
   computeDigestSnapshotTopMovers,
   formatDigestSnapshotTopMoversSection,
@@ -107,7 +107,7 @@ import {
   computeDigestSnapshotPerResellerDirectionStreaks,
   formatDigestSnapshotPerResellerDirectionStreaksSection,
   type DigestSnapshotPerResellerDirectionStreaks,
-} from "@/lib/reseller/digest-snapshot-per-reseller-direction-streaks";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-direction-streaks";
 import {
   computeDigestSnapshotPctChangeStreaks,
   formatDigestSnapshotPctChangeStreaksSection,
@@ -117,7 +117,7 @@ import {
   computeDigestSnapshotPerResellerPctChangeStreaks,
   formatDigestSnapshotPerResellerPctChangeStreaksSection,
   type DigestSnapshotPerResellerPctChangeStreaks,
-} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streaks";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-pct-change-streaks";
 import {
   computeDigestSnapshotPctChangeStreakCoverage,
   formatDigestSnapshotPctChangeStreakCoverageSection,
@@ -127,7 +127,7 @@ import {
   computeDigestSnapshotPerResellerPctChangeStreakCoverage,
   formatDigestSnapshotPerResellerPctChangeStreakCoverageSection,
   type DigestSnapshotPerResellerPctChangeStreakCoverage,
-} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-coverage";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-pct-change-streak-coverage";
 import {
   computeDigestSnapshotDirectionStreakCoverage,
   formatDigestSnapshotDirectionStreakCoverageSection,
@@ -137,17 +137,17 @@ import {
   computeDigestSnapshotPerResellerDirectionStreakCoverage,
   formatDigestSnapshotPerResellerDirectionStreakCoverageSection,
   type DigestSnapshotPerResellerDirectionStreakCoverage,
-} from "@/lib/reseller/digest-snapshot-per-reseller-direction-streak-coverage";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-direction-streak-coverage";
 import {
   computeDigestSnapshotPerMetricDirectionStreakCoverage,
   formatDigestSnapshotPerMetricDirectionStreakCoverageSection,
   type DigestSnapshotPerMetricDirectionStreakCoverage,
-} from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-coverage";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-direction-streak-coverage";
 import {
   computeDigestSnapshotPerMetricPctChangeStreakCoverage,
   formatDigestSnapshotPerMetricPctChangeStreakCoverageSection,
   type DigestSnapshotPerMetricPctChangeStreakCoverage,
-} from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-coverage";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-pct-change-streak-coverage";
 import {
   computeDigestSnapshotDirectionStreakLeaderboard,
   formatDigestSnapshotDirectionStreakLeaderboardSection,
@@ -162,22 +162,22 @@ import {
   computeDigestSnapshotPerMetricDirectionStreakLeaderboard,
   formatDigestSnapshotPerMetricDirectionStreakLeaderboardSection,
   type DigestSnapshotPerMetricDirectionStreakLeaderboard,
-} from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-leaderboard";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-direction-streak-leaderboard";
 import {
   computeDigestSnapshotPerMetricPctChangeStreakLeaderboard,
   formatDigestSnapshotPerMetricPctChangeStreakLeaderboardSection,
   type DigestSnapshotPerMetricPctChangeStreakLeaderboard,
-} from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-leaderboard";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-pct-change-streak-leaderboard";
 import {
   computeDigestSnapshotPerResellerDirectionStreakLeaderboard,
   formatDigestSnapshotPerResellerDirectionStreakLeaderboardSection,
   type DigestSnapshotPerResellerDirectionStreakLeaderboard,
-} from "@/lib/reseller/digest-snapshot-per-reseller-direction-streak-leaderboard";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-direction-streak-leaderboard";
 import {
   computeDigestSnapshotPerResellerPctChangeStreakLeaderboard,
   formatDigestSnapshotPerResellerPctChangeStreakLeaderboardSection,
   type DigestSnapshotPerResellerPctChangeStreakLeaderboard,
-} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-leaderboard";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-pct-change-streak-leaderboard";
 import {
   computeDigestSnapshotDirectionStreakLengthHistogram,
   formatDigestSnapshotDirectionStreakLengthHistogramSection,
@@ -202,105 +202,105 @@ import {
   computeDigestSnapshotPerResellerDirectionStreakLengthHistogram,
   formatDigestSnapshotPerResellerDirectionStreakLengthHistogramSection,
   type DigestSnapshotPerResellerDirectionStreakLengthHistogram,
-} from "@/lib/reseller/digest-snapshot-per-reseller-direction-streak-length-histogram";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-direction-streak-length-histogram";
 import {
   computeDigestSnapshotPerResellerDirectionStreakLengthPercentiles,
   formatDigestSnapshotPerResellerDirectionStreakLengthPercentilesSection,
   type DigestSnapshotPerResellerDirectionStreakLengthPercentiles,
-} from "@/lib/reseller/digest-snapshot-per-reseller-direction-streak-length-percentiles";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-direction-streak-length-percentiles";
 import {
   computeDigestSnapshotPerResellerPctChangeStreakLengthHistogram,
   formatDigestSnapshotPerResellerPctChangeStreakLengthHistogramSection,
   type DigestSnapshotPerResellerPctChangeStreakLengthHistogram,
-} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-length-histogram";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-pct-change-streak-length-histogram";
 import {
   computeDigestSnapshotPerResellerPctChangeStreakLengthPercentiles,
   formatDigestSnapshotPerResellerPctChangeStreakLengthPercentilesSection,
   type DigestSnapshotPerResellerPctChangeStreakLengthPercentiles,
-} from "@/lib/reseller/digest-snapshot-per-reseller-pct-change-streak-length-percentiles";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-pct-change-streak-length-percentiles";
 import {
   computeDigestSnapshotPerMetricDirectionStreakLengthHistogram,
   formatDigestSnapshotPerMetricDirectionStreakLengthHistogramSection,
   type DigestSnapshotPerMetricDirectionStreakLengthHistogram,
-} from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-length-histogram";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-direction-streak-length-histogram";
 import {
   computeDigestSnapshotPerMetricDirectionStreakLengthPercentiles,
   formatDigestSnapshotPerMetricDirectionStreakLengthPercentilesSection,
   type DigestSnapshotPerMetricDirectionStreakLengthPercentiles,
-} from "@/lib/reseller/digest-snapshot-per-metric-direction-streak-length-percentiles";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-direction-streak-length-percentiles";
 import {
   computeDigestSnapshotPerMetricPctChangeStreakLengthHistogram,
   formatDigestSnapshotPerMetricPctChangeStreakLengthHistogramSection,
   type DigestSnapshotPerMetricPctChangeStreakLengthHistogram,
-} from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-length-histogram";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-pct-change-streak-length-histogram";
 import {
   computeDigestSnapshotPerMetricPctChangeStreakLengthPercentiles,
   formatDigestSnapshotPerMetricPctChangeStreakLengthPercentilesSection,
   type DigestSnapshotPerMetricPctChangeStreakLengthPercentiles,
-} from "@/lib/reseller/digest-snapshot-per-metric-pct-change-streak-length-percentiles";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-pct-change-streak-length-percentiles";
 import {
   computeDigestSnapshotPerMetricPersistenceScorecard,
   formatDigestSnapshotPerMetricPersistenceScorecardSection,
   type DigestSnapshotPerMetricPersistenceScorecard,
-} from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-persistence-scorecard";
 import {
   computeDigestSnapshotPerMetricPersistenceScorecardVerdict,
   formatDigestSnapshotPerMetricPersistenceScorecardVerdictSection,
   type DigestSnapshotPerMetricPersistenceScorecardVerdict,
   type PerMetricPersistenceScorecardVerdictRow,
-} from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard-verdict";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-persistence-scorecard-verdict";
 import {
   computeDigestSnapshotPerMetricPersistenceScorecardVerdictTransition,
   formatDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionSection,
   type DigestSnapshotPerMetricPersistenceScorecardVerdictTransition,
-} from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard-verdict-transition";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-persistence-scorecard-verdict-transition";
 import {
   computeDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistribution,
   formatDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistributionSection,
   type DigestSnapshotPerMetricPersistenceScorecardVerdictTransitionDistribution,
-} from "@/lib/reseller/digest-snapshot-per-metric-persistence-scorecard-verdict-transition-distribution";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-persistence-scorecard-verdict-transition-distribution";
 import {
   computeDigestSnapshotPerResellerMetricPersistenceScorecard,
   formatDigestSnapshotPerResellerMetricPersistenceScorecardSection,
   type DigestSnapshotPerResellerMetricPersistenceScorecard,
-} from "@/lib/reseller/digest-snapshot-per-reseller-metric-persistence-scorecard";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-metric-persistence-scorecard";
 import {
   computeDigestSnapshotPerResellerMetricPersistenceScorecardVerdict,
   formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictSection,
   type DigestSnapshotPerResellerMetricPersistenceScorecardVerdict,
   type PerResellerMetricPersistenceScorecardVerdictRow,
-} from "@/lib/reseller/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict";
 import {
   computeDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransition,
   formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionSection,
   type DigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransition,
-} from "@/lib/reseller/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict-transition";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict-transition";
 import {
   computeDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution,
   formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistributionSection,
   type DigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionDistribution,
-} from "@/lib/reseller/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict-transition-distribution";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-metric-persistence-scorecard-verdict-transition-distribution";
 import {
   computeDigestSnapshotPerResellerPersistenceScorecard,
   formatDigestSnapshotPerResellerPersistenceScorecardSection,
   type DigestSnapshotPerResellerPersistenceScorecard,
-} from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-persistence-scorecard";
 import {
   computeDigestSnapshotPerResellerPersistenceScorecardVerdict,
   formatDigestSnapshotPerResellerPersistenceScorecardVerdictSection,
   type DigestSnapshotPerResellerPersistenceScorecardVerdict,
   type PerResellerPersistenceScorecardVerdictRow,
-} from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard-verdict";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-persistence-scorecard-verdict";
 import {
   computeDigestSnapshotPerResellerPersistenceScorecardVerdictTransition,
   formatDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionSection,
   type DigestSnapshotPerResellerPersistenceScorecardVerdictTransition,
-} from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard-verdict-transition";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-persistence-scorecard-verdict-transition";
 import {
   computeDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistribution,
   formatDigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistributionSection,
   type DigestSnapshotPerResellerPersistenceScorecardVerdictTransitionDistribution,
-} from "@/lib/reseller/digest-snapshot-per-reseller-persistence-scorecard-verdict-transition-distribution";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-persistence-scorecard-verdict-transition-distribution";
 import {
   computeDigestSnapshotPersistenceScorecard,
   formatDigestSnapshotPersistenceScorecardSection,
@@ -331,867 +331,867 @@ import {
   computeDigestSnapshotPerResellerCrossMetricAlerts,
   formatDigestSnapshotPerResellerCrossMetricAlertsSection,
   type DigestSnapshotPerResellerCrossMetricAlerts,
-} from "@/lib/reseller/digest-snapshot-per-reseller-cross-metric-alerts";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-reseller-cross-metric-alerts";
 import {
   computeDigestSnapshotPerMetricCrossPartnerAlerts,
   formatDigestSnapshotPerMetricCrossPartnerAlertsSection,
   type DigestSnapshotPerMetricCrossPartnerAlerts,
-} from "@/lib/reseller/digest-snapshot-per-metric-cross-partner-alerts";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-metric-cross-partner-alerts";
 import {
   computeDigestSnapshotPerPairHotCells,
   formatDigestSnapshotPerPairHotCellsSection,
   type DigestSnapshotPerPairHotCells,
-} from "@/lib/reseller/digest-snapshot-per-pair-hot-cells";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-pair-hot-cells";
 import {
   computeDigestSnapshotPerPairHotCellsSummary,
   formatDigestSnapshotPerPairHotCellsSummarySection,
   type DigestSnapshotPerPairHotCellsSummary,
-} from "@/lib/reseller/digest-snapshot-per-pair-hot-cells-summary";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-pair-hot-cells-summary";
 import {
   computeDigestSnapshotPerTransitionHotCellsDrilldown,
   formatDigestSnapshotPerTransitionHotCellsDrilldownSection,
   type DigestSnapshotPerTransitionHotCellsDrilldown,
-} from "@/lib/reseller/digest-snapshot-per-transition-hot-cells-drilldown";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-hot-cells-drilldown";
 import {
   computeDigestSnapshotPerTransitionMagnitudeDrilldown,
   formatDigestSnapshotPerTransitionMagnitudeDrilldownSection,
   type DigestSnapshotPerTransitionMagnitudeDrilldown,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-drilldown";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-drilldown";
 import {
   computeDigestSnapshotPerTransitionMagnitudeLeaderboard,
   formatDigestSnapshotPerTransitionMagnitudeLeaderboardSection,
   type DigestSnapshotPerTransitionMagnitudeLeaderboard,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-leaderboard";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-leaderboard";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3Leaderboard,
   formatDigestSnapshotPerTransitionMagnitudeTop3LeaderboardSection,
   type DigestSnapshotPerTransitionMagnitudeTop3Leaderboard,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-leaderboard";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-leaderboard";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3Concentration,
   formatDigestSnapshotPerTransitionMagnitudeTop3ConcentrationSection,
   type DigestSnapshotPerTransitionMagnitudeTop3Concentration,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-concentration";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-concentration";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3TieCount,
   formatDigestSnapshotPerTransitionMagnitudeTop3TieCountSection,
   type DigestSnapshotPerTransitionMagnitudeTop3TieCount,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-tie-count";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-tie-count";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3RunnerUpGap,
   formatDigestSnapshotPerTransitionMagnitudeTop3RunnerUpGapSection,
   type DigestSnapshotPerTransitionMagnitudeTop3RunnerUpGap,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-runner-up-gap";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-runner-up-gap";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3TailGap,
   formatDigestSnapshotPerTransitionMagnitudeTop3TailGapSection,
   type DigestSnapshotPerTransitionMagnitudeTop3TailGap,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-tail-gap";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-tail-gap";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3MiddleGap,
   formatDigestSnapshotPerTransitionMagnitudeTop3MiddleGapSection,
   type DigestSnapshotPerTransitionMagnitudeTop3MiddleGap,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-middle-gap";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-middle-gap";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3Pool,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolSection,
   type DigestSnapshotPerTransitionMagnitudeTop3Pool,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolHhi,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolHhiSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolHhi,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-hhi";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-hhi";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolGini,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolGiniSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolGini,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-gini";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-gini";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTheil,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTheilSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTheil,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-theil";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-theil";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolAtkinson,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolAtkinsonSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolAtkinson,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-atkinson";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-atkinson";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolCv,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolCvSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolCv,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-cv";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-cv";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolNormalizedEntropySection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolNormalizedEntropy,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-normalized-entropy";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-normalized-entropy";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1ShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Share,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top1-share";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-top1-share";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Share,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2ShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Share,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top2-share";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-top2-share";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom1Share,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom1ShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolBottom1Share,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-bottom1-share";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-bottom1-share";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolRange,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolRangeSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolRange,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-range";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-range";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolBottom2ShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolBottom2Share,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-bottom2-share";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-bottom2-share";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom1RatioSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom1Ratio,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top1-bottom1-ratio";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-top1-bottom1-ratio";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom2Ratio,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom2RatioSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom2Ratio,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top2-bottom2-ratio";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-top2-bottom2-ratio";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShare,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShareSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMidMassShare,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-mid-mass-share";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-mid-mass-share";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2RatioSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop1Bottom2Ratio,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top1-bottom2-ratio";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-top1-bottom2-ratio";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1RatioSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolTop2Bottom1Ratio,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-top2-bottom1-ratio";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-top2-bottom1-ratio";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatioSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMedianMeanRatio,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-median-mean-ratio";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-median-mean-ratio";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGapSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMeanMedianAbsoluteGap,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-mean-median-absolute-gap";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-mean-median-absolute-gap";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviationSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMeanAbsoluteDeviation,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-mean-absolute-deviation";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-mean-absolute-deviation";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviationSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMedianAbsoluteDeviation,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-median-absolute-deviation";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-median-absolute-deviation";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolSkewness,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolSkewnessSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolSkewness,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-skewness";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-skewness";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolExcessKurtosis,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolExcessKurtosisSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolExcessKurtosis,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-excess-kurtosis";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-excess-kurtosis";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolIqr,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolIqrSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolIqr,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-iqr";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-iqr";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatio,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatioSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolIqrRatio,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-iqr-ratio";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-iqr-ratio";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolQcd,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolQcdSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolQcd,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-qcd";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-qcd";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRangeSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolCoefficientOfRange,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-coefficient-of-range";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-coefficient-of-range";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewness,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewnessSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolBowleySkewness,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-bowley-skewness";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-bowley-skewness";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosisSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolMoorsKurtosis,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-moors-kurtosis";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-moors-kurtosis";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosisSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolCrowSiddiquiKurtosis,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-crow-siddiqui-kurtosis";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-crow-siddiqui-kurtosis";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolLSkewness,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolLSkewnessSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolLSkewness,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-l-skewness";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-l-skewness";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosis,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosisSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolLKurtosis,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-l-kurtosis";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-l-kurtosis";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolLCv,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolLCvSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolLCv,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-l-cv";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-l-cv";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewness,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewnessSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolKellySkewness,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-kelly-skewness";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-kelly-skewness";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPalma,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPalmaSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPalma,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-palma";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-palma";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolHoover,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolHooverSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolHoover,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-hoover";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-hoover";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluth,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluthSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolRosenbluth,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-rosenbluth";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-rosenbluth";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRange,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRangeSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolStudentizedRange,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-studentized-range";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-studentized-range";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifferenceSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolGiniMeanDifference,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-gini-mean-difference";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-gini-mean-difference";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMedian,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMedianSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMedian,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-median";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-median";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ1,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ1Section,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ1,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-q1";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-q1";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3Section,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQ3,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-q3";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-q3";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToGeomean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-geomean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-geomean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHarmean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHarmeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHarmean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-harmean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-harmean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToRms,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToRmsSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToRms,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-rms";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-rms";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhingeSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToMidhinge,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-midhinge";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-midhinge";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrimean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-trimean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-trimean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuartileMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quartile-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quartile-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToCubicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToCubicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToCubicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-cubic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-cubic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuarticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuarticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuarticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quartic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quartic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sextic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sextic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSepticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSepticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSepticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOcticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOcticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOcticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-nonic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-nonic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-decic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-decic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUndecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUndecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUndecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-undecic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-undecic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duodecic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duodecic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTredecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTredecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTredecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tredecic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tredecic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuordecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuordecic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuordecic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuindecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuindecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuindecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quindecic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quindecic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSedecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSedecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSedecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sedecic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sedecic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptendecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptendecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptendecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septendecic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septendecic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctodecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctodecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctodecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octodecic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octodecic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemdecicMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemdecic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemdecic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToViginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToViginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-vigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-vigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnviginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnviginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnviginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unvigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unvigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoviginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duovigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duovigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresviginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresviginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresviginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresvigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresvigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorviginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorviginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorviginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorvigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorvigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinviginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinvigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinvigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesviginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesviginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesviginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sesvigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sesvigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptemviginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptemviginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptemviginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septemvigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septemvigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoviginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoviginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoviginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octovigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octovigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemviginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemviginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemviginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemvigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemvigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-trigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-trigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUntriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUntriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUntriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-untrigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-untrigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuotriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuotriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuotriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duotrigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duotrigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTretriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTretriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTretriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tretrigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tretrigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTetratriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTetratriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTetratriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tetratrigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tetratrigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToPentatriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToPentatriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToPentatriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-pentatrigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-pentatrigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHexatriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-hexatrigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-hexatrigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHeptatriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHeptatriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToHeptatriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-heptatrigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-heptatrigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctatriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctatriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctatriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octatrigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octatrigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemtriginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemtriginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemtriginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemtrigintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemtrigintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnquadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnquadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnquadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unquadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unquadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoquadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoquadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoquadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duoquadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duoquadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresquadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresquadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorquadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorquadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaquadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaquadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaquadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquaquadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquaquadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexquadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexquadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexquadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexquadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexquadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptquadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptquadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptquadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septquadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septquadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoquadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoquadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoquadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octoquadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octoquadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonquadraginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonquadraginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonquadraginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-nonquadragintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-nonquadragintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnquinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnquinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnquinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unquinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unquinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoquinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoquinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoquinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duoquinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duoquinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresquinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresquinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresquinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorquinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorquinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquequinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquequinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquequinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesquinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sesquinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sesquinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptemquinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptemquinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptemquinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septemquinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septemquinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoquinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoquinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoquinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octoquinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octoquinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemquinquaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemquinquagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemquinquagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnsexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnsexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnsexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unsexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unsexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuosexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuosexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuosexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duosexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duosexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorsexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorsexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorsexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorsexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorsexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquasexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquasexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquasexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquasexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquasexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSesexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sesexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sesexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptensexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptensexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptensexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septensexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septensexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctosexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctosexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctosexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octosexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octosexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemsexaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemsexaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemsexaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemsexagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemsexagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnseptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnseptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnseptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unseptuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unseptuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoseptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoseptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuoseptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duoseptuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duoseptuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTreseptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTreseptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTreseptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-treseptuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-treseptuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorseptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorseptuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorseptuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquaseptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquaseptuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquaseptuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeseptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeseptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeseptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-seseptuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-seseptuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptenseptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptenseptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptenseptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septenseptuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septenseptuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoseptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoseptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoseptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octoseptuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octoseptuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovenseptuaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovenseptuaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovenseptuaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novenseptuagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novenseptuagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnoctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnoctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnoctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unoctogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unoctogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuooctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duooctogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duooctogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresoctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresoctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresoctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresoctogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresoctogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuoroctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuoroctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuoroctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuoroctogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuoroctogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquoctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquoctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquoctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquoctogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquoctogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexoctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexoctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexoctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexoctogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexoctogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptoctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptoctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptoctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septoctogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septoctogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctoctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octoctogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octoctogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemoctoginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemoctoginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovemoctoginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemoctogintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novemoctogintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNonaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-nonagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-nonagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnnonaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnnonaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUnnonaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unnonagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-unnonagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuononaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuononaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuononaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duononagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duononagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresnonaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresnonaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresnonaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresnonagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresnonagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuornonaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuornonaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuornonaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuornonagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuornonagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquonaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquonaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquonaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquonagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquonagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexnonaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexnonaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexnonaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexnonagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexnonagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptennonaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptennonaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptennonaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septennonagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septennonagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctononaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctononaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctononaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octononagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octononagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovenonaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovenonaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovenonaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novenonagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novenonagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToCentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToCentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToCentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-centinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-centinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUncentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUncentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUncentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-uncentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-uncentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDucentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDucentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDucentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-ducentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-ducentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrecentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrecentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTrecentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-trecentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-trecentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorcentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorcentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorcentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorcentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorcentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuincentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuincentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuincentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quincentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quincentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexcentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexcentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSexcentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexcentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-sexcentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptcentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptcentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToSeptcentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septcentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-septcentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctocentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctocentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToOctocentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octocentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-octocentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovecentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovecentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToNovecentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novecentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-novecentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDecicentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDecicentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDecicentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-decicentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-decicentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUndecicentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUndecicentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToUndecicentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-undecicentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-undecicentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuodecicentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duodecicentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duodecicentinagintic-mean";
 import {
   computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTredecicentinaginticMean,
   formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTredecicentinaginticMeanSection,
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTredecicentinaginticMean,
-} from "@/lib/reseller/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tredecicentinagintic-mean";
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tredecicentinagintic-mean";
 import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,

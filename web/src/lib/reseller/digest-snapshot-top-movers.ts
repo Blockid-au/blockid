@@ -40,7 +40,7 @@ import type { HeadlineMetricUnit } from "./digest-snapshot-metric-delta";
 import type {
   DigestSnapshotPerResellerRollingTrend,
   PerResellerMetricTrend,
-} from "./digest-snapshot-per-reseller-rolling-trend";
+} from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-rolling-trend";
 import type { KnownKpiSection } from "./digest-snapshot";
 
 export const DEFAULT_TOP_N = 5;
