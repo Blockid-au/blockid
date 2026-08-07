@@ -62,8 +62,8 @@ export interface PlatformConfig {
 export const CONFIG_DEFAULTS: PlatformConfig = {
   founding_plan_name: "Founding 100",
   founding_spots_total: 100,
-  founding_price_cents: 500, // A$5 — bumped from A$3 (2026-06-21); A$1 was the original launch price (2026-06-17)
-  founding_credits: 100,
+  founding_price_cents: 500, // A$5 — promo through 2026-08-31; reverts to A$9900 (A$99) after the deadline. Bumped from A$3 (2026-06-21); A$1 was the original launch price (2026-06-17).
+  founding_credits: 50,
 
   free_credits_on_signup: 5,
 
