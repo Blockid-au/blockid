@@ -92,6 +92,14 @@ vi.mock("@/lib/stripe/idempotency", () => ({
   ) => sessionIdempotencyKeyMock(scope, parts),
 }));
 
+// Founding 100 cutover — default true (promo active) so all existing tests
+// keep their happy-path behaviour. The dedicated cutover describe() flips
+// this to false to pin the post-2026-08-31 refusal path.
+const isFoundingPromoActiveMock = vi.fn<() => boolean>();
+vi.mock("@/lib/founding-promo", () => ({
+  isFoundingPromoActive: () => isFoundingPromoActiveMock(),
+}));
+
 // Route import must come AFTER the mocks are registered.
 import { POST, dynamic } from "./route";
 
@@ -126,6 +134,7 @@ beforeEach(() => {
   sessionIdempotencyKeyMock
     .mockReset()
     .mockImplementation((scope, parts) => `bid:${scope}:${parts.join("|")}`);
+  isFoundingPromoActiveMock.mockReset().mockReturnValue(true);
   errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -682,5 +691,55 @@ describe("POST /api/lead — founding50 payment-link email", () => {
     );
     const args = sendPaymentLinkMock.mock.calls[0]?.[0];
     expect(args?.name).toBe("Alex");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Founding 100 cutover (2026-09-01 UTC) — /api/lead must NOT mint a Stripe
+// checkout session for founding50 after the promo window closes. Mirrors the
+// /api/stripe/checkout 410 guard so a stale /founding-50 page or an old email
+// link cannot backdoor a new founding50 subscription after cutover.
+// ---------------------------------------------------------------------------
+
+describe("POST /api/lead — founding50 cutover", () => {
+  beforeEach(() => {
+    isStripeConfiguredMock.mockReturnValue(true);
+    getStripeMock.mockReturnValue({
+      checkout: { sessions: { create: stripeSessionsCreateMock } },
+    });
+    stripeSessionsCreateMock.mockResolvedValue({ url: "https://stripe.example/s" });
+  });
+
+  it("does NOT touch Stripe once the promo has ended", async () => {
+    isFoundingPromoActiveMock.mockReturnValue(false);
+    const res = await POST(
+      req({ source: "founding50", email: "u@example.com" }),
+    );
+    expect(res.status).toBe(200);
+    expect(stripeSessionsCreateMock).not.toHaveBeenCalled();
+    expect(sendPaymentLinkMock).not.toHaveBeenCalled();
+  });
+
+  it("still writes the lead row post-cutover (waitlist stays open)", async () => {
+    isFoundingPromoActiveMock.mockReturnValue(false);
+    await POST(req({ source: "founding50", email: "u@example.com" }));
+    expect(insertMock).toHaveBeenCalled();
+  });
+
+  it("body carries promo_ended=true + a human-readable message post-cutover", async () => {
+    isFoundingPromoActiveMock.mockReturnValue(false);
+    const res = await POST(
+      req({ source: "founding50", email: "u@example.com" }),
+    );
+    const body = await json(res);
+    expect(body.ok).toBe(true);
+    expect(body.promo_ended).toBe(true);
+    expect(String(body.message)).toMatch(/founding 100/i);
+  });
+
+  it("keeps the Stripe fork working while the promo is still active", async () => {
+    isFoundingPromoActiveMock.mockReturnValue(true);
+    await POST(req({ source: "founding50", email: "u@example.com" }));
+    expect(stripeSessionsCreateMock).toHaveBeenCalledTimes(1);
   });
 });
