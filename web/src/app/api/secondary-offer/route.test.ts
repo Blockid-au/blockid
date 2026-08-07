@@ -24,6 +24,7 @@
 //     or overwrite each other's drafts).
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NextRequest } from "next/server";
 
 const getCurrentUserMock = vi.fn<
   () => Promise<{ id: string; email: string } | null>
@@ -136,20 +137,20 @@ function makeFakeSupabase() {
   };
 }
 
-function jsonReq(body: unknown): Request {
+function jsonReq(body: unknown): NextRequest {
   return new Request("http://x/api/secondary-offer", {
     method: "POST",
     body: JSON.stringify(body),
     headers: { "content-type": "application/json" },
-  });
+  }) as unknown as NextRequest;
 }
 
-function rawReq(bodyText: string): Request {
+function rawReq(bodyText: string): NextRequest {
   return new Request("http://x/api/secondary-offer", {
     method: "POST",
     body: bodyText,
     headers: { "content-type": "application/json" },
-  });
+  }) as unknown as NextRequest;
 }
 
 const OK_BODY = {
