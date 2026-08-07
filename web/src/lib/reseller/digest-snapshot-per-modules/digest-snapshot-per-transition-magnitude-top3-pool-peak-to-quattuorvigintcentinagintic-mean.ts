@@ -75,9 +75,9 @@
 //                                     10 / 10^(1/124) ~ 9.8160 in
 //                                     lock-step).
 //   * two-shoulders [1x8, 5x2]      -> QVCNM ~= 4.9355, range 4,
-//                                     ptqvcnm ~= 0.8104 (tight --
-//                                     ADVANCES one 4-decimal bucket
-//                                     from PTTVCNM 0.8105 at M_123).
+//                                     ptqvcnm ~= 0.8105 (tight --
+//                                     JOINT with PTTVCNM 0.8105 at
+//                                     M_123).
 //   * 50/50 split [1x5, 10x5]       -> QVCNM ~= 9.9443, range 9,
 //                                     ptqvcnm ~= 0.9050 (tight --
 //                                     ADVANCES one 4-decimal bucket
