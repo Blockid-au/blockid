@@ -7,9 +7,16 @@
 // data-room, valuation, guide, summary) share a single source of truth.
 // See web/src/lib/showcase/atlassian/fixture.ts.
 
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
+
+export const metadata: Metadata = {
+  title: "Atlassian on BlockID.au — Full Founder Journey",
+  description:
+    "Atlassian's 12-phase Australian startup arc replayed through the BlockID dashboard, SVI scoring, and data room.",
+};
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
 import {
   ATLASSIAN_DEMO,
