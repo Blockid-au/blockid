@@ -5,7 +5,14 @@
 // Canva, Xero, SafetyCulture, WiseTech, SEEK, Culture Amp queued for
 // future ticks).
 
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Showcase Library — BlockID.au",
+  description:
+    "Explore real Australian startups modelled on the BlockID founder platform — Atlassian, Canva, Xero, SafetyCulture and more.",
+};
 
 export const dynamic = "force-dynamic";
 

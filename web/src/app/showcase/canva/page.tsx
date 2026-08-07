@@ -3,7 +3,14 @@
 // the goal loop; this page is a skeleton with a small set of well-known
 // public facts as a starting point).
 
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Canva Showcase — BlockID.au Founder Platform",
+  description:
+    "See how Canva's growth story maps to the BlockID Startup Valuation Index and cap-table tooling.",
+};
 
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
 import {

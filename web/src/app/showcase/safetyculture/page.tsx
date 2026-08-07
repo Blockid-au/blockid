@@ -2,9 +2,16 @@
 // Public sources: safetyculture.com/press, Softbank filings, ABC/AFR quotes
 // (verifiable public interviews), Wikipedia cross-ref only.
 
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
+
+export const metadata: Metadata = {
+  title: "SafetyCulture Showcase — BlockID.au",
+  description:
+    "SafetyCulture's growth mapped to the BlockID Startup Valuation Index and founder platform.",
+};
 import {
   SAFETYCULTURE_TIMELINE,
   type Milestone as SharedMilestone,

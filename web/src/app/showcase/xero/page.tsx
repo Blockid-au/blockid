@@ -2,9 +2,16 @@
 // Public sources: NZX filings, ASX 300 filings, xero.com/investors,
 // Wikipedia (cross-ref only).
 
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
+
+export const metadata: Metadata = {
+  title: "Xero Showcase — BlockID.au Founder Platform",
+  description:
+    "Xero's Australian/NZ SaaS growth journey modelled on the BlockID founder workspace.",
+};
 import {
   XERO_TIMELINE,
   type Milestone as SharedMilestone,
