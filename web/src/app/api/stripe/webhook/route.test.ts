@@ -183,6 +183,14 @@ vi.mock("@/lib/reseller/founder-attribution-linker", () => ({
   linkFounderAttribution: vi.fn(async () => ({ ok: true })),
 }));
 
+// Telegram is only used by the founding50 post-cutover guard's alert path
+// (dynamic import). Provide a stub so the cutover test can pin that the alert
+// fires without a real network call.
+const sendTelegramMock = vi.fn<(msg: string) => Promise<void>>();
+vi.mock("@/lib/telegram", () => ({
+  sendTelegram: (msg: string) => sendTelegramMock(msg),
+}));
+
 // ---------- Test helpers -----------------------------------------------------
 
 // Build a minimal Stripe.Event of type checkout.session.completed with the
@@ -196,23 +204,25 @@ function buildCheckoutEvent(args: {
   amountTotal?: number;
   subscription?: string | null;
   customer?: string | null;
+  /** Stripe session.created (unix seconds). Only set by the cutover tests. */
+  created?: number;
 }): Stripe.Event {
+  const obj: Record<string, unknown> = {
+    id: args.sessionId ?? `cs_test_${args.id}`,
+    object: "checkout.session",
+    metadata: args.metadata,
+    customer_email: args.customerEmail ?? null,
+    amount_total: args.amountTotal ?? 900,
+    currency: "aud",
+    subscription: args.subscription ?? null,
+    customer: args.customer ?? null,
+    payment_intent: `pi_${args.id}`,
+  };
+  if (typeof args.created === "number") obj.created = args.created;
   return {
     id: args.id,
     type: "checkout.session.completed",
-    data: {
-      object: {
-        id: args.sessionId ?? `cs_test_${args.id}`,
-        object: "checkout.session",
-        metadata: args.metadata,
-        customer_email: args.customerEmail ?? null,
-        amount_total: args.amountTotal ?? 900,
-        currency: "aud",
-        subscription: args.subscription ?? null,
-        customer: args.customer ?? null,
-        payment_intent: `pi_${args.id}`,
-      },
-    },
+    data: { object: obj },
   } as unknown as Stripe.Event;
 }
 
@@ -243,6 +253,8 @@ beforeEach(() => {
   stripeSubscriptionsRetrieve.mockReset();
   grantCreditsMock.mockReset();
   grantCreditsMock.mockResolvedValue({ ok: true });
+  sendTelegramMock.mockReset();
+  sendTelegramMock.mockResolvedValue(undefined);
   for (const fn of Object.values(emailMock)) fn.mockReset();
 });
 
@@ -434,5 +446,109 @@ describe("POST /api/stripe/webhook — idempotency (replay)", () => {
     expect(insertCalls.length).toBe(0);
     expect(updateCalls.length).toBe(0);
     expect(markWebhookEventProcessed).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Founding 100 cutover race hole (2026-09-01 UTC)
+// ---------------------------------------------------------------------------
+// The webhook is the LAST line of defence. Even if checkout guard + /api/lead
+// guard + reconcile guard all pass, if a founding50 session somehow gets
+// CREATED after cutover (Stripe-dashboard mistake, env drift, guard
+// regression), the webhook must NOT grant lifetime access + 50 credits for
+// A$5. Uses session.created (Stripe's own timestamp) so any downstream
+// delivery delay does not confuse the check.
+// ---------------------------------------------------------------------------
+
+describe("POST /api/stripe/webhook — Founding 100 cutover race hole", () => {
+  const CUTOVER_SEC = Math.floor(
+    new Date("2026-09-01T00:00:00Z").getTime() / 1000,
+  );
+
+  it("REFUSES founding50 grant when session.created >= cutover (post-cutover)", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({
+        id: "evt_founding50_post",
+        metadata: {
+          blockid_user_id: "user-late",
+          blockid_plan: "founding50",
+        },
+        customerEmail: "late@example.com",
+        amountTotal: 500,
+        created: CUTOVER_SEC + 5, // 5s past cutover
+      }),
+    );
+
+    const res = await invoke();
+    expect(res.status).toBe(200); // acked to Stripe
+
+    // No plan update, no credit grant, no revenue event.
+    expect(
+      updateCalls.some((c) => c.table === "app_users"),
+    ).toBe(false);
+    expect(grantCreditsMock).not.toHaveBeenCalled();
+    expect(
+      insertCalls.some((c) => c.table === "revenue_events"),
+    ).toBe(false);
+
+    // Telegram alert fired so ops can force-refund.
+    expect(sendTelegramMock).toHaveBeenCalledTimes(1);
+    expect(String(sendTelegramMock.mock.calls[0][0])).toMatch(/cutover/i);
+    expect(String(sendTelegramMock.mock.calls[0][0])).toMatch(/founding50/);
+  });
+
+  it("STILL grants founding50 for a legitimate late-webhook race (session.created < cutover)", async () => {
+    // Founder checked out at 23:59:58, webhook fires 5s late at 00:00:03.
+    // Session.created is pre-cutover → grant proceeds.
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({
+        id: "evt_founding50_race",
+        metadata: {
+          blockid_user_id: "user-race",
+          blockid_plan: "founding50",
+        },
+        customerEmail: "race@example.com",
+        amountTotal: 500,
+        created: CUTOVER_SEC - 2, // 2s before cutover
+      }),
+    );
+
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(grantCreditsMock).toHaveBeenCalled();
+    expect(
+      updateCalls.some(
+        (c) => c.table === "app_users" && (c.row as { plan?: string }).plan === "founding50",
+      ),
+    ).toBe(true);
+    expect(sendTelegramMock).not.toHaveBeenCalled();
+  });
+
+  it("skips the cutover guard entirely for non-founding50 plans", async () => {
+    // A growth checkout post-cutover date must proceed normally — the guard
+    // is scoped to planId === "founding50".
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({
+        id: "evt_growth_post",
+        metadata: {
+          blockid_user_id: "user-growth",
+          blockid_plan: "growth",
+        },
+        customerEmail: "growth@example.com",
+        amountTotal: 9900,
+        created: CUTOVER_SEC + 1000,
+      }),
+    );
+
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    // No telegram cutover alert for a growth plan.
+    expect(sendTelegramMock).not.toHaveBeenCalled();
+    // Plan update DID happen for growth (guard did not fire).
+    expect(
+      updateCalls.some(
+        (c) => c.table === "app_users" && (c.row as { plan?: string }).plan === "growth",
+      ),
+    ).toBe(true);
   });
 });

@@ -16,6 +16,7 @@ import {
   claimWebhookEvent,
   markWebhookEventProcessed,
 } from "@/lib/stripe/verify";
+import { FOUNDING_PROMO_END } from "@/lib/founding-promo";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -302,6 +303,49 @@ export async function POST(request: Request) {
         { userId, planId, sessionId: session.id },
       );
       return;
+    }
+
+    // ── Founding 100 cutover safety (race hole guard) ──────────────────────
+    // The A$5 promo ended 2026-08-31T23:59:59 UTC. A legitimate late-webhook
+    // race (checkout at 23:59:58, webhook fires at 00:00:03) MUST still grant
+    // — the founder paid. But if the session was CREATED after cutover, it
+    // means the checkout guard was bypassed (Stripe-dashboard mistake, env
+    // drift, guard regression). Refuse the grant and Telegram-alert so ops
+    // can force-refund. Uses `session.created` (Stripe's own timestamp of when
+    // the session was minted) — not Date.now() — so the guard is stable across
+    // any webhook delivery delay.
+    if (planId === "founding50") {
+      const promoCutoverSec = Math.floor(FOUNDING_PROMO_END.getTime() / 1000);
+      const sessionCreatedSec =
+        typeof session.created === "number" ? session.created : null;
+      if (sessionCreatedSec !== null && sessionCreatedSec >= promoCutoverSec) {
+        console.error(
+          "[blockid:stripe] REFUSING founding50 grant — session created post-cutover",
+          {
+            sessionId: session.id,
+            userId,
+            createdIso: new Date(sessionCreatedSec * 1000).toISOString(),
+            cutoverIso: FOUNDING_PROMO_END.toISOString(),
+          },
+        );
+        try {
+          const { sendTelegram } = await import("@/lib/telegram");
+          await sendTelegram(
+            `[cutover] REFUSED founding50 grant — post-cutover session\n` +
+              `session=${session.id}\n` +
+              `user=${userId}\n` +
+              `created=${new Date(sessionCreatedSec * 1000).toISOString()}\n` +
+              `cutover=${FOUNDING_PROMO_END.toISOString()}\n` +
+              `Action: verify and force-refund via Stripe dashboard.`,
+          );
+        } catch {
+          // Never fail the webhook on an alert I/O error.
+        }
+        // Return 200 to Stripe (event is "processed" from Stripe's POV — we
+        // deliberately refused). No plan update, no credit grant, no revenue
+        // event. Ops handles the refund out-of-band.
+        return;
+      }
     }
 
     const customerId =
