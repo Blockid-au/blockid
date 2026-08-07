@@ -235,14 +235,15 @@ describe("POST — never-block-user guarantee", () => {
     expect(state.insertPayload).toBeNull();
   });
 
-  it("returns 200 { ok:true } when supabase is unconfigured (logs, never blocks)", async () => {
+  it("returns 200 { ok:true } when supabase is unconfigured (drops silently, never blocks, no PII to console)", async () => {
     getSupabaseAdminMock.mockReturnValue(null);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const res = await POST(jsonReq({ text: "ok", name: "A" }));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
     expect(state.insertPayload).toBeNull();
-    expect(logSpy).toHaveBeenCalled();
+    // ciso-audit: user email/text/name must not leak to console when Supabase is down.
+    expect(logSpy).not.toHaveBeenCalled();
     logSpy.mockRestore();
   });
 
