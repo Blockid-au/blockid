@@ -8426,3 +8426,6 @@
 {"tick_id":"2026-08-07T08-37-01-541Z","ts":"2026-08-07T08:43:30.970Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"f430619e1","last_deployed":"498c88c"}
 {"tick_id":"2026-08-07T08-37-01-541Z","ts":"2026-08-07T08:51:36.396Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"head":"f430619e1"}
 {"tick_id":"2026-08-07T08-37-01-541Z","ts":"2026-08-07T08:51:36.397Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-07T08-57-01-135Z","ts":"2026-08-07T08:57:01.136Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-07T08-57-01-135Z","ts":"2026-08-07T08:57:01.151Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-07T09-00-00-000Z","ts":"2026-08-07T09:02:00.000Z","loop_label":"atlassian-goal-loop","stage":"tick_complete","phase_id":"P9-idea-questions-route-test","result":"shipped","surface":"web/src/app/api/idea-questions/route.ts","tests_added":33,"tests_passed":33,"typecheck":"green","files_added":1,"files_modified":1}
