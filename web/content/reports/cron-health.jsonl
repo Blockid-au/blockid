@@ -984,3 +984,5 @@
 {"ts":"2026-08-07T16:00:01Z","endpoint":"svi-snapshot","status":"ok","duration_ms":3825,"detail":"{\"processed\": 54, \"date\": \"2026-08-07\"}"}
 {"ts":"2026-08-07T16:05:01Z","endpoint":"svi-notify","status":"ok","duration_ms":195,"detail":"{\"notified\": 0, \"emailed\": 0, \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
 {"ts":"2026-08-07T16:05:01Z","endpoint":"trial-end-reminder","status":"fail","duration_ms":16586,"detail":""}
+{"ts":"2026-08-07T16:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":673,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 30, \"raw\": \"30% used (194130968 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274014900 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-07T16:10:01Z","endpoint":"nurture","status":"ok","duration_ms":693,"detail":"{\"sent\": 0, \"skipped\": 0, \"ts\": \"2026-08-07T16:10:02.505Z\", \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
