@@ -76,7 +76,7 @@ const REVENUE_TIERS = [
   {
     tier: "Founding 100",
     price: "A$5",
-    detail: "Lifetime access, 100 credits included (100 full-page analyses)",
+    detail: "Lifetime access, 50 credits included (50 full-page analyses)",
   },
   {
     tier: "Growth Plan",

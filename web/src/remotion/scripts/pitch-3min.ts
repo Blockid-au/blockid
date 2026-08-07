@@ -423,9 +423,9 @@ export const PITCH_3MIN: ScriptLine[] = [
   {
     startTime: 149,
     endTime: 155,
-    text: "Start free. Your first analysis is on us. One dollar per report during early bird. Forty-nine dollars for the Founder plan: a hundred credits, lifetime access. Ninety-nine dollars per month for Growth: two hundred credits, everything included.",
+    text: "Start free. Your first analysis is on us. One dollar per report during early bird. Five dollars for the Founder plan: fifty credits, lifetime access. Ninety-nine dollars per month for Growth: one hundred credits, everything included.",
     visual:
-      "Pricing cards animate in from bottom, one at a time: 'Free — First Analysis' (green badge) | 'A$1/report — Early Bird' (blue badge) | 'A$49 — Founder Plan: 100 credits, lifetime' (gold badge) | 'A$99/mo — Growth: 200 credits/month' (brand blue badge). Each card has a subtle glow on appear.",
+      "Pricing cards animate in from bottom, one at a time: 'Free — First Analysis' (green badge) | 'A$1/report — Early Bird' (blue badge) | 'A$5 — Founder Plan: 50 credits, lifetime' (gold badge) | 'A$99/mo — Growth: 100 credits/month' (brand blue badge). Each card has a subtle glow on appear.",
     emotion: "inspiring",
   },
 

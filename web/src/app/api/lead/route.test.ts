@@ -32,7 +32,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 interface SupabaseInsertResult {
   error: unknown;
 }
-const insertMock = vi.fn<() => Promise<SupabaseInsertResult>>();
+const insertMock = vi.fn<(row: unknown) => Promise<SupabaseInsertResult>>();
 const fromMock = vi.fn((_table: string) => ({ insert: insertMock }));
 const supabaseAdminMock = vi.fn<() => { from: typeof fromMock } | null>();
 
@@ -298,7 +298,7 @@ describe("POST /api/lead — Supabase persistence", () => {
 
   it("coerces a missing payload to an empty object before persistence", async () => {
     await POST(req({ source: "demo", email: "u@example.com" }));
-    const call = insertMock.mock.calls[0]?.[0] as {
+    const call = insertMock.mock.calls[0]?.[0] as unknown as {
       payload: unknown;
     };
     expect(call.payload).toEqual({});
@@ -306,7 +306,7 @@ describe("POST /api/lead — Supabase persistence", () => {
 
   it("coerces a null payload to an empty object before persistence", async () => {
     await POST(req({ source: "demo", email: "u@example.com", payload: null }));
-    const call = insertMock.mock.calls[0]?.[0] as {
+    const call = insertMock.mock.calls[0]?.[0] as unknown as {
       payload: unknown;
     };
     expect(call.payload).toEqual({});
@@ -315,7 +315,7 @@ describe("POST /api/lead — Supabase persistence", () => {
   it("coerces a scalar payload (string) to an empty object before persistence", async () => {
     // Only objects/arrays flow through stripHtml — a scalar becomes {}.
     await POST(req({ source: "demo", email: "u@example.com", payload: "junk" }));
-    const call = insertMock.mock.calls[0]?.[0] as {
+    const call = insertMock.mock.calls[0]?.[0] as unknown as {
       payload: unknown;
     };
     expect(call.payload).toEqual({});
@@ -359,7 +359,7 @@ describe("POST /api/lead — payload XSS sanitisation", () => {
         payload: { note: "<script>alert(1)</script>hello" },
       }),
     );
-    const call = insertMock.mock.calls[0]?.[0] as { payload: Record<string, unknown> };
+    const call = insertMock.mock.calls[0]?.[0] as unknown as { payload: Record<string, unknown> };
     expect(call.payload.note).toBe("alert(1)hello");
   });
 
@@ -371,7 +371,7 @@ describe("POST /api/lead — payload XSS sanitisation", () => {
         payload: { profile: { bio: "<b>bold</b>text" } },
       }),
     );
-    const call = insertMock.mock.calls[0]?.[0] as {
+    const call = insertMock.mock.calls[0]?.[0] as unknown as {
       payload: { profile: { bio: string } };
     };
     expect(call.payload.profile.bio).toBe("boldtext");
@@ -385,7 +385,7 @@ describe("POST /api/lead — payload XSS sanitisation", () => {
         payload: { tags: ["<i>a</i>", "<b>b</b>"] },
       }),
     );
-    const call = insertMock.mock.calls[0]?.[0] as { payload: { tags: string[] } };
+    const call = insertMock.mock.calls[0]?.[0] as unknown as { payload: { tags: string[] } };
     expect(call.payload.tags).toEqual(["a", "b"]);
   });
 
@@ -397,7 +397,7 @@ describe("POST /api/lead — payload XSS sanitisation", () => {
         payload: { n: 42, b: true, z: null },
       }),
     );
-    const call = insertMock.mock.calls[0]?.[0] as {
+    const call = insertMock.mock.calls[0]?.[0] as unknown as {
       payload: { n: number; b: boolean; z: null };
     };
     expect(call.payload).toEqual({ n: 42, b: true, z: null });
@@ -413,7 +413,7 @@ describe("POST /api/lead — payload XSS sanitisation", () => {
         payload: { msg: "<img src=x onerror=alert(1)>hi" },
       }),
     );
-    const call = insertMock.mock.calls[0]?.[0] as { payload: { msg: string } };
+    const call = insertMock.mock.calls[0]?.[0] as unknown as { payload: { msg: string } };
     expect(call.payload.msg).toBe("hi");
   });
 });
