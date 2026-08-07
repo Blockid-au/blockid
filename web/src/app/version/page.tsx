@@ -147,6 +147,18 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.3.1",
+    date: "2026-08-07",
+    title: "Founding 100 pricing correction — A$5 / 50 credits until Aug 31, then A$99",
+    changes: [
+      "Founding 100 credit grant reduced from 100 → 50 (source of truth: platform-config.ts + credits.ts + plans.ts)",
+      "Founding 100 pricing card now states 'A$5 until Aug 31, 2026 · reverts to A$99 · lifetime access' in subtitle + urgency",
+      "Founder-nurture Day-7 email subject rewritten: '50 credits for A$5 — here's what Founding 100 members get'",
+      "Founding 100 feature list: '50 SVI analyses (lifetime)' (was 100 — brought back in line with the credit grant)",
+      "Test suite realigned (platform-config, pricing-data, plans, email) — 235/235 pass",
+    ],
+  },
+  {
     version: "3.3.0",
     date: "2026-08-07",
     title: "Team refresh, expanded early-bird, changelog surface, redirects",

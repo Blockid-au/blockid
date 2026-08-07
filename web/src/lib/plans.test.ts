@@ -31,11 +31,11 @@ describe("LEGACY_PLANS registry", () => {
     expect(free.features.some((f) => f.includes("2 free credits"))).toBe(true);
   });
 
-  it("founding50 defaults to 500 cents / A$5 one-off with 100-credit bundle copy", () => {
+  it("founding50 defaults to 500 cents / A$5 one-off with 50-credit bundle copy", () => {
     const founding = LEGACY_PLANS.find((p) => p.id === "founding50")!;
     expect(founding.price).toBe(500);
     expect(founding.cadence).toBe("once");
-    expect(founding.features).toContain("100 credits included");
+    expect(founding.features).toContain("50 credits included");
   });
 
   it("growth defaults to 9900 cents / A$99 monthly", () => {

@@ -84,6 +84,7 @@ export function buildPricingTiers(cfg: {
         credits: `${cfg.founding_credits} credits (never expires)`,
         cta: { label: `Get ${cfg.founding_plan_name} — ${priceAud}`, href: "/founding-50" },
         urgency: `Only ${cfg.founding_spots_total} spots at this price`,
+        subtitle: `${priceAud} until Aug 31, 2026 · reverts to A$99 · lifetime access`,
         features: [
           `${cfg.founding_credits} SVI analyses (lifetime)`,
           "PDF investor-ready report",
@@ -135,11 +136,11 @@ export const PRICING_TIERS: PricingTier[] = [
     price: "A$5",
     numericPrice: 5,
     cadence: "one-off",
-    subtitle: "one-time \u00b7 lifetime access",
-    credits: "100 credits (never expires)",
+    subtitle: "A$5 until Aug 31, 2026 \u00b7 reverts to A$99 \u00b7 lifetime access",
+    credits: "50 credits (never expires)",
     audience: "Everything from idea to investor-ready — pay once, own it forever",
     features: [
-      "100 SVI analyses (lifetime)",
+      "50 SVI analyses (lifetime)",
       "PDF investor-ready report",
       "Evidence Vault & document storage",
       "Cap table & ESOP calculator",
@@ -151,7 +152,7 @@ export const PRICING_TIERS: PricingTier[] = [
     cta: { label: "Get Founding 100 \u2014 A$5", href: "/founding-50" },
     highlight: true,
     badge: "Founders Only",
-    urgency: "Only 100 spots at this price",
+    urgency: "A$5 promo until Aug 31, 2026 — then A$99",
     ctaStyle: "primary",
   },
   {

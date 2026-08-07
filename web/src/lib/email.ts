@@ -1422,7 +1422,7 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
     ctaLabel: "Claim Your Founding 100 Spot",
     ctaUrl: foundingUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day7"));
-  return sendEmail({ to: args.to, subject: "100 credits for A$5 \u2014 here\u2019s what Founding 100 members get", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: "50 credits for A$5 \u2014 here\u2019s what Founding 100 members get", html, unsubscribeUrl });
 }
 
 export async function sendNurtureFreeDay14(args: NurtureArgs): Promise<SendResult> {
