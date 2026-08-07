@@ -4,7 +4,7 @@ import type {
   DigestSnapshotPerMetricPersistenceScorecardVerdict,
   PerMetricPersistenceScorecardVerdictRow,
 } from "./digest-snapshot-per-metric-persistence-scorecard-verdict";
-import type { PersistenceScorecardVerdictToken } from "./digest-snapshot-persistence-scorecard-verdict";
+import type { PersistenceScorecardVerdictToken } from "../digest-snapshot-persistence-scorecard-verdict";
 import {
   computeDigestSnapshotPerMetricPersistenceScorecardVerdictTransition,
   formatDigestSnapshotPerMetricPersistenceScorecardVerdictTransitionSection,

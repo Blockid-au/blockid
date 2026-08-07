@@ -6,7 +6,7 @@ import type {
   DigestSnapshotPerResellerMetricPersistenceScorecardVerdict,
   PerResellerMetricPersistenceScorecardVerdictRow,
 } from "./digest-snapshot-per-reseller-metric-persistence-scorecard-verdict";
-import type { PersistenceScorecardVerdictToken } from "./digest-snapshot-persistence-scorecard-verdict";
+import type { PersistenceScorecardVerdictToken } from "../digest-snapshot-persistence-scorecard-verdict";
 import {
   computeDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransition,
   formatDigestSnapshotPerResellerMetricPersistenceScorecardVerdictTransitionSection,

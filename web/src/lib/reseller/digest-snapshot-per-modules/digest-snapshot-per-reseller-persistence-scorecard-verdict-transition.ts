@@ -74,14 +74,14 @@ import type {
 } from "./digest-snapshot-per-reseller-persistence-scorecard-verdict";
 import type {
   PersistenceScorecardVerdictToken,
-} from "./digest-snapshot-persistence-scorecard-verdict";
+} from "../digest-snapshot-persistence-scorecard-verdict";
 import type {
   PersistenceScorecardVerdictTransitionToken,
-} from "./digest-snapshot-persistence-scorecard-verdict-transition";
+} from "../digest-snapshot-persistence-scorecard-verdict-transition";
 
 export type {
   PersistenceScorecardVerdictTransitionToken,
-} from "./digest-snapshot-persistence-scorecard-verdict-transition";
+} from "../digest-snapshot-persistence-scorecard-verdict-transition";
 
 const VERDICT_RANK: Record<PersistenceScorecardVerdictToken, number> = {
   insufficient_window: -1,

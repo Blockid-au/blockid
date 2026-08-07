@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { buildDigestSnapshot } from "./digest-snapshot";
-import { computeDigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-reseller-rolling-trend";
+import { computeDigestSnapshotPerResellerRollingTrend } from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-rolling-trend";
 import { PCT_CHANGE_MATERIAL_THRESHOLD } from "./digest-snapshot-metric-pct-change";
-import { DEFAULT_MIN_STREAK_LENGTH } from "./digest-snapshot-per-reseller-pct-change-streaks";
+import { DEFAULT_MIN_STREAK_LENGTH } from "./digest-snapshot-per-modules/digest-snapshot-per-reseller-pct-change-streaks";
 import {
   DEFAULT_LEADERBOARD_TOP_N,
   computeDigestSnapshotPctChangeStreakLeaderboard,
