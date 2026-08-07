@@ -8589,3 +8589,10 @@
 {"tick_id":"2026-08-07T13-37-01-255Z","ts":"2026-08-07T13:42:06.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","sub_item":"P9-founder-pack-pdf-route-test","file":"web/src/app/s/p/[slug]/pdf/route.test.ts","tests":30,"vitest":"passed"}
 {"tick_id":"2026-08-07T13-37-01-255Z","ts":"2026-08-07T13:42:27.616Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":326313,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-07T13-37-01-255Z","ts":"2026-08-07T13:42:27.663Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":6}
+{"tick_id":"2026-08-07T13-37-01-255Z","ts":"2026-08-07T13:42:29.758Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-07T13-37-01-255Z","ts":"2026-08-07T13:42:29.772Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"779cddcf6","last_deployed":"c5fd741"}
+{"tick_id":"2026-08-07T13-37-01-255Z","ts":"2026-08-07T13:42:29.784Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"779cddcf6"}
+{"tick_id":"2026-08-07T13-37-01-255Z","ts":"2026-08-07T13:42:29.786Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-07T13-47-01-793Z","ts":"2026-08-07T13:47:01.793Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-07T13-47-01-793Z","ts":"2026-08-07T13:47:01.817Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-07T13-47-01-793Z","ts":"2026-08-07T13:53:49.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9_ship","sub_item":"P9-comau-check-route-test","file":"web/src/app/api/domain/comau-check/route.test.ts","tests":26,"vitest":"passed"}
