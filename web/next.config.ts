@@ -47,6 +47,16 @@ const nextConfig: NextConfig = {
         destination: "/solutions/accelerator",
         permanent: true,
       },
+      {
+        source: "/founding-100",
+        destination: "/founding-50",
+        permanent: true,
+      },
+      {
+        source: "/login",
+        destination: "/auth/login",
+        permanent: false,
+      },
     ];
   },
   async headers() {

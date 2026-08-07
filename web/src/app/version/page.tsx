@@ -147,6 +147,20 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.3.0",
+    date: "2026-08-07",
+    title: "Team refresh, expanded early-bird, changelog surface, redirects",
+    changes: [
+      "Team card refreshed to reflect 11 C-Level AI agents (CTO/CFO/CPO/CMO/CRO/CLO/CHRO/CISO/CDO/COO + Customer Success lead) — was hard-coded at 8",
+      "Early-bird pricing window extended to Dec 31, 2026 (Growth monthly + annual + platform-config)",
+      "CHANGELOG.md added at web/ so the public /changelog page renders release notes instead of the empty-state",
+      "/founding-100 now permanent-redirects to /founding-50 (matches the trademarked Founding 100 offer)",
+      "/login → /auth/login temporary redirect (fixes 404 on the common URL)",
+      "project-state.json version pinned to 3.3.0 (was drifted at 3.1.0)",
+      "Autonomous loop hardened: dozens of PTSNGM dispersion feature stubs merged and folded into pure-lib + cron-wiring layers (P11.400s series)",
+    ],
+  },
+  {
     version: "3.2.0",
     date: "2026-07-23",
     title: "Reseller P0-P10, Q4 Multi-Project 5/5, Workflow Parity 7/10",
