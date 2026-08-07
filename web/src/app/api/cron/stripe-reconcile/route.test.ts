@@ -356,6 +356,48 @@ describe("stripe-reconcile — Founding50 auto-grant", () => {
     const revInsert = state.inserts.find((i) => i.table === "revenue_events");
     expect(revInsert?.row.stripe_event_id).toBe("manual_reconciliation_cs_test_1");
   });
+
+  // ── Cutover safety — post-promo sessions are alerted, never auto-granted ──
+  // FOUNDING_PROMO_END = 2026-09-01T00:00:00Z = unix seconds 1788307200. A
+  // session created at or after that boundary is either a Stripe-dashboard
+  // mistake or a bypass bug; either way, the cron must NEVER silently issue
+  // lifetime access + credits for A$5 after the window closed. See fix in
+  // route.ts (post-cutover branch → action:"alert_only").
+  it("refuses to auto-grant founding50 for a POST-cutover session (alert only)", async () => {
+    const postCutoverSec = Math.floor(
+      new Date("2026-09-01T00:00:05Z").getTime() / 1000,
+    );
+    mocks.stripeSessionsListMock.mockResolvedValue({
+      data: [makeSession({ created: postCutoverSec })],
+      has_more: false,
+    });
+    const res = await GET(req("GET", { "x-cron-secret": "test_cron_secret" }));
+    const body = await json(res);
+    const miss = (body.misses as Array<Record<string, unknown>>)[0];
+    expect(miss?.kind).toBe("founding50");
+    expect(miss?.action).toBe("alert_only");
+    expect(String(miss?.detail)).toMatch(/post-cutover/);
+    expect(mocks.grantCreditsMock).not.toHaveBeenCalled();
+    expect(state.updates.some((u) => u.table === "app_users")).toBe(false);
+  });
+
+  it("still auto-grants a founding50 session created BEFORE cutover (grace path)", async () => {
+    // 23:59:58 on 2026-08-31 — legitimate late-webhook race that the safety
+    // net exists for. Must still auto-grant so a paying founder never loses
+    // access to what they bought.
+    const preCutoverSec = Math.floor(
+      new Date("2026-08-31T23:59:58Z").getTime() / 1000,
+    );
+    mocks.stripeSessionsListMock.mockResolvedValue({
+      data: [makeSession({ created: preCutoverSec })],
+      has_more: false,
+    });
+    const res = await GET(req("GET", { "x-cron-secret": "test_cron_secret" }));
+    const body = await json(res);
+    const miss = (body.misses as Array<Record<string, unknown>>)[0];
+    expect(miss?.action).toBe("granted");
+    expect(mocks.grantCreditsMock).toHaveBeenCalled();
+  });
 });
 
 // -----------------------------------------------------------------------------
