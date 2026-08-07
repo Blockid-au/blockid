@@ -8736,3 +8736,10 @@
 {"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:51:00.000Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"phase_shipped","phase":"P9_ship","subtask":"P9-pitch-1min-lib-test","file":"web/src/remotion/scripts/pitch-1min.test.ts","cases":44,"result":"44 passed / 287 ms"}
 {"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:54:53.732Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":471743,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:54:53.824Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":3}
+{"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:54:56.080Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:54:56.112Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"9f990a7c8","last_deployed":"bc61654"}
+{"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:54:56.131Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"head":"9f990a7c8"}
+{"tick_id":"2026-08-07T17-47-01-964Z","ts":"2026-08-07T17:54:56.134Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-07T17-57-01-880Z","ts":"2026-08-07T17:57:01.880Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-07T17-57-01-880Z","ts":"2026-08-07T17:57:01.904Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id": "2026-08-07T18-00-00-000Z", "ts": "2026-08-07T18:02:18.115Z", "loop_label": "atlassian-goal-loop", "stage": "phase_shipped", "phase": "P9_ship", "slug": "P9-mentor-access-request-route-test", "tests_added": 24, "file": "web/src/app/api/mentor/access-request/route.test.ts"}
