@@ -928,3 +928,4 @@
 {"ts":"2026-08-08T14:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16480,"detail":""}
 {"ts":"2026-08-08T14:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":128,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
 {"ts":"2026-08-08T14:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":592,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 33, \"raw\": \"33% used (187747440 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273975000 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-08T14:30:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":747,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 33, \"raw\": \"33% used (187700080 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273975000 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
