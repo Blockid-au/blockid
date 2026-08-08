@@ -549,7 +549,7 @@ describe("formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinqu
       );
     expect(html).toContain("PEAK-TO-QUATTUORQUINQUAGINTCENTINAGINTIC-MEAN");
     expect(html).toContain("PTQQNCNM ");
-    expect(html).toContain("spread");
+    expect(html).toContain("tight");
     expect(html).toContain("partner PTQQNCNM");
     expect(html).toContain("KPI PTQQNCNM");
   });
@@ -602,7 +602,7 @@ describe("formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinqu
     expect(html).toContain("tight");
   });
 
-  it("renders spread label for EXTREME OUTLIER [1×9, 100] (ptqqncnm = 1.0049)", () => {
+  it("renders tight label for EXTREME OUTLIER [1×9, 100] absorbed into tight bucket at M_154 (ptqqncnm = 1.0049 < 1.005)", () => {
     const out =
       computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMean(
         envelope(partnerPool([1, 1, 1, 1, 1, 1, 1, 1, 1, 100])),
@@ -611,7 +611,7 @@ describe("formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinqu
       formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMeanSection(
         out,
       );
-    expect(html).toContain("spread");
+    expect(html).toContain("tight");
   });
 
   it("HTML escapes week labels", () => {
