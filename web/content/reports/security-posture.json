@@ -1,5 +1,5 @@
 {
-  "date": "2026-08-07",
+  "date": "2026-08-08",
   "overall": 24,
   "status": "RED",
   "dimensions": [
@@ -7,7 +7,7 @@
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "326/405 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "327/407 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/abr/lookup/route.ts",
@@ -23,7 +23,7 @@
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 1,
-      "detail": "23/405 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "23/407 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/abr/lookup/route.ts",
