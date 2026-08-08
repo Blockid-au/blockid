@@ -5725,3 +5725,6 @@
 {"ts":"2026-08-08T20:12:01.583Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P13.4 wholesale welcome email — CS first-run pointer to /guide/01-vision (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T20:12:11.675Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T20-05-01-528Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T20:13:46.697Z","event":"github-push-master","detail":"Blockid-au: test(svi): P5-svi-history-route-test — colocated 14-case vitest for GET /api/svi/history (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-08T20-07-01-917Z","loop_label":"atlassian-goal-loop","ts":"2026-08-08T20:13:58.125Z","head":"ad97a75db","outcome":"failed","exit_code":1,"elapsed_ms":13}
+{"ts":"2026-08-08T20:13:59.225Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T20-07-01-917Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-08T20:14:01.298Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
