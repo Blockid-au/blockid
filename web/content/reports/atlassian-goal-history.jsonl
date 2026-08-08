@@ -9101,3 +9101,6 @@
 {"tick_id":"2026-08-08T03-37-01-885Z","ts":"2026-08-08T03:37:01.886Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T03-37-01-885Z","ts":"2026-08-08T03:37:01.903Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T03-40-00-000Z","ts":"2026-08-08T03:40:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_advance","phase":"P6_ausindustry_esic_gates","subtask":"P6-rd-calendar-route-test","status":"shipped","test_file":"web/src/app/api/compliance/rd-calendar/route.test.ts","tests_added":22,"tests_passed":22}
+{"tick_id":"2026-08-08T03-37-01-885Z","ts":"2026-08-08T03:43:12.204Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":370297,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T03-37-01-885Z","ts":"2026-08-08T03:43:12.243Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":13}
+{"tick_id":"2026-08-08T03-37-01-885Z","ts":"2026-08-08T03:43:13.695Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1}
