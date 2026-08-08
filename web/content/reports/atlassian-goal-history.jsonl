@@ -8993,3 +8993,4 @@
 {"tick_id":"2026-08-08T00-47-01-154Z","ts":"2026-08-08T01:04:06.789Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-08T01-07-01-683Z","ts":"2026-08-08T01:07:01.684Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T01-07-01-683Z","ts":"2026-08-08T01:07:01.702Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-08T01-07-01-683Z","ts":"2026-08-08T01:15:20.801Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9","shipment":"P9-pricing-test-event-route-test","status":"deploy_pending","tests_added":43,"target":"web/src/app/api/pricing-test/event/route.ts"}
