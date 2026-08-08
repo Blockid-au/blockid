@@ -9632,3 +9632,5 @@
 {"tick_id":"2026-08-08T14-57-01-352Z","ts":"2026-08-08T14:57:01.353Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T14-57-01-352Z","ts":"2026-08-08T14:57:01.374Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T14-58-34-124Z","ts":"2026-08-08T14:58:34.122Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","reason":"P0-P7 shipped/done; P8 human_blocked (awaiting founder sign-off Q1..Q10); P9 deploy_failed — driver will retry, agent does not own that transition","action":"noop"}
+{"tick_id":"2026-08-08T14-57-01-352Z","ts":"2026-08-08T14:58:46.050Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":104671,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T14-57-01-352Z","ts":"2026-08-08T14:58:46.090Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
