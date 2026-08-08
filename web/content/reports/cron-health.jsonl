@@ -959,3 +959,4 @@
 {"ts":"2026-08-08T17:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":17098,"detail":""}
 {"ts":"2026-08-08T17:00:01Z","endpoint":"agent-upgrade","status":"ok","duration_ms":256166,"detail":"{\"skipped\": true, \"reason\": \"ran recently\", \"resetIn\": 1544012}"}
 {"ts":"2026-08-08T17:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2528,"detail":"{\"status\": \"WATCH\", \"metrics\": {\"disk\": {\"value\": 33, \"raw\": \"33% used (187007476 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (273976144 free, 300GB)\", \"level\": \"ok\"}, \"memory\":"}
+{"ts":"2026-08-08T17:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":268,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
