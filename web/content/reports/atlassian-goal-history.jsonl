@@ -9068,3 +9068,4 @@
 {"tick_id":"2026-08-08T02-37-01-525Z","ts":"2026-08-08T02:54:42.744Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-08T02-57-01-793Z","ts":"2026-08-08T02:57:01.794Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T02-57-01-793Z","ts":"2026-08-08T02:57:01.812Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-08T03-04-52Z-manual-claude","ts":"2026-08-08T03:04:52.000Z","loop_label":"atlassian-goal-loop","stage":"tick_end","phase":"P9-exit-model-route-test","action":"shipped","commit":"a78421d93","summary":"colocated 46-case vitest for GET+POST /api/exit-model — loadCapTable tenancy on 3 supabase queries, preference/ordinary/ESOP threading, ARR fallback ladder, 4-scenario multiple ladder"}
