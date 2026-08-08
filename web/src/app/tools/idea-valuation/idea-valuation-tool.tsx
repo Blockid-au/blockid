@@ -276,6 +276,10 @@ export function IdeaValuationTool() {
             id="problem"
             label="Problem severity"
             tooltip="Berkus pillar 1 — Sound Idea. Score how acutely your target users feel this problem: 1 = mild inconvenience, 5 = something they lose money or sleep over. Calibrate with real customer interviews, not assumptions."
+            anchorChecks={[
+              "Have you interviewed 10+ potential customers who named this problem unprompted (not in response to a leading question)?",
+              "Can you quantify the cost of this problem — in AUD lost, hours wasted, or risk exposure — per affected user per month?",
+            ]}
             value={input.problemSeverity}
             onChange={(v) => setScore("problemSeverity")(v)}
             labels={SEVERITY_LABELS}
@@ -285,6 +289,10 @@ export function IdeaValuationTool() {
             id="founder"
             label="Founder strength"
             tooltip="Berkus pillar 3 — Quality Team. Scorecard method rates this 0–25% of the multiplier. Seed investors back the team first. Be honest: investors will find out your track record."
+            anchorChecks={[
+              "Is there a public record (LinkedIn, Crunchbase, media) of the prior exit or relevant domain success you're claiming?",
+              "Is every founding member working on this full-time or with a signed commitment to go full-time at a defined milestone?",
+            ]}
             value={input.founderStrength}
             onChange={(v) => setScore("founderStrength")(v)}
             labels={FOUNDER_LABELS}
@@ -301,6 +309,10 @@ export function IdeaValuationTool() {
             id="maturity"
             label="Solution maturity"
             tooltip="Berkus pillar 2 — Prototype. Investors care about de-risking execution: a working prototype proves the team can ship. Score based on what exists today, not what you're planning to build."
+            anchorChecks={[
+              "Is there a URL or TestFlight link an investor could click on today to see this working?",
+              "How many unique users have activated (taken a core action) in the last 30 days?",
+            ]}
             value={input.solutionMaturity}
             onChange={(v) => setScore("solutionMaturity")(v)}
             labels={MATURITY_LABELS}
@@ -318,6 +330,10 @@ export function IdeaValuationTool() {
             id="moat"
             label="Moat strength"
             tooltip="Scorecard multiplier component (worth up to +0.25x). True moats are hard to copy: proprietary data, network effects, regulatory licence, or deep tech IP. 'We'll move fast' is not a moat."
+            anchorChecks={[
+              "What specifically would it take a well-funded competitor to replicate your moat within 12 months?",
+              "Is your moat documented — filed patent, signed data agreement, regulatory licence number, or demonstrable network size?",
+            ]}
             value={input.moatStrength}
             onChange={(v) => setScore("moatStrength")(v)}
             labels={MOAT_LABELS}
@@ -327,6 +343,10 @@ export function IdeaValuationTool() {
             id="competition"
             label="Competition density"
             tooltip="Scorecard multiplier component (worth up to +0.15x). An uncontested market can mean huge opportunity or no demand — be ready to explain which. AU seed investors discount 'no competitors' claims."
+            anchorChecks={[
+              "Have you searched 3+ variations of your value proposition on Google, ProductHunt, Crunchbase, and AngelList?",
+              "If you believe this is uncontested: what is your hypothesis for why a gap this large still exists?",
+            ]}
             value={input.competitionDensity}
             onChange={(v) => setScore("competitionDensity")(v)}
             labels={COMPETITION_LABELS}
@@ -524,6 +544,7 @@ function RadioGroup({
   id,
   label,
   tooltip,
+  anchorChecks,
   value,
   onChange,
   labels,
@@ -531,11 +552,13 @@ function RadioGroup({
   id: string;
   label: string;
   tooltip?: string;
+  anchorChecks?: string[];
   value: Score1to5;
   onChange: (v: Score1to5) => void;
   labels: Record<Score1to5, string>;
 }) {
   const options: Score1to5[] = [1, 2, 3, 4, 5];
+  const showAnchor = value >= 4 && anchorChecks && anchorChecks.length > 0;
   return (
     <fieldset>
       <legend className="flex items-center gap-1.5 text-sm font-medium text-ink-600">
@@ -581,6 +604,21 @@ function RadioGroup({
         <span className="font-mono tabular-nums text-ink-500">{value}</span> ·{" "}
         {labels[value]}
       </p>
+      {showAnchor && (
+        <div className="mt-2 rounded-lg border border-amber-300/50 bg-amber-50/60 px-3 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700 mb-1.5">
+            Investor calibration — can you confirm?
+          </p>
+          <ul className="space-y-1">
+            {anchorChecks!.map((check, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-amber-900 leading-relaxed">
+                <span className="mt-0.5 font-mono text-amber-500">›</span>
+                {check}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </fieldset>
   );
 }
