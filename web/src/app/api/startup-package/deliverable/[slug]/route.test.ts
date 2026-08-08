@@ -308,6 +308,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     growth_phase_current: null,
+    ...overrides,
   };
 }
 
@@ -911,7 +912,7 @@ describe("POST /api/startup-package/deliverable/[slug]", () => {
     expect(getProjectByIdMock).toHaveBeenCalledWith("proj-abc");
   });
 
-  it("existence probe hits dataroom_files (not another table) — insert only writes to dataroom_files", async () => {
+  it("existence probe + insert both hit `dataroom_files` — exactly 2 dataroom_files touches per request", async () => {
     getCurrentUserMock.mockResolvedValue(makeUser({ id: "u-1" }));
     consumeRateLimitMock.mockResolvedValue(allowRate());
     getProjectByIdMock.mockResolvedValue(makeProject({ userId: "u-1" }));
@@ -922,10 +923,11 @@ describe("POST /api/startup-package/deliverable/[slug]", () => {
       projectId: "proj-1",
       deliverableKey: "pitch_deck",
     });
-    // one for the existence probe + one for the insert = 2 `.from()` calls,
-    // both against `dataroom_files`
-    expect(supabaseState.fromCalls.length).toBe(2);
-    for (const t of supabaseState.fromCalls) expect(t).toBe("dataroom_files");
+    // Both writes go to dataroom_files (existence probe + insert). Other
+    // tables (startup_package_interview + svi_accounts) are fetched in
+    // buildInputContext and are outside the dataroom-row contract.
+    const dfHits = supabaseState.fromCalls.filter((t) => t === "dataroom_files");
+    expect(dfHits.length).toBe(2);
   });
 
   it("email defaults to '' on the inserted row when the user has no email (defensive against a citext-null insert)", async () => {
