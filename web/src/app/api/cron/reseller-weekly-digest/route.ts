@@ -1398,6 +1398,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMean,
 } from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quattuorquinquagintcentinagintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean,
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-quinquinquagintcentinagintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -3661,6 +3666,11 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMeanSection =
+    "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMeanSection =
     "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
@@ -10962,6 +10972,27 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMean,
         );
+      // P11.565 — per-transition magnitude TOP-3 pool peak-to-quinquinquagintcentinagintic-mean.
+      // PTQIQNCNM = (max - min) / quinquinquagintcentinagintic_mean where
+      // quinquinquagintcentinagintic_mean = ((sum x_i^155) / n)^(1/155) is the
+      // M_155 power mean. Bands tight < 1.005, spread [1.005, 1.09), wide >= 1.09.
+      // Since quinquinquagintcentinagintic_mean >= quattuorquinquagintcentinagintic_mean
+      // by Power Mean inequality (M_155 >= M_154), ptqiqncnm <= ptqqncnm for every
+      // non-flat pool. NOTABLE DOUBLE-PRECISION OVERFLOW REGIME: any cell value
+      // >= 100 folds to a non-finite hundredFifthPowerSum and returns null
+      // (degenerate) since 100^155 = 10^310 exceeds Number.MAX_VALUE ~1.7976e308.
+      // Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMeanSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.564 formatter
+      // docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean,
+        );
     }
   }
   if (
@@ -11218,6 +11249,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToDuoquinquagintcentinaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToTrequinquagintcentinaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -11501,6 +11533,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToDuoquinquagintcentinaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToTrequinquagintcentinaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -18951,6 +18984,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuorquinquagintcentinaginticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_quinquinquagintcentinagintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.top_n,
+            tight_ptqiqncnm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.tight_ptqiqncnm_max,
+            wide_ptqiqncnm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.wide_ptqiqncnm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean.transitions,
           }
         : {
             skipped_reason:
