@@ -21,6 +21,7 @@ import {
   isDownloadableReportFilename,
   redactReportMarkdown,
 } from "@/lib/showcase/report-redaction";
+import { emitEvent } from "@/lib/analytics/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -60,6 +61,18 @@ export async function GET(
 
   const body = redactReportMarkdown(raw);
   const attachment = buildDownloadFilename(filename);
+
+  // Fire-and-forget server-side GA event so direct URL / bot / no-JS
+  // downloads are also counted — the client CTA (report-download-cta.tsx)
+  // only fires when JavaScript is available. `source: "server"` lets GA4
+  // audiences distinguish the two paths, and consent_granted defaults to
+  // false since this is an unauthenticated marketing surface (server sink
+  // still records to Supabase analytics_events; GA4 MP sink skips it).
+  void emitEvent({
+    name: "showcase_report_downloaded",
+    params: { template: filename },
+    source: "server",
+  }).catch(() => undefined);
 
   return new NextResponse(body, {
     status: 200,
