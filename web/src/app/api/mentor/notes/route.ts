@@ -36,7 +36,11 @@ function normaliseVisibility(raw: unknown): NoteVisibility | null {
   return null;
 }
 
-async function requireScope(user: { id: string } | null) {
+type RequireScopeResult =
+  | { err: NextResponse; scope?: undefined }
+  | { scope: Awaited<ReturnType<typeof scopedReseller>>; err?: undefined };
+
+async function requireScope(user: { id: string } | null): Promise<RequireScopeResult> {
   if (!user) return { err: NextResponse.json({ ok: false, reason: "unauthorised" }, { status: 401 }) };
   try {
     const scope = await scopedReseller(user as never);
@@ -52,7 +56,7 @@ async function requireScope(user: { id: string } | null) {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   const scoped = await requireScope(user);
-  if ("err" in scoped) return scoped.err;
+  if (scoped.err) return scoped.err;
   const scope = scoped.scope;
 
   const body = (await request.json().catch(() => null)) as
@@ -118,7 +122,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const user = await getCurrentUser();
   const scoped = await requireScope(user);
-  if ("err" in scoped) return scoped.err;
+  if (scoped.err) return scoped.err;
   const scope = scoped.scope;
 
   const body = (await request.json().catch(() => null)) as
@@ -201,7 +205,7 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const user = await getCurrentUser();
   const scoped = await requireScope(user);
-  if ("err" in scoped) return scoped.err;
+  if (scoped.err) return scoped.err;
   const scope = scoped.scope;
 
   const url = new URL(request.url);

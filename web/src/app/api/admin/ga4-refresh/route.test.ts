@@ -329,13 +329,15 @@ describe("happy path — JSONL append", () => {
   });
 
   it("threads the exact date from the snapshot into the response (regression on hardcoded 'today')", async () => {
+    const base = snapshotResult();
+    if (!base.ok) throw new Error("snapshotResult() base must be ok:true");
     mocks.fetchDailySnapshot.mockResolvedValueOnce(
       snapshotResult({
         ok: true,
         snapshot: {
-          ...snapshotResult().snapshot!,
+          ...base.snapshot,
           date: "2020-01-15",
-          totals: { ...snapshotResult().snapshot!.totals, sessions: 999 },
+          totals: { ...base.snapshot.totals, sessions: 999 },
         },
       } as Ga4SnapshotResult),
     );
