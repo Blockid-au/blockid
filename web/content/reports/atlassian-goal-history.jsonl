@@ -9007,3 +9007,5 @@
 {"tick_id":"2026-08-08T01-17-02-003Z","ts":"2026-08-08T01:22:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9","shipment":"P9-cfo-advisor-route-test","status":"deploy_pending","tests_added":34,"target":"web/src/app/api/cfo-advisor/route.ts"}
 {"tick_id":"2026-08-08T01-17-02-003Z","ts":"2026-08-08T01:22:26.128Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":324094,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-08T01-17-02-003Z","ts":"2026-08-08T01:22:26.165Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
+{"tick_id":"2026-08-08T01-17-02-003Z","ts":"2026-08-08T01:22:28.139Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-08T01-17-02-003Z","ts":"2026-08-08T01:22:28.157Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"b801fc614","last_deployed":"34a10d0"}
