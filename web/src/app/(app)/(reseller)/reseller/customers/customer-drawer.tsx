@@ -65,6 +65,7 @@ interface Copy {
   header_eyebrow: string;
   header_fallback: string;
   close: string;
+  mentor_console_link: string;
   tab_overview: string;
   tab_progression: string;
   tab_reports: string;
@@ -96,6 +97,7 @@ export const COPY: Record<Locale, Copy> = {
     header_eyebrow: "Customer",
     header_fallback: "—",
     close: "Close",
+    mentor_console_link: "Open in Mentor console",
     tab_overview: "Overview",
     tab_progression: "Progression",
     tab_reports: "Reports",
@@ -125,6 +127,7 @@ export const COPY: Record<Locale, Copy> = {
     header_eyebrow: "Khách hàng",
     header_fallback: "—",
     close: "Đóng",
+    mentor_console_link: "Mở trong bảng Mentor",
     tab_overview: "Tổng quan",
     tab_progression: "Tiến trình",
     tab_reports: "Báo cáo",
@@ -235,7 +238,7 @@ export function CustomerDrawer({ customerId, displayName, onClose }: Props) {
               href={`/reseller/mentor/${customerId}/overview`}
               className="rounded-md border border-surface-300 px-2 py-1 text-xs text-ink-700 hover:bg-surface-50"
             >
-              Open in Mentor console
+              {copy.mentor_console_link}
             </a>
             <button
               type="button"
