@@ -805,3 +805,6 @@
 {"tick_id":"2026-08-08T10-20-01-821Z","ts":"2026-08-08T10:27:25.348Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
 {"tick_id":"2026-08-08T10-20-01-821Z","ts":"2026-08-08T10:27:27.402Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-08-08T10-20-01-821Z","ts":"2026-08-08T10:27:27.443Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"d4cd66121","last_deployed":"6b86b0d"}
+{"tick_id":"2026-08-08T10-20-01-821Z","ts":"2026-08-08T10:36:22.234Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"outcome":"success","head":"d4cd66121","fresh_sha":"bad363d","elapsed_ms":534789,"delegated":false}
+{"tick_id":"2026-08-08T10-20-01-821Z","ts":"2026-08-08T10:36:25.531Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_committed","from":"deploy_pending","to":"done","fail_reason":null,"commit_status":0,"push_status":0}
+{"tick_id":"2026-08-08T10-20-01-821Z","ts":"2026-08-08T10:36:25.532Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
