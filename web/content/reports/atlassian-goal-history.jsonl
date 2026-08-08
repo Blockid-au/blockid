@@ -9014,3 +9014,4 @@
 {"tick_id":"2026-08-08T01-17-02-003Z","ts":"2026-08-08T01:31:27.332Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-08T01-37-01-826Z","ts":"2026-08-08T01:37:01.827Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T01-37-01-826Z","ts":"2026-08-08T01:37:01.845Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-08T01-43-17-000Z","ts":"2026-08-08T01:43:17.000Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P9","shipment":"P9-cfo-advisor-commentary-route-test","status":"proposed","tests_added":51,"target":"web/src/app/api/cfo-advisor/commentary/route.ts"}
