@@ -29,6 +29,12 @@ export type WholesaleWelcomeInput = {
   magicLinkUrl: string;
   ttlHours: number;
   locale?: Locale;
+  // Optional absolute URL to the founder journey Chapter 1 (Vision). When set,
+  // the template renders a "First run — You're on Phase 1 of 12" pointer per
+  // the CS advisory follow-up (plan-review-cs.md §1). Kept optional so the
+  // pure builder stays framework-neutral; the sendWholesaleWelcome adapter
+  // wires the default `${siteUrl}/guide/01-vision` at call time.
+  guideUrl?: string | null;
 };
 
 export type WholesaleWelcomeEmail = {
@@ -107,6 +113,14 @@ export function buildWholesaleWelcomeEmail(
 
   const ctaLabel = isVi ? "Kích hoạt không gian làm việc" : "Activate my workspace";
   const orPasteLabel = isVi ? "Hoặc dán liên kết này" : "Or paste this link";
+  const guideUrl = (input.guideUrl ?? "").trim();
+  const firstRunLabel = isVi
+    ? "Bắt đầu: Bạn đang ở Giai đoạn 1 trên 12"
+    : "First run: You're on Phase 1 of 12";
+  const firstRunBody = isVi
+    ? "Chương 1 (Tầm nhìn) hướng dẫn bạn qua bước đầu tiên — mô tả ý tưởng, khách hàng mục tiêu và vấn đề bạn giải quyết."
+    : "Chapter 1 (Vision) walks you through the first step — describe your idea, target customer, and the problem you solve.";
+  const firstRunCta = isVi ? "Mở Chương 1 — Tầm nhìn" : "Open Chapter 1 — Vision";
   const footerNote = isVi
     ? `Nếu bạn không mong đợi email này, vui lòng liên hệ ${escapeHtml(reseller)} hoặc admin@blockid.au.`
     : `If you did not expect this email, contact ${escapeHtml(reseller)} or admin@blockid.au.`;
@@ -131,6 +145,15 @@ export function buildWholesaleWelcomeEmail(
     `<p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#065F46;text-transform:uppercase;letter-spacing:0.1em;">${escapeHtml(noPaymentLabel)}</p>`,
     `<p style="margin:0;font-size:13px;color:#065F46;line-height:1.5;">${noPaymentBody}</p>`,
     `</div>`,
+    guideUrl
+      ? [
+          `<div style="margin:16px 0;padding:12px 16px;background:#EFF6FF;border-radius:8px;border-left:3px solid #3B7DD8;">`,
+          `<p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#1E3A8A;text-transform:uppercase;letter-spacing:0.1em;">${escapeHtml(firstRunLabel)}</p>`,
+          `<p style="margin:0 0 8px 0;font-size:13px;color:#1E3A8A;line-height:1.5;">${escapeHtml(firstRunBody)}</p>`,
+          `<p style="margin:0;font-size:13px;"><a href="${escapeHtml(guideUrl)}" style="color:#1E3A8A;font-weight:600;text-decoration:underline;">${escapeHtml(firstRunCta)} →</a></p>`,
+          `</div>`,
+        ].join("")
+      : "",
     `<hr style="border:none;border-top:1px solid #E2E8F0;margin:24px 0 12px 0;">`,
     `<p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">${footerNote}</p>`,
     cobrand,
@@ -154,6 +177,8 @@ export function buildWholesaleWelcomeEmail(
       ? `${reseller} là bên phát hành hóa đơn và đã thanh toán cho gói của bạn. BlockID sẽ không hỏi bạn thẻ tín dụng.`
       : `${reseller} is the seller-of-record and has already paid for your plan. BlockID will not ask you for a credit card.`}`,
     "",
+    guideUrl ? `${firstRunLabel}: ${firstRunBody} ${guideUrl}` : "",
+    guideUrl ? "" : undefined,
     isVi
       ? `Nếu bạn không mong đợi email này, hãy liên hệ ${reseller} hoặc admin@blockid.au.`
       : `If you did not expect this email, contact ${reseller} or admin@blockid.au.`,

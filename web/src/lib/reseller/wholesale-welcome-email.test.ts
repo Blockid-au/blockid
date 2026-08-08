@@ -121,4 +121,39 @@ describe("buildWholesaleWelcomeEmail", () => {
     expect(out.text.endsWith("\n")).toBe(true);
     expect(out.text.endsWith("\n\n")).toBe(false);
   });
+
+  it("omits first-run pointer when guideUrl is absent (default)", () => {
+    const out = buildWholesaleWelcomeEmail(base);
+    expect(out.html).not.toContain("First run:");
+    expect(out.html).not.toContain("You're on Phase 1 of 12");
+    expect(out.text).not.toContain("First run:");
+  });
+
+  it("renders EN first-run pointer to /guide/01-vision when guideUrl set (CS §1)", () => {
+    const guideUrl = "https://blockid.au/guide/01-vision";
+    const out = buildWholesaleWelcomeEmail({ ...base, guideUrl });
+    expect(out.html).toContain("First run: You&#39;re on Phase 1 of 12");
+    expect(out.html).toContain("Open Chapter 1");
+    expect(out.html).toContain(guideUrl);
+    expect(out.text).toContain("First run: You're on Phase 1 of 12");
+    expect(out.text).toContain(guideUrl);
+  });
+
+  it("renders VI first-run pointer with Vietnamese copy", () => {
+    const guideUrl = "https://blockid.au/guide/01-vision";
+    const out = buildWholesaleWelcomeEmail({ ...base, guideUrl, locale: "vi" });
+    expect(out.html).toContain("Bắt đầu: Bạn đang ở Giai đoạn 1 trên 12");
+    expect(out.html).toContain("Mở Chương 1");
+    expect(out.html).toContain(guideUrl);
+    expect(out.html).not.toContain("First run:");
+  });
+
+  it("escapes HTML in guideUrl to prevent injection", () => {
+    const out = buildWholesaleWelcomeEmail({
+      ...base,
+      guideUrl: "https://blockid.au/guide?x=1&y=2\"><script>x</script>",
+    });
+    expect(out.html).not.toContain("<script>x</script>");
+    expect(out.html).toContain("&amp;y=2");
+  });
 });

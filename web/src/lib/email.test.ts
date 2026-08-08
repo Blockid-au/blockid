@@ -1000,15 +1000,34 @@ describe("sendWholesaleWelcome — reseller delegation", () => {
       ttlHours: 24,
       locale: "vi",
     });
-    expect(builderMod.buildWholesaleWelcomeEmail).toHaveBeenCalledWith({
-      founderName: "Ana",
+    expect(builderMod.buildWholesaleWelcomeEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        founderName: "Ana",
+        companyName: "Acme",
+        resellerDisplayName: "Reseller X",
+        magicLinkUrl: "https://x/verify?tok=y",
+        ttlHours: 24,
+        locale: "vi",
+        guideUrl: expect.stringMatching(/\/guide\/01-vision$/),
+      }),
+    );
+    expect(lastMail().subject).toBe("Wholesale Welcome Acme");
+    expect(lastMail().html).toContain("Welcome Acme");
+  });
+
+  it("passes explicit guideUrl through when caller supplies one", async () => {
+    const { sendWholesaleWelcome } = await import("./email");
+    const builderMod = await import("./reseller/wholesale-welcome-email");
+    await sendWholesaleWelcome({
+      to: "founder@x.co",
       companyName: "Acme",
       resellerDisplayName: "Reseller X",
       magicLinkUrl: "https://x/verify?tok=y",
       ttlHours: 24,
-      locale: "vi",
+      guideUrl: "https://custom.example/guide/hello",
     });
-    expect(lastMail().subject).toBe("Wholesale Welcome Acme");
-    expect(lastMail().html).toContain("Welcome Acme");
+    expect(builderMod.buildWholesaleWelcomeEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ guideUrl: "https://custom.example/guide/hello" }),
+    );
   });
 });
