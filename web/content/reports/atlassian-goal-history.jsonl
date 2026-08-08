@@ -9258,3 +9258,6 @@
 {"tick_id":"2026-08-08T06-37-01-453Z","ts":"2026-08-08T06:37:01.454Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T06-37-01-453Z","ts":"2026-08-08T06:37:01.477Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T06-37-01-453Z","ts":"2026-08-08T06:42:00.000Z","loop_label":"atlassian-goal-loop","phase":"P9_ship","subtask":"P9-slug-pdf-route-test","status":"deploy_pending","action":"colocated 10-case vitest for src/app/s/[slug]/pdf/route.ts","tests":"10 passed","stage":"tick_complete"}
+{"tick_id":"2026-08-08T06-37-01-453Z","ts":"2026-08-08T06:44:19.328Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":437847,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T06-37-01-453Z","ts":"2026-08-08T06:44:19.373Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":10}
+{"tick_id":"2026-08-08T06-37-01-453Z","ts":"2026-08-08T06:44:20.773Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1}
