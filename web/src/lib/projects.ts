@@ -26,6 +26,7 @@ export interface Project {
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  growth_phase_current: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +93,7 @@ function mapProject(row: any): Project {
     archivedAt: row.archived_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    growth_phase_current: row.growth_phase_current ?? null,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
