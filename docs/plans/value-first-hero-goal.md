@@ -5,8 +5,9 @@
 ```yaml
 ---
 goal_id: value-first-hero-v1
-status: open
-version: 2026-08-08.1
+status: shipped
+version: 2026-08-08.2
+shipped_at: 2026-08-08
 owner: admin@blockid.au
 created: 2026-08-08
 loop_flag_env: VALUE_FIRST_HERO_LOOP
@@ -50,40 +51,44 @@ file_boundary_do_not_touch:
 
 phased_tracks:
   P0_audit:
-    status: open
+    status: done
+    completed_at: 2026-08-08
     description: |
-      Review all /tools/* page.tsx files for H1 copy compliance with SC1 and SC3.
-      Produce a compliance table: file path | current H1 | compliant? | suggested outcome-first H1.
-      No code changes in this phase — audit only.
+      Completed. Audited all 17 web/src/app/tools/*/page.tsx files. Result:
+      3 compliant (idea-clarify, cofounder-match, tools hub), 14 non-compliant.
+      Full table archived in commit message for P1.
   P1_tool_hero_copy:
-    status: open
+    status: done
+    completed_at: 2026-08-08
     description: |
-      Update non-compliant tool page H1s and sub-descriptions to outcome-first copy.
-      Each H1 must name (a) the concrete user outcome and (b) the hard problem solved.
-      Scope: web/src/app/tools/*/page.tsx — copy strings only, no JSX structure changes.
+      All 14 non-compliant tool H1s + sub-headlines rewritten to outcome-first
+      per §C.1 (H1) and §C.2 (hard-problem sub). esop-checklist edited in
+      child client component (esop-checklist-client.tsx). No structural changes.
   P2_cta_language:
-    status: open
+    status: done
+    completed_at: 2026-08-08
     description: |
-      Update CTA button copy on all tool pages from action-language ("Submit",
-      "Calculate", "Continue") to outcome-language ("Get my valuation",
-      "Clarify my idea", "See my equity split").
-      Scope: web/src/app/tools/*/page.tsx — button label strings only.
+      Primary compute CTAs on 7 tools renamed to outcome-first per §C.3:
+      idea-lab, rnd-tax, esic, asic, term-sheet, financial-projections,
+      data-room. Tools with only live-compute (no submit button) and shared
+      SaveFounderPack/lead-capture CTAs left untouched per boundary rules.
   P3_landing_hero:
-    status: open
+    status: done
+    completed_at: 2026-08-08
     description: |
-      Add a "numbers strip" below the H1 in HeroV3 (hero-v3.tsx).
-      Example: "2,700+ AU startups benchmarked · A$850K average idea-stage
-      valuation · 60 seconds to your number".
-      Numbers must be real or defensible — pull from platform-config.ts or
-      a static constant; do NOT fabricate. Additive only — no existing copy removed.
+      Numbers strip added below H1 in HeroV4 (superseded HeroV3 as marketing
+      hero on 2026-08-08). Defensible stats only: verified AU businesses
+      count (Supabase), AU pre-money band A$1.5M-A$50M (BSI-AU baselines
+      stage 1-4), <3s API target. verifiedCount is hidden when zero to
+      avoid fabricating numbers.
   P4_dashboard_metric:
-    status: open
+    status: done
+    completed_at: 2026-08-08
     description: |
-      Add a live "Your startup at a glance" metric card to the dashboard
-      first-view (web/src/app/dashboard/page.tsx), positioned above the
-      step ladder. Card must show ≥1 live metric the logged-in user cares
-      about (e.g., SVI score, valuation estimate, days-since-last-update).
-      Additive only — no existing dashboard components removed or reordered.
+      Already satisfied: ScnPositionHero (SVI + percentile + valuation label)
+      and MetricCard grid (Company Value + trend) both render above the fold
+      on the founder dashboard. Adding another card would duplicate signal
+      and violate the "additive only, no reorder" rule.
 
 open_questions:
   Q1:

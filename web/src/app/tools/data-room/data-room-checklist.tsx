@@ -319,7 +319,7 @@ export function DataRoomChecklist() {
                 ? "Saved"
                 : submitState === "submitting"
                   ? "Saving..."
-                  : "Save readiness"}
+                  : "Score my data room"}
               {submitState === "ok" ? (
                 <CheckCircle2 strokeWidth={1.75} className="h-5 w-5" />
               ) : (

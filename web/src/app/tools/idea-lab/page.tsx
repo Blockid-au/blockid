@@ -49,12 +49,13 @@ export default function IdeaLabPage() {
               R&amp;D · Founder tool · Sector-aware
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              AI Idea Lab
+              Generate 10 fundable startup angles in your sector — benchmarked against AU comps
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
-              Pick a sector and describe a broad problem area. Get 10 concrete
-              startup angles, 5 non-obvious opportunities and 3 real Australian
-              competitors — then send any idea straight into the Startup Value
+              Blank-page paralysis kills more startups than bad ideas. Move from
+              vague theme to fundable brief in minutes — pick a sector, get 10
+              concrete angles, 5 non-obvious opportunities and 3 real Australian
+              competitors, then send any idea straight into the Startup Value
               Index to score it.
             </p>
           </header>

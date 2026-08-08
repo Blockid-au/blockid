@@ -235,7 +235,7 @@ export function ASICChecker() {
             : "bg-surface-200 text-ink-400 cursor-not-allowed",
         )}
       >
-        Check ASIC Compliance
+        Check my ASIC status
       </button>
 
       {/* Result */}

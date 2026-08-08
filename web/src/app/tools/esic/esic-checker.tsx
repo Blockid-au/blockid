@@ -445,7 +445,7 @@ export function ESICChecker() {
             type="submit"
             className="h-12 px-8 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer cta-glow"
           >
-            Check ESIC Eligibility
+            Check my ESIC eligibility
           </button>
           <button
             type="button"

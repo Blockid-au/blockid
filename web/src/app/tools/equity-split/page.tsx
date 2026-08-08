@@ -50,12 +50,13 @@ export default function EquitySplitPage() {
               Free tool · No login · AU-tuned
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              Founder Equity Split Calculator
+              Split founder equity fairly — before resentment sets in
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
-              Split equity fairly, before incorporation, before resentment.
-              Weighted by role, time, cash, sweat, IP and risk — FAST /
-              Slicing-Pie inspired, simplified for AU pre-seed teams.
+              Equal splits become unequal contributions. Vested outcomes become
+              fights. Answer 12 questions and get a defensible split — weighted
+              by role, time, cash, sweat, IP and risk (FAST / Slicing-Pie
+              inspired, simplified for AU pre-seed teams).
             </p>
           </header>
           <div className="mt-10">

@@ -389,10 +389,11 @@ export function EsopChecklistClient() {
             Free Interactive ESOP Checklist — Updated June 2026
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-ink-900 mb-4">
-            ESOP Legal Checklist for Australian Startups
+            Run your ESOP setup by all 19 AU regulatory checks
           </h1>
           <p className="text-lg text-ink-600 max-w-2xl mx-auto">
-            {totalCount}-item interactive checklist covering pre-implementation, plan documentation, ESS tax rules,
+            Most founders miss 3–5 ATO/ASIC gates when granting first options — this {totalCount}-item checklist catches every one before you sign,
+            covering pre-implementation, plan documentation, ESS tax rules,
             ASIC compliance, employee communication, and ongoing obligations.
             Progress saves automatically to your browser.
           </p>

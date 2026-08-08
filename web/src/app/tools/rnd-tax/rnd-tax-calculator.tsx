@@ -264,7 +264,7 @@ export function RndTaxCalculator() {
               strokeWidth={1.75}
               className="inline h-4 w-4 mr-2 -mt-0.5"
             />
-            Calculate R&D Tax Benefit
+            Get my R&D refund
           </button>
           <button
             type="button"

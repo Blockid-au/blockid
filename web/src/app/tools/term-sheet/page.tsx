@@ -69,12 +69,13 @@ export default function TermSheetPage() {
               Free tool · No login · Saves AUD $3k–$10k in legal fees
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              Term Sheet AI (Australia)
+              Negotiate from strength — every term sheet clause, redlined by AI
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
-              Paste a term sheet. Get a founder-friendly plain-English summary,
+              Founders sign standard-looking clauses that cost them millions at
+              exit. See the actual meaning of every line — plain-English summary,
               severity-ranked redline, AU market comparison, and live dilution
-              simulation — in 30 seconds, by an AI trained on Australian
+              simulation in 30 seconds, by an AI trained on Australian
               private-capital norms.
             </p>
           </header>

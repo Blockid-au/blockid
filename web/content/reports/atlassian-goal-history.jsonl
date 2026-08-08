@@ -9544,3 +9544,5 @@
 {"tick_id":"2026-08-08T13-07-02-044Z","ts":"2026-08-08T13:07:02.045Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T13-07-02-044Z","ts":"2026-08-08T13:07:02.062Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"claude-2026-08-08T13-07-43Z","ts":"2026-08-08T13:07:43.020Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","picked":null,"reason":"P0-P7 done/shipped; P8 human_blocked (Q1-Q10 sign-off); P9 deploy_failed (driver-owned retry)","actor":"claude"}
+{"tick_id":"2026-08-08T13-07-02-044Z","ts":"2026-08-08T13:08:02.716Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":60650,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T13-07-02-044Z","ts":"2026-08-08T13:08:02.755Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":32}

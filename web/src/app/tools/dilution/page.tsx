@@ -47,12 +47,14 @@ export default function DilutionPage() {
               Free tool · No login · AU-tuned
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              Founder Dilution Calculator (Australia)
+              See your founder ownership after your next round
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
-              Model your next round before you sign. Enter the pre-money
-              valuation, raise size, current shares and ESOP top-up — see
-              founder dilution, post-money and the new share price instantly.
+              It&apos;s the number founders regret not modelling. Enter your
+              terms and see what you own after seed, Series A, ESOP top-ups —
+              pre-money valuation, raise size, current shares and ESOP top-up
+              feed founder dilution, post-money and the new share price
+              instantly.
             </p>
           </header>
           <div className="mt-10">
