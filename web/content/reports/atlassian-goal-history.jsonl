@@ -9144,3 +9144,5 @@
 {"tick_id":"2026-08-08T04-37-01-650Z","ts":"2026-08-08T04:37:01.650Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T04-37-01-650Z","ts":"2026-08-08T04:37:01.680Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T04:40:00Z-manual-claude","ts":"2026-08-08T04:40:00Z","loop_label":"atlassian-goal-loop","stage":"phase_advance","phase":"P9_ship","subtask":"P9-svi-api-checkout-route-test","status":"shipped","test_file":"web/src/app/api/svi-api/checkout/route.test.ts","tests_added":32,"tests_passed":32}
+{"tick_id":"2026-08-08T04-37-01-650Z","ts":"2026-08-08T04:43:13.461Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":371776,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T04-37-01-650Z","ts":"2026-08-08T04:43:13.502Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
