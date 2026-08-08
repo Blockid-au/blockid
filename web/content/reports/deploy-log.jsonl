@@ -5193,3 +5193,8 @@
 {"ts":"2026-08-08T04:11:00.273Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop tick 884 — P11.537 cron-wiring M_141 PTUQCNM (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T04:11:08.516Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T04-05-01-211Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T04:12:49.442Z","event":"github-push-master","detail":"Blockid-au: test(P9-s708-small-scale-counter-route-test): colocated 29-case vitest for POST /api/compliance/s708-small-scale-counter (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-08T04-07-01-543Z","loop_label":"atlassian-goal-loop","ts":"2026-08-08T04:13:00.869Z","head":"ef19a2440","outcome":"failed","exit_code":1,"elapsed_ms":14}
+{"ts":"2026-08-08T04:13:01.872Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T04-07-01-543Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-08T04-05-01-211Z","loop_label":"reseller-goal-loop","ts":"2026-08-08T04:13:10.789Z","head":"1116df0ec","outcome":"failed","exit_code":1,"elapsed_ms":123013}
+{"ts":"2026-08-08T04:13:15.120Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-08T04:21:41.002Z","event":"github-push-master","detail":"Blockid-au: test(P9-referrals-route-test): colocated 9-case vitest for GET /api/referrals (1 commits)","source":"github-webhook"}
