@@ -162,3 +162,5 @@
 {"stage":"deploy","ok":false,"message":"Deploy failed: ════════════════════════════════════════════\n  DEPLOY ABORTED (2/3 gates passed)\n  Old build is still running. No damage.\n  Fix the issue and try again.\n════════════════════════════════════════════","aiCalls":0,"durationMs":46208,"timestamp":"2026-08-08T14:03:01.004Z"}
 {"stage":"update_artifacts","ok":true,"message":"29 task(s) still in flight","aiCalls":0,"durationMs":281,"timestamp":"2026-08-08T16:00:03.070Z"}
 {"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":38,"timestamp":"2026-08-08T16:00:03.108Z"}
+{"stage":"qa","ok":true,"message":"QA: ?/21 pass, 0 fail","aiCalls":0,"durationMs":100500,"timestamp":"2026-08-08T18:01:43.116Z"}
+{"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":128,"timestamp":"2026-08-08T18:01:43.245Z"}
