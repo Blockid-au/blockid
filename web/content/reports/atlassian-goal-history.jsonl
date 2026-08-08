@@ -9380,3 +9380,6 @@
 {"tick_id":"2026-08-08T08-37-02-002Z","ts":"2026-08-08T08:47:38.017Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"outcome":"success","head":"57ee2ca6e","fresh_sha":"9917120","elapsed_ms":531961,"delegated":false}
 {"tick_id":"2026-08-08T08-37-02-002Z","ts":"2026-08-08T08:47:38.033Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"done"}
 {"tick_id":"2026-08-08T08-37-02-002Z","ts":"2026-08-08T08:47:38.033Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-08T08-57-02-008Z","ts":"2026-08-08T08:57:02.009Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-08T08-57-02-008Z","ts":"2026-08-08T08:57:02.028Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-08T09-00-00-000Z","ts":"2026-08-08T08:58:40.536Z","loop_label":"atlassian-goal-loop","stage":"tick_complete","phase_selected":null,"outcome":"noop","reason":"frontier empty — P0-P7 done/shipped; P8 human_blocked; P9 deploy_failed (driver retries automatically, depends on P8)","head":"4c9f29504"}
