@@ -9598,3 +9598,4 @@
 {"tick_id":"2026-08-08T14-07-01-105Z","ts":"2026-08-08T14:10:55.659Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-08T14-17-01-994Z","ts":"2026-08-08T14:17:01.994Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T14-17-01-994Z","ts":"2026-08-08T14:17:02.012Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts":"2026-08-08T14:23:24.000Z","goal":"atlassian-standard-mapping-v1","phase":"P9_ship","action":"regression_test_added","stage":"deploy_pending","target":"web/src/app/api/admin/ops/route.ts","test":"web/src/app/api/admin/ops/route.test.ts","cases":15,"result":"pass","sha_before":"d567185b091d2cad47772d0c0e032b035b082735"}
