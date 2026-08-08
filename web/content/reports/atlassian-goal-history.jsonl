@@ -9446,3 +9446,4 @@
 {"tick_id":"2026-08-08T10-07-01-247Z","ts":"2026-08-08T10:17:29.785Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-08T10-27-01-592Z","ts":"2026-08-08T10:27:01.593Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T10-27-01-592Z","ts":"2026-08-08T10:27:01.612Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-08T10-28-03-279Z","ts":"2026-08-08T10:28:03.281Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","reason":"P0-P7 shipped; P8 human_blocked (Q1-Q10 sign-off); P9 deploy_failed (driver retries)","p8_status":"human_blocked","p9_status":"deploy_failed","action":"no_phase_work_this_tick"}
