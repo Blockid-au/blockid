@@ -17,12 +17,14 @@ import {
   AU_PRE_INCORP_BAND,
   TAM_PRESETS,
   computeIdeaValuation,
+  validateCombinations,
   type FounderTraits,
   type IdeaValuationInput,
   type Score1to5,
   type TeamCompleteness,
   type TractionSignals,
 } from "@/lib/idea-valuation";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { saveIdeaEvalState } from "@/lib/idea-phase/session-state";
 
 const SEVERITY_LABELS: Record<Score1to5, string> = {
@@ -122,6 +124,7 @@ export function IdeaValuationTool() {
   const [ideaName, setIdeaName] = React.useState<string>("");
   const [ideaPitch, setIdeaPitch] = React.useState<string>("");
   const out = React.useMemo(() => computeIdeaValuation(input), [input]);
+  const warnings = React.useMemo(() => validateCombinations(input), [input]);
 
   // Mirror inputs to sessionStorage so the Save Founder Pack modal can pick
   // them up when the user clicks "Save my Founder Pack" anywhere on the site.
@@ -253,6 +256,7 @@ export function IdeaValuationTool() {
           <RadioGroup
             id="problem"
             label="Problem severity"
+            tooltip="Berkus pillar 1 — Sound Idea. Score how acutely your target users feel this problem: 1 = mild inconvenience, 5 = something they lose money or sleep over. Calibrate with real customer interviews, not assumptions."
             value={input.problemSeverity}
             onChange={(v) => setScore("problemSeverity")(v)}
             labels={SEVERITY_LABELS}
@@ -261,12 +265,14 @@ export function IdeaValuationTool() {
           <RadioGroup
             id="founder"
             label="Founder strength"
+            tooltip="Berkus pillar 3 — Quality Team. Scorecard method rates this 0–25% of the multiplier. Seed investors back the team first. Be honest: investors will find out your track record."
             value={input.founderStrength}
             onChange={(v) => setScore("founderStrength")(v)}
             labels={FOUNDER_LABELS}
           />
           <CheckboxGroup
             label="Founder traits"
+            tooltip="Verified credentials that make the founder rating credible. These are checkable facts — prior exit is public record, domain expertise should be on LinkedIn."
             fields={FOUNDER_TRAIT_FIELDS}
             values={input.founderTraits}
             onToggle={(k) => toggleFounderTrait(k as keyof FounderTraits)}
@@ -275,6 +281,7 @@ export function IdeaValuationTool() {
           <RadioGroup
             id="maturity"
             label="Solution maturity"
+            tooltip="Berkus pillar 2 — Prototype. Investors care about de-risking execution: a working prototype proves the team can ship. Score based on what exists today, not what you're planning to build."
             value={input.solutionMaturity}
             onChange={(v) => setScore("solutionMaturity")(v)}
             labels={MATURITY_LABELS}
@@ -282,6 +289,7 @@ export function IdeaValuationTool() {
 
           <CheckboxGroup
             label="Traction signals"
+            tooltip="Berkus pillars 4 & 5 — Strategic Relationships + Product Rollout. Paid LOIs and pilots outweigh free waitlists 3:1. Paying customers are the single biggest valuation lever at idea-stage."
             fields={TRACTION_FIELDS}
             values={input.traction}
             onToggle={(k) => toggleTraction(k as keyof TractionSignals)}
@@ -290,6 +298,7 @@ export function IdeaValuationTool() {
           <RadioGroup
             id="moat"
             label="Moat strength"
+            tooltip="Scorecard multiplier component (worth up to +0.25x). True moats are hard to copy: proprietary data, network effects, regulatory licence, or deep tech IP. 'We'll move fast' is not a moat."
             value={input.moatStrength}
             onChange={(v) => setScore("moatStrength")(v)}
             labels={MOAT_LABELS}
@@ -298,6 +307,7 @@ export function IdeaValuationTool() {
           <RadioGroup
             id="competition"
             label="Competition density"
+            tooltip="Scorecard multiplier component (worth up to +0.15x). An uncontested market can mean huge opportunity or no demand — be ready to explain which. AU seed investors discount 'no competitors' claims."
             value={input.competitionDensity}
             onChange={(v) => setScore("competitionDensity")(v)}
             labels={COMPETITION_LABELS}
@@ -305,6 +315,7 @@ export function IdeaValuationTool() {
 
           <CheckboxGroup
             label="Team completeness"
+            tooltip="Berkus pillar 3 sub-factor. Missing a CTO in a tech startup or a commercial lead in a B2B startup is a direct valuation discount. Advisors don't count — equity-holding co-founders do."
             fields={TEAM_FIELDS}
             values={input.team}
             onToggle={(k) => toggleTeam(k as keyof TeamCompleteness)}
@@ -335,9 +346,24 @@ export function IdeaValuationTool() {
           Pre-money estimate
         </h2>
 
-        <div className="mt-6 rounded-xl border border-brand-500/30 bg-brand-500/5 p-5">
+        {warnings.length > 0 && (
+          <div className="mb-6 rounded-xl border border-amber-400/40 bg-amber-400/8 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-amber-600 mb-2">
+              ⚠ Investor reality check
+            </p>
+            <ul className="space-y-1.5">
+              {warnings.map((w, i) => (
+                <li key={i} className="text-xs text-amber-800 leading-relaxed">
+                  {w}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-0 rounded-xl border border-brand-500/30 bg-brand-500/5 p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-brand-600 font-medium">
-            Defensible band (AUD)
+            Estimated range (±35% · idea-stage uncertainty)
           </p>
           <p className="mt-2 font-mono tabular-nums text-3xl md:text-4xl font-semibold text-ink-800">
             {formatAud(out.lowAud)} – {formatAud(out.highAud)}
@@ -478,12 +504,14 @@ export function IdeaValuationTool() {
 function RadioGroup({
   id,
   label,
+  tooltip,
   value,
   onChange,
   labels,
 }: {
   id: string;
   label: string;
+  tooltip?: string;
   value: Score1to5;
   onChange: (v: Score1to5) => void;
   labels: Record<Score1to5, string>;
@@ -491,8 +519,9 @@ function RadioGroup({
   const options: Score1to5[] = [1, 2, 3, 4, 5];
   return (
     <fieldset>
-      <legend className="block text-sm font-medium text-ink-600">
+      <legend className="flex items-center gap-1.5 text-sm font-medium text-ink-600">
         {label}
+        {tooltip && <InfoTooltip text={tooltip} />}
       </legend>
       <div
         className="mt-2 grid grid-cols-5 gap-2"
@@ -539,19 +568,22 @@ function RadioGroup({
 
 function CheckboxGroup<T extends string>({
   label,
+  tooltip,
   fields,
   values,
   onToggle,
 }: {
   label: string;
+  tooltip?: string;
   fields: { key: T; label: string }[];
   values: Record<T, boolean>;
   onToggle: (key: T) => void;
 }) {
   return (
     <fieldset>
-      <legend className="block text-sm font-medium text-ink-600">
+      <legend className="flex items-center gap-1.5 text-sm font-medium text-ink-600">
         {label}
+        {tooltip && <InfoTooltip text={tooltip} />}
       </legend>
       <div className="mt-2 grid sm:grid-cols-2 gap-2">
         {fields.map((f) => {
