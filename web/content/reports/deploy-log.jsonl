@@ -5493,3 +5493,9 @@
 {"ts":"2026-08-08T13:38:05.052Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop tick — frontier empty (P8 human_blocked, P9 driver retry) (2 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T13:38:15.758Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T13-37-01-185Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T13:45:09.784Z","event":"github-push-master","detail":"Blockid-au: chore(reseller-loop P11.569): mark cron-wiring twin deploy_pending (M_157) (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-08T13-30-01-650Z","loop_label":"reseller-goal-loop","ts":"2026-08-08T13:45:26.151Z","head":"3695b448b","outcome":"failed","exit_code":1,"elapsed_ms":9}
+{"ts":"2026-08-08T13:45:27.131Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T13-30-01-650Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-08T13:45:30.653Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-08T13-37-01-185Z","loop_label":"atlassian-goal-loop","ts":"2026-08-08T13:47:28.835Z","head":"c6cd7dc9a","outcome":"failed","exit_code":1,"elapsed_ms":553866}
+{"ts":"2026-08-08T13:47:31.742Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-08T13:58:26.309Z","event":"github-push-master","detail":"Blockid-au: chore(atlassian-goal-loop): tick — frontier empty (P8 human_blocked; P9 driver retry) (1 commits)","source":"github-webhook"}
