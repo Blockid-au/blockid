@@ -9686,3 +9686,5 @@
 {"tick_id":"2026-08-08T15-57-02-011Z","ts":"2026-08-08T15:57:02.012Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T15-57-02-011Z","ts":"2026-08-08T15:57:02.032Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T16-05-00-000Z","ts":"2026-08-08T16:05:00.000Z","loop_label":"atlassian-goal-loop","stage":"claude_tick_no_frontier","note":"P0-P7 shipped; P8 human_blocked (founder Q1..Q10 signoff); P9 depends on P8 — no unblocked phase to execute. Cleaned malformed P9 status line (14x repeated fail_reason clauses collapsed to single form)."}
+{"tick_id":"2026-08-08T15-57-02-011Z","ts":"2026-08-08T15:59:20.133Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":138096,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T15-57-02-011Z","ts":"2026-08-08T15:59:20.182Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":5}
