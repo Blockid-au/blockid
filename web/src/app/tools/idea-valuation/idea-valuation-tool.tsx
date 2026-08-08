@@ -163,230 +163,41 @@ export function IdeaValuationTool() {
 
   return (
     <div className="space-y-6">
-      <section
-        aria-labelledby="idea-anchor"
-        className="rounded-2xl border border-brand-500/30 bg-gradient-to-br from-brand-500/5 to-white p-6 md:p-8"
-      >
-        <h2
-          id="idea-anchor"
-          className="text-xs uppercase tracking-[0.2em] text-brand-600 font-semibold"
-        >
-          Your idea
-        </h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_2fr]">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="idea-name-top" className="text-sm">
-              Name it
-            </Label>
-            <Input
-              id="idea-name-top"
-              placeholder="e.g. Acme"
-              value={ideaName}
-              onChange={(e) => setIdeaName(e.target.value)}
-              maxLength={120}
-              autoFocus
-            />
+      {/* ── HERO: estimate first, above the fold ── */}
+      <section aria-labelledby="idea-outputs" className="rounded-2xl border border-brand-500/30 bg-gradient-to-br from-brand-500/8 via-white to-white p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.2em] text-brand-600 font-medium flex items-center gap-2">
+              <Sparkles strokeWidth={1.75} className="h-4 w-4" />
+              {ideaName.trim() ? `${ideaName.trim()} — pre-money estimate` : "Pre-money estimate · updates live"}
+            </p>
+            <p id="idea-outputs" className="mt-2 font-mono tabular-nums text-4xl md:text-5xl font-bold text-ink-900 tracking-tight">
+              {formatAud(out.lowAud)} – {formatAud(out.highAud)}
+            </p>
+            <p className="mt-2 text-sm text-ink-400">
+              Mid-point{" "}
+              <span className="font-mono tabular-nums text-ink-600 font-medium">
+                {formatAud(out.midAud)}
+              </span>
+              {" · "}Scorecard{" "}
+              <span className="font-mono tabular-nums text-ink-600 font-medium">
+                {out.scorecardMultiplier.toFixed(2)}x
+              </span>
+              {" · "}±35% idea-stage band
+            </p>
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="idea-pitch-top" className="text-sm">
-              One-line pitch <span className="text-ink-400">(optional)</span>
-            </Label>
-            <Input
-              id="idea-pitch-top"
-              placeholder="e.g. AU SaaS that turns Xero data into instant tax forecasts for solo directors"
-              value={ideaPitch}
-              onChange={(e) => setIdeaPitch(e.target.value)}
-              maxLength={200}
-            />
+          <div className="flex-shrink-0">
+            <SaveFounderPackButton className="h-10 w-full sm:w-auto" />
           </div>
         </div>
-        <p className="mt-4 text-xs text-ink-500">
-          {ideaName.trim()
-            ? `Analysing ${ideaName.trim()} — the estimate below updates live as you answer.`
-            : "Answer the signals below; the estimate updates live. You can save the result as a shareable Founder Pack."}
+
+        <p className="mt-3 flex items-start gap-2 text-xs text-ink-500">
+          <Info strokeWidth={1.75} className="h-4 w-4 mt-0.5 text-brand-600 flex-shrink-0" />
+          <span>{out.confidence}</span>
         </p>
 
-        {fromClarify && ideaHint && (
-          <div className="mt-4 rounded-xl border border-brand-500/20 bg-brand-500/5 p-3 flex items-start gap-3">
-            <ArrowRight strokeWidth={1.75} className="h-4 w-4 mt-0.5 text-brand-500 flex-shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-brand-700">Carried over from Idea Clarify</p>
-              <p className="mt-0.5 text-xs text-ink-500 truncate">{ideaHint}</p>
-              <p className="mt-1 text-xs text-ink-400">
-                Score each signal honestly — your idea description is context, not a free pass on the sliders.
-              </p>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <div className="grid lg:grid-cols-2 gap-8">
-      <section
-        aria-labelledby="idea-inputs"
-        className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
-      >
-        <h2
-          id="idea-inputs"
-          className="text-lg font-semibold text-ink-800 flex items-center gap-2"
-        >
-          <Calculator strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
-          Idea-stage signals
-        </h2>
-
-        <div className="mt-6 space-y-7">
-          {/* TAM */}
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="tam">Total addressable market (AUD)</Label>
-            <Input
-              id="tam"
-              type="number"
-              min={0}
-              step={1_000_000}
-              value={input.tamAud}
-              onChange={(e) =>
-                setInput((p) => ({
-                  ...p,
-                  tamAud: Number(e.target.value) || 0,
-                }))
-              }
-              className="font-mono tabular-nums"
-            />
-            <div className="mt-1 flex flex-wrap gap-2">
-              {TAM_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() =>
-                    setInput((p) => ({ ...p, tamAud: preset.value }))
-                  }
-                  className={cn(
-                    "rounded-full border px-3 py-1 text-xs transition-colors",
-                    input.tamAud === preset.value
-                      ? "border-brand-500/60 bg-brand-500/10 text-brand-500"
-                      : "border-surface-200 bg-white text-ink-400 hover:border-brand-500/40 hover:text-ink-600",
-                  )}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <RadioGroup
-            id="problem"
-            label="Problem severity"
-            tooltip="Berkus pillar 1 — Sound Idea. Score how acutely your target users feel this problem: 1 = mild inconvenience, 5 = something they lose money or sleep over. Calibrate with real customer interviews, not assumptions."
-            anchorChecks={[
-              "Have you interviewed 10+ potential customers who named this problem unprompted (not in response to a leading question)?",
-              "Can you quantify the cost of this problem — in AUD lost, hours wasted, or risk exposure — per affected user per month?",
-            ]}
-            value={input.problemSeverity}
-            onChange={(v) => setScore("problemSeverity")(v)}
-            labels={SEVERITY_LABELS}
-          />
-
-          <RadioGroup
-            id="founder"
-            label="Founder strength"
-            tooltip="Berkus pillar 3 — Quality Team. Scorecard method rates this 0–25% of the multiplier. Seed investors back the team first. Be honest: investors will find out your track record."
-            anchorChecks={[
-              "Is there a public record (LinkedIn, Crunchbase, media) of the prior exit or relevant domain success you're claiming?",
-              "Is every founding member working on this full-time or with a signed commitment to go full-time at a defined milestone?",
-            ]}
-            value={input.founderStrength}
-            onChange={(v) => setScore("founderStrength")(v)}
-            labels={FOUNDER_LABELS}
-          />
-          <CheckboxGroup
-            label="Founder traits"
-            tooltip="Verified credentials that make the founder rating credible. These are checkable facts — prior exit is public record, domain expertise should be on LinkedIn."
-            fields={FOUNDER_TRAIT_FIELDS}
-            values={input.founderTraits}
-            onToggle={(k) => toggleFounderTrait(k as keyof FounderTraits)}
-          />
-
-          <RadioGroup
-            id="maturity"
-            label="Solution maturity"
-            tooltip="Berkus pillar 2 — Prototype. Investors care about de-risking execution: a working prototype proves the team can ship. Score based on what exists today, not what you're planning to build."
-            anchorChecks={[
-              "Is there a URL or TestFlight link an investor could click on today to see this working?",
-              "How many unique users have activated (taken a core action) in the last 30 days?",
-            ]}
-            value={input.solutionMaturity}
-            onChange={(v) => setScore("solutionMaturity")(v)}
-            labels={MATURITY_LABELS}
-          />
-
-          <CheckboxGroup
-            label="Traction signals"
-            tooltip="Berkus pillars 4 & 5 — Strategic Relationships + Product Rollout. Paid LOIs and pilots outweigh free waitlists 3:1. Paying customers are the single biggest valuation lever at idea-stage."
-            fields={TRACTION_FIELDS}
-            values={input.traction}
-            onToggle={(k) => toggleTraction(k as keyof TractionSignals)}
-          />
-
-          <RadioGroup
-            id="moat"
-            label="Moat strength"
-            tooltip="Scorecard multiplier component (worth up to +0.25x). True moats are hard to copy: proprietary data, network effects, regulatory licence, or deep tech IP. 'We'll move fast' is not a moat."
-            anchorChecks={[
-              "What specifically would it take a well-funded competitor to replicate your moat within 12 months?",
-              "Is your moat documented — filed patent, signed data agreement, regulatory licence number, or demonstrable network size?",
-            ]}
-            value={input.moatStrength}
-            onChange={(v) => setScore("moatStrength")(v)}
-            labels={MOAT_LABELS}
-          />
-
-          <RadioGroup
-            id="competition"
-            label="Competition density"
-            tooltip="Scorecard multiplier component (worth up to +0.15x). An uncontested market can mean huge opportunity or no demand — be ready to explain which. AU seed investors discount 'no competitors' claims."
-            anchorChecks={[
-              "Have you searched 3+ variations of your value proposition on Google, ProductHunt, Crunchbase, and AngelList?",
-              "If you believe this is uncontested: what is your hypothesis for why a gap this large still exists?",
-            ]}
-            value={input.competitionDensity}
-            onChange={(v) => setScore("competitionDensity")(v)}
-            labels={COMPETITION_LABELS}
-          />
-
-          <CheckboxGroup
-            label="Team completeness"
-            tooltip="Berkus pillar 3 sub-factor. Missing a CTO in a tech startup or a commercial lead in a B2B startup is a direct valuation discount. Advisors don't count — equity-holding co-founders do."
-            fields={TEAM_FIELDS}
-            values={input.team}
-            onToggle={(k) => toggleTeam(k as keyof TeamCompleteness)}
-          />
-
-          <div className="flex items-center justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              type="button"
-              onClick={() => setInput(DEFAULTS)}
-            >
-              Reset to defaults
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section
-        aria-labelledby="idea-outputs"
-        className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8 flex flex-col"
-      >
-        <h2
-          id="idea-outputs"
-          className="text-lg font-semibold text-ink-800 flex items-center gap-2"
-        >
-          <Sparkles strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
-          Pre-money estimate
-        </h2>
-
         {warnings.length > 0 && (
-          <div className="mb-6 rounded-xl border border-amber-400/40 bg-amber-400/8 p-4">
+          <div className="mt-4 rounded-xl border border-amber-400/40 bg-amber-400/8 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-amber-600 mb-2">
               ⚠ Investor reality check
             </p>
@@ -400,141 +211,328 @@ export function IdeaValuationTool() {
           </div>
         )}
 
-        <div className="mt-0 rounded-xl border border-brand-500/30 bg-brand-500/5 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-brand-600 font-medium">
-            Estimated range (±35% · idea-stage uncertainty)
-          </p>
-          <p className="mt-2 font-mono tabular-nums text-3xl md:text-4xl font-semibold text-ink-800">
-            {formatAud(out.lowAud)} – {formatAud(out.highAud)}
-          </p>
-          <p className="mt-2 text-sm text-ink-400">
-            Mid-point{" "}
-            <span className="font-mono tabular-nums text-ink-600">
-              {formatAud(out.midAud)}
-            </span>{" "}
-            · Scorecard multiplier{" "}
-            <span className="font-mono tabular-nums text-ink-600">
-              {out.scorecardMultiplier.toFixed(2)}x
-            </span>
-          </p>
-          <p className="mt-3 flex items-start gap-2 text-xs text-ink-400">
-            <Info strokeWidth={1.75} className="h-4 w-4 mt-0.5 text-brand-600" />
-            <span>{out.confidence}</span>
-          </p>
-        </div>
-
-        <div className="mt-7">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-800">
-            Per-factor breakdown
-          </p>
-          <ul className="mt-3 space-y-3">
-            {out.factors.map((f) => (
-              <li key={f.key}>
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm font-medium text-ink-600">
-                    {f.label}
-                  </span>
-                  <span className="font-mono tabular-nums text-xs text-ink-400">
-                    {formatAud(f.valueAud)} / {formatAud(f.capAud)}
-                  </span>
-                </div>
-                <div className="mt-1.5 h-2 w-full rounded-full bg-surface-100 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-brand-500"
-                    style={{
-                      width: `${Math.min(100, f.fillRatio * 100).toFixed(1)}%`,
-                    }}
-                    aria-label={`${f.label} ${formatPercent(f.fillRatio * 100, 0)}`}
-                  />
-                </div>
-                <p className="mt-1 text-xs text-ink-800">{f.note}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="mt-7 rounded-xl border border-surface-200 bg-surface-100/60 p-5">
-          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-amber-300 font-medium">
-            <Lightbulb strokeWidth={1.75} className="h-4 w-4" />
-            What would lift this most
-          </p>
-          {out.suggestions.length === 0 ? (
-            <p className="mt-3 text-sm text-ink-400">
-              You&apos;re near the ceiling for an idea-stage estimate. Real
-              upside now comes from negotiation and hard signal.
-            </p>
-          ) : (
-            <ol className="mt-3 space-y-3">
-              {out.suggestions.map((s, i) => (
-                <li key={s.title} className="flex gap-3">
-                  <span className="font-mono tabular-nums text-xs text-brand-600 mt-0.5">
-                    {i + 1}.
-                  </span>
-                  <div>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-sm font-semibold text-ink-700">
-                        {s.title}
-                      </span>
-                      <span className="font-mono tabular-nums text-xs text-brand-600">
-                        +{formatAud(s.upliftAud)}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-xs text-ink-400">{s.detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-
-        <div className="mt-7 rounded-xl border border-surface-200 bg-surface-100/60 p-5">
-          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-ink-400 font-medium">
-            <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
-            How this compares
-          </p>
-          <p className="mt-2 text-sm text-ink-500">
-            Typical AU pre-incorporation pre-money sits between{" "}
-            <span className="font-mono tabular-nums text-ink-800">
-              {formatAud(AU_PRE_INCORP_BAND.lowAud)}
-            </span>{" "}
-            and{" "}
-            <span className="font-mono tabular-nums text-ink-800">
-              {formatAud(AU_PRE_INCORP_BAND.highAud)}
-            </span>{" "}
-            in 2025.
-          </p>
-          <CompareBar
-            lowAud={out.lowAud}
-            highAud={out.highAud}
-            bandLow={AU_PRE_INCORP_BAND.lowAud}
-            bandHigh={AU_PRE_INCORP_BAND.highAud}
-          />
-        </div>
-
-        <p className="mt-6 text-xs text-ink-800">
-          Idea-stage estimate. Real valuation is set by negotiation with your
-          first investor — use this number as an anchor, not a quote.
-        </p>
-
-        <div className="mt-7 rounded-xl border border-brand-500/40 bg-gradient-to-br from-white to-surface-100 p-5">
-          <div className="flex flex-col gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">
-                Lock this in
-              </p>
-              <p className="mt-2 text-sm text-ink-500">
-                Save {ideaName.trim() ? <span className="font-semibold text-ink-700">{ideaName.trim()}</span> : "this valuation"} as part of your{" "}
-                <span className="font-semibold text-ink-700">
-                  Founder Pack
-                </span>{" "}
-                — a shareable PDF + dashboard with view tracking. Free, no
-                password.
-              </p>
+        {/* Compact per-factor bar strip */}
+        <div className="mt-5 grid grid-cols-5 gap-2">
+          {out.factors.map((f) => (
+            <div key={f.key} className="flex flex-col gap-1.5" title={`${f.label}: ${formatAud(f.valueAud)} / ${formatAud(f.capAud)}`}>
+              <div className="h-1.5 w-full rounded-full bg-surface-200 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-brand-500 transition-all duration-300"
+                  style={{ width: `${Math.min(100, f.fillRatio * 100).toFixed(1)}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-ink-400 leading-none truncate">{f.label}</span>
             </div>
-            <SaveFounderPackButton className="h-11 w-full sm:w-auto" />
-          </div>
+          ))}
         </div>
       </section>
+
+      {fromClarify && ideaHint && (
+        <div className="rounded-xl border border-brand-500/20 bg-brand-500/5 p-3 flex items-start gap-3">
+          <ArrowRight strokeWidth={1.75} className="h-4 w-4 mt-0.5 text-brand-500 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-brand-700">Carried over from Idea Clarify</p>
+            <p className="mt-0.5 text-xs text-ink-500 truncate">{ideaHint}</p>
+            <p className="mt-1 text-xs text-ink-400">
+              Score each signal honestly — your idea description is context, not a free pass on the sliders.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── TWO-COLUMN: signals (left) | detail + save (right) ── */}
+      <div className="grid lg:grid-cols-2 gap-8">
+        <section
+          aria-labelledby="idea-inputs"
+          className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
+        >
+          <h2
+            id="idea-inputs"
+            className="text-base font-semibold text-ink-800 flex items-center gap-2"
+          >
+            <Calculator strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
+            Refine the signals
+          </h2>
+
+          {/* Idea name + pitch inline at top of form */}
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="idea-name-top" className="text-sm">Name</Label>
+              <Input
+                id="idea-name-top"
+                placeholder="e.g. Acme"
+                value={ideaName}
+                onChange={(e) => setIdeaName(e.target.value)}
+                maxLength={120}
+                autoFocus
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="idea-pitch-top" className="text-sm">
+                One-line pitch <span className="text-ink-400">(optional)</span>
+              </Label>
+              <Input
+                id="idea-pitch-top"
+                placeholder="AU SaaS for tradies..."
+                value={ideaPitch}
+                onChange={(e) => setIdeaPitch(e.target.value)}
+                maxLength={200}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-7">
+            {/* TAM */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="tam">Total addressable market (AUD)</Label>
+              <Input
+                id="tam"
+                type="number"
+                min={0}
+                step={1_000_000}
+                value={input.tamAud}
+                onChange={(e) =>
+                  setInput((p) => ({
+                    ...p,
+                    tamAud: Number(e.target.value) || 0,
+                  }))
+                }
+                className="font-mono tabular-nums"
+              />
+              <div className="mt-1 flex flex-wrap gap-2">
+                {TAM_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() =>
+                      setInput((p) => ({ ...p, tamAud: preset.value }))
+                    }
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs transition-colors",
+                      input.tamAud === preset.value
+                        ? "border-brand-500/60 bg-brand-500/10 text-brand-500"
+                        : "border-surface-200 bg-white text-ink-400 hover:border-brand-500/40 hover:text-ink-600",
+                    )}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <RadioGroup
+              id="problem"
+              label="Problem severity"
+              tooltip="Berkus pillar 1 — Sound Idea. Score how acutely your target users feel this problem: 1 = mild inconvenience, 5 = something they lose money or sleep over. Calibrate with real customer interviews, not assumptions."
+              anchorChecks={[
+                "Have you interviewed 10+ potential customers who named this problem unprompted (not in response to a leading question)?",
+                "Can you quantify the cost of this problem — in AUD lost, hours wasted, or risk exposure — per affected user per month?",
+              ]}
+              value={input.problemSeverity}
+              onChange={(v) => setScore("problemSeverity")(v)}
+              labels={SEVERITY_LABELS}
+            />
+
+            <RadioGroup
+              id="founder"
+              label="Founder strength"
+              tooltip="Berkus pillar 3 — Quality Team. Scorecard method rates this 0–25% of the multiplier. Seed investors back the team first. Be honest: investors will find out your track record."
+              anchorChecks={[
+                "Is there a public record (LinkedIn, Crunchbase, media) of the prior exit or relevant domain success you're claiming?",
+                "Is every founding member working on this full-time or with a signed commitment to go full-time at a defined milestone?",
+              ]}
+              value={input.founderStrength}
+              onChange={(v) => setScore("founderStrength")(v)}
+              labels={FOUNDER_LABELS}
+            />
+            <CheckboxGroup
+              label="Founder traits"
+              tooltip="Verified credentials that make the founder rating credible. These are checkable facts — prior exit is public record, domain expertise should be on LinkedIn."
+              fields={FOUNDER_TRAIT_FIELDS}
+              values={input.founderTraits}
+              onToggle={(k) => toggleFounderTrait(k as keyof FounderTraits)}
+            />
+
+            <RadioGroup
+              id="maturity"
+              label="Solution maturity"
+              tooltip="Berkus pillar 2 — Prototype. Investors care about de-risking execution: a working prototype proves the team can ship. Score based on what exists today, not what you're planning to build."
+              anchorChecks={[
+                "Is there a URL or TestFlight link an investor could click on today to see this working?",
+                "How many unique users have activated (taken a core action) in the last 30 days?",
+              ]}
+              value={input.solutionMaturity}
+              onChange={(v) => setScore("solutionMaturity")(v)}
+              labels={MATURITY_LABELS}
+            />
+
+            <CheckboxGroup
+              label="Traction signals"
+              tooltip="Berkus pillars 4 & 5 — Strategic Relationships + Product Rollout. Paid LOIs and pilots outweigh free waitlists 3:1. Paying customers are the single biggest valuation lever at idea-stage."
+              fields={TRACTION_FIELDS}
+              values={input.traction}
+              onToggle={(k) => toggleTraction(k as keyof TractionSignals)}
+            />
+
+            <RadioGroup
+              id="moat"
+              label="Moat strength"
+              tooltip="Scorecard multiplier component (worth up to +0.25x). True moats are hard to copy: proprietary data, network effects, regulatory licence, or deep tech IP. 'We'll move fast' is not a moat."
+              anchorChecks={[
+                "What specifically would it take a well-funded competitor to replicate your moat within 12 months?",
+                "Is your moat documented — filed patent, signed data agreement, regulatory licence number, or demonstrable network size?",
+              ]}
+              value={input.moatStrength}
+              onChange={(v) => setScore("moatStrength")(v)}
+              labels={MOAT_LABELS}
+            />
+
+            <RadioGroup
+              id="competition"
+              label="Competition density"
+              tooltip="Scorecard multiplier component (worth up to +0.15x). An uncontested market can mean huge opportunity or no demand — be ready to explain which. AU seed investors discount 'no competitors' claims."
+              anchorChecks={[
+                "Have you searched 3+ variations of your value proposition on Google, ProductHunt, Crunchbase, and AngelList?",
+                "If you believe this is uncontested: what is your hypothesis for why a gap this large still exists?",
+              ]}
+              value={input.competitionDensity}
+              onChange={(v) => setScore("competitionDensity")(v)}
+              labels={COMPETITION_LABELS}
+            />
+
+            <CheckboxGroup
+              label="Team completeness"
+              tooltip="Berkus pillar 3 sub-factor. Missing a CTO in a tech startup or a commercial lead in a B2B startup is a direct valuation discount. Advisors don't count — equity-holding co-founders do."
+              fields={TEAM_FIELDS}
+              values={input.team}
+              onToggle={(k) => toggleTeam(k as keyof TeamCompleteness)}
+            />
+
+            <div className="flex items-center justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => setInput(DEFAULTS)}
+              >
+                Reset to defaults
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Right column: factor detail + suggestions + compare + save */}
+        <div className="flex flex-col gap-6">
+          <section className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8">
+            <p className="text-xs uppercase tracking-[0.2em] text-ink-800 font-medium">
+              Per-factor breakdown
+            </p>
+            <ul className="mt-4 space-y-4">
+              {out.factors.map((f) => (
+                <li key={f.key}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-sm font-medium text-ink-600">
+                      {f.label}
+                    </span>
+                    <span className="font-mono tabular-nums text-xs text-ink-400">
+                      {formatAud(f.valueAud)} / {formatAud(f.capAud)}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2 w-full rounded-full bg-surface-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-brand-500 transition-all duration-300"
+                      style={{
+                        width: `${Math.min(100, f.fillRatio * 100).toFixed(1)}%`,
+                      }}
+                      aria-label={`${f.label} ${formatPercent(f.fillRatio * 100, 0)}`}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-ink-500">{f.note}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="rounded-2xl border border-surface-200 bg-surface-50 p-6">
+            <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-ink-500 font-medium">
+              <Lightbulb strokeWidth={1.75} className="h-4 w-4 text-amber-500" />
+              What would lift this most
+            </p>
+            {out.suggestions.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-400">
+                You&apos;re near the ceiling for idea-stage. Real upside now comes from negotiation and hard signal.
+              </p>
+            ) : (
+              <ol className="mt-3 space-y-3">
+                {out.suggestions.map((s, i) => (
+                  <li key={s.title} className="flex gap-3">
+                    <span className="font-mono tabular-nums text-xs text-brand-600 mt-0.5">
+                      {i + 1}.
+                    </span>
+                    <div>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="text-sm font-semibold text-ink-700">
+                          {s.title}
+                        </span>
+                        <span className="font-mono tabular-nums text-xs text-brand-600">
+                          +{formatAud(s.upliftAud)}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-ink-400">{s.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-surface-200 bg-white p-6">
+            <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-ink-400 font-medium">
+              <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
+              How this compares
+            </p>
+            <p className="mt-2 text-sm text-ink-500">
+              Typical AU pre-incorporation pre-money sits between{" "}
+              <span className="font-mono tabular-nums text-ink-800">
+                {formatAud(AU_PRE_INCORP_BAND.lowAud)}
+              </span>{" "}
+              and{" "}
+              <span className="font-mono tabular-nums text-ink-800">
+                {formatAud(AU_PRE_INCORP_BAND.highAud)}
+              </span>{" "}
+              in 2025.
+            </p>
+            <CompareBar
+              lowAud={out.lowAud}
+              highAud={out.highAud}
+              bandLow={AU_PRE_INCORP_BAND.lowAud}
+              bandHigh={AU_PRE_INCORP_BAND.highAud}
+            />
+          </section>
+
+          <section className="rounded-2xl border border-brand-500/40 bg-gradient-to-br from-white to-brand-500/5 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">
+              Lock this in
+            </p>
+            <p className="mt-2 text-sm text-ink-500">
+              Save{" "}
+              {ideaName.trim() ? (
+                <span className="font-semibold text-ink-700">{ideaName.trim()}</span>
+              ) : (
+                "this valuation"
+              )}{" "}
+              as a shareable{" "}
+              <span className="font-semibold text-ink-700">Founder Pack</span>{" "}
+              — PDF + dashboard with view tracking. Free, no password.
+            </p>
+            <div className="mt-4">
+              <SaveFounderPackButton className="h-11 w-full" />
+            </div>
+            <p className="mt-3 text-xs text-ink-400">
+              Idea-stage estimate. Real valuation is set by your first investor — use this as an anchor, not a quote.
+            </p>
+          </section>
+        </div>
       </div>
     </div>
   );
