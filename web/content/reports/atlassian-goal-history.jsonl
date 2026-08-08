@@ -9610,3 +9610,5 @@
 {"tick_id":"2026-08-08T14-27-02-061Z","ts":"2026-08-08T14:27:02.061Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T14-27-02-061Z","ts":"2026-08-08T14:27:02.081Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"ts":"2026-08-08T14:33:49.207Z","loop":"atlassian-goal-loop","phase":"P9_ship","action":"ship_test","test_file":"web/src/app/api/admin/rollback/route.test.ts","cases":35,"vitest":"35 passed / 434 ms","typecheck":"clean for new file (pre-existing valuation drift only)","note":"P9-admin-rollback-route-test — 35-case colocated vitest for the previously-untested one-click deploy rollback admin route"}
+{"tick_id":"2026-08-08T14-27-02-061Z","ts":"2026-08-08T14:34:24.144Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":442059,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T14-27-02-061Z","ts":"2026-08-08T14:34:24.182Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
