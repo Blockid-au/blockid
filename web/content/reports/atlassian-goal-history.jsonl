@@ -9683,3 +9683,6 @@
 {"tick_id":"2026-08-08T15-37-02-001Z","ts":"2026-08-08T15:47:15.370Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"outcome":"success","head":"7881a0d0d","fresh_sha":"fb32389","elapsed_ms":551577,"delegated":false}
 {"tick_id":"2026-08-08T15-37-02-001Z","ts":"2026-08-08T15:47:15.388Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"done"}
 {"tick_id":"2026-08-08T15-37-02-001Z","ts":"2026-08-08T15:47:15.391Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-08T15-57-02-011Z","ts":"2026-08-08T15:57:02.012Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-08T15-57-02-011Z","ts":"2026-08-08T15:57:02.032Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-08T16-05-00-000Z","ts":"2026-08-08T16:05:00.000Z","loop_label":"atlassian-goal-loop","stage":"claude_tick_no_frontier","note":"P0-P7 shipped; P8 human_blocked (founder Q1..Q10 signoff); P9 depends on P8 — no unblocked phase to execute. Cleaned malformed P9 status line (14x repeated fail_reason clauses collapsed to single form)."}
