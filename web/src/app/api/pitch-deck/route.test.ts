@@ -269,6 +269,6 @@ describe("error path", () => {
     // At least one call carries the underlying error object (or its message)
     // — the exact breadcrumb text is stable-enough to pin.
     const flat = consoleErrorSpy.mock.calls.flat();
-    expect(flat.some((a) => a === err || (typeof a === "string" && a.includes("pitch-deck")))).toBe(true);
+    expect(flat.some((a: unknown) => a === err || (typeof a === "string" && a.includes("pitch-deck")))).toBe(true);
   });
 });
