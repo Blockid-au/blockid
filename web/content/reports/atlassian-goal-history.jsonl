@@ -9333,3 +9333,6 @@
 {"tick_id":"2026-08-08T07-37-01-727Z","ts":"2026-08-08T07:43:15.776Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_committed","from":"deploy_pending","to":"deploy_failed","fail_reason":"deploy-live.sh exit 1","commit_status":0,"push_status":0}
 {"tick_id":"2026-08-08T07-37-01-727Z","ts":"2026-08-08T07:43:15.777Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"deploy_failed","message":"phases marked deploy_failed — will retry on next tick","head":"3cb1027f6"}
 {"tick_id":"2026-08-08T07-37-01-727Z","ts":"2026-08-08T07:43:15.778Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-08T07-47-01-931Z","ts":"2026-08-08T07:47:01.932Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-08T07-47-01-931Z","ts":"2026-08-08T07:47:01.960Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id": "2026-08-08T07-52-00-000Z", "ts": "2026-08-08T07:52:00.000Z", "loop_label": "atlassian-goal-loop", "stage": "shipped", "phase": "P9", "subtask": "P9-admin-ga4-refresh-route-test", "tests_added": 36, "file": "web/src/app/api/admin/ga4-refresh/route.test.ts"}
