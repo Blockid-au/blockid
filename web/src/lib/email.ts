@@ -710,6 +710,7 @@ export async function sendWholesaleWelcome(args: {
   magicLinkUrl: string;
   ttlHours: number;
   locale?: "en" | "vi";
+  guideUrl?: string | null;
 }): Promise<SendResult> {
   const { subject, html: body } = buildWholesaleWelcomeEmail({
     founderName: args.founderName,
@@ -718,6 +719,10 @@ export async function sendWholesaleWelcome(args: {
     magicLinkUrl: args.magicLinkUrl,
     ttlHours: args.ttlHours,
     locale: args.locale,
+    // CS advisory §1 first-run pointer — Chapter 1 (Vision) of the founder
+    // journey. Adapter resolves default from siteUrl so the pure builder stays
+    // framework-neutral.
+    guideUrl: args.guideUrl ?? `${siteUrl()}/guide/01-vision`,
   });
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const lang = args.locale === "vi" ? "vi" : "en";
