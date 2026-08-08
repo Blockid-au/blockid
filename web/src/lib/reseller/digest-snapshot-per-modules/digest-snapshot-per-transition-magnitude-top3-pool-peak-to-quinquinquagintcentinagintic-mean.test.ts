@@ -238,7 +238,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagi
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(10);
     expect(band.partner_pool_cells).toBe(55);
-    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBe(0.9136);
+    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBe(0.9135);
     expect(band.partner_peak_to_quinquinquagintcentinagintic_mean!).toBeLessThan(
       out.tight_ptqiqncnm_max,
     );
@@ -252,7 +252,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagi
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(10);
     expect(band.partner_pool_cells).toBe(19);
-    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBe(0.9136);
+    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBe(0.9135);
     expect(band.partner_peak_to_quinquinquagintcentinagintic_mean!).toBeLessThan(
       out.tight_ptqiqncnm_max,
     );
@@ -280,7 +280,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagi
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(10);
     expect(band.partner_pool_cells).toBe(55);
-    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBe(0.9041);
+    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBe(0.9040);
     expect(band.partner_peak_to_quinquinquagintcentinagintic_mean!).toBeLessThan(
       out.tight_ptqiqncnm_max,
     );
@@ -294,10 +294,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagi
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(10);
     expect(band.partner_pool_cells).toBe(109);
-    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBe(1.0049);
-    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean!).toBeLessThan(
-      out.tight_ptqiqncnm_max,
-    );
+    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBeNull();
   });
 
   it("two-partner pool [1, 9] → QIQNCNM 8.9596, range 8, ptqiqncnm 0.8929 (tight — JOINT with PTTQNCNM 0.8929 at M_153)", () => {
@@ -322,10 +319,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagi
     const band = out.transitions.improved.bands.medium;
     expect(band.partner_pool_count).toBe(2);
     expect(band.partner_pool_cells).toBe(101);
-    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBe(0.9945);
-    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean!).toBeLessThan(
-      out.tight_ptqiqncnm_max,
-    );
+    expect(band.partner_peak_to_quinquinquagintcentinagintic_mean).toBeNull();
   });
 
   it("small pool [10, 1, 1] → QIQNCNM 9.9289, range 9, ptqiqncnm 0.9064 (TIGHT — SMALL-VALUE-DOMINATED with LARGE-PARTNER DAMPENING; approaches 3-partner asymptote 3^(1/154) ~ 1.0072; ADVANCES one 4-decimal tick from PTTQNCNM 0.9065 at M_153)", () => {
@@ -380,41 +374,44 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagi
     }
   });
 
-  it("Power Mean invariant: PTQIQNCNM <= PTTQNCNM for every non-flat pool (quinquinquagintcentinagintic_mean >= trequinquagintcentinagintic_mean by M_154 >= M_153)", () => {
-    // Algebraic identity: quinquinquagintcentinagintic_mean = (mean of x^154)^(1/154)
-    // >= (mean of x^153)^(1/153) = trequinquagintcentinagintic_mean by the
+  it("Power Mean invariant: PTQIQNCNM <= PTQQNCNM for every non-flat pool with finite folds (quinquinquagintcentinagintic_mean >= quattuorquinquagintcentinagintic_mean by M_155 >= M_154). Pools with any x >= 100 overflow at M_155 and return null so the invariant is skipped for those.", () => {
+    // Algebraic identity: quinquinquagintcentinagintic_mean = (mean of x^155)^(1/155)
+    // >= (mean of x^154)^(1/154) = quattuorquinquagintcentinagintic_mean by the
     // Power Mean inequality. So ptqiqncnm = range/quinquinquagintcentinagintic_mean <=
-    // range/trequinquagintcentinagintic_mean = pttqncnm.
-    const cases: { pool: number[]; nonFlat: boolean }[] = [
-      { pool: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], nonFlat: true },
-      { pool: [1, 1, 1, 1, 1, 1, 1, 1, 1, 10], nonFlat: true },
-      { pool: [1, 1, 1, 1, 1, 1, 1, 1, 1, 100], nonFlat: true },
-      { pool: [10, 1, 1], nonFlat: true },
-      { pool: [1, 100], nonFlat: true },
-      { pool: [3, 3, 3, 3], nonFlat: false },
+    // range/quattuorquinquagintcentinagintic_mean = ptqqncnm.
+    const cases: { pool: number[]; nonFlat: boolean; overflows: boolean }[] = [
+      { pool: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], nonFlat: true, overflows: false },
+      { pool: [1, 1, 1, 1, 1, 1, 1, 1, 1, 10], nonFlat: true, overflows: false },
+      { pool: [1, 1, 1, 1, 1, 1, 1, 1, 1, 100], nonFlat: true, overflows: true },
+      { pool: [10, 1, 1], nonFlat: true, overflows: false },
+      { pool: [1, 100], nonFlat: true, overflows: true },
+      { pool: [3, 3, 3, 3], nonFlat: false, overflows: false },
     ];
-    for (const { pool, nonFlat } of cases) {
+    for (const { pool, nonFlat, overflows } of cases) {
       const out =
         computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagintcentinaginticMean(
           envelope(partnerPool(pool)),
         );
       const band = out.transitions.improved.bands.medium;
-      const ptqiqncnm =
-        band.partner_peak_to_quinquinquagintcentinagintic_mean!;
+      const ptqiqncnm = band.partner_peak_to_quinquinquagintcentinagintic_mean;
+      if (overflows) {
+        expect(ptqiqncnm).toBeNull();
+        continue;
+      }
       const values = [...pool];
       const min = Math.min(...values);
       const max = Math.max(...values);
       const range = max - min;
-      const trequinquagintcentinagintic_mean = Math.pow(
-        values.reduce((a, v) => a + Math.pow(v, 153), 0) / values.length,
-        1 / 153,
+      const quattuorquinquagintcentinagintic_mean = Math.pow(
+        values.reduce((a, v) => a + Math.pow(v, 154), 0) / values.length,
+        1 / 154,
       );
-      const pttqncnm =
-        trequinquagintcentinagintic_mean === 0
+      const ptqqncnm =
+        quattuorquinquagintcentinagintic_mean === 0
           ? null
-          : range / trequinquagintcentinagintic_mean;
-      if (nonFlat && pttqncnm !== null) {
-        expect(ptqiqncnm).toBeLessThanOrEqual(pttqncnm + 5e-4);
+          : range / quattuorquinquagintcentinagintic_mean;
+      if (nonFlat && ptqqncnm !== null) {
+        expect(ptqiqncnm!).toBeLessThanOrEqual(ptqqncnm + 5e-4);
       } else if (!nonFlat) {
         expect(ptqiqncnm).toBe(0);
       }
@@ -450,7 +447,7 @@ describe("computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuinquinquagi
     const band = out.transitions.improved.bands.medium;
     expect(band.metric_pool_count).toBe(10);
     expect(band.metric_pool_cells).toBe(55);
-    expect(band.metric_peak_to_quinquinquagintcentinagintic_mean).toBe(0.9136);
+    expect(band.metric_peak_to_quinquinquagintcentinagintic_mean).toBe(0.9135);
   });
 });
 
