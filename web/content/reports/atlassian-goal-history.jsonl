@@ -9383,3 +9383,5 @@
 {"tick_id":"2026-08-08T08-57-02-008Z","ts":"2026-08-08T08:57:02.009Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T08-57-02-008Z","ts":"2026-08-08T08:57:02.028Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T09-00-00-000Z","ts":"2026-08-08T08:58:40.536Z","loop_label":"atlassian-goal-loop","stage":"tick_complete","phase_selected":null,"outcome":"noop","reason":"frontier empty — P0-P7 done/shipped; P8 human_blocked; P9 deploy_failed (driver retries automatically, depends on P8)","head":"4c9f29504"}
+{"tick_id":"2026-08-08T08-57-02-008Z","ts":"2026-08-08T08:58:50.919Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":108888,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T08-57-02-008Z","ts":"2026-08-08T08:58:50.973Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":2}
