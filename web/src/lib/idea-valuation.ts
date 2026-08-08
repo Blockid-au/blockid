@@ -328,6 +328,59 @@ function buildConfidenceNote(input: IdeaValuationInput): string {
   return "Very wide band — pure idea-stage. Expect investors to anchor on team, market and proof, not your maths.";
 }
 
+/**
+ * Detect implausible input combinations that investors would immediately flag.
+ * Returns an array of short warning strings (empty = no contradictions found).
+ */
+export function validateCombinations(input: IdeaValuationInput): string[] {
+  const warnings: string[] = [];
+
+  // Can't have paying customers without at least a prototype
+  if (input.traction.payingCustomers && input.solutionMaturity <= 1) {
+    warnings.push(
+      "Paying customers (traction) but Solution maturity is 'Idea only' — investors will see this as inconsistent. Raise maturity to at least MVP (4).",
+    );
+  }
+
+  // Can't have a signed pilot without something to pilot
+  if (input.traction.pilotSigned && input.solutionMaturity <= 1) {
+    warnings.push(
+      "Pilot signed (traction) but Solution maturity is 'Idea only' — a pilot implies a deployable product.",
+    );
+  }
+
+  // Repeat-exited founder (5) with zero founder traits is suspicious
+  if (
+    input.founderStrength === 5 &&
+    !Object.values(input.founderTraits).some(Boolean)
+  ) {
+    warnings.push(
+      "Founder strength is 'Repeat / exited' but no Founder traits are ticked — tick at least Prior exit and Full-time to make the rating credible.",
+    );
+  }
+
+  // Paying customers but no traction (waitlist, LOIs, pilot) — likely missed checkbox
+  if (
+    input.traction.payingCustomers &&
+    !input.traction.waitlistOver100 &&
+    !input.traction.paidLois &&
+    !input.traction.pilotSigned
+  ) {
+    warnings.push(
+      "Paying customers checked but no earlier-stage traction signals (waitlist / LOIs / pilot) — if you have customers you almost certainly have earlier signals too.",
+    );
+  }
+
+  // Niche TAM + global moat is a contradiction investors will push back on
+  if (input.tamAud < 10_000_000 && input.moatStrength >= 4) {
+    warnings.push(
+      "Strong moat but very small TAM (<A$10M) — a strong moat in a niche market limits upside. Consider whether the TAM is too narrow.",
+    );
+  }
+
+  return warnings;
+}
+
 export const TAM_PRESETS: { label: string; value: number }[] = [
   { label: "Niche AU (<$10M)", value: 8_000_000 },
   { label: "AU regional (<$100M)", value: 80_000_000 },
