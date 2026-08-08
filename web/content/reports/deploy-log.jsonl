@@ -5339,3 +5339,8 @@
 {"ts":"2026-08-08T07:52:34.420Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T07-47-01-931Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"tick_id":"2026-08-08T07-47-01-931Z","loop_label":"atlassian-goal-loop","ts":"2026-08-08T07:53:27.842Z","head":"f9f871606","outcome":"failed","exit_code":1,"elapsed_ms":54302}
 {"ts":"2026-08-08T07:53:30.577Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-08T07-57-01-239Z","loop_label":"atlassian-goal-loop","ts":"2026-08-08T08:03:45.111Z","head":"4a504d4cc","outcome":"failed","exit_code":1,"elapsed_ms":13}
+{"ts":"2026-08-08T08:12:14Z","status":"success","gates":"11/11","pid":"75315","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"tick_id":"2026-08-08T07-50-01-342Z","loop_label":"reseller-goal-loop","ts":"2026-08-08T08:12:14.631Z","head":"de48aa432","outcome":"success","exit_code":0,"elapsed_ms":647688}
+{"ts":"2026-08-08T08:12:18.860Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → done (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-08T08:14:28.130Z","event":"github-push-master","detail":"Blockid-au: test(P9-compliance-tax-invoice-check-route-test): colocated 41-case vitest for POST + GET /api/compliance/tax-invoice-check (1 commits)","source":"github-webhook"}
