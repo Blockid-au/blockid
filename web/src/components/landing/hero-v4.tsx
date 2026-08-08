@@ -16,8 +16,12 @@
  */
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
-import { HeroV4Result, type HeroAnalyzeResponse } from "./hero-v4-result";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  HeroV4Result,
+  decodeSeed,
+  type HeroAnalyzeResponse,
+} from "./hero-v4-result";
 
 interface HeroV4Props {
   signedInHref?: string;
@@ -45,23 +49,25 @@ const QUICK_FILL_TEMPLATES: Array<{ label: string; text: string }> = [
 
 export function HeroV4({ signedInHref, verifiedCount }: HeroV4Props) {
   const [text, setText] = useState("");
+  const [analysedText, setAnalysedText] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<HeroAnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const autoRan = useRef(false);
 
   const isSignedIn = Boolean(signedInHref);
   const canSubmit = text.trim().length >= 20 && !loading;
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!canSubmit) return;
+  async function runAnalyze(rawText: string) {
+    const trimmed = rawText.trim();
+    if (trimmed.length < 20) return;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/hero/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text.trim() }),
+        body: JSON.stringify({ text: trimmed }),
       });
       const json = (await res.json()) as HeroAnalyzeResponse & {
         ok: boolean;
@@ -69,11 +75,10 @@ export function HeroV4({ signedInHref, verifiedCount }: HeroV4Props) {
       };
       if (!json.ok) {
         setError(json.error ?? "Analysis failed. Please try again.");
-        setLoading(false);
         return;
       }
       setResult(json);
-      // Move focus / scroll cue: let the result panel appear inline below.
+      setAnalysedText(trimmed);
       requestAnimationFrame(() => {
         document
           .getElementById("hero-v4-result")
@@ -84,6 +89,25 @@ export function HeroV4({ signedInHref, verifiedCount }: HeroV4Props) {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Auto-run when user lands with a shared analysis: /?a=<seed>
+  useEffect(() => {
+    if (autoRan.current) return;
+    autoRan.current = true;
+    if (typeof window === "undefined") return;
+    const seed = new URLSearchParams(window.location.search).get("a");
+    if (!seed) return;
+    const decoded = decodeSeed(seed);
+    if (!decoded || decoded.trim().length < 20) return;
+    setText(decoded);
+    void runAnalyze(decoded);
+  }, []);
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    await runAnalyze(text);
   }
 
   function reset() {
@@ -238,7 +262,7 @@ export function HeroV4({ signedInHref, verifiedCount }: HeroV4Props) {
 
       {result ? (
         <div id="hero-v4-result" className="mx-auto mt-10 w-full max-w-4xl">
-          <HeroV4Result result={result} />
+          <HeroV4Result result={result} sourceText={analysedText} />
         </div>
       ) : null}
     </section>

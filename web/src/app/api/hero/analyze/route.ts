@@ -5,6 +5,7 @@ import {
   detectSector,
   extractSignals,
   SECTOR_LABELS,
+  SVI_BENCHMARKS,
   SVI_STAGE_LABELS,
 } from "@/lib/svi-analysis";
 import { estimateValuation, formatAUD } from "@/lib/valuation";
@@ -78,7 +79,15 @@ export async function POST(request: Request) {
     title: a.title,
     detail: a.detail,
     impact: a.impact,
+    impactPoints: parseImpactPoints(a.impact),
   }));
+
+  const potentialScore =
+    analysis.totalSVI +
+    topActions.reduce((sum, a) => sum + a.impactPoints, 0);
+
+  const bench = SVI_BENCHMARKS[analysis.stage] ?? SVI_BENCHMARKS[0]!;
+  const percentile = estimatePercentile(analysis.totalSVI, bench);
 
   const strengths = analysis.subs
     .flatMap((s) => s.evidence.slice(0, 1))
@@ -101,6 +110,13 @@ export async function POST(request: Request) {
       confidence: Math.round(analysis.confidenceMultiplier * 100),
       stage: analysis.stage,
       stageLabel: SVI_STAGE_LABELS[analysis.stage] ?? analysis.stageLabel,
+      potentialScore,
+      percentile,
+      stageBenchmark: {
+        median: bench.p50,
+        topDecile: bench.p90,
+        bottomDecile: bench.p10,
+      },
     },
     valuation: {
       lowAud: valuation.low,
@@ -120,5 +136,34 @@ export async function POST(request: Request) {
     gaps,
     topActions,
   });
+}
+
+function parseImpactPoints(impact: string): number {
+  const m = impact.match(/([+-]?\d+)\s*SVI/i);
+  return m ? Math.max(0, parseInt(m[1]!, 10)) : 0;
+}
+
+function estimatePercentile(
+  score: number,
+  bench: { p10: number; p25: number; p50: number; p75: number; p90: number },
+): number {
+  if (score <= bench.p10) return 10;
+  if (score >= bench.p90) return 90;
+  const points: Array<[number, number]> = [
+    [bench.p10, 10],
+    [bench.p25, 25],
+    [bench.p50, 50],
+    [bench.p75, 75],
+    [bench.p90, 90],
+  ];
+  for (let i = 0; i < points.length - 1; i++) {
+    const [xa, ya] = points[i]!;
+    const [xb, yb] = points[i + 1]!;
+    if (score >= xa && score <= xb) {
+      const t = xb === xa ? 0 : (score - xa) / (xb - xa);
+      return Math.round(ya + t * (yb - ya));
+    }
+  }
+  return 50;
 }
 
