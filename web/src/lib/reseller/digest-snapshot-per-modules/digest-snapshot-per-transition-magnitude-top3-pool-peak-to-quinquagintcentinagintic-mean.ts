@@ -333,7 +333,7 @@ function foldMap(cellsByKey: Map<string, number>): {
   }
   const quinquagintcentinagintic_mean = Math.pow(
     hundredFiftiethSum / pool_count,
-    1 / 149,
+    1 / 150,
   );
   if (
     !Number.isFinite(quinquagintcentinagintic_mean) ||
