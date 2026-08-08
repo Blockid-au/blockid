@@ -9654,3 +9654,5 @@
 {"tick_id":"2026-08-08T15-17-01-353Z","ts":"2026-08-08T15:17:01.354Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T15-17-01-353Z","ts":"2026-08-08T15:17:01.373Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T15-17-47-174Z","ts":"2026-08-08T15:17:47.175Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","message":"P0-P7 shipped; P8 human_blocked; P9 driver-owned (deploy_failed)","head":"ad9e6ba0d"}
+{"tick_id":"2026-08-08T15-17-01-353Z","ts":"2026-08-08T15:17:56.568Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":55191,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T15-17-01-353Z","ts":"2026-08-08T15:17:56.607Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":11}
