@@ -239,15 +239,15 @@ P0→P4 and P5→P7 are independent and can run in parallel. **P0 blocks everyth
 
 | ID | Category | Status | Owner (skill) |
 |---|---|---|---|
-| G8-P0 | taxonomy | open | typescript-pro |
-| G8-P1 | gate-engine | open | typescript-pro |
-| G8-P2 | data-model | open | db-migrate |
-| G8-P3 | nav-hybrid | open | react-expert |
-| G8-P4 | next-unlock UI | open | cpo |
-| G8-P5 | shell-matrix | open | nextjs-developer |
-| G8-P6 | chrome-backfill | open | nextjs-developer |
-| G8-P7 | CI-guard | open | test-master |
-| G8-P8 | docs | open | code-documenter |
+| G8-P0 | taxonomy | shipped | typescript-pro | `4f7a922f` + `6c8819f6` |
+| G8-P1 | gate-engine | shipped | typescript-pro | `885acbd7` |
+| G8-P2 | data-model | shipped | db-migrate | `963a36332` (migration 0303) |
+| G8-P3 | nav-hybrid | shipped | react-expert | `1f91c916a` |
+| G8-P4 | next-unlock UI | shipped | cpo | `610aca3ab` |
+| G8-P5 | shell-matrix | shipped | nextjs-developer | `56dd31a6b` |
+| G8-P6 | chrome-backfill | shipped | nextjs-developer | `56dd31a6b` |
+| G8-P7 | CI-guard | shipped | test-master | `dccdbe8` |
+| G8-P8 | docs | open | code-documenter | — |
 
 ---
 
