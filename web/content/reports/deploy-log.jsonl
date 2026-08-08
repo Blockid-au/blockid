@@ -5683,3 +5683,7 @@
 {"ts":"2026-08-08T19:05:52.710Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop P5-analyze-route-test — 29 cases green (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T19:06:02.450Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T18-57-02-074Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T19:07:07.426Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop tick 937 — 2nd deliberate skip, still awaiting human review from tick 936 (RESELLER_AUTONOMOUS_LOOP=off recommended) (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-08T19-05-01-352Z","loop_label":"reseller-goal-loop","ts":"2026-08-08T19:07:15.368Z","head":"fde27629e","outcome":"failed","exit_code":1,"elapsed_ms":14}
+{"ts":"2026-08-08T19:07:16.351Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T19-05-01-352Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-08T19:07:20.072Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-08T19:12:45.822Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop tick 938 — 3rd deliberate skip, pathological power-mean drift, human review still pending (1 commits)","source":"github-webhook"}
