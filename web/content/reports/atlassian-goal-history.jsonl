@@ -9479,3 +9479,5 @@
 {"tick_id":"2026-08-08T11-07-01-463Z","ts":"2026-08-08T11:07:01.464Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T11-07-01-463Z","ts":"2026-08-08T11:07:01.490Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T11-08-42-770Z","ts":"2026-08-08T11:08:42.768Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","note":"P0/P2=done, P1/P3-P7=shipped, P8=human_blocked (Q1..Q10 pending founder sign-off), P9=deploy_failed (driver-managed retry). No pending/in_progress phase to advance.","actor":"claude-opus-4-7"}
+{"tick_id":"2026-08-08T11-07-01-463Z","ts":"2026-08-08T11:08:53.221Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":111726,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T11-07-01-463Z","ts":"2026-08-08T11:08:53.265Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":2}
