@@ -8951,3 +8951,5 @@
 {"tick_id":"2026-08-08T00-07-02-014Z","ts":"2026-08-08T00:07:02.015Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T00-07-02-014Z","ts":"2026-08-08T00:07:02.033Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id": "2026-08-08T00-14-29-181Z", "ts": "2026-08-08T00:14:29.181Z", "loop_label": "atlassian-goal-loop", "stage": "phase_action", "phase": "P9", "action": "P9-auto-fill-route-test", "path": "web/src/app/api/data-room/auto-fill/route.test.ts", "cases": 15, "result": "green"}
+{"tick_id":"2026-08-08T00-07-02-014Z","ts":"2026-08-08T00:14:58.263Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":476226,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T00-07-02-014Z","ts":"2026-08-08T00:14:58.317Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
