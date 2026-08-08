@@ -479,7 +479,7 @@ tracks:
           sandbox_share_of_budget, attributed_churn_30d, tier_mix, ledger_drift_events,
           gst_reconciliation_delta, cohort_velocity, ltv_cac_per_reseller
         ]
-          P11.580_per_transition_magnitude_top3_pool_peak_to_tresexagintcentinagintic_mean_pure_lib: {status: deploy_pending, tick: 928, completed_at: 2026-08-08, files: [
+          P11.580_per_transition_magnitude_top3_pool_peak_to_tresexagintcentinagintic_mean_pure_lib: {status: done, tick: 928, completed_at: 2026-08-08, files: [
             "web/src/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresexagintcentinagintic-mean.ts (P11.580 pure-lib compute + format helpers; TSXCNM = ((sum x_i^163)/n)^(1/163); PTTSXCNM = (max-min)/TSXCNM; TIGHT_PTTSXCNM_MAX 1.005 + WIDE_PTTSXCNM_MIN 1.09 exposed on envelope; x^163 folded via p128 * p32 * sq * v -- (128+32+2+1) decomposition reuses the p128 rung shared with the M_128..M_162 siblings and multiplies by p32, sq, and v to hit the next order; OVERFLOW REGIME INHERITED from M_155 -- 100^163 = 10^326 exceeds Number.MAX_VALUE ~1.7976e308 so any pool containing a cell with value >= 100 folds to a non-finite hundredSixtyThirdPowerSum and returns null degenerate, same as M_162)",
             "web/src/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresexagintcentinagintic-mean.test.ts (14/14 pass)",
             "web/src/app/api/pitch-deck/route.test.ts (drive-by fix: annotate `.some((a: unknown) => ...)` at line 272 to clear a pre-existing TS7006 error introduced by atlassian-goal-loop commit d617a4eed that had been failing deploy-live.sh Gate 3 on every subsequent tick)"
