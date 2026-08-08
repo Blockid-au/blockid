@@ -1,6 +1,30 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-for-seed-round-australia",
+      "title": "Seed Round Valuation Australia: Guide & Benchmarks",
+      "description": "Master your seed round valuation in Australia. Get tactical guidance, valuation benchmarks, and tools to justify your startup's price to VCs.",
+      "keywords": [
+        "seed round valuation australia",
+        "how to value a seed stage startup australia",
+        "seed round valuation benchmarks australia",
+        "pre-seed to seed valuation transition",
+        "startup valuation calculator australia",
+        "how to justify startup valuation to VCs",
+        "seed round equity dilution australia",
+        "traction based valuation metrics",
+        "early stage startup valuation methods",
+        "seed round pricing guide australia"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-08-08",
+      "readingTime": 5,
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      }
+    },
+    {
       "slug": "startup-valuation-report-for-investors-australia",
       "title": "Startup Valuation Report: How to Justify Your Valuation",
       "description": "Learn how to create a startup valuation report that wins over investors. Professional frameworks and justification methods for Australian founders.",
