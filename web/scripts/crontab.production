@@ -408,6 +408,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Consumed by /admin/reseller-loop dashboard and the show-next-tick helper.
 * * * * * bash /home/dovanlong/blockid.au/scripts/cron/reseller-monitor.sh >> /tmp/blockid-reseller-monitor.log 2>&1
 
+# Growth phase gate nightly eval — 01:30 UTC / 11:30 AEST
+30 1 * * * bash $RUN growth-gate-eval --timeout 300
+
 # Unicorn nightly progress evaluator — Phase 6 Batch J sub-J4.
 # Master Upgrade Plan §17.8 nightly CEO-agent cadence. Iterates every
 # active business_stage_progress row (MAX_PER_INVOCATION=50), calls
