@@ -9141,3 +9141,6 @@
 {"tick_id":"2026-08-08T04-17-01-919Z","ts":"2026-08-08T04:30:46.517Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"outcome":"success","head":"aa72b2ca0","fresh_sha":"d72c006","elapsed_ms":539718,"delegated":false}
 {"tick_id":"2026-08-08T04-17-01-919Z","ts":"2026-08-08T04:30:46.531Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"done"}
 {"tick_id":"2026-08-08T04-17-01-919Z","ts":"2026-08-08T04:30:46.532Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-08T04-37-01-650Z","ts":"2026-08-08T04:37:01.650Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-08T04-37-01-650Z","ts":"2026-08-08T04:37:01.680Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-08T04:40:00Z-manual-claude","ts":"2026-08-08T04:40:00Z","loop_label":"atlassian-goal-loop","stage":"phase_advance","phase":"P9_ship","subtask":"P9-svi-api-checkout-route-test","status":"shipped","test_file":"web/src/app/api/svi-api/checkout/route.test.ts","tests_added":32,"tests_passed":32}
