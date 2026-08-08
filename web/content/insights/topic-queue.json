@@ -1182,6 +1182,21 @@
         "href": "/score"
       },
       "angle": "A practical guide on how to document and justify a valuation to investors beyond just a number. Teach founders how to combine qualitative milestones with quantitative data to create a professional 'Valuation Memo' that reduces negotiation friction."
+    },
+    {
+      "slug": "startup-valuation-for-seed-round-australia",
+      "title": "Seed Round Valuation: How to Price Your Startup in Australia",
+      "category": "valuation",
+      "keywords": [
+        "seed round valuation australia",
+        "how to price seed round",
+        "startup seed stage benchmarks"
+      ],
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      },
+      "angle": "A tactical guide for founders moving from pre-seed to seed. It explains how to move from 'idea-based' valuation to 'traction-based' valuation using specific AU metrics and how to use the BlockID calculator to justify the number to VCs."
     }
   ]
 }
