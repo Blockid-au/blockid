@@ -9187,3 +9187,6 @@
 {"tick_id":"2026-08-08T05-37-01-549Z","ts":"2026-08-08T05:37:01.549Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T05-37-01-549Z","ts":"2026-08-08T05:37:01.575Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T05-37-01-549Z","ts":"2026-08-08T05:42:00.000Z","loop_label":"atlassian-goal-loop","stage":"phase_work","phase":"P9_ship","action":"add_colocated_test","target":"web/src/app/api/investor-data-room/route.ts","test":"web/src/app/api/investor-data-room/route.test.ts","cases":34,"result":"passed"}
+{"tick_id":"2026-08-08T05-37-01-549Z","ts":"2026-08-08T05:44:20.354Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":438775,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T05-37-01-549Z","ts":"2026-08-08T05:44:20.402Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":13}
+{"tick_id":"2026-08-08T05-37-01-549Z","ts":"2026-08-08T05:44:22.535Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1}
