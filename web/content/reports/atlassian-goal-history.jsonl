@@ -9047,3 +9047,4 @@
 {"tick_id":"2026-08-08T02-07-01-549Z","ts":"2026-08-08T02:12:56.996Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-08T02-17-01-999Z","ts":"2026-08-08T02:17:02.000Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T02-17-01-999Z","ts":"2026-08-08T02:17:02.029Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"ts": "2026-08-08T02-28-19-501Z", "stage": "phase_shipped", "phase": "P9-cap-table-route-test", "summary": "colocated 76-case vitest for GET+POST+DELETE /api/cap-table CRUD (share_classes + shareholders + esop_pool + share_transactions)", "test_file": "web/src/app/api/cap-table/route.test.ts", "cases": 76, "vitest": "76 passed / 560 ms", "typecheck": "clean"}
