@@ -37,10 +37,13 @@ import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-act
 import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
+import { NextUnlockCard } from "@/components/dashboard/next-unlock-card";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
 import { fetchRepoStats, parseRepoInput } from "@/lib/github";
 import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
+import { computePhaseGate, topBlockers, type SviDimension } from "@/lib/growth/phase-gate";
+import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 
 export const dynamic = "force-dynamic";
 
@@ -353,6 +356,28 @@ function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase:
   );
 }
 
+/* ─── SVI dimension extractor (mirrors growth-gate-eval cron) ────────────── */
+
+const VALID_SVI_DIMS = new Set<string>(["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco"]);
+
+function extractSviDimensions(
+  analysisJson: unknown,
+): Partial<Record<SviDimension, number>> {
+  try {
+    const parsed = analysisJson as { subs?: Array<{ key: string; value: unknown }> };
+    if (!parsed?.subs || !Array.isArray(parsed.subs)) return {};
+    const out: Partial<Record<SviDimension, number>> = {};
+    for (const sub of parsed.subs) {
+      if (sub?.key && VALID_SVI_DIMS.has(sub.key) && typeof sub.value === "number") {
+        out[sub.key as SviDimension] = sub.value;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 /* ─── Main Dashboard Page ───────────────────────────────────────────────────── */
 
 export default async function DashboardPage({
@@ -431,6 +456,8 @@ export default async function DashboardPage({
     stars: number | null;
     pushedAt: string | null;
   } | null = null;
+  // G8-P4: evaluation criteria for phase gate card.
+  let phaseGateCriteria: Array<{ criterion_key: string; quality_level: string | null }> = [];
 
   if (supabase) {
     // Latest analysis
@@ -651,12 +678,51 @@ export default async function DashboardPage({
         totalShareCount = totalShares;
       }
     }
+
+    // G8-P4: evaluation_criteria for phase gate computation.
+    if (accountId) {
+      let criteriaQ = supabase
+        .from("evaluation_criteria")
+        .select("criterion_key, quality_level")
+        .eq("account_id", accountId);
+      if (projectId) criteriaQ = criteriaQ.eq("project_id", projectId);
+      const { data: criteriaData } = await criteriaQ;
+      if (criteriaData) {
+        phaseGateCriteria = criteriaData.map((c) => ({
+          criterion_key: c.criterion_key as string,
+          quality_level: c.quality_level as string | null,
+        }));
+      }
+    }
   }
 
   // ── Derived values ───────────────────────────────────────────────────────
   const sviScore = analysis?.totalSVI ?? null;
   const delta = previousSVI != null && sviScore != null ? sviScore - previousSVI : weeklyDelta ?? null;
   const { phase, name: phaseName } = computePhase(sviScore);
+
+  // G8-P4: compute phase gate result for the NextUnlockCard.
+  const rawCurrentPhase = activeProject?.growth_phase_current ?? null;
+  const phaseGateCurrentPhase = isGrowthPhaseId(rawCurrentPhase) ? rawCurrentPhase : null;
+  const phaseGateDimensions = extractSviDimensions(
+    analysis ? (analysis as unknown as { subs?: unknown }) : null,
+  );
+  const phaseGateResult = phaseGateCurrentPhase
+    ? computePhaseGate({
+        currentPhase: phaseGateCurrentPhase,
+        criteria: phaseGateCriteria,
+        dimensions: phaseGateDimensions,
+      })
+    : null;
+  const phaseGateTopBlockers = phaseGateResult ? topBlockers(phaseGateResult, 3) : [];
+  // Next action text: prefer the phase gate detail when blockers exist,
+  // else fall back to the nudge engine's "advance phase" message.
+  const phaseGateNextAction: string | null =
+    phaseGateTopBlockers.length > 0
+      ? phaseGateTopBlockers[0].detail
+      : phaseGateResult
+        ? `All exit conditions for "${phaseGateResult.currentPhaseLabel}" are met — you're ready to advance.`
+        : null;
   const readiness = sviScore != null ? Math.min(100, Math.round(sviScore * 0.8 + evidenceCount * 2)) : 0;
   const valuation = estimateValuation(sviScore);
   const nextAction = computeNextAction(sviScore);
@@ -736,6 +802,16 @@ export default async function DashboardPage({
           valuationLabel={valuation.value}
           phase6={phase}
         />
+
+        {/* ── G8-P4: Next Unlock card — phase gate progress + top blockers ──── */}
+        {phaseGateResult && (
+          <NextUnlockCard
+            currentPhase={phaseGateResult.currentPhase}
+            completionPct={phaseGateResult.completionPct}
+            topBlockers={phaseGateTopBlockers}
+            nextAction={phaseGateNextAction}
+          />
+        )}
 
         {/* ── Row 2: Project Context Card (sticky header, not personalizable) ─ */}
         {(analysis || projectName) && (
