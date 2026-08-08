@@ -106,6 +106,16 @@ export function IdeaClarifyTool() {
   };
 
   if (step === "result" && recommendation) {
+    // Build a richer handoff href when routing to the valuation tool.
+    const primaryHref = (() => {
+      const href = recommendation.primaryFeatureHref;
+      if (!href.startsWith("/tools/idea-valuation")) return href;
+      // Encode the first 120 chars of the idea as a display-only hint.
+      const hint = ideaText.trim().slice(0, 120);
+      const params = new URLSearchParams({ from_clarify: "1", idea_hint: hint });
+      return `${href}?${params.toString()}`;
+    })();
+
     return (
       <div className="space-y-6">
         <div className="rounded-xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-6">
@@ -122,7 +132,7 @@ export function IdeaClarifyTool() {
                 {recommendation.rationale}
               </p>
               <Link
-                href={recommendation.primaryFeatureHref}
+                href={primaryHref}
                 className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
               >
                 Continue there

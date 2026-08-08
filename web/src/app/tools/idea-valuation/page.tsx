@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
@@ -57,7 +58,9 @@ export default function IdeaValuationPage() {
             </p>
           </header>
           <div className="mt-10">
-            <IdeaValuationTool />
+            <Suspense fallback={null}>
+              <IdeaValuationTool />
+            </Suspense>
           </div>
           <section className="mt-16 grid md:grid-cols-3 gap-6">
             {[
