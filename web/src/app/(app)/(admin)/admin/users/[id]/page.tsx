@@ -525,7 +525,7 @@ export default async function AdminUserDetailPage({
               value={user.discount_pct != null ? `${user.discount_pct}%` : "—"}
             />
             <Field label="Referral code" value={user.referral_code ?? "—"} mono />
-            <Field label="Referred by" value={truncate(user.referred_by, 24)} mono />
+            <Field label="Introduced by" value={truncate(user.referred_by, 24)} mono />
             <Field
               label="Referral credits"
               value={String(user.referral_credits_earned ?? 0)}

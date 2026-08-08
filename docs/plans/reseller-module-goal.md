@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-08-08.939
+version: 2026-08-08.940
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -62,7 +62,7 @@ open_questions_resolved:
 tracks:
   A:
     name: reseller-module
-    current_focus: P10_hardening
+    current_focus: P13_p03_advisory_followups
     phases:
       P0_goal_and_orchestration:
         status: done
@@ -467,6 +467,24 @@ tracks:
           "security-audit: RLS + typed wrapper enforced end-to-end (DONE P10.security_audit_typed_wrapper tick 392 — R-10 analyzer + CI wiring at web/scripts/ci/reseller-lints.mjs + typed-wrapper-audit.test.ts 16/16 live attestation locks in zero-violation invariant across all 11 /api/reseller/** files)",
           "au-compliance: E.1 EN + VI notice reviewed, APP 5.2 coverage confirmed (DONE P10.au_compliance_notice_review tick 390 — consent-notice.test.ts 11/11 locks in APP 5.2 (a)–(j) on both locales)",
           "CI rules R-01..R-09 all green (R-01/R-03/R-04 via npm run lint:reseller — 11+33+8 files scanned, 6 exemptions, 0 violations; R-02 via feature-gates.manifest.test.ts completeness suite 6/6; R-05 via credit-grants.test.ts sandbox-limit cases; R-06 via require-admin.test.ts 10/10 DONE P10.R06 tick 388; R-07 via hash.test.ts 6/6 + R-04 lint on Stripe metadata; R-08 via web/src/lib/reseller/docs-plans-secrets.test.ts 14/14 + .git/hooks/pre-commit wiring — DONE P10.R08 tick 389; R-09 runtime cron DONE P10.R09 tick 384; R-03 wiring on dataroom/populate-from-template DONE tick 386; R-10 typed-wrapper audit DONE P10.security_audit_typed_wrapper tick 392 — extends R-01..R-09 to R-01..R-10)"
+        ]
+      P13_p03_advisory_followups:
+        status: in_progress
+        provenance: "New track opened tick 940 to rescope the loop away from the pathological P11.588+ power-mean drift (ticks 936-939 deliberate-skip chain requested this in option (a)). Covers the 7 non-blocking advisory follow-ups captured under P0.3 tick 55 verdicts (all approved_with_notes)."
+        sub_phases:
+          P13.1_brand_wording_drift_fix: {status: deploy_pending, tick: 940, completed_at: 2026-08-08, files: [
+            "web/src/app/(app)/(admin)/admin/users/[id]/page.tsx (Field label 'Referred by' → 'Introduced by' at line 528; DB column referred_by unchanged)",
+            "web/src/lib/reseller/walkthrough-plan.ts (founder.workspace_cobranding_pill assert 'Topbar renders Referred by <reseller>' → 'Introduced by <reseller>' at line 89)",
+            "web/src/lib/reseller/walkthrough-plan.test.ts (new regression case: every WALKTHROUGH_STEPS action + assert MUST NOT contain 'Referred by' — locks in canonical wording; suite now 21/21 was 20/20)"
+          ], note: "CRO advisory follow-up from P0.3 tick 55 verdict (brand-wording drift Referred by vs Introduced by). Canonical wording per docs/plans/reseller-module-plan.md § C.3 + web/src/components/workspace/reseller-pill.tsx COPY table is 'Introduced by'; every other user-facing string across email-footer.ts / email-attribution.ts / reseller-code-field.tsx / wholesale-welcome-email / stripe checkout subscription description already uses 'Introduced by'. Two drift spots were the only holdouts. Regression test in walkthrough-plan.test.ts prevents future re-drift. Verified: cd web && npx vitest run src/lib/reseller/walkthrough-plan.test.ts → 21/21 pass. lint:reseller unchanged (edits are outside /api/reseller/** and feature-gates.manifest.ts). This tick breaks the 4-tick deliberate-skip streak on the reseller loop by picking real unblocked work rather than firing another degenerate M_168 power-mean pure-lib."}
+        exit_criteria: [
+          "P13.1 brand-wording drift fix landed + regression test locks in canonical 'Introduced by' (DONE this tick)",
+          "P13.2 GA event on /guide/reports download route (PENDING — CMO advisory)",
+          "P13.3 complementary suppression on phase-distribution + reviews aggregates (PENDING — CDO advisory)",
+          "P13.4 wholesale magic-link + welcome email H.8 build (PENDING — Customer-Success advisory)",
+          "P13.5 Customer drawer VI translation (PENDING — CPO advisory)",
+          "P13.6 Div 83A qualifying-tests checklist in ch08-team (PENDING — CHRO advisory)",
+          "P13.7 pitch-deck Channel Economics slide + data-room GTM one-pager (PENDING — IR advisory)"
         ]
       P11_ongoing:
         status: pending

@@ -52,6 +52,16 @@ describe("WALKTHROUGH_STEPS contract", () => {
       expect(step.assert.length, step.id).toBeGreaterThan(0);
     }
   });
+
+  // P13.1 brand-wording drift regression (CRO advisory follow-up from P0.3).
+  // Canonical wording per docs/plans/reseller-module-plan.md § C.3 and
+  // web/src/components/workspace/reseller-pill.tsx is "Introduced by".
+  it("uses the canonical 'Introduced by' wording (no 'Referred by' drift)", () => {
+    for (const step of WALKTHROUGH_STEPS) {
+      expect(step.action.includes("Referred by"), step.id).toBe(false);
+      expect(step.assert.includes("Referred by"), step.id).toBe(false);
+    }
+  });
 });
 
 describe("REQUIRED_TRACK_A_PHASES coverage", () => {
