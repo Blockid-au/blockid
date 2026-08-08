@@ -1,54 +1,122 @@
-# What changed in the menu (July 2026)
+# Menu walkthrough — what unlocks, when, and why
 
-We reorganised BlockID's navigation so the platform gets out of your way and lets you focus on the ONE next step in your startup journey. Nothing was removed — everything you used yesterday is still one or two clicks away.
+> **Audience:** founders using BlockID.
+> **Companion spec (engineers):** [`docs/plans/unlock-next-level-2026-07-31.md`](../plans/unlock-next-level-2026-07-31.md) §2a, §2c, D2.
+> **Last refresh:** 2026-08 (G8-P8).
 
-## Three things you'll notice today
+BlockID's menu is not static. It grows with your startup. As you finish evidence and cross **phase exit gates**, new tools appear in the sidebar — Cap Table when equity matters, Data Room when investors show up, Tokenisation once you have a real market.
 
-### 1. A "Demo" link at the top of every page
+This page tells you exactly what you'll see, at which phase, on which plan.
 
-Wherever you are — logged in or logged out, marketing site or workspace — the top nav now has a **Demo** entry. Click it to open the live Atlassian walkthrough (`/showcase/atlassian?step=1`). It shows you what the platform does end-to-end: SVI report, data room, cap table, valuation, growth phases — all narrated with a real founder journey.
+---
 
-Why: new visitors kept asking "what does this actually do?" — now the answer is one click from anywhere.
+## 1. What you'll see at each growth phase / Bạn sẽ thấy gì ở mỗi giai đoạn
 
-### 2. A 12-phase step ladder on your dashboard
+The spine is 12 growth phases (`vision` → `funding`). Three groups are **always visible**: **Home**, **Validate**, **Account**. Everything else appears as you cross the gate for that phase.
 
-Below the existing 6-phase Journey Bar, you'll now see the **canonical 12-phase ladder** (Vision → Validate → Research → MVP → PMF → Revenue → Growth → Team → Funding-Ready → Fundraise → Scale → Exit). Your current phase pulses in blue. Completed phases are green checks (clickable — they jump to the feature that phase uses). Future phases dim to grey with a lock icon and a tooltip that says "Unlocks after phase N".
+| # | Phase (`GrowthPhaseId`) | Vietnamese | Newly unlocked nav groups |
+|---|---|---|---|
+| 1 | `vision` | Tầm nhìn & Sứ mệnh | Home · Validate · Account (baseline) |
+| 2 | `customer_dev` | Phát triển khách hàng | Validate → Discover (Market Size, Knowledge Base) |
+| 3 | `revenue_model` | Mô hình doanh thu | **Fundraise → Valuation & Finance** (VC Valuation, CFO Advisor) |
+| 4 | `pitch` | Kỹ năng thuyết trình | Validate → Track (Metrics, Weekly Reports); pitch builder |
+| 5 | `mentor_review` | Cố vấn đánh giá ý tưởng | Mentor console, advisor requests (Roles overlay) |
+| 6 | `legal_equity` | Pháp lý & Cổ phần | **Build → Equity Setup** (Cap Table, Equity Split, Shareholders) |
+| 7 | `go_to_market` | Ra thị trường & Mở rộng | **Scale & Exit → Revenue** (Revenue, Growth Journal, GST tools) |
+| 8 | `product_dev` | Phát triển sản phẩm | Tech DD, SBOM/licence inventory, R&D tax surface |
+| 9 | `investor_review` | Nhà đầu tư đánh giá tiến độ | **Fundraise → Data Room** (Data Room, ESIC self-assessment, s708 tools) |
+| 10 | `team` | Đồng sáng lập & Đội ngũ | Build → People (ESOP Setup, Vesting, Equity Offer) |
+| 11 | `growth` | Tăng trưởng | Listings / SVI Index submission, tokenisation preview |
+| 12 | `funding` | Gọi vốn | **Scale & Exit → Exit** (Exit Modeling, Dividends, marketplace, tokenisation) |
 
-Why: your reports, analytics, and case studies all use this 12-phase model. Your dashboard now matches.
+The **Roles** group is overlay-only — its subgroups (Investor, Advisor, Accelerator, Reseller, Mentor) show up when your account is tagged with that segment, independent of phase.
 
-### 3. The public top nav is cleaner
+---
 
-The marketing shell nav (Product / For / Pricing / Demo / Compare / Docs) now sits at 6 items — down from 7 — and everything is grouped by intent. On the older doc pages (`/docs`, `/team`, `/benchmarks`), Benchmarks + Insights + Version + Changelog moved into a single **Resources** dropdown so the top row stays under 7 items.
+## 2. The 13 evaluation criteria / 13 tiêu chí đánh giá (§2a)
 
-Why: menu bars over 7 items force the eye to slow-scan. Miller's Law is real — cognitive limit is 7±2.
+Every phase gate reads from the same 13 evidence criteria. Weights sum to 100 and feed the SVI score directly.
 
-## Three things that DID NOT change
+| Criterion | Weight | Primary SVI dimension | What it means in plain English |
+|---|---|---|---|
+| `market` | 12 | MPC | Is the market real, big, and reachable? |
+| `idea` | 10 | MPC | Is the problem sharp and the solution differentiated? |
+| `customer_size` | 10 | TRE | Do you know your ICP and TAM/SAM/SOM? |
+| `revenue` | 10 | TRE | Recurring revenue, ARPU, unit economics — with numbers. |
+| `founder_profile` | 8 | FTV | Founder-market fit; why *you* for *this*. |
+| `team` | 8 | FTV | Co-founders, roles, and coverage of the skills matrix. |
+| `gtm_strategy` | 8 | TRE | Channels, CAC, activation — a plan, not a hope. |
+| `documents` | 7 | IRI | Pitch, one-pager, model, memo — investor-grade. |
+| `code_git` | 6 | PTD | Real repo, real commits, real reviewers. |
+| `roadmap` | 6 | PTD | 6-quarter product roadmap tied to milestones. |
+| `website` | 5 | PTD | Live product surface / marketing site — not a Notion page. |
+| `dataroom` | 5 | IRI | Structured data room, permissioned, up to date. |
+| `team_structure` | 5 | CGH | Cap table clean, ESOP pool sized, vesting on paper. |
 
-- **Nothing is hidden.** If a feature was accessible yesterday, it's accessible today. Later-phase features look dimmer if you're not there yet, but you can still click them — access rules haven't changed.
-- **Your muscle memory works.** The sidebar groups (Overview, Build & Validate, Ownership & Equity, Fundraise, Grow & Scale, Account) are unchanged. Only the top-nav grouping and the dashboard visual moved.
-- **The "Next step" tile is untouched.** The single-next-action card that tells you exactly what to do next is exactly where it was.
+Quality ladder for each: `incomplete → basic → good → strong → exceptional`. Gates require `≥ good`.
 
-## Also shipped in Round 5.13 (July 2026)
+**SVI dimensions:** FTV = Founder & Team · MPC = Market & Problem · PTD = Product & Technical · TRE = Traction & Revenue · CGH = Cap Table & Governance · IRI = Investor Readiness · LCO = Legal & Compliance · SVM = valuation multiplier.
 
-- **Sidebar: progressive disclosure got quieter.** Groups more than +3 phases ahead of your current phase now collapse into a single **"Later phases (N)"** disclosure — click to expand. Every locked row shows a small lock glyph + a `Unlocks after Phase N: <phase name>` tooltip so you always know when it opens up. Nothing is hidden.
-- **Sidebar order follows your role.** Founders see Overview → Build → Ownership → Fundraise → Grow. Investors, advisors, accelerators, resellers, and journalists each get their own priority order + relevant top-bar extras (e.g. the Reseller Console link surfaces automatically for resellers, Admin gear for admins). The overlay logic lives in `web/src/lib/nav/role-menu-overlay.ts`.
-- **A11y hardened.** NavV2 dropdown triggers now expose `aria-haspopup="menu"` + `aria-label="<group> menu"`; the workspace `<nav>` is a labelled landmark (`aria-label="Workspace navigation"`); the Later-phases collapse is a real disclosure button with `aria-expanded`/`aria-controls`. E2E tests pin all three contracts.
+---
 
-## Coming next (waiting on your review)
+## 3. Phase exit rules / Điều kiện qua giai đoạn (§2c)
 
-Only one thing is still open: your call on the four IA questions below. All four are marked `blocking: false` — nothing in the code path is gated on your answer; we'll adjust once you decide.
+A phase advances only when **all three** conditions hold:
 
-- **Q1** — How many phase-clusters should appear as top-nav CTAs vs. collapsed under a single "My Startup" menu? (Recommendation: 5 visible.)
-- **Q2** — Should "Demo" always be a top-nav link, or a floating CTA on landing pages? (Recommendation: top-nav for now.)
-- **Q3** — Should the mobile step ladder show all 12 phases or just current + next 2 with a "Show all" toggle? (Recommendation: current + next 2 on mobile.)
-- **Q4** — For returning founders at phase 6+, should we render a "Skip to current phase" shortcut? (Recommendation: yes — anchor at first sight of the ladder.)
+1. Required criteria at `≥ good`
+2. SVI dimension floor met
+3. Phase deliverables complete
 
-Reply on the goal doc PR or send admin@blockid.au your call.
+| # | Phase | Required criteria (≥ good) | Dimension floor | Unlocks on exit |
+|---|---|---|---|---|
+| 1 | `vision` | `idea`, `founder_profile` | MPC ≥ 40 | Validate group, SVI re-score |
+| 2 | `customer_dev` | `market`, `customer_size` | MPC ≥ 55 | Benchmarks, competitor analysis |
+| 3 | `revenue_model` | `revenue`, `gtm_strategy` | TRE ≥ 40 | Valuation tools |
+| 4 | `pitch` | `documents`, `website` | IRI ≥ 45 | Pitch builder, shareable score links |
+| 5 | `mentor_review` | `roadmap` + mentor sign-off | — | Mentor console, advisor requests |
+| 6 | `legal_equity` | `team_structure`, `documents` | CGH ≥ 50, LCO ≥ 45 | **Cap Table, ESOP, Equity** |
+| 7 | `go_to_market` | `gtm_strategy`, `customer_size` | TRE ≥ 55 | Growth analytics, GA4, **GST** |
+| 8 | `product_dev` | `code_git`, `website` | PTD ≥ 55 | Tech DD, SBOM/licence inventory, **R&D** |
+| 9 | `investor_review` | `dataroom`, `documents` | IRI ≥ 65 | **Data Room, investor access log, ESIC, s708** |
+| 10 | `team` | `team`, `team_structure` | FTV ≥ 60 | ESOP admin, vesting schedules |
+| 11 | `growth` | `revenue`, `customer_size` | TRE ≥ 70 | Listings / SVI Index, tokenisation preview |
+| 12 | `funding` | all 13 ≥ good | IRI ≥ 75, CGH ≥ 65 | **Tokenisation, dividend, exit, marketplace** |
 
-## Where the change lives (for engineers)
+If a gate blocks, the dashboard "Next unlock" card tells you the top 3 blockers ranked worst-first — no guessing.
 
-- Goal doc: [`docs/plans/ux-ia-startup-flow-goal.md`](../plans/ux-ia-startup-flow-goal.md)
-- New component: `web/src/components/dashboard/journey-step-ladder.tsx`
-- Nav edits: `web/src/components/landing/nav-v2.tsx`, `web/src/components/site/navbar.tsx`, `web/src/components/workspace/workspace-layout.tsx`
-- Footer edits: `web/src/components/site/footer.tsx`, `web/src/components/marketing/marketing-footer.tsx`
-- E2E: `web/tests/e2e/nav/menu-structure.spec.ts`
+---
+
+## 4. Tier-locked vs phase-locked (Decision D2) / Khoá theo gói vs khoá theo giai đoạn
+
+Two different reasons a menu item can be unavailable — and they look different on purpose.
+
+- **Progress-locked (phase not reached)** → the item is **hidden entirely**. No dim, no lock icon, no visual noise. You will see it appear the moment you cross the gate. Rationale: nothing pollutes the sidebar with tools you can't actually use yet.
+- **Tier-locked (plan upgrade needed)** → the item stays **visible but dimmed**, with a small **UpgradeChip** next to it (e.g. `Growth`, `Scale`, `Enterprise`). Rationale: preserves upsell discovery — you can see what a higher plan unlocks and click through to compare pricing.
+
+This is the **hybrid policy** decided on 2026-07-31. Neither pure-hide nor pure-dim on its own worked — pure-hide killed upsell discovery, pure-dim (the pre-G8 behaviour) buried the sidebar in 7 groups of locked pills the day you signed up.
+
+**Route access unchanged.** Hidden ≠ blocked. A deep link you already hold still resolves; route-level entitlement remains authoritative. Hiding is about menu clarity, not permission.
+
+---
+
+## 5. Where to see your current unlock status / Xem trạng thái mở khoá hiện tại
+
+Open **Dashboard → Next unlock** card. It shows:
+
+- Your current growth phase (id, order, EN + VI label)
+- `completionPct` — partial credit for how far you are through the current gate
+- Top 3 blockers ranked worst-first, with a single next action
+- What unlocks the moment the gate clears
+
+The same card is mirrored in the sidebar footer, so it follows you around the workspace.
+
+---
+
+## Where the rules live (for engineers)
+
+- Canonical taxonomy: [`web/src/lib/growth/phase-taxonomy.ts`](../../web/src/lib/growth/phase-taxonomy.ts)
+- Gate engine: [`web/src/lib/growth/phase-gate.ts`](../../web/src/lib/growth/phase-gate.ts) — `PHASE_EXIT_RULES`
+- Nav catalogue + gates: [`web/src/components/workspace/nav-groups.ts`](../../web/src/components/workspace/nav-groups.ts)
+- Visibility decision: [`web/src/lib/nav/hide-when-locked.ts`](../../web/src/lib/nav/hide-when-locked.ts) — `decideVisibility()` returns `"show" | "show_dimmed" | "hide"`
+- 13 evaluation criteria: [`web/src/lib/evaluation-criteria.ts`](../../web/src/lib/evaluation-criteria.ts)
+- SVI dimensions: [`web/src/lib/svi-analysis.ts`](../../web/src/lib/svi-analysis.ts)
