@@ -3457,6 +3457,11 @@ export async function GET(req: Request) {
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToTretrigintcentinaginticMeanSection =
     "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuortrigintcentinaginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuortrigintcentinaginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToQuattuortrigintcentinaginticMeanSection =
+    "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
       previousSnapshot,
@@ -10367,6 +10372,25 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToTretrigintcentinaginticMeanSection =
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTretrigintcentinaginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToTretrigintcentinaginticMean,
+        );
+      // P11.523 — per-transition magnitude TOP-3 pool peak-to-quattuortrigintcentinagintic-mean.
+      // PTQTCNM = (max - min) / quattuortrigintcentinagintic_mean where
+      // quattuortrigintcentinagintic_mean = ((sum x_i^134) / n)^(1/134) is the
+      // M_134 power mean. Bands tight < 1.005, spread [1.005, 1.09), wide >= 1.09.
+      // Since quattuortrigintcentinagintic_mean >= tretrigintcentinagintic_mean by
+      // Power Mean inequality (M_134 >= M_133), ptqtcnm <= ptttcnm for every
+      // non-flat pool. FURTHER ABSORPTION at M_134: pool_count=100 [1x99,100]
+      // reads 1.0246 SPREAD at M_134 (was 1.0249 spread at M_133). Splices
+      // IMMEDIATELY BELOW perTransitionMagnitudeTop3PoolPeakToTretrigintcentinaginticMeanSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.522
+      // formatter docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuortrigintcentinaginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuortrigintcentinaginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToQuattuortrigintcentinaginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToQuattuortrigintcentinaginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToQuattuortrigintcentinaginticMean,
         );
     }
   }
