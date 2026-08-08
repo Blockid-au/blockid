@@ -9476,3 +9476,6 @@
 {"tick_id":"2026-08-08T10-47-01-592Z","ts":"2026-08-08T10:57:19.389Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"outcome":"success","head":"4d3ce1489","fresh_sha":"31aaf27","elapsed_ms":537554,"delegated":false}
 {"tick_id":"2026-08-08T10-47-01-592Z","ts":"2026-08-08T10:57:19.403Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"done"}
 {"tick_id":"2026-08-08T10-47-01-592Z","ts":"2026-08-08T10:57:19.403Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-08T11-07-01-463Z","ts":"2026-08-08T11:07:01.464Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-08T11-07-01-463Z","ts":"2026-08-08T11:07:01.490Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-08T11-08-42-770Z","ts":"2026-08-08T11:08:42.768Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","note":"P0/P2=done, P1/P3-P7=shipped, P8=human_blocked (Q1..Q10 pending founder sign-off), P9=deploy_failed (driver-managed retry). No pending/in_progress phase to advance.","actor":"claude-opus-4-7"}
