@@ -50,11 +50,12 @@ export default function CapTablePage() {
               Free tool · No login
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              Cap Table Diff (Australia)
+              See exactly who owns what after your next funding round
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
-              See exactly who dilutes when you raise. Drag in your cap table,
-              model a round, share the result.
+              Founders discover dilution surprises at term-sheet time. Model
+              every scenario before you sign — drag in your cap table, model a
+              round, share the result.
             </p>
           </header>
           <div className="mt-10">

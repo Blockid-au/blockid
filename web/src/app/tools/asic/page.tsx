@@ -49,13 +49,15 @@ export default function ASICPage() {
               Free tool · No login · AU compliance
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              ASIC Compliance Checker
+              Verify ASIC compliance — avoid fines and deregistration
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
-              Verify your Australian startup meets its obligations under the{" "}
-              <span className="font-semibold">Corporations Act 2001</span>.
-              Check all ASIC requirements — from ABN/ACN registration to annual
-              reviews, share registers, and financial records.
+              Missed annual reviews, unpaid ASIC fees, and stale addresses
+              trigger penalties investors will find in diligence. Verify your
+              Australian startup meets its obligations under the{" "}
+              <span className="font-semibold">Corporations Act 2001</span> —
+              from ABN/ACN registration to annual reviews, share registers, and
+              financial records.
             </p>
           </header>
 

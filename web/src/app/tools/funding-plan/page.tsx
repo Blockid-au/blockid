@@ -48,13 +48,13 @@ export default function FundingPlanPage() {
               Free tool · No login · AU-tuned
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              Founder Funding Plan (Australia)
+              Know your capital need — and its equity cost — before you pitch
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
-              Know exactly how much capital you need — and how much equity
-              it&apos;ll cost — before you talk to investors. Map 12–18 months
-              of runway, founder cash injections and the external raise on one
-              page.
+              Founders raise too little or dilute too much. Model both together
+              so the round funds the plan without breaking the cap table — map
+              12–18 months of runway, founder cash injections and the external
+              raise on one page.
             </p>
           </header>
           <div className="mt-10">

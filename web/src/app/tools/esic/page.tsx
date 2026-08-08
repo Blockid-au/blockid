@@ -49,12 +49,13 @@ export default function ESICPage() {
               Free tool · No login · AU compliance
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              ESIC Eligibility Checker
+              Unlock the 20% ESIC tax offset for your investors
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
-              Check if your startup qualifies as an Early Stage Innovation
-              Company (ESIC) under Australian tax law. ESIC status unlocks a 20%
-              tax offset and CGT exemption for your investors.
+              Investors get a big carrot when your startup qualifies as ESIC —
+              confirm eligibility in minutes and cite it in your raise. ESIC
+              status under Australian tax law unlocks a 20% tax offset and CGT
+              exemption for your investors.
             </p>
           </header>
           <div className="mt-10">

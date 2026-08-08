@@ -142,6 +142,34 @@ export function HeroV4({ signedInHref, verifiedCount }: HeroV4Props) {
           under 3 seconds.
         </p>
 
+        {/* Numbers strip — real, defensible stats (P3 of value-first-hero-goal) */}
+        <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-[var(--fintech-ink-muted)]">
+          {typeof verifiedCount === "number" && verifiedCount > 0 ? (
+            <>
+              <span>
+                <span className="tabular-nums font-semibold text-[var(--fintech-ink)]">
+                  {verifiedCount.toLocaleString("en-AU")}+
+                </span>{" "}
+                AU businesses on BlockID
+              </span>
+              <span aria-hidden>·</span>
+            </>
+          ) : null}
+          <span>
+            AU pre-money band{" "}
+            <span className="tabular-nums font-semibold text-[var(--fintech-ink)]">
+              A$1.5M–A$50M
+            </span>
+          </span>
+          <span aria-hidden>·</span>
+          <span>
+            <span className="tabular-nums font-semibold text-[var(--fintech-ink)]">
+              &lt;3 seconds
+            </span>{" "}
+            to your number
+          </span>
+        </p>
+
         <form
           onSubmit={onSubmit}
           className="mt-2 flex w-full flex-col items-stretch gap-3"
@@ -250,14 +278,6 @@ export function HeroV4({ signedInHref, verifiedCount }: HeroV4Props) {
           ) : null}
         </p>
 
-        {typeof verifiedCount === "number" && verifiedCount > 0 ? (
-          <p className="text-xs text-[var(--fintech-ink-muted)]">
-            <span className="tabular-nums font-semibold text-[var(--fintech-ink)]">
-              {verifiedCount.toLocaleString("en-AU")}
-            </span>{" "}
-            Australian businesses verified on BlockID
-          </p>
-        ) : null}
       </div>
 
       {result ? (

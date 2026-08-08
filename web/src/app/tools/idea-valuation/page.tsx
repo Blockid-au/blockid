@@ -49,12 +49,12 @@ export default function IdeaValuationPage() {
               Free tool · No login · AU-tuned
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              Idea-Stage Valuation Estimator
+              Know your pre-money valuation in 60 seconds — before you talk to investors
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
-              Get a defensible idea-stage valuation in 60 seconds — before you
-              incorporate or split equity. Hybrid Berkus + Scorecard method,
-              tuned for the Australian seed market.
+              Idea-stage founders guess a number and lose leverage in the first
+              meeting. Get your defensible range first — hybrid Berkus + Scorecard
+              method, tuned for the Australian seed market.
             </p>
           </header>
           <div className="mt-10">

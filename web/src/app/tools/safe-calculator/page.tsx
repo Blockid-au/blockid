@@ -50,10 +50,12 @@ export default function SAFECalculatorPage() {
               Free tool · No login · AU-tuned
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              SAFE Note Calculator (Australia)
+              Model your SAFE conversion before the next round prices
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
-              Enter your SAFE terms and the assumed next priced round — see the
+              Multiple SAFEs at different caps compound in ways founders
+              don&apos;t expect. See the exact dilution at conversion — enter
+              your SAFE terms and the assumed next priced round to see the
               effective conversion price, shares issued, ownership percentage
               and how the SAFE investor compares against a direct priced-round
               investor. Tuned for Australian SAFE templates.

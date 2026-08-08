@@ -486,7 +486,7 @@ export function TermSheetTool() {
                 </>
               ) : (
                 <>
-                  Analyse term sheet
+                  Redline my term sheet
                   <ArrowRight strokeWidth={1.75} className="h-5 w-5" aria-hidden />
                 </>
               )}

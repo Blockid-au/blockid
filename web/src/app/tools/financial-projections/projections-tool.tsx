@@ -236,7 +236,7 @@ export function ProjectionsTool() {
 
         <div className="flex flex-wrap items-center gap-3 pt-2">
           <Button type="submit" disabled={loading}>
-            {loading ? "Generating…" : "Generate 3-year projection"}
+            {loading ? "Building…" : "Build my 3-year model"}
           </Button>
           {result && (
             <Button type="button" variant="outline" onClick={downloadCsv}>

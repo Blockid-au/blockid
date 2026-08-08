@@ -69,10 +69,11 @@ export default function DataRoomPage() {
               Free tool · No login · AU seed-to-Series-A
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              Fundraising Data Room Checklist
+              Run the diligence checklist investors expect — before they send it
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
-              See what investors will ask for before they ask. Track the
+              60+ documents separate a &quot;yes&quot; from a &quot;let me get
+              back to you&quot; — know exactly what&apos;s missing. Track the
               documents, approvals and evidence behind a clean Australian
               startup raise.
             </p>

@@ -48,13 +48,13 @@ export default function RndTaxPage() {
               Free tool · No login · AU compliance
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              R&D Tax Incentive Calculator
+              Claim your 43.5% R&D refund — know your cash impact first
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
-              Estimate your R&D Tax Incentive benefit under the Australian
-              Government scheme. Enter your turnover and R&D spend to see
-              your estimated tax offset, net benefit, and potential runway
-              impact.
+              AU founders leave R&D refunds unclaimed or under-scoped. Get your
+              defensible AUD figure before lodging — enter your turnover and R&D
+              spend to see your estimated tax offset, net benefit, and potential
+              runway impact.
             </p>
           </header>
           <div className="mt-10">

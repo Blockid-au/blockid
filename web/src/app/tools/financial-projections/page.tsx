@@ -51,13 +51,15 @@ export default function FinancialProjectionsPage() {
               Founder tool · AU-tuned · Deterministic
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              3-Year Financial Projections
+              Model 36 months of growth credibly — benchmarked against AU peers
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-400">
-              Turn your current MRR, burn and team into a 36-month monthly
-              projection — revenue, gross margin, opex, EBITDA, cash outflow
-              and headcount. Sector-tuned growth against AU norms, aggressive
-              / moderate / conservative scenarios, and an optional R&D tax
+              Founder projections lose credibility when they don&apos;t tie to
+              AU comparables. Build a projection investors will trust — turn
+              your current MRR, burn and team into a 36-month monthly
+              projection (revenue, gross margin, opex, EBITDA, cash outflow and
+              headcount) with sector-tuned growth against AU norms, aggressive /
+              moderate / conservative scenarios, and an optional R&D tax
               incentive line. CSV export ready for your investor pack.
             </p>
           </header>
