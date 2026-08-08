@@ -20,3 +20,7 @@
 {"tick_id":"2026-07-24T06-13-01-564Z","ts":"2026-07-24T06:13:01.570Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-07-24T06-13-01-564Z","ts":"2026-07-24T06:13:01.572Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"goal_completed","message":"goal_id status: done detected — stopping ux-ia-goal-loop","completion_marker":"/tmp/blockid-ux-ia-goal-done"}
 {"tick_id":"2026-07-24T06-13-01-564Z","ts":"2026-07-24T06:13:01.597Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"cron_removal","status":0}
+{"tick_id":"2026-08-08T13-13-01-714Z","ts":"2026-08-08T13:13:01.714Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-08T13-13-01-714Z","ts":"2026-08-08T13:13:01.723Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-08T13-13-01-714Z","ts":"2026-08-08T13:13:01.725Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"goal_completed","message":"goal_id status: done detected — stopping ux-ia-goal-loop","completion_marker":"/tmp/blockid-ux-ia-goal-done"}
+{"tick_id":"2026-08-08T13-13-01-714Z","ts":"2026-08-08T13:13:01.750Z","loop_label":"ux-ia-goal-loop","human_review_minutes_7d":0,"stage":"cron_removal","status":0}
