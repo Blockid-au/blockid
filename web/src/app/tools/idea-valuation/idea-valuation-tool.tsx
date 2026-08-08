@@ -120,6 +120,7 @@ const DEFAULTS: IdeaValuationInput = {
 export function IdeaValuationTool() {
   const [input, setInput] = React.useState<IdeaValuationInput>(DEFAULTS);
   const [ideaName, setIdeaName] = React.useState<string>("");
+  const [ideaPitch, setIdeaPitch] = React.useState<string>("");
   const out = React.useMemo(() => computeIdeaValuation(input), [input]);
 
   // Mirror inputs to sessionStorage so the Save Founder Pack modal can pick
@@ -152,7 +153,52 @@ export function IdeaValuationTool() {
     }));
 
   return (
-    <div className="grid lg:grid-cols-2 gap-8">
+    <div className="space-y-6">
+      <section
+        aria-labelledby="idea-anchor"
+        className="rounded-2xl border border-brand-500/30 bg-gradient-to-br from-brand-500/5 to-white p-6 md:p-8"
+      >
+        <h2
+          id="idea-anchor"
+          className="text-xs uppercase tracking-[0.2em] text-brand-600 font-semibold"
+        >
+          Your idea
+        </h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_2fr]">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="idea-name-top" className="text-sm">
+              Name it
+            </Label>
+            <Input
+              id="idea-name-top"
+              placeholder="e.g. Acme"
+              value={ideaName}
+              onChange={(e) => setIdeaName(e.target.value)}
+              maxLength={120}
+              autoFocus
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="idea-pitch-top" className="text-sm">
+              One-line pitch <span className="text-ink-400">(optional)</span>
+            </Label>
+            <Input
+              id="idea-pitch-top"
+              placeholder="e.g. AU SaaS that turns Xero data into instant tax forecasts for solo directors"
+              value={ideaPitch}
+              onChange={(e) => setIdeaPitch(e.target.value)}
+              maxLength={200}
+            />
+          </div>
+        </div>
+        <p className="mt-4 text-xs text-ink-500">
+          {ideaName.trim()
+            ? `Analysing ${ideaName.trim()} — the estimate below updates live as you answer.`
+            : "Answer the signals below; the estimate updates live. You can save the result as a shareable Founder Pack."}
+        </p>
+      </section>
+
+      <div className="grid lg:grid-cols-2 gap-8">
       <section
         aria-labelledby="idea-inputs"
         className="rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
@@ -412,7 +458,7 @@ export function IdeaValuationTool() {
                 Lock this in
               </p>
               <p className="mt-2 text-sm text-ink-500">
-                Save this valuation as part of your{" "}
+                Save {ideaName.trim() ? <span className="font-semibold text-ink-700">{ideaName.trim()}</span> : "this valuation"} as part of your{" "}
                 <span className="font-semibold text-ink-700">
                   Founder Pack
                 </span>{" "}
@@ -420,27 +466,11 @@ export function IdeaValuationTool() {
                 password.
               </p>
             </div>
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor="founder-pack-idea-name"
-                  className="text-xs text-ink-400"
-                >
-                  Idea name (optional)
-                </Label>
-                <Input
-                  id="founder-pack-idea-name"
-                  placeholder="e.g. Acme — AU SaaS for X"
-                  value={ideaName}
-                  onChange={(e) => setIdeaName(e.target.value)}
-                  maxLength={120}
-                />
-              </div>
-              <SaveFounderPackButton className="h-11 w-full sm:w-auto" />
-            </div>
+            <SaveFounderPackButton className="h-11 w-full sm:w-auto" />
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 }
