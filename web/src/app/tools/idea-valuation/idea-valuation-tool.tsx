@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Calculator,
   Sparkles,
   TrendingUp,
   Lightbulb,
   Info,
+  ArrowRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,6 +122,10 @@ const DEFAULTS: IdeaValuationInput = {
 };
 
 export function IdeaValuationTool() {
+  const searchParams = useSearchParams();
+  const fromClarify = searchParams.get("from_clarify") === "1";
+  const ideaHint = searchParams.get("idea_hint") ?? "";
+
   const [input, setInput] = React.useState<IdeaValuationInput>(DEFAULTS);
   const [ideaName, setIdeaName] = React.useState<string>("");
   const [ideaPitch, setIdeaPitch] = React.useState<string>("");
@@ -199,6 +205,19 @@ export function IdeaValuationTool() {
             ? `Analysing ${ideaName.trim()} — the estimate below updates live as you answer.`
             : "Answer the signals below; the estimate updates live. You can save the result as a shareable Founder Pack."}
         </p>
+
+        {fromClarify && ideaHint && (
+          <div className="mt-4 rounded-xl border border-brand-500/20 bg-brand-500/5 p-3 flex items-start gap-3">
+            <ArrowRight strokeWidth={1.75} className="h-4 w-4 mt-0.5 text-brand-500 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-brand-700">Carried over from Idea Clarify</p>
+              <p className="mt-0.5 text-xs text-ink-500 truncate">{ideaHint}</p>
+              <p className="mt-1 text-xs text-ink-400">
+                Score each signal honestly — your idea description is context, not a free pass on the sliders.
+              </p>
+            </div>
+          </div>
+        )}
       </section>
 
       <div className="grid lg:grid-cols-2 gap-8">
