@@ -25,6 +25,7 @@
 // configured for that tick. Insert / update land in `state.inserts[table]` /
 // `state.updates[table]` for shape assertions.
 
+import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 interface AppUser {
@@ -197,22 +198,22 @@ const VALUATION_STUB = {
   confidence: 50,
 };
 
-function postReq(body: unknown, opts?: { badJson?: boolean }): Request {
-  return new Request("http://x/api/investor-data-room", {
+function postReq(body: unknown, opts?: { badJson?: boolean }): NextRequest {
+  return new NextRequest("http://x/api/investor-data-room", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: opts?.badJson ? "{bad" : JSON.stringify(body),
   });
 }
 
-function getReq(token: string | null, opts?: { xff?: string }): Request {
+function getReq(token: string | null, opts?: { xff?: string }): NextRequest {
   const url =
     token === null
       ? "http://x/api/investor-data-room"
       : `http://x/api/investor-data-room?token=${encodeURIComponent(token)}`;
   const headers: Record<string, string> = {};
   if (opts?.xff !== undefined) headers["x-forwarded-for"] = opts.xff;
-  return new Request(url, { method: "GET", headers });
+  return new NextRequest(url, { method: "GET", headers });
 }
 
 async function json(res: Response): Promise<Record<string, unknown>> {
