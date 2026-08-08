@@ -9510,3 +9510,5 @@
 {"tick_id":"2026-08-08T11-57-00-526Z","ts":"2026-08-08T11:57:00.527Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-08T11-57-00-526Z","ts":"2026-08-08T11:57:00.550Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-08T11-58-17-tick","ts":"2026-08-08T11:58:17.000Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","note":"P0-P7 done/shipped, P8 human_blocked, P9 deploy_failed (driver retry)","actionable_phases":[]}
+{"tick_id":"2026-08-08T11-57-00-526Z","ts":"2026-08-08T11:58:29.033Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":88479,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-08T11-57-00-526Z","ts":"2026-08-08T11:58:29.075Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
