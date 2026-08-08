@@ -45,6 +45,13 @@ vi.mock("node:fs", () => ({
   },
 }));
 
+// Server-side GA event (P13.2 CMO advisory) — mocked so the fire-and-forget
+// contract can be inspected without a live Supabase / GA4 round-trip.
+const emitEventMock = vi.fn<(input: unknown) => Promise<void>>();
+vi.mock("@/lib/analytics/server", () => ({
+  emitEvent: (input: unknown) => emitEventMock(input),
+}));
+
 import { GET, dynamic, runtime } from "./route";
 
 const CWD = process.cwd();
@@ -73,6 +80,8 @@ async function readJson(res: Response): Promise<Record<string, unknown>> {
 beforeEach(() => {
   fsState.files.clear();
   fsState.reads.length = 0;
+  emitEventMock.mockReset();
+  emitEventMock.mockResolvedValue();
 });
 
 describe("GET /api/guide/reports/[filename] — route wiring", () => {
@@ -299,5 +308,54 @@ describe("GET /api/guide/reports/[filename] — redaction on the wire", () => {
     const body = await res.text();
     expect(body).toContain("Public showcase copy");
     expect(body.length).toBeGreaterThan(0);
+  });
+});
+
+describe("GET /api/guide/reports/[filename] — server-side GA event (P13.2 CMO advisory)", () => {
+  it("emits showcase_report_downloaded once on a successful 200 with the served filename + server source", async () => {
+    // The client-side CTA in report-download-cta.tsx already fires this event
+    // when JS is available; the server-side twin captures direct URL / bot /
+    // no-JS downloads that bypass the client. `source: "server"` lets GA4
+    // audiences distinguish the two paths so we can measure the delta.
+    fsState.files.set(repoPath("cro-daily.md"), "# body");
+    const res = await invoke("cro-daily.md");
+    expect(res.status).toBe(200);
+    expect(emitEventMock).toHaveBeenCalledTimes(1);
+    const call = emitEventMock.mock.calls[0][0] as {
+      name: string;
+      params: Record<string, unknown>;
+      source: string;
+    };
+    expect(call.name).toBe("showcase_report_downloaded");
+    expect(call.params.template).toBe("cro-daily.md");
+    expect(call.source).toBe("server");
+  });
+
+  it("does NOT emit the event on invalid_filename (guard fires before analytics)", async () => {
+    // A 400 must never inflate download counts — a scanner probing traversal
+    // strings would otherwise skew the GA4 event volume.
+    const res = await invoke("../etc/passwd.md");
+    expect(res.status).toBe(400);
+    expect(emitEventMock).not.toHaveBeenCalled();
+  });
+
+  it("does NOT emit the event on not_found (a missing file is not a download)", async () => {
+    // The 404 branch must also stay quiet — a broken link should not be
+    // recorded as a successful download.
+    const res = await invoke("does-not-exist.md");
+    expect(res.status).toBe(404);
+    expect(emitEventMock).not.toHaveBeenCalled();
+  });
+
+  it("survives an emitEvent rejection without failing the request (fire-and-forget)", async () => {
+    // Analytics must NEVER break the download — the route intentionally
+    // `.catch(() => undefined)`s the emitter. If a future refactor drops the
+    // catch, a Supabase / GA4 outage would 500 every download.
+    emitEventMock.mockRejectedValueOnce(new Error("analytics down"));
+    fsState.files.set(repoPath("cmo-daily.md"), "# body");
+    const res = await invoke("cmo-daily.md");
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("Public showcase copy");
   });
 });

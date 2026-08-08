@@ -5,7 +5,7 @@
 ```yaml
 goal_id: reseller-module-v1
 status: in_progress
-version: 2026-08-08.940
+version: 2026-08-08.941
 plan_file: docs/plans/reseller-module-plan.md
 delta_file: docs/plans/plan-delta-2026-07-23.md
 loop_flag_env: RESELLER_AUTONOMOUS_LOOP
@@ -477,9 +477,13 @@ tracks:
             "web/src/lib/reseller/walkthrough-plan.ts (founder.workspace_cobranding_pill assert 'Topbar renders Referred by <reseller>' → 'Introduced by <reseller>' at line 89)",
             "web/src/lib/reseller/walkthrough-plan.test.ts (new regression case: every WALKTHROUGH_STEPS action + assert MUST NOT contain 'Referred by' — locks in canonical wording; suite now 21/21 was 20/20)"
           ], note: "CRO advisory follow-up from P0.3 tick 55 verdict (brand-wording drift Referred by vs Introduced by). Canonical wording per docs/plans/reseller-module-plan.md § C.3 + web/src/components/workspace/reseller-pill.tsx COPY table is 'Introduced by'; every other user-facing string across email-footer.ts / email-attribution.ts / reseller-code-field.tsx / wholesale-welcome-email / stripe checkout subscription description already uses 'Introduced by'. Two drift spots were the only holdouts. Regression test in walkthrough-plan.test.ts prevents future re-drift. Verified: cd web && npx vitest run src/lib/reseller/walkthrough-plan.test.ts → 21/21 pass. lint:reseller unchanged (edits are outside /api/reseller/** and feature-gates.manifest.ts). This tick breaks the 4-tick deliberate-skip streak on the reseller loop by picking real unblocked work rather than firing another degenerate M_168 power-mean pure-lib."}
+          P13.2_ga_event_guide_reports_download_route: {status: deploy_pending, tick: 941, completed_at: 2026-08-08, files: [
+            "web/src/app/api/guide/reports/[filename]/route.ts (import emitEvent from @/lib/analytics/server; fire-and-forget void emitEvent({name:'showcase_report_downloaded', params:{template:filename}, source:'server'}).catch(()=>undefined) after successful redaction and before returning the 200 NextResponse — placed after guards so 400 invalid_filename and 404 not_found paths stay quiet)",
+            "web/src/app/api/guide/reports/[filename]/route.test.ts (added vi.mock('@/lib/analytics/server') + 4 new regression cases: (i) emits once with server source + filename template on 200 happy path; (ii) does NOT emit on 400 invalid_filename guard; (iii) does NOT emit on 404 not_found; (iv) survives emitEvent rejection without failing the request — suite now 27/27 was 23/23)"
+          ], note: "CMO advisory follow-up from P0.3 tick 55 verdict (missing GA event on /guide/reports download route). The client-side CTA in web/src/app/guide/reports/report-download-cta.tsx already fires the GA4 `showcase_report_downloaded` event on click via trackEvent(), but that only runs when JavaScript is available — direct URL access, RSS/bot fetches, and no-JS clients bypass it entirely. Added the server-side twin via the existing @/lib/analytics/server emitEvent() batcher (same pattern as /api/templates/legal/[slug]/route.ts which was the reference implementation): server sink → Supabase analytics_events table (source of truth), best-effort GA4 Measurement Protocol mirror. Source field 'server' lets GA4 audiences distinguish the two paths so we can measure the delta between JS-enabled and direct downloads. Guards fire BEFORE the emitter so scanners probing traversal strings can't inflate event counts. Fire-and-forget with .catch(() => undefined) so a Supabase / GA4 outage never breaks a marketing download. Verified: cd web && npx vitest run src/app/api/guide/reports/\\[filename\\]/route.test.ts → 27/27 pass; cd web && npx tsc --noEmit → exit 0. lint:reseller unchanged (edit is outside /api/reseller/** — pre-existing R-03 violations in unrelated mentor + startup-package routes carry over)."}
         exit_criteria: [
-          "P13.1 brand-wording drift fix landed + regression test locks in canonical 'Introduced by' (DONE this tick)",
-          "P13.2 GA event on /guide/reports download route (PENDING — CMO advisory)",
+          "P13.1 brand-wording drift fix landed + regression test locks in canonical 'Introduced by' (DONE tick 940)",
+          "P13.2 GA event on /guide/reports download route (DONE this tick — server-side emitEvent twin lands via @/lib/analytics/server; regression test pins fire-and-forget + guard-first ordering)",
           "P13.3 complementary suppression on phase-distribution + reviews aggregates (PENDING — CDO advisory)",
           "P13.4 wholesale magic-link + welcome email H.8 build (PENDING — Customer-Success advisory)",
           "P13.5 Customer drawer VI translation (PENDING — CPO advisory)",
