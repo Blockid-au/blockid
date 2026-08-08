@@ -69,34 +69,34 @@ const CATEGORIES: Category[] = [
       {
         slug: "idea-valuation",
         name: "Idea Valuation",
-        desc: "Get an instant AI-powered valuation score for your startup idea. 8-dimension analysis in 60 seconds.",
+        desc: "Know whether your idea is worth pursuing — before you spend a dollar on it. 8-dimension investor-grade score in 60 seconds.",
         icon: "💡",
         tag: "Most Popular",
       },
       {
         slug: "dilution",
         name: "Dilution Modeller",
-        desc: "Model how fundraising rounds affect your ownership. Visualise dilution across multiple rounds.",
+        desc: "See exactly how much of your company you keep after each funding round — before you sign anything.",
         icon: "📉",
       },
       {
         slug: "safe-calculator",
         name: "SAFE Note Calculator",
-        desc: "Model SAFE conversion at the next priced round — cap, discount, shares issued and dilution. Tuned for AU SAFE templates.",
+        desc: "Stop guessing what your SAFE converts to. See shares, dilution, and ownership at the next priced round — tuned for AU templates.",
         icon: "💰",
         tag: "AU Specific",
       },
       {
         slug: "esop-checklist",
         name: "ESOP Legal Checklist",
-        desc: "19-point ESOP setup checklist for AU founders: pool structure, ESS Part 7A compliance, legal docs, and investor requirements.",
+        desc: "Set up your employee option pool correctly the first time. 19 AU-specific checks so you don't get caught out by ESS Part 7A.",
         icon: "✅",
         tag: "AU Specific",
       },
       {
         slug: "funding-plan",
         name: "Funding Plan Generator",
-        desc: "Generate a stage-appropriate fundraise plan with milestones, target raise amounts, and investor strategy.",
+        desc: "Walk into investor meetings with a credible raise plan — stage-matched milestones, target amounts, and investor strategy included.",
         icon: "🚀",
       },
     ],
@@ -109,31 +109,31 @@ const CATEGORIES: Category[] = [
       {
         slug: "equity-split",
         name: "Equity Split Calculator",
-        desc: "Calculate fair equity splits between co-founders using Slicing Pie methodology and AU benchmarks.",
+        desc: "Know exactly who owns what before a disagreement starts. Fair co-founder splits using Slicing Pie and AU benchmarks.",
         icon: "⚖️",
       },
       {
         slug: "cap-table",
         name: "Cap Table Manager",
-        desc: "Build and manage your cap table with shares, options, convertible notes, and ESOP pools.",
+        desc: "Always know your ownership structure — shares, options, convertible notes, and ESOP pools in one place.",
         icon: "📊",
       },
       {
         slug: "cofounder-match",
         name: "Co-Founder Match",
-        desc: "Find your ideal co-founder profile based on complementary skills, experience, and domain expertise.",
+        desc: "Stop recruiting the wrong co-founder. Find the profile that fills your real gaps — skills, domain, and experience.",
         icon: "🤝",
       },
       {
         slug: "data-room",
         name: "Data Room Builder",
-        desc: "Create an investor-ready data room checklist with document tracking and completion scores.",
+        desc: "Never lose a deal because your data room wasn't ready. Build an investor-grade checklist with completion tracking.",
         icon: "📁",
       },
       {
         slug: "financial-projections",
         name: "Financial Projection Norms",
-        desc: "Compare your burn, runway, growth, CAC and LTV against AU pre-seed / seed / Series A benchmarks. Instant percentile scoring.",
+        desc: "Find out if your numbers are credible before an investor does. Instant percentile against AU pre-seed, seed, and Series A benchmarks.",
         icon: "📈",
         tag: "AU Specific",
       },
@@ -147,28 +147,28 @@ const CATEGORIES: Category[] = [
       {
         slug: "esic",
         name: "ESIC Eligibility Checker",
-        desc: "Check if your startup qualifies for the Early Stage Innovation Company tax concessions (Division 360).",
+        desc: "Unlock up to 20% tax offset and CGT exemption for investors — find out in minutes if your startup qualifies under Division 360.",
         icon: "🇦🇺",
         tag: "AU Specific",
       },
       {
         slug: "rnd-tax",
         name: "R&D Tax Calculator",
-        desc: "Estimate your R&D Tax Incentive offset under Division 355. 43.5% refundable for companies under $20M turnover.",
+        desc: "See how much cash you can claw back from the ATO. Instant estimate of your 43.5% R&D refundable offset under Division 355.",
         icon: "🧪",
         tag: "AU Specific",
       },
       {
         slug: "asic",
         name: "ASIC Compliance Checker",
-        desc: "Verify your startup meets all ASIC obligations under the Corporations Act 2001 — ABN, annual reviews, directors, records, and more.",
+        desc: "Avoid fines and deregistration. Verify every ASIC obligation under the Corporations Act 2001 — ABN, annual reviews, directors, and records.",
         icon: "⚖️",
         tag: "AU Specific",
       },
       {
         slug: "term-sheet",
         name: "Term Sheet AI",
-        desc: "Upload a term sheet and get AI-powered analysis of key terms, red flags, and negotiation points.",
+        desc: "Don't sign until you understand every clause. AI flags red flags, unusual terms, and your real negotiation leverage.",
         icon: "📝",
         tag: "AI Powered",
       },
@@ -227,12 +227,12 @@ export default function ToolsPage() {
               Free Tools for Founders
             </p>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-              {totalTools}+ Free Tools for{" "}
-              <span className="text-brand-400">Australian Startups</span>
+              Every hard problem a founder faces.{" "}
+              <span className="text-brand-400">Solved free.</span>
             </h1>
             <p className="mt-5 text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              From idea validation to investor-ready compliance — every tool you
-              need to build, price and fundraise your startup. No login required.
+              12 AU-native tools covering valuation, equity, compliance,
+              fundraising, and tax. No login. No paywall. Just answers.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3 text-sm text-slate-500">
               {["No credit card", "No login required", "AU-specific data", "Updated for 2026"].map(

@@ -103,6 +103,20 @@
 - **Next action:** P2 persist unlock state (migration 0300 on `startup_phase_progress`) then P3 nav wiring. ⚠ The autonomous loop is concurrently landing route-group moves (`(marketing)`/`(app)`/`(persona)` — commits `76f2febe`, `e34f3fed`, `9ae661ff`) that overlap P5/P6; reconcile the shell matrix against that work before starting chrome backfill.
 - **Blocker:** none for P0/P5. Q1–Q3 in the goal doc are founder-review only and non-blocking.
 
+### G9 — Value-First Hero (user outcome copy enforcement)
+- **Source:** [`docs/plans/value-first-hero-goal.md`](./value-first-hero-goal.md)
+- **Status:** open — reference/enforcement goal; no autonomous loop (VALUE_FIRST_HERO_LOOP=off).
+- **Principle:** Every hero section must lead with what the user GETS and what hard problem it SOLVES — not with product identity or marketing copy. Marketing/pricing CTAs are lower priority.
+- **Success criteria (summary):**
+  1. All `/tools/*` hero H1s lead with a concrete user outcome + the hard problem solved — never a product name or category label.
+  2. Landing page hero sub-headline quantifies benefit with numbers (time, AUD, %, count).
+  3. No tool page H1 starts with "tool" or "calculator".
+  4. Tool page CTA buttons use outcome language ("Get my valuation") not action language ("Submit", "Calculate").
+  5. Dashboard first-view shows a live founder-relevant metric above the fold — not a welcome banner.
+- **Phased tracks:** P0 audit → P1 tool hero copy → P2 CTA language → P3 landing numbers strip → P4 dashboard metric card.
+- **File boundaries:** `web/src/app/tools/*/page.tsx` (copy only) · `web/src/components/landing/hero-v3.tsx` (numbers strip) · `web/src/app/dashboard/page.tsx` (additive metric card). Do NOT touch `web/src/lib/**`, `nav-v2.tsx` (G7), `/pricing/**` (G5), migrations, or CI.
+- **Blocker:** Q1 (which live metric for dashboard card) is founder-review-blocking for P4. P0–P3 have no blockers.
+
 ---
 
 ## 2. Requirements Register

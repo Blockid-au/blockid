@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CheckCircle } from "lucide-react";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { IdeaClarifyTool } from "./idea-clarify-tool";
@@ -46,13 +47,33 @@ export default function IdeaClarifyPage() {
               Free tool · No login · 5 minutes
             </p>
             <h1 className="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-ink-800">
-              Clarify your idea from first principles
+              Find the cracks in your idea before investors do
             </h1>
             <p className="mt-4 text-base md:text-lg leading-relaxed text-ink-600">
-              Describe your startup idea in plain English. We&apos;ll ask the
-              5–7 questions a good investor would ask, then route you to the
-              right BlockID tool for your next step.
+              Answer 5–7 questions about your startup — the same ones a seed
+              investor asks on Day 1. Get routed to the right next step:
+              valuation, cap table, ESIC eligibility, or fundraise prep. Takes
+              5 minutes. No login.
             </p>
+            <ul className="mt-6 flex flex-col sm:flex-row gap-4">
+              {[
+                "Investor-grade questions about your idea",
+                "Identified gaps you haven’t thought of yet",
+                "Routed to exactly the right tool for your stage",
+              ].map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-2 text-sm text-ink-600"
+                >
+                  <CheckCircle
+                    className="mt-0.5 shrink-0 text-brand-600"
+                    size={16}
+                    aria-hidden="true"
+                  />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </header>
           <section className="mt-10 rounded-2xl border border-surface-200 bg-white p-6 md:p-10 shadow-sm">
             <IdeaClarifyTool />
