@@ -46,6 +46,8 @@ import { PaywallProvider } from "@/components/sales/paywall-nudge";
 import { TrialCountdownBanner } from "@/components/sales/trial-countdown-banner";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { meetsMinPlan, type Segment } from "@/lib/segments";
+import { decideVisibility, type LockedDecision } from "@/lib/nav/hide-when-locked";
+import { UpgradeChip } from "@/components/nav/upgrade-chip";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
@@ -87,6 +89,63 @@ const LIFECYCLE_CHIP: Record<"beta" | "live", string> = {
 //   visible=false  → drop entirely (wrong audience, or feature flag missing).
 //   locked=true    → render but grayed-out with a lock icon + Upgrade tooltip.
 type ResolvedItem = { item: NavItem; locked: boolean };
+
+/**
+ * G8-P3 — Hybrid group-level visibility (Decision D2).
+ *
+ * Rules applied in order:
+ *   1. Segment mismatch → hide (wrong audience).
+ *   2. growthPhase / minPhase unmet → hide entirely.
+ *   3. minPlan / minTier unmet →
+ *        hideWhenLocked === false ⇒ show_dimmed  (add-on / teaser rows)
+ *        hideWhenLocked !== false ⇒ hide         (default v3 rule)
+ *      Because NavGroup doesn't have a hideWhenLocked field (only NavItem
+ *      does), group-level tier failures always produce "hide" under v3 rules.
+ *      Items within the group that have hideWhenLocked=false retain their own
+ *      per-item dim behaviour inside resolveGroup().
+ *   4. All gates pass → show.
+ *
+ * The 3 core groups (id: "home", "validate", "account") are exempt from the
+ * hide rule so the nav never collapses to zero (plan § "Never shrink below
+ * the 3 core groups").
+ */
+const CORE_GROUP_IDS = new Set(["home", "validate", "account"]);
+
+function decideGroupVisibility(
+  group: NavGroup,
+  ctx: {
+    planId: string;
+    segment: Segment | null;
+    currentPhase: number;
+    hasFeature: (name: string) => boolean;
+  },
+): LockedDecision {
+  // Core groups always show — never shrink below 3.
+  if (group.id && CORE_GROUP_IDS.has(group.id)) return "show";
+
+  // 1. Segment mismatch → hide.
+  if (group.segments && group.segments.length > 0) {
+    if (!ctx.segment || !group.segments.includes(ctx.segment)) return "hide";
+  }
+
+  // 2. Phase / growth phase gating → hide when unmet.
+  if (group.minPhase != null && group.minPhase > ctx.currentPhase) {
+    return "hide";
+  }
+
+  // 3. Plan / tier gating → use decideVisibility (v3 hide-when-locked).
+  //    NavGroup has no hideWhenLocked field, so group-level tier locks always
+  //    default to "hide" (v3 teaser-free rule). Individual items with
+  //    hideWhenLocked=false still get their own dim treatment inside
+  //    resolveGroup().
+  const minTier = group.minTier ?? group.minPlan;
+  if (minTier) {
+    const tierOk = meetsMinPlan(ctx.planId, minTier);
+    return decideVisibility({ scopeOk: true, tierOk, flagOk: true, hideWhenLocked: true });
+  }
+
+  return "show";
+}
 
 const UNLOCK_PULSE_KEY = "blockid_unlock_pulse_dismissed";
 
@@ -190,8 +249,13 @@ function renderNavGroup(args: {
    */
   collapsed?: boolean;
   onToggle?: (label: string) => void;
+  /**
+   * G8-P3 — when true the group renders dimmed with an UpgradeChip.
+   * Set by the caller after decideGroupVisibility() returns "show_dimmed".
+   */
+  dimmed?: boolean;
 }): React.ReactNode {
-  const { group, currentPhase, sidebarOpen, planId, segment, entitlement, pathname, setMobileOpen, collapsed, onToggle } = args;
+  const { group, currentPhase, sidebarOpen, planId, segment, entitlement, pathname, setMobileOpen, collapsed, onToggle, dimmed } = args;
   const isFuturePhase = group.minPhase != null && group.minPhase > currentPhase;
   const resolvedItems = resolveGroup(group, { planId, segment, hasFeature: entitlement.can });
   if (resolvedItems.length === 0) return null;
@@ -211,7 +275,7 @@ function renderNavGroup(args: {
   const isCollapsed = isCollapsible && collapsed === true;
 
   return (
-    <div key={group.label} className="mb-1" data-pillar={group.pillar} data-group-label={group.label}>
+    <div key={group.label} className={cn("mb-1", dimmed && "opacity-60 pointer-events-none")} data-pillar={group.pillar} data-group-label={group.label}>
       {/* Group header — clickable disclosure when the caller passes
           collapse state, otherwise a plain label. */}
       {sidebarOpen && (
@@ -264,6 +328,17 @@ function renderNavGroup(args: {
             )}
           </div>
         )
+      )}
+      {/* G8-P3 — show_dimmed: UpgradeChip when group is tier-locked but kept
+          visible (hideWhenLocked=false pattern at group level). Only renders
+          when the sidebar is open (icon-only mode has no space for a chip). */}
+      {dimmed && sidebarOpen && (group.minTier ?? group.minPlan) && (
+        <div className="px-3 pb-1 pointer-events-auto">
+          <UpgradeChip
+            tier={(group.minTier ?? group.minPlan)!}
+            className="text-[10px] px-2 py-0.5"
+          />
+        </div>
       )}
       {/* Group items — hidden entirely when the pillar is collapsed. Kept
           in the DOM otherwise so per-item state (active link) is preserved
@@ -499,8 +574,16 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
 
         {/* Nav items */}
         <nav className="flex-1 py-1 px-1 overflow-y-auto" aria-label="Workspace navigation">
-          {nearGroups.map((group) =>
-            renderNavGroup({
+          {nearGroups.map((group) => {
+            // G8-P3: hybrid visibility — hide phase-locked, dim tier-locked.
+            const vis = decideGroupVisibility(group, {
+              planId,
+              segment,
+              currentPhase,
+              hasFeature: entitlement.can,
+            });
+            if (vis === "hide") return null;
+            return renderNavGroup({
               group,
               currentPhase,
               sidebarOpen,
@@ -514,8 +597,9 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
               // collapse state (overlay defaults + user localStorage).
               collapsed: effectiveCollapse[group.label] ?? false,
               onToggle: toggleCollapse,
-            }),
-          )}
+              dimmed: vis === "show_dimmed",
+            });
+          })}
           {sidebarOpen && laterGroups.length > 0 && (() => {
             // Count *visible* items after resolve() so the count reflects
             // what the user would actually see — hidden segment items
