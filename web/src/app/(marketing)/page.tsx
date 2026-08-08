@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { NavV2 } from "@/components/landing/nav-v2";
-import { HeroV3, EmotionalBand } from "@/components/landing/hero-v3";
+import { HeroV4 } from "@/components/landing/hero-v4";
+import { EmotionalBand } from "@/components/landing/hero-v3";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { FoundingBand } from "@/components/landing/founding-band";
 import { TrustStrip } from "@/components/landing/trust-strip";
 import {
   readSignedInHint,
@@ -86,7 +88,7 @@ export default async function HomePage() {
       </a>
       <NavV2 />
       <main id="main-content">
-        <HeroV3
+        <HeroV4
           signedInHref={isSignedIn ? SIGNED_IN_LANDING_HREF : undefined}
           verifiedCount={verifiedCount}
         />
@@ -101,6 +103,7 @@ export default async function HomePage() {
           </h2>
           <HowItWorks />
         </section>
+        <FoundingBand />
         <section
           id="partners"
           aria-labelledby="partners-heading"
