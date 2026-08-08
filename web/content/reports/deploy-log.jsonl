@@ -5707,3 +5707,4 @@
 {"ts":"2026-08-08T19:36:31.737Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T19:38:15.146Z","event":"github-push-master","detail":"Blockid-au: test(atlassian-goal-loop): P5-deliverable-slug-route-test — 32 cases green (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-08T19:38:21.851Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-08T19-27-01-253Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-08T19:46:57.698Z","event":"github-push-master","detail":"Blockid-au: feat(reseller): P13.2 GA event on /guide/reports download route (1 commits)","source":"github-webhook"}
