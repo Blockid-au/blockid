@@ -1438,6 +1438,11 @@ import {
   type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMean,
 } from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-duosexagintcentinagintic-mean";
 import {
+  computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean,
+  formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMeanSection,
+  type DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean,
+} from "@/lib/reseller/digest-snapshot-per-modules/digest-snapshot-per-transition-magnitude-top3-pool-peak-to-tresexagintcentinagintic-mean";
+import {
   buildAnomalySummary,
   DEFAULT_ANOMALY_WINDOW_DAYS,
   type AuditLogRow,
@@ -3741,6 +3746,11 @@ export async function GET(req: Request) {
     | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMean
     | null = null;
   let perTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMeanSection =
+    "";
+  let snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean:
+    | DigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean
+    | null = null;
+  let perTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMeanSection =
     "";
   if (previousSnapshot) {
     snapshotDelta = computeDigestSnapshotDelta(
@@ -11210,6 +11220,27 @@ export async function GET(req: Request) {
         formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMeanSection(
           snapshotPerTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMean,
         );
+      // P11.581 — per-transition magnitude TOP-3 pool peak-to-tresexagintcentinagintic-mean.
+      // PTTSXCNM = (max - min) / tresexagintcentinagintic_mean where
+      // tresexagintcentinagintic_mean = ((sum x_i^163) / n)^(1/163) is the
+      // M_163 power mean. Bands tight < 1.005, spread [1.005, 1.09), wide >= 1.09.
+      // Since tresexagintcentinagintic_mean >= duosexagintcentinagintic_mean
+      // by Power Mean inequality (M_163 >= M_162), pttsxcnm <= ptdsxcnm for every
+      // non-flat pool. OVERFLOW REGIME INHERITED from M_155: any cell value >= 100
+      // folds to a non-finite hundredSixtyThirdPowerSum and returns null
+      // (degenerate) since 100^163 = 10^326 exceeds Number.MAX_VALUE ~1.7976e308.
+      // Splices IMMEDIATELY BELOW
+      // perTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMeanSection
+      // AND IMMEDIATELY ABOVE perPairHotCellsSection per the P11.580 formatter
+      // docblock. Consumes snapshotPerPairHotCells directly.
+      snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean =
+        computeDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean(
+          snapshotPerPairHotCells,
+        );
+      perTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMeanSection =
+        formatDigestSnapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMeanSection(
+          snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean,
+        );
     }
   }
   if (
@@ -11474,6 +11505,7 @@ export async function GET(req: Request) {
     perTransitionMagnitudeTop3PoolPeakToSexagintcentinaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToUnsexagintcentinaginticMeanSection ||
     perTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMeanSection ||
+    perTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMeanSection ||
     perPairHotCellsSection ||
     perResellerPersistenceScorecardVerdictSection ||
     perResellerPersistenceScorecardVerdictTransitionSection ||
@@ -11765,6 +11797,7 @@ export async function GET(req: Request) {
       perTransitionMagnitudeTop3PoolPeakToSexagintcentinaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToUnsexagintcentinaginticMeanSection +
       perTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMeanSection +
+      perTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMeanSection +
       perPairHotCellsSection +
       perResellerMetricPersistenceScorecardVerdictTransitionDistributionSection +
       perResellerPersistenceScorecardVerdictSection +
@@ -19455,6 +19488,36 @@ export async function GET(req: Request) {
               snapshotPerTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMean.band_thresholds,
             transitions:
               snapshotPerTransitionMagnitudeTop3PoolPeakToDuosexagintcentinaginticMean.transitions,
+          }
+        : {
+            skipped_reason:
+              previousSnapshotSkipReason ?? "no_previous_snapshot",
+          },
+    snapshot_per_transition_magnitude_top3_pool_peak_to_tresexagintcentinagintic_mean:
+      snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean
+        ? {
+            window_size:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.window_size,
+            first_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.first_week,
+            last_week:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.last_week,
+            sustained_p90_threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.sustained_p90_threshold,
+            threshold:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.threshold,
+            total_hot_cells:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.total_hot_cells,
+            top_n:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.top_n,
+            tight_pttsxcnm_max:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.tight_pttsxcnm_max,
+            wide_pttsxcnm_min:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.wide_pttsxcnm_min,
+            band_thresholds:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.band_thresholds,
+            transitions:
+              snapshotPerTransitionMagnitudeTop3PoolPeakToTresexagintcentinaginticMean.transitions,
           }
         : {
             skipped_reason:
