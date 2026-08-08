@@ -86,7 +86,7 @@ export const WALKTHROUGH_STEPS: readonly WalkthroughStep[] = [
     phase: "P4",
     path: "/workspace",
     action: "Load the workspace shell as the attributed founder.",
-    assert: "Topbar renders 'Referred by <reseller>' co-branding pill.",
+    assert: "Topbar renders 'Introduced by <reseller>' co-branding pill.",
   },
   {
     id: "founder.showcase_atlassian_step1",
