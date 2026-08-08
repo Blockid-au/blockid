@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
 import Link from "next/link";
 import { ExternalLink, CheckCircle2, Clock, AlertCircle, Circle } from "lucide-react";
 
@@ -46,10 +44,8 @@ export default async function ListingsPage() {
   const tierLabels = ["Tier 1 — Must-Have", "Tier 2 — High Value", "Tier 3 — Australia-Specific", "Tier 4 — Investor Platforms"];
 
   return (
-    <>
-      <Navbar />
-      <main className="pt-28 pb-20">
-        <div className="mx-auto max-w-5xl px-6">
+    <main className="pt-8 pb-20">
+      <div className="mx-auto max-w-5xl px-6">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-ink-900">Platform Listings</h1>
@@ -118,9 +114,7 @@ export default async function ListingsPage() {
               ))}
             </div>
           </div>
-        </div>
-      </main>
-      <Footer />
-    </>
+      </div>
+    </main>
   );
 }

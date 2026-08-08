@@ -713,6 +713,16 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
         <main className="flex-1 overflow-auto">
           {children}
         </main>
+
+        {/* Workspace footer — compact legal strip. Keep in sync with
+            docs/plans/unlock-next-level-2026-07-31.md §1a G8-P5. */}
+        <footer className="shrink-0 border-t border-surface-200/60 bg-white/80 dark:bg-surface-100/80 px-6 py-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-400">
+          <span>&copy; 2026 Auschain PTY LTD &middot; ABN 79 659 615 111</span>
+          <span className="flex items-center gap-4">
+            <Link href="/legal" className="hover:text-ink-700 transition-colors">Legal</Link>
+            <Link href="/privacy" className="hover:text-ink-700 transition-colors">Privacy</Link>
+          </span>
+        </footer>
       </div>
 
       {/* Floating feedback FAB */}
