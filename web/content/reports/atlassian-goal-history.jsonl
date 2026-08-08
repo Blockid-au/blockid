@@ -9375,3 +9375,5 @@
 {"tick_id":"2026-08-08T08-37-02-002Z","ts":"2026-08-08T08:38:42.449Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
 {"tick_id":"2026-08-08T08-37-02-002Z","ts":"2026-08-08T08:38:42.483Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"truncation_guard_reverted","count":1,"files":[{"path":"web/src/lib/agents/cfo-valuation.ts","head_lines":955,"work_lines":203,"lost_pct":79}]}
 {"tick_id":"2026-08-08T08-37-02-002Z","ts":"2026-08-08T08:38:43.986Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1}
+{"tick_id":"2026-08-08T08-37-02-002Z","ts":"2026-08-08T08:38:46.038Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-08T08-37-02-002Z","ts":"2026-08-08T08:38:46.056Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"57ee2ca6e","last_deployed":"8658d81"}
