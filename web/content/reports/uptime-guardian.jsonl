@@ -892,3 +892,4 @@
 {"ts":"2026-08-09T20:20:01Z","healthy":1,"http_local":"200","disk_pct":32,"mem_pct":17,"swap_mb":0,"load_1min":3.51,"nproc":8,"uptime_s":697763,"blockid_procs":0,"fail_count":0,"disk_action":"none","mem_action":"none","rollback_action":"none"}
 {"ts":"2026-08-09T20:22:01Z","healthy":1,"http_local":"200","disk_pct":32,"mem_pct":25,"swap_mb":0,"load_1min":2.07,"nproc":8,"uptime_s":697883,"blockid_procs":0,"fail_count":0,"disk_action":"none","mem_action":"none","rollback_action":"none"}
 {"ts":"2026-08-09T20:24:01Z","healthy":1,"http_local":"200","disk_pct":32,"mem_pct":15,"swap_mb":0,"load_1min":2.08,"nproc":8,"uptime_s":698002,"blockid_procs":0,"fail_count":0,"disk_action":"none","mem_action":"none","rollback_action":"none"}
+{"ts":"2026-08-09T20:26:01Z","healthy":1,"http_local":"200","disk_pct":32,"mem_pct":16,"swap_mb":0,"load_1min":4.51,"nproc":8,"uptime_s":698123,"blockid_procs":0,"fail_count":0,"disk_action":"none","mem_action":"none","rollback_action":"none"}
