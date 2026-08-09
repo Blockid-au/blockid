@@ -882,3 +882,10 @@
 {"tick_id":"2026-08-09T22-15-01-295Z","ts":"2026-08-09T22:15:03.061Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":8}
 {"tick_id":"2026-08-09T22-15-01-295Z","ts":"2026-08-09T22:15:05.088Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-08-09T22-15-01-295Z","ts":"2026-08-09T22:15:05.123Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"b836286ce","last_deployed":"bc9819e"}
+{"tick_id":"2026-08-09T22-15-01-295Z","ts":"2026-08-09T22:24:32.671Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"outcome":"success","head":"b836286ce","fresh_sha":"ea783ca","elapsed_ms":567547,"delegated":false}
+{"tick_id":"2026-08-09T22-15-01-295Z","ts":"2026-08-09T22:24:32.721Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"done"}
+{"tick_id":"2026-08-09T22-15-01-295Z","ts":"2026-08-09T22:24:32.722Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-09T22-25-01-806Z","ts":"2026-08-09T22:25:01.809Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-09T22-25-01-806Z","ts":"2026-08-09T22:25:01.883Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
+{"tick_id":"2026-08-09T22-25-01-806Z","ts":"2026-08-09T22:25:03.209Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":1,"elapsed_ms":1311,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-09T22-25-01-806Z","ts":"2026-08-09T22:25:03.259Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
