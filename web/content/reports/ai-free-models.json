@@ -1,6 +1,9 @@
 {
-  "updatedAt": "2026-08-07T12:01:35.265Z",
+  "updatedAt": "2026-08-09T04:00:03.350Z",
   "openrouter": [
+    "poolside/laguna-xs-2.1:free",
+    "openrouter/free",
+    "cohere/north-mini-code:free",
     "nvidia/nemotron-3-nano-30b-a3b:free",
     "nvidia/nemotron-nano-9b-v2:free",
     "inclusionai/ling-3.0-tiny:free",
@@ -12,9 +15,7 @@
     "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "inclusionai/ling-3.0-flash:free",
-    "poolside/laguna-s-2.1:free",
-    "nvidia/nemotron-nano-12b-v2-vl:free"
+    "inclusionai/ling-3.0-flash:free"
   ],
   "groq": [
     "canopylabs/orpheus-v1-english",
