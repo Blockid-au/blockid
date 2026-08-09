@@ -856,3 +856,4 @@
 {"ts":"2026-08-09T16:00:02Z","endpoint":"prompt-eval-nightly","status":"ok","duration_ms":1204,"detail":"{\"inspected\": 0, \"evaluated\": 0, \"promoted\": 0, \"failed_promotion\": 0, \"missingFixtures\": [], \"cap\": 20}"}
 {"ts":"2026-08-09T16:00:02Z","endpoint":"agent-orchestrator","status":"ok","duration_ms":1276,"detail":"{\"stagesRun\": [\"update_artifacts\", \"git_push\"], \"results\": [{\"stage\": \"update_artifacts\", \"ok\": true, \"message\": \"29 task(s) still in flight\"}, {\"stage\": \"git_push\", \"ok\": true, \"message\": \"GitHub in"}
 {"ts":"2026-08-09T16:00:02Z","endpoint":"svi-snapshot","status":"ok","duration_ms":3424,"detail":"{\"processed\": 54, \"date\": \"2026-08-09\"}"}
+{"ts":"2026-08-09T16:05:02Z","endpoint":"svi-notify","status":"ok","duration_ms":162,"detail":"{\"notified\": 0, \"emailed\": 0, \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
