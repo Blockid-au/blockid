@@ -170,3 +170,5 @@
 {"stage":"deploy","ok":true,"message":"Production running — HTTP 200","aiCalls":0,"durationMs":306,"timestamp":"2026-08-09T14:04:03.135Z"}
 {"stage":"update_artifacts","ok":true,"message":"29 task(s) still in flight","aiCalls":0,"durationMs":250,"timestamp":"2026-08-09T16:00:03.055Z"}
 {"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":32,"timestamp":"2026-08-09T16:00:03.087Z"}
+{"stage":"qa","ok":true,"message":"QA: ?/20 pass, 0 fail","aiCalls":0,"durationMs":101954,"timestamp":"2026-08-09T18:01:44.202Z"}
+{"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":131,"timestamp":"2026-08-09T18:01:44.333Z"}
