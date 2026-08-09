@@ -1150,3 +1150,10 @@
 {"tick_id":"2026-08-09T01-50-01-503Z","ts":"2026-08-09T01:50:03.012Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
 {"tick_id":"2026-08-09T01-50-01-503Z","ts":"2026-08-09T01:50:04.929Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-08-09T01-50-01-503Z","ts":"2026-08-09T01:50:04.962Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"3fd239ad8","last_deployed":"351da0b"}
+{"tick_id":"2026-08-09T01-50-01-503Z","ts":"2026-08-09T01:59:06.959Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"outcome":"success","head":"3fd239ad8","fresh_sha":"c2973ab","elapsed_ms":541997,"delegated":false}
+{"tick_id":"2026-08-09T01-50-01-503Z","ts":"2026-08-09T01:59:07.003Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"done"}
+{"tick_id":"2026-08-09T01-50-01-503Z","ts":"2026-08-09T01:59:07.004Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-09T02-00-01-147Z","ts":"2026-08-09T02:00:01.151Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-09T02-00-01-147Z","ts":"2026-08-09T02:00:01.220Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":1,"entries":[{"id":"P8.5_env_and_playwright","blocker":"STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL env vars must be minted in Stripe dashboard by account owner before Playwright can green"}]}
+{"tick_id":"2026-08-09T02-00-01-147Z","ts":"2026-08-09T02:00:02.729Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":1,"elapsed_ms":1499,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-09T02-00-01-147Z","ts":"2026-08-09T02:00:02.787Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
