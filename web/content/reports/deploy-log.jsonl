@@ -6409,3 +6409,6 @@
 {"ts":"2026-08-09T13:56:22Z","status":"success","gates":"11/11","pid":"3312820","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"tick_id":"2026-08-09T13-47-01-423Z","loop_label":"atlassian-goal-loop","ts":"2026-08-09T13:56:22.735Z","head":"0ed49b8bf","outcome":"success","exit_code":0,"elapsed_ms":557875}
 {"ts":"2026-08-09T13:57:06.023Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-09T13-57-01-827Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-09T14-05-01-760Z","loop_label":"reseller-goal-loop","ts":"2026-08-09T14:05:07.116Z","head":"7b1269e65","outcome":"failed","exit_code":1,"elapsed_ms":10}
+{"ts":"2026-08-09T14:06:57Z","status":"success","gates":"11/11","pid":"3358312","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"tick_id":"2026-08-09T13-57-01-827Z","loop_label":"atlassian-goal-loop","ts":"2026-08-09T14:06:57.054Z","head":"fe077b072","outcome":"success","exit_code":0,"elapsed_ms":591842}
