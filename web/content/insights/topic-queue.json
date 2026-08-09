@@ -1197,6 +1197,22 @@
         "href": "/tools/pre-money-valuation-calculator"
       },
       "angle": "A tactical guide for founders moving from pre-seed to seed. It explains how to move from 'idea-based' valuation to 'traction-based' valuation using specific AU metrics and how to use the BlockID calculator to justify the number to VCs."
+    },
+    {
+      "slug": "startup-valuation-for-seed-extension-bridge-rounds",
+      "title": "Startup Valuation for Bridge Rounds: Guide for AU Founders",
+      "category": "valuation",
+      "keywords": [
+        "bridge round valuation",
+        "seed extension australia",
+        "interim funding valuation",
+        "startup bridge financing"
+      ],
+      "cta": {
+        "label": "Calculate Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      },
+      "angle": "Explain how to value a company when raising a 'bridge' or 'seed extension' round between major milestones. Provide a framework for handling valuation caps and avoiding excessive dilution when the startup isn't yet ready for a Series A priced round."
     }
   ]
 }

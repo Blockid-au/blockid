@@ -1,6 +1,31 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-for-seed-extension-bridge-rounds",
+      "title": "Bridge Round Valuation Australia: Pricing Your Seed Extension",
+      "description": "Master bridge round valuation in Australia. Learn how to price seed extensions, set valuation caps, and avoid excessive dilution before your Series A.",
+      "keywords": [
+        "bridge round valuation australia",
+        "how to value a seed extension",
+        "startup bridge financing australia",
+        "convertible note valuation cap australia",
+        "seed extension vs series a valuation",
+        "avoid dilution in bridge round",
+        "interim funding valuation framework",
+        "SAFE notes australia startup",
+        "seed extension funding terms",
+        "bridging round valuation methods",
+        "pre-series a valuation australia"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-08-09",
+      "readingTime": 5,
+      "cta": {
+        "label": "Calculate Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      }
+    },
+    {
       "slug": "startup-valuation-for-seed-round-australia",
       "title": "Seed Round Valuation Australia: Guide & Benchmarks",
       "description": "Master your seed round valuation in Australia. Get tactical guidance, valuation benchmarks, and tools to justify your startup's price to VCs.",
