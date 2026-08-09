@@ -6125,3 +6125,8 @@
 {"ts":"2026-08-09T07:04:09Z","status":"success","gates":"11/11","pid":"1558949","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"tick_id":"2026-08-09T06-55-01-364Z","loop_label":"reseller-goal-loop","ts":"2026-08-09T07:04:09.844Z","head":"c60e45a80","outcome":"success","exit_code":0,"elapsed_ms":543122}
 {"ts":"2026-08-09T07:05:06.934Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-09T07-05-01-982Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-09T07-07-01-396Z","loop_label":"atlassian-goal-loop","ts":"2026-08-09T07:07:05.881Z","head":"0f07a6afb","outcome":"failed","exit_code":1,"elapsed_ms":13}
+{"ts":"2026-08-09T07:07:07.182Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-09T07-07-01-396Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-09T07:07:08.943Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-09T07:14:08Z","status":"success","gates":"11/11","pid":"1601841","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"tick_id":"2026-08-09T07-05-01-982Z","loop_label":"reseller-goal-loop","ts":"2026-08-09T07:14:08.300Z","head":"fdac15064","outcome":"success","exit_code":0,"elapsed_ms":542207}
