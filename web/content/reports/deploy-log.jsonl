@@ -5918,3 +5918,8 @@
 {"ts":"2026-08-09T01:24:07Z","status":"success","gates":"11/11","pid":"90141","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"tick_id":"2026-08-09T01-15-01-685Z","loop_label":"reseller-goal-loop","ts":"2026-08-09T01:24:07.434Z","head":"c18ddad42","outcome":"success","exit_code":0,"elapsed_ms":542464}
 {"ts":"2026-08-09T01:25:06.261Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-09T01-25-01-558Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-09T01-27-01-868Z","loop_label":"atlassian-goal-loop","ts":"2026-08-09T01:27:06.429Z","head":"7d36f92b0","outcome":"failed","exit_code":1,"elapsed_ms":15}
+{"ts":"2026-08-09T01:27:07.604Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-09T01-27-01-868Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-09T01:27:09.662Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-09T01-25-01-558Z","loop_label":"reseller-goal-loop","ts":"2026-08-09T01:27:13.547Z","head":"c5ce7073b","outcome":"failed","exit_code":1,"elapsed_ms":128661}
+{"ts":"2026-08-09T01:27:18.264Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
