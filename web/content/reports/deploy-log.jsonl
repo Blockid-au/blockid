@@ -6766,3 +6766,5 @@
 {"ts":"2026-08-09T21:57:08.093Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-09T21:59:12Z","status":"success","gates":"11/11","pid":"1204201","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"tick_id":"2026-08-09T21-50-01-288Z","loop_label":"reseller-goal-loop","ts":"2026-08-09T21:59:12.699Z","head":"b3a727baa","outcome":"success","exit_code":0,"elapsed_ms":547840}
+{"tick_id":"2026-08-09T22-00-01-869Z","loop_label":"reseller-goal-loop","ts":"2026-08-09T22:04:46.146Z","head":"ba7a68594","outcome":"failed","exit_code":1,"elapsed_ms":280387}
+{"ts":"2026-08-09T22:04:51.048Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
