@@ -12587,3 +12587,9 @@
 {"tick_id":"2026-08-10T20-17-01-344Z","ts":"2026-08-10T20:17:01.374Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-10T20-17-01-344Z","ts":"2026-08-10T20:17:02.832Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":1,"elapsed_ms":1453,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-10T20-17-01-344Z","ts":"2026-08-10T20:17:02.877Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":7}
+{"tick_id":"2026-08-10T20-17-01-344Z","ts":"2026-08-10T20:17:03.742Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":1}
+{"tick_id":"2026-08-10T20-17-01-344Z","ts":"2026-08-10T20:17:03.759Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"56d18b89d","last_deployed":"21f6203"}
+{"tick_id":"2026-08-10T20-17-01-344Z","ts":"2026-08-10T20:17:55.237Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"outcome":"failed","head":"56d18b89d","fresh_sha":"21f6203","elapsed_ms":51478,"delegated":false}
+{"tick_id":"2026-08-10T20-17-01-344Z","ts":"2026-08-10T20:17:56.034Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_committed","from":"deploy_pending","to":"deploy_failed","fail_reason":"deploy-live.sh exit 1","commit_status":0,"push_status":1}
+{"tick_id":"2026-08-10T20-17-01-344Z","ts":"2026-08-10T20:17:56.037Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"deploy_failed","message":"phases marked deploy_failed — will retry on next tick","head":"56d18b89d"}
+{"tick_id":"2026-08-10T20-17-01-344Z","ts":"2026-08-10T20:17:56.040Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
