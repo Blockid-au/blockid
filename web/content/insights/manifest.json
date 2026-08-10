@@ -1,6 +1,30 @@
 {
   "articles": [
     {
+      "slug": "valuation-cap-table-impact-fundraising",
+      "title": "How Your Valuation Affects Your Cap Table: Founder's Guide",
+      "description": "\"Learn how startup valuation impacts your cap table, from overvaluation to investor expectations, in this comprehensive guide for founders.\"",
+      "keywords": [
+        "startup valuation cap table impact",
+        "cap table dilution calculator australia",
+        "how valuation affects founder ownership",
+        "overvaluation risks for startups",
+        "pre-seed valuation vs dilution",
+        "seed round equity dilution australia",
+        "founder control vs valuation",
+        "how to avoid down rounds australia",
+        "startup equity split guide",
+        "valuation sweet spot for founders"
+      ],
+      "category": "valuation",
+      "publishedAt": "2026-08-10",
+      "readingTime": 5,
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      }
+    },
+    {
       "slug": "startup-valuation-for-seed-extension-bridge-rounds",
       "title": "Bridge Round Valuation Australia: Pricing Your Seed Extension",
       "description": "Master bridge round valuation in Australia. Learn how to price seed extensions, set valuation caps, and avoid excessive dilution before your Series A.",
