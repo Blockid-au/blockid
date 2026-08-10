@@ -1006,3 +1006,7 @@
 {"ts":"2026-08-10T09:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":1090,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 33, \"raw\": \"33% used (187399960 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274163924 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-08-10T09:00:01Z","endpoint":"weekly-revenue-report","status":"ok","duration_ms":3333,"detail":"{\"sent\": true, \"data\": {\"startIso\": \"2026-08-03T09:00:02.757Z\", \"endIso\": \"2026-08-10T09:00:02.757Z\", \"thisWeek\": {\"count\": 2, \"audCents\": 1200}, \"prevWeek\": {\"count\": 0, \"audCents\": 0}, \"foundingTota"}
 {"ts":"2026-08-10T09:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":4956,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
+{"ts":"2026-08-10T09:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":917,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 33, \"raw\": \"33% used (187355420 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274163956 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-10T09:15:01Z","endpoint":"weekly-retention","status":"fail","duration_ms":16543,"detail":""}
+{"ts":"2026-08-10T09:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16552,"detail":""}
+{"ts":"2026-08-10T09:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":246,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
