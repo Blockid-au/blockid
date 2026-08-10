@@ -1213,6 +1213,21 @@
         "href": "/tools/pre-money-valuation-calculator"
       },
       "angle": "Explain how to value a company when raising a 'bridge' or 'seed extension' round between major milestones. Provide a framework for handling valuation caps and avoiding excessive dilution when the startup isn't yet ready for a Series A priced round."
+    },
+    {
+      "slug": "valuation-cap-table-impact-fundraising",
+      "title": "How Your Valuation Affects Your Cap Table: Founder's Guide",
+      "category": "valuation",
+      "keywords": [
+        "startup valuation impact",
+        "cap table dilution",
+        "valuation vs ownership"
+      ],
+      "cta": {
+        "label": "Calculate Your Valuation",
+        "href": "/tools/pre-money-valuation-calculator"
+      },
+      "angle": "Explain the inverse relationship between a high valuation and future dilution risks (overvaluation trap). Provide a step-by-step guide on how to find the 'sweet spot' valuation to maintain founder control while attracting investors."
     }
   ]
 }
