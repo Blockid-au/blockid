@@ -1010,3 +1010,4 @@
 {"ts":"2026-08-10T09:15:01Z","endpoint":"weekly-retention","status":"fail","duration_ms":16543,"detail":""}
 {"ts":"2026-08-10T09:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16552,"detail":""}
 {"ts":"2026-08-10T09:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":246,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
+{"ts":"2026-08-10T09:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2990,"detail":"{\"status\": \"WATCH\", \"metrics\": {\"disk\": {\"value\": 32, \"raw\": \"32% used (189311680 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274164008 free, 300GB)\", \"level\": \"ok\"}, \"memory\":"}
