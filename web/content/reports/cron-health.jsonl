@@ -1029,3 +1029,4 @@
 {"ts":"2026-08-11T22:00:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":98622,"detail":"{\"status\": \"DANGER\", \"metrics\": {\"disk\": {\"value\": 35, \"raw\": \"35% used (180671028 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274135952 free, 300GB)\", \"level\": \"ok\"}, \"memory\":"}
 {"ts":"2026-08-11T22:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":106345,"detail":""}
 {"ts":"2026-08-11T22:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":1818,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 35, \"raw\": \"35% used (180631392 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274135944 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-08-11T22:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":150,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
