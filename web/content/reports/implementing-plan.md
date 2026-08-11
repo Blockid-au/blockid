@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.3.3  ·  **Updated:** 2026-08-10T16:00:01.970Z  ·  **Decided by:** ceo (2026-08-10T12:04:04.998Z)
+**Version:** v3.3.3  ·  **Updated:** 2026-08-11T12:04:02.560Z  ·  **Decided by:** ceo (2026-08-11T12:04:02.560Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -36,6 +36,9 @@
 | T0185 | CFO | Implement AU R&D Tax Incentive & ESIC logic into Valuation Engine | minor | ⬜ pending |
 | T0186 | CRO | Implement DIRECTION engine for SCN layer sequencing | major | ⬜ pending |
 | T0187 | RND | Deploy Founder Pain-Point Insight API | minor | ⬜ pending |
+| T0188 | CFO | Implement Multi-Method Valuation Engine with AU-Specific Logic | minor | ⬜ pending |
+| T0189 | CRO | Develop DIRECTION Engine for SCN Layer Sequencing | major | ⬜ pending |
+| T0190 | CLO | Integrate Privacy Act and ASIC Guidance Compliance Module | minor | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0236` **RND** — T0111 AI Idea Lab — sector-aware angle generator
