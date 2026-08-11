@@ -8025,3 +8025,4 @@
 {"tick_id":"2026-08-11T18-20-01-692Z","loop_label":"reseller-goal-loop","ts":"2026-08-11T18:21:26.777Z","head":"8e75a67c8","outcome":"failed","exit_code":1,"elapsed_ms":82342}
 {"tick_id":"2026-08-11T18-25-01-871Z","loop_label":"reseller-goal-loop","ts":"2026-08-11T18:26:01.269Z","head":"d9129845d","outcome":"failed","exit_code":1,"elapsed_ms":56654}
 {"tick_id":"2026-08-11T18-35-01-337Z","loop_label":"reseller-goal-loop","ts":"2026-08-11T18:35:55.297Z","head":"5865d698f","outcome":"failed","exit_code":1,"elapsed_ms":51567}
+{"tick_id":"2026-08-11T18-37-02-036Z","loop_label":"atlassian-goal-loop","ts":"2026-08-11T18:37:55.591Z","head":"684d2ec6c","outcome":"failed","exit_code":1,"elapsed_ms":51007}
