@@ -7732,3 +7732,4 @@
 {"tick_id":"2026-08-11T01-57-01-553Z","loop_label":"atlassian-goal-loop","ts":"2026-08-11T01:57:56.908Z","head":"567643cfd","outcome":"failed","exit_code":1,"elapsed_ms":52976}
 {"tick_id":"2026-08-11T02-00-01-879Z","loop_label":"reseller-goal-loop","ts":"2026-08-11T02:00:57.040Z","head":"786cb092a","outcome":"failed","exit_code":1,"elapsed_ms":52356}
 {"tick_id":"2026-08-11T02-05-01-292Z","loop_label":"reseller-goal-loop","ts":"2026-08-11T02:05:53.797Z","head":"849815efc","outcome":"failed","exit_code":1,"elapsed_ms":50169}
+{"tick_id":"2026-08-11T02-07-01-313Z","loop_label":"atlassian-goal-loop","ts":"2026-08-11T02:07:53.698Z","head":"728037c98","outcome":"failed","exit_code":1,"elapsed_ms":50019}
