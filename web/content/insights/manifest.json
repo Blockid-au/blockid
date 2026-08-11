@@ -1,6 +1,32 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-cap-table-cleaning-guide",
+      "title": "Cap Table Cleanup Australia: Fix Your Equity Before Funding",
+      "description": "Prepare for Series A due diligence with professional cap table cleanup in Australia. Resolve dead equity and undocumented promises to secure your investmen",
+      "keywords": [
+        "cap table cleanup australia",
+        "how to fix messy cap table",
+        "startup equity audit australia",
+        "dead equity startup solutions",
+        "series a due diligence checklist australia",
+        "cleaning up cap table before funding",
+        "startup equity distribution australia",
+        "removing inactive founders from cap table",
+        "cap table management for australian startups",
+        "how to handle undocumented equity promises",
+        "startup share registry cleanup australia",
+        "equity restructuring for series a"
+      ],
+      "category": "cap-table",
+      "publishedAt": "2026-08-11",
+      "readingTime": 5,
+      "cta": {
+        "label": "Run Valuation Score",
+        "href": "/score"
+      }
+    },
+    {
       "slug": "valuation-cap-table-impact-fundraising",
       "title": "How Your Valuation Affects Your Cap Table: Founder's Guide",
       "description": "\"Learn how startup valuation impacts your cap table, from overvaluation to investor expectations, in this comprehensive guide for founders.\"",
