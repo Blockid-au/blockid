@@ -8058,3 +8058,4 @@
 {"tick_id":"2026-08-11T20-17-01-992Z","loop_label":"atlassian-goal-loop","ts":"2026-08-11T20:17:53.132Z","head":"4e5401c7d","outcome":"failed","exit_code":1,"elapsed_ms":48768}
 {"tick_id":"2026-08-11T20-20-01-235Z","loop_label":"reseller-goal-loop","ts":"2026-08-11T20:20:54.462Z","head":"c30694463","outcome":"failed","exit_code":1,"elapsed_ms":50789}
 {"tick_id":"2026-08-11T20-25-01-782Z","loop_label":"reseller-goal-loop","ts":"2026-08-11T20:25:55.587Z","head":"f9b95fdc2","outcome":"failed","exit_code":1,"elapsed_ms":51362}
+{"tick_id":"2026-08-11T20-27-01-316Z","loop_label":"atlassian-goal-loop","ts":"2026-08-11T20:27:54.476Z","head":"770b62914","outcome":"failed","exit_code":1,"elapsed_ms":50779}
