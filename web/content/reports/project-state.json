@@ -1,6 +1,6 @@
 {
   "version": "3.3.3",
-  "updatedAt": "2026-08-10T16:00:01.970Z",
+  "updatedAt": "2026-08-11T12:04:02.560Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-07-22T14:00:02.174Z",
@@ -32,7 +32,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-08-10T12:04:04.998Z",
+    "decidedAt": "2026-08-11T12:04:02.560Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1366,6 +1366,33 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-08-06T12:04:02.588Z"
+      },
+      {
+        "id": "T0188",
+        "agent": "cfo",
+        "title": "Implement Multi-Method Valuation Engine with AU-Specific Logic",
+        "rationale": "Consolidates the CFO's research on VC Method, DCF, and Berkus, specifically integrating the R&D Tax Incentive and ESIC logic to provide an accurate 'Value' layer for AU founders.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-11T12:04:02.560Z"
+      },
+      {
+        "id": "T0189",
+        "agent": "cro",
+        "title": "Develop DIRECTION Engine for SCN Layer Sequencing",
+        "rationale": "Implements the CEO's 'Next-Best-Action' vision, turning the SCN framework (Validation → Position → Value → Direction → Capital) into a programmable sequence that guides founders based on their weakest layer.",
+        "versionImpact": "major",
+        "status": "pending",
+        "createdAt": "2026-08-11T12:04:02.560Z"
+      },
+      {
+        "id": "T0190",
+        "agent": "clo",
+        "title": "Integrate Privacy Act and ASIC Guidance Compliance Module",
+        "rationale": "Translates the CLO's research on Privacy Act amendments and ASIC updates into a check-list/validation module to ensure founders are legally 'Investment Ready'.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-11T12:04:02.560Z"
       }
     ]
   },
