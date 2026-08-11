@@ -1228,6 +1228,21 @@
         "href": "/tools/pre-money-valuation-calculator"
       },
       "angle": "Explain the inverse relationship between a high valuation and future dilution risks (overvaluation trap). Provide a step-by-step guide on how to find the 'sweet spot' valuation to maintain founder control while attracting investors."
+    },
+    {
+      "slug": "startup-valuation-cap-table-cleaning-guide",
+      "title": "How to Clean Your Cap Table Before a Series A (Australia)",
+      "category": "cap-table",
+      "keywords": [
+        "cap table cleanup",
+        "startup equity audit",
+        "Series A readiness Australia"
+      ],
+      "cta": {
+        "label": "Run Valuation Score",
+        "href": "/score"
+      },
+      "angle": "A practical guide for founders to identify and fix 'messy' equity structures—such as dead equity or undocumented promises—before undergoing institutional due diligence. Explains how a clean cap table increases valuation and reduces deal friction."
     }
   ]
 }
