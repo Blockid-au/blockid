@@ -1,6 +1,7 @@
 /**
  * src/lib/agents/cmo-market-research.ts
- * BlockID.au CMO Domain Module – Updated with 2024‑2026 Australian market research
+ * BlockID.au CMO Domain Module – Updated with 2024-2026 Australian market research
+ * Focus: Positioning 'Startup Navigation System' vs Financial Utilities
  */
 
 export interface CompetitorProfile {
@@ -38,6 +39,8 @@ export interface CompetitorProfile {
   latestCapitalModuleReleaseDate?: string;
   /** Early adopter adoption rate for new capital features (0‑1) */
   capitalFeatureAdoptionRate?: number;
+  /** Whether the tool is positioned as a 'Navigation/Roadmap' system vs a 'Utility' (Strategic Multiple Impact) */
+  isPositionedAsStrategicNavigation: boolean;
 }
 
 /**
@@ -56,131 +59,104 @@ export interface CustomerSegment {
   aiPrioritizationRate: number;
   /** Average dilution rate observed in this segment (0‑1) */
   averageDilutionRate: number;
+  /** Preference for roadmap/dilution planning over simple valuation (0-1) */
+  roadmapPreferenceRate: number;
+  /** Target Burn Multiple for this segment (Benchmark: < 1.5x) */
+  targetBurnMultiple: number;
 }
 
 /**
- * Valuation benchmark data for Australian startups
+ * Australian Market Benchmarks 2024-2026
  */
-export const valuationBenchmarks = {
-  preSeed: { min: 1_000_000, max: 3_000_000 },
-  seed: { min: 3_000_000, max: 7_000_000 },
-  saasMultipleCompression: { min: 4, max: 8 },
-  medianRevenueMultiple: { min: 4, max: 7 },
-  burnMultipleHealthy: 1.5,
-  aiPremiumMultiplier: { min: 1.5, max: 2.5 },
-} as const;
-
-/**
- * Content‑marketing benchmark data
- */
-export const contentMarketingBenchmarks = {
-  conversionRate: { min: 0.021, max: 0.054 }, // 2.1%‑5.4%
-  shortFormVideoEngagement: { min: 0.03, max: 0.07 }, // 3%‑7%
-  genAIProductionReduction: 0.30, // 30% reduction
-  editingCostIncrease: 0.20, // 20% increase
-} as const;
-
-/**
- * SEO benchmark data
- */
-export const seoBenchmarks = {
-  ctrDrop: { min: -0.25, max: -0.15 }, // -15% to -25%
-  coreWebVitalsINPThresholdMs: 200,
-  contentDecayDrop: { min: 0.30, max: 0.50 }, // 30%‑50%
-} as const;
-
-/**
- * Calculates a valuation range based on startup stage and optional ARR.
- * Applies SaaS multiple compression when ARR is supplied.
- *
- * @param stage Startup funding stage ('pre-seed' | 'seed')
- * @param arr Annual Recurring Revenue in AUD (optional)
- * @returns Minimum and maximum valuation in AUD
- */
-export function estimateValuation(
-  stage: 'pre-seed' | 'seed',
-  arr?: number
-): { min: number; max: number } {
-  const base = stage === 'pre-seed' ? valuationBenchmarks.preSeed : valuationBenchmarks.seed;
-  if (arr !== undefined) {
-    const minMultiple = valuationBenchmarks.saasMultipleCompression.min;
-    const maxMultiple = valuationBenchmarks.saasMultipleCompression.max;
-    return {
-      min: Math.round(arr * minMultiple),
-      max: Math.round(arr * maxMultiple),
-    };
+export const AU_MARKET_BENCHMARKS = {
+  VALUATIONS: {
+    /** Average Seed Stage Valuation (AU) - Range A$3M to A$7M */
+    SEED_AVG_MIN: 3000000,
+    SEED_AVG_MAX: 7000000,
+    /** Typical discount rate applied to AU pre-revenue startups vs US counterpart (0.10 - 0.15) */
+    AU_US_DISCOUNT_RATE: 0.125,
+    /** Median Revenue Multiple for B2B SaaS AU (4x - 8x) */
+    B2B_SAAS_MEDIAN_MULTIPLE_MIN: 4,
+    B2B_SAAS_MEDIAN_MULTIPLE_MAX: 8,
+    /** Strategic/Growth Tool Multiples (8x - 12x) */
+    STRATEGIC_MULTIPLE_MIN: 8,
+    STRATEGIC_MULTIPLE_MAX: 12,
+    /** Financial Utility Multiples (4x - 6x) */
+    UTILITY_MULTIPLE_MIN: 4,
+    UTILITY_MULTIPLE_MAX: 6,
+    /** Seed-stage AI startups Global/AU Multiples (15x - 25x) */
+    AI_SEED_MULTIPLE_MIN: 15,
+    AI_SEED_MULTIPLE_MAX: 25,
+  },
+  MARKETING: {
+    /** Average B2B Content Marketing Conversion Rate (2.3% - 5.2%) */
+    B2B_CONTENT_CONV_MIN: 0.023,
+    B2B_CONTENT_CONV_MAX: 0.052,
+    /** Organic CTR for Top 3 Search Results (Declining due to AI Overviews: 10% - 30%) */
+    ORGANIC_CTR_MIN: 0.10,
+    ORGANIC_CTR_MAX: 0.30,
+    /** CPA reduction via Content vs Paid over 12 months (62% lower) */
+    CONTENT_CPA_REDUCTION: 0.62,
+    /** SGE/AI Overview Click-Through Rate Reduction (18% - 30%) */
+    SGE_CTR_IMPACT_MIN: 0.18,
+    SGE_CTR_IMPACT_MAX: 0.30,
+    /** Gen Z preference for Social Discovery over Google (40%) */
+    GENZ_SOCIAL_DISCOVERY_RATE: 0.40,
+    /** Traffic Volatility Post-Core Update (15% - 25%) */
+    CORE_UPDATE_VOLATILITY_MIN: 0.15,
+    CORE_UPDATE_VOLATILITY_MAX: 0.25,
+  },
+  ECOSYSTEM: {
+    /** VC Funding Volume Trend YoY (-20% to -30%) */
+    VC_FUNDING_TREND_MIN: -0.30,
+    VC_FUNDING_TREND_MAX: -0.20,
+    /** Adoption rate of AI-assisted valuation tools among VCs (35% increase YoY) */
+    VC_AI_TOOL_ADOPTION_INCREASE: 0.35,
   }
-  return { min: base.min, max: base.max };
+};
+
+/**
+ * Calculates the estimated valuation based on positioning (Strategic vs Utility)
+ * Incorporates the finding that 'Navigation' tools command higher multiples.
+ */
+export function calculatePositioningValuation(arr: number, isStrategic: boolean, isAI: boolean = false): number {
+  if (isAI) {
+    return arr * ((AU_MARKET_BENCHMARKS.VALUATIONS.AI_SEED_MULTIPLE_MIN + AU_MARKET_BENCHMARKS.VALUATIONS.AI_SEED_MULTIPLE_MAX) / 2);
+  }
+  
+  const multiple = isStrategic 
+    ? (AU_MARKET_BENCHMARKS.VALUATIONS.STRATEGIC_MULTIPLE_MIN + AU_MARKET_BENCHMARKS.VALUATIONS.STRATEGIC_MULTIPLE_MAX) / 2
+    : (AU_MARKET_BENCHMARKS.VALUATIONS.UTILITY_MULTIPLE_MIN + AU_MARKET_BENCHMARKS.VALUATIONS.UTILITY_MULTIPLE_MAX) / 2;
+    
+  return arr * multiple;
 }
 
 /**
- * Computes dilution percentage for a funding round.
- *
- * @param roundAmount Amount raised in the round (AUD)
- * @param preMoneyValuation Pre‑money valuation before the round (AUD)
- * @returns Dilution as a fraction (0‑1)
+ * Forecasts the impact of SGE (Search Generative Experience) on top-of-funnel traffic
  */
-export function calculateDilution(
-  roundAmount: number,
-  preMoneyValuation: number
-): number {
-  if (preMoneyValuation <= 0) return 0;
-  return roundAmount / (preMoneyValuation + roundAmount);
+export function forecastSGETrafficImpact(currentMonthlyClicks: number): { expectedClicks: number; potentialLoss: number } {
+  const avgLoss = (AU_MARKET_BENCHMARKS.MARKETING.SGE_CTR_IMPACT_MIN + AU_MARKET_BENCHMARKS.MARKETING.SGE_CTR_IMPACT_MAX) / 2;
+  const potentialLoss = currentMonthlyClicks * avgLoss;
+  return {
+    expectedClicks: currentMonthlyClicks - potentialLoss,
+    potentialLoss: potentialLoss
+  };
 }
 
 /**
- * Estimates the number of conversions from traffic based on the appropriate benchmark.
- *
- * @param traffic Monthly website visitors
- * @param stage Funnel stage ('awareness' | 'consideration' | 'decision')
- * @returns Expected conversions
+ * Evaluates if a startup is within the healthy burn multiple range for AU B2B SaaS
  */
-export function estimateConversions(
-  traffic: number,
-  stage: 'awareness' | 'consideration' | 'decision'
-): number {
-  const rate = contentMarketingBenchmarks.conversionRate;
-  const factor = stage === 'decision' ? rate.max : rate.min;
-  return Math.round(traffic * factor);
+export function evaluateBurnHealth(netBurn: number, netNewARR: number): { isHealthy: boolean; burnMultiple: number } {
+  const burnMultiple = netNewARR === 0 ? Infinity : netBurn / netNewARR;
+  return {
+    isHealthy: burnMultiple < 1.5,
+    burnMultiple: burnMultiple
+  };
 }
 
 /**
- * Adjusts organic traffic after a Core Update based on content decay benchmark.
- *
- * @param currentTraffic Current organic traffic volume
- * @param isAIGenerated Whether the content was primarily AI‑generated without human edit
- * @returns Adjusted traffic estimate
+ * Calculates the content marketing ROI advantage over paid channels
  */
-export function adjustTrafficForCoreUpdate(
-  currentTraffic: number,
-  isAIGenerated: boolean
-): number {
-  const drop = isAIGenerated ? seoBenchmarks.contentDecayDrop.max : seoBenchmarks.contentDecayDrop.min;
-  return Math.round(currentTraffic * (1 - drop));
+export function calculateContentCPASavings(paidCPA: number): number {
+  return paidCPA * AU_MARKET_BENCHMARKS.MARKETING.CONTENT_CPA_REDUCTION;
 }
-
-/**
- * Returns the expected time to generate a valuation report based on competitor benchmarks.
- *
- * @param competitorFeatureCount Number of AI‑powered valuation features a competitor offers
- * @returns Estimated generation time in minutes
- */
-export function valuationReportTime(competitorFeatureCount: number): number {
-  const baseTime = 5; // minutes (benchmark <5)
-  const reductionPerFeature = 0.3;
-  const estimated = baseTime - competitorFeatureCount * reductionPerFeature;
-  return Math.max(1, Math.round(estimated));
-}
-
-/**
- * Provides a snapshot of Australian startup ecosystem metrics.
- */
-export const australianStartupMetrics = {
-  averagePreSeedValuation: valuationBenchmarks.preSeed,
-  averageSeedValuation: valuationBenchmarks.seed,
-  medianRevenueMultiple: valuationBenchmarks.medianRevenueMultiple,
-  healthyBurnMultiple: valuationBenchmarks.burnMultipleHealthy,
-  aiPremiumMultiplier: valuationBenchmarks.aiPremiumMultiplier,
-  founderToolAdoptionRate: 0.65, // 65% prefer integrated guidance
-  typicalSeedDilution: { min: 0.15, max: 0.25 },
-} as const;
