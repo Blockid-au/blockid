@@ -192,3 +192,5 @@
 {"stage":"deploy","ok":true,"message":"Production running — HTTP 200","aiCalls":0,"durationMs":322,"timestamp":"2026-08-12T14:04:02.404Z"}
 {"stage":"update_artifacts","ok":true,"message":"34 task(s) still in flight","aiCalls":0,"durationMs":783,"timestamp":"2026-08-12T16:00:02.669Z"}
 {"stage":"git_push","ok":false,"message":"Merge conflict — 2 behind, needs manual resolve","aiCalls":0,"durationMs":959,"timestamp":"2026-08-12T16:00:03.628Z"}
+{"stage":"qa","ok":true,"message":"QA: ?/20 pass, 0 fail","aiCalls":0,"durationMs":99583,"timestamp":"2026-08-12T18:01:41.736Z"}
+{"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":2282,"timestamp":"2026-08-12T18:01:44.018Z"}
