@@ -1,6 +1,32 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-for-employee-equity-grants",
+      "title": "Employee Equity Valuation Australia: A Guide for Founders",
+      "description": "Master employee equity valuation in Australia. Ensure ATO compliance for your ESOP and share grants with BlockID's expert valuation frameworks.",
+      "keywords": [
+        "startup share price australia",
+        "employee equity valuation australia",
+        "how to value startup shares for employees",
+        "ESOP valuation australia",
+        "startup equity grant tax australia",
+        "fair market value shares australia",
+        "employee share scheme valuation",
+        "valuing early stage startup for equity",
+        "startup dilution calculator australia",
+        "ATO employee share schemes guide",
+        "pre-seed valuation for equity grants",
+        "BlockID startup valuation"
+      ],
+      "category": "equity",
+      "publishedAt": "2026-08-12",
+      "readingTime": 5,
+      "cta": {
+        "label": "Calculate Valuation",
+        "href": "/tools/valuation-calculator"
+      }
+    },
+    {
       "slug": "startup-valuation-cap-table-cleaning-guide",
       "title": "Cap Table Cleanup Australia: Fix Your Equity Before Funding",
       "description": "Prepare for Series A due diligence with professional cap table cleanup in Australia. Resolve dead equity and undocumented promises to secure your investmen",

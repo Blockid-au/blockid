@@ -1243,6 +1243,21 @@
         "href": "/score"
       },
       "angle": "A practical guide for founders to identify and fix 'messy' equity structures—such as dead equity or undocumented promises—before undergoing institutional due diligence. Explains how a clean cap table increases valuation and reduces deal friction."
+    },
+    {
+      "slug": "startup-valuation-for-employee-equity-grants",
+      "title": "Startup Valuation for Employee Equity Grants: AU Guide",
+      "category": "equity",
+      "keywords": [
+        "employee equity valuation",
+        "startup share price Australia",
+        "equity grant valuation"
+      ],
+      "cta": {
+        "label": "Calculate Valuation",
+        "href": "/tools/valuation-calculator"
+      },
+      "angle": "Explain how to determine a fair share price for issuing new equity grants to early hires without triggering immediate tax liabilities. Focus on the balance between incentive and dilution using BlockID's tools."
     }
   ]
 }
