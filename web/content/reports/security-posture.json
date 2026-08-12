@@ -1,5 +1,5 @@
 {
-  "date": "2026-08-11",
+  "date": "2026-08-12",
   "overall": 20,
   "status": "RED",
   "dimensions": [
@@ -84,10 +84,10 @@
       "key": "deploy_hygiene",
       "label": "Deploy hygiene",
       "score": 0,
-      "detail": "last deploy 999d ago, 1006 unpushed commits",
+      "detail": "last deploy 999d ago, 1869 unpushed commits",
       "findings": [
         "Last deploy was 999 days ago",
-        "1006 unpushed local commits (drift risk)"
+        "1869 unpushed local commits (drift risk)"
       ]
     }
   ],
