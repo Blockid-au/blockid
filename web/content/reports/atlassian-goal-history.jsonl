@@ -16623,3 +16623,5 @@
 {"tick_id":"2026-08-13T16-57-01-423Z","ts":"2026-08-13T16:57:01.424Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-13T16-57-01-423Z","ts":"2026-08-13T16:57:01.461Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-13T16-57-58-000Z","ts":"2026-08-13T16:57:58.000Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","message":"P0-P9 terminal (done/shipped); P8 human_blocked; overall goal in_progress awaiting P8 founder review sign-off (Q1..Q10)","picked":null}
+{"tick_id":"2026-08-13T16-57-01-423Z","ts":"2026-08-13T16:58:08.543Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":67077,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-13T16-57-01-423Z","ts":"2026-08-13T16:58:08.614Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":5}
