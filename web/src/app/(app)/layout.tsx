@@ -27,11 +27,29 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Prefer the Supabase anon session (SSO cookie) but fall back to the
   // legacy `sessions` table via getCurrentUser — both auth systems are
   // in flight (§8.9). Either one being present = signed in.
-  const client = await getServerAnonClient();
+  //
+  // The Supabase probe is wrapped in try/catch because `auth.getUser()`
+  // in @supabase/ssr may THROW (not just return `{data:{user:null}}`)
+  // when it hits stale/rotated `sb-*-auth-token` cookies whose refresh
+  // path errors — a very common shape for reseller-provisioned accounts
+  // that were originally magic-linked before password auth landed. A
+  // thrown error inside a Server Component layout crashes the render,
+  // which the browser sees as a failed navigation → the user bounces
+  // back to /auth/login and thinks the session didn't stick. Swallow
+  // the throw and fall through to the legacy `blockid_session` check
+  // so a stale Supabase cookie can never invalidate a live custom
+  // session.
   let signedIn = false;
-  if (client) {
-    const { data } = await client.auth.getUser();
-    if (data?.user) signedIn = true;
+  try {
+    const client = await getServerAnonClient();
+    if (client) {
+      const { data } = await client.auth.getUser();
+      if (data?.user) signedIn = true;
+    }
+  } catch {
+    // Fall through to the legacy check below — never let a Supabase
+    // client error kill the authenticated layout for a user whose
+    // `blockid_session` is perfectly valid.
   }
   if (!signedIn) {
     const legacy = await getCurrentUser();
