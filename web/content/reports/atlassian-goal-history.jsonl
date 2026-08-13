@@ -16609,3 +16609,6 @@
 {"tick_id":"2026-08-13T16-27-01-719Z","ts":"2026-08-13T16:37:31.938Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"outcome":"success","head":"748523fc9","fresh_sha":"808500f","elapsed_ms":583326,"delegated":false}
 {"tick_id":"2026-08-13T16-27-01-719Z","ts":"2026-08-13T16:37:31.954Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"done"}
 {"tick_id":"2026-08-13T16-27-01-719Z","ts":"2026-08-13T16:37:31.954Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-13T16-47-02-052Z","ts":"2026-08-13T16:47:02.052Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-13T16-47-02-052Z","ts":"2026-08-13T16:47:02.080Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-13T16-48-16-064Z","ts":"2026-08-13T16:48:16.064Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","message":"P0-P9 terminal (done/shipped/human_blocked); overall goal in_progress awaiting P8 founder review sign-off (Q1..Q10)","picked":null}
