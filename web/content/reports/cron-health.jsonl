@@ -859,3 +859,4 @@
 {"ts":"2026-08-13T16:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":4015,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 39, \"raw\": \"39% used (169765588 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274058700 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-08-13T16:15:01Z","endpoint":"vesting","status":"ok","duration_ms":234,"detail":"{\"processed\": 1, \"completed\": 0, \"emailed\": 0}"}
 {"ts":"2026-08-13T16:15:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16514,"detail":""}
+{"ts":"2026-08-13T16:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":233,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
