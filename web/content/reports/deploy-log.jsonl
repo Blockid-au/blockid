@@ -9023,3 +9023,8 @@
 {"ts":"2026-08-13T20:24:08.124Z","event":"github-push-master","detail":"Blockid-au: chore(atlassian-loop): P5-equity-grants-route-test — colocated 43-case vitest for /api/equity/grants (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T20:24:24.082Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-13T20-17-02-044Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T20:30:34.085Z","event":"github-push-master","detail":"Blockid-au: chore(reseller-loop): P11.602 pure-lib peak-to-quattuorseptuagintcentinagintic-mean (M_174) (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-13T20-25-01-880Z","loop_label":"reseller-goal-loop","ts":"2026-08-13T20:30:41.032Z","head":"682cc14f7","outcome":"failed","exit_code":1,"elapsed_ms":11}
+{"ts":"2026-08-13T20:30:41.904Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-13T20-25-01-880Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-13T20:30:45.306Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-13T20:34:39Z","status":"success","gates":"11/11","pid":"476353","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"tick_id":"2026-08-13T20-17-02-044Z","loop_label":"atlassian-goal-loop","ts":"2026-08-13T20:34:39.866Z","head":"d9ead3875","outcome":"success","exit_code":0,"elapsed_ms":616845}
