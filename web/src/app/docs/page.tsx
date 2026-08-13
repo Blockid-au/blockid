@@ -3,11 +3,16 @@ import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { JOURNEY_VOCAB_VERSION } from "@/lib/journey-vocabulary";
+import {
+  getPlatformConfig,
+  founding_price_aud,
+  growth_price_monthly_aud,
+} from "@/lib/platform-config";
 
 export const metadata: Metadata = {
-  title: "BlockID Platform Docs — Plans, Audits, and the Multi-Agent Workflow",
+  title: "BlockID Platform Docs — Company, Roadmap, Team, SVI & Founding 100",
   description:
-    "Public entry point to BlockID.au platform documentation — plan deltas, workflow audits, and the canonical journey vocabulary that keeps 17 AI-agent C-Levels on the same page.",
+    "Public entry point to BlockID.au platform documentation — company overview, product roadmap, the 11-role AI C-Level team, the 8-dimension Startup Value Index (SVI), Founding 100 lifetime deal, plus plan deltas and the canonical journey vocabulary.",
   alternates: {
     canonical: "https://blockid.au/docs",
   },
@@ -53,6 +58,150 @@ const RECENTLY_UPDATED_DOCS: DocEntry[] = [
     summary:
       "Consolidates 20 blocking findings from CTO, CFO, CISO, and CLO into concrete plan-file amendments; P1 migrations 0091+ stay blocked until every blocker returns allow.",
   },
+];
+
+// ---------------------------------------------------------------------------
+// Startup Value Index (SVI) — 8 canonical dimensions. Weights are read live
+// from platform-config (admin editable at /admin/config); the descriptions
+// below stay static because they define the framework itself.
+// ---------------------------------------------------------------------------
+
+type SviDimension = {
+  code: "ftv" | "mpc" | "ptd" | "tre" | "cgh" | "iri" | "lco" | "svm";
+  name: string;
+  blurb: string;
+};
+
+const SVI_DIMENSIONS: SviDimension[] = [
+  {
+    code: "ftv",
+    name: "Founder-Team Viability",
+    blurb:
+      "Founder-market fit, complementary skills, resilience, and full-time commitment.",
+  },
+  {
+    code: "mpc",
+    name: "Market & Problem Clarity",
+    blurb:
+      "TAM/SAM/SOM sanity, ICP crispness, and whether the pain is acute enough to pay.",
+  },
+  {
+    code: "ptd",
+    name: "Product & Tech Depth",
+    blurb:
+      "Defensibility of the build — architecture, data moat, IP, and shipping cadence.",
+  },
+  {
+    code: "tre",
+    name: "Traction & Revenue Evidence",
+    blurb:
+      "Signed LOIs, paid pilots, MRR/ARR, retention curves and organic pull.",
+  },
+  {
+    code: "cgh",
+    name: "Capital & Growth Health",
+    blurb:
+      "Burn, runway, unit economics, CAC payback, and sensible dilution history.",
+  },
+  {
+    code: "iri",
+    name: "IP, Risk & Industry",
+    blurb:
+      "Regulatory exposure, IP position, key-person risk, and industry tailwinds.",
+  },
+  {
+    code: "lco",
+    name: "Legal & Compliance",
+    blurb:
+      "ASIC hygiene, ESIC/R&D eligibility, ESOP scheme rules, GST/Div 83A, s708 offers.",
+  },
+  {
+    code: "svm",
+    name: "SVI Momentum",
+    blurb:
+      "Trajectory: how the seven dimensions have moved over the last N snapshots.",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Roadmap highlights — condensed from docs/ROADMAP.md + web/CHANGELOG.md.
+// Kept short here; the full living document lives in the repo.
+// ---------------------------------------------------------------------------
+
+type RoadmapItem = { title: string; note: string };
+
+const SHIPPED_HIGHLIGHTS: RoadmapItem[] = [
+  {
+    title: "Startup Package Ship 1 (Phase 3.0)",
+    note:
+      "Guided founder journey Idea → SVI → dataroom → reserved cap-table in a single Stripe SKU (A$149 + 25 seed credits). 8-step interview, per-step agent dispatch, live SVI recompute, auto-fill deliverables, public /startup/[slug] listing.",
+  },
+  {
+    title: "Reseller / wholesale module v1 (Phase 2.7)",
+    note:
+      "Full admin surface, weekly digest snapshot pipeline (delta, top-movers, streaks, contribution_margin_pct), account_type enum + impersonation trail, k-anon suppression on aggregate metrics.",
+  },
+  {
+    title: "Compliance forms (Phase 2.8)",
+    note:
+      "Founder-facing GST threshold, s708(1) small-scale personal-offer counter engine, ESIC/s708/GST/R&D deep-link pages, WGEA + Modern Slavery threshold detectors, Div 83A ESOP scheme-rules gate.",
+  },
+  {
+    title: "Exit-readiness tile (Phase 2.9)",
+    note:
+      "Per-phase InvestorReadinessTile on /dashboard/svi, weekly founder digest cron, AU comparable-exits data source wired into ch09 investor pack and CFO valuation.",
+  },
+  {
+    title: "Enhanced SVI + Multi-Agent Reports (Phase 2.5)",
+    note:
+      "13-criterion evaluation, 3-phase report generation (Gather → Analyze → Synthesize), 21 sections with agent ownership, DOCX/PDF export with brand styling, 9 AI providers.",
+  },
+  {
+    title: "Founding 100 auto-cutover (v3.3.2 — 2026-09-01)",
+    note:
+      "Hard-coded promo end in lib/founding-promo.ts; checkout 410, page redirect, webhook + reconcile guards; grandfathered buyers keep access on the legacy plan.",
+  },
+];
+
+const UPCOMING: RoadmapItem[] = [
+  {
+    title: "Startup Package Ship 2 (Phase 3.1)",
+    note:
+      "On-chain token mint, Remotion pitch videos (1-min / 3-min), custom subdomain hosting [slug].blockid.au, ABN + trademark guide, accelerator apply drafter, HubSpot/Zapier CRM link, 90-day-revenue tracker tile, conference recommender.",
+  },
+  {
+    title: "Phase 4 — Scale (Aug–Oct 2026)",
+    note:
+      "Investor heat scoring, multi-entity cap table, custom branding for Growth plan, public API access via developer portal, enterprise webhooks, onboarding automation.",
+  },
+  {
+    title: "Phase 5 — Ecosystem (Q4 2026+)",
+    note:
+      "Investor marketplace (after 100 paying users), secondary liquidity tools, optional blockchain anchoring, community features, AI co-pilot for fundraising prep.",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// C-Level agent roster — source of truth web/content/team-roster.json.
+// 11 active agents; each is a specialised AI that runs its own research /
+// build / report cron and reports to the CEO orchestrator.
+// ---------------------------------------------------------------------------
+
+type Advisor = { role: string; name: string; scope: string };
+
+const ADVISORS: Advisor[] = [
+  { role: "CEO", name: "CEO Orchestrator", scope: "Strategy + routing across all C-Level agents; owns the 30-day validation-MVP goal." },
+  { role: "COO", name: "COO Agent", scope: "Sprint plan, cross-team coordination, release management, operational metrics." },
+  { role: "CTO", name: "CTO Agent", scope: "Platform + infra, next-best-action engine, cost modelling, feature delivery." },
+  { role: "CFO", name: "CFO Agent", scope: "Valuation engine, financial projections, unit economics, ESOP scoring." },
+  { role: "CPO", name: "CPO Agent", scope: "Product strategy, SCN journey mapping, feature prioritisation, onboarding." },
+  { role: "CMO", name: "CMO Agent", scope: "Market research, content pillars, SEO insights, competitor analysis." },
+  { role: "CRO", name: "CRO Agent", scope: "Conversion optimisation, funnel A/B tests, retention, activation." },
+  { role: "CLO", name: "CLO Agent", scope: "ASIC, ESIC, R&D Tax Incentive, term sheets, IP, trademarks, s708 offers." },
+  { role: "CHRO", name: "CHRO Agent", scope: "Hiring plans, salary benchmarks, ESOP grants, culture, retention." },
+  { role: "CISO", name: "CISO Agent", scope: "Essential Eight, SOC2-lite, secret handling, incident response." },
+  { role: "CDO", name: "CDO Agent", scope: "Data quality gates, cohort percentile modelling, analytics governance." },
+  { role: "CS", name: "Customer Success Lead", scope: "Onboarding, NPS, churn prevention, support escalation." },
 ];
 
 const WORKFLOW_DOCS: DocEntry[] = [
