@@ -62,7 +62,7 @@ open_questions_resolved:
 tracks:
   A:
     name: reseller-module
-    current_focus: P13_p03_advisory_followups
+    current_focus: done  # P13 rolled up tick 951 (all 10 sub-phases done + parent flipped to deploy_pending per v2 protocol); frontier picker should skip Track A active phase scan — remaining P8.5 + P1.5 are human_blocked and surfaced via digest registry
     phases:
       P0_goal_and_orchestration:
         status: done
@@ -469,7 +469,10 @@ tracks:
           "CI rules R-01..R-09 all green (R-01/R-03/R-04 via npm run lint:reseller — 11+33+8 files scanned, 6 exemptions, 0 violations; R-02 via feature-gates.manifest.test.ts completeness suite 6/6; R-05 via credit-grants.test.ts sandbox-limit cases; R-06 via require-admin.test.ts 10/10 DONE P10.R06 tick 388; R-07 via hash.test.ts 6/6 + R-04 lint on Stripe metadata; R-08 via web/src/lib/reseller/docs-plans-secrets.test.ts 14/14 + .git/hooks/pre-commit wiring — DONE P10.R08 tick 389; R-09 runtime cron DONE P10.R09 tick 384; R-03 wiring on dataroom/populate-from-template DONE tick 386; R-10 typed-wrapper audit DONE P10.security_audit_typed_wrapper tick 392 — extends R-01..R-09 to R-01..R-10)"
         ]
       P13_p03_advisory_followups:
-        status: in_progress
+        status: deploy_pending
+        rollup_tick: 951
+        rollup_at: 2026-08-13
+        rollup_note: "All 10 sub-phases now `done` (P13.1-P13.10; recovery-flipped P13.1/P13.2/P13.9/P13.10 advanced by driver's P13.9 skip-branch fix since HEAD SHA a612c5c2 is confirmed live at last-good-build.json 2026-08-13T14:48:08Z with gates 11/11). Rolling parent from in_progress → deploy_pending per v2 protocol so the driver's flipPhaseStatus('deploy_pending', 'done') closes it on next tick (headSha === lastSha skip-branch flips to done immediately per P13.9 fix). No code edits this tick — pure rollup close. Frontier after this tick: Track A P8.5 STILL HUMAN-BLOCKED on STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY|ANNUAL; P1.5 InfoVision seed STILL HUMAN-BLOCKED on H.20 ABN + contact_email placeholders in 0106; P10 blocked_by P1+P8 (both human-blocked); Track B done since B10 tick 54; P11_ongoing power-mean drift deliberately-skipped since tick 936 per option (a) rescope. Loop is asymptotically at rest on Track A; expected next tick outcome = frontier empty with human_blocked_snapshot rows only."
         provenance: "New track opened tick 940 to rescope the loop away from the pathological P11.588+ power-mean drift (ticks 936-939 deliberate-skip chain requested this in option (a)). Covers the 7 non-blocking advisory follow-ups captured under P0.3 tick 55 verdicts (all approved_with_notes)."
         sub_phases:
           P13.1_brand_wording_drift_fix: {status: done, recovery_tick: 950, recovery_at: 2026-08-13, recovery_note: "P13.1 commits from tick 940 are in HEAD 57c88d8b and confirmed live via last-good-build.json (sha 57c88d8b, gates 11/11 at 2026-08-13T14:18:13Z via atlassian-loop). Flipping deploy_failed → deploy_pending so the driver's next auto_deploy_skipped skip-branch (headSha === lastSha) flips to done automatically per P13.9's fix. Same recovery pattern applied at tick 948.", files: [
