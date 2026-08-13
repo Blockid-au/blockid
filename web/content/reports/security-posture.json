@@ -1,6 +1,6 @@
 {
-  "date": "2026-08-12",
-  "overall": 20,
+  "date": "2026-08-13",
+  "overall": 24,
   "status": "RED",
   "dimensions": [
     {
@@ -83,11 +83,10 @@
     {
       "key": "deploy_hygiene",
       "label": "Deploy hygiene",
-      "score": 0,
-      "detail": "last deploy 999d ago, 1869 unpushed commits",
+      "score": 3,
+      "detail": "last deploy 999d ago, 0 unpushed commits",
       "findings": [
-        "Last deploy was 999 days ago",
-        "1869 unpushed local commits (drift risk)"
+        "Last deploy was 999 days ago"
       ]
     }
   ],
