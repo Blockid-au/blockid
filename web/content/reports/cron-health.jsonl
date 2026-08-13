@@ -1004,3 +1004,4 @@
 {"ts":"2026-08-13T03:00:01Z","endpoint":"ai-health","status":"ok","duration_ms":5695,"detail":"{\"provider\": \"groq\", \"model\": \"gemma-4-31b\", \"response\": \"OK\"}"}
 {"ts":"2026-08-13T03:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":702,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 37, \"raw\": \"37% used (174567152 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (274067180 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
 {"ts":"2026-08-13T03:15:01Z","endpoint":"reseller-clear-commissions","status":"ok","duration_ms":187,"detail":"{\"cleared\": 0, \"message\": \"no pending rows past window\"}"}
+{"ts":"2026-08-13T03:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":155,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
