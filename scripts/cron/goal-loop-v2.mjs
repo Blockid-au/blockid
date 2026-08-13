@@ -201,6 +201,12 @@ async function runDeployPhase(ctx, goalMd) {
 
     if (!headSha || headSha === lastSha) {
       await log(ctx, { stage: 'auto_deploy_skipped', reason: 'no new commits', head: headSha, last_deployed: lastSha })
+      // HEAD is already live — any deploy_pending phases are provably in production,
+      // so advance them to done rather than leaving them stuck (otherwise the retry
+      // path never flips because it early-returns before flipPhaseStatus).
+      if (hasPhasesWithStatus(goalMd, 'deploy_pending')) {
+        await flipPhaseStatus(ctx, 'deploy_pending', 'done')
+      }
       return
     }
 
