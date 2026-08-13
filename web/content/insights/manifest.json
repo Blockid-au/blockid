@@ -1,6 +1,31 @@
 {
   "articles": [
     {
+      "slug": "startup-valuation-for-tax-purposes-australia",
+      "title": "Startup Tax Valuation Australia: ATO Compliance Guide",
+      "description": "Ensure your startup tax valuation in Australia is defensible. Avoid ATO penalties and manage ESOP or share transfer taxes with expert valuation methods.",
+      "keywords": [
+        "startup tax valuation australia",
+        "ATO company valuation",
+        "taxable value of shares",
+        "CGT startup shares australia",
+        "ESOP tax implications australia",
+        "how to value startup shares for ATO",
+        "defensible startup valuation australia",
+        "valuation for employee share schemes australia",
+        "startup share transfer tax australia",
+        "ATO audit startup valuation",
+        "tax on founder shares australia"
+      ],
+      "category": "compliance",
+      "publishedAt": "2026-08-13",
+      "readingTime": 5,
+      "cta": {
+        "label": "Get Your Valuation Score",
+        "href": "/score"
+      }
+    },
+    {
       "slug": "startup-valuation-for-employee-equity-grants",
       "title": "Employee Equity Valuation Australia: A Guide for Founders",
       "description": "Master employee equity valuation in Australia. Ensure ATO compliance for your ESOP and share grants with BlockID's expert valuation frameworks.",
