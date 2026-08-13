@@ -1258,6 +1258,21 @@
         "href": "/tools/valuation-calculator"
       },
       "angle": "Explain how to determine a fair share price for issuing new equity grants to early hires without triggering immediate tax liabilities. Focus on the balance between incentive and dilution using BlockID's tools."
+    },
+    {
+      "slug": "startup-valuation-for-tax-purposes-australia",
+      "title": "Startup Valuation for Tax Purposes Australia: A Founder's Guide",
+      "category": "compliance",
+      "keywords": [
+        "startup tax valuation australia",
+        "ATO company valuation",
+        "taxable value of shares"
+      ],
+      "cta": {
+        "label": "Get Your Valuation Score",
+        "href": "/score"
+      },
+      "angle": "Focus on the critical intersection of valuation and tax obligations, specifically for founders issuing shares or dealing with CGT events. Explain how a defensible, documented valuation prevents ATO audits and penalties."
     }
   ]
 }
