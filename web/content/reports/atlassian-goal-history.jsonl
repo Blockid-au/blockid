@@ -16587,3 +16587,6 @@
 {"tick_id":"2026-08-13T16-07-01-793Z","ts":"2026-08-13T16:08:17.926Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"deploy_failed"}
 {"tick_id":"2026-08-13T16-07-01-793Z","ts":"2026-08-13T16:08:17.928Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"deploy_failed","message":"phases marked deploy_failed — will retry on next tick","head":"55b14e397"}
 {"tick_id":"2026-08-13T16-07-01-793Z","ts":"2026-08-13T16:08:17.929Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-13T16-17-01-479Z","ts":"2026-08-13T16:17:01.479Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-13T16-17-01-479Z","ts":"2026-08-13T16:17:01.505Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-13T16-25-00-000Z","ts":"2026-08-13T16:17:57.000Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","message":"P0-P9 terminal (done/shipped); P8 human_blocked; overall goal in_progress awaiting human review","picked":null}
