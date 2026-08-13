@@ -16806,3 +16806,9 @@
 {"tick_id":"2026-08-13T21-17-01-458Z","ts":"2026-08-13T21:26:21.109Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"test_gate_passed","pairs":1,"ran":1}
 {"tick_id":"2026-08-13T21-17-01-458Z","ts":"2026-08-13T21:26:28.368Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
 {"tick_id":"2026-08-13T21-17-01-458Z","ts":"2026-08-13T21:26:28.417Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"1215729f2","last_deployed":"c0815e3"}
+{"tick_id":"2026-08-13T21-17-01-458Z","ts":"2026-08-13T21:36:18.735Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":0,"outcome":"success","head":"1215729f2","fresh_sha":"b72202e","elapsed_ms":590316,"delegated":false}
+{"tick_id":"2026-08-13T21-17-01-458Z","ts":"2026-08-13T21:36:18.752Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"done"}
+{"tick_id":"2026-08-13T21-17-01-458Z","ts":"2026-08-13T21:36:18.757Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-13T21-37-01-832Z","ts":"2026-08-13T21:37:01.832Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-13T21-37-01-832Z","ts":"2026-08-13T21:37:01.855Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-13T21-37-01-832Z","ts":"2026-08-13T21:41:44.682Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P1_dataroom_map","detail":"P5-equity-id-route-test — 25 tests green for PATCH+DELETE /api/equity/[id]"}
