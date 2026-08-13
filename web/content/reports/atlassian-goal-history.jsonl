@@ -16760,3 +16760,5 @@
 {"tick_id":"2026-08-13T20-17-02-044Z","ts":"2026-08-13T20:17:02.045Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-13T20-17-02-044Z","ts":"2026-08-13T20:17:02.071Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-13T20-23-40-772Z","ts":"2026-08-13T20:23:40.770Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5-equity-grants-route-test","under":"P5_investor_readiness_score","test_file":"web/src/app/api/equity/grants/route.test.ts","cases":43,"vitest_pass":true,"tsc_clean":true}
+{"tick_id":"2026-08-13T20-17-02-044Z","ts":"2026-08-13T20:24:20.630Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":438555,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-13T20-17-02-044Z","ts":"2026-08-13T20:24:20.671Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":8}

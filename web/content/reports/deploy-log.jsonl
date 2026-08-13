@@ -9020,3 +9020,4 @@
 {"ts":"2026-08-13T20:22:39Z","status":"success","gates":"11/11","pid":"426534","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"tick_id":"2026-08-13T20-05-00-910Z","loop_label":"reseller-goal-loop","ts":"2026-08-13T20:22:39.944Z","head":"ea9ad28ab","outcome":"success","exit_code":0,"elapsed_ms":628910}
 {"ts":"2026-08-13T20:22:44.593Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → done (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-13T20:24:08.124Z","event":"github-push-master","detail":"Blockid-au: chore(atlassian-loop): P5-equity-grants-route-test — colocated 43-case vitest for /api/equity/grants (1 commits)","source":"github-webhook"}
