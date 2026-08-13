@@ -15,10 +15,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
-import {
-  readResellerLoopSnapshot,
-  readUptimeSnapshot,
-} from "@/lib/autonomous-loop-metrics";
+import { readUptimeSnapshot } from "@/lib/platform-metrics";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -231,10 +228,9 @@ const SERVICE_STATUS_LABEL: Record<ServiceStatus, string> = {
 // ---------- Component ----------
 
 export default async function StatusPage() {
-  const [status, history, resellerLoop, uptime] = await Promise.all([
+  const [status, history, uptime] = await Promise.all([
     loadStatus(),
     loadDeployHistory(10),
-    readResellerLoopSnapshot(),
     readUptimeSnapshot(),
   ]);
 
@@ -457,38 +453,17 @@ export default async function StatusPage() {
           </div>
         </div>
 
-        {/* Autonomous loop */}
-        <div aria-labelledby="status-autonomous" className="mt-10">
+        {/* Uptime guardian */}
+        <div aria-labelledby="status-uptime-guardian" className="mt-10">
           <h3
-            id="status-autonomous"
+            id="status-uptime-guardian"
             className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
           >
-            Autonomous loop
+            Uptime guardian
           </h3>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-4">
-              <p className="text-sm font-medium text-[var(--fintech-ink)]">Reseller loop</p>
-              <p className="mt-3 font-mono text-2xl text-[var(--fintech-ink)]">
-                {resellerLoop?.current_tick_number !== null && resellerLoop?.current_tick_number !== undefined
-                  ? `tick ${resellerLoop.current_tick_number}`
-                  : DASH}
-              </p>
-              <p className="text-xs text-[var(--fintech-ink-muted)]">
-                {resellerLoop?.current_phase
-                  ? `${resellerLoop.current_phase} • `
-                  : ""}
-                {resellerLoop
-                  ? `${resellerLoop.total_ticks_completed} ticks in history`
-                  : "no history"}
-              </p>
-              {resellerLoop?.tick_state ? (
-                <p className="mt-2 font-mono text-xs text-[var(--fintech-ink-muted)]">
-                  {resellerLoop.tick_state}
-                </p>
-              ) : null}
-            </div>
-            <div className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-4">
-              <p className="text-sm font-medium text-[var(--fintech-ink)]">Uptime guardian</p>
+              <p className="text-sm font-medium text-[var(--fintech-ink)]">Current state</p>
               <p className="mt-3 font-mono text-2xl text-[var(--fintech-ink)]">
                 {uptime ? (uptime.last_healthy ? "Healthy" : "Unhealthy") : DASH}
               </p>
@@ -500,22 +475,6 @@ export default async function StatusPage() {
               {uptime && uptime.window_pct !== null ? (
                 <p className="mt-2 font-mono text-xs text-[var(--fintech-ink-muted)]">
                   {`24h ${uptime.window_pct.toFixed(2)}% (${uptime.window_healthy}/${uptime.window_total})`}
-                </p>
-              ) : null}
-            </div>
-            <div className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-4">
-              <p className="text-sm font-medium text-[var(--fintech-ink)]">Next reseller tick</p>
-              <p className="mt-3 font-mono text-2xl text-[var(--fintech-ink)]">
-                {resellerLoop?.next_utc || DASH}
-              </p>
-              <p className="text-xs text-[var(--fintech-ink-muted)]">
-                {resellerLoop?.seconds_until !== null && resellerLoop?.seconds_until !== undefined
-                  ? `in ~${Math.max(0, Math.round(resellerLoop.seconds_until / 60))} min`
-                  : "n/a"}
-              </p>
-              {resellerLoop?.last_tick_id ? (
-                <p className="mt-2 font-mono text-xs text-[var(--fintech-ink-muted)]">
-                  {`last ${resellerLoop.last_tick_id}`}
                 </p>
               ) : null}
             </div>

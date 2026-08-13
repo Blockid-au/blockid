@@ -52,3 +52,10 @@ chain/
 # Service build artifacts
 services/*/dist/
 services/*/node_modules/
+
+# Removed autonomous loop history files — prevent re-commit if cron recreates them
+web/content/reports/reseller-monitor.jsonl
+web/content/reports/reseller-goal-history.jsonl
+web/content/reports/reseller-weekly-digest.jsonl
+web/content/reports/atlassian-goal-history.jsonl
+web/content/reports/ux-ia-goal-history.jsonl
