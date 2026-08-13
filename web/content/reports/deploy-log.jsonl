@@ -8876,3 +8876,5 @@
 {"ts":"2026-08-13T15:48:25.489Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop tick — frontier empty (P0-P9 terminal, P8 human_blocked) (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T15:48:32.443Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-13T15-47-01-881Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T15:51:01.060Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop tick — frontier empty (P0-P13 terminal, P1.5+P8.5 human_blocked, P11_ongoing deliberately-skipped) (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-13T15-50-01-627Z","loop_label":"reseller-goal-loop","ts":"2026-08-13T15:51:09.333Z","head":"95ce43383","outcome":"failed","exit_code":1,"elapsed_ms":10}
+{"ts":"2026-08-13T15:51:10.069Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-13T15-50-01-627Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
