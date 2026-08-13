@@ -1,11 +1,10 @@
-// /stats — public autonomous-loop counters surface.
+// /stats — public platform counters surface.
 //
 // Server component. Reads directly from web/content/reports/*.jsonl and the
 // local git log via child_process. No auth, no PII. Safe for public consumption.
 //
-// This page is deliberately narrower in scope than /status: it surfaces the
-// ship velocity + autonomous-loop counters that the platform maintains. All
-// numbers derive from files the loop itself writes — nothing hardcoded.
+// Surfaces ship velocity, uptime, cron health, and deploy counters.
+// All numbers derive from files the platform writes — nothing hardcoded.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -15,9 +14,8 @@ import {
   readCommitCounters,
   readCronHealthSummary,
   readDeploySummary,
-  readResellerLoopSnapshot,
   readUptimeSnapshot,
-} from "@/lib/autonomous-loop-metrics";
+} from "@/lib/platform-metrics";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,7 +23,7 @@ export const runtime = "nodejs";
 export const metadata: Metadata = {
   title: "Stats — BlockID.au",
   description:
-    "Live counters from the autonomous loop — commits, reseller module ticks, uptime, and deploys.",
+    "Live platform counters — commits, uptime, cron health, and deploys.",
   robots: { index: true, follow: true },
   alternates: { canonical: "https://blockid.au/stats" },
 };
@@ -62,9 +60,8 @@ function fmtDuration(seconds: number | null | undefined): string {
 }
 
 export default async function StatsPage() {
-  const [commits, reseller, uptime, cron, deploys] = await Promise.all([
+  const [commits, uptime, cron, deploys] = await Promise.all([
     readCommitCounters(),
-    readResellerLoopSnapshot(),
     readUptimeSnapshot(),
     readCronHealthSummary(),
     readDeploySummary(),
@@ -76,8 +73,8 @@ export default async function StatsPage() {
     <MarketingShell>
       <MarketingHero
         eyebrow="Stats"
-        title="Autonomous loop counters"
-        subtitle="Every number here is read from a log the platform's autonomous loop writes to itself — commits, reseller module ticks, uptime probes, cron health, and deploys. Nothing on this page is hand-curated."
+        title="Platform stats"
+        subtitle="Live platform counters — commits, uptime probes, cron health, and deploys. Every number is read from a log the platform writes to itself; nothing is hand-curated."
       />
 
       <section
@@ -135,54 +132,6 @@ export default async function StatsPage() {
               label="Commits total"
               value={fmtInt(commits.total)}
               caption="lifetime on master"
-            />
-          </div>
-        </div>
-
-        {/* Reseller loop */}
-        <div aria-labelledby="stats-reseller" className="mt-10">
-          <h3
-            id="stats-reseller"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
-          >
-            Reseller autonomous loop
-          </h3>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile
-              label="Current tick"
-              value={
-                reseller?.current_tick_number !== null && reseller?.current_tick_number !== undefined
-                  ? `#${reseller.current_tick_number}`
-                  : "n/a"
-              }
-              caption={
-                reseller?.current_phase
-                  ? `phase ${reseller.current_phase}`
-                  : "phase n/a"
-              }
-            />
-            <StatTile
-              label="Ticks completed"
-              value={fmtInt(reseller?.total_ticks_completed)}
-              caption="from reseller-goal-history"
-            />
-            <StatTile
-              label="Loop state"
-              value={reseller?.tick_state ? reseller.tick_state.split(" ")[0] : "n/a"}
-              caption={
-                reseller?.last_tick_id
-                  ? `last ${reseller.last_tick_id}`
-                  : "no monitor row"
-              }
-            />
-            <StatTile
-              label="Human review, last 7d"
-              value={
-                reseller && reseller.human_review_minutes_7d !== null
-                  ? `${reseller.human_review_minutes_7d} min`
-                  : "n/a"
-              }
-              caption="loop budget"
             />
           </div>
         </div>

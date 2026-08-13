@@ -1,10 +1,8 @@
-// Shared readers for the autonomous-loop counter surfaces (/status, /stats).
+// Shared readers for the platform counter surfaces (/status, /stats).
 //
-// Every number is derived from a file that the loop itself writes:
+// Every number is derived from a file the platform writes:
 //   - web/content/reports/uptime-guardian.jsonl   — one row per minute-ish
 //   - web/content/reports/cron-health.jsonl       — one row per cron probe
-//   - web/content/reports/reseller-monitor.jsonl  — last row = current tick state
-//   - web/content/reports/reseller-goal-history.jsonl — per-tick timeline
 //   - web/content/reports/deploy-log.jsonl        — every push + deploy row
 //   - git log (via child_process)                 — commit counters
 //
@@ -32,11 +30,6 @@ async function readAllLines(file: string): Promise<string[]> {
   } catch {
     return [];
   }
-}
-
-async function readTailLines(file: string, n: number): Promise<string[]> {
-  const lines = await readAllLines(file);
-  return lines.slice(-n);
 }
 
 function safeParse<T>(line: string): T | null {
@@ -179,112 +172,6 @@ export async function readCronHealthSummary(): Promise<CronHealthSummary | null>
     fail_count_24h: fail,
     ok_rate_24h: rate,
     level,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Reseller autonomous loop
-// ---------------------------------------------------------------------------
-
-export type ResellerLoopSnapshot = {
-  monitor_ts: string;
-  head_sha: string;
-  now_utc: string;
-  next_utc: string;
-  seconds_until: number | null;
-  tick_state: string;
-  last_tick_id: string;
-  last_stage: string;
-  last_deployed: string;
-  last_dispatch_ms: number | null;
-  human_review_minutes_7d: number | null;
-  current_tick_number: number | null;
-  current_phase: string | null;
-  total_ticks_completed: number;
-};
-
-type ResellerMonitorRow = {
-  monitor_ts?: string;
-  head_sha?: string;
-  now_utc?: string;
-  next_utc?: string;
-  seconds_until?: number;
-  tick_state?: string;
-  last_tick_id?: string;
-  last_dispatch_ms?: number;
-  last_deploy_stage?: string;
-  last_deploy_status?: number;
-  last_log?: {
-    tick_id?: string;
-    ts?: string;
-    human_review_minutes_7d?: number;
-    stage?: string;
-    head?: string;
-    last_deployed?: string;
-  };
-};
-
-export async function readResellerLoopSnapshot(): Promise<ResellerLoopSnapshot | null> {
-  const monitorLines = await readTailLines(
-    path.join(REPORTS_DIR, "reseller-monitor.jsonl"),
-    1,
-  );
-  const monitor = monitorLines.length > 0 ? safeParse<ResellerMonitorRow>(monitorLines[0]) : null;
-
-  // Fall back to goal-history for last stage if monitor absent.
-  const goalLines = await readAllLines(path.join(REPORTS_DIR, "reseller-goal-history.jsonl"));
-  const uniqueTickIds = new Set<string>();
-  for (const line of goalLines) {
-    const row = safeParse<{ tick_id?: string }>(line);
-    if (row?.tick_id) uniqueTickIds.add(row.tick_id);
-  }
-
-  // Current tick number + phase from git log — the loop writes it into the commit subject.
-  let current_tick_number: number | null = null;
-  let current_phase: string | null = null;
-  try {
-    const { stdout } = await execFileP(
-      "git",
-      ["log", "--pretty=%s", "-n", "500"],
-      { cwd: REPO_ROOT, timeout: 5000, maxBuffer: 2_000_000 },
-    );
-    const re = /feat\(reseller\): tick (\d+)\s+—\s+(P\d+(?:\.\d+)?)/;
-    for (const line of stdout.split("\n")) {
-      const m = re.exec(line);
-      if (m) {
-        current_tick_number = Number(m[1]);
-        current_phase = m[2];
-        break;
-      }
-    }
-  } catch {
-    // git unavailable — leave nulls
-  }
-
-  if (!monitor && current_tick_number === null && uniqueTickIds.size === 0) {
-    return null;
-  }
-
-  return {
-    monitor_ts: monitor?.monitor_ts ?? "",
-    head_sha: monitor?.head_sha ?? "",
-    now_utc: monitor?.now_utc ?? "",
-    next_utc: monitor?.next_utc ?? "",
-    seconds_until:
-      typeof monitor?.seconds_until === "number" ? monitor.seconds_until : null,
-    tick_state: monitor?.tick_state ?? "",
-    last_tick_id: monitor?.last_log?.tick_id ?? monitor?.last_tick_id ?? "",
-    last_stage: monitor?.last_log?.stage ?? monitor?.last_deploy_stage ?? "",
-    last_deployed: monitor?.last_log?.last_deployed ?? "",
-    last_dispatch_ms:
-      typeof monitor?.last_dispatch_ms === "number" ? monitor.last_dispatch_ms : null,
-    human_review_minutes_7d:
-      typeof monitor?.last_log?.human_review_minutes_7d === "number"
-        ? monitor.last_log.human_review_minutes_7d
-        : null,
-    current_tick_number,
-    current_phase,
-    total_ticks_completed: uniqueTickIds.size,
   };
 }
 
