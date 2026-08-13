@@ -1,8 +1,28 @@
 # BlockID.au — Yêu Cầu Dự Án Và Kế Hoạch Triển Khai
 
-**Ngày cập nhật:** 2026-05-07  
-**Trạng thái:** Master planning document tổng hợp từ blueprint, GTM, upgrade plan và source hiện tại.  
-**Nguồn:** `blockid_master_project_blueprint_v1.md`, `blockid_gtm_sales_first_v1.md`, `blockid_upgrade_solution_plan_v2.md`, `blockid_ownership_trust_infrastructure_requirements_v1.md`, `web/README.md`
+**Ngày cập nhật:** 2026-08-13
+**Phiên bản hiện tại:** web `v0.6.0` · queue `v1.4` (xem [`ROADMAP.md`](./ROADMAP.md))
+**Trạng thái:** Live production, autonomous AI-agent fleet vận hành, T0094–T0101 fundraising knowledge pack hoàn tất, reseller wholesale flow live.
+**Nguồn:** `blockid_master_project_blueprint_v1.md`, `blockid_gtm_sales_first_v1.md`, `blockid_upgrade_solution_plan_v2.md`, `blockid_ownership_trust_infrastructure_requirements_v1.md`, `web/README.md`, [`ROADMAP.md`](./ROADMAP.md) (single source of truth), [`docs/TEAM_STRUCTURE.md`](./docs/TEAM_STRUCTURE.md), [`WORK_SUMMARY_T0094_T0101.md`](./WORK_SUMMARY_T0094_T0101.md)
+
+---
+
+## 0. Snapshot 2026-08-13
+
+| Mục | Giá trị |
+|---|---|
+| **Founder** | Aus Dvl (admin@blockid.au) — solo founder, AI-augmented |
+| **Team** | 11 C-Level AI agents (see [`docs/TEAM_STRUCTURE.md`](./docs/TEAM_STRUCTURE.md)) + CEO orchestrator (8× daily cron) + Guardian (10-min) |
+| **Domains** | **blockid.au** (Next 16 standalone, port 4001, bare-metal deploy) · **startupvalueindex.com** (Next 15.5 standalone, port 4002, systemd `startupvalueindex.service`, consumes `blockid.au/api/index/*`) |
+| **Deploy** | Bare-metal via `web/scripts/deploy-live.sh` (9-gate CI). Root `deploy.sh` = deprecated docker wrapper. |
+| **Config** | `platform-config.ts` = single source of truth, hot-swap qua `/admin/config` (không cần redeploy) |
+| **Pricing** | **Founding 100 = A$5 lifetime** (A$1→A$3 ngày 2026-06-17, A$3→A$5 ngày 2026-06-21, đã Stripe-sync). A/B: A$5 control 0.40, A$10 0.30, A$1 floor 0.20, A$3 legacy 0.10 |
+| **IP moat** | **BlockID Startup Value Index™** (SVI) — proprietary 8-dimension scoring framework, trademark positioning ở `/home/dovanlong/startupvalueindex.com/TRADEMARK.md` |
+| **Multi-tenant** | Mỗi user có nhiều startup — mọi analysis / cron / report phải kèm `startup_id` |
+| **Autonomous loops** | `reseller-goal-loop` (5 min), `atlassian-goal-loop` (10 min staggered), `ux-ia-goal-loop`, orchestrator (8× daily). Mọi loop có kill-switch env và self-disable khi goal xong. |
+| **Fundraising status** | Antler-ready pack hoàn tất (SVI 68/100 self-score, valuation A$440K pre-money). Data room ~47%, target 70% pre-Antler, 100% cho Series A. |
+
+Chi tiết ticket trạng thái ở [`ROADMAP.md`](./ROADMAP.md) §4-5.
 
 ---
 

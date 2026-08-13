@@ -2,8 +2,8 @@
 
 > **This is the single source of truth.** Every roadmap, plan, architecture diagram, or task list lives here or is linked from here. When in doubt, this file wins.
 
-**Current version:** `0.5.1` (web) · queue `v1.3` · release `2026-06-21 v0.5.1` — Codex removed, auto-discover free models on rate-limit storm
-**Last updated:** 2026-06-21 07:15 UTC
+**Current version:** `0.6.0` (web) · queue `v1.4` · release `2026-08-13 v0.6.0` — T0094–T0101 knowledge pack shipped, reseller wholesale flow live, Founding 100 stabilised at A$5
+**Last updated:** 2026-08-13 UTC
 
 ---
 
@@ -22,7 +22,11 @@
 | **Financial projections (3-year)** | [`FINANCIAL_PROJECTIONS_3YEAR.md`](./FINANCIAL_PROJECTIONS_3YEAR.md) | CFO |
 | **ESOP design / implementation / templates** | [`ESOP_DESIGN.md`](./ESOP_DESIGN.md), [`ESOP_IMPLEMENTATION.md`](./ESOP_IMPLEMENTATION.md), [`ESOP_LEGAL_TEMPLATES.md`](./ESOP_LEGAL_TEMPLATES.md) | CHRO + CLO |
 | **Data room structure** | [`DATA_ROOM_STRUCTURE.md`](./DATA_ROOM_STRUCTURE.md) | CFO |
-| **Production deploy mechanism** | [`web/scripts/deploy-live.sh`](./web/scripts/deploy-live.sh) (9-gate CI/CD) | Platform |
+| **Production deploy mechanism** | [`web/scripts/deploy-live.sh`](./web/scripts/deploy-live.sh) (9-gate CI/CD, bare-metal) | Platform |
+| **Team / org (autonomous agent fleet)** | [`docs/TEAM_STRUCTURE.md`](./docs/TEAM_STRUCTURE.md) | Founder |
+| **Reseller / wholesale module goal** | [`docs/plans/reseller-module-goal.md`](./docs/plans/reseller-module-goal.md) — driven by `reseller-goal-loop` cron | CRO + CFO |
+| **Atlassian standard mapping goal** | [`docs/plans/atlassian-standard-mapping-goal.md`](./docs/plans/atlassian-standard-mapping-goal.md) — driven by `atlassian-goal-loop` cron | CPO |
+| **Antler / fundraising knowledge pack (T0094–T0101)** | [`WORK_SUMMARY_T0094_T0101.md`](./WORK_SUMMARY_T0094_T0101.md) + `ESOP_*.md`, `FINANCIAL_PROJECTIONS_3YEAR.md`, `DATA_ROOM_STRUCTURE.md`, `SVI_BLOCKID_ANALYSIS.md`, `KNOWLEDGE_BASE_INDEX.md` | CFO + CLO |
 | **Post-mortem incidents** | `HARDENING_LESSONS_<date>.md` files at repo root | Platform |
 
 **Rule:** if a document conflicts with this index, update both this index and the document with a single canonical statement.
@@ -83,27 +87,43 @@ Pulled from [`svi-exchange-tasks.json`](./web/content/reports/svi-exchange-tasks
 
 | Task | Phase | Priority | Status | Notes |
 |---|---|---|---|---|
-| **T_PRICE_0001** Founding 100 bump A$3 → A$5 | — | P0 | code-shipped, awaits Stripe-sync + redeploy | All UI + email + config updated. STRIPE_PRICE_FOUNDING50 env var still points at A$3 Stripe price — admin must run `/dashboard/admin/stripe-sync` then redeploy via `deploy-live.sh`. |
+| **T0097** ESOP UI implementation | — | P1 | pending (spec ready) | React/TS build against schema + API from T0096 (`ESOP_IMPLEMENTATION.md`). Estimated 2 sprints. |
 | **T_FEEDBACK_0001** Feedback-for-credits | — | P1 | pending | Score agent + DB schema + admin dashboard + weekly digest. ~6h. |
 | **T_REVENUE_0001** Revenue + spend report | — | P1 | pending | Admin dashboard panel + weekly email cron. ~3h. |
 | **T_EMAIL_0001** D1/D4/D9 nurture sequence | — | P1 | pending | Templates via email-sequence skill + queue wiring. ~2h. |
 | **T_SVI_EXC_0014** Institutional API tier | v0.9 | P2 | pending | API key mgmt + Stripe billing, ~10h. |
+| **T_SVI_EXC_0015** Escrow settlement (v0.7) | v0.7 | P2 | pending | Settlement layer for closed EOI-book deals. |
 
-### Recently shipped (this session)
-- Founding 100 price bump: A$3 → A$5 (all UI/email/config — Stripe sync still needed)
-- Memory refresh: `project_founding100_price.md` updated to A$5 + Stripe-sync caveat documented
-- A/B test rebalanced: A$5 now control (0.40), A$3 legacy (0.10), A$10 (0.30), A$1 floor (0.20)
+### Recently shipped (this session, 2026-08-13)
+- **T0094–T0101 Antler / Series A knowledge pack DONE** (7 of 8 tasks — T0097 UI deferred to next sprint). Full detail in [`WORK_SUMMARY_T0094_T0101.md`](./WORK_SUMMARY_T0094_T0101.md).
+  - T0094 ESOP pool structure (12%, 4yr/1yr cliff, A$0.10 strike) → `ESOP_DESIGN.md`
+  - T0095 5 legal templates (Plan Deed, Offer Letter, Founder Vesting, Shareholders excerpt, Leaver) → `ESOP_LEGAL_TEMPLATES.md`
+  - T0096 Supabase schema + API + vesting engine + cron spec → `ESOP_IMPLEMENTATION.md`
+  - T0098 BlockID SVI self-analysis, score 68/100, valuation A$440K pre-money → `SVI_BLOCKID_ANALYSIS.md`
+  - T0099 36-month projections, unit econ (LTV:CAC 10:1), 5-method valuation → `FINANCIAL_PROJECTIONS_3YEAR.md`
+  - T0100 13-section professional data room framework → `DATA_ROOM_STRUCTURE.md`
+  - T0101 Consolidated knowledge base (~99 KB) for agent infusion → `KNOWLEDGE_BASE_INDEX.md`
+- **Reseller wholesale flow live**: `reseller-goal-loop` (every 5 min) + `atlassian-goal-loop` (every 10 min, staggered) driving Track A + B autonomously. Nightly commissions clearance, weekly Stripe promotion-code drift check, monthly reconciliation + KPI report crons all wired. Wholesale gate runbook at [`docs/runbooks/wholesale-gate-breach.md`](./docs/runbooks/wholesale-gate-breach.md).
+- **Founding 100 stabilised at A$5** — Stripe-sync + redeploy from v0.5.0 completed. A/B test: A$5 control (0.40), A$10 (0.30), A$1 floor (0.20), A$3 legacy (0.10).
+- **Team roster**: 11 active C-Level AI agents via `web/content/team-roster.json`, documented in `docs/TEAM_STRUCTURE.md` v4.0.
 
 ### Previous session shipped
+- v0.5.0 (2026-06-21): Founding 100 A$3 → A$5 code push (Stripe-sync now complete)
+- v0.4.0 (2026-06-19): T_SVI_EXC_0013 EOI book (v0.6 phase complete), cron @react-pdf fixes, deploy-live.sh hardening
 - Dark exchange UI redesign for startupvalueindex.com (homepage + listings IPO-style)
-- Founding 100 price update: A$1 → A$3
-- Production hardening (deploy.sh pipefail, smoke tests, healthcheck API path)
-- Cron error fixes (`@react-pdf/renderer` external packages copy)
 - Discovery + documentation of bare-metal release mechanism (NOT docker)
 
 ---
 
 ## 5. Changelog
+
+### 0.6.0 (2026-08-13 UTC)
+- **Feat:** T0094–T0101 fundraising knowledge pack (ESOP + valuation + data room + SVI self-analysis + master knowledge index). 99 KB of investor-ready documentation.
+- **Feat:** Reseller wholesale channel live end-to-end — Track A (self-serve) + Track B (partner-managed) driven by autonomous `reseller-goal-loop` cron; Atlassian standard mapping via `atlassian-goal-loop`. Both loops have kill-switch envs (`RESELLER_AUTONOMOUS_LOOP=off`, `ATLASSIAN_GOAL_LOOP=off`) and self-disable when their goal plan is complete.
+- **Feat:** SVI standalone site (startupvalueindex.com) production-stable on Next 15.5 @ port 4002, systemd `startupvalueindex.service`, dark exchange UI, consuming blockid.au `/api/index/*` endpoints.
+- **Ops:** Founding 100 = A$5 lifetime fully synced across UI + Stripe + email + A/B config + platform-config.ts.
+- **Ops:** 11-agent C-Level fleet documented in `docs/TEAM_STRUCTURE.md` v4.0; CEO orchestrator runs 8× daily (12/14/16/18 UTC); guardian every 10 min.
+- **Queue:** `queue_version v1.3 → v1.4`. T0097 (ESOP UI) queued as P1 next-up.
 
 ### 0.5.0 (2026-06-21 06:10 UTC, release pending Stripe-sync + redeploy)
 - **Feat:** Founding 100 price bump A$3 → A$5 across all surfaces.
