@@ -16579,3 +16579,5 @@
 {"tick_id":"2026-08-13T16-07-01-793Z","ts":"2026-08-13T16:07:01.794Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-13T16-07-01-793Z","ts":"2026-08-13T16:07:01.826Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-13T16-07-01-793Z","ts":"2026-08-13T16:08:03.953Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","note":"P0-P9 terminal; P8 human_blocked"}
+{"tick_id":"2026-08-13T16-07-01-793Z","ts":"2026-08-13T16:08:15.557Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":73727,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-13T16-07-01-793Z","ts":"2026-08-13T16:08:15.605Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":2}
