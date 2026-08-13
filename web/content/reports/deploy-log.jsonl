@@ -8820,3 +8820,10 @@
 {"ts":"2026-08-13T14:23:56.971Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop tick 950 — flip P13.1/P13.2/P13.9/P13.10 deploy_failed → deploy_pending for driver auto-recovery (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T14:24:08.126Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-13T14-20-01-269Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T14:27:52.604Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop tick — frontier empty (P0-P9 done/shipped, P8 human_blocked) (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-13T14-27-01-199Z","loop_label":"atlassian-goal-loop","ts":"2026-08-13T14:27:55.935Z","head":"196d966f5","outcome":"failed","exit_code":1,"elapsed_ms":11}
+{"ts":"2026-08-13T14:27:58.436Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-13T14-27-01-199Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-13T14:27:59.237Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-13T14:33:23Z","status":"success","gates":"11/11","pid":"3219323","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"tick_id":"2026-08-13T14-20-01-269Z","loop_label":"reseller-goal-loop","ts":"2026-08-13T14:33:23.439Z","head":"0fb2ef2b7","outcome":"success","exit_code":0,"elapsed_ms":556318}
+{"ts":"2026-08-13T14:33:33.841Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → done (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-13T14:38:01.859Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — frontier empty (Track A human_blocked, Track B done, P13 done, P11 deliberately-skipped) (1 commits)","source":"github-webhook"}
