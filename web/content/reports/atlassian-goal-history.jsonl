@@ -16749,3 +16749,5 @@
 {"tick_id":"2026-08-13T20-07-01-423Z","ts":"2026-08-13T20:07:01.423Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-13T20-07-01-423Z","ts":"2026-08-13T20:07:01.449Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
 {"tick_id":"2026-08-13T20-13-28-106Z","ts":"2026-08-13T20:13:28.102Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5-equity-route-test","under":"P1_dataroom_map","test_file":"web/src/app/api/equity/route.test.ts","cases":28,"vitest_pass":true,"tsc_clean":true}
+{"tick_id":"2026-08-13T20-07-01-423Z","ts":"2026-08-13T20:14:07.884Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":426429,"signal":null,"label":"delegated"}
+{"tick_id":"2026-08-13T20-07-01-423Z","ts":"2026-08-13T20:14:07.993Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":5}
