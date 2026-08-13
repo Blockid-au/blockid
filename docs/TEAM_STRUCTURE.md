@@ -1,9 +1,12 @@
-# BlockID.au — Team Structure (C-Level AI Agents)
+# BlockID.au — Team Structure (AI-Augmented Solo Founder + Agent Fleet)
 
-> Doc rev: 4.0 | Platform build: **v3.3.2** (2026-08-07)
-> Roster source of truth: `web/content/team-roster.json` (11 active agents)
+> Doc rev: 4.1 | Platform build: **v0.6.0 / web v3.3.2+** (2026-08-13)
+> Roster source of truth: `web/content/team-roster.json` (11 active C-Level agents)
+> Operating model: **1 human founder + autonomous agent fleet** (no employees yet; ESOP pool 12% reserved for first hires — see [`../ESOP_DESIGN.md`](../ESOP_DESIGN.md)).
 
-BlockID.au runs as an **autonomous multi-agent organization**. Each C-Level agent owns one domain, runs a daily research/build/report cron, and reports to the CEO orchestrator. Founder (Aus Dvl) reviews via Telegram + dashboards.
+BlockID.au runs as an **AI-augmented solo-founder organization**. Aus Dvl (founder, admin@blockid.au) is the sole human; every C-Level role is played by a specialised AI agent that runs its own research/build/report cron and reports to a CEO orchestrator agent. The founder reviews via Telegram + `/dashboard/admin` and gives strategic approvals; the fleet executes.
+
+**Key implication:** headcount planning, salary benchmarks and ESOP-grant flows in `docs/TEAM_STRUCTURE.md` and the CHRO agent describe **future** hires. Today the company runs on cron loops, not people.
 
 ---
 
@@ -81,19 +84,59 @@ graph TD
 
 ## Reporting Cadence
 
-| Cron | Endpoint | Frequency | Purpose |
+| Cron | Endpoint / script | Frequency | Purpose |
 |------|----------|-----------|---------|
-| Daily C-Level briefs | `api/cron/clevel-daily-reports` | every 24h | Each C-Level posts an EOD report to `content/reports/<role>-daily-YYYY-MM-DD.md` |
-| Guardian healthcheck | `api/cron/agent-guardian` | every 10 min | Resource + cron-fail watcher with 2h rolling window |
-| Healthcheck | `api/cron/agent-healthcheck` | every 1h | TypeScript/lint/test/SSL/disk gates |
+| CEO orchestrator | `bash $RUN agent-orchestrator` | 12/14/16/18 UTC (8× daily total) | research → plan → upgrade → code → test → deploy → QA → fix → report |
+| Daily C-Level briefs | `api/cron/clevel-daily-reports` | every 24h | Each C-Level posts an EOD report to `web/content/reports/<role>-daily-YYYY-MM-DD.md` |
+| Guardian healthcheck | `api/cron/agent-guardian` | every 10 min | Resource + cron-fail watcher, 2h rolling window, auto-rollback triggers |
+| Healthcheck | `api/cron/agent-healthcheck` | every 1h | TypeScript / lint / test / SSL / disk gates |
 | Blockchain sync | `api/cron/blockchain-sync` | every 15 min | Skips log if no pending transaction (noop:true) |
-| Auto-deploy | `api/cron/agent-deploy` | off-peak 12/14/16/18 UTC | Picks up shipped commits, runs `deploy-live.sh` (10 gates) |
+| Auto-deploy | `api/cron/agent-deploy` | 12/14/16/18 UTC | Picks up shipped commits, runs bare-metal `web/scripts/deploy-live.sh` (9 gates) |
+| Watchdog | `web/scripts/watchdog.sh` | every 2 min | Restarts Next standalone server if `/data/releases/<id>/server.js` dies |
+| Uptime 24/7 guardian | `scripts/cron/uptime-24x7-guardian.sh` | every 2 min | External uptime probe + Telegram alert |
+| AI-token guardian | `web/scripts/ai-token-guardian.sh` | every 30 min | Rotates / auto-discovers free model providers on rate-limit |
+| Nightly self-upgrade | `web/scripts/self-upgrade-agent.sh` | 18:30 UTC | Auto-upgrade → check → fix → deploy → verify → report |
+
+### Autonomous goal loops (long-running, self-terminating)
+
+Each loop reads a goal file, picks the current frontier task, ships work, appends to a history JSONL, commits + pushes. Every loop has a **kill switch env** and **must self-disable when its goal plan is complete** (see memory `feedback_loops_stop_condition.md`).
+
+| Loop | Cron | Goal doc | History log | Kill switch |
+|------|------|----------|-------------|-------------|
+| **Reseller module** (Track A + B wholesale) | every 5 min | `docs/plans/reseller-module-goal.md` | `web/content/reports/reseller-goal-history.jsonl` | `RESELLER_AUTONOMOUS_LOOP=off` |
+| **Atlassian standard mapping** | 7,17,27,37,47,57 * * * * | `docs/plans/atlassian-standard-mapping-goal.md` | `web/content/reports/atlassian-goal-history.jsonl` | `ATLASSIAN_GOAL_LOOP=off` |
+| **UX/IA startup flow** | offset every 10 min | `docs/plans/ux-ia-startup-flow-goal.md` | — | (comment cron line) |
+
+Reseller channel also runs these support crons:
+- Reseller commissions clearance — nightly 03:15 UTC
+- Reseller Stripe promotion-code drift check — weekly Sun 03:30 UTC
+- Reseller monthly reconciliation CSV — 1st of month 03:45 UTC
+- Reseller monthly KPI report — 1st of month 04:00 UTC
+- Reseller weekly digest — Mon 04:15 UTC
+- Reseller manifest drift check — daily 04:30 UTC
+- Reseller monitor (uptime) — every minute
 
 ---
 
 ## Founder Workflow
 
-1. **Telegram chat** for strategic input → orchestrator routes to relevant C-Level
-2. **Dashboards** at blockid.au/dashboard/admin for live KPI + drill-downs (v2.6)
-3. **Roadmap + Architecture** docs auto-updated on each minor version bump
-4. **Pricing config** in `platform-config.ts` — single source of truth, hot-swap via `/admin/config` (no redeploy)
+1. **Telegram chat** for strategic input → CEO orchestrator routes to the relevant C-Level agent
+2. **Dashboards** at `blockid.au/dashboard/admin` for live KPI + drill-downs (v2.6)
+3. **Roadmap + Architecture + Team** docs auto-updated on each minor version bump — canonical index at `/ROADMAP.md`
+4. **Pricing / feature flags** in `platform-config.ts` — single source of truth, hot-swap via `/admin/config` (no redeploy)
+5. **Deploy = bare-metal only** via `web/scripts/deploy-live.sh` (9-gate CI). Root `deploy.sh` is a docker wrapper that does NOT reach prod — see `HARDENING_LESSONS_2026-06-18.md`
+6. **Multi-startup context** — every analysis / cron / report must include `startup_id`; one founder owns many startups
+
+---
+
+## Growth Plan (post-fundraise)
+
+The ESOP pool exists so that when we hire, the fleet-to-human handoff is clean.
+
+| Trigger | First hire | ESOP grant | Reference |
+|---------|-----------|-----------|-----------|
+| Post-Antler / pre-seed close | Senior full-stack engineer (T0097 ESOP UI + platform velocity) | 0.5–1.5% | `ESOP_DESIGN.md` §Allocation |
+| A$10K MRR | GTM / founding customer-success | 0.25–0.75% | `ESOP_DESIGN.md` §Allocation |
+| Series A (target Dec 2026) | CTO advisor → CTO, RevOps, 2 more eng | 1–2% each | `SVI_BLOCKID_ANALYSIS.md` §Recommendations |
+
+Until then, the AI fleet + founder is the org.
