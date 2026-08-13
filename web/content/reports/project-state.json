@@ -1,6 +1,6 @@
 {
   "version": "3.3.3",
-  "updatedAt": "2026-08-12T16:00:02.667Z",
+  "updatedAt": "2026-08-13T12:04:02.832Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-07-22T14:00:02.174Z",
@@ -32,7 +32,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-08-12T12:04:02.925Z",
+    "decidedAt": "2026-08-13T12:04:02.832Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1411,6 +1411,24 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-08-12T12:04:02.925Z"
+      },
+      {
+        "id": "T0193",
+        "agent": "cfo",
+        "title": "Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator",
+        "rationale": "Translates market sizing research into a tool that allows founders to validate their market opportunity using credible AU/global sources.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-13T12:04:02.832Z"
+      },
+      {
+        "id": "T0194",
+        "agent": "cro",
+        "title": "Implement Funding Readiness Scoring (CAPITAL framework)",
+        "rationale": "Bridging the gap between valuation (CFO) and action; provides a diagnostic score that tells founders if they are actually ready to raise based on the CAPITAL research.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-13T12:04:02.832Z"
       }
     ]
   },
