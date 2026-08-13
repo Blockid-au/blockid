@@ -1021,3 +1021,5 @@
 {"tick_id":"2026-08-13T20-55-01-750Z","ts":"2026-08-13T21:05:14.494Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":612665,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-13T20-55-01-750Z","ts":"2026-08-13T21:05:14.532Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":9}
 {"tick_id":"2026-08-13T20-55-01-750Z","ts":"2026-08-13T21:05:14.567Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"truncation_guard_reverted","count":1,"files":[{"path":"web/src/lib/agents/cfo-valuation.ts","head_lines":955,"work_lines":101,"lost_pct":89}]}
+{"tick_id":"2026-08-13T20-55-01-750Z","ts":"2026-08-13T21:05:16.765Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-13T20-55-01-750Z","ts":"2026-08-13T21:05:16.805Z","loop_label":"reseller-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"06e4476fd","last_deployed":"65906c3"}
