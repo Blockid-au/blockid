@@ -266,30 +266,40 @@ async function runDeployPhase(ctx, goalMd) {
 // Phase status flipping — driver-owned (never trust subprocess for this)
 // ---------------------------------------------------------------------------
 
+/**
+ * Pure phase-status flipper — extracted so vitest can lock the invariant
+ * without mocking fs or git. Returns { updated, changed, replaced }.
+ *
+ * Guarantee: fail_reason is injected in the SAME replace pass as the status
+ * flip, so it only lands on newly-flipped lines. The previous two-step form
+ * (flip status; then re-scan for toStatus to inject fail_reason with /g)
+ * appended a fresh fail_reason to every pre-existing `status: toStatus`
+ * line on every tick — that's the pathology this fix addresses.
+ */
+export function flipPhaseStatusPure(goalMd, fromStatus, toStatus, failReason) {
+  const re = new RegExp(`\\bstatus:\\s*${fromStatus}\\b`, 'g')
+  const replacement = failReason
+    ? `status: ${toStatus}, fail_reason: "${String(failReason).replace(/"/g, '\\"')}"`
+    : `status: ${toStatus}`
+  let replaced = 0
+  const updated = goalMd.replace(re, () => {
+    replaced += 1
+    return replacement
+  })
+  return { updated, changed: updated !== goalMd, replaced }
+}
+
 async function flipPhaseStatus(ctx, fromStatus, toStatus, failReason) {
   try {
-    let goalMd = await readGoal(ctx)
-    const before = goalMd
+    const goalMd = await readGoal(ctx)
+    const { updated, changed } = flipPhaseStatusPure(goalMd, fromStatus, toStatus, failReason)
 
-    // Replace `status: <fromStatus>` → `status: <toStatus>` inside YAML fence.
-    // Handles both inline `{ status: deploy_pending }` and standalone `status: deploy_pending` lines.
-    const re = new RegExp(`\\bstatus:\\s*${fromStatus}\\b`, 'g')
-    goalMd = goalMd.replace(re, `status: ${toStatus}`)
-
-    if (failReason) {
-      // Inject fail_reason after the status field on the same line
-      goalMd = goalMd.replace(
-        new RegExp(`(status:\\s*${toStatus})`, 'g'),
-        `$1, fail_reason: "${failReason.replace(/"/g, '\\"')}"`,
-      )
-    }
-
-    if (goalMd === before) {
+    if (!changed) {
       await log(ctx, { stage: 'flip_phase_noop', from: fromStatus, to: toStatus })
       return
     }
 
-    await writeFile(ctx.goalFile, goalMd, 'utf8')
+    await writeFile(ctx.goalFile, updated, 'utf8')
 
     // Commit the phase advancement
     spawnSync('git', ['add', ctx.goalFile], { cwd: REPO_ROOT, stdio: 'ignore' })
