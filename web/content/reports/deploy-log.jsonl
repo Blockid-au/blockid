@@ -8827,3 +8827,4 @@
 {"tick_id":"2026-08-13T14-20-01-269Z","loop_label":"reseller-goal-loop","ts":"2026-08-13T14:33:23.439Z","head":"0fb2ef2b7","outcome":"success","exit_code":0,"elapsed_ms":556318}
 {"ts":"2026-08-13T14:33:33.841Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → done (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T14:38:01.859Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — frontier empty (Track A human_blocked, Track B done, P13 done, P11 deliberately-skipped) (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-13T14:39:49.898Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop tick — frontier empty (P0-P9 done/shipped, P8 human_blocked) (2 commits)","source":"github-webhook"}
