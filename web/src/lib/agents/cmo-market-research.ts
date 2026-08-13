@@ -160,3 +160,64 @@ export function evaluateBurnHealth(netBurn: number, netNewARR: number): { isHeal
 export function calculateContentCPASavings(paidCPA: number): number {
   return paidCPA * AU_MARKET_BENCHMARKS.MARKETING.CONTENT_CPA_REDUCTION;
 }
+
+// ─── Public API consumed by cmo-market-research.test.ts (authoritative) ──
+// Kept separate from the AU_MARKET_BENCHMARKS block above so intent stays
+// clear: these anchors are pinned by the colocated test suite; edits must
+// update the test in the same tick or the test-gate will revert them.
+
+/** 2024–2026 Australian startup-ecosystem anchor set. Pinned by test suite. */
+export const AU_MARKET_DATA = {
+  ACTIVE_STARTUPS: 7800,
+  TOTAL_VC_FUNDING_H1_2026: 2_400_000_000,
+  UNICORN_COUNT: 14,
+  // A$150M/month of seed capital flows into AU startups (2024–2026 avg).
+  // Used as the denominator for calculateAUFundingVelocity.
+  SEED_MONTHLY_FUNDING_INTENSITY: 150_000_000,
+  TOTAL_STARTUP_EMPLOYMENT_FTE: 87_000,
+  GLOBAL_SAAS_MARKET_SIZE_2024: 317_000_000_000,
+  NAVIGATION_TOOL_CAGR: 0.147,
+} as const;
+
+/**
+ * SEO / content-marketing benchmarks. Mutable so tests can force clamp edges.
+ */
+export const CONTENT_BENCHMARKS = {
+  targetB2BBlogLength: 1900,
+  aiContentTrafficLift: 0.45,
+  linkedinOrganicCTR: 0.055,
+  eeatCTRBoost: 0.12,
+  coreUpdateRiskDrop: 0.123,
+};
+
+/** Compound the AU navigation-tool CAGR (14.7%) over `years`. */
+export function calculateMarketProjection(currentVal: number, years: number): number {
+  return currentVal * Math.pow(1 + AU_MARKET_DATA.NAVIGATION_TOOL_CAGR, years);
+}
+
+/** A page is competitive only when it clears BOTH the length and E-E-A-T gates. */
+export function isContentCompetitive(wordCount: number, hasEEAT: boolean): boolean {
+  return wordCount >= CONTENT_BENCHMARKS.targetB2BBlogLength && hasEEAT;
+}
+
+/**
+ * Cohort funding velocity = per-startup raise / national monthly seed intensity.
+ * Empty cohort surfaces as Infinity (div-by-zero); zero raise → 0.
+ */
+export function calculateAUFundingVelocity(totalRaised: number, cohortSize: number): number {
+  const avgPerStartup = totalRaised / cohortSize;
+  return avgPerStartup / AU_MARKET_DATA.SEED_MONTHLY_FUNDING_INTENSITY;
+}
+
+/**
+ * Estimated post-core-update SEO risk in [0, 1].
+ * Baseline = CONTENT_BENCHMARKS.coreUpdateRiskDrop. E-E-A-T > 0.8 shaves 0.05;
+ * content older than 6 months (30-day months) adds 0.05. Result is clamped.
+ */
+export function calculateSEOUpdateRisk(eeat: number, lastUpdate: Date): number {
+  let risk = CONTENT_BENCHMARKS.coreUpdateRiskDrop;
+  if (eeat > 0.8) risk -= 0.05;
+  const monthsSinceUpdate = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+  if (monthsSinceUpdate > 6) risk += 0.05;
+  return Math.max(0, Math.min(1, risk));
+}
