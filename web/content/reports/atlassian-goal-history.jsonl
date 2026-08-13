@@ -16748,3 +16748,4 @@
 {"tick_id":"2026-08-13T19-47-01-698Z","ts":"2026-08-13T20:05:00.826Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
 {"tick_id":"2026-08-13T20-07-01-423Z","ts":"2026-08-13T20:07:01.423Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
 {"tick_id":"2026-08-13T20-07-01-423Z","ts":"2026-08-13T20:07:01.449Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"2026-08-13T20-13-28-106Z","ts":"2026-08-13T20:13:28.102Z","loop_label":"atlassian-goal-loop","stage":"phase_shipped","phase":"P5-equity-route-test","under":"P1_dataroom_map","test_file":"web/src/app/api/equity/route.test.ts","cases":28,"vitest_pass":true,"tsc_clean":true}
