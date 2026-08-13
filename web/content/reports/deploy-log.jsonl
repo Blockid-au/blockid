@@ -8808,3 +8808,7 @@
 {"ts":"2026-08-13T14:08:31.646Z","event":"github-push-master","detail":"Blockid-au: fix(agents): restore cmo-market-research from orchestrator regression (P13.10) (2 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T14:08:33.083Z","event":"github-push-master","detail":"Blockid-au: chore(loop): atlassian-goal-loop tick — frontier_empty (P0/P2/P9 done; P1/P3/P4/P5/P6/P7 shipped; P8 human_blocked) (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T14:08:38.826Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-13T14-07-02-080Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"tick_id":"2026-08-13T14-00-02-018Z","loop_label":"reseller-goal-loop","ts":"2026-08-13T14:08:41.513Z","head":"fd59c6ee1","outcome":"failed","exit_code":1,"elapsed_ms":12}
+{"ts":"2026-08-13T14:08:42.315Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-13T14-00-02-018Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-13T14:08:45.963Z","event":"github-push-master","detail":"Blockid-au: chore(loop): reseller-goal-loop — advance phase deploy_pending → deploy_failed (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-13T14:15:25.868Z","event":"github-push-master","detail":"Blockid-au: chore(loop): P13.x recovery — flip deploy_failed → deploy_pending (1 commits)","source":"github-webhook"}
