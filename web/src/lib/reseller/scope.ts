@@ -104,16 +104,42 @@ export async function scopedReseller(user: AppUser): Promise<ScopedResellerSessi
     throw new ResellerScopeError("supabase not configured", "no_reseller");
   }
 
-  const { data: membership, error } = await supabase
+  // Read the caller's active memberships. Historically this used
+  // `.maybeSingle()`, which returns PGRST116 the instant a user is a
+  // member of more than one reseller org — a legitimate production
+  // shape (P10 collision finding, docs/plans/p10-temp-reseller-admin-
+  // scope-collision-finding.md) that surfaced when an admin flip
+  // provisioned an existing account into a second reseller and the
+  // scope gate started throwing "no_membership" for a session that IS
+  // a reseller admin. Deterministically prefer role='owner' > 'admin' >
+  // 'viewer' and, within a tier, the most-recently-linked row so a
+  // multi-org user still resolves to their strongest, freshest scope.
+  const { data: rows, error } = await supabase
     .from("reseller_admins")
-    .select("reseller_id, role, status")
+    .select("reseller_id, role, status, linked_at")
     .eq("user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
+    .eq("status", "active");
 
-  if (error || !membership) {
+  if (error || !rows || rows.length === 0) {
     throw new ResellerScopeError("user is not a reseller admin", "no_membership");
   }
+
+  const ROLE_RANK: Record<string, number> = { owner: 0, admin: 1, viewer: 2 };
+  const rankRole = (r: unknown): number =>
+    typeof r === "string" && r in ROLE_RANK ? ROLE_RANK[r] : 99;
+  const ts = (row: Record<string, unknown>): number => {
+    const raw = row.linked_at as string | null | undefined;
+    if (!raw) return 0;
+    const t = new Date(raw).getTime();
+    return Number.isFinite(t) ? t : 0;
+  };
+  const sorted = [...rows].sort((a, b) => {
+    const ra = rankRole((a as { role: unknown }).role);
+    const rb = rankRole((b as { role: unknown }).role);
+    if (ra !== rb) return ra - rb;
+    return ts(b as Record<string, unknown>) - ts(a as Record<string, unknown>);
+  });
+  const membership = sorted[0] as { reseller_id: string; role: string; status: string };
 
   let cachedAllowed: string[] | null = null;
   let cachedSandbox: string | null | undefined = undefined; // undefined = not fetched
