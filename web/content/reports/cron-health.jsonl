@@ -854,3 +854,4 @@
 {"ts":"2026-08-13T16:00:01Z","endpoint":"agent-orchestrator","status":"ok","duration_ms":1362,"detail":"{\"stagesRun\": [\"update_artifacts\", \"git_push\"], \"results\": [{\"stage\": \"update_artifacts\", \"ok\": true, \"message\": \"36 task(s) still in flight\"}, {\"stage\": \"git_push\", \"ok\": true, \"message\": \"GitHub in"}
 {"ts":"2026-08-13T16:00:01Z","endpoint":"svi-snapshot","status":"ok","duration_ms":3485,"detail":"{\"processed\": 54, \"date\": \"2026-08-13\"}"}
 {"ts":"2026-08-13T16:00:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16542,"detail":""}
+{"ts":"2026-08-13T16:05:01Z","endpoint":"svi-notify","status":"ok","duration_ms":172,"detail":"{\"notified\": 0, \"emailed\": 0, \"policy\": \"disabled \\u2014 lifecycle emails only (SVI \\u2192 1w \\u2192 1m \\u2192 3m)\"}"}
