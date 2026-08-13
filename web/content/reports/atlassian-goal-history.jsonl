@@ -16646,3 +16646,12 @@
 {"tick_id":"atlassian-goal-loop-2026-08-13T17:28:10.841Z","ts":"2026-08-13T17:28:10.841Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","note":"P0-P9 terminal (done/shipped); P8 human_blocked awaiting founder review Q1..Q10","picked":null}
 {"tick_id":"2026-08-13T17-27-01-222Z","ts":"2026-08-13T17:28:23.974Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"delegated_dispatch","status":0,"elapsed_ms":82721,"signal":null,"label":"delegated"}
 {"tick_id":"2026-08-13T17-27-01-222Z","ts":"2026-08-13T17:28:24.054Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_started","dirty_files":5}
+{"tick_id":"2026-08-13T17-27-01-222Z","ts":"2026-08-13T17:28:27.136Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_commit_finished","commit_status":0,"push_status":0}
+{"tick_id":"2026-08-13T17-27-01-222Z","ts":"2026-08-13T17:28:27.174Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_triggered","head":"c89aae36a","last_deployed":"ac29564"}
+{"tick_id":"2026-08-13T17-27-01-222Z","ts":"2026-08-13T17:28:27.189Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"auto_deploy_finished","status":1,"outcome":"failed","head":"c89aae36a","fresh_sha":"ac29564","elapsed_ms":14,"delegated":false}
+{"tick_id":"2026-08-13T17-27-01-222Z","ts":"2026-08-13T17:28:27.212Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"flip_phase_noop","from":"deploy_pending","to":"deploy_failed"}
+{"tick_id":"2026-08-13T17-27-01-222Z","ts":"2026-08-13T17:28:27.217Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"deploy_failed","message":"phases marked deploy_failed — will retry on next tick","head":"c89aae36a"}
+{"tick_id":"2026-08-13T17-27-01-222Z","ts":"2026-08-13T17:28:27.218Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_end"}
+{"tick_id":"2026-08-13T17-37-01-845Z","ts":"2026-08-13T17:37:01.846Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"tick_start"}
+{"tick_id":"2026-08-13T17-37-01-845Z","ts":"2026-08-13T17:37:01.869Z","loop_label":"atlassian-goal-loop","human_review_minutes_7d":0,"stage":"human_blocked_snapshot","count":0,"entries":[]}
+{"tick_id":"atlassian-goal-loop-2026-08-13T17:38:20.900Z","ts":"2026-08-13T17:38:20.900Z","loop_label":"atlassian-goal-loop","stage":"frontier_empty","note":"P0-P9 terminal (done/shipped); P8 human_blocked awaiting founder review Q1..Q10","picked":null}
