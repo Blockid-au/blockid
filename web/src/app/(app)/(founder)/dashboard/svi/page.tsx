@@ -17,6 +17,7 @@ import { ScnActionPlanCard } from "@/components/dashboard/scn-action-plan-card";
 import { SviExplainerCard } from "@/components/dashboard/svi-explainer-card";
 import { AntlerSignalsCard } from "@/components/dashboard/antler-signals-card";
 import { AcceleratorReadinessCard } from "@/components/dashboard/accelerator-readiness-card";
+import { TechIntelligenceRow } from "@/components/founder/tech-intelligence-row";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -82,6 +83,11 @@ export default async function SVIDashboardPage() {
     svi_impact_estimate: number;
     completed_at: string;
   }> = [];
+  let techAnalysis: {
+    tech_score: number;
+    svi_contribution: number;
+    valuation_multiplier_boost: number;
+  } | null = null;
 
   if (supabase) {
     // Resolve the active project for this user
@@ -255,6 +261,24 @@ export default async function SVIDashboardPage() {
         completed_at: a.completed_at as string,
       }));
     }
+
+    // ── Tech Intelligence score (project-scoped) ─────────────────────────
+    if (projectId) {
+      const { data: techRow } = await supabase
+        .from("tech_analyses")
+        .select("tech_score, svi_contribution, valuation_multiplier_boost")
+        .eq("startup_id", projectId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (techRow) {
+        techAnalysis = {
+          tech_score: techRow.tech_score as number,
+          svi_contribution: techRow.svi_contribution as number,
+          valuation_multiplier_boost: techRow.valuation_multiplier_boost as number,
+        };
+      }
+    }
   }
 
   // ── Empty state — no analysis yet ────────────────────────────────────────
@@ -366,6 +390,9 @@ export default async function SVIDashboardPage() {
 
         {/* ── v2.3: Deep input analysis + 4-lens valuation ─────────────── */}
         <DeepValuationCard analysis={analysisWithDelta} />
+
+        {/* ── Tech Intelligence row — shows if tech analysis exists ──── */}
+        <TechIntelligenceRow techAnalysis={techAnalysis} />
 
         {/* ── Next-Best-Action widget (T0103) ─────────────────────────── */}
         {latestAnalysisId && (

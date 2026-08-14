@@ -23,9 +23,10 @@ import path from "node:path";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, ShieldCheck, Sparkles, Coins, Mail } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles, Coins, Mail, Cpu } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   listTopSlugs,
   loadPublicListing,
@@ -126,6 +127,30 @@ export async function generateMetadata({
   };
 }
 
+interface TechAnalysisRow {
+  tech_score: number;
+  svi_contribution: number;
+  valuation_multiplier_boost: number;
+  website_signals: { techStack?: string[] } | null;
+}
+
+async function fetchTechAnalysis(startupId: string): Promise<TechAnalysisRow | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return null;
+    const { data } = await supabase
+      .from("tech_analyses")
+      .select("tech_score, svi_contribution, valuation_multiplier_boost, website_signals")
+      .eq("startup_id", startupId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return (data as TechAnalysisRow) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function StartupListingPage({
   params,
 }: {
@@ -142,6 +167,9 @@ export default async function StartupListingPage({
   }
   if (!listing) notFound();
 
+  // Fetch tech analysis for this startup (graceful — never blocks render)
+  const techAnalysis = await fetchTechAnalysis(listing.project.id);
+
   return (
     <MarketingShell>
       <PageViewTracker
@@ -149,7 +177,7 @@ export default async function StartupListingPage({
         params={{ slug }}
       />
       <div className="mx-auto max-w-5xl px-4 py-12 md:py-16">
-        <ListingHero listing={listing} slug={slug} />
+        <ListingHero listing={listing} slug={slug} techAnalysis={techAnalysis} />
         <CardRow listing={listing} />
         <ReservedAllocationStrip listing={listing} />
         <PublicReports listing={listing} />
@@ -164,9 +192,11 @@ export default async function StartupListingPage({
 function ListingHero({
   listing,
   slug,
+  techAnalysis,
 }: {
   listing: PublicListingPayload;
   slug: string;
+  techAnalysis: TechAnalysisRow | null;
 }) {
   return (
     <header className="mb-10 border-b border-white/10 pb-8">
@@ -187,7 +217,10 @@ function ListingHero({
       <p className="mt-4 max-w-3xl text-base text-white/70 md:text-lg">
         {listing.hero.onelinePitch}
       </p>
-      {listing.svi ? <SviBadge svi={listing.svi} /> : null}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        {listing.svi ? <SviBadge svi={listing.svi} /> : null}
+        {techAnalysis ? <TechScoreBadge techAnalysis={techAnalysis} /> : null}
+      </div>
     </header>
   );
 }
@@ -209,6 +242,48 @@ function SviBadge({ svi }: { svi: NonNullable<PublicListingPayload["svi"]> }) {
       <Sparkles className="h-4 w-4" aria-hidden="true" />
       <span className="font-mono text-lg">{svi.total}</span>
       <span className="text-white/70">SVI · {svi.label}</span>
+    </div>
+  );
+}
+
+function TechScoreBadge({ techAnalysis }: { techAnalysis: TechAnalysisRow }) {
+  const score = techAnalysis.tech_score;
+  const boost = Math.round((techAnalysis.valuation_multiplier_boost ?? 0) * 100);
+  const techStack = (techAnalysis.website_signals?.techStack ?? []).slice(0, 3);
+
+  const colourClass =
+    score > 75
+      ? "bg-[rgba(0,212,255,0.12)] text-[#00D4FF] border-[rgba(0,212,255,0.3)]"
+      : score > 60
+        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+        : score >= 40
+          ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+          : "bg-red-500/10 text-red-400 border-red-500/30";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div
+        className={
+          "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium " +
+          colourClass
+        }
+      >
+        <Cpu className="h-3.5 w-3.5" aria-hidden="true" />
+        <span>Tech Score: <span className="font-mono font-semibold">{score}/100</span></span>
+      </div>
+      {boost > 0 && (
+        <span className="inline-flex items-center rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1.5 text-sm font-medium text-fuchsia-300">
+          Valuation Boost: +{boost}%
+        </span>
+      )}
+      {techStack.map((tech) => (
+        <span
+          key={tech}
+          className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-white/60"
+        >
+          {tech}
+        </span>
+      ))}
     </div>
   );
 }
