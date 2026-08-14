@@ -14,7 +14,8 @@ export type FeatureCostKey =
   | "full_report_premium"
   | "financial_projection"
   | "gtm_doc"
-  | "accelerator_apply";
+  | "accelerator_apply"
+  | "abn_trademark_guide";
 
 /**
  * Client-safe default credit costs for the Package deliverables.
@@ -35,4 +36,5 @@ export const PACKAGE_FEATURE_COST_DEFAULTS: Record<FeatureCostKey, number> = {
   financial_projection: 1.5,
   gtm_doc: 1.5,
   accelerator_apply: 1.0,
+  abn_trademark_guide: 1.0,
 };

@@ -448,6 +448,35 @@ async function renderPdfForEntry(
         founderName: p.founderName,
       });
     }
+    case "abn-trademark-guide": {
+      const { renderAbnTrademarkGuidePdf } = await import(
+        "@/lib/pdf/abn-trademark-guide-pdf"
+      );
+      const { generateAbnTrademarkGuide } = await import(
+        "@/lib/agents/abn-trademark-guide"
+      );
+      const p = props as {
+        startupName: string;
+        proposedTradingName?: string;
+        sector?: string;
+        description?: string;
+        abnCandidate?: string;
+        email?: string;
+        founderName?: string;
+      };
+      const guide = await generateAbnTrademarkGuide({
+        startupName: p.startupName,
+        proposedTradingName: p.proposedTradingName,
+        sector: p.sector,
+        description: p.description,
+        abnCandidate: p.abnCandidate,
+      });
+      return renderAbnTrademarkGuidePdf({
+        guide,
+        email: p.email,
+        founderName: p.founderName,
+      });
+    }
     default: {
       throw new Error(`Unknown pdfGenerator: ${String(entry.pdfGenerator)}`);
     }

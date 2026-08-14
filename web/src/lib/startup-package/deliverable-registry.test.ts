@@ -40,6 +40,7 @@ const VALID_GENERATORS: PdfGenerator[] = [
   "svi-report",
   "financial-projection",
   "gtm-strategy",
+  "abn-trademark-guide",
 ];
 
 function baseCtx(
@@ -63,8 +64,8 @@ function baseCtx(
 }
 
 describe("REGISTRY shape", () => {
-  it("exposes exactly 11 deliverables (9 original + 2 Phase 3.1)", () => {
-    expect(allDeliverables()).toHaveLength(11);
+  it("exposes exactly 12 deliverables (9 original + 3 Phase 3.1)", () => {
+    expect(allDeliverables()).toHaveLength(12);
   });
 
   it("returns a fresh array from allDeliverables (never a mutable ref)", () => {
@@ -72,7 +73,7 @@ describe("REGISTRY shape", () => {
     const b = allDeliverables();
     expect(a).not.toBe(b);
     a.push({} as DeliverableEntry);
-    expect(allDeliverables()).toHaveLength(11);
+    expect(allDeliverables()).toHaveLength(12);
   });
 
   it("every key is unique", () => {

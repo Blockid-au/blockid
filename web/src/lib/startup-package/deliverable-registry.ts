@@ -42,7 +42,8 @@ export type PdfGenerator =
   | "valuation-report"
   | "svi-report"
   | "financial-projection"
-  | "gtm-strategy";
+  | "gtm-strategy"
+  | "abn-trademark-guide";
 
 /**
  * Inputs handed to every {@link DeliverableEntry.inputBuilder}. Kept
@@ -333,6 +334,30 @@ const REGISTRY: DeliverableEntry[] = [
         body: joinAnswers(ctx, ["le_structure", "le_sha", "le_ip", "le_captable"]),
       }),
       shareUrl: ctx.shareUrl ?? "",
+    }),
+  },
+
+  {
+    key: "abn_trademark_guide",
+    phaseId: "legal_equity",
+    label: "ABN + trademark guide",
+    blurb: "ABN walkthrough, ASIC business-name filing, Nice-class picker, and IP Australia search link — 3-page report.",
+    pdfGenerator: "abn-trademark-guide",
+    featureKey: "abn_trademark_guide",
+    dataroomFolder: "legal",
+    templateSlug: "package_legal_equity_abn_trademark_guide",
+    inputBuilder: (ctx) => ({
+      startupName: ctx.project.name,
+      proposedTradingName: firstAnswer(
+        ctx,
+        ["le_trading_name", "trading_name", "brand_name"],
+        ctx.project.name,
+      ),
+      sector: ctx.project.industry ?? "SaaS",
+      description: ctx.project.description ?? undefined,
+      abnCandidate: firstAnswer(ctx, ["le_abn", "abn"], ""),
+      email: ctx.founderEmail,
+      founderName: ctx.founderName,
     }),
   },
 
