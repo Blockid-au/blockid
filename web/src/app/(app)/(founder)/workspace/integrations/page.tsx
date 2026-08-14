@@ -71,13 +71,13 @@ export default async function IntegrationsPage({
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-3xl mx-auto space-y-6">
         <header>
-          <h1 className="text-2xl font-semibold text-ink-900 dark:text-ink-100">
+          <h1 className="bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent font-bold text-2xl">
             Integrations
           </h1>
-          <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">
+          <p className="text-sm text-[#94A3B8] mt-1">
             One row per integration. Signals connectors auto-fill your Evidence Vault; the blockchain layer optionally mirrors equity events on-chain (off-chain is still the source of truth).
           </p>
-          <p className="text-xs text-ink-500 dark:text-ink-500 mt-2">
+          <p className="text-xs text-[#94A3B8]/70 mt-2">
             {summary.connected} of {summary.total} connected
             {summary.errored > 0 ? ` · ${summary.errored} need attention` : ""}
             {summary.not_configured > 0 ? ` · ${summary.not_configured} awaiting configuration` : ""}
@@ -85,12 +85,12 @@ export default async function IntegrationsPage({
         </header>
 
         {sp.error ? (
-          <div className="rounded-md border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950 px-3 py-2 text-sm text-red-800 dark:text-red-200">
+          <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
             Connection failed: {sp.error.replaceAll("_", " ")}
           </div>
         ) : null}
         {sp.connected ? (
-          <div className="rounded-md border border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
             {sp.connected.toUpperCase()} connected. First sync completed.
           </div>
         ) : null}
@@ -102,11 +102,11 @@ export default async function IntegrationsPage({
         </div>
 
         {/* ── CRM Push via Zapier ───────────────────────────────────── */}
-        <section className="rounded-lg border border-ink-200 dark:border-ink-700 p-4 space-y-2">
-          <h2 className="text-sm font-semibold text-ink-900 dark:text-ink-100">
+        <section className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm rounded-2xl p-4 space-y-2">
+          <h2 className="text-sm font-semibold text-[#F8FAFC]">
             CRM Push (via Zapier)
           </h2>
-          <p className="text-xs text-ink-600 dark:text-ink-400">
+          <p className="text-xs text-[#94A3B8]">
             Push your startup profile and latest SVI score to HubSpot, Salesforce, Pipedrive, or any CRM
             connected through a Zapier webhook. Up to 5 pushes per hour.
           </p>

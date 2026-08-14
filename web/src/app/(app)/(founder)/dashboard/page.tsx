@@ -70,15 +70,15 @@ function MetricCard({
   icon: LucideIcon;
 }) {
   return (
-    <div className="rounded-xl border border-surface-200 bg-white p-4">
+    <div className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm rounded-2xl p-4 hover:border-[rgba(0,212,255,0.3)] transition-all duration-300">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-ink-500 uppercase tracking-wider font-medium">{title}</p>
-        <Icon className="h-4 w-4 text-ink-400" />
+        <p className="text-xs text-[#94A3B8] uppercase tracking-wider font-medium">{title}</p>
+        <Icon className="h-4 w-4 text-[#94A3B8]" />
       </div>
-      <p className="text-2xl font-bold text-ink-900">{value}</p>
-      {subtitle && <p className="text-xs text-ink-500 mt-0.5">{subtitle}</p>}
+      <p className="text-2xl font-bold text-[#F8FAFC]">{value}</p>
+      {subtitle && <p className="text-xs text-[#94A3B8] mt-0.5">{subtitle}</p>}
       {trend != null && trend !== 0 && (
-        <span className={`text-xs font-semibold ${trend > 0 ? "text-emerald-600" : "text-red-500"}`}>
+        <span className={`text-xs font-semibold ${trend > 0 ? "text-emerald-400" : "text-red-400"}`}>
           {trend > 0 ? "+" : ""}
           {trend}
         </span>
@@ -316,19 +316,19 @@ function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase:
         <Link
           key={a.href}
           href={a.href}
-          className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-surface-50 group"
+          className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-[rgba(255,255,255,0.06)] group"
         >
-          <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-surface-100 text-ink-500 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors shrink-0">
+          <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.06)] text-[#94A3B8] group-hover:bg-[rgba(0,212,255,0.12)] group-hover:text-[#00D4FF] transition-colors shrink-0">
             <a.icon strokeWidth={1.75} className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-ink-800 truncate">{a.label}</p>
-              {a.badge && <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">{a.badge}</span>}
+              <p className="text-sm font-medium text-[#F8FAFC] truncate">{a.label}</p>
+              {a.badge && <span className="shrink-0 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">{a.badge}</span>}
             </div>
-            <p className="text-xs text-ink-500 truncate">{a.desc}</p>
+            <p className="text-xs text-[#94A3B8] truncate">{a.desc}</p>
           </div>
-          <ChevronRight className="h-4 w-4 text-ink-300 group-hover:text-ink-500" />
+          <ChevronRight className="h-4 w-4 text-[#94A3B8]/40 group-hover:text-[#94A3B8]" />
         </Link>
       ))}
 
@@ -336,19 +336,19 @@ function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase:
       {upcomingActions.length > 0 && (
         <>
           <div className="pt-3 pb-1 px-3">
-            <p className="text-[10px] uppercase tracking-widest text-ink-400 font-medium">Coming next in your journey</p>
+            <p className="text-[10px] uppercase tracking-widest text-[#94A3B8]/50 font-medium">Coming next in your journey</p>
           </div>
           {upcomingActions.map((a) => (
             <div
               key={a.href}
-              className="flex items-center gap-3 rounded-xl px-3 py-3 opacity-50"
+              className="flex items-center gap-3 rounded-xl px-3 py-3 opacity-40"
             >
-              <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-surface-100 text-ink-400 shrink-0">
+              <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.04)] text-[#94A3B8]/50 shrink-0">
                 <a.icon strokeWidth={1.75} className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-ink-500 truncate">{a.label}</p>
-                <p className="text-xs text-ink-400 truncate">{a.desc}</p>
+                <p className="text-sm font-medium text-[#94A3B8] truncate">{a.label}</p>
+                <p className="text-xs text-[#94A3B8]/60 truncate">{a.desc}</p>
               </div>
             </div>
           ))}
@@ -765,26 +765,26 @@ export default async function DashboardPage({
 
         {/* ── Banners ───────────────────────────────────────────────────────── */}
         {sp.checkout === "success" && (
-          <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
             <div>
-              <p className="font-semibold text-emerald-700">
+              <p className="font-semibold text-emerald-300">
                 Your {sp.plan ?? "new"} plan is now active!
               </p>
-              <p className="mt-1 text-sm text-ink-600">
+              <p className="mt-1 text-sm text-[#94A3B8]">
                 Payment confirmed. All plan features are unlocked and ready to use.
               </p>
             </div>
           </div>
         )}
         {sp.welcome === "1" && (
-          <div className="flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4">
-            <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+          <div className="flex items-start gap-3 rounded-xl border border-[rgba(0,212,255,0.2)] bg-[rgba(0,212,255,0.06)] p-4">
+            <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-[#00D4FF]" />
             <div>
-              <p className="font-semibold text-brand-700">
+              <p className="font-semibold text-[#F8FAFC]">
                 Welcome to BlockID. Your account is live.
               </p>
-              <p className="mt-1 text-sm text-ink-600">
+              <p className="mt-1 text-sm text-[#94A3B8]">
                 Run your first SVI analysis to unlock personalised startup guidance.
               </p>
             </div>
@@ -818,23 +818,23 @@ export default async function DashboardPage({
 
         {/* ── Row 2: Project Context Card (sticky header, not personalizable) ─ */}
         {(analysis || projectName) && (
-          <div className="rounded-2xl border border-surface-200 bg-white p-6">
+          <div className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm rounded-2xl p-6 hover:border-[rgba(0,212,255,0.3)] transition-all duration-300">
             <div className="flex items-start justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs uppercase tracking-wider text-brand-600 font-medium">
+                <p className="text-xs uppercase tracking-wider text-[#00D4FF] font-medium">
                   Current Project
                 </p>
-                <h2 className="text-xl font-bold text-ink-900 mt-1">
+                <h2 className="text-xl font-bold text-[#F8FAFC] mt-1">
                   {projectName || "My Startup"}
                 </h2>
                 {ideaSummary && (
-                  <p className="text-sm text-ink-500 mt-2 line-clamp-2">{ideaSummary}</p>
+                  <p className="text-sm text-[#94A3B8] mt-2 line-clamp-2">{ideaSummary}</p>
                 )}
               </div>
               {sviScore != null && (
                 <div className="text-right shrink-0 ml-4">
-                  <div className="text-3xl font-bold text-brand-600">{sviScore}</div>
-                  <p className="text-xs text-ink-500">SVI Score</p>
+                  <div className="text-3xl font-bold bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent">{sviScore}</div>
+                  <p className="text-xs text-[#94A3B8]">SVI Score</p>
                 </div>
               )}
             </div>
@@ -906,15 +906,15 @@ export default async function DashboardPage({
           {/* Guide-next — SCN direction navigator (or first-run CTA). */}
           <div data-widget-id="guide-next">
             {sviScore == null ? (
-              <div className="rounded-2xl border-2 border-brand-200 bg-brand-50/50 p-6">
+              <div className="bg-[rgba(255,255,255,0.04)] border border-[rgba(0,212,255,0.2)] backdrop-blur-sm rounded-2xl p-6">
                 <div className="flex items-start gap-4">
-                  <Lightbulb className="h-8 w-8 text-brand-500 shrink-0 mt-0.5" />
+                  <Lightbulb className="h-8 w-8 text-[#00D4FF] shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-brand-800">Recommended Next Step</p>
-                    <p className="text-sm text-brand-700 mt-1">{nextAction.text}</p>
+                    <p className="text-sm font-bold text-[#F8FAFC]">Recommended Next Step</p>
+                    <p className="text-sm text-[#94A3B8] mt-1">{nextAction.text}</p>
                     <Link
                       href={nextAction.url}
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0066FF] px-5 py-2.5 text-sm font-semibold text-[#0A0F1E] hover:opacity-90 transition-opacity"
                     >
                       {nextAction.label}
                       <ArrowRight className="h-4 w-4" />
@@ -936,13 +936,13 @@ export default async function DashboardPage({
             data-widget-id="reports-actions"
             className="grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
-            <div className="rounded-2xl border border-surface-200 bg-white p-6">
-              <h3 className="text-sm font-bold text-ink-800 mb-4">Recent Reports</h3>
+            <div className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm rounded-2xl p-6 hover:border-[rgba(0,212,255,0.3)] transition-all duration-300">
+              <h3 className="text-sm font-bold text-[#F8FAFC] mb-4">Recent Reports</h3>
               {displayReports.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-surface-200 px-4 py-8 text-center">
-                  <FileText className="h-6 w-6 mx-auto text-ink-300 mb-2" />
-                  <p className="text-sm text-ink-500">No reports yet.</p>
-                  <p className="text-xs text-ink-400 mt-1">
+                <div className="rounded-xl border border-dashed border-[rgba(255,255,255,0.08)] px-4 py-8 text-center">
+                  <FileText className="h-6 w-6 mx-auto text-[#94A3B8]/40 mb-2" />
+                  <p className="text-sm text-[#94A3B8]">No reports yet.</p>
+                  <p className="text-xs text-[#94A3B8]/60 mt-1">
                     Run your first SVI analysis to generate a report.
                   </p>
                 </div>
@@ -950,19 +950,19 @@ export default async function DashboardPage({
                 <div className="space-y-0">
                   {displayReports.map((r) => (
                     <Link key={r.id} href={`/workspace/reports/${r.id}`}>
-                      <div className="flex items-center gap-3 py-3 border-b border-surface-100 last:border-0 hover:bg-surface-50/50 -mx-2 px-2 rounded-lg transition-colors">
-                        <FileText className="h-4 w-4 text-ink-400 shrink-0" />
+                      <div className="flex items-center gap-3 py-3 border-b border-[rgba(255,255,255,0.06)] last:border-0 hover:bg-[rgba(255,255,255,0.04)] -mx-2 px-2 rounded-lg transition-colors">
+                        <FileText className="h-4 w-4 text-[#94A3B8] shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-ink-800 truncate">
+                          <p className="text-sm font-medium text-[#F8FAFC] truncate">
                             {r.raw_input
                               ? r.raw_input.slice(0, 60) + (r.raw_input.length > 60 ? "..." : "")
                               : `Analysis ${new Date(r.created_at).toLocaleDateString("en-AU")}`}
                           </p>
-                          <p className="text-xs text-ink-500">
+                          <p className="text-xs text-[#94A3B8]">
                             {new Date(r.created_at).toLocaleDateString("en-AU")} · SVI {r.total_svi}
                           </p>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-ink-400 shrink-0" />
+                        <ChevronRight className="h-4 w-4 text-[#94A3B8]/40 shrink-0" />
                       </div>
                     </Link>
                   ))}
@@ -971,15 +971,15 @@ export default async function DashboardPage({
               {recentReports.length > 5 && (
                 <Link
                   href="/workspace/reports"
-                  className="mt-3 block text-center text-xs font-medium text-brand-600 hover:text-brand-700"
+                  className="mt-3 block text-center text-xs font-medium text-[#00D4FF] hover:text-[#00D4FF]/80"
                 >
                   View all reports
                 </Link>
               )}
             </div>
 
-            <div className="rounded-2xl border border-surface-200 bg-white p-6">
-              <h3 className="text-sm font-bold text-ink-800 mb-4">Quick Actions</h3>
+            <div className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm rounded-2xl p-6 hover:border-[rgba(0,212,255,0.3)] transition-all duration-300">
+              <h3 className="text-sm font-bold text-[#F8FAFC] mb-4">Quick Actions</h3>
               <QuickActionsList hasAnalysis={!!analysis} phase={phase} />
             </div>
           </div>
@@ -1020,20 +1020,20 @@ export default async function DashboardPage({
           <div data-widget-id="cohort-benchmark">
             <Link
               href="/dashboard/benchmark"
-              className="flex items-center justify-between gap-4 rounded-2xl border border-surface-200 bg-white p-5 hover:border-brand-300 hover:shadow-sm transition-all"
+              className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm flex items-center justify-between gap-4 rounded-2xl p-5 hover:border-[rgba(0,212,255,0.3)] transition-all duration-300"
             >
               <div className="flex items-center gap-3">
-                <BarChart3 className="h-5 w-5 text-brand-600" />
+                <BarChart3 className="h-5 w-5 text-[#00D4FF]" />
                 <div>
-                  <p className="text-sm font-semibold text-ink-900">
+                  <p className="text-sm font-semibold text-[#F8FAFC]">
                     See your cohort percentile
                   </p>
-                  <p className="text-xs text-ink-500">
+                  <p className="text-xs text-[#94A3B8]">
                     Compare your SVI against anonymised AU pre-seed/seed startups.
                   </p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-ink-400" />
+              <ChevronRight className="h-4 w-4 text-[#94A3B8]/50" />
             </Link>
           </div>
 

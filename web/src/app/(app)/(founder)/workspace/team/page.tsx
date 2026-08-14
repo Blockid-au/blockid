@@ -34,16 +34,16 @@ export default async function Page() {
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-6xl mx-auto space-y-6">
         <header>
-          <h1 className="text-xl font-bold text-ink-800">Team & Salaries</h1>
-          <p className="text-sm text-ink-600 mt-1">{cfg.founder_features_copy.team_intro}</p>
-          <p className="text-xs text-ink-400 mt-1">
+          <h1 className="bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent font-bold text-xl">Team &amp; Salaries</h1>
+          <p className="text-sm text-[#94A3B8] mt-1">{cfg.founder_features_copy.team_intro}</p>
+          <p className="text-xs text-[#94A3B8]/70 mt-1">
             Suggested: at least {cfg.founder_features_copy.team_suggested_advisors} advisors on board
             before a priced round.
           </p>
         </header>
 
         {!projectId && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
             Create or select a startup first — team roster is stored per startup.
           </div>
         )}
