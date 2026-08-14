@@ -12,6 +12,7 @@ import {
   nextQuarters,
 } from "@/lib/founder-features";
 import { RoadmapBuilderClient } from "./roadmap-builder-client";
+import { ConferenceRecommender } from "@/components/founder/conference-recommender";
 
 export const metadata: Metadata = {
   title: "Roadmap Builder | Workspace | BlockID",
@@ -58,6 +59,8 @@ export default async function Page() {
           quarters={quarters}
           disabled={!projectId}
         />
+
+        <ConferenceRecommender />
       </div>
     </WorkspaceLayout>
   );
