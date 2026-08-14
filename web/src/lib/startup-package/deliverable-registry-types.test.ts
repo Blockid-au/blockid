@@ -23,10 +23,11 @@ const CANONICAL_KEYS: readonly FeatureCostKey[] = [
   "financial_projection",
   "gtm_doc",
   "accelerator_apply",
+  "abn_trademark_guide",
 ] as const;
 
 describe("PACKAGE_FEATURE_COST_DEFAULTS", () => {
-  it("exposes exactly the nine documented FeatureCostKey members", () => {
+  it("exposes exactly the ten documented FeatureCostKey members", () => {
     expect(new Set(Object.keys(PACKAGE_FEATURE_COST_DEFAULTS))).toEqual(
       new Set(CANONICAL_KEYS),
     );
@@ -49,6 +50,7 @@ describe("PACKAGE_FEATURE_COST_DEFAULTS", () => {
       financial_projection: 1.5,
       gtm_doc: 1.5,
       accelerator_apply: 1.0,
+      abn_trademark_guide: 1.0,
     });
   });
 
@@ -105,15 +107,16 @@ describe("PACKAGE_FEATURE_COST_DEFAULTS", () => {
     );
   });
 
-  it("summed default cost matches the shipped baseline (14.0 credits after Phase 3.1)", () => {
-    // 1.0 + 0.5 + 0.5 + 1.0 + 2.0 + 5.0 + 1.5 + 1.5 + 1.0 = 14.0 — the total
-    // the phase-card renders when a founder unchecks nothing. Guards against
-    // a silent bump that would raise the sticker price without a matching PR.
+  it("summed default cost matches the shipped baseline (15.0 credits after Phase 3.1)", () => {
+    // 1.0 + 0.5 + 0.5 + 1.0 + 2.0 + 5.0 + 1.5 + 1.5 + 1.0 + 1.0 = 15.0 — the
+    // total the phase-card renders when a founder unchecks nothing. Guards
+    // against a silent bump that would raise the sticker price without a
+    // matching PR.
     const total = Object.values(PACKAGE_FEATURE_COST_DEFAULTS).reduce(
       (a, b) => a + b,
       0,
     );
-    expect(total).toBeCloseTo(14.0, 10);
+    expect(total).toBeCloseTo(15.0, 10);
   });
 
   it("is a plain object literal, not a Map or class instance", () => {
