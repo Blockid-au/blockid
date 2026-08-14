@@ -33,6 +33,8 @@ import { PaywallProvider } from "@/components/sales/paywall-nudge";
 import { PhaseList, type PhaseListItem } from "@/components/startup-package/phase-list";
 import { PhaseCard } from "@/components/startup-package/phase-card";
 import { SviMeter } from "@/components/startup-package/svi-meter";
+import { AcceleratorApplyCard } from "@/components/startup-package/accelerator-apply-card";
+import { listAccelerators } from "@/lib/agents/accelerator-drafter";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +141,20 @@ export default async function Page({ params }: PageProps) {
 
             {/* CENTER — every phase card, anchor-scrolled from the left rail */}
             <section className="space-y-6">
+              {/* Accelerator apply drafter — Phase 3.1 */}
+              <AcceleratorApplyCard
+                projectId={projectId}
+                creditBalance={balance}
+                currentPlan={user.plan ?? undefined}
+                accelerators={listAccelerators().map((a) => ({
+                  slug: a.slug,
+                  name: a.name,
+                  region: a.region,
+                  cohort: a.cohort,
+                  url: a.url,
+                }))}
+              />
+
               {GROWTH_PHASES.map((phase) => (
                 <PhaseCard
                   key={phase.id}

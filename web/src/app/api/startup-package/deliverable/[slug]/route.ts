@@ -388,6 +388,66 @@ async function renderPdfForEntry(
         SVIReportPDF(props as never) as never,
       )) as Buffer;
     }
+    case "financial-projection": {
+      const { renderFinancialProjectionPdf } = await import(
+        "@/lib/pdf/financial-projection-pdf"
+      );
+      const { generateFinancialProjection } = await import(
+        "@/lib/agents/cfo-financial-projection"
+      );
+      // Registry inputBuilder emits the raw agent input shape + email.
+      const p = props as {
+        startupName: string;
+        stage: "pre-seed" | "seed" | "series-a" | "series-b";
+        sector?: string;
+        mrrAud?: number;
+        monthlyBurnAud?: number;
+        cashAud?: number;
+        grossMarginPct?: number;
+        monthlyGrowthPct?: number;
+        email?: string;
+      };
+      const projection = await generateFinancialProjection({
+        startupName: p.startupName,
+        stage: p.stage,
+        sector: p.sector,
+        mrrAud: p.mrrAud,
+        monthlyBurnAud: p.monthlyBurnAud,
+        cashAud: p.cashAud,
+        grossMarginPct: p.grossMarginPct,
+        monthlyGrowthPct: p.monthlyGrowthPct,
+      });
+      return renderFinancialProjectionPdf(projection, p.email);
+    }
+    case "gtm-strategy": {
+      const { renderGtmStrategyPdf } = await import("@/lib/pdf/gtm-strategy-pdf");
+      const { generateGtmStrategy } = await import(
+        "@/lib/agents/cmo-market-research"
+      );
+      const p = props as {
+        startupName: string;
+        sector: string;
+        stage: number;
+        description?: string;
+        targetCustomer?: string;
+        email?: string;
+        founderName?: string;
+      };
+      const gtm = await generateGtmStrategy({
+        startupName: p.startupName,
+        sector: p.sector,
+        stage: p.stage,
+        description: p.description,
+        targetCustomer: p.targetCustomer,
+      });
+      return renderGtmStrategyPdf({
+        startupName: p.startupName,
+        sector: p.sector,
+        gtm,
+        email: p.email,
+        founderName: p.founderName,
+      });
+    }
     default: {
       throw new Error(`Unknown pdfGenerator: ${String(entry.pdfGenerator)}`);
     }

@@ -11,7 +11,10 @@ export type FeatureCostKey =
   | "valuation_detailed"
   | "term_sheet"
   | "full_report_standard"
-  | "full_report_premium";
+  | "full_report_premium"
+  | "financial_projection"
+  | "gtm_doc"
+  | "accelerator_apply";
 
 /**
  * Client-safe default credit costs for the Package deliverables.
@@ -28,4 +31,8 @@ export const PACKAGE_FEATURE_COST_DEFAULTS: Record<FeatureCostKey, number> = {
   term_sheet: 1.0,
   full_report_standard: 2.0,
   full_report_premium: 5.0,
+  // Phase 3.1 additions
+  financial_projection: 1.5,
+  gtm_doc: 1.5,
+  accelerator_apply: 1.0,
 };
