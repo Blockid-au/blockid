@@ -147,6 +147,22 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.4.0",
+    date: "2026-08-14",
+    title: "Founder workspace modules + reseller fix + AI optimization",
+    changes: [
+      "[Feature] Founder workspace: competitors, GTM strategy, pricing tiers, roadmap builder, team planner modules — migration 0304",
+      "[Feature] Nav: Strategy subgroup added to Build section",
+      "[Fix] Reseller login — grant /reseller access via reseller_admins membership check",
+      "[Fix] Post-onboarding redirect → /workspace/guide/01-vision",
+      "[Fix] lifecycle-mailer + trial-end-reminder cron POST method fix",
+      "[Fix] STRIPE_PRICE_STARTUP_PACKAGE wired — A$149 checkout no longer broken",
+      "[Fix] Redis rate-limit hardened against bad REDIS_URL — 0.18s response time restored",
+      "[AI] Model IDs updated: Claude Sonnet 4.6, Haiku 4.5, Opus 4.7 — cost tracking fixed",
+      "[AI] Free provider chain optimized: Cerebras → Groq → SambaNova priority, 128 socket pool",
+    ],
+  },
+  {
     version: "3.3.4",
     date: "2026-08-07",
     title: "Clean-code P2B + security hardening + SEO",

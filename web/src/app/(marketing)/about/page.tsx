@@ -200,19 +200,17 @@ export default function AboutPage() {
             <p className="text-base leading-relaxed text-ink-600">
               The result: a platform that would typically require a team of 20+
               engineers, delivered with the speed and precision of AI-native
-              development. The current build — v3.3.3 — spans 340+ TypeScript
+              development. The current build — v3.4.0 — spans 340+ TypeScript
               files, 65+ pages, 90+ API endpoints, 47 database tables, 11 AI
               agents, and 40+ free models. Recent shipping includes the full
-              reseller / wholesale module (P0–P10, 39 wire-shape ticks), Q4
-              multi-project workspace (5/5 shipped: portfolio, team members,
-              permissions, archive UI, 90-day retention cron), Q3 UX (widget
-              grid personalization, audit-log viewer, archived listing), a
-              SOC2-lite audit-log surface across 12 wired routes, the
-              real-world workflow parity audit (7/10 items shipped — canonical
-              vocabulary, 12↔8 bucket maps, showcase 8-stage badges,
-              onboarding Step 6, SCN→Startup Compass, 102-doc data-room),
-              PDF branding with a 3-layer gate and renderer wire-in, and the
-              Playwright post-deploy hydrated smoke (Gate 11, 11 tests).
+              founder workspace (competitors, GTM strategy, pricing tiers,
+              roadmap builder, team planner — migration 0304), the reseller /
+              wholesale module (P0–P13, login fix + welcome email + GA events),
+              STRIPE_PRICE_STARTUP_PACKAGE checkout (A$149 one-off), AI model
+              updates (Sonnet 4.6 / Haiku 4.5 / Opus 4.7) with an optimized
+              free-tier provider chain (Cerebras → Groq → SambaNova, 128 socket
+              pool, 0.18s p95), and the Startup Package guided journey (13
+              sub-goals, Playwright smoke gate).
             </p>
           </section>
 
