@@ -77,7 +77,12 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const listing = await loadPublicListing(slug);
+  let listing: PublicListingPayload | null = null;
+  try {
+    listing = await loadPublicListing(slug);
+  } catch {
+    listing = null;
+  }
   if (!listing) {
     return {
       title: "Startup listing — BlockID.au",
@@ -122,7 +127,14 @@ export default async function StartupListingPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const listing = await loadPublicListing(slug);
+  let listing: PublicListingPayload | null = null;
+  try {
+    listing = await loadPublicListing(slug);
+  } catch {
+    // Any DB / infra failure while resolving an unknown or transient slug
+    // must surface as a clean 404 instead of a 500 error page.
+    listing = null;
+  }
   if (!listing) notFound();
 
   return (
