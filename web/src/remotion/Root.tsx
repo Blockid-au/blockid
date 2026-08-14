@@ -4,6 +4,7 @@ import { PitchVideo1MinV2 } from "./compositions/PitchVideo1MinV2";
 import { PitchVideo3Min } from "./compositions/PitchVideo3Min";
 import { PitchVideoSWC } from "./compositions/PitchVideoSWC";
 import { PitchAntler } from "./compositions/PitchAntler";
+import { PitchSnapshot } from "./pitch-snapshot/PitchSnapshot";
 import { BRAND } from "./styles/brand";
 
 const RemotionRoot: React.FC = () => {
@@ -48,6 +49,22 @@ const RemotionRoot: React.FC = () => {
         fps={BRAND.fps}
         width={BRAND.width}
         height={BRAND.height}
+      />
+      {/* ── Founder Pitch Snapshot — data-driven 60-second composition ── */}
+      <Composition
+        id="PitchSnapshot"
+        component={PitchSnapshot}
+        durationInFrames={60 * BRAND.fps}
+        fps={BRAND.fps}
+        width={BRAND.width}
+        height={BRAND.height}
+        defaultProps={{
+          startupName: "Acme AI",
+          tagline: "AI-powered tools for Australian founders",
+          sector: "SaaS",
+          stage: "Seed",
+          slug: "acme-ai",
+        }}
       />
     </>
   );
