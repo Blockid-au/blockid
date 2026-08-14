@@ -1,0 +1,176 @@
+[
+  {
+    "slug": "yc-w26",
+    "name": "Y Combinator",
+    "region": "US",
+    "cohort": "W26",
+    "url": "https://www.ycombinator.com/apply",
+    "prompts": [
+      { "id": "company_summary", "label": "What does your company do? (in 50 characters or less)", "maxChars": 500 },
+      { "id": "why_now", "label": "Why did you pick this idea to work on? Do you have domain expertise?", "maxChars": 1000 },
+      { "id": "traction", "label": "What is your progress so far? Users, revenue, launched?", "maxChars": 800 },
+      { "id": "unfair_advantage", "label": "What is your unfair advantage? Why will you win?", "maxChars": 500 },
+      { "id": "team", "label": "Tell us about your founding team and how you met", "maxChars": 800 }
+    ]
+  },
+  {
+    "slug": "techstars-2026",
+    "name": "Techstars",
+    "region": "Global",
+    "cohort": "2026",
+    "url": "https://www.techstars.com/apply",
+    "prompts": [
+      { "id": "company_summary", "label": "In one sentence, what does your company do?", "maxChars": 300 },
+      { "id": "problem", "label": "What problem are you solving and for whom?", "maxChars": 800 },
+      { "id": "traction", "label": "Traction to date — customers, revenue, partnerships", "maxChars": 800 },
+      { "id": "why_techstars", "label": "Why Techstars and why now?", "maxChars": 600 },
+      { "id": "team", "label": "Introduce your founding team and relevant experience", "maxChars": 800 }
+    ]
+  },
+  {
+    "slug": "antler-au-2026",
+    "name": "Antler Australia",
+    "region": "AU",
+    "cohort": "2026 Sydney/Melbourne",
+    "url": "https://www.antler.co/locations/sydney",
+    "prompts": [
+      { "id": "background", "label": "Tell us about your background and why you want to be a founder", "maxChars": 1000 },
+      { "id": "domain_expertise", "label": "What domain expertise do you bring?", "maxChars": 800 },
+      { "id": "idea_thesis", "label": "What sectors or problem spaces excite you?", "maxChars": 800 },
+      { "id": "team_fit", "label": "What kind of co-founder are you looking for?", "maxChars": 600 }
+    ]
+  },
+  {
+    "slug": "startmate-2026",
+    "name": "Startmate",
+    "region": "AU/NZ",
+    "cohort": "Winter 2026",
+    "url": "https://www.startmate.com/accelerator",
+    "prompts": [
+      { "id": "company_summary", "label": "What is your company building?", "maxChars": 500 },
+      { "id": "why_now", "label": "Why is now the right time for this?", "maxChars": 800 },
+      { "id": "traction", "label": "What have you shipped and what have you learned?", "maxChars": 800 },
+      { "id": "market", "label": "How big is the opportunity and how do you win it?", "maxChars": 800 },
+      { "id": "team", "label": "Who is on the team and why are you the ones to build this?", "maxChars": 800 }
+    ]
+  },
+  {
+    "slug": "blackbird-giants-2026",
+    "name": "Blackbird Giants",
+    "region": "AU/NZ",
+    "cohort": "2026",
+    "url": "https://www.blackbird.vc/giants",
+    "prompts": [
+      { "id": "company_summary", "label": "What are you building?", "maxChars": 500 },
+      { "id": "ambition", "label": "How could this become generation-defining?", "maxChars": 1000 },
+      { "id": "traction", "label": "What is the earliest signal that this could work?", "maxChars": 600 },
+      { "id": "team", "label": "Why you, why this team?", "maxChars": 800 }
+    ]
+  },
+  {
+    "slug": "skalata-2026",
+    "name": "Skalata Ventures",
+    "region": "AU",
+    "cohort": "2026",
+    "url": "https://www.skalata.co/apply",
+    "prompts": [
+      { "id": "company_summary", "label": "What does your company do?", "maxChars": 500 },
+      { "id": "traction", "label": "Revenue, growth, customer traction (last 12 months)", "maxChars": 800 },
+      { "id": "gtm", "label": "Go-to-market motion and unit economics", "maxChars": 800 },
+      { "id": "team", "label": "Founder team background", "maxChars": 600 }
+    ]
+  },
+  {
+    "slug": "investible-club-2026",
+    "name": "Investible Club",
+    "region": "AU",
+    "cohort": "2026",
+    "url": "https://investible.com/apply",
+    "prompts": [
+      { "id": "company_summary", "label": "One-sentence company description", "maxChars": 300 },
+      { "id": "problem_solution", "label": "Problem being solved and your solution", "maxChars": 800 },
+      { "id": "traction", "label": "Current traction (customers, revenue, growth)", "maxChars": 600 },
+      { "id": "raise", "label": "How much are you raising and use of funds?", "maxChars": 500 },
+      { "id": "team", "label": "Founder team", "maxChars": 600 }
+    ]
+  },
+  {
+    "slug": "muru-d-2026",
+    "name": "muru-D",
+    "region": "AU",
+    "cohort": "2026",
+    "url": "https://muru-d.com",
+    "prompts": [
+      { "id": "company_summary", "label": "What does your startup do?", "maxChars": 500 },
+      { "id": "customer_pain", "label": "Customer pain and current alternatives", "maxChars": 800 },
+      { "id": "traction", "label": "Traction and validation to date", "maxChars": 600 },
+      { "id": "team", "label": "Founder team and roles", "maxChars": 600 }
+    ]
+  },
+  {
+    "slug": "fitstart-2026",
+    "name": "FitStart",
+    "region": "AU",
+    "cohort": "2026",
+    "url": "https://fitstart.io",
+    "prompts": [
+      { "id": "company_summary", "label": "Elevator pitch (max 2 sentences)", "maxChars": 400 },
+      { "id": "problem", "label": "Problem and target customer", "maxChars": 600 },
+      { "id": "traction", "label": "Traction and product status", "maxChars": 600 },
+      { "id": "team", "label": "Founder team", "maxChars": 500 }
+    ]
+  },
+  {
+    "slug": "seed-2026",
+    "name": "SEED (Startup Empowerment & Enterprise Development)",
+    "region": "AU",
+    "cohort": "2026",
+    "url": "https://seedspace.com.au",
+    "prompts": [
+      { "id": "company_summary", "label": "What are you building?", "maxChars": 500 },
+      { "id": "problem", "label": "Problem and market", "maxChars": 800 },
+      { "id": "milestones", "label": "12-month milestones", "maxChars": 600 },
+      { "id": "team", "label": "Team", "maxChars": 500 }
+    ]
+  },
+  {
+    "slug": "slingshot-2026",
+    "name": "Slingshot",
+    "region": "AU",
+    "cohort": "2026",
+    "url": "https://slingshotters.com",
+    "prompts": [
+      { "id": "company_summary", "label": "What is your startup?", "maxChars": 500 },
+      { "id": "corporate_fit", "label": "Which corporate partners could benefit from your product?", "maxChars": 800 },
+      { "id": "traction", "label": "Traction to date", "maxChars": 600 },
+      { "id": "team", "label": "Founder team", "maxChars": 500 }
+    ]
+  },
+  {
+    "slug": "sbe-australia-2026",
+    "name": "SBE Australia (Springboard)",
+    "region": "AU",
+    "cohort": "2026",
+    "url": "https://www.sbeaustralia.org",
+    "prompts": [
+      { "id": "company_summary", "label": "Company one-liner", "maxChars": 300 },
+      { "id": "why_program", "label": "Why this program is right for you", "maxChars": 700 },
+      { "id": "traction", "label": "Traction and revenue", "maxChars": 600 },
+      { "id": "team", "label": "Founder team (women-led focus)", "maxChars": 600 }
+    ]
+  },
+  {
+    "slug": "founders-factory-melb-2026",
+    "name": "Founders Factory Melbourne",
+    "region": "AU",
+    "cohort": "2026",
+    "url": "https://foundersfactory.com/melbourne",
+    "prompts": [
+      { "id": "company_summary", "label": "What are you building?", "maxChars": 500 },
+      { "id": "problem_solution", "label": "Problem and solution", "maxChars": 800 },
+      { "id": "traction", "label": "Traction and product status", "maxChars": 600 },
+      { "id": "corporate_partners", "label": "Which corporate partners are most relevant?", "maxChars": 500 },
+      { "id": "team", "label": "Founding team", "maxChars": 500 }
+    ]
+  }
+]

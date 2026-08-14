@@ -167,6 +167,12 @@ export const FEATURE_COSTS: Record<string, number> = {
   // from memory `feedback_transparent_pricing`.
   package_agent_analysis: 1.00,
 
+  // ── Startup Package — Phase 3.1 auto-fill deliverables ──────────────
+  // Mirrored in PACKAGE_FEATURE_COST_DEFAULTS (client-safe map).
+  financial_projection: 1.50,   // 3-year P&L + burn + runway (CFO agent)
+  gtm_doc: 1.50,                // 12-page GTM playbook (CMO agent)
+  accelerator_apply: 1.00,      // Per-program accelerator application drafter
+
   // ── Enhanced Multi-Agent Reports (13 criteria) ──────────────────────
   enhanced_report_standard: 3.00,   // 13-criteria, multi-agent, charts, 5000-8000 words
   enhanced_report_premium: 7.00,    // All above + DOCX + investor memo, 8000-15000 words
