@@ -157,8 +157,8 @@ export function StepFirstStartup({
       });
 
       window.location.href = projectId
-        ? `/dashboard?onboarding=complete&first_startup=${encodeURIComponent(projectId)}`
-        : "/dashboard?onboarding=complete";
+        ? `/workspace/guide/01-vision?onboarding=complete&first_startup=${encodeURIComponent(projectId)}`
+        : "/workspace/guide/01-vision?onboarding=complete";
     } catch {
       setLocalError(copy.errorGeneric);
       setSubmitting(false);
@@ -176,7 +176,7 @@ export function StepFirstStartup({
       ...state,
       firstStartupCreatedAt: createdAt,
     });
-    window.location.href = "/dashboard?onboarding=complete&first_startup=skipped";
+    window.location.href = "/workspace/guide/01-vision?onboarding=complete&first_startup=skipped";
   }
 
   return (

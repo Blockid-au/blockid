@@ -32,6 +32,11 @@ function authorised(request: Request): boolean {
   return auth === `Bearer ${secret}`;
 }
 
+// The cron-runner sends POST requests; export POST so the Node.js runtime
+// (which enforces strict method matching unlike the default edge runtime)
+// does not return 405 and cause the runner to retry-and-fail every tick.
+export const POST = GET;
+
 export async function GET(request: Request) {
   if (!authorised(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
