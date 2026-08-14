@@ -106,6 +106,11 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
     note: "Ship 1 — auto-fill per-phase deliverables into the dataroom.",
   },
   {
+    route: "api/startup-package/deliverable/accelerator-apply/route.ts",
+    required_feature: "startup_package" as unknown as Feature,
+    note: "Accelerator application drafter — Phase 3.1.",
+  },
+  {
     route: "api/startup-package/reservation/route.ts",
     required_feature: "startup_package" as unknown as Feature,
     note: "Ship 1 — DB-first cap-table reservation.",
