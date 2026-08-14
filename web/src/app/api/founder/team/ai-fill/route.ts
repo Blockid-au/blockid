@@ -16,7 +16,10 @@ import {
   TEAM_BENCHMARKS,
   AU_SALARY_BENCHMARKS,
   assessTeam,
+  generateTeamPlan,
   type TeamMemberProfile,
+  type TeamPlanSuggestion as LlmTeamPlanItem,
+  type HirePhase,
 } from "@/lib/agents/chro-team";
 
 export const dynamic = "force-dynamic";
@@ -98,6 +101,20 @@ function startDate(offsetMonths: number): string {
   return d.toISOString().split("T")[0];
 }
 
+function offsetForPhase(phase: HirePhase): number {
+  switch (phase) {
+    case "current": return 1;
+    case "next_3_months": return 3;
+    case "next_6_months": return 6;
+    case "next_12_months": return 12;
+    default: return 3;
+  }
+}
+
+function statusForPriority(p: LlmTeamPlanItem["priority"]): "open" | "planned" {
+  return p === "critical" ? "open" : "planned";
+}
+
 export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
@@ -117,6 +134,7 @@ export async function POST() {
 
   const stage = Number(project?.stage ?? 0);
   const name = project?.name ?? "Your startup";
+  const sector = (project?.industry ?? "saas").toLowerCase();
 
   // Get existing team members to run assessTeam() for gap analysis
   const { data: existingMembers } = await sb
@@ -138,34 +156,43 @@ export async function POST() {
 
   const benchmark = TEAM_BENCHMARKS[stage] ?? TEAM_BENCHMARKS[0];
   const keyRoles = benchmark?.keyRoles ?? ["CEO/Founder"];
-  const optionalRoles = benchmark?.optionalRoles ?? [];
 
-  // Build suggestions: missing key roles first, then optional
-  const suggestions: TeamSuggestion[] = [];
-  let offset = 1;
+  // Ask the CHRO LLM for a hiring plan (already salary-enriched vs
+  // AU_SALARY_BENCHMARKS). Filter out roles the founder has already hired.
+  const llmItems = await generateTeamPlan({
+    startupName: name,
+    sector,
+    stage,
+    currentTeamSize: existingProfiles.length,
+  });
 
   const existingRoleLower = existingProfiles.map((p) => p.role.toLowerCase());
-
-  for (const role of [...keyRoles, ...optionalRoles]) {
-    const alreadyFilled = existingRoleLower.some((r) =>
-      r.includes(role.toLowerCase().split("/")[0].split(" ")[0])
+  const isAlreadyFilled = (role: string): boolean =>
+    existingRoleLower.some((r) =>
+      r.includes(role.toLowerCase().split("/")[0].split(" ")[0]),
     );
-    if (alreadyFilled) continue;
 
-    const isKey = keyRoles.includes(role);
+  const suggestions: TeamSuggestion[] = [];
+  for (const item of llmItems) {
+    if (isAlreadyFilled(item.role)) continue;
+    // Prefer LLM's per-role salary midpoint over coarser salaryForRole()
+    // lookup; fall back when the LLM returned a zero/advisor row.
+    const midSalary =
+      item.salary_aud_max > 0
+        ? Math.round((item.salary_aud_min + item.salary_aud_max) / 2)
+        : salaryForRole(item.role);
+    const equityMid =
+      Math.round(((item.equity_pct_min + item.equity_pct_max) / 2) * 100) / 100;
     suggestions.push({
-      role_title: role,
-      role_category: categoryForRole(role),
+      role_title: item.role,
+      role_category: categoryForRole(item.role),
       full_name: "",
-      equity_pct: equityForRole(role, stage),
-      salary_aud: salaryForRole(role),
-      start_date: startDate(isKey ? offset : offset + 2),
-      status: isKey ? "open" : "planned",
-      notes: isKey
-        ? `Key role for stage ${stage}. ${assessment.gaps.find((g) => g.includes(role)) ?? "Prioritise hiring."}`
-        : `Optional at stage ${stage}. ${assessment.recommendations[0] ?? "Hire when revenue permits."}`,
+      equity_pct: equityMid > 0 ? equityMid : equityForRole(item.role, stage),
+      salary_aud: midSalary,
+      start_date: startDate(offsetForPhase(item.hire_by_phase)),
+      status: statusForPriority(item.priority),
+      notes: item.rationale,
     });
-    offset++;
     if (suggestions.length >= 5) break;
   }
 
