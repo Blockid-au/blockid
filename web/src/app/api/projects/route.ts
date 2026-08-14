@@ -48,10 +48,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, description, industry } = (body as {
+  const { name, description, industry, github_url } = (body as {
     name?: string;
     description?: string;
     industry?: string;
+    github_url?: string | null;
   }) ?? {};
 
   if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -68,9 +69,20 @@ export async function POST(request: Request) {
     );
   }
 
+  // Validate github_url if provided
+  if (github_url !== undefined && github_url !== null && github_url !== "") {
+    if (typeof github_url !== "string" || !github_url.startsWith("https://github.com/")) {
+      return NextResponse.json(
+        { ok: false, error: "GitHub URL must start with https://github.com/" },
+        { status: 400 },
+      );
+    }
+  }
+
   const result = await createProject(user.id, name, user.plan ?? "free", {
     description: description as string | undefined,
     industry: industry as string | undefined,
+    githubUrl: github_url ?? undefined,
   });
 
   if (!result.ok) {
@@ -98,6 +110,7 @@ export async function POST(request: Request) {
       name_len: name.trim().length,
       has_description: Boolean(description),
       has_industry: Boolean(industry),
+      has_github_url: Boolean(github_url),
     },
     route: "/api/projects",
     ip: extractIp(request.headers),

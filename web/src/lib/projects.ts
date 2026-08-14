@@ -27,6 +27,7 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   growth_phase_current: string | null;
+  githubUrl?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +95,7 @@ function mapProject(row: any): Project {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     growth_phase_current: row.growth_phase_current ?? null,
+    githubUrl: row.github_url ?? null,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -488,7 +490,7 @@ export async function createProject(
   userId: string,
   name: string,
   plan: string,
-  opts?: { description?: string; industry?: string },
+  opts?: { description?: string; industry?: string; githubUrl?: string },
 ): Promise<{ ok: boolean; project?: Project; error?: string; reason?: string }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, error: "Service unavailable" };
@@ -549,6 +551,7 @@ export async function createProject(
       slug,
       description: opts?.description?.trim() || null,
       industry: opts?.industry?.trim() || null,
+      github_url: opts?.githubUrl?.trim() || null,
       is_default: isDefault,
     })
     .select("*")
@@ -586,10 +589,10 @@ export async function createProject(
   return { ok: true, project };
 }
 
-/** Update a project's name, description, or industry. */
+/** Update a project's name, description, industry, or github_url. */
 export async function updateProject(
   projectId: string,
-  updates: Partial<Pick<Project, "name" | "description" | "industry">>,
+  updates: Partial<Pick<Project, "name" | "description" | "industry" | "githubUrl">>,
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, error: "Service unavailable" };
@@ -600,6 +603,7 @@ export async function updateProject(
   if (updates.name !== undefined) patch.name = updates.name.trim();
   if (updates.description !== undefined) patch.description = updates.description?.trim() || null;
   if (updates.industry !== undefined) patch.industry = updates.industry?.trim() || null;
+  if (updates.githubUrl !== undefined) patch.github_url = updates.githubUrl?.trim() || null;
 
   const { error } = await supabase
     .from("projects")

@@ -24,6 +24,7 @@ interface Project {
   isDefault: boolean;
   archivedAt?: string | null;
   createdAt: string;
+  githubUrl?: string | null;
 }
 
 interface ProjectsClientProps {
@@ -101,6 +102,7 @@ export function ProjectsClient({
   const [newName, setNewName] = React.useState("");
   const [newDesc, setNewDesc] = React.useState("");
   const [newIndustry, setNewIndustry] = React.useState("");
+  const [newGithubUrl, setNewGithubUrl] = React.useState("");
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState<string | null>(null);
 
@@ -108,6 +110,7 @@ export function ProjectsClient({
   const [editName, setEditName] = React.useState("");
   const [editDesc, setEditDesc] = React.useState("");
   const [editIndustry, setEditIndustry] = React.useState("");
+  const [editGithubUrl, setEditGithubUrl] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
   // Archiving state (covers both archive and restore inflight requests)
@@ -134,11 +137,19 @@ export function ProjectsClient({
     setEditName(project.name);
     setEditDesc(project.description ?? "");
     setEditIndustry(project.industry ?? "");
+    setEditGithubUrl(project.githubUrl ?? "");
   }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
+
+    // Client-side GitHub URL validation
+    if (newGithubUrl.trim() && !newGithubUrl.trim().startsWith("https://github.com/")) {
+      setCreateError("GitHub URL must start with https://github.com/");
+      return;
+    }
+
     setCreating(true);
     setCreateError(null);
 
@@ -150,6 +161,7 @@ export function ProjectsClient({
           name: newName.trim(),
           description: newDesc.trim() || undefined,
           industry: newIndustry || undefined,
+          github_url: newGithubUrl.trim() || undefined,
         }),
       });
       const json = await res.json();
@@ -159,6 +171,7 @@ export function ProjectsClient({
         setNewName("");
         setNewDesc("");
         setNewIndustry("");
+        setNewGithubUrl("");
         router.refresh();
       } else if (json.error === "founder_one_startup_limit") {
         // Server-side founder guard fired (e.g. someone opened the modal
@@ -180,6 +193,14 @@ export function ProjectsClient({
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editingId || !editName.trim()) return;
+
+    // Client-side GitHub URL validation
+    if (editGithubUrl.trim() && !editGithubUrl.trim().startsWith("https://github.com/")) {
+      // Surface inline error — reuse createError for simplicity (edit modal has no dedicated state)
+      alert("GitHub URL must start with https://github.com/");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -190,6 +211,7 @@ export function ProjectsClient({
           name: editName.trim(),
           description: editDesc.trim() || null,
           industry: editIndustry || null,
+          github_url: editGithubUrl.trim() || null,
         }),
       });
       const json = await res.json();
@@ -631,6 +653,19 @@ export function ProjectsClient({
                   className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
                 />
               </div>
+              <div>
+                <label htmlFor="new-github-url" className="block text-sm font-medium text-ink-700 mb-1">
+                  GitHub URL <span className="text-ink-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  id="new-github-url"
+                  type="url"
+                  value={newGithubUrl}
+                  onChange={(e) => setNewGithubUrl(e.target.value)}
+                  placeholder="https://github.com/your-org/your-repo"
+                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                />
+              </div>
               {createError && (
                 <p className="text-sm text-red-600 font-medium">{createError}</p>
               )}
@@ -713,6 +748,19 @@ export function ProjectsClient({
                   onChange={(e) => setEditDesc(e.target.value)}
                   placeholder="Briefly describe your startup idea..."
                   className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-github-url" className="block text-sm font-medium text-ink-700 mb-1">
+                  GitHub URL <span className="text-ink-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  id="edit-github-url"
+                  type="url"
+                  value={editGithubUrl}
+                  onChange={(e) => setEditGithubUrl(e.target.value)}
+                  placeholder="https://github.com/your-org/your-repo"
+                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 />
               </div>
               <div className="flex items-center justify-end gap-3 pt-2">

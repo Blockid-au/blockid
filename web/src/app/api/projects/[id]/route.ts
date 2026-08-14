@@ -52,10 +52,11 @@ export async function PATCH(
     );
   }
 
-  const { name, description, industry } = (body as {
+  const { name, description, industry, github_url } = (body as {
     name?: string;
     description?: string;
     industry?: string;
+    github_url?: string | null;
   }) ?? {};
 
   if (name !== undefined && (typeof name !== "string" || name.trim().length === 0)) {
@@ -65,7 +66,22 @@ export async function PATCH(
     );
   }
 
-  const result = await updateProject(id, { name, description, industry });
+  // Validate github_url if provided
+  if (github_url !== undefined && github_url !== null && github_url !== "") {
+    if (typeof github_url !== "string" || !github_url.startsWith("https://github.com/")) {
+      return NextResponse.json(
+        { ok: false, error: "GitHub URL must start with https://github.com/" },
+        { status: 400 },
+      );
+    }
+  }
+
+  const result = await updateProject(id, {
+    name,
+    description,
+    industry,
+    githubUrl: github_url !== undefined ? (github_url ?? null) : undefined,
+  });
 
   if (!result.ok) {
     return NextResponse.json(
@@ -81,6 +97,7 @@ export async function PATCH(
   if (name !== undefined) changed.push("name");
   if (description !== undefined) changed.push("description");
   if (industry !== undefined) changed.push("industry");
+  if (github_url !== undefined) changed.push("github_url");
   await logUserAction({
     userId: user.id,
     action: "project.updated",
