@@ -1,22 +1,22 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { NavV2 } from "@/components/landing/nav-v2";
-import { HeroV4 } from "@/components/landing/hero-v4";
-import { EmotionalBand } from "@/components/landing/hero-v3";
-import { HowItWorks } from "@/components/landing/how-it-works";
-import { FoundingBand } from "@/components/landing/founding-band";
+import { HeroSection } from "@/components/marketing/hero-section";
+import { LogoBand } from "@/components/marketing/logo-band";
+import { FeaturesGrid } from "@/components/marketing/features-grid";
+import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
+import { CTASection } from "@/components/marketing/cta-section";
 import { TrustStrip } from "@/components/landing/trust-strip";
 import {
   readSignedInHint,
   SIGNED_IN_LANDING_HREF,
 } from "@/lib/supabase/session-hint";
-import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const metadata = {
   title:
-    "BlockID.au — One Business. One Trusted Identity.",
+    "BlockID.au — Australia's Startup Intelligence Platform",
   description:
-    "Give your business a trusted digital identity. BlockID.au turns identity, evidence and capabilities into one reusable Business ID — verified for investors, procurement, grants and partners.",
+    "AI-powered startup analysis. Real benchmarks. Founder-first tools. Get your Startup Value Index, AUD valuation range and GTM strategy in under 3 seconds.",
   alternates: {
     canonical: "https://blockid.au",
   },
@@ -27,12 +27,7 @@ export const revalidate = 0;
 
 /**
  * Reads the current build's version string from
- * `web/content/reports/version.json` — cached at module scope. The homepage
- * is `force-dynamic`, so this used to hit the disk on every request. The
- * version.json file only changes on deploy, and each deploy spawns a fresh
- * Node process, so a per-process cache is safe and cannot go stale. Returns
- * `null` when the file is missing or malformed so the caller can omit the
- * suffix rather than render a placeholder — the trust strip must never lie.
+ * `web/content/reports/version.json` — cached at module scope.
  */
 let cachedVersion: string | null | undefined;
 function readVersionString(): string | null {
@@ -55,20 +50,10 @@ export default async function HomePage() {
   const version = readVersionString();
   const isSignedIn = await readSignedInHint();
 
-  // Fetch verified business count for social proof in HeroV3 trust bar
-  let verifiedCount = 0;
-  try {
-    const supabaseAdmin = getSupabaseAdmin();
-    if (supabaseAdmin) {
-      const { count } = await supabaseAdmin
-        .from("app_users")
-        .select("*", { count: "exact", head: true })
-        .eq("is_verified", true);
-      verifiedCount = count ?? 0;
-    }
-  } catch {
-    // Non-fatal — trust bar is hidden when count is 0
-  }
+  // Redirect signed-in users via NavV2 hint (used for dashboard link)
+  void isSignedIn;
+  void SIGNED_IN_LANDING_HREF;
+
   const entityLine = [
     "Auschain PTY LTD",
     "ACN 659 615 111",
@@ -79,35 +64,38 @@ export default async function HomePage() {
     .join(" · ");
 
   return (
-    <div data-theme="lux" className="bg-brand-navy min-h-screen">
+    <div style={{ backgroundColor: "#0A0F1E" }} className="min-h-screen">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand-gold focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-navy"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[#00D4FF] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#0A0F1E]"
       >
         Skip to content
       </a>
+
       <NavV2 />
+
       <main id="main-content">
-        <HeroV4
-          signedInHref={isSignedIn ? SIGNED_IN_LANDING_HREF : undefined}
-          verifiedCount={verifiedCount}
-        />
-        <EmotionalBand />
-        <section
-          id="how"
-          aria-labelledby="how-it-works-heading"
-          className="border-t border-white/10 py-16"
-        >
-          <h2 id="how-it-works-heading" className="sr-only">
-            How BlockID.au works
-          </h2>
-          <HowItWorks />
-        </section>
-        <FoundingBand />
+        {/* Hero: full viewport, animated gradient search ring */}
+        <HeroSection />
+
+        {/* Logo band: trusted by AU founders */}
+        <LogoBand />
+
+        {/* Features: 6 glassmorphism cards */}
+        <FeaturesGrid />
+
+        {/* How it works: 3 numbered steps */}
+        <HowItWorksSection />
+
+        {/* Partners / trust strips */}
         <section
           id="partners"
           aria-labelledby="partners-heading"
-          className="border-t border-white/10 py-12"
+          className="border-t py-12"
+          style={{
+            backgroundColor: "#0A0F1E",
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
         >
           <h2 id="partners-heading" className="sr-only">
             Programs and integrations
@@ -117,19 +105,33 @@ export default async function HomePage() {
             <TrustStrip group="integrated" className="mt-8" />
           </div>
         </section>
+
+        {/* CTA: bottom gradient-border card */}
+        <CTASection />
+
+        {/* Entity footer strip */}
         <section
           id="trust"
           aria-labelledby="trust-heading"
-          className="border-t border-white/10 py-12"
+          className="border-t py-10"
+          style={{
+            backgroundColor: "#0A0F1E",
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
         >
           <h2 id="trust-heading" className="sr-only">
             About BlockID.au
           </h2>
           <div className="mx-auto max-w-4xl px-6 text-center">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-ink-600">
+            <p
+              className="text-xs font-medium uppercase tracking-[0.2em]"
+              style={{ color: "#94A3B8" }}
+            >
               Australian owned {"·"} Built in Sydney
             </p>
-            <p className="mt-3 text-sm text-ink-700">{entityLine}</p>
+            <p className="mt-3 text-sm" style={{ color: "#94A3B8" }}>
+              {entityLine}
+            </p>
           </div>
         </section>
       </main>

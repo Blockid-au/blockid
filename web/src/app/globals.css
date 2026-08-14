@@ -709,6 +709,36 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   HOMEPAGE REDESIGN — animated gradient ring + blob drift
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Search bar gradient ring: cyan → blue → purple → cyan */
+@keyframes spin-ring {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Blob background animations */
+@keyframes blob-drift-a {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -30px) scale(1.08); }
+}
+@keyframes blob-drift-b {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-30px, 20px) scale(1.06); }
+}
+@keyframes blob-drift-c {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(20px, -40px) scale(1.05); }
+}
+
+/* Placeholder input text-[#94A3B8] in dark bg */
+.search-ring input::placeholder {
+  color: #94A3B8;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    NAV V2 — dropdown panel entrance keyframes
    ═══════════════════════════════════════════════════════════════ */
 
