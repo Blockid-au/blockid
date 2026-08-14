@@ -86,8 +86,10 @@ function resolveWorkerPath(): string {
 
 // Pooled keep-alive agents — reuse TLS connections across AI calls instead of
 // paying a fresh handshake (or a whole node subprocess) per call.
-const httpsKeepAlive = new https.Agent({ keepAlive: true, maxSockets: 64 });
-const httpKeepAlive = new http.Agent({ keepAlive: true, maxSockets: 64 });
+// 128 sockets supports ~10 concurrent analyses × 3 parallel agents × 4 providers
+// without queuing — up from 64 to handle the large-scale startup analysis load.
+const httpsKeepAlive = new https.Agent({ keepAlive: true, maxSockets: 128 });
+const httpKeepAlive = new http.Agent({ keepAlive: true, maxSockets: 128 });
 
 /**
  * In-process API call via node:https — bypasses Next.js's patched GLOBAL fetch
@@ -419,19 +421,29 @@ const COST_PER_1K: Record<string, number> = {
   "o3-mini": 0.0055,
   "gpt-4.1-mini": 0.002,
   "gemini-2.5-flash": 0.0014,   // PAID: $0.30/1M input + $2.50/1M output averaged
-  "llama-3.3-70b-versatile": 0, // Groq free tier
+  "llama-3.3-70b-versatile": 0,  // Groq free tier (legacy — health shows dead, kept for records)
+  "qwen/qwen3.6-27b": 0,        // Groq free tier (Aug 2026 — top of discovery)
   "openai/gpt-oss-120b": 0,     // Groq free tier
   "openai/gpt-oss-20b": 0,      // Groq free tier
   "llama-3.1-8b-instant": 0,    // Groq free tier
+  "groq/compound": 0,            // Groq compound model
+  "groq/compound-mini": 0,       // Groq compound-mini
   // Cerebras free tier
   "llama-3.3-70b": 0,
   "llama-3.1-8b": 0,
-  // SambaNova free tier
-  "DeepSeek-V3-0324": 0,
+  "gemma-4-31b": 0,           // Cerebras: 1424 ok in prod — most reliable model
+  "zai-glm-4.7": 0,           // Cerebras: zero cost (but high fail rate — demoted by health)
+  // SambaNova free tier (model IDs as of Aug 2026)
+  "DeepSeek-V3.1": 0,         // SambaNova: newest DeepSeek V3 checkpoint
+  "DeepSeek-V3.2": 0,         // SambaNova: latest DeepSeek V3 checkpoint
+  "DeepSeek-V3-0324": 0,      // SambaNova: legacy ID kept for health record continuity
   "Meta-Llama-3.3-70B-Instruct": 0,
   "Qwen2.5-72B-Instruct": 0,
   "Meta-Llama-3.1-8B-Instruct": 0,
+  "gpt-oss-120b": 0,          // SambaNova: available as of Aug 2026 discovery
+  "gemma-4-31B-it": 0,        // SambaNova: Gemma 4 31B instruct
   // OpenRouter free models — all $0 cost
+  "nvidia/nemotron-3-ultra-550b-a55b:free": 0,           // Aug 2026 discovery #1 — 550B ultra
   "deepseek/deepseek-v4-flash:free": 0,
   "qwen/qwen3-coder:free": 0,
   "nvidia/nemotron-3-super-120b-a12b:free": 0,
@@ -443,9 +455,11 @@ const COST_PER_1K: Record<string, number> = {
   "google/gemma-4-31b-it:free": 0,
   "google/gemma-4-26b-a4b-it:free": 0,
   "poolside/laguna-m.1:free": 0,
+  "poolside/laguna-s-2.1:free": 0,                       // Aug 2026 discovery — Poolside Laguna S
   "poolside/laguna-xs.2:free": 0,
   "nvidia/nemotron-3-nano-30b-a3b:free": 0,
   "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": 0,
+  "nvidia/nemotron-3.5-lightning:free": 0,               // Aug 2026 discovery — Nemotron 3.5
   "minimax/minimax-m2.5:free": 0,
   "meta-llama/llama-3.3-70b-instruct:free": 0,
   "z-ai/glm-4.5-air:free": 0,
@@ -557,39 +571,41 @@ type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-apik
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
   // ──────────────────────────────────────────────────────────────────────
-  // PRIORITY: Subscription (best quality) → FREE stable → OpenRouter last
+  // PRIORITY: FREE high-throughput first → subscription fallback → OpenRouter last
   // NO paid API keys, NO Codex — zero marginal cost only.
   //
-  // Benchmark intelligence (June 2026):
-  //   S-tier (52+): Claude Sonnet 4.6, DeepSeek V3, Kimi K2.6
+  // Benchmark intelligence (Aug 2026):
+  //   S-tier (52+): Claude Sonnet 4.6, DeepSeek V3.2/V3.1, Kimi K2.6
   //   A-tier (40-50): gpt-oss-120b, Nemotron 120B/550B, Qwen3
-  //   B-tier (35-42): Llama 3.3 70B, Gemma 4
+  //   B-tier (35-42): gemma-4-31b, qwen3.6-27b, Llama 3.3 70B
   //   C-tier (<35):  Llama 3.1 8B, small models
   //
-  // Stability ranking:
-  //   claude-oauth  — subscription, 100% uptime, Sonnet 4.6
-  //   claude-proxy  — shared key, Sonnet 4.6
-  //   cerebras      — 30 RPM free, ultra-fast hardware, reliable
-  //   groq          — 400 RPM free, ultra-fast (500+ t/s), very stable
-  //   sambanova     — high-throughput free, DeepSeek V3, stable
+  // Throughput ranking (Aug 2026 — optimised for large-scale startup analysis):
+  //   cerebras      — ultra-fast 2000 t/s hardware; gemma-4-31b has 1424 prod successes
+  //   groq          — 400 RPM free, ~500 t/s; qwen3.6-27b top of Aug discovery
+  //   sambanova     — DeepSeek V3.2/V3.1 free, 294 TPS, high throughput
+  //   claude-oauth  — subscription Sonnet 4.6; demoted below free tiers because
+  //                   it's hitting 429 (rate-limited) when all free capacity is used
+  //   claude-proxy  — shared key Sonnet 4.6
   //   ollama        — local GPU, offline fallback
   //   openrouter    — LAST: 24+ free models but variable uptime + rate limits
   // ──────────────────────────────────────────────────────────────────────
 
-  // 1. Claude OAuth — Sonnet 4.6 (subscription, best quality, zero cost)
-  if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 2. Proxy — Sonnet 4.6 (shared key)
-  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
-  else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 3. Cerebras — ultra-fast hardware, 30 RPM free, consistent uptime
+  // 1. Cerebras — ultra-fast 2000 t/s, gemma-4-31b highly reliable in prod
   if (process.env.CEREBRAS_API_KEY) providers.push("cerebras");
   else if (getDBKey("cerebras")) providers.push("cerebras");
-  // 4. Groq — fastest free inference (400 RPM, 500+ t/s, very stable)
+  // 2. Groq — 400 RPM free, ~500 t/s; qwen3.6-27b top of Aug 2026 discovery
   if (process.env.GROQ_API_KEY) providers.push("groq");
   else if (getDBKey("groq")) providers.push("groq");
-  // 5. SambaNova — DeepSeek V3 free, high throughput, stable
+  // 3. SambaNova — DeepSeek V3.2/V3.1 free, 294 TPS, excellent reasoning quality
   if (process.env.SAMBANOVA_API_KEY) providers.push("sambanova");
   else if (getDBKey("sambanova")) providers.push("sambanova");
+  // 4. Claude OAuth — Sonnet 4.6 (subscription, best quality) — after free tiers
+  //    to preserve rate-limit headroom for tasks only Claude handles well
+  if (readCliOAuthToken()) providers.push("claude-oauth");
+  // 5. Proxy — Sonnet 4.6 (shared key)
+  if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
+  else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
   // 6. Ollama — local GPU backup
   if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
   // 7. OpenRouter — LAST: 24+ free models but variable uptime and rate limits
@@ -736,14 +752,15 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
   if (!apiKey) throw new Error("Groq API key not configured");
 
-  // Groq models ranked by benchmark, all free tier:
-  // gpt-oss-120b (A-tier ~44, 500t/s) > llama-3.3-70b (B-tier ~42, 280t/s)
-  // > gpt-oss-20b (C-tier ~34, 1000t/s) > llama-3.1-8b (C-tier ~28, 560t/s)
+  // Groq models ranked by Aug 2026 discovery + prod health data:
+  // qwen/qwen3.6-27b (ok:12, discovery top) > openai/gpt-oss-120b (ok:4)
+  // > llama-3.1-8b-instant (ok:76, ultra-reliable) > gpt-oss-20b (ok:6)
+  // NOTE: llama-3.3-70b-versatile DROPPED — health shows 0 ok, 5 fails (dead endpoint)
   const GROQ_MODELS = getDynamicModels("groq", [
-    "openai/gpt-oss-120b",       // A-tier: 117B MoE, best quality
-    "llama-3.3-70b-versatile",    // B-tier: 70B, reliable general
-    "openai/gpt-oss-20b",        // C-tier: 20B, fast
-    "llama-3.1-8b-instant",       // C-tier: 8B, ultra-fast fallback
+    "qwen/qwen3.6-27b",          // A-tier: Qwen3 27B, top of Aug 2026 discovery
+    "openai/gpt-oss-120b",       // A-tier: 117B MoE, best quality when available
+    "llama-3.1-8b-instant",      // C-tier: 8B, 560 t/s — most reliable in prod (76 ok)
+    "openai/gpt-oss-20b",        // C-tier: 20B, fast fallback
   ]);
 
   let lastErr: Error | null = null;
@@ -785,12 +802,16 @@ async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.CEREBRAS_API_KEY ?? getDBKey("cerebras")?.api_key ?? "";
   if (!apiKey) throw new Error("Cerebras API key not configured");
 
-  // Cerebras models ranked by benchmark:
-  // gpt-oss-120b (A-tier ~44) > llama-3.3-70b (B-tier ~42) > llama-3.1-8b (C-tier ~28)
+  // Cerebras models ranked by Aug 2026 prod health + discovery:
+  // gemma-4-31b (1424 ok, 0 fails — most reliable) > gpt-oss-120b (ok:506)
+  // > llama-3.1-8b (C-tier fallback) > llama-3.3-70b (legacy compat)
+  // NOTE: "openai/gpt-oss-120b" (Groq-prefixed ID) removed — Cerebras uses "gpt-oss-120b"
+  // NOTE: "zai-glm-4.7" excluded from defaults — 96 fails, 3 ok (extremely flaky)
   const CEREBRAS_MODELS = getDynamicModels("cerebras", [
-    "openai/gpt-oss-120b",    // A-tier: 117B MoE, best quality on Cerebras
-    "llama-3.3-70b",           // B-tier: Llama 3.3 70B, reliable
-    "llama-3.1-8b",            // C-tier: 8B fast fallback
+    "gemma-4-31b",             // B-tier: 1424 prod successes — most reliable on Cerebras
+    "gpt-oss-120b",            // A-tier: 117B MoE, high throughput when available (ok:506)
+    "llama-3.1-8b",            // C-tier: 8B ultra-fast fallback
+    "llama-3.3-70b",           // B-tier: 70B, legacy compat
   ]);
 
   let lastErr: Error | null = null;
@@ -832,13 +853,18 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.SAMBANOVA_API_KEY ?? getDBKey("sambanova")?.api_key ?? "";
   if (!apiKey) throw new Error("SambaNova API key not configured");
 
-  // SambaNova models ranked by benchmark intelligence score:
-  // DeepSeek-V3 (score ~50) > Qwen2.5-72B (~46) > Llama-3.3-70B (~42) > Llama-3.1-8B (~28)
+  // SambaNova models ranked by Aug 2026 discovery + benchmark intelligence:
+  // DeepSeek-V3.2/V3.1 (S-tier ~52, newest checkpoints) > gpt-oss-120b (A-tier)
+  // > gemma-4-31B-it (B-tier) > Meta-Llama-3.3-70B (B-tier) > Meta-Llama-3.1-8B (C-tier)
+  // NOTE: "DeepSeek-V3-0324" kept last for health record continuity — may still be live
   const SAMBANOVA_MODELS = getDynamicModels("sambanova", [
-    "DeepSeek-V3-0324",            // S-tier: DeepSeek V3, best open-source reasoning
-    "Qwen2.5-72B-Instruct",        // A-tier: Qwen 2.5 72B, strong structured output
-    "Meta-Llama-3.3-70B-Instruct",  // B-tier: Llama 3.3 70B, reliable general
-    "Meta-Llama-3.1-8B-Instruct",   // C-tier: Llama 3.1 8B, fast fallback
+    "DeepSeek-V3.2",               // S-tier: latest DeepSeek V3 on SambaNova (Aug 2026)
+    "DeepSeek-V3.1",               // S-tier: previous DeepSeek V3 checkpoint
+    "gpt-oss-120b",                // A-tier: OpenAI 117B open-weight on SambaNova
+    "gemma-4-31B-it",              // B-tier: Gemma 4 31B instruct (Aug 2026 discovery)
+    "Meta-Llama-3.3-70B-Instruct", // B-tier: Llama 3.3 70B, reliable general
+    "Meta-Llama-3.1-8B-Instruct",  // C-tier: Llama 3.1 8B, fast fallback
+    "DeepSeek-V3-0324",            // S-tier: legacy ID — may still be aliased on SambaNova
   ]);
 
   let lastErr: Error | null = null;
@@ -878,37 +904,41 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.OPENROUTER_API_KEY ?? getDBKey("openrouter")?.api_key ?? "";
   if (!apiKey) throw new Error("OpenRouter API key not configured");
 
-  // Free models ranked by intelligence benchmark (May 2026).
+  // Free models ranked by Aug 2026 discovery + intelligence benchmark.
   // S-tier (50+) → A-tier (42-50) → B-tier (35-42) → C-tier (<35)
-  // Last updated: 2026-05-30 — 24 free models for maximum uptime.
+  // Last updated: 2026-08-13 — daily refresh writes to ai-free-models.json.
+  // Hardcoded list is fallback if file is missing/stale (getDynamicModels prefers file).
   const FREE_MODELS = getDynamicModels("openrouter", [
     // ── S-tier: Frontier-class free models (score 47-54) ────────────
+    "nvidia/nemotron-3-ultra-550b-a55b:free",             // 1M ctx, NVIDIA 550B ultra — top of Aug discovery
     "moonshotai/kimi-k2.6:free",                          // 262K ctx, score ~54, Moonshot best
     "deepseek/deepseek-v4-flash:free",                    // 1M ctx, score ~47, MoE 284B reasoning
-    "minimax/minimax-m2.5:free",                          // 205K ctx, score ~50, matches Opus on SWE-bench
-    "qwen/qwen3-next-80b-a3b-instruct:free",             // 262K ctx, score ~46, Qwen3 next-gen
+    "minimax/minimax-m2.5:free",                          // 205K ctx, score ~50, SWE-bench strong
+    "qwen/qwen3-next-80b-a3b-instruct:free",              // 262K ctx, score ~46, Qwen3 next-gen
     "qwen/qwen3-coder:free",                              // 1M ctx, score ~45, strongest free coding
 
     // ── A-tier: Strong general-purpose (score 40-47) ────────────────
-    "nvidia/nemotron-3-super-120b-a12b:free",             // 1M ctx, NVIDIA 120B, excellent reports
+    "nvidia/nemotron-3-super-120b-a12b:free",             // 1M ctx, NVIDIA 120B, Aug discovery #2
     "openai/gpt-oss-120b:free",                           // 131K ctx, OpenAI 117B MoE open-weight
     "z-ai/glm-4.5-air:free",                              // 131K ctx, Zhipu GLM 4.5 (GLM-5 family)
     "openrouter/owl-alpha",                                // 1M ctx, OpenRouter agentic model
     "nousresearch/hermes-3-llama-3.1-405b:free",          // 131K ctx, 405B params — largest free
 
     // ── B-tier: Solid quality, reliable (score 35-42) ───────────────
-    "google/gemma-4-31b-it:free",                         // 262K ctx, Gemma 4 multimodal
-    "meta-llama/llama-3.3-70b-instruct:free",             // 131K ctx, Meta Llama 3.3 70B
-    "google/gemma-4-26b-a4b-it:free",                     // 262K ctx, Gemma 4 smaller
-    "poolside/laguna-m.1:free",                           // 262K ctx, Poolside coding agent
-    "nvidia/nemotron-3-nano-30b-a3b:free",                // 256K ctx, NVIDIA 30B
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", // 256K ctx, NVIDIA reasoning
+    "nvidia/nemotron-3.5-lightning:free",                  // Aug 2026 discovery — Nemotron 3.5
+    "poolside/laguna-s-2.1:free",                          // Aug 2026 discovery — Poolside Laguna S
+    "google/gemma-4-31b-it:free",                          // 262K ctx, Gemma 4 multimodal — Aug discovery #3
+    "meta-llama/llama-3.3-70b-instruct:free",              // 131K ctx, Meta Llama 3.3 70B
+    "google/gemma-4-26b-a4b-it:free",                      // 262K ctx, Gemma 4 smaller
+    "poolside/laguna-m.1:free",                            // 262K ctx, Poolside coding agent
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",  // 256K ctx, NVIDIA reasoning — Aug discovery
+    "nvidia/nemotron-3-nano-30b-a3b:free",                 // 256K ctx, NVIDIA 30B
     "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", // 33K ctx, Mistral 24B
 
     // ── C-tier: Fast fallback / small models (score <35) ────────────
     "openai/gpt-oss-20b:free",                            // 131K ctx, OpenAI 20B fast
     "poolside/laguna-xs.2:free",                          // 262K ctx, Poolside small
-    "nvidia/nemotron-nano-12b-v2-vl:free",                // 128K ctx, NVIDIA 12B vision
+    "nvidia/nemotron-nano-12b-v2-vl:free",                // 128K ctx, NVIDIA 12B vision — Aug discovery
     "nvidia/nemotron-nano-9b-v2:free",                    // 128K ctx, NVIDIA 9B
     "meta-llama/llama-3.2-3b-instruct:free",              // 131K ctx, Meta 3B ultra-fast
     "liquid/lfm-2.5-1.2b-thinking:free",                  // 33K ctx, Liquid 1.2B thinking
@@ -1219,16 +1249,18 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
   await getDBKeys(); // ensure cache is warm
 
   // Only use FREE and subscription providers — NO paid API keys, NO Codex.
+  // Same throughput-first order as callAI: free high-volume first, Claude OAuth last.
   const freeProviders: Provider[] = [];
-  // 100% free providers first, ordered by reliability + speed.
-  // Cerebras (ultra-fast, 30 RPM) → Groq (400 RPM, 500+ t/s) → SambaNova (DeepSeek V3, high throughput).
+  // 1. Cerebras — ultra-fast 2000 t/s, gemma-4-31b most reliable in prod
   if (process.env.CEREBRAS_API_KEY || getDBKey("cerebras")) freeProviders.push("cerebras");
+  // 2. Groq — 400 RPM, ~500 t/s; qwen3.6-27b top of Aug 2026 discovery
   if (process.env.GROQ_API_KEY || getDBKey("groq")) freeProviders.push("groq");
+  // 3. SambaNova — DeepSeek V3.2/V3.1 free, 294 TPS, strong reasoning
   if (process.env.SAMBANOVA_API_KEY || getDBKey("sambanova")) freeProviders.push("sambanova");
-  // Subscription providers (fixed cost, not per-call)
-  if (readCliOAuthToken()) freeProviders.push("claude-oauth");
-  // OpenRouter LAST — heavily rate-limited (429 spam) but 24+ free models for breadth.
+  // 4. OpenRouter — 24+ free models for breadth, but rate-limited per model
   if (process.env.OPENROUTER_API_KEY || getDBKey("openrouter")) freeProviders.push("openrouter");
+  // 5. Claude OAuth — subscription Sonnet 4.6 (last: save rate-limit headroom)
+  if (readCliOAuthToken()) freeProviders.push("claude-oauth");
   // NOTE: Gemini EXCLUDED — it costs $0.30-$2.50/1M tokens, NOT free.
   // NOTE: Codex EXCLUDED — refresh tokens keep expiring + paid quota.
 
