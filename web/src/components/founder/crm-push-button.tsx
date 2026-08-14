@@ -11,6 +11,7 @@
 // SVI score then forwards the payload to the configured Zapier webhook.
 
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -87,6 +88,7 @@ export function CrmPushButton({ locale = "en", className = "" }: CrmPushButtonPr
 
       setPushedAt(body.pushed_at ?? new Date().toISOString());
       setStatus("success");
+      trackEvent("crm_push", {});
 
       // Reset to idle after 4 seconds so the user can push again
       setTimeout(() => setStatus("idle"), 4000);

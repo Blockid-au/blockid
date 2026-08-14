@@ -29,6 +29,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, Search, X } from "lucide-react";
 import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
+import { trackEvent } from "@/lib/analytics";
 
 const SEARCH_ROUTE = "/svi";
 const HERO_CTA_CONTROL_COPY = "Search & Score";
@@ -71,6 +72,7 @@ export function HeroSearch() {
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       recordHeroCtaConversion();
+      trackEvent("search_analyse", { query: value.trim() });
       router.push(submitDestination(value));
     },
     [recordHeroCtaConversion, router, submitDestination, value],
@@ -80,6 +82,7 @@ export function HeroSearch() {
     (chip: string) => {
       setValue(chip);
       recordHeroCtaConversion();
+      trackEvent("quick_tag_click", { tag: chip });
       router.push(submitDestination(chip));
     },
     [recordHeroCtaConversion, router, submitDestination],

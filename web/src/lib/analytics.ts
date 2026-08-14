@@ -108,6 +108,16 @@ export interface AnalyticsEventMap {
   startup_listing_viewed: { slug: string };
   startup_listing_contact_submitted: { slug: string };
 
+  // ── Hero / Search ──
+  signup_cta: { location: string };
+  search_analyse: { query: string };
+  quick_tag_click: { tag: string };
+
+  // ── Workspace actions ──
+  analysis_run: { module: string };
+  deliverable_download: { type: string };
+  crm_push: Record<string, never>;
+
   // ── Navigation ──
   cta_clicked: { cta_id: string; location: string };
   nav_tool_selected: { tool: string };
@@ -218,6 +228,18 @@ export function setUserProperties(props: Record<string, string | number | boolea
   window.gtag?.("set", "user_properties", props);
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event: "user_properties_set", ...props });
+}
+
+/**
+ * Send a manual GA4 page_view hit (for SPA route changes).
+ * Safe to call server-side — no-ops silently.
+ */
+export function trackPageView(url: string): void {
+  if (typeof window === "undefined") return;
+  const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
+  window.gtag?.("config", measurementId, { page_path: url });
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({ event: "page_view", page_path: url });
 }
 
 /**
