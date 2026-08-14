@@ -20,6 +20,23 @@ export interface StageThreshold {
   color: string;
 }
 
+// Copy strings + suggested numeric hints for the /workspace/(founder-features)
+// pages. Kept in platform-config so ops can tune the empty-state copy and
+// "Suggested: N" nudges from the admin panel without a redeploy.
+export interface FounderFeaturesCopy {
+  gtm_intro: string;
+  gtm_placeholder_segment: string;
+  gtm_placeholder_value_prop: string;
+  competitors_intro: string;
+  competitors_suggested_direct: number;
+  pricing_intro: string;
+  pricing_suggested_tiers: number;
+  roadmap_intro: string;
+  roadmap_quarters_ahead: number;
+  team_intro: string;
+  team_suggested_advisors: number;
+}
+
 export interface PlatformConfig {
   // ── Founding plan ──────────────────────────────────────────────────────────
   founding_plan_name: string;       // e.g. "Founding 100"
@@ -57,6 +74,9 @@ export interface PlatformConfig {
   founding_plan_active: boolean;    // show/hide the Founding plan entirely
   waitlist_mode: boolean;           // if true, show waitlist instead of checkout
   linkedin_post_enabled: boolean;   // auto-publish LinkedIn posts
+
+  // ── Founder core features (Phase 1 workspace pages) ─────────────────────────
+  founder_features_copy: FounderFeaturesCopy;
 }
 
 export const CONFIG_DEFAULTS: PlatformConfig = {
@@ -105,6 +125,27 @@ export const CONFIG_DEFAULTS: PlatformConfig = {
   founding_plan_active: true,
   waitlist_mode: false,
   linkedin_post_enabled: false,
+
+  founder_features_copy: {
+    gtm_intro:
+      "Map your go-to-market — ICP, value prop, channels, sales motion, pricing anchor, and north-star metric. One canvas per startup, saved as you go.",
+    gtm_placeholder_segment:
+      "e.g. AU seed-stage SaaS founders, 1–5 FTE, pre-Series A",
+    gtm_placeholder_value_prop:
+      "e.g. The fastest way for AU founders to score their startup and act on the gaps.",
+    competitors_intro:
+      "Track direct and indirect competitors. Compare positioning, pricing, strengths and weaknesses — investors will ask.",
+    competitors_suggested_direct: 3,
+    pricing_intro:
+      "Design your own SaaS pricing tiers. Model freemium, per-seat, tiered, or enterprise. This is your product's pricing — not BlockID's.",
+    pricing_suggested_tiers: 3,
+    roadmap_intro:
+      "Plan the next few quarters — product, growth, fundraise, team, compliance. Founder-authored milestones roll into the investor pack.",
+    roadmap_quarters_ahead: 6,
+    team_intro:
+      "Roster your team and plan next hires. Track founders, hires, advisors, contractors — with equity, salary, and status.",
+    team_suggested_advisors: 3,
+  },
 };
 
 // ── Derived helpers (pure, no DB) ────────────────────────────────────────────
