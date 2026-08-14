@@ -14,6 +14,7 @@ import {
   trackEvent,
   setUserProperties,
   trackPurchase,
+  trackPageView,
 } from "./analytics";
 
 type GtagCall = [string, ...unknown[]];
@@ -470,5 +471,38 @@ describe("dataLayer is shared across all three helpers within one window", () =>
       "purchase",
     ]);
     expect(rec.calls.map((c) => c[0])).toEqual(["event", "set", "event"]);
+  });
+});
+
+// ── trackPageView ─────────────────────────────────────────────────────
+
+describe("trackPageView", () => {
+  it("no-ops when window is undefined (SSR safety)", () => {
+    const restore = uninstall();
+    try {
+      expect(() => trackPageView("/dashboard")).not.toThrow();
+    } finally {
+      restore();
+    }
+  });
+
+  it("calls window.gtag('config', measurementId, { page_path }) when gtag is present", () => {
+    const rec = makeGtagRecorder();
+    const ctx = install({ gtag: rec.gtag });
+    trackPageView("/svi");
+    // gtag receives ('config', <measurementId>, { page_path: '/svi' })
+    const configCall = rec.calls.find((c) => c[0] === "config");
+    expect(configCall).toBeDefined();
+    expect(configCall?.[2]).toMatchObject({ page_path: "/svi" });
+    ctx.restore();
+  });
+
+  it("pushes { event: 'page_view', page_path } onto window.dataLayer", () => {
+    const ctx = install({ withoutGtag: true });
+    trackPageView("/pricing");
+    expect(ctx.win.dataLayer).toEqual([
+      { event: "page_view", page_path: "/pricing" },
+    ]);
+    ctx.restore();
   });
 });
