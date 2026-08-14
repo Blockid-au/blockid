@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { getEntitlements, type UserWithPlan } from "@/lib/entitlements";
+import { hasActiveResellerMembership } from "@/lib/reseller/scope";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   trialSummary,
@@ -60,10 +61,27 @@ export async function GET(): Promise<NextResponse> {
     jurisdiction: jurisdiction ?? undefined,
   };
 
-  const [entitlements, trialState] = await Promise.all([
+  const [entitlements, trialState, isResellerMember] = await Promise.all([
     getEntitlements(plan),
     loadTrialState(user.id),
+    hasActiveResellerMembership(user.id),
   ]);
+
+  // Reseller owners often keep a founder plan (growth / enterprise) so they
+  // can also run their own startup on the same account. Their plan bundle
+  // therefore lacks the `reseller.*` entitlements even though the DB shows
+  // them as an active reseller admin. Merge the reseller-console bundle in
+  // so the sidebar renders the Reseller nav group + the /reseller layout
+  // gate accepts them. Server-side gates on `/api/reseller/*` still call
+  // scopedReseller() which re-checks reseller_admins independently.
+  const mergedEntitlements = isResellerMember
+    ? Array.from(new Set([
+        ...entitlements,
+        "reseller.console",
+        "reseller.create_startup",
+        "reseller.grant_credits",
+      ]))
+    : entitlements;
 
   const body: EntitlementMeResponse = {
     user_id: user.id,
@@ -71,7 +89,7 @@ export async function GET(): Promise<NextResponse> {
     segment,
     jurisdiction,
     legal_review_passed: false,
-    entitlements,
+    entitlements: mergedEntitlements,
     trial: trialSummary(uwp, trialState),
   };
 

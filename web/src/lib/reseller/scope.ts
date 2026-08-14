@@ -92,6 +92,33 @@ export class ResellerScopeError extends Error {
 }
 
 /**
+ * Lightweight membership probe used by the /reseller layout gate.
+ *
+ * Historically the layout only checked the `reseller.console` entitlement
+ * (plan-derived). That mis-gated real reseller owners who happen to be on a
+ * founder plan (e.g. `growth`), because the entitlement bundle for
+ * `reseller.console` requires `plan = reseller_admin`. Such users were
+ * silently 307-redirected away from `/reseller` even though they own the
+ * reseller org — the reported "reseller login bug".
+ *
+ * This helper returns true when the user has ANY active row in
+ * `reseller_admins`, independent of their app_users.plan. It performs a
+ * cheap indexed lookup (`reseller_admins_user_idx` where status = 'active').
+ */
+export async function hasActiveResellerMembership(userId: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("reseller_admins")
+    .select("reseller_id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(1);
+  if (error) return false;
+  return Array.isArray(data) && data.length > 0;
+}
+
+/**
  * Establish a reseller-scoped session from an authenticated app user.
  * Throws ResellerScopeError if the user is not an active reseller admin.
  *
