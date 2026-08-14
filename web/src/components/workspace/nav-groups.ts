@@ -316,6 +316,17 @@ const BUILD_SUBGROUPS: NavSubgroup[] = [
       { href: "/workspace/equity-dashboard", label: "Blockchain Sync", icon: Link2, minPlan: "scale", minTier: "scale", growthPhase: 2 },
     ],
   },
+  {
+    id: "build.strategy",
+    label: "Strategy",
+    items: [
+      { href: "/workspace/competitors", label: "Competitors", icon: Eye, minPlan: "starter", minTier: "starter", growthPhase: 1, persona: "founder", journeyGroup: "analysis" },
+      { href: "/workspace/gtm-strategy", label: "GTM Strategy", icon: Target, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "analysis" },
+      { href: "/workspace/pricing-tiers", label: "Pricing Tiers", icon: Tag, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "analysis" },
+      { href: "/workspace/roadmap-builder", label: "Roadmap", icon: Map, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "maturity" },
+      { href: "/workspace/team", label: "Team Planner", icon: Users, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "maturity" },
+    ],
+  },
 ];
 
 // --- Fundraise -------------------------------------------------------------
