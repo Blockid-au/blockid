@@ -1,7 +1,7 @@
 # BlockID.au Product Roadmap
 
 > Startup Verification Intelligence for Australian founders.
-> Last updated: 2026-07-25 (v2.0.0-beta.10 deployed; release `YaGloNOpIM1WO3Kah9iRc`, sha `3b3878ba`)
+> Last updated: 2026-08-14 (v3.4.0 — founder workspace modules, reseller fix, AI optimization)
 
 ---
 
@@ -25,6 +25,24 @@ Guided founder journey from idea → SVI → dataroom → reserved cap-table, wr
 
 **Verified live:** `https://blockid.au/startup-package` → 200 · `/docs/startup-package` → 200
 
+## v3.4.0: Founder Workspace Modules + Platform Hardening (Completed — 2026-08-14)
+
+- [x] Founder workspace: competitors module (migration 0304)
+- [x] Founder workspace: GTM strategy module
+- [x] Founder workspace: pricing tiers module
+- [x] Founder workspace: roadmap builder module
+- [x] Founder workspace: team planner module
+- [x] Nav: Strategy subgroup added to Build section
+- [x] Post-onboarding redirect → /workspace/guide/01-vision
+- [x] Reseller login fix — grant /reseller access via reseller_admins membership
+- [x] lifecycle-mailer + trial-end-reminder cron POST method fix
+- [x] STRIPE_PRICE_STARTUP_PACKAGE wired — A$149 checkout working end-to-end
+- [x] Redis rate-limit hardened against bad REDIS_URL — 0.18s response time
+- [x] AI model IDs updated: Claude Sonnet 4.6, Haiku 4.5, Opus 4.7 — cost tracking fixed
+- [x] Free provider chain optimized: Cerebras → Groq → SambaNova priority, 128 socket pool
+
+---
+
 ## Phase 3.1: Startup Package Ship 2 (Planned)
 
 Full spec in plan file. Ship 2 deliverables:
@@ -44,7 +62,7 @@ Full spec in plan file. Ship 2 deliverables:
 
 ---
 
-## Phase 2.7: Reseller / wholesale module v1 (Completed - July 2026)
+## Phase 2.7: Reseller / wholesale module v1 (Completed - August 2026)
 
 - [x] P0 – P10 wire-shape pins across `/admin/resellers` list + detail (~300 wire ticks)
 - [x] P11.1 – P11.48 weekly digest snapshot pipeline (delta, rolling-N-week, top-movers, per-metric %-change coverage, sustained-direction streaks, per-reseller drill-down, `contribution_margin_pct`)
@@ -53,6 +71,10 @@ Full spec in plan file. Ship 2 deliverables:
 - [x] CISO D3-CISO-06 — block Stripe customer portal for wholesale-provisioned founders
 - [x] SOC2-lite audit-log writes on admin reseller CRUD
 - [x] k-anon suppression + complementary-value redaction on aggregate metrics
+- [x] Reseller login fix — grant /reseller access via reseller_admins membership check (v3.4.0)
+- [x] P13.1 brand-wording: "Referred by" → "Introduced by" drift fix
+- [x] P13.2 GA event on /guide/reports download route
+- [x] P13.4 wholesale welcome email — CS first-run pointer to /guide/01-vision
 
 ## Phase 2.8: Compliance forms (Completed - July 2026)
 
