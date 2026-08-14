@@ -188,6 +188,9 @@ export interface AnalyticsEventMap {
   showcase_report_downloaded: { template: string; phase: number };
   showcase_public_viewed: { referrer: string };
   showcase_integration_wired: { integration: "stripe_founder" | "ga4" | "github" | "blockchain" };
+
+  // ── Pitch Video ──────────────────────────────────────────────────────────
+  pitch_video_generated: { startup_id: string };
 }
 
 // ─── Type-safe tracker ──────────────────────────────────────────────────────
