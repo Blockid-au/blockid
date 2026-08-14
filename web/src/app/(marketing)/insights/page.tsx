@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Clock } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 import { getAllArticles } from "@/lib/insights";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { MarketingHero } from "@/components/marketing/marketing-hero";
+import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 import { InsightsCategoryFilter } from "./category-filter";
 
 export const metadata: Metadata = {
@@ -16,13 +17,13 @@ export const metadata: Metadata = {
 };
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
-  valuation: { label: "Valuation", color: "bg-brand-100 text-brand-700" },
-  "cap-table": { label: "Cap Table", color: "bg-teal-100 text-teal-700" },
-  fundraising: { label: "Fundraising", color: "bg-amber-100 text-amber-700" },
-  equity: { label: "Equity", color: "bg-emerald-100 text-emerald-700" },
-  compliance: { label: "Compliance", color: "bg-red-100 text-red-700" },
-  tools: { label: "Tools", color: "bg-blue-100 text-blue-700" },
-  growth: { label: "Growth", color: "bg-purple-100 text-purple-700" },
+  valuation: { label: "Valuation", color: "" },
+  "cap-table": { label: "Cap Table", color: "" },
+  fundraising: { label: "Fundraising", color: "" },
+  equity: { label: "Equity", color: "" },
+  compliance: { label: "Compliance", color: "" },
+  tools: { label: "Tools", color: "" },
+  growth: { label: "Growth", color: "" },
 };
 
 const CATEGORIES = [
@@ -54,28 +55,19 @@ export default function InsightsPage() {
   }));
 
   return (
-    <div className="min-h-svh bg-white text-ink-800">
-      <Navbar />
-
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-ink-900 pt-32 pb-20 md:pt-40 md:pb-28">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,255,255,0.12),transparent)]" />
-        <div className="relative mx-auto max-w-7xl px-6 text-center">
-          <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 backdrop-blur-sm mb-6">
-            <BookOpen strokeWidth={1.75} className="h-4 w-4 text-brand-200" />
-            <span className="text-xs font-medium tracking-wide text-brand-100">
-              Founder Resources
+    <MarketingShell>
+      <MarketingHero
+        eyebrow="Founder Resources"
+        title={
+          <>
+            Insights &amp;{" "}
+            <span className="bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent">
+              Guides
             </span>
-          </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Insights &amp; Guides
-          </h1>
-          <p className="mt-4 text-lg md:text-xl text-brand-100/90 max-w-2xl mx-auto leading-relaxed">
-            Expert resources for Australian founders — valuation, ownership,
-            fundraising, and growth.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+        subtitle="Expert resources for Australian founders — valuation, ownership, fundraising, and growth."
+      />
 
       <main className="mx-auto max-w-7xl px-6 py-12 md:py-16">
         {/* Category filter + article grid (client component) */}
@@ -87,16 +79,16 @@ export default function InsightsPage() {
 
         {/* Empty state (server-rendered fallback) */}
         {articles.length === 0 && (
-          <div className="rounded-2xl border border-surface-200 bg-surface-50 px-8 py-16 text-center">
-            <BookOpen strokeWidth={1.75} className="h-10 w-10 text-ink-400 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-ink-800 mb-2">Coming Soon</h2>
-            <p className="text-sm text-ink-600 mb-6 max-w-md mx-auto">
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm px-8 py-16 text-center">
+            <BookOpen strokeWidth={1.75} className="h-10 w-10 text-[#94A3B8] mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-[#F8FAFC] mb-2">Coming Soon</h2>
+            <p className="text-sm text-[#94A3B8] mb-6 max-w-md mx-auto">
               We are preparing expert guides on startup valuation, cap table management,
               and fundraising strategies for Australian founders.
             </p>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0066FF] px-5 py-2.5 text-sm font-semibold text-[#0A0F1E] hover:opacity-90 transition-opacity"
             >
               Get Your Free SVI Score
               <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
@@ -105,41 +97,28 @@ export default function InsightsPage() {
         )}
 
         {/* Benchmarks teaser */}
-        <div className="mt-14 rounded-2xl border border-ink-800 bg-ink-950 text-white p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="mt-14 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-semibold mb-1">Free Data</p>
-            <h2 className="text-xl font-semibold text-white">AU Startup Benchmarks</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#00D4FF] font-semibold mb-1">Free Data</p>
+            <h2 className="text-xl font-semibold text-[#F8FAFC]">AU Startup Benchmarks</h2>
+            <p className="mt-1 text-sm text-[#94A3B8]">
               MRR, ARR, burn rate, churn and SVI scores by stage — compare your startup against 2,700+ AU peers.
             </p>
           </div>
           <Link
             href="/benchmarks"
-            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors whitespace-nowrap"
+            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0066FF] px-6 py-3 text-sm font-semibold text-[#0A0F1E] hover:opacity-90 transition-opacity whitespace-nowrap"
           >
             View Benchmarks <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
           </Link>
         </div>
-
-        {/* CTA */}
-        <div className="mt-10 rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100/60 border border-brand-200 p-10 md:p-14 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-ink-900 mb-3">
-            Know your startup&apos;s value today
-          </h2>
-          <p className="text-base text-ink-600 mb-8 max-w-lg mx-auto">
-            Free AI-powered Startup Value Index — a comprehensive analysis in under 60 seconds.
-          </p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-7 py-3.5 text-sm font-semibold text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25 transition-all hover:shadow-xl hover:shadow-brand-600/30"
-          >
-            Get Your Free SVI Score
-            <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
-          </Link>
-        </div>
       </main>
 
-      <Footer />
-    </div>
+      <MarketingCtaStrip
+        headline="Know your startup's value today."
+        primary={{ href: "/", label: "Get Your Free SVI Score" }}
+        secondary={{ href: "/pricing", label: "View Pricing" }}
+      />
+    </MarketingShell>
   );
 }

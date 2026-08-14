@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
+import { NavV2 } from "@/components/landing/nav-v2";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import {
   ArrowRight,
   CheckCircle2,
@@ -61,22 +61,22 @@ function ContactForm() {
 
   if (status === "success") {
     return (
-      <div className="rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
+      <div className="rounded-2xl border border-[rgba(0,212,255,0.3)] bg-[rgba(0,212,255,0.08)] p-8 text-center">
         <CheckCircle2
           strokeWidth={1.75}
-          className="mx-auto h-10 w-10 text-green-600 mb-4"
+          className="mx-auto h-10 w-10 text-[#00D4FF] mb-4"
         />
-        <h3 className="text-lg font-bold text-green-800 mb-2">
+        <h3 className="text-lg font-bold text-[#F8FAFC] mb-2">
           Message sent!
         </h3>
-        <p className="text-sm text-green-700">
+        <p className="text-sm text-[#94A3B8]">
           Thanks for reaching out. We will get back to you within one business
           day.
         </p>
         <button
           type="button"
           onClick={() => setStatus("idle")}
-          className="mt-4 text-sm text-brand-600 hover:text-brand-500 underline cursor-pointer"
+          className="mt-4 text-sm text-[#00D4FF] hover:underline cursor-pointer"
         >
           Send another message
         </button>
@@ -89,7 +89,7 @@ function ContactForm() {
       <div>
         <label
           htmlFor="contact-name"
-          className="block text-sm font-medium text-ink-700 mb-1.5"
+          className="block text-sm font-medium text-[#F8FAFC] mb-1.5"
         >
           Name
         </label>
@@ -99,15 +99,15 @@ function ContactForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
-          className="w-full h-11 rounded-lg border border-surface-300 bg-white px-4 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+          className="w-full h-11 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-4 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8] focus:outline-none focus:border-[rgba(0,212,255,0.5)] focus:ring-1 focus:ring-[rgba(0,212,255,0.3)] transition-colors"
         />
       </div>
       <div>
         <label
           htmlFor="contact-email"
-          className="block text-sm font-medium text-ink-700 mb-1.5"
+          className="block text-sm font-medium text-[#F8FAFC] mb-1.5"
         >
-          Email <span className="text-red-500">*</span>
+          Email <span className="text-red-400">*</span>
         </label>
         <input
           id="contact-email"
@@ -116,15 +116,15 @@ function ContactForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           required
-          className="w-full h-11 rounded-lg border border-surface-300 bg-white px-4 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+          className="w-full h-11 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-4 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8] focus:outline-none focus:border-[rgba(0,212,255,0.5)] focus:ring-1 focus:ring-[rgba(0,212,255,0.3)] transition-colors"
         />
       </div>
       <div>
         <label
           htmlFor="contact-message"
-          className="block text-sm font-medium text-ink-700 mb-1.5"
+          className="block text-sm font-medium text-[#F8FAFC] mb-1.5"
         >
-          Message <span className="text-red-500">*</span>
+          Message <span className="text-red-400">*</span>
         </label>
         <textarea
           id="contact-message"
@@ -133,20 +133,20 @@ function ContactForm() {
           placeholder="How can we help?"
           required
           rows={5}
-          className="w-full rounded-lg border border-surface-300 bg-white px-4 py-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors resize-none"
+          className="w-full rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] px-4 py-3 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8] focus:outline-none focus:border-[rgba(0,212,255,0.5)] focus:ring-1 focus:ring-[rgba(0,212,255,0.3)] transition-colors resize-none"
         />
       </div>
       {errorMsg && (
-        <p className="text-sm text-red-500">{errorMsg}</p>
+        <p className="text-sm text-red-400">{errorMsg}</p>
       )}
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="inline-flex h-11 items-center gap-2 rounded-lg bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-500 transition-colors cursor-pointer disabled:opacity-50"
+        className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0066FF] px-6 text-sm font-semibold text-[#0A0F1E] hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
       >
         {status === "submitting" ? (
           <span className="flex items-center gap-2">
-            <span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+            <span className="h-3.5 w-3.5 rounded-full border-2 border-[#0A0F1E]/30 border-t-[#0A0F1E] animate-spin" />
             Sending...
           </span>
         ) : (
@@ -161,16 +161,25 @@ function ContactForm() {
 
 export default function ContactPage() {
   return (
-    <>
-      <Navbar />
-      <main className="pt-28 pb-20">
+    <div style={{ backgroundColor: "#0A0F1E" }} className="min-h-screen text-[#F8FAFC]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[#00D4FF] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#0A0F1E]"
+      >
+        Skip to content
+      </a>
+      <NavV2 />
+      <main id="main-content" className="pt-28 pb-20">
         <div className="mx-auto max-w-4xl px-6">
           {/* Header */}
           <div className="mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#00D4FF] mb-3">
+              Get in touch
+            </p>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#F8FAFC]">
               Contact Us
             </h1>
-            <p className="mt-4 text-lg leading-relaxed text-ink-600">
+            <p className="mt-4 text-lg leading-relaxed text-[#94A3B8]">
               Have a question, partnership enquiry, or need support? We would
               love to hear from you.
             </p>
@@ -185,45 +194,45 @@ export default function ContactPage() {
             {/* Right: Info Cards */}
             <div className="md:col-span-2 space-y-5">
               {/* Email */}
-              <div className="rounded-xl border border-surface-200 bg-surface-100 p-5">
+              <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600/10 text-brand-600">
-                    <Mail strokeWidth={1.75} className="h-4.5 w-4.5" />
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[rgba(0,212,255,0.15)] text-[#00D4FF]">
+                    <Mail strokeWidth={1.75} className="h-4 w-4" />
                   </span>
-                  <h2 className="text-base font-semibold text-ink-800">
+                  <h2 className="text-base font-semibold text-[#F8FAFC]">
                     Email
                   </h2>
                 </div>
                 <a
                   href="mailto:admin@blockid.au"
-                  className="text-sm text-brand-600 hover:text-brand-500 underline"
+                  className="text-sm text-[#00D4FF] hover:underline"
                 >
                   admin@blockid.au
                 </a>
-                <p className="mt-1 text-xs text-ink-500">
+                <p className="mt-1 text-xs text-[#94A3B8]">
                   We respond within one business day.
                 </p>
               </div>
 
               {/* Location */}
-              <div className="rounded-xl border border-surface-200 bg-surface-100 p-5">
+              <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600/10 text-brand-600">
-                    <MapPin strokeWidth={1.75} className="h-4.5 w-4.5" />
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[rgba(0,212,255,0.15)] text-[#00D4FF]">
+                    <MapPin strokeWidth={1.75} className="h-4 w-4" />
                   </span>
-                  <h2 className="text-base font-semibold text-ink-800">
+                  <h2 className="text-base font-semibold text-[#F8FAFC]">
                     Location
                   </h2>
                 </div>
-                <p className="text-sm text-ink-700">Sydney, NSW, Australia</p>
-                <p className="mt-1 text-xs text-ink-500">
+                <p className="text-sm text-[#F8FAFC]">Sydney, NSW, Australia</p>
+                <p className="mt-1 text-xs text-[#94A3B8]">
                   Auschain Pty Ltd (ABN 79 659 615 111)
                 </p>
               </div>
 
               {/* Social */}
-              <div className="rounded-xl border border-surface-200 bg-surface-100 p-5">
-                <h2 className="text-base font-semibold text-ink-800 mb-3">
+              <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-5">
+                <h2 className="text-base font-semibold text-[#F8FAFC] mb-3">
                   Follow Us
                 </h2>
                 <div className="flex flex-col gap-2.5">
@@ -231,7 +240,7 @@ export default function ContactPage() {
                     href="https://linkedin.com/company/blockid-au"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-ink-600 hover:text-brand-600 transition-colors"
+                    className="inline-flex items-center gap-2 text-sm text-[#94A3B8] hover:text-[#00D4FF] transition-colors"
                   >
                     <ExternalLink strokeWidth={1.75} className="h-3.5 w-3.5" />
                     LinkedIn
@@ -240,7 +249,7 @@ export default function ContactPage() {
                     href="https://twitter.com/blockid_au"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-ink-600 hover:text-brand-600 transition-colors"
+                    className="inline-flex items-center gap-2 text-sm text-[#94A3B8] hover:text-[#00D4FF] transition-colors"
                   >
                     <ExternalLink strokeWidth={1.75} className="h-3.5 w-3.5" />
                     Twitter / X
@@ -253,42 +262,42 @@ export default function ContactPage() {
           {/* Audience-specific links */}
           <div className="mt-14 grid sm:grid-cols-2 gap-5">
             <Link
-              href="/investors"
-              className="group flex items-start gap-4 rounded-xl border border-surface-200 bg-surface-50 p-5 hover:border-brand-200 hover:bg-brand-50/30 transition-colors"
+              href="/solutions/investor"
+              className="group flex items-start gap-4 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-5 transition-all duration-300 hover:border-[rgba(0,212,255,0.3)] hover:scale-[1.02]"
             >
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-600/10 text-brand-600">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[rgba(0,212,255,0.15)] text-[#00D4FF]">
                 <Users strokeWidth={1.75} className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">
+                <p className="text-sm font-semibold text-[#F8FAFC] group-hover:text-[#00D4FF] transition-colors">
                   For Investors
                 </p>
-                <p className="text-xs text-ink-500 mt-1">
+                <p className="text-xs text-[#94A3B8] mt-1">
                   Explore how BlockID supports deal flow, portfolio visibility,
                   and due diligence.
                 </p>
-                <span className="inline-flex items-center gap-1 text-xs text-brand-600 font-medium mt-2">
+                <span className="inline-flex items-center gap-1 text-xs text-[#00D4FF] font-medium mt-2">
                   Learn more{" "}
                   <ArrowRight strokeWidth={1.75} className="h-3 w-3" />
                 </span>
               </div>
             </Link>
             <Link
-              href="/admin/accelerator"
-              className="group flex items-start gap-4 rounded-xl border border-surface-200 bg-surface-50 p-5 hover:border-brand-200 hover:bg-brand-50/30 transition-colors"
+              href="/solutions/accelerator"
+              className="group flex items-start gap-4 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-5 transition-all duration-300 hover:border-[rgba(0,212,255,0.3)] hover:scale-[1.02]"
             >
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-600/10 text-brand-600">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[rgba(0,212,255,0.15)] text-[#00D4FF]">
                 <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">
+                <p className="text-sm font-semibold text-[#F8FAFC] group-hover:text-[#00D4FF] transition-colors">
                   For Accelerators
                 </p>
-                <p className="text-xs text-ink-500 mt-1">
+                <p className="text-xs text-[#94A3B8] mt-1">
                   Discover how BlockID powers accelerator cohorts with SVI
                   tracking and portfolio dashboards.
                 </p>
-                <span className="inline-flex items-center gap-1 text-xs text-brand-600 font-medium mt-2">
+                <span className="inline-flex items-center gap-1 text-xs text-[#00D4FF] font-medium mt-2">
                   Learn more{" "}
                   <ArrowRight strokeWidth={1.75} className="h-3 w-3" />
                 </span>
@@ -298,14 +307,14 @@ export default function ContactPage() {
 
           {/* Support note */}
           <section className="mt-12">
-            <h2 className="text-xl font-semibold text-ink-800 mb-3">
+            <h2 className="text-xl font-semibold text-[#F8FAFC] mb-3">
               Support
             </h2>
-            <p className="text-sm leading-relaxed text-ink-600">
+            <p className="text-sm leading-relaxed text-[#94A3B8]">
               For technical support or account-related queries, email us at{" "}
               <a
                 href="mailto:admin@blockid.au"
-                className="text-brand-600 hover:text-brand-500 underline"
+                className="text-[#00D4FF] hover:underline"
               >
                 admin@blockid.au
               </a>{" "}
@@ -316,7 +325,7 @@ export default function ContactPage() {
           </section>
         </div>
       </main>
-      <Footer />
-    </>
+      <MarketingFooter />
+    </div>
   );
 }
