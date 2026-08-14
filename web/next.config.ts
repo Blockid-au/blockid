@@ -109,6 +109,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "upload.blockid.au" },
       { protocol: "https", hostname: "blockid.au" },
+      // Wildcard: startup profile subdomains (e.g. aurora-health.blockid.au)
+      { protocol: "https", hostname: "*.blockid.au" },
       { protocol: "https", hostname: "*.googleusercontent.com" },
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
     ],
