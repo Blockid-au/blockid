@@ -59,6 +59,8 @@ export function RoadmapBuilderClient({ initial, quarters, disabled }: Props) {
   const [draft, setDraft] = useState<Draft>(emptyDraft(quarters[0] ?? ""));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMeta, setAiMeta] = useState<{ topInsight?: string } | null>(null);
 
   // Merge the current-and-next quarters from config with any existing rows.
   const allQuarters = useMemo(() => {
@@ -109,6 +111,49 @@ export function RoadmapBuilderClient({ initial, quarters, disabled }: Props) {
     }
   }
 
+  async function aiSuggest() {
+    setAiBusy(true);
+    setError(null);
+    setAiMeta(null);
+    try {
+      const res = await fetch("/api/founder/roadmap/ai-fill", { method: "POST" });
+      const json = await res.json() as {
+        ok: boolean;
+        error?: string;
+        suggestions?: Array<{
+          quarter: string;
+          title: string;
+          description: string;
+          category: string;
+          status: "planned";
+          target_date: string;
+          owner: string;
+        }>;
+        meta?: { topInsight?: string };
+      };
+      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      const suggestions = json.suggestions ?? [];
+      if (suggestions.length > 0) {
+        // Pre-fill the draft with the first suggestion
+        const s = suggestions[0];
+        setDraft({
+          quarter: s.quarter,
+          title: s.title,
+          description: s.description,
+          category: s.category,
+          status: s.status,
+          target_date: s.target_date,
+          owner: s.owner,
+        });
+        setAiMeta(json.meta ?? null);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI suggest failed");
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
   async function remove(id: string) {
     if (!confirm("Delete this milestone?")) return;
     const res = await fetch(`/api/founder/roadmap/${id}`, { method: "DELETE" });
@@ -130,7 +175,28 @@ export function RoadmapBuilderClient({ initial, quarters, disabled }: Props) {
     <div className="space-y-6">
       {/* ── Add form ────────────────────────────────────────────────────────── */}
       <section className="rounded-2xl border border-surface-200 bg-white p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-ink-800">Add milestone</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink-800">Add milestone</h2>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={aiSuggest}
+            disabled={aiBusy || disabled}
+            className="gap-1.5 text-brand-600 hover:text-brand-700"
+          >
+            {aiBusy ? (
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+            ) : (
+              <span aria-hidden>✨</span>
+            )}
+            {aiBusy ? "Generating…" : "AI Suggest"}
+          </Button>
+        </div>
+        {aiMeta?.topInsight && (
+          <p className="rounded-lg bg-brand-50 border border-brand-200 px-3 py-2 text-xs text-brand-700">
+            {aiMeta.topInsight}
+          </p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <label className={label}>Quarter *</label>

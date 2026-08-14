@@ -50,6 +50,8 @@ export function TeamPlannerClient({ initial, disabled, suggestedAdvisors }: Prop
   const [draft, setDraft] = useState<Draft>({ ...EMPTY_DRAFT });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     const founders = items.filter((i) => i.role_category === "founder").length;
@@ -98,6 +100,52 @@ export function TeamPlannerClient({ initial, disabled, suggestedAdvisors }: Prop
     }
   }
 
+  async function aiSuggest() {
+    setAiBusy(true);
+    setError(null);
+    setAiNote(null);
+    try {
+      const res = await fetch("/api/founder/team/ai-fill", { method: "POST" });
+      const json = await res.json() as {
+        ok: boolean;
+        error?: string;
+        suggestions?: Array<{
+          role_title: string;
+          role_category: string;
+          full_name: string;
+          equity_pct: number | null;
+          salary_aud: number | null;
+          start_date: string;
+          status: "open" | "planned";
+          notes: string;
+        }>;
+        assessment?: { gaps?: string[]; recommendations?: string[] };
+        meta?: { benchmarkKeyRoles?: string[] };
+      };
+      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      const suggestions = json.suggestions ?? [];
+      if (suggestions.length > 0) {
+        const s = suggestions[0];
+        setDraft({
+          role_title: s.role_title,
+          role_category: s.role_category,
+          full_name: s.full_name,
+          equity_pct: s.equity_pct != null ? String(s.equity_pct) : "",
+          salary_aud: s.salary_aud != null ? String(s.salary_aud) : "",
+          start_date: s.start_date,
+          status: s.status,
+          notes: s.notes,
+        });
+        const hint = json.assessment?.gaps?.[0] ?? json.meta?.benchmarkKeyRoles?.join(", ");
+        setAiNote(hint ? `Key roles for this stage: ${hint}` : "Pre-filled from AU team benchmarks.");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI suggest failed");
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
   async function remove(id: string) {
     if (!confirm("Delete this role?")) return;
     const res = await fetch(`/api/founder/team/${id}`, { method: "DELETE" });
@@ -136,7 +184,28 @@ export function TeamPlannerClient({ initial, disabled, suggestedAdvisors }: Prop
 
       {/* ── Add ────────────────────────────────────────────────────────────── */}
       <section className="rounded-2xl border border-surface-200 bg-white p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-ink-800">Add role</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink-800">Add role</h2>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={aiSuggest}
+            disabled={aiBusy || disabled}
+            className="gap-1.5 text-brand-600 hover:text-brand-700"
+          >
+            {aiBusy ? (
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+            ) : (
+              <span aria-hidden>✨</span>
+            )}
+            {aiBusy ? "Generating…" : "AI Suggest"}
+          </Button>
+        </div>
+        {aiNote && (
+          <p className="rounded-lg bg-brand-50 border border-brand-200 px-3 py-2 text-xs text-brand-700">
+            {aiNote}
+          </p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <label className={label}>Role title *</label>

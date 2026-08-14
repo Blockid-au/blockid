@@ -52,6 +52,8 @@ export function PricingTiersClient({ initial, disabled }: Props) {
   const [draft, setDraft] = useState<Draft>({ ...EMPTY_DRAFT });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
 
   const input =
     "w-full rounded-xl border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50";
@@ -90,6 +92,54 @@ export function PricingTiersClient({ initial, disabled }: Props) {
       setError(e instanceof Error ? e.message : "Add failed");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function aiSuggest() {
+    setAiBusy(true);
+    setError(null);
+    setAiNote(null);
+    try {
+      const res = await fetch("/api/founder/pricing-tiers/ai-fill", { method: "POST" });
+      const json = await res.json() as {
+        ok: boolean;
+        error?: string;
+        suggestions?: Array<{
+          name: string;
+          model: Draft["model"];
+          price_monthly_aud: number | null;
+          price_annual_aud: number | null;
+          billing_note: string;
+          features: string[];
+          target_segment: string;
+          cta_label: string;
+          sort_order: number;
+        }>;
+        meta?: { benchmark?: { sources?: string[] } };
+      };
+      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      const suggestions = json.suggestions ?? [];
+      if (suggestions.length > 0) {
+        // Pre-fill the draft form with the first non-free suggestion
+        const s = suggestions.find((t) => (t.price_monthly_aud ?? 0) > 0) ?? suggestions[0];
+        setDraft({
+          name: s.name,
+          model: s.model,
+          price_monthly_aud: s.price_monthly_aud != null ? String(s.price_monthly_aud) : "",
+          price_annual_aud: s.price_annual_aud != null ? String(s.price_annual_aud) : "",
+          billing_note: s.billing_note,
+          features: s.features.join("\n"),
+          target_segment: s.target_segment,
+          cta_label: s.cta_label,
+          sort_order: String(s.sort_order),
+        });
+        const sources = json.meta?.benchmark?.sources?.slice(0, 2).join(", ");
+        setAiNote(sources ? `Pricing benchmarks from: ${sources}` : "Pre-filled from AU market benchmarks.");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI suggest failed");
+    } finally {
+      setAiBusy(false);
     }
   }
 
@@ -170,7 +220,28 @@ export function PricingTiersClient({ initial, disabled }: Props) {
 
       {/* ── Add form ────────────────────────────────────────────────────────── */}
       <section className="rounded-2xl border border-surface-200 bg-white p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-ink-800">Add a tier</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink-800">Add a tier</h2>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={aiSuggest}
+            disabled={aiBusy || disabled}
+            className="gap-1.5 text-brand-600 hover:text-brand-700"
+          >
+            {aiBusy ? (
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+            ) : (
+              <span aria-hidden>✨</span>
+            )}
+            {aiBusy ? "Generating…" : "AI Suggest"}
+          </Button>
+        </div>
+        {aiNote && (
+          <p className="rounded-lg bg-brand-50 border border-brand-200 px-3 py-2 text-xs text-brand-700">
+            {aiNote}
+          </p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <label className={label}>Tier name *</label>

@@ -63,10 +63,53 @@ export function GtmStrategyClient({ initial, disabled, placeholders }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
 
   function upd<K extends keyof FormState>(k: K, v: FormState[K]) {
     setForm((f) => ({ ...f, [k]: v }));
     setSaved(null);
+  }
+
+  async function aiSuggest() {
+    setAiBusy(true);
+    setError(null);
+    setAiNote(null);
+    try {
+      const res = await fetch("/api/founder/gtm/ai-fill", { method: "POST" });
+      const json = await res.json() as {
+        ok: boolean;
+        error?: string;
+        suggestion?: Partial<FormState> & { secondary_channels?: string[] };
+        meta?: { note?: string };
+      };
+      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      const s = json.suggestion;
+      if (s) {
+        setForm((f) => ({
+          ...f,
+          target_segment: s.target_segment ?? f.target_segment,
+          problem_statement: s.problem_statement ?? f.problem_statement,
+          value_prop: s.value_prop ?? f.value_prop,
+          positioning: s.positioning ?? f.positioning,
+          primary_channel: s.primary_channel ?? f.primary_channel,
+          secondary_channels: Array.isArray(s.secondary_channels)
+            ? s.secondary_channels.join(", ")
+            : f.secondary_channels,
+          sales_motion: s.sales_motion ?? f.sales_motion,
+          price_anchor: s.price_anchor ?? f.price_anchor,
+          launch_plan: s.launch_plan ?? f.launch_plan,
+          north_star_metric: s.north_star_metric ?? f.north_star_metric,
+          north_star_target: s.north_star_target != null ? String(s.north_star_target) : f.north_star_target,
+        }));
+        setAiNote(json.meta?.note ?? null);
+        setSaved(null);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI suggest failed");
+    } finally {
+      setAiBusy(false);
+    }
   }
 
   async function save() {
@@ -104,6 +147,28 @@ export function GtmStrategyClient({ initial, disabled, placeholders }: Props) {
 
   return (
     <fieldset disabled={disabled} className="space-y-8">
+      {/* ── AI Suggest bar ──────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between rounded-2xl border border-surface-200 bg-white px-5 py-3">
+        <p className="text-xs text-ink-500">
+          {aiNote ?? "Use AI to pre-fill your GTM strategy based on your startup profile."}
+        </p>
+        <Button
+          type="button"
+          size="xs"
+          variant="ghost"
+          onClick={aiSuggest}
+          disabled={aiBusy || disabled}
+          className="gap-1.5 text-brand-600 hover:text-brand-700 ml-3 shrink-0"
+        >
+          {aiBusy ? (
+            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+          ) : (
+            <span aria-hidden>✨</span>
+          )}
+          {aiBusy ? "Generating…" : "AI Suggest"}
+        </Button>
+      </div>
+
       {/* ── Who + what ──────────────────────────────────────────────────────── */}
       <section className="rounded-2xl border border-surface-200 bg-white p-6 space-y-5">
         <h2 className="text-sm font-semibold text-ink-800">1 · Segment & problem</h2>
