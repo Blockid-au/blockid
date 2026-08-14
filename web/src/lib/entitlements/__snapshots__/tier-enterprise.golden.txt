@@ -25,6 +25,11 @@ build / build.people	Vesting	/workspace/vesting
 build / build.people	ESOP Manage	/workspace/equity-esop
 build / build.blockchain	Wallet	/workspace/wallet
 build / build.blockchain	Blockchain Sync	/workspace/equity-dashboard
+build / build.strategy	Competitors	/workspace/competitors
+build / build.strategy	GTM Strategy	/workspace/gtm-strategy
+build / build.strategy	Pricing Tiers	/workspace/pricing-tiers
+build / build.strategy	Roadmap	/workspace/roadmap-builder
+build / build.strategy	Team Planner	/workspace/team
 build	Equity Setup	/workspace/equity-setup
 build	Equity Split	/workspace/equity
 build	Cap Table	/workspace/cap-table
@@ -34,6 +39,11 @@ build	Vesting	/workspace/vesting
 build	ESOP Manage	/workspace/equity-esop
 build	Wallet	/workspace/wallet
 build	Blockchain Sync	/workspace/equity-dashboard
+build	Competitors	/workspace/competitors
+build	GTM Strategy	/workspace/gtm-strategy
+build	Pricing Tiers	/workspace/pricing-tiers
+build	Roadmap	/workspace/roadmap-builder
+build	Team Planner	/workspace/team
 fundraise / fundraise.valuation-finance	VC Valuation	/dashboard/valuation
 fundraise / fundraise.valuation-finance	CFO Advisor	/dashboard/cfo
 fundraise / fundraise.valuation-finance	Finance P&L	/dashboard/finance

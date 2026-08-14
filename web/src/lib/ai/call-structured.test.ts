@@ -78,7 +78,7 @@ beforeEach(() => {
 const baseArgs = {
   promptVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   agent: "AIR-004",
-  model: "claude-sonnet-5",
+  model: "claude-sonnet-4-6",
   inputSchema: InputSchema,
   outputSchema: OutputSchema,
   input: { q: "hello" },
@@ -268,7 +268,7 @@ describe("callStructured — injected modelCaller", () => {
 
     expect(fetchImpl).not.toHaveBeenCalled();
     expect(res.ok).toBe(true);
-    expect(seen).toEqual([{ model: "claude-sonnet-5", turns: 1 }]);
+    expect(seen).toEqual([{ model: "claude-sonnet-4-6", turns: 1 }]);
     expect(inserted).toHaveLength(1);
     expect(inserted[0]!.status).toBe("ok");
     expect(inserted[0]!.tokens_in).toBe(11);
