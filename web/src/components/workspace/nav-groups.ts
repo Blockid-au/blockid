@@ -30,7 +30,7 @@ import {
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   ClipboardList, Eye, Layers, Settings2, MessageSquare, Send, Building2,
   ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins, Plug,
-  Inbox, GraduationCap, LayoutGrid,
+  Inbox, GraduationCap, LayoutGrid, Cpu,
 } from "lucide-react";
 
 import type { PlanTier, Segment } from "@/lib/segments";
@@ -321,6 +321,7 @@ const BUILD_SUBGROUPS: NavSubgroup[] = [
     label: "Strategy",
     items: [
       { href: "/workspace/competitors", label: "Competitors", icon: Eye, minPlan: "starter", minTier: "starter", growthPhase: 1, persona: "founder", journeyGroup: "analysis" },
+      { href: "/workspace/tech-analysis", label: "Tech Analysis", icon: Cpu, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "analysis" },
       { href: "/workspace/gtm-strategy", label: "GTM Strategy", icon: Target, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "analysis" },
       { href: "/workspace/pricing-tiers", label: "Pricing Tiers", icon: Tag, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "analysis" },
       { href: "/workspace/roadmap-builder", label: "Roadmap", icon: Map, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "maturity" },
