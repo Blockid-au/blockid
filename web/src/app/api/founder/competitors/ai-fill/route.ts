@@ -31,6 +31,12 @@ interface CompetitorSuggestion {
   weaknesses: string;
   our_edge: string;
   threat_level: "low" | "medium" | "high";
+  // Tech Intelligence enrichment (optional — populated when analyseWebsite succeeds)
+  techStack?: string[];
+  websiteScore?: number;
+  hasAnalytics?: boolean;
+  hasPricing?: boolean;
+  techSignals?: string[];
 }
 
 // Map the internal CompetitorProfile → the shape the founder UI form binds to.
@@ -50,6 +56,12 @@ function toSuggestion(c: CompetitorProfile): CompetitorSuggestion {
     weaknesses: (c.weaknesses ?? []).join(", "),
     our_edge: c.ourEdge ?? "",
     threat_level: c.threatLevel ?? "medium",
+    // Pass through tech enrichment
+    techStack: c.techStack,
+    websiteScore: c.websiteScore,
+    hasAnalytics: c.hasAnalytics,
+    hasPricing: c.hasPricing,
+    techSignals: c.techSignals,
   };
 }
 
@@ -86,16 +98,41 @@ export async function POST() {
   const stage = Number(project?.stage ?? 0);
   const name = project?.name ?? "your startup";
 
-  const profiles = await generateCompetitorAnalysis({
-    startupName: name,
-    sector,
-    stage,
-    description: project?.description ?? undefined,
-    region: "AU",
-  });
+  // Run competitor generation + own tech score fetch concurrently
+  const [profiles, techRow] = await Promise.all([
+    generateCompetitorAnalysis({
+      startupName: name,
+      sector,
+      stage,
+      description: project?.description ?? undefined,
+      region: "AU",
+    }),
+    // Fetch own tech_analyses row (if any) for comparison panel
+    sb
+      .from("tech_analyses")
+      .select("tech_score")
+      .eq("startup_id", projectId)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => data),
+  ]);
 
   const suggestions = profiles.map(toSuggestion);
   const note = positionalNote(sector, stage);
+
+  // Compute average competitor web score for comparison
+  const scoredSuggestions = suggestions.filter((s) => typeof s.websiteScore === "number");
+  const avgCompetitorWebScore =
+    scoredSuggestions.length > 0
+      ? Math.round(
+          scoredSuggestions.reduce((sum, s) => sum + (s.websiteScore ?? 0), 0) /
+            scoredSuggestions.length,
+        )
+      : null;
+
+  const ownTechScore = (techRow as { tech_score?: number } | null)?.tech_score ?? null;
 
   return NextResponse.json({
     ok: true,
@@ -105,6 +142,9 @@ export async function POST() {
       sector,
       stage,
       note,
+      // Tech comparison data
+      ownTechScore,
+      avgCompetitorWebScore,
     },
   });
 }
