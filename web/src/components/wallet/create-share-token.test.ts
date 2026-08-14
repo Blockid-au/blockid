@@ -179,7 +179,8 @@ async function runDeploy({
 
 // ── Fetch mock ────────────────────────────────────────────────────────
 
-let fetchMock: ReturnType<typeof vi.fn>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let fetchMock: any;
 
 beforeEach(() => {
   resetState();
