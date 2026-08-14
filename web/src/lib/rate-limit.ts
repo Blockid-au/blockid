@@ -69,8 +69,15 @@ class RedisStore implements RateLimitStore {
         maxRetriesPerRequest: 1,
         lazyConnect: true,
         connectTimeout: 3000,
+        // Never queue commands while the socket is unavailable — otherwise a
+        // bad REDIS_URL (e.g. an unresolvable docker hostname on bare-metal)
+        // makes every `await redis.set()` hang until DNS gives up. Fail fast.
+        enableOfflineQueue: false,
         retryStrategy: (times: number) => (times > 3 ? null : Math.min(times * 200, 2000)),
       });
+      // Suppress the default "unhandled error" event that would otherwise
+      // crash the Node process on any Redis network hiccup.
+      this.redis.on("error", () => { /* fail open — MemoryStore fallback */ });
       this.redis.connect().then(() => { this.connected = true; }).catch(() => {
         console.warn("[rate-limit] Redis connection failed — falling back to in-memory");
       });
