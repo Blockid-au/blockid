@@ -165,7 +165,59 @@ function seedJurisdictionCookie(req: NextRequest, res: NextResponse): void {
   });
 }
 
+/**
+ * Subdomain routing: [slug].blockid.au → /startup/[slug]
+ *
+ * Runs before every other gate so the rewrite reaches the correct App Router
+ * segment. Static assets and /api paths are passed through unchanged so that
+ * CSS/JS chunks served from a subdomain origin still resolve correctly.
+ *
+ * Supports local dev via HOST_OVERRIDE env var (e.g.
+ * HOST_OVERRIDE=aurora-health.blockid.au) to simulate the rewrite without
+ * needing a real wildcard DNS entry.
+ */
+const MAIN_DOMAIN = "blockid.au";
+
+/** @internal — exported for unit tests only */
+export function subdomainRewrite(request: NextRequest): NextResponse | null {
+  const rawHost = process.env.HOST_OVERRIDE ?? (request.headers.get("host") ?? "");
+  // Strip port so localhost:4001 and production work the same way.
+  const hostname = rawHost.split(":")[0].toLowerCase();
+
+  // Only act on *.blockid.au — not the apex or www.
+  if (
+    !hostname.endsWith(`.${MAIN_DOMAIN}`) ||
+    hostname === `www.${MAIN_DOMAIN}`
+  ) {
+    return null;
+  }
+
+  const slug = hostname.slice(0, hostname.length - `.${MAIN_DOMAIN}`.length);
+  if (!slug) return null;
+
+  const { pathname } = request.nextUrl;
+
+  // Let static assets and API routes resolve normally against the subdomain
+  // origin — do NOT rewrite them or the browser will request
+  // /_next/static/… from /startup/[slug]/_next/static/… which 404s.
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api")
+  ) {
+    return null; // pass-through
+  }
+
+  const url = request.nextUrl.clone();
+  // Map "/" → "/startup/slug", "/some/deep" → "/startup/slug/some/deep"
+  url.pathname = `/startup/${slug}${pathname === "/" ? "" : pathname}`;
+  return NextResponse.rewrite(url);
+}
+
 export async function proxy(request: NextRequest) {
+  // ── Subdomain rewrite (must run first, before any header mutation) ──
+  const rewritten = subdomainRewrite(request);
+  if (rewritten) return rewritten;
+
   const pathname = request.nextUrl.pathname;
   const locale = detectLocale(request);
   const nonce = randomBytes(16).toString("base64");

@@ -89,18 +89,23 @@ export async function generateMetadata({
       robots: { index: false, follow: false },
     };
   }
-  const canonical = `${SITE_URL}/startup/${slug}`;
+  // Prefer the subdomain canonical so search engines consolidate authority
+  // on [slug].blockid.au rather than blockid.au/startup/[slug].
+  const subdomainUrl = `https://${slug}.blockid.au`;
+  const canonical = subdomainUrl;
   const title = `${listing.hero.name} — BlockID startup listing`;
   const description = listing.hero.onelinePitch;
   return {
     title,
     description,
-    alternates: { canonical },
+    alternates: {
+      canonical,
+    },
     openGraph: {
       title,
       description,
       type: "website",
-      url: canonical,
+      url: subdomainUrl,
       siteName: "BlockID.au",
       locale: "en_AU",
       images: [
