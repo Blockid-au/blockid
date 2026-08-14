@@ -50,6 +50,12 @@ export interface ChapterSection {
   body: LocalisedList;
 }
 
+/** A link entry used for agent "Try it now" shortcuts and CTA buttons. */
+export interface GuideLink {
+  label: string;
+  href: string;
+}
+
 /** A single guide chapter — matches the six-item spec in U.8 point 2. */
 export interface Chapter {
   slug: ChapterSlug;
@@ -64,6 +70,8 @@ export interface Chapter {
   commonPitfalls: LocalisedList;     // (d) common pitfalls
   showcaseExample: LocalisedText;    // (e) "what this looks like on BlockID.au"
   cta: LocalisedText;                // call to action into the workspace
+  ctaHref?: string;                  // optional deep-link for the CTA button
+  agentLinks?: GuideLink[];          // "Try it now" links for real wired agent routes
   sections?: ChapterSection[];       // optional deeper prose sections
   // Optional legal/qualifying-tests checklist rendered under its own heading.
   // Used for chapters that gate on a formal statutory test (e.g. chapter 08
@@ -136,6 +144,10 @@ const CHAPTERS: Chapter[] = [
       en: "Ready to start? Open /svi and type your one-liner — the CMO agent begins the moment you hit Analyze.",
       vi: "Sẵn sàng bắt đầu? Mở /svi và nhập câu một dòng — đại lý CMO khởi động ngay khi bạn nhấn Phân tích.",
     },
+    ctaHref: "/",
+    agentLinks: [
+      { label: "Startup Value Index (SVI)", href: "/" },
+    ],
   },
   {
     slug: "02-idea-validation",
@@ -204,6 +216,10 @@ const CHAPTERS: Chapter[] = [
       en: "Open Score → Full SVI in your workspace. Set aside 20 minutes; upload one credible piece of evidence per criterion where you can.",
       vi: "Mở Chấm điểm → SVI đầy đủ trong không gian làm việc. Dành 20 phút; tải lên một bằng chứng đáng tin cho mỗi tiêu chí nếu có thể.",
     },
+    ctaHref: "/workspace/evaluation",
+    agentLinks: [
+      { label: "Idea Evaluation", href: "/workspace/evaluation" },
+    ],
   },
   {
     slug: "03-market-research",
@@ -270,6 +286,10 @@ const CHAPTERS: Chapter[] = [
       en: "Book five customer calls this week. Feed the transcripts into the CMO persona agent — that combination beats any purely synthetic research.",
       vi: "Đặt năm buổi trò chuyện khách hàng tuần này. Đưa bản ghi vào đại lý chân dung khách hàng của CMO — kết hợp đó mạnh hơn mọi nghiên cứu thuần giả lập.",
     },
+    ctaHref: "/workspace/competitors",
+    agentLinks: [
+      { label: "Competitive Intelligence", href: "/workspace/competitors" },
+    ],
   },
   {
     slug: "04-mvp",
@@ -338,6 +358,10 @@ const CHAPTERS: Chapter[] = [
       en: "Set aside one week for a landing-page + repo-link pass. Everything else in Chapter 4 layers on top — start with those two.",
       vi: "Dành một tuần cho lượt landing page + liên kết kho. Mọi thứ khác trong Chương 4 xếp lên trên — bắt đầu bằng hai việc này.",
     },
+    ctaHref: "/workspace/evidence",
+    agentLinks: [
+      { label: "Evidence Vault", href: "/workspace/evidence" },
+    ],
   },
   {
     slug: "05-pmf",
@@ -406,6 +430,10 @@ const CHAPTERS: Chapter[] = [
       en: "Open the workspace Traction tab and log week-1 to week-N retention for the users you have today, however few. Two rows is enough to start — the CDO agent will tell you honestly how much more data it needs.",
       vi: "Mở tab Traction trong không gian làm việc và ghi giữ chân tuần 1 đến tuần N cho người dùng hiện có, dù ít. Hai dòng cũng đủ để bắt đầu — CDO sẽ nói thẳng cần thêm bao nhiêu dữ liệu.",
     },
+    ctaHref: "/workspace/tax-invoice-checker",
+    agentLinks: [
+      { label: "Tax Invoice Checker", href: "/workspace/tax-invoice-checker" },
+    ],
     // atlassian-standard-mapping-goal.md P5-tax-invoice-checker-ch5-section
     // (§1 phase 5 "first invoice/tax-invoice conformant to ATO GST-tax-invoice
     // rules"): Chapter 5 is where founders raise their first paid invoice.
@@ -515,6 +543,11 @@ const CHAPTERS: Chapter[] = [
       en: "Book two hours this week to sit with the CFO assumption cards. Override at least three; approve the rest. The projection is only as strong as your willingness to push back on the defaults.",
       vi: "Dành hai giờ tuần này ngồi với các thẻ giả định của CFO. Ghi đè ít nhất ba; duyệt phần còn lại. Dự phóng chỉ mạnh khi bạn sẵn sàng phản biện các mặc định.",
     },
+    ctaHref: "/workspace/gtm-strategy",
+    agentLinks: [
+      { label: "GTM Strategy", href: "/workspace/gtm-strategy" },
+      { label: "Pricing Tiers", href: "/workspace/pricing-tiers" },
+    ],
     // Deep-dive prose sections for chapter 06. `rnd-tax-incentive` closes the
     // atlassian-standard-mapping-goal.md P1j gap (§1 phase 6 "R&D Tax Incentive
     // dedicated section"): the R&DTI is an AU-specific cashflow lever that
@@ -624,6 +657,11 @@ const CHAPTERS: Chapter[] = [
       en: "Block a 90-minute Chapter 7 session: wire GA4, flip Stripe live, set the SVI cron day. Then commit to reading the first three weekly deltas out loud with a co-founder — the first three are where the pattern shows.",
       vi: "Đặt phiên Chương 7 kéo dài 90 phút: kết nối GA4, bật Stripe live, chọn ngày cron SVI. Sau đó cam kết đọc to ba delta tuần đầu cùng đồng sáng lập — ba tuần đầu là nơi mẫu hình lộ ra.",
     },
+    ctaHref: "/workspace/roadmap-builder",
+    agentLinks: [
+      { label: "Roadmap Builder", href: "/workspace/roadmap-builder" },
+      { label: "GTM Strategy", href: "/workspace/gtm-strategy" },
+    ],
     // Deep-dive prose sections for chapter 07. `ga4-measurement-plan` closes the
     // atlassian-standard-mapping-goal.md §1 phase 7 Q7-adjacent P2 gap that the
     // au-ga4-measurement-plan template shipped separately (data-room folder 4
@@ -734,6 +772,10 @@ const CHAPTERS: Chapter[] = [
       en: "Draft the ESOP scheme this week; run the Div83A checker on any grants already made. If you have the Share Management add-on, walk the CHRO's cap-table draft with a co-founder before approving each row — three eyes catch what two miss.",
       vi: "Soạn scheme ESOP tuần này; chạy bộ kiểm tra Div83A cho các grant đã phát hành. Nếu có add-on Share Management, đi qua bản nháp cap table của CHRO với đồng sáng lập trước khi duyệt từng dòng — ba con mắt bắt lỗi mà hai bỏ sót.",
     },
+    ctaHref: "/workspace/team",
+    agentLinks: [
+      { label: "Team & Org Chart", href: "/workspace/team" },
+    ],
     // atlassian-standard-mapping-goal.md §1 phase 7/8 P2 gaps + Q6 + Q7:
     // culture rituals are the last non-legal callouts in the phase gap matrix.
     // ShipIt (Q7) is Atlassian's quarterly 24-hour hackathon started in 2005 —
@@ -884,6 +926,10 @@ const CHAPTERS: Chapter[] = [
       en: "Set aside one full afternoon this week for the auditor pass. Read every red-flag out loud with a co-founder — reading aloud surfaces the awkward phrasings that will blow up in an investor Q&A.",
       vi: "Dành nguyên một buổi chiều tuần này cho lượt auditor. Đọc to từng cờ đỏ cùng đồng sáng lập — đọc to phơi bày các cách diễn đạt vụng về sẽ nổ tung trong Q&A với nhà đầu tư.",
     },
+    ctaHref: "/workspace/data-room",
+    agentLinks: [
+      { label: "Data Room", href: "/workspace/data-room" },
+    ],
   },
   {
     slug: "10-fundraise",
@@ -958,6 +1004,10 @@ const CHAPTERS: Chapter[] = [
       en: "Do not accept the first term sheet in the room. Run the AI + CLO review, read the AU-comparable-raises benchmark, and come back with a counter that adjusts at least two clauses — investors expect this and respect founders who negotiate calmly with data.",
       vi: "Đừng nhận term sheet đầu tiên trong phòng. Chạy review AI + CLO, đọc benchmark AU-comparable-raises, và quay lại với counter chỉnh ít nhất hai điều khoản — nhà đầu tư mong đợi điều này và tôn trọng founder biết đàm phán bình tĩnh với dữ liệu.",
     },
+    ctaHref: "/dashboard/valuation",
+    agentLinks: [
+      { label: "Valuation Dashboard", href: "/dashboard/valuation" },
+    ],
     sections: [
       {
         id: "primary-vs-secondary",
@@ -1092,6 +1142,10 @@ const CHAPTERS: Chapter[] = [
       en: "This is a rhythm chapter, not a project chapter. Block a 30-minute Monday runway read and a 60-minute monthly board-pack review on your calendar this week — protect them the way you protect release deploys, and Chapter 11 runs itself.",
       vi: "Đây là chương nhịp điệu, không phải chương dự án. Đặt 30 phút đọc runway thứ Hai và 60 phút review board pack hàng tháng lên lịch tuần này — bảo vệ chúng như bạn bảo vệ deploy release, và Chương 11 sẽ tự chạy.",
     },
+    ctaHref: "/workspace/roadmap-builder",
+    agentLinks: [
+      { label: "Roadmap Builder", href: "/workspace/roadmap-builder" },
+    ],
     // Deep-dive prose section for chapter 11. `acquisition-pattern` closes the
     // atlassian-standard-mapping-goal.md §1 phase 11 P1 gap ("acquisition-
     // pattern doc showing Atlassian's ~90% cash / 10% retention template"):
@@ -1208,6 +1262,10 @@ const CHAPTERS: Chapter[] = [
       en: "Regardless of your exit path, run the exit-readiness pack once per quarter starting today. Even if the exit is three years away, quarterly rehearsals mean you never scramble — and every rehearsal produces a snapshot you can compare against later to see how the story has strengthened.",
       vi: "Bất kể hướng thoái vốn nào, chạy gói exit-readiness mỗi quý một lần bắt đầu từ hôm nay. Ngay cả khi thoái vốn còn ba năm nữa, tổng duyệt hàng quý nghĩa là bạn không bao giờ vội — và mỗi tổng duyệt tạo một snapshot bạn có thể so sánh sau này để thấy câu chuyện đã mạnh lên thế nào.",
     },
+    ctaHref: "/dashboard/valuation",
+    agentLinks: [
+      { label: "Valuation Dashboard", href: "/dashboard/valuation" },
+    ],
     // Deep-dive prose section for chapter 12. `redomicile-decision-tree`
     // closes the atlassian-standard-mapping-goal.md §1 phase 12 P2 gap
     // ("Scheme-of-Arrangement / redomicile decision-tree doc"): Atlassian's

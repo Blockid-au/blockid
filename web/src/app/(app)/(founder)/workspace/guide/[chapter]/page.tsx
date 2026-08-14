@@ -144,7 +144,35 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
           {locale === "vi" ? "Bước tiếp theo" : "Next step"}
         </p>
         <p className="mt-2 text-sm text-ink-700">{t(c.cta)}</p>
+        {c.ctaHref ? (
+          <Link
+            href={c.ctaHref}
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          >
+            {locale === "vi" ? "Thử ngay →" : "Try it now →"}
+          </Link>
+        ) : null}
       </section>
+
+      {c.agentLinks && c.agentLinks.length > 0 ? (
+        <section className="rounded-lg border border-brand-100 bg-brand-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">
+            {locale === "vi" ? "Công cụ liên quan" : "Related tools"}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {c.agentLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-sm font-medium text-brand-700 transition hover:border-brand-400 hover:text-brand-900"
+              >
+                {link.label}
+                <span aria-hidden="true">→</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

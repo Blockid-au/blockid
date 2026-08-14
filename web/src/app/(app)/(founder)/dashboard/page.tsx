@@ -22,6 +22,7 @@ import { getBalance } from "@/lib/credits";
 import { getProjectIdFromRequest, getActiveProject, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { OnboardingWelcomeModal } from "@/components/dashboard/onboarding-welcome-modal";
 import { RoleLandingIntro } from "@/components/role/role-landing-intro";
 import { JourneyBar } from "@/components/dashboard/journey-bar";
 import { JourneyStepLadder } from "@/components/dashboard/journey-step-ladder";
@@ -383,7 +384,7 @@ function extractSviDimensions(
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string; checkout?: string; plan?: string }>;
+  searchParams: Promise<{ welcome?: string; checkout?: string; plan?: string; onboarding?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) {
@@ -755,6 +756,7 @@ export default async function DashboardPage({
   return (
     <WorkspaceLayout user={user} startupName={startupName} currentPhase={phase} isSandbox={isSandbox}>
       <PageTracker page="dashboard" />
+      {sp.onboarding === "complete" && <OnboardingWelcomeModal />}
 
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
         {/* ── Role hero + guided tour launcher (role-based-2026-07-25) ──── */}
