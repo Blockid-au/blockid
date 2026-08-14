@@ -12,6 +12,26 @@ export const metadata: Metadata = {
   title: "Showcase Library — BlockID.au",
   description:
     "Explore real Australian startups modelled on the BlockID founder platform — Atlassian, Canva, Xero, SafetyCulture and more.",
+  alternates: {
+    canonical: "https://blockid.au/showcase",
+  },
+  openGraph: {
+    title: "Showcase Library — BlockID.au",
+    description:
+      "Explore real Australian startups modelled on the BlockID founder platform — Atlassian, Canva, Xero, SafetyCulture and more.",
+    url: "https://blockid.au/showcase",
+    siteName: "BlockID.au",
+    type: "website",
+    locale: "en_AU",
+    images: [{ url: "/images/logo-full.png", width: 1556, height: 880, alt: "BlockID.au Showcase" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Showcase Library — BlockID.au",
+    description:
+      "Explore real Australian startups modelled on the BlockID founder platform — Atlassian, Canva, Xero, SafetyCulture and more.",
+    images: ["/images/logo-full.png"],
+  },
 };
 
 export const dynamic = "force-dynamic";

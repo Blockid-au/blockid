@@ -14,6 +14,13 @@ export const metadata: Metadata = {
     siteName: "BlockID.au",
     type: "website",
     locale: "en_AU",
+    images: [{ url: "/images/logo-full.png", width: 1556, height: 880, alt: "BlockID.au" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Contact Us — BlockID.au",
+    description: "Get in touch with the BlockID team. Based in Sydney, Australia. We respond within one business day.",
+    images: ["/images/logo-full.png"],
   },
 };
 

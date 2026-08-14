@@ -57,19 +57,23 @@ export const metadata: Metadata = {
   },
   manifest: "/site.webmanifest",
   keywords: [
-    "Trusted Ownership",
+    "Australian startups",
+    "startup intelligence",
+    "startup valuation",
+    "Startup Value Index",
+    "AI analysis",
+    "GTM strategy",
+    "founder tools",
     "Cap Table",
     "Equity Management",
-    "Australian startup",
     "Investor-Ready Data Rooms",
-    "Valuation Intelligence",
-    "Fundraising",
     "ASIC",
     "ESIC",
     "ownership management",
-    "startup ownership",
     "pre-diligence",
   ],
+  authors: [{ name: "BlockID", url: SITE_URL }],
+  creator: "BlockID",
   openGraph: {
     type: "website",
     locale: "en_AU",
@@ -77,7 +81,7 @@ export const metadata: Metadata = {
     siteName: "BlockID.au",
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
-    images: [{ url: "/images/logo-full.png", width: 1556, height: 880 }],
+    images: [{ url: "/images/logo-full.png", width: 1556, height: 880, alt: "BlockID.au — Startup Value Index" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -88,6 +92,14 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+    },
+  },
+  alternates: {
+    canonical: SITE_URL,
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GSC_VERIFICATION ?? undefined,
