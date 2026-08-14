@@ -57,6 +57,20 @@ export interface CompetitorProfile {
   marketSize?: number;
   /** Sector CAGR (0-1) — sourced from AU_MARKET_BENCHMARKS */
   growthRate?: number;
+
+  // ─── Tech Intelligence enrichment fields ─────────────────────────────────
+  /** Canonical website URL used for tech analysis (may differ from display website) */
+  websiteUrl?: string;
+  /** Tech stack detected from website (e.g. ["Next.js", "Vercel", "Stripe"]) */
+  techStack?: string[];
+  /** Website quality score 0-100 computed by computeWebsiteScore() */
+  websiteScore?: number;
+  /** Whether analytics (GA4/GTM/Segment etc.) were detected */
+  hasAnalytics?: boolean;
+  /** Whether a pricing page/section was detected */
+  hasPricing?: boolean;
+  /** Human-readable tech signal chips, max 5 (e.g. "SSL ✓", "Fast load (<1s)") */
+  techSignals?: string[];
 }
 
 /**
@@ -430,10 +444,69 @@ export interface GenerateCompetitorInput {
   region?: string;
 }
 
+// ─── Tech signal helpers ──────────────────────────────────────────────────
+
+/**
+ * Build human-readable tech signal chips from website signals.
+ * Returns at most 5 chips.
+ */
+function buildTechSignalChips(signals: {
+  hasSSL: boolean;
+  hasAnalytics: boolean;
+  hasPricing: boolean;
+  techStack: string[];
+  loadTimeMs: number;
+}): string[] {
+  const chips: string[] = [];
+
+  // SSL
+  chips.push(signals.hasSSL ? "SSL ✓" : "SSL ✗");
+
+  // Analytics
+  if (signals.hasAnalytics) chips.push("Analytics tracked");
+
+  // Pricing
+  if (signals.hasPricing) chips.push("Pricing page found");
+
+  // Tech stack — pick most recognisable framework
+  const knownFrameworks = ["Next.js", "React", "WordPress", "Shopify", "Webflow", "Wix", "Squarespace"];
+  const detectedFramework = signals.techStack.find((t) => knownFrameworks.includes(t));
+  if (detectedFramework) chips.push(`Built on ${detectedFramework}`);
+
+  // Load time
+  if (chips.length < 5) {
+    if (signals.loadTimeMs > 0 && signals.loadTimeMs < 1000) chips.push("Fast load (<1s)");
+    else if (signals.loadTimeMs >= 3000) chips.push("Slow (>3s)");
+  }
+
+  return chips.slice(0, 5);
+}
+
+/**
+ * Wrap analyseWebsite() in an 8-second timeout via Promise.race().
+ * On timeout or error, returns null so the caller can skip enrichment gracefully.
+ */
+async function analyseWebsiteWithTimeout(
+  url: string,
+  timeoutMs = 8000,
+): Promise<import("./tech-intelligence").WebsiteSignals | null> {
+  try {
+    const { analyseWebsite, computeWebsiteScore: _unused } = await import("./tech-intelligence");
+    void _unused; // imported for side-effect free bundling check
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
+    const analysis = analyseWebsite(url);
+    return await Promise.race([analysis, timeout]);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * LLM-backed competitor generator. Uses `callAI` (free provider chain), asks
  * for JSON, parses defensively, and falls back to the deterministic sector
  * template on any error. Enriches with AU market-size + CAGR anchors.
+ * After LLM generation, enriches the top 3 competitors with live website
+ * tech signals via analyseWebsite().
  */
 export async function generateCompetitorAnalysis(
   input: GenerateCompetitorInput,
@@ -447,13 +520,17 @@ export async function generateCompetitorAnalysis(
     `Region focus: ${region}\n\n` +
     `Return 3-5 credible competitors for this startup as a JSON array. ` +
     `Each item must be an object with keys: ` +
-    `name (string), website (string), category ("direct"|"indirect"|"substitute"), ` +
+    `name (string), website (string, canonical URL e.g. "https://example.com"), ` +
+    `websiteUrl (string, same canonical URL), ` +
+    `category ("direct"|"indirect"|"substitute"), ` +
     `region (string), positioning (short string), pricing (short string), ` +
     `strengths (string[]), weaknesses (string[]), ourEdge (short string), ` +
     `threatLevel ("low"|"medium"|"high"). ` +
     `Prioritise real, well-known Australian competitors where possible, ` +
-    `and include one international benchmark if relevant. JSON only.`;
+    `and include one international benchmark if relevant. ` +
+    `Always include a valid websiteUrl for each competitor. JSON only.`;
 
+  let baseCompetitors: CompetitorProfile[];
   try {
     const result = await callAI({
       system: CMO_SYSTEM_PROMPT,
@@ -464,12 +541,45 @@ export async function generateCompetitorAnalysis(
 
     const parsed = tryParseJSON<CompetitorProfile[]>(result.text);
     if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
-      return enrichCompetitors(sectorFallback(input.sector), input.sector, region);
+      baseCompetitors = enrichCompetitors(sectorFallback(input.sector), input.sector, region);
+    } else {
+      baseCompetitors = enrichCompetitors(parsed, input.sector, region);
     }
-    return enrichCompetitors(parsed, input.sector, region);
   } catch {
-    return enrichCompetitors(sectorFallback(input.sector), input.sector, region);
+    baseCompetitors = enrichCompetitors(sectorFallback(input.sector), input.sector, region);
   }
+
+  // ── Enrich top 3 with live website tech signals ───────────────────────────
+  const toEnrich = baseCompetitors.slice(0, 3);
+  const rest = baseCompetitors.slice(3);
+
+  const enriched = await Promise.allSettled(
+    toEnrich.map(async (comp) => {
+      // Prefer websiteUrl, fall back to website field
+      const targetUrl = comp.websiteUrl ?? comp.website;
+      if (!targetUrl) return comp;
+
+      const signals = await analyseWebsiteWithTimeout(targetUrl);
+      if (!signals) return comp; // graceful fallback
+
+      const { computeWebsiteScore } = await import("./tech-intelligence");
+      return {
+        ...comp,
+        websiteUrl: targetUrl,
+        techStack: signals.techStack,
+        websiteScore: computeWebsiteScore(signals),
+        hasAnalytics: signals.hasAnalytics,
+        hasPricing: signals.hasPricing,
+        techSignals: buildTechSignalChips(signals),
+      };
+    }),
+  );
+
+  const enrichedCompetitors = enriched.map((result, i) =>
+    result.status === "fulfilled" ? result.value : toEnrich[i],
+  );
+
+  return [...enrichedCompetitors, ...rest];
 }
 
 export interface GenerateGtmInput {

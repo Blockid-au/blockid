@@ -4,6 +4,29 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Competitor } from "@/lib/founder-features";
 
+// Tech enrichment fields returned from the AI fill endpoint
+interface AiSuggestion {
+  name: string;
+  website: string;
+  category: string;
+  positioning: string;
+  pricing: string;
+  strengths: string;
+  weaknesses: string;
+  our_edge: string;
+  threat_level: "low" | "medium" | "high";
+  techStack?: string[];
+  websiteScore?: number;
+  hasAnalytics?: boolean;
+  hasPricing?: boolean;
+  techSignals?: string[];
+}
+
+interface TechComparisonMeta {
+  ownTechScore: number | null;
+  avgCompetitorWebScore: number | null;
+}
+
 interface Props {
   initial: Competitor[];
   disabled: boolean;
@@ -42,6 +65,8 @@ export function CompetitorsClient({ initial, disabled }: Props) {
   const [editDraft, setEditDraft] = useState<Partial<Competitor>>({});
   const [aiBusy, setAiBusy] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
+  const [techComparison, setTechComparison] = useState<TechComparisonMeta | null>(null);
 
   const input =
     "w-full rounded-xl border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50";
@@ -51,13 +76,19 @@ export function CompetitorsClient({ initial, disabled }: Props) {
     setAiBusy(true);
     setError(null);
     setAiNote(null);
+    setAiSuggestions([]);
+    setTechComparison(null);
     try {
       const res = await fetch("/api/founder/competitors/ai-fill", { method: "POST" });
       const json = await res.json() as {
         ok: boolean;
         error?: string;
-        suggestions?: typeof EMPTY_DRAFT[];
-        meta?: { note?: string };
+        suggestions?: AiSuggestion[];
+        meta?: {
+          note?: string;
+          ownTechScore?: number | null;
+          avgCompetitorWebScore?: number | null;
+        };
       };
       if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
       const suggestions = json.suggestions ?? [];
@@ -76,6 +107,17 @@ export function CompetitorsClient({ initial, disabled }: Props) {
           threat_level: (s.threat_level as typeof EMPTY_DRAFT.threat_level) ?? "medium",
         });
         setAiNote(json.meta?.note ?? null);
+        setAiSuggestions(suggestions);
+      }
+      // Store tech comparison data if available
+      if (
+        json.meta &&
+        (json.meta.ownTechScore != null || json.meta.avgCompetitorWebScore != null)
+      ) {
+        setTechComparison({
+          ownTechScore: json.meta.ownTechScore ?? null,
+          avgCompetitorWebScore: json.meta.avgCompetitorWebScore ?? null,
+        });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "AI suggest failed");
@@ -161,6 +203,70 @@ export function CompetitorsClient({ initial, disabled }: Props) {
           <p className="rounded-lg bg-brand-50 border border-brand-200 px-3 py-2 text-xs text-brand-700">
             {aiNote}
           </p>
+        )}
+
+        {/* ── AI Suggestions with tech signals ──────────────────────────── */}
+        {aiSuggestions.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">
+              AI-suggested competitors — click to prefill form
+            </p>
+            {aiSuggestions.map((s, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() =>
+                  setDraft({
+                    name: s.name ?? "",
+                    website: s.website ?? "",
+                    category: s.category ?? "direct",
+                    positioning: s.positioning ?? "",
+                    pricing: s.pricing ?? "",
+                    strengths: s.strengths ?? "",
+                    weaknesses: s.weaknesses ?? "",
+                    our_edge: s.our_edge ?? "",
+                    threat_level: s.threat_level ?? "medium",
+                  })
+                }
+                className="w-full text-left rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.07)] px-4 py-3 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-semibold text-[#E2E8F0]">{s.name}</span>
+                  {typeof s.websiteScore === "number" && (
+                    <span className="text-xs text-[#94A3B8] shrink-0">
+                      Web score: <span className="text-[#00D4FF] font-medium">{s.websiteScore}/100</span>
+                    </span>
+                  )}
+                </div>
+                {s.positioning && (
+                  <p className="text-xs text-[#94A3B8] mt-0.5 line-clamp-1">{s.positioning}</p>
+                )}
+                {/* Tech signal chips */}
+                {s.techSignals && s.techSignals.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {s.techSignals.map((chip, ci) => (
+                      <span
+                        key={ci}
+                        className="bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] text-[#94A3B8] rounded-full px-2 py-0.5 text-xs"
+                      >
+                        {chip}
+                      </span>
+                    ))}
+                    {s.websiteScore !== undefined && s.websiteScore > 75 && (
+                      <span className="bg-[rgba(0,212,255,0.08)] border border-[rgba(0,212,255,0.2)] text-[#00D4FF] rounded-full px-2 py-0.5 text-xs">
+                        Strong web presence
+                      </span>
+                    )}
+                    {s.hasPricing && (
+                      <span className="bg-[rgba(251,191,36,0.08)] border border-[rgba(251,191,36,0.2)] text-amber-300 rounded-full px-2 py-0.5 text-xs">
+                        Has pricing page
+                      </span>
+                    )}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
@@ -269,6 +375,60 @@ export function CompetitorsClient({ initial, disabled }: Props) {
           </Button>
         </div>
       </section>
+
+      {/* ── Tech Comparison summary ─────────────────────────────────────────── */}
+      {techComparison && (
+        <section className="rounded-2xl border border-[rgba(0,212,255,0.15)] bg-[rgba(0,212,255,0.04)] px-5 py-4 space-y-3">
+          <h2 className="text-sm font-semibold text-[#00D4FF]">Tech Comparison</h2>
+          <div className="flex flex-wrap gap-6 text-sm">
+            {techComparison.ownTechScore != null ? (
+              <div>
+                <span className="text-[#94A3B8] text-xs uppercase tracking-wider">Your tech score</span>
+                <div className="text-xl font-bold text-[#E2E8F0] mt-0.5">
+                  {techComparison.ownTechScore}
+                  <span className="text-sm font-normal text-[#94A3B8]">/100</span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <span className="text-[#94A3B8] text-xs uppercase tracking-wider">Your tech score</span>
+                <div className="text-sm text-[#64748B] mt-0.5 italic">
+                  Not analysed yet — run Tech Analysis on your SVI page
+                </div>
+              </div>
+            )}
+            {techComparison.avgCompetitorWebScore != null && (
+              <div>
+                <span className="text-[#94A3B8] text-xs uppercase tracking-wider">
+                  Avg competitor web score
+                </span>
+                <div className="text-xl font-bold text-[#E2E8F0] mt-0.5">
+                  {techComparison.avgCompetitorWebScore}
+                  <span className="text-sm font-normal text-[#94A3B8]">/100</span>
+                </div>
+              </div>
+            )}
+          </div>
+          {techComparison.ownTechScore != null && techComparison.avgCompetitorWebScore != null && (
+            <p className="text-sm text-[#94A3B8]">
+              {techComparison.ownTechScore > techComparison.avgCompetitorWebScore ? (
+                <span className="text-emerald-400 font-medium">
+                  You&apos;re ahead on tech
+                </span>
+              ) : techComparison.ownTechScore < techComparison.avgCompetitorWebScore ? (
+                <span className="text-amber-400 font-medium">
+                  Competitors have stronger web presence
+                </span>
+              ) : (
+                <span className="text-[#94A3B8] font-medium">
+                  On par with competitors on tech presence
+                </span>
+              )}
+              {" "}— based on live website analysis of top 3 competitors.
+            </p>
+          )}
+        </section>
+      )}
 
       {/* ── Comparison table ────────────────────────────────────────────────── */}
       <section className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
