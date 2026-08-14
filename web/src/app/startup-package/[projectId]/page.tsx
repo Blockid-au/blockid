@@ -33,6 +33,7 @@ import { PaywallProvider } from "@/components/sales/paywall-nudge";
 import { PhaseList, type PhaseListItem } from "@/components/startup-package/phase-list";
 import { PhaseCard } from "@/components/startup-package/phase-card";
 import { SviMeter } from "@/components/startup-package/svi-meter";
+import { RevenueTrackerTile } from "@/components/founder/revenue-tracker-tile";
 import { AcceleratorApplyCard } from "@/components/startup-package/accelerator-apply-card";
 import { listAccelerators } from "@/lib/agents/accelerator-drafter";
 
@@ -196,6 +197,9 @@ export default async function Page({ params }: PageProps) {
                   </p>
                 </div>
               )}
+
+              {/* 90-day revenue tracker — Phase 3.1 (Stripe + GA4). */}
+              <RevenueTrackerTile />
 
               <ReservedAllocationSummary
                 pct={data.reservedAllocation?.pct_reserved ?? null}

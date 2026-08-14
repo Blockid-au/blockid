@@ -40,6 +40,7 @@ import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
 import { NextUnlockCard } from "@/components/dashboard/next-unlock-card";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
+import { RevenueTrackerTile } from "@/components/founder/revenue-tracker-tile";
 import { fetchRepoStats, parseRepoInput } from "@/lib/github";
 import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
@@ -981,6 +982,11 @@ export default async function DashboardPage({
               <h3 className="text-sm font-bold text-ink-800 mb-4">Quick Actions</h3>
               <QuickActionsList hasAnalysis={!!analysis} phase={phase} />
             </div>
+          </div>
+
+          {/* 90-day revenue tracker — Phase 3.1 (Stripe + GA4). */}
+          <div data-widget-id="revenue-90d">
+            <RevenueTrackerTile />
           </div>
 
           {/* Status cards row. */}
