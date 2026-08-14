@@ -40,10 +40,49 @@ export function CompetitorsClient({ initial, disabled }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Partial<Competitor>>({});
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
 
   const input =
     "w-full rounded-xl border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50";
   const label = "text-xs font-semibold text-ink-700 uppercase tracking-wider";
+
+  async function aiSuggest() {
+    setAiBusy(true);
+    setError(null);
+    setAiNote(null);
+    try {
+      const res = await fetch("/api/founder/competitors/ai-fill", { method: "POST" });
+      const json = await res.json() as {
+        ok: boolean;
+        error?: string;
+        suggestions?: typeof EMPTY_DRAFT[];
+        meta?: { note?: string };
+      };
+      if (!json.ok) throw new Error(json.error ?? "AI suggest failed");
+      const suggestions = json.suggestions ?? [];
+      if (suggestions.length > 0) {
+        // Pre-fill the draft form with the first suggestion
+        const s = suggestions[0];
+        setDraft({
+          name: s.name ?? "",
+          website: s.website ?? "",
+          category: s.category ?? "direct",
+          positioning: s.positioning ?? "",
+          pricing: s.pricing ?? "",
+          strengths: s.strengths ?? "",
+          weaknesses: s.weaknesses ?? "",
+          our_edge: s.our_edge ?? "",
+          threat_level: (s.threat_level as typeof EMPTY_DRAFT.threat_level) ?? "medium",
+        });
+        setAiNote(json.meta?.note ?? null);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI suggest failed");
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   async function add() {
     if (!draft.name.trim()) {
@@ -101,7 +140,28 @@ export function CompetitorsClient({ initial, disabled }: Props) {
     <div className="space-y-6">
       {/* ── Add form ────────────────────────────────────────────────────────── */}
       <section className="rounded-2xl border border-surface-200 bg-white p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-ink-800">Add competitor</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink-800">Add competitor</h2>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={aiSuggest}
+            disabled={aiBusy || disabled}
+            className="gap-1.5 text-brand-600 hover:text-brand-700"
+          >
+            {aiBusy ? (
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+            ) : (
+              <span aria-hidden>✨</span>
+            )}
+            {aiBusy ? "Generating…" : "AI Suggest"}
+          </Button>
+        </div>
+        {aiNote && (
+          <p className="rounded-lg bg-brand-50 border border-brand-200 px-3 py-2 text-xs text-brand-700">
+            {aiNote}
+          </p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <label className={label}>Name *</label>
