@@ -1,31 +1,59 @@
-// /workspace/team — nav-linked stub while the full page is built.
-// Ships a minimal header + coming-soon message so the nav never 404s.
+// /workspace/team — Team & Salaries planner.
+// Multi-startup-scoped roster: founders, hires, advisors, contractors — with
+// equity, salary, start date, and status.
 import type { Metadata } from "next";
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getPlatformConfig } from "@/lib/platform-config";
+import { listTeamMembers, getActiveProjectIdOrNull } from "@/lib/founder-features";
+import { TeamPlannerClient } from "./team-planner-client";
 
 export const metadata: Metadata = {
   title: "Team & Salaries | Workspace | BlockID",
-  description: "Team roster and salary planning. In the interim, use /dashboard/team.",
+  description:
+    "Plan your founding team, next hires, advisors and contractors — with equity and salary tracking.",
   robots: { index: false, follow: false },
 };
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/auth/login?next=/workspace/team");
+
+  const [isSandbox, projectId, cfg] = await Promise.all([
+    getCurrentProjectIsSandbox(),
+    getActiveProjectIdOrNull(),
+    getPlatformConfig(),
+  ]);
+  const items = await listTeamMembers(user, projectId);
+
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16 text-center">
-      <h1 className="text-3xl font-semibold text-ink-900">Team & Salaries</h1>
-      <p className="mt-4 text-ink-600">Team roster and salary planning. In the interim, use /dashboard/team.</p>
-      <p className="mt-6 text-sm text-ink-500">
-        This surface is under active build. In the meantime, jump back to your
-        workspace overview.
-      </p>
-      <div className="mt-8">
-        <Link
-          href="/workspace"
-          className="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          Back to Workspace
-        </Link>
+    <WorkspaceLayout user={user} isSandbox={isSandbox}>
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
+        <header>
+          <h1 className="text-xl font-bold text-ink-800">Team & Salaries</h1>
+          <p className="text-sm text-ink-600 mt-1">{cfg.founder_features_copy.team_intro}</p>
+          <p className="text-xs text-ink-400 mt-1">
+            Suggested: at least {cfg.founder_features_copy.team_suggested_advisors} advisors on board
+            before a priced round.
+          </p>
+        </header>
+
+        {!projectId && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Create or select a startup first — team roster is stored per startup.
+          </div>
+        )}
+
+        <TeamPlannerClient
+          initial={items}
+          disabled={!projectId}
+          suggestedAdvisors={cfg.founder_features_copy.team_suggested_advisors}
+        />
       </div>
-    </main>
+    </WorkspaceLayout>
   );
 }
