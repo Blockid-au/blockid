@@ -37,6 +37,7 @@ import {
   type VestingInfo,
 } from "@/lib/wallet";
 import { useStartupToken } from "@/components/wallet/use-startup-token";
+import { CreateShareToken } from "@/components/wallet/create-share-token";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -399,6 +400,9 @@ export function WalletClient() {
           </div>
         )}
       </div>
+
+      {/* Mint Token — deploy this startup's equity token on-chain */}
+      <CreateShareToken />
 
       {/* Token Portfolio */}
       {account && chainOk && (
