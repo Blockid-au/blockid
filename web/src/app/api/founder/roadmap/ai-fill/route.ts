@@ -13,8 +13,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectIdFromRequest } from "@/lib/projects";
 import {
-  computeNextBestActions,
-  type DimensionScore,
+  generateRoadmapItems,
+  type RoadmapItemSuggestion,
+  type RoadmapPhase,
 } from "@/lib/agents/cto-next-best-action";
 
 export const dynamic = "force-dynamic";
@@ -29,16 +30,23 @@ interface RoadmapSuggestion {
   owner: string;
 }
 
-// Map NextBestAction dimension label to roadmap category
-function categoryFromDimension(dimension: string): string {
-  if (dimension.toLowerCase().includes("market")) return "growth";
-  if (dimension.toLowerCase().includes("traction") || dimension.toLowerCase().includes("revenue")) return "growth";
-  if (dimension.toLowerCase().includes("product") || dimension.toLowerCase().includes("technical")) return "product";
-  if (dimension.toLowerCase().includes("cap table") || dimension.toLowerCase().includes("governance")) return "compliance";
-  if (dimension.toLowerCase().includes("legal") || dimension.toLowerCase().includes("compliance")) return "compliance";
-  if (dimension.toLowerCase().includes("team") || dimension.toLowerCase().includes("founder")) return "team";
-  if (dimension.toLowerCase().includes("investor")) return "fundraise";
+// Map LLM roadmap-category → the form's roadmap-category vocabulary.
+function normalizeCategory(cat: string): string {
+  const s = cat.toLowerCase();
+  if (s === "growth" || s === "product" || s === "team" || s === "fundraise" || s === "infra") return s;
   return "product";
+}
+
+// Map an LLM phase label onto a quarter label from `quarters`.
+function quarterForPhase(phase: RoadmapPhase, quarters: string[]): string {
+  const map: Record<RoadmapPhase, number> = {
+    "0-30_days": 0,
+    "1-3_months": 1,
+    "3-6_months": 2,
+    "6-12_months": 3,
+  };
+  const idx = Math.min(map[phase] ?? 0, quarters.length - 1);
+  return quarters[idx];
 }
 
 // Generate quarters starting from today
@@ -68,22 +76,6 @@ function quarterEndDate(quarterLabel: string): string {
   return lastDay.toISOString().split("T")[0];
 }
 
-// Default dimension scores for startups with no SVI analysis
-function defaultDimensions(stage: number): DimensionScore[] {
-  // Lower scores for earlier stages — triggers more P0 actions
-  const baseScore = Math.min(30 + stage * 8, 75);
-  return [
-    { code: "ftv", label: "Founder & Team Value",      score: baseScore,       weight: 1, gaps: [] },
-    { code: "mpc", label: "Market & Problem Clarity",  score: baseScore - 5,   weight: 1, gaps: [] },
-    { code: "ptd", label: "Product & Technical Depth", score: baseScore,       weight: 1, gaps: [] },
-    { code: "tre", label: "Traction & Revenue Evidence",score: Math.max(0, baseScore - 15), weight: 1, gaps: [] },
-    { code: "cgh", label: "Cap Table & Governance",    score: Math.max(0, baseScore - 10), weight: 1, gaps: [] },
-    { code: "iri", label: "Investor Readiness Index",  score: Math.max(0, baseScore - 10), weight: 1, gaps: [] },
-    { code: "lco", label: "Legal & Compliance",        score: baseScore,       weight: 1, gaps: [] },
-    { code: "svm", label: "Strategic Vision & Moat",   score: baseScore - 5,   weight: 1, gaps: [] },
-  ];
-}
-
 export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
@@ -97,79 +89,52 @@ export async function POST() {
   // Get project profile
   const { data: project } = await sb
     .from("projects")
-    .select("name, industry, stage")
+    .select("name, industry, stage, description")
     .eq("id", projectId)
     .eq("user_id", user.id)
     .single();
 
   const stage = Number(project?.stage ?? 0);
   const name = project?.name ?? "Your startup";
+  const sector = (project?.industry ?? "saas").toLowerCase();
 
-  // Try to get the latest SVI analysis for real dimension scores
-  let sviScore = 50;
-  let dimensions: DimensionScore[] = defaultDimensions(stage);
-
+  // Best-effort SVI hint for the LLM.
+  let sviScore: number | undefined = undefined;
   try {
     const { data: sviAccount } = await sb
       .from("svi_accounts")
-      .select("current_svi, current_stage")
+      .select("current_svi")
       .eq("project_id", projectId)
       .eq("user_id", user.id)
       .maybeSingle();
-
     if (sviAccount?.current_svi != null) {
       sviScore = Number(sviAccount.current_svi);
     }
-
-    // Try to get dimension breakdown from the latest analysis
-    const { data: latestAnalysis } = await sb
-      .from("svi_analyses")
-      .select("analysis_json")
-      .eq("project_id", projectId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (latestAnalysis?.analysis_json) {
-      const parsed = latestAnalysis.analysis_json as Record<string, unknown>;
-      // analysis_json stores dimension scores under various keys — attempt common shapes
-      const dims = (parsed.dimensions ?? parsed.scores ?? parsed.dimension_scores) as
-        | Array<{ code?: string; label?: string; score?: number; weight?: number }>
-        | undefined;
-      if (Array.isArray(dims) && dims.length >= 4) {
-        dimensions = dims
-          .filter((d) => d.code && d.score != null)
-          .map((d) => ({
-            code: d.code as DimensionScore["code"],
-            label: d.label ?? d.code ?? "",
-            score: Number(d.score),
-            weight: Number(d.weight ?? 1),
-            gaps: [],
-          }));
-      }
-    }
   } catch {
-    // Swallow — use defaults
+    // Swallow — SVI is optional context.
   }
 
-  const result = computeNextBestActions({ currentSvi: sviScore, stage, dimensions });
+  const items: RoadmapItemSuggestion[] = await generateRoadmapItems({
+    startupName: name,
+    sector,
+    stage,
+    currentSvi: sviScore,
+    description: project?.description ?? undefined,
+  });
 
   const quarters = generateQuarters(4); // Q1–Q4 starting now
-  const suggestions: RoadmapSuggestion[] = result.actions
-    .slice(0, 8)
-    .map((action, i) => {
-      const qIndex = Math.min(i < 2 ? 0 : i < 4 ? 1 : i < 6 ? 2 : 3, quarters.length - 1);
-      const q = quarters[qIndex];
-      return {
-        quarter: q,
-        title: action.title,
-        description: `${action.rationale} Effort: ${action.effort}. Time: ${action.timeToComplete}. Est. SVI gain: +${action.sviBenefit} pts.${action.auResource ? ` AU resource: ${action.auResource}.` : ""}`,
-        category: categoryFromDimension(action.dimension),
-        status: "planned" as const,
-        target_date: quarterEndDate(q),
-        owner: "Founder",
-      };
-    });
+  const suggestions: RoadmapSuggestion[] = items.slice(0, 8).map((item) => {
+    const q = quarterForPhase(item.phase, quarters);
+    return {
+      quarter: q,
+      title: item.title,
+      description: `${item.rationale} Impact: ${item.impact}. Effort: ${item.effort}.`,
+      category: normalizeCategory(item.category),
+      status: "planned" as const,
+      target_date: quarterEndDate(q),
+      owner: "Founder",
+    };
+  });
 
   return NextResponse.json({
     ok: true,
@@ -177,10 +142,11 @@ export async function POST() {
     meta: {
       startup: name,
       stage,
-      currentSvi: result.currentSvi,
-      projectedSvi: result.projectedSvi,
-      topInsight: result.topInsight,
-      weakestDimension: result.weakestDimension,
+      currentSvi: sviScore ?? null,
+      itemCount: suggestions.length,
+      topInsight: items[0]
+        ? `Start with: ${items[0].title} — ${items[0].rationale}`
+        : undefined,
     },
   });
 }

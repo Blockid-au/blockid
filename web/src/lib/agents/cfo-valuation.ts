@@ -29,6 +29,7 @@ import {
   summariseAuExits,
   type AuExit,
 } from "@/lib/exits/au-benchmark";
+import { callAI } from "@/lib/ai-client";
 
 export type Sector =
   | "saas"
@@ -952,4 +953,151 @@ export function evaluateBurnEfficiency(
   const burnMultiple = burnRate / netNewArr;
   const threshold = AU_FINANCIAL_RESEARCH.fundingBenchmarks.efficiency.maxBurnMultiple;
   return { burnMultiple, isEfficient: burnMultiple <= threshold };
+}
+
+// ─── LLM-backed pricing tier generator ───────────────────────────────────
+// Uses `callAI()` (free provider chain: Cerebras → Groq → SambaNova → Claude
+// OAuth → OpenRouter). Falls back to deterministic sector-anchored tiers on
+// any parse/LLM failure so the founder UI never sees a hard error.
+
+const CFO_PRICING_SYSTEM_PROMPT =
+  "You are an Australian startup CFO pricing advisor. Respond with valid JSON only, no markdown code fences.";
+
+export interface GeneratePricingInput {
+  startupName: string;
+  sector: string;
+  stage: number;
+  description?: string;
+  targetCustomer?: string;
+}
+
+export interface PricingTierSuggestion {
+  name: string;
+  price_aud_monthly: number;
+  target_segment: string;
+  features: string[];
+  positioning: string;
+}
+
+function pricingTryParseJSON<T>(raw: string): T | null {
+  if (!raw) return null;
+  const stripped = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(stripped) as T;
+  } catch {
+    const match = stripped.match(/[\[{][\s\S]*[\]}]/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]) as T;
+    } catch {
+      return null;
+    }
+  }
+}
+
+/** Deterministic fallback used when the LLM call/parse fails. */
+function pricingFallback(input: GeneratePricingInput): PricingTierSuggestion[] {
+  const bm = vcBenchmark(input.sector);
+  const gmFactor = bm.grossMarginTarget / 100;
+  const basePrice = Math.round((50 / gmFactor) / 10) * 10;
+  const sector = input.sector.toLowerCase();
+  const stageLabel = input.stage <= 2 ? "early" : input.stage <= 4 ? "growth" : "scale";
+
+  return [
+    {
+      name: "Starter",
+      price_aud_monthly: 0,
+      target_segment: `Founder exploring ${input.startupName} — pre-commitment`,
+      features: [
+        "Up to 1 project",
+        "Basic SVI snapshot",
+        "Community access",
+      ],
+      positioning: "Free forever — remove friction to first value.",
+    },
+    {
+      name: "Growth",
+      price_aud_monthly: basePrice,
+      target_segment: `${stageLabel}-stage ${sector} founder actively building`,
+      features: [
+        "Up to 3 projects",
+        "Full SVI scoring",
+        "Competitor + GTM modules",
+        "Team + roadmap planner",
+      ],
+      positioning: `Priced at A$${basePrice}/mo to hit ${bm.grossMarginTarget}% gross margin and <${bm.cacPaybackMonthsTarget}mo CAC payback.`,
+    },
+    {
+      name: "Scale",
+      price_aud_monthly: basePrice * 3,
+      target_segment: `Series A–B ${sector} founder with investor-facing reporting`,
+      features: [
+        "Unlimited projects",
+        "Investor-pack exports",
+        "API access",
+        "Priority support",
+        "Cap table + ESOP modelling",
+      ],
+      positioning: `Per-seat scale tier; anchors to AU LTV/CAC target of ${bm.ltvCacTarget}x.`,
+    },
+  ];
+}
+
+/**
+ * LLM-backed pricing tier generator. Falls back to deterministic sector-
+ * anchored tiers on any parse/LLM failure.
+ */
+export async function generatePricingTiers(
+  input: GeneratePricingInput,
+): Promise<PricingTierSuggestion[]> {
+  const bm = vcBenchmark(input.sector);
+  const user =
+    `Startup: ${input.startupName}\n` +
+    `Sector: ${input.sector}\n` +
+    `Lifecycle stage (0-5): ${input.stage}\n` +
+    (input.description ? `Description: ${input.description}\n` : "") +
+    (input.targetCustomer ? `Target customer: ${input.targetCustomer}\n` : "") +
+    `\nAU sector benchmark: gross margin ${bm.grossMarginTarget}%, LTV/CAC ${bm.ltvCacTarget}x, ` +
+    `CAC payback ≤ ${bm.cacPaybackMonthsTarget} months.\n\n` +
+    `Return 3 pricing tiers as a JSON array. Each item must be an object with keys:\n` +
+    `- name (string, e.g. "Starter", "Growth", "Scale")\n` +
+    `- price_aud_monthly (number in AUD; use 0 for free tier)\n` +
+    `- target_segment (short string describing the buyer)\n` +
+    `- features (array of 3-6 short feature strings)\n` +
+    `- positioning (one-sentence rationale grounded in AU market)\n` +
+    `Prefer AU-market anchored pricing. JSON only.`;
+
+  try {
+    const result = await callAI({
+      system: CFO_PRICING_SYSTEM_PROMPT,
+      user,
+      maxTokens: 2000,
+      temperature: 0.4,
+    });
+    const parsed = pricingTryParseJSON<PricingTierSuggestion[]>(result.text);
+    if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
+      return pricingFallback(input);
+    }
+    return parsed
+      .filter(
+        (t): t is PricingTierSuggestion =>
+          !!t &&
+          typeof t.name === "string" &&
+          typeof t.price_aud_monthly === "number" &&
+          Array.isArray(t.features),
+      )
+      .map((t) => ({
+        name: t.name,
+        price_aud_monthly: t.price_aud_monthly,
+        target_segment: typeof t.target_segment === "string" ? t.target_segment : "",
+        features: t.features.filter((f): f is string => typeof f === "string"),
+        positioning: typeof t.positioning === "string" ? t.positioning : "",
+      }));
+  } catch {
+    return pricingFallback(input);
+  }
 }

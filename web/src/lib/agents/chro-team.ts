@@ -1,3 +1,5 @@
+import { callAI } from "@/lib/ai-client";
+
 // CHRO Domain: Team Assessment & Hiring Benchmarks
 //
 // AU startup team composition analysis, salary benchmarks,
@@ -174,4 +176,207 @@ export function assessTeam(input: {
       { metric: "Key Roles Filled", current: benchmark.keyRoles.length - gaps.filter((g) => g.startsWith("Missing")).length, benchmark: benchmark.keyRoles.length, status: gaps.some((g) => g.startsWith("Missing")) ? "Gaps" : "OK" },
     ],
   };
+}
+
+// ─── LLM-backed team plan generator ───────────────────────────────────────
+// Uses `callAI()` (free provider chain). Falls back to deterministic hires
+// derived from TEAM_BENCHMARKS + AU_SALARY_BENCHMARKS on any parse/LLM
+// failure so the founder UI never sees a hard error.
+
+const CHRO_TEAM_SYSTEM_PROMPT =
+  "You are an Australian startup CHRO hiring advisor. Respond with valid JSON only, no markdown code fences.";
+
+export type HirePriority = "critical" | "important" | "nice_to_have";
+export type HirePhase = "current" | "next_3_months" | "next_6_months" | "next_12_months";
+
+export interface GenerateTeamInput {
+  startupName: string;
+  sector: string;
+  stage: number;
+  currentTeamSize?: number;
+  description?: string;
+}
+
+export interface TeamPlanSuggestion {
+  role: string;
+  priority: HirePriority;
+  hire_by_phase: HirePhase;
+  salary_aud_min: number;
+  salary_aud_max: number;
+  equity_pct_min: number;
+  equity_pct_max: number;
+  rationale: string;
+}
+
+const VALID_PRIORITY: HirePriority[] = ["critical", "important", "nice_to_have"];
+const VALID_HIRE_PHASE: HirePhase[] = ["current", "next_3_months", "next_6_months", "next_12_months"];
+
+function teamTryParseJSON<T>(raw: string): T | null {
+  if (!raw) return null;
+  const stripped = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(stripped) as T;
+  } catch {
+    const match = stripped.match(/[\[{][\s\S]*[\]}]/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]) as T;
+    } catch {
+      return null;
+    }
+  }
+}
+
+/** Look up an AU salary band {p25, p75} for a role title. */
+function salaryBandForRole(role: string): { min: number; max: number } {
+  const lower = role.toLowerCase();
+  const pick = (key: string, seniority: string) => {
+    const band = AU_SALARY_BENCHMARKS[key]?.[seniority];
+    if (!band) return null;
+    return { min: band.p25, max: band.p75 };
+  };
+  if (lower.includes("engineer") || lower.includes("developer") || lower.includes("cto")) {
+    return pick("Software Engineer", "senior") ?? { min: 130000, max: 180000 };
+  }
+  if (lower.includes("product")) {
+    return pick("Product Manager", "senior") ?? { min: 140000, max: 195000 };
+  }
+  if (lower.includes("design")) {
+    return pick("Designer", "senior") ?? { min: 115000, max: 160000 };
+  }
+  if (lower.includes("market")) {
+    return pick("Marketing", "senior") ?? { min: 110000, max: 165000 };
+  }
+  if (lower.includes("data")) {
+    return pick("Data Scientist", "senior") ?? { min: 140000, max: 200000 };
+  }
+  if (lower.includes("advisor") || lower.includes("founder") || lower.includes("ceo")) {
+    return { min: 0, max: 0 };
+  }
+  return { min: 90000, max: 140000 };
+}
+
+/**
+ * Enrich a suggestion's salary with AU_SALARY_BENCHMARKS so we never surface
+ * wildly off-market numbers. If the LLM output falls inside the AU band we
+ * keep it; otherwise we clamp to the benchmark band.
+ */
+function enrichSalary(s: TeamPlanSuggestion): TeamPlanSuggestion {
+  const band = salaryBandForRole(s.role);
+  if (band.min === 0 && band.max === 0) {
+    // Advisor / founder — no cash salary.
+    return { ...s, salary_aud_min: 0, salary_aud_max: 0 };
+  }
+  const min = Math.max(band.min, Math.min(s.salary_aud_min || band.min, band.max));
+  const max = Math.min(band.max, Math.max(s.salary_aud_max || band.max, band.min));
+  return {
+    ...s,
+    salary_aud_min: Math.min(min, max),
+    salary_aud_max: Math.max(min, max),
+  };
+}
+
+/** Deterministic fallback derived from TEAM_BENCHMARKS + AU_SALARY_BENCHMARKS. */
+function teamFallback(input: GenerateTeamInput): TeamPlanSuggestion[] {
+  const stage = input.stage;
+  const benchmark = TEAM_BENCHMARKS[stage] ?? TEAM_BENCHMARKS[0];
+  const keyRoles = benchmark?.keyRoles ?? ["CEO/Founder"];
+  const optionalRoles = benchmark?.optionalRoles ?? [];
+
+  const buildFor = (role: string, isKey: boolean, index: number): TeamPlanSuggestion => {
+    const band = salaryBandForRole(role);
+    const isFounder = /founder|ceo|advisor/i.test(role);
+    const equityMin = isFounder ? (role.toLowerCase().includes("advisor") ? 0.1 : 5) : 0.1;
+    const equityMax = isFounder ? (role.toLowerCase().includes("advisor") ? 1 : 25) : 1;
+    const phase: HirePhase =
+      isKey && index === 0
+        ? "current"
+        : isKey
+          ? "next_3_months"
+          : index < 2
+            ? "next_6_months"
+            : "next_12_months";
+    return {
+      role,
+      priority: isKey ? "critical" : "important",
+      hire_by_phase: phase,
+      salary_aud_min: band.min,
+      salary_aud_max: band.max,
+      equity_pct_min: equityMin,
+      equity_pct_max: equityMax,
+      rationale: isKey
+        ? `Key role for stage ${stage}: AU startups typically fill this before Series A.`
+        : `Optional at stage ${stage}: hire once revenue supports it.`,
+    };
+  };
+
+  const items: TeamPlanSuggestion[] = [];
+  keyRoles.forEach((r, i) => items.push(buildFor(r, true, i)));
+  optionalRoles.forEach((r, i) => items.push(buildFor(r, false, i)));
+  return items.slice(0, 6);
+}
+
+/**
+ * LLM-backed team plan generator. Falls back to deterministic hires derived
+ * from TEAM_BENCHMARKS + AU_SALARY_BENCHMARKS on failure. Always enriches
+ * salaries against AU_SALARY_BENCHMARKS so numbers stay on-market.
+ */
+export async function generateTeamPlan(
+  input: GenerateTeamInput,
+): Promise<TeamPlanSuggestion[]> {
+  const benchmark = TEAM_BENCHMARKS[input.stage] ?? TEAM_BENCHMARKS[0];
+  const user =
+    `Startup: ${input.startupName}\n` +
+    `Sector: ${input.sector}\n` +
+    `Lifecycle stage (0-5): ${input.stage}\n` +
+    (input.currentTeamSize !== undefined ? `Current team size: ${input.currentTeamSize}\n` : "") +
+    (input.description ? `Description: ${input.description}\n` : "") +
+    `\nAU benchmark for this stage: min team ${benchmark?.minTeam ?? 1}, ` +
+    `key roles ${(benchmark?.keyRoles ?? []).join(", ")}, ` +
+    `optional roles ${(benchmark?.optionalRoles ?? []).join(", ")}.\n\n` +
+    `Return 4-6 hires as a JSON array. Each item must be an object with keys:\n` +
+    `- role (short title, e.g. "Senior Full-Stack Engineer")\n` +
+    `- priority (one of "critical" | "important" | "nice_to_have")\n` +
+    `- hire_by_phase (one of "current" | "next_3_months" | "next_6_months" | "next_12_months")\n` +
+    `- salary_aud_min (number in AUD; use 0 for equity-only advisors)\n` +
+    `- salary_aud_max (number in AUD)\n` +
+    `- equity_pct_min (number, e.g. 0.1)\n` +
+    `- equity_pct_max (number, e.g. 1.0)\n` +
+    `- rationale (one-sentence why grounded in AU startup context)\n` +
+    `Anchor salaries to AU market rates. JSON only.`;
+
+  try {
+    const result = await callAI({
+      system: CHRO_TEAM_SYSTEM_PROMPT,
+      user,
+      maxTokens: 2000,
+      temperature: 0.4,
+    });
+    const parsed = teamTryParseJSON<TeamPlanSuggestion[]>(result.text);
+    if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
+      return teamFallback(input).map(enrichSalary);
+    }
+    const filtered = parsed
+      .filter(
+        (r): r is TeamPlanSuggestion =>
+          !!r &&
+          typeof r.role === "string" &&
+          typeof r.rationale === "string" &&
+          VALID_PRIORITY.includes(r.priority as HirePriority) &&
+          VALID_HIRE_PHASE.includes(r.hire_by_phase as HirePhase) &&
+          typeof r.salary_aud_min === "number" &&
+          typeof r.salary_aud_max === "number" &&
+          typeof r.equity_pct_min === "number" &&
+          typeof r.equity_pct_max === "number",
+      )
+      .map(enrichSalary);
+    if (filtered.length === 0) return teamFallback(input).map(enrichSalary);
+    return filtered;
+  } catch {
+    return teamFallback(input).map(enrichSalary);
+  }
 }

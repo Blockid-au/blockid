@@ -1,3 +1,5 @@
+import { callAI } from "@/lib/ai-client";
+
 // CTO Next-Best-Action Engine (T0103)
 //
 // Analyses a founder's SVI scores across all 8 dimensions and the current
@@ -438,4 +440,156 @@ export function computeNextBestActions(input: {
     topInsight,
     generatedAt: new Date().toISOString(),
   };
+}
+
+// ─── LLM-backed roadmap generator ─────────────────────────────────────────
+// Uses `callAI()` (free provider chain). Falls back to deterministic
+// computeNextBestActions()-derived items on any parse/LLM failure so the
+// founder UI never sees a hard error.
+
+const CTO_ROADMAP_SYSTEM_PROMPT =
+  "You are an Australian startup CTO roadmap advisor. Respond with valid JSON only, no markdown code fences.";
+
+export type RoadmapPhase = "0-30_days" | "1-3_months" | "3-6_months" | "6-12_months";
+export type RoadmapImpact = "high" | "medium" | "low";
+export type RoadmapEffort = "low" | "medium" | "high";
+export type RoadmapCategory = "product" | "growth" | "team" | "fundraise" | "infra";
+
+export interface GenerateRoadmapInput {
+  startupName: string;
+  sector: string;
+  stage: number;
+  currentSvi?: number;
+  description?: string;
+}
+
+export interface RoadmapItemSuggestion {
+  title: string;
+  phase: RoadmapPhase;
+  impact: RoadmapImpact;
+  effort: RoadmapEffort;
+  category: RoadmapCategory;
+  rationale: string;
+}
+
+const VALID_PHASES: RoadmapPhase[] = ["0-30_days", "1-3_months", "3-6_months", "6-12_months"];
+const VALID_IMPACT: RoadmapImpact[] = ["high", "medium", "low"];
+const VALID_EFFORT: RoadmapEffort[] = ["low", "medium", "high"];
+const VALID_CATEGORY: RoadmapCategory[] = ["product", "growth", "team", "fundraise", "infra"];
+
+function roadmapTryParseJSON<T>(raw: string): T | null {
+  if (!raw) return null;
+  const stripped = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(stripped) as T;
+  } catch {
+    const match = stripped.match(/[\[{][\s\S]*[\]}]/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]) as T;
+    } catch {
+      return null;
+    }
+  }
+}
+
+function categoryFromDimensionCode(code: string): RoadmapCategory {
+  if (code === "mpc" || code === "tre") return "growth";
+  if (code === "ptd") return "product";
+  if (code === "ftv") return "team";
+  if (code === "iri" || code === "cgh" || code === "lco") return "fundraise";
+  if (code === "svm") return "product";
+  return "product";
+}
+
+function phaseFromIndex(i: number): RoadmapPhase {
+  if (i < 2) return "0-30_days";
+  if (i < 4) return "1-3_months";
+  if (i < 6) return "3-6_months";
+  return "6-12_months";
+}
+
+/** Deterministic fallback keyed off computeNextBestActions() output. */
+function roadmapFallback(input: GenerateRoadmapInput): RoadmapItemSuggestion[] {
+  const baseScore = Math.min(30 + input.stage * 8, 75);
+  const dims: DimensionScore[] = [
+    { code: "ftv", label: DIMENSION_LABELS.ftv, score: baseScore, weight: 1, gaps: [] },
+    { code: "mpc", label: DIMENSION_LABELS.mpc, score: baseScore - 5, weight: 1, gaps: [] },
+    { code: "ptd", label: DIMENSION_LABELS.ptd, score: baseScore, weight: 1, gaps: [] },
+    { code: "tre", label: DIMENSION_LABELS.tre, score: Math.max(0, baseScore - 15), weight: 1, gaps: [] },
+    { code: "cgh", label: DIMENSION_LABELS.cgh, score: Math.max(0, baseScore - 10), weight: 1, gaps: [] },
+    { code: "iri", label: DIMENSION_LABELS.iri, score: Math.max(0, baseScore - 10), weight: 1, gaps: [] },
+    { code: "lco", label: DIMENSION_LABELS.lco, score: baseScore, weight: 1, gaps: [] },
+    { code: "svm", label: DIMENSION_LABELS.svm, score: baseScore - 5, weight: 1, gaps: [] },
+  ];
+  const result = computeNextBestActions({
+    currentSvi: input.currentSvi ?? 50,
+    stage: input.stage,
+    dimensions: dims,
+  });
+  return result.actions.slice(0, 8).map((a, i) => ({
+    title: a.title,
+    phase: phaseFromIndex(i),
+    impact: a.priority === "P0" ? "high" : a.priority === "P1" ? "medium" : "low",
+    effort: a.effort,
+    category: categoryFromDimensionCode(
+      Object.entries(DIMENSION_LABELS).find(([, label]) => label === a.dimension)?.[0] ?? "ptd",
+    ),
+    rationale: a.rationale,
+  }));
+}
+
+/**
+ * LLM-backed roadmap generator. Falls back to deterministic
+ * computeNextBestActions()-derived items on failure.
+ */
+export async function generateRoadmapItems(
+  input: GenerateRoadmapInput,
+): Promise<RoadmapItemSuggestion[]> {
+  const user =
+    `Startup: ${input.startupName}\n` +
+    `Sector: ${input.sector}\n` +
+    `Lifecycle stage (0-5): ${input.stage}\n` +
+    (input.currentSvi !== undefined ? `Current SVI score (0-100): ${input.currentSvi}\n` : "") +
+    (input.description ? `Description: ${input.description}\n` : "") +
+    `\nReturn 6-8 concrete roadmap items as a JSON array. Each item must be an object with keys:\n` +
+    `- title (short imperative string, e.g. "Ship Stripe checkout MVP")\n` +
+    `- phase (one of "0-30_days" | "1-3_months" | "3-6_months" | "6-12_months")\n` +
+    `- impact (one of "high" | "medium" | "low")\n` +
+    `- effort (one of "low" | "medium" | "high")\n` +
+    `- category (one of "product" | "growth" | "team" | "fundraise" | "infra")\n` +
+    `- rationale (one-sentence why-now grounded in AU startup context)\n` +
+    `Spread items across all four phases. Prioritise items that move SVI. JSON only.`;
+
+  try {
+    const result = await callAI({
+      system: CTO_ROADMAP_SYSTEM_PROMPT,
+      user,
+      maxTokens: 2000,
+      temperature: 0.4,
+    });
+    const parsed = roadmapTryParseJSON<RoadmapItemSuggestion[]>(result.text);
+    if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
+      return roadmapFallback(input);
+    }
+    const filtered = parsed
+      .filter(
+        (r): r is RoadmapItemSuggestion =>
+          !!r &&
+          typeof r.title === "string" &&
+          typeof r.rationale === "string" &&
+          VALID_PHASES.includes(r.phase as RoadmapPhase) &&
+          VALID_IMPACT.includes(r.impact as RoadmapImpact) &&
+          VALID_EFFORT.includes(r.effort as RoadmapEffort) &&
+          VALID_CATEGORY.includes(r.category as RoadmapCategory),
+      );
+    if (filtered.length === 0) return roadmapFallback(input);
+    return filtered;
+  } catch {
+    return roadmapFallback(input);
+  }
 }
