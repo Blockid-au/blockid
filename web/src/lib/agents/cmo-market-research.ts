@@ -4,29 +4,41 @@
  * Focus: Positioning 'Startup Navigation System' vs Financial Utilities
  */
 
+import { callAI } from "@/lib/ai-client";
+
 export interface CompetitorProfile {
   /** Competitor company name */
   name: string;
   /** Competitor website URL */
   website: string;
-  /** Competitor category */
+  /** Competitor category (direct | indirect | substitute) */
   category: string;
+  /** Region / market focus, e.g. "AU", "US", "Global" */
+  region?: string;
+  /** One-line positioning statement */
+  positioning?: string;
+  /** Pricing anchor (human-readable, e.g. "A$49–$99/month") */
+  pricing?: string;
+  /** What we do better than them (short phrase) */
+  ourEdge?: string;
+  /** Perceived threat level to BlockID.au */
+  threatLevel?: "low" | "medium" | "high";
   /** Competitor funding stage */
-  fundingStage: string;
+  fundingStage?: string;
   /** Competitor estimated revenue */
-  estimatedRevenue: string;
+  estimatedRevenue?: string;
   /** Competitor strengths */
   strengths: string[];
   /** Competitor weaknesses */
   weaknesses: string[];
   /** Competitor market share (0‑1) */
-  marketShare: number;
+  marketShare?: number;
   /** Number of AI‑powered features */
-  aiPoweredFeatures: number;
+  aiPoweredFeatures?: number;
   /** Feature release frequency per quarter */
-  featureReleaseFrequency: number;
+  featureReleaseFrequency?: number;
   /** Adoption rate of cybersecurity features (0‑1) */
-  cybersecurityFeatureAdoption: number;
+  cybersecurityFeatureAdoption?: number;
   /** Data refresh latency in minutes (Industry Benchmark: 4.2m) */
   dataRefreshLatencyMinutes?: number;
   /** AI valuation accuracy percentage (Industry Benchmark: 92%) */
@@ -40,7 +52,11 @@ export interface CompetitorProfile {
   /** Early adopter adoption rate for new capital features (0‑1) */
   capitalFeatureAdoptionRate?: number;
   /** Whether the tool is positioned as a 'Navigation/Roadmap' system vs a 'Utility' (Strategic Multiple Impact) */
-  isPositionedAsStrategicNavigation: boolean;
+  isPositionedAsStrategicNavigation?: boolean;
+  /** Denormalised AU market size for the sector this competitor plays in (A$) */
+  marketSize?: number;
+  /** Sector CAGR (0-1) — sourced from AU_MARKET_BENCHMARKS */
+  growthRate?: number;
 }
 
 /**
@@ -220,4 +236,361 @@ export function calculateSEOUpdateRisk(eeat: number, lastUpdate: Date): number {
   const monthsSinceUpdate = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24 * 30);
   if (monthsSinceUpdate > 6) risk += 0.05;
   return Math.max(0, Math.min(1, risk));
+}
+
+// ─── LLM-backed generators ───────────────────────────────────────────────
+// Route through callAI() so the free provider chain
+// (Cerebras → Groq → SambaNova → Claude OAuth → OpenRouter) is used, with
+// health tracking, cooldowns and cost accounting. NEVER call fetch directly.
+// On any parse/LLM failure, fall back to the deterministic sector templates
+// so the endpoint never surfaces a hard error to the founder UI.
+
+const CMO_SYSTEM_PROMPT =
+  "You are an Australian market research analyst. Respond with valid JSON only, no markdown code fences.";
+
+/** Sector → default competitor archetypes (deterministic fallback). */
+const COMPETITOR_TEMPLATES: Record<string, CompetitorProfile[]> = {
+  saas: [
+    {
+      name: "Atlassian",
+      website: "https://atlassian.com",
+      category: "indirect",
+      region: "AU",
+      positioning: "Enterprise team collaboration and project management platform",
+      pricing: "A$10–$42/user/month",
+      strengths: ["Brand recognition", "Deep integrations", "Large enterprise customer base"],
+      weaknesses: ["Complex setup", "Expensive at scale", "Not startup-focused"],
+      ourEdge: "Purpose-built for AU startups with SVI scoring and investor readiness",
+      threatLevel: "low",
+    },
+    {
+      name: "Employment Hero",
+      website: "https://employmenthero.com",
+      category: "indirect",
+      region: "AU",
+      positioning: "AU HR, payroll and employee benefits platform",
+      pricing: "A$8–$20/employee/month",
+      strengths: ["Strong AU market presence", "Compliance-ready", "VC-backed"],
+      weaknesses: ["HR-only focus", "No cap table or fundraising tools"],
+      ourEdge: "Broader founder intelligence: cap table, SVI, investor matching",
+      threatLevel: "low",
+    },
+    {
+      name: "Visible.vc",
+      website: "https://visible.vc",
+      category: "direct",
+      region: "US",
+      positioning: "Startup investor updates and portfolio reporting",
+      pricing: "US$79–$499/month",
+      strengths: ["Clean UI", "Global investor network", "KPI dashboards"],
+      weaknesses: ["US-centric", "No AU compliance", "Limited SVI-style scoring"],
+      ourEdge: "AU-native benchmarks, SVI scoring, Startup Index™ positioning",
+      threatLevel: "high",
+    },
+  ],
+  fintech: [
+    {
+      name: "Xero",
+      website: "https://xero.com",
+      category: "indirect",
+      region: "AU",
+      positioning: "SME accounting and bookkeeping for AU/NZ businesses",
+      pricing: "A$32–$115/month",
+      strengths: ["Market leader in AU", "Strong integrations", "Trusted brand"],
+      weaknesses: ["Accounting-only", "No investor readiness or cap table tools"],
+      ourEdge: "End-to-end founder navigation: valuation, SVI, investor matching",
+      threatLevel: "low",
+    },
+    {
+      name: "Carta",
+      website: "https://carta.com",
+      category: "direct",
+      region: "US",
+      positioning: "US-based cap table and equity management platform",
+      pricing: "US$2,000–$20,000+/year",
+      strengths: ["Gold standard for cap tables", "Large US investor network"],
+      weaknesses: ["Expensive", "US-centric", "AU compliance gaps", "No SVI scoring"],
+      ourEdge: "AU-native with Division 83A ESOP, SVI, and local VC benchmarks",
+      threatLevel: "high",
+    },
+  ],
+  default: [
+    {
+      name: "AngelList",
+      website: "https://angellist.com",
+      category: "indirect",
+      region: "US",
+      positioning: "US startup fundraising and talent platform",
+      pricing: "Free–variable (carry-based for funds)",
+      strengths: ["Massive US investor network", "Strong brand", "Free to join"],
+      weaknesses: ["US-focused", "No AU compliance", "Limited local benchmarks"],
+      ourEdge: "AU-specific SVI scoring, local investor matching, ESOP compliance",
+      threatLevel: "medium",
+    },
+    {
+      name: "Founderpath",
+      website: "https://founderpath.com",
+      category: "substitute",
+      region: "US",
+      positioning: "Revenue-based financing for SaaS founders",
+      pricing: "6–12% of funding amount (fee)",
+      strengths: ["Non-dilutive capital", "Fast approval", "SaaS-friendly"],
+      weaknesses: ["Finance-only", "No strategic navigation or SVI intelligence"],
+      ourEdge: "Full founder navigation: SVI, cap table, roadmap, team planning",
+      threatLevel: "low",
+    },
+    {
+      name: "Notion / Linear (combo)",
+      website: "https://notion.so",
+      category: "substitute",
+      region: "Global",
+      positioning: "General-purpose project planning and documentation tools",
+      pricing: "A$15–$25/user/month",
+      strengths: ["Flexible", "Popular", "Low cost", "Large ecosystem"],
+      weaknesses: ["No startup-specific intelligence", "No SVI scoring", "No investor tools"],
+      ourEdge: "Purpose-built founder intelligence with AU market benchmarks",
+      threatLevel: "low",
+    },
+  ],
+};
+
+function sectorFallback(sector: string): CompetitorProfile[] {
+  const key = sector.toLowerCase();
+  return (
+    COMPETITOR_TEMPLATES[key] ??
+    COMPETITOR_TEMPLATES[key.split(" ")[0]] ??
+    COMPETITOR_TEMPLATES.default
+  );
+}
+
+/** Best-effort AU sector benchmarks; used to enrich LLM output. */
+function sectorMarketAnchors(sector: string): { marketSize?: number; growthRate?: number } {
+  const key = sector.toLowerCase();
+  if (key.includes("saas")) {
+    return {
+      marketSize: AU_MARKET_DATA.GLOBAL_SAAS_MARKET_SIZE_2024,
+      growthRate: AU_MARKET_DATA.NAVIGATION_TOOL_CAGR,
+    };
+  }
+  if (key.includes("fintech")) {
+    return {
+      marketSize: 4_200_000_000, // AU fintech revenue proxy 2024
+      growthRate: AU_MARKET_DATA.NAVIGATION_TOOL_CAGR,
+    };
+  }
+  return {
+    marketSize: AU_MARKET_DATA.TOTAL_VC_FUNDING_H1_2026,
+    growthRate: AU_MARKET_DATA.NAVIGATION_TOOL_CAGR,
+  };
+}
+
+function enrichCompetitors(
+  competitors: CompetitorProfile[],
+  sector: string,
+  region: string,
+): CompetitorProfile[] {
+  const anchors = sectorMarketAnchors(sector);
+  return competitors.map((c) => ({
+    ...c,
+    region: c.region ?? region,
+    strengths: Array.isArray(c.strengths) ? c.strengths : [],
+    weaknesses: Array.isArray(c.weaknesses) ? c.weaknesses : [],
+    marketSize: c.marketSize ?? anchors.marketSize,
+    growthRate: c.growthRate ?? anchors.growthRate,
+  }));
+}
+
+function tryParseJSON<T>(raw: string): T | null {
+  if (!raw) return null;
+  const stripped = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(stripped) as T;
+  } catch {
+    // Sometimes the model wraps the JSON in commentary — try to extract the
+    // first top-level object/array.
+    const match = stripped.match(/[\[{][\s\S]*[\]}]/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]) as T;
+    } catch {
+      return null;
+    }
+  }
+}
+
+export interface GenerateCompetitorInput {
+  startupName: string;
+  sector: string;
+  stage: number;
+  description?: string;
+  region?: string;
+}
+
+/**
+ * LLM-backed competitor generator. Uses `callAI` (free provider chain), asks
+ * for JSON, parses defensively, and falls back to the deterministic sector
+ * template on any error. Enriches with AU market-size + CAGR anchors.
+ */
+export async function generateCompetitorAnalysis(
+  input: GenerateCompetitorInput,
+): Promise<CompetitorProfile[]> {
+  const region = input.region ?? "AU";
+  const user =
+    `Startup: ${input.startupName}\n` +
+    `Sector: ${input.sector}\n` +
+    `Lifecycle stage (0-5): ${input.stage}\n` +
+    (input.description ? `Description: ${input.description}\n` : "") +
+    `Region focus: ${region}\n\n` +
+    `Return 3-5 credible competitors for this startup as a JSON array. ` +
+    `Each item must be an object with keys: ` +
+    `name (string), website (string), category ("direct"|"indirect"|"substitute"), ` +
+    `region (string), positioning (short string), pricing (short string), ` +
+    `strengths (string[]), weaknesses (string[]), ourEdge (short string), ` +
+    `threatLevel ("low"|"medium"|"high"). ` +
+    `Prioritise real, well-known Australian competitors where possible, ` +
+    `and include one international benchmark if relevant. JSON only.`;
+
+  try {
+    const result = await callAI({
+      system: CMO_SYSTEM_PROMPT,
+      user,
+      maxTokens: 1800,
+      temperature: 0.4,
+    });
+
+    const parsed = tryParseJSON<CompetitorProfile[]>(result.text);
+    if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
+      return enrichCompetitors(sectorFallback(input.sector), input.sector, region);
+    }
+    return enrichCompetitors(parsed, input.sector, region);
+  } catch {
+    return enrichCompetitors(sectorFallback(input.sector), input.sector, region);
+  }
+}
+
+export interface GenerateGtmInput {
+  startupName: string;
+  sector: string;
+  stage: number;
+  description?: string;
+  targetCustomer?: string;
+}
+
+export interface GtmChannel {
+  name: string;
+  priority: "high" | "medium" | "low";
+  rationale: string;
+}
+
+export interface GtmStrategyOutput {
+  positioning: string;
+  channels: GtmChannel[];
+  first90Days: string[];
+  keyMetrics: string[];
+  /** AU sector anchor enrichments */
+  marketSize?: number;
+  growthRate?: number;
+}
+
+/** Deterministic fallback used when the LLM call/parse fails. */
+function gtmFallback(input: GenerateGtmInput): GtmStrategyOutput {
+  const sector = input.sector.toLowerCase();
+  const stage = input.stage;
+  const stratMin = AU_MARKET_BENCHMARKS.VALUATIONS.STRATEGIC_MULTIPLE_MIN;
+  const stratMax = AU_MARKET_BENCHMARKS.VALUATIONS.STRATEGIC_MULTIPLE_MAX;
+
+  const channels: GtmChannel[] =
+    stage <= 1
+      ? [
+          { name: "founder-led-outbound", priority: "high", rationale: "Fastest signal loop pre-PMF." },
+          { name: "communities", priority: "medium", rationale: "AU founder Slacks & LinkedIn groups build early trust." },
+          { name: "events", priority: "low", rationale: "Meetups seed word-of-mouth cheaply." },
+        ]
+      : stage <= 3
+        ? [
+            { name: "seo-content", priority: "high", rationale: "E-E-A-T long-form offsets SGE click loss." },
+            { name: "partnerships", priority: "medium", rationale: "AU accelerators + accountants amplify reach." },
+            { name: "paid-ads", priority: "low", rationale: "Only after CAC payback signal < 18 months." },
+          ]
+        : [
+            { name: "product-led", priority: "high", rationale: "Self-serve funnel scales without linear sales cost." },
+            { name: "paid-ads", priority: "medium", rationale: "Growth pricing supports paid CAC ≥3x LTV." },
+            { name: "partnerships", priority: "medium", rationale: "Enterprise motion via VC/accountant network." },
+          ];
+
+  return {
+    positioning: `${input.startupName} is a strategic navigation system for AU ${sector} founders — commanding ${stratMin}–${stratMax}x revenue multiples vs ${AU_MARKET_BENCHMARKS.VALUATIONS.UTILITY_MULTIPLE_MIN}–${AU_MARKET_BENCHMARKS.VALUATIONS.UTILITY_MULTIPLE_MAX}x for utility tools.`,
+    channels,
+    first90Days: [
+      "Weeks 1-2: 20+ discovery interviews with target segment",
+      "Weeks 3-4: launch landing page + waitlist with SVI scoring hook",
+      "Month 2: onboard 5 design partners at discounted pricing",
+      "Month 3: first public cohort + case study publication",
+    ],
+    keyMetrics:
+      sector === "marketplace"
+        ? ["GMV (A$)", "Monthly active buyers", "Take rate"]
+        : ["MRR (A$)", "Paying customers", "CAC payback (months)", "LTV/CAC"],
+    ...sectorMarketAnchors(input.sector),
+  };
+}
+
+/**
+ * LLM-backed GTM strategy generator. Same fallback discipline as
+ * `generateCompetitorAnalysis`.
+ */
+export async function generateGtmStrategy(
+  input: GenerateGtmInput,
+): Promise<GtmStrategyOutput> {
+  const user =
+    `Startup: ${input.startupName}\n` +
+    `Sector: ${input.sector}\n` +
+    `Lifecycle stage (0-5): ${input.stage}\n` +
+    (input.description ? `Description: ${input.description}\n` : "") +
+    (input.targetCustomer ? `Target customer: ${input.targetCustomer}\n` : "") +
+    `\nReturn a JSON object with keys:\n` +
+    `- positioning (one-sentence strategic positioning statement, AU market)\n` +
+    `- channels (array of { name, priority: "high"|"medium"|"low", rationale })\n` +
+    `- first90Days (array of 4-6 concrete action strings)\n` +
+    `- keyMetrics (array of 3-5 metric names appropriate to the stage)\n` +
+    `Ground the positioning in the Australian market. JSON only.`;
+
+  try {
+    const result = await callAI({
+      system: CMO_SYSTEM_PROMPT,
+      user,
+      maxTokens: 1500,
+      temperature: 0.4,
+    });
+
+    const parsed = tryParseJSON<Partial<GtmStrategyOutput>>(result.text);
+    if (
+      !parsed ||
+      typeof parsed.positioning !== "string" ||
+      !Array.isArray(parsed.channels) ||
+      !Array.isArray(parsed.first90Days) ||
+      !Array.isArray(parsed.keyMetrics)
+    ) {
+      return gtmFallback(input);
+    }
+    const anchors = sectorMarketAnchors(input.sector);
+    return {
+      positioning: parsed.positioning,
+      channels: parsed.channels.filter(
+        (c): c is GtmChannel =>
+          !!c && typeof c.name === "string" && typeof c.rationale === "string" &&
+          (c.priority === "high" || c.priority === "medium" || c.priority === "low"),
+      ),
+      first90Days: parsed.first90Days.filter((s): s is string => typeof s === "string"),
+      keyMetrics: parsed.keyMetrics.filter((s): s is string => typeof s === "string"),
+      marketSize: anchors.marketSize,
+      growthRate: anchors.growthRate,
+    };
+  } catch {
+    return gtmFallback(input);
+  }
 }

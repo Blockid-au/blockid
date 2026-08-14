@@ -534,6 +534,8 @@ export interface AICallOptions {
   system: string;
   user: string;
   maxTokens?: number;
+  /** Sampling temperature (0-1). Provider-specific defaults apply if omitted. */
+  temperature?: number;
   /** Worker subprocess timeout in ms. Default 30s. Use 180_000 for long reports. */
   timeoutMs?: number;
   /** Tools for Claude (e.g. web_search). Ignored by OpenAI/Gemini. */
@@ -772,7 +774,7 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
       }, JSON.stringify({
         model,
         max_tokens: Math.min(opts.maxTokens ?? 4096, 8000), // Groq free limit
-        temperature: 0.7,
+        temperature: opts.temperature ?? 0.7,
         messages: [
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
@@ -823,7 +825,7 @@ async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
       }, JSON.stringify({
         model,
         max_tokens: Math.min(opts.maxTokens ?? 4096, 8192),
-        temperature: 0.7,
+        temperature: opts.temperature ?? 0.7,
         messages: [
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
@@ -876,7 +878,7 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
       }, JSON.stringify({
         model,
         max_tokens: Math.min(opts.maxTokens ?? 4096, 8192),
-        temperature: 0.7,
+        temperature: opts.temperature ?? 0.7,
         messages: [
           { role: "system", content: opts.system },
           { role: "user", content: opts.user },
