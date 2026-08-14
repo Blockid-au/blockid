@@ -49,6 +49,18 @@ vi.mock("@/lib/trial", () => ({
   trialSummary: (user: unknown, state: unknown) => trialSummaryMock(user, state),
 }));
 
+// hasActiveResellerMembership() runs a `.select().eq().eq().limit()` chain
+// that the local fake-supabase harness below (single-eq → maybeSingle) does
+// not model. Mocking the helper at the module boundary keeps this test file
+// focused on the response-envelope + trial-summary contracts it was written
+// to pin, and delegates membership-probe semantics to
+// src/lib/reseller/has-active-reseller-membership.test.ts.
+const hasActiveResellerMembershipMock = vi.fn<(userId: string) => Promise<boolean>>();
+vi.mock("@/lib/reseller/scope", () => ({
+  hasActiveResellerMembership: (userId: string) =>
+    hasActiveResellerMembershipMock(userId),
+}));
+
 import { GET, dynamic } from "./route";
 
 // ---------------------------------------------------------------------------
@@ -129,8 +141,11 @@ beforeEach(() => {
   getEntitlementsMock.mockReset();
   getSupabaseAdminMock.mockReset();
   trialSummaryMock.mockReset();
+  hasActiveResellerMembershipMock.mockReset();
 
-  // Defaults: authenticated user, supabase configured, benign trial summary.
+  // Defaults: authenticated user, supabase configured, benign trial summary,
+  // NOT a reseller admin (the common case — additional reseller-membership
+  // merge behaviour is covered in has-active-reseller-membership.test.ts).
   getCurrentUserMock.mockResolvedValue({
     id: "user-1",
     email: "u@x.com",
@@ -146,6 +161,7 @@ beforeEach(() => {
     status: null,
     planId: null,
   });
+  hasActiveResellerMembershipMock.mockResolvedValue(false);
 });
 
 // ---------------------------------------------------------------------------
@@ -570,5 +586,73 @@ describe("GET /api/entitlement/me — response envelope", () => {
     getEntitlementsMock.mockResolvedValue([]);
     const authBody = await (await GET()).json();
     expect(Array.isArray(authBody.entitlements)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Reseller-membership merge — reseller owners on founder plans (e.g. growth)
+// must have reseller.console entitlements folded into their response so the
+// sidebar renders the Reseller nav group and the /reseller layout gate lets
+// them through. Regression guard for the "reseller login" mis-gate.
+// ---------------------------------------------------------------------------
+
+describe("GET /api/entitlement/me — reseller_admins membership merge", () => {
+  beforeEach(() => {
+    tableState("app_users").data = { segment: "founder", jurisdiction: "AU" };
+  });
+
+  it("does NOT add reseller.* entitlements when the user has no active reseller_admins row", async () => {
+    hasActiveResellerMembershipMock.mockResolvedValue(false);
+    getEntitlementsMock.mockResolvedValue(["feature.a"]);
+    const body = await (await GET()).json();
+    expect(body.entitlements).toEqual(["feature.a"]);
+  });
+
+  it("merges reseller.console + reseller.create_startup + reseller.grant_credits when the user IS an active reseller admin", async () => {
+    hasActiveResellerMembershipMock.mockResolvedValue(true);
+    getEntitlementsMock.mockResolvedValue(["feature.a"]);
+    const body = await (await GET()).json();
+    expect(body.entitlements).toEqual(
+      expect.arrayContaining([
+        "feature.a",
+        "reseller.console",
+        "reseller.create_startup",
+        "reseller.grant_credits",
+      ]),
+    );
+  });
+
+  it("does NOT duplicate reseller.* when they were already in the plan bundle (e.g. plan=reseller_admin)", async () => {
+    hasActiveResellerMembershipMock.mockResolvedValue(true);
+    getEntitlementsMock.mockResolvedValue([
+      "reseller.console",
+      "reseller.create_startup",
+      "reseller.grant_credits",
+    ]);
+    const body = await (await GET()).json();
+    const counts = (body.entitlements as string[]).reduce<Record<string, number>>((acc, e) => {
+      acc[e] = (acc[e] ?? 0) + 1;
+      return acc;
+    }, {});
+    expect(counts["reseller.console"]).toBe(1);
+    expect(counts["reseller.create_startup"]).toBe(1);
+    expect(counts["reseller.grant_credits"]).toBe(1);
+  });
+
+  it("does NOT probe reseller_admins on the anonymous branch (fast path stays cheap)", async () => {
+    getCurrentUserMock.mockResolvedValue(null);
+    await GET();
+    expect(hasActiveResellerMembershipMock).not.toHaveBeenCalled();
+  });
+
+  it("passes the current user's id to the membership probe", async () => {
+    getCurrentUserMock.mockResolvedValue({
+      id: "user-42",
+      email: "owner@partner.example",
+      plan: "growth",
+    });
+    tableState("app_users").data = { segment: "founder", jurisdiction: "AU" };
+    await GET();
+    expect(hasActiveResellerMembershipMock).toHaveBeenCalledWith("user-42");
   });
 });
