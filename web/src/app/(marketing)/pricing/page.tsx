@@ -59,9 +59,9 @@ export const metadata: Metadata = {
     locale: "en_AU",
     images: [
       {
-        url: "https://blockid.au/og/pricing.png",
-        width: 1200,
-        height: 630,
+        url: "/images/logo-full.png",
+        width: 1556,
+        height: 880,
         alt: "BlockID.au — 12-SKU pricing matrix with 7-day trial",
       },
     ],
@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     title: "Pricing — BlockID.au",
     description:
       "12-SKU pricing across Founder, Investor, Advisor and Accelerator tiers. 7-day trial included.",
-    images: ["https://blockid.au/og/pricing.png"],
+    images: ["/images/logo-full.png"],
   },
   robots: { index: true, follow: true },
 };

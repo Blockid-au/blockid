@@ -30,6 +30,8 @@ export default function robots(): MetadataRoute.Robots {
           "/id/",
         ],
         disallow: [
+          "/api/",
+          "/workspace/",
           "/dashboard",
           "/dashboard/",
           "/checkout",
