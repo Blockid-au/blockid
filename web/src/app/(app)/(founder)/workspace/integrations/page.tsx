@@ -12,6 +12,7 @@ import {
   type OAuthConnectionSummary,
 } from "@/lib/integrations/catalogue";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import { CrmPushButton } from "@/components/founder/crm-push-button";
 
 export const metadata: Metadata = {
   title: "Integrations",
@@ -99,6 +100,18 @@ export default async function IntegrationsPage({
             <IntegrationRowCard key={row.provider} row={row} />
           ))}
         </div>
+
+        {/* ── CRM Push via Zapier ───────────────────────────────────── */}
+        <section className="rounded-lg border border-ink-200 dark:border-ink-700 p-4 space-y-2">
+          <h2 className="text-sm font-semibold text-ink-900 dark:text-ink-100">
+            CRM Push (via Zapier)
+          </h2>
+          <p className="text-xs text-ink-600 dark:text-ink-400">
+            Push your startup profile and latest SVI score to HubSpot, Salesforce, Pipedrive, or any CRM
+            connected through a Zapier webhook. Up to 5 pushes per hour.
+          </p>
+          <CrmPushButton />
+        </section>
       </div>
     </WorkspaceLayout>
   );

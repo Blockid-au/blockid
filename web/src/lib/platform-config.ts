@@ -70,6 +70,13 @@ export interface PlatformConfig {
   svi_weights: SviWeights;
   stage_thresholds: StageThreshold[];
 
+  // ── CRM integration ──────────────────────────────────────────────────────────
+  // Zapier webhook URL for the "Push to CRM" feature. Set ZAPIER_WEBHOOK_URL
+  // in the server environment — this config entry is the canonical empty-string
+  // default so the admin panel can surface it. The actual secret must live in
+  // .env / the host env, never in this file.
+  zapier_webhook_url: string;       // "" = feature disabled (returns 501)
+
   // ── Feature flags ───────────────────────────────────────────────────────────
   founding_plan_active: boolean;    // show/hide the Founding plan entirely
   waitlist_mode: boolean;           // if true, show waitlist instead of checkout
@@ -121,6 +128,9 @@ export const CONFIG_DEFAULTS: PlatformConfig = {
     { min: 75, max: 90,  stage: "Growth",         color: "bg-emerald-100 text-emerald-700" },
     { min: 90, max: 100, stage: "Scale",          color: "bg-brand-100 text-brand-700" },
   ],
+
+  // Set ZAPIER_WEBHOOK_URL in web/.env — never hard-code the URL here.
+  zapier_webhook_url: "",
 
   founding_plan_active: true,
   waitlist_mode: false,
