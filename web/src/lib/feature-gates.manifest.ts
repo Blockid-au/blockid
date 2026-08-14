@@ -115,6 +115,11 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
     required_feature: "startup_package" as unknown as Feature,
     note: "Ship 1 — DB-first cap-table reservation.",
   },
+  {
+    route: "api/founder/tech-analysis/route.ts",
+    required_feature: "startup_package" as unknown as Feature,
+    note: "Tech Intelligence — website + GitHub scoring (Phase 3.1)",
+  },
 ]);
 
 /** Look up the required feature for a route path. Returns null if ungated. */
