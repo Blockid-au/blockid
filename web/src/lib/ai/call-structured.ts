@@ -36,9 +36,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 // row still stores tokens_in / tokens_out so a follow-up pricing back-
 // fill remains possible. Keep in sync with anthropic pricing page.
 const MODEL_PRICING_USD_PER_1M: Record<string, { in: number; out: number }> = {
-  "claude-sonnet-5": { in: 3, out: 15 },
+  "claude-sonnet-4-6": { in: 3, out: 15 },
   "claude-opus-4-7": { in: 15, out: 75 },
-  "claude-haiku-4": { in: 0.8, out: 4 },
+  "claude-haiku-4-5-20251001": { in: 0.8, out: 4 },
 };
 
 function usdCost(model: string, tokensIn: number, tokensOut: number): number {
