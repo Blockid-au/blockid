@@ -219,6 +219,7 @@ function ListingHero({
       </p>
       <div className="mt-6 flex flex-wrap items-center gap-3">
         {listing.svi ? <SviBadge svi={listing.svi} /> : null}
+        {listing.svi ? <HealthGradeBadge sviTotal={listing.svi.total} /> : null}
         {techAnalysis ? <TechScoreBadge techAnalysis={techAnalysis} /> : null}
       </div>
     </header>
@@ -242,6 +243,48 @@ function SviBadge({ svi }: { svi: NonNullable<PublicListingPayload["svi"]> }) {
       <Sparkles className="h-4 w-4" aria-hidden="true" />
       <span className="font-mono text-lg">{svi.total}</span>
       <span className="text-white/70">SVI · {svi.label}</span>
+    </div>
+  );
+}
+
+/**
+ * Startup Health Grade badge — derived from SVI total for the public profile.
+ * Shows A/B/C/D/F in a colourful pill with a "Startup Health Grade" tooltip.
+ */
+function HealthGradeBadge({ sviTotal }: { sviTotal: number }) {
+  // Grade purely from SVI (public data — private composite not available here)
+  const grade =
+    sviTotal >= 80
+      ? "A"
+      : sviTotal >= 65
+        ? "B"
+        : sviTotal >= 50
+          ? "C"
+          : sviTotal >= 35
+            ? "D"
+            : "F";
+
+  const colourClass =
+    grade === "A"
+      ? "bg-cyan-500/15 text-cyan-200 ring-cyan-400/40"
+      : grade === "B"
+        ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/40"
+        : grade === "C"
+          ? "bg-amber-500/15 text-amber-200 ring-amber-400/40"
+          : grade === "D"
+            ? "bg-orange-500/15 text-orange-200 ring-orange-400/40"
+            : "bg-red-500/15 text-red-200 ring-red-400/40";
+
+  return (
+    <div
+      className={
+        "mt-6 inline-flex items-baseline gap-2 rounded-full px-4 py-2 text-sm font-semibold ring-1 " +
+        colourClass
+      }
+      title="Startup Health Grade"
+    >
+      <span className="font-mono text-lg leading-none">{grade}</span>
+      <span className="text-white/60 text-xs">Health Grade</span>
     </div>
   );
 }

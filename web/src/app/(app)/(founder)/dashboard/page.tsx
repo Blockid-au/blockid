@@ -41,6 +41,7 @@ import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readines
 import { NextUnlockCard } from "@/components/dashboard/next-unlock-card";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
 import { RevenueTrackerTile } from "@/components/founder/revenue-tracker-tile";
+import { HealthScoreWidget } from "@/components/founder/health-score-widget";
 import { fetchRepoStats, parseRepoInput } from "@/lib/github";
 import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
@@ -847,6 +848,13 @@ export default async function DashboardPage({
             conditionals inline so absent widgets disappear from the grid
             entirely (sanitizeStoredIds self-heals older saved orders). */}
         <WidgetGrid>
+          {/* Health Score composite widget — first, full-width. */}
+          {activeProject?.id && (
+            <div data-widget-id="health-score" className="col-span-full">
+              <HealthScoreWidget startupId={activeProject.id} />
+            </div>
+          )}
+
           {/* Row 1 metric cards — pinned by many founders for quick vitals. */}
           <div
             data-widget-id="metrics"
