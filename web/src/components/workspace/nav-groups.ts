@@ -322,6 +322,7 @@ const BUILD_SUBGROUPS: NavSubgroup[] = [
     items: [
       { href: "/workspace/competitors", label: "Competitors", icon: Eye, minPlan: "starter", minTier: "starter", growthPhase: 1, persona: "founder", journeyGroup: "analysis" },
       { href: "/workspace/tech-analysis", label: "Tech Analysis", icon: Cpu, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "analysis" },
+      { href: "/dashboard/analyzer", label: "Code & Web Analyzer", icon: BarChart3, growthPhase: 2, persona: "founder", journeyGroup: "analysis", lifecycle: "beta" as const },
       { href: "/workspace/gtm-strategy", label: "GTM Strategy", icon: Target, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "analysis" },
       { href: "/workspace/pricing-tiers", label: "Pricing Tiers", icon: Tag, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "analysis" },
       { href: "/workspace/roadmap-builder", label: "Roadmap", icon: Map, minPlan: "starter", minTier: "starter", growthPhase: 2, persona: "founder", journeyGroup: "maturity" },
