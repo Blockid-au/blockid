@@ -1,5 +1,32 @@
 # BlockID.au Changelog
 
+## 2026-08-15 — v3.4.0: Visual upgrade (dashboard/email/PDF) + auth UX + Stripe credits fix
+
+### Auth UX — cross-tab session sync
+- **feat** Login page (`/auth/login`) is now a server component: shows "Already signed in" card with avatar, plan badge, and "Continue to Dashboard" CTA when a session cookie is present — no more re-prompting logged-in users.
+- **feat** `LogoutButton` client component — broadcasts `SIGNED_OUT` to all open tabs via BroadcastChannel before POSTing `/api/auth/logout`. Replaced all 5 plain `<form action="/api/auth/logout">` buttons (navbar desktop/mobile, workspace-layout, admin-layout, admin/rnd).
+- **feat** `broadcastAuthEvent()` utility added to `auth-sync-logic.ts` — called after Google sign-in and email/password sign-in so peer tabs call `router.refresh()` immediately.
+- **feat** `AuthSyncClient` detects `?logged_in=true` (appended by magic-link verify route) and broadcasts `SIGNED_IN` so other tabs update without a reload.
+- **fix** Login form client-side guard: fetches `/api/auth/me` on mount and redirects if already signed in (catches edge cases where cookie was fresh at SSR time).
+
+### Dashboard — visual redesign
+- **feat** `health-score-widget.tsx` fully rewritten: 2-column layout, glowing arc gauge, startup valuation estimate from SVI score, colour-coded priority action cards (cyan/green/amber), Share Score CTA.
+- **feat** `value-impact-banner.tsx` (new): "BlockID Value Delivered" banner — SVI score delta, estimated valuation gain (AUD), investor readiness %, and milestones completed. Wired into `dashboard/page.tsx` after `ScnPositionHero`.
+
+### Email templates — brand redesign
+- **feat** `emails/lifecycle/render.ts` fully rewritten with BlockID navy (#0B0F2A) header, 3-stat table grid, SVI progress bars, value-focused copy, and consistent brand palette across all 7 lifecycle steps (day0/3/5/6/7/14 + winback).
+- **feat** `sendSVIReport` in `email.ts`: added 8-dimension bar chart (table-based for Outlook) + 3-stat summary grid (SVI / Est. Value / Stage).
+
+### PDF report — cover page upgrade
+- **feat** `svi-report-pdf.tsx` cover page: 3-stat row (Est. Value range / Cohort Rank / Confidence score) inserted above the tagline.
+
+### Stripe / Credits fixes
+- **fix** `credit-reset/route.ts`: replaced raw `credit_transactions` batch insert (left `credit_balances` stale) with `grantCredits()` — monthly refills are now immediately spendable.
+- **feat** `stripe-pricing-audit.ts`: v2 SKU rows auto-derived from `GENERATED_PLANS`; legacy plans (founding50/growth/growth_annual) remain canonical.
+- **chore** `0305_legacy_plans_seed.sql`: seeds growth/growth_annual/founding50 into plans table (idempotent `on conflict do nothing`).
+
+---
+
 ## 2026-08-07 — v3.3.4: Clean-code P2B + security hardening + SEO
 
 ### Security
