@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -243,14 +244,9 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
             <span className="text-xs text-ink-500">
               {user.displayName ?? user.email}
             </span>
-            <form action="/api/auth/logout" method="post">
-              <button
-                type="submit"
-                className="h-8 px-3 rounded-lg text-xs font-medium text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer"
-              >
-                Sign out
-              </button>
-            </form>
+            <LogoutButton className="h-8 px-3 rounded-lg text-xs font-medium text-ink-600 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer">
+              Sign out
+            </LogoutButton>
           </div>
         </header>
 

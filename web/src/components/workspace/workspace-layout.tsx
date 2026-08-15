@@ -49,6 +49,7 @@ import { meetsMinPlan, type Segment } from "@/lib/segments";
 import { decideVisibility, type LockedDecision } from "@/lib/nav/hide-when-locked";
 import { UpgradeChip } from "@/components/nav/upgrade-chip";
 import { cn } from "@/lib/utils";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode;
@@ -750,12 +751,10 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
             </div>
 
             {/* Sign out */}
-            <form action="/api/auth/logout" method="post">
-              <button type="submit" className="h-8 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-medium text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[rgba(255,255,255,0.08)] transition-colors cursor-pointer">
-                <span className="hidden sm:inline">Sign out</span>
-                <span className="sm:hidden">Out</span>
-              </button>
-            </form>
+            <LogoutButton className="h-8 px-2 sm:px-3 rounded-lg text-[11px] sm:text-xs font-medium text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[rgba(255,255,255,0.08)] transition-colors cursor-pointer">
+              <span className="hidden sm:inline">Sign out</span>
+              <span className="sm:hidden">Out</span>
+            </LogoutButton>
           </div>
         </header>
 
