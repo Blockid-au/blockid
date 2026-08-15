@@ -919,3 +919,4 @@
 {"ts":"2026-08-14T08:30:01Z","endpoint":"agent-auto-improve","status":"error","duration_ms":549742,"detail":"curl exit 52 (timeout or connection refused)"}
 {"ts":"2026-08-14T08:40:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":3394,"detail":"{\"status\": \"DANGER\", \"metrics\": {\"disk\": {\"value\": 41, \"raw\": \"41% used (164797060 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 7, \"raw\": \"7% used (272398716 free, 300GB)\", \"level\": \"ok\"}, \"memory\":"}
 {"ts":"2026-08-14T08:45:01Z","endpoint":"lifecycle-mailer","status":"fail","duration_ms":16539,"detail":""}
+{"ts":"2026-08-15T14:00:02Z","endpoint":"agent-guardian","status":"ok","duration_ms":62463,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 42, \"raw\": \"42% used (161905492 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 8, \"raw\": \"8% used (271685304 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
