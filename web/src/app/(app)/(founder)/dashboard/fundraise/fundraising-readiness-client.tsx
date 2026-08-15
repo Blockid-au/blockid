@@ -98,15 +98,7 @@ export function FundraisingReadinessClient() {
   const barWidth = `${data.readinessScore}%`;
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-ink-900">Fundraising Readiness</h1>
-        <p className="mt-1 text-sm text-ink-500">
-          AU investor-readiness checklist tailored for your current stage
-        </p>
-      </div>
-
+    <div className="space-y-6">
       {/* Score card */}
       <div className="rounded-2xl border border-surface-200 bg-white p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
