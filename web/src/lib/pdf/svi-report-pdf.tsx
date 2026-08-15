@@ -1522,17 +1522,45 @@ export function SVIReportPDF({
             </View>
           </View>
 
+          {/* Key Value Summary — 3-stat row */}
+          <View style={{ flexDirection: "row", gap: 10, marginTop: 28 }}>
+            {/* Estimated Valuation */}
+            <View style={{ flex: 1, backgroundColor: C.brand50, borderRadius: 8, padding: 12, borderWidth: 0.5, borderColor: C.brand200, alignItems: "center" }}>
+              <Text style={{ fontSize: 6.5, color: C.brand600, textTransform: "uppercase", letterSpacing: 1, fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Est. Startup Value</Text>
+              <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.brand700 }}>
+                {formatAUD(valuation.low)} – {formatAUD(valuation.high)}
+              </Text>
+              <Text style={{ fontSize: 6.5, color: C.ink500, marginTop: 2 }}>pre-revenue range · AUD</Text>
+            </View>
+            {/* Percentile */}
+            <View style={{ flex: 1, backgroundColor: C.emerald50, borderRadius: 8, padding: 12, borderWidth: 0.5, borderColor: C.emerald200, alignItems: "center" }}>
+              <Text style={{ fontSize: 6.5, color: C.emerald600, textTransform: "uppercase", letterSpacing: 1, fontFamily: "Helvetica-Bold", marginBottom: 3 }}>AU Cohort Rank</Text>
+              <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.emerald600 }}>
+                Top {topPercent}%
+              </Text>
+              <Text style={{ fontSize: 6.5, color: C.ink500, marginTop: 2 }}>of {analysis.stageLabel} startups</Text>
+            </View>
+            {/* Confidence */}
+            <View style={{ flex: 1, backgroundColor: C.surface100, borderRadius: 8, padding: 12, borderWidth: 0.5, borderColor: C.surface200, alignItems: "center" }}>
+              <Text style={{ fontSize: 6.5, color: C.ink500, textTransform: "uppercase", letterSpacing: 1, fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Analysis Confidence</Text>
+              <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.ink700 }}>
+                {confidence}%
+              </Text>
+              <Text style={{ fontSize: 6.5, color: C.ink500, marginTop: 2 }}>based on evidence depth</Text>
+            </View>
+          </View>
+
           {/* Tagline */}
           <View
             style={{
-              marginTop: 32,
+              marginTop: 20,
               borderTopWidth: 0.5,
               borderTopColor: C.surface200,
-              paddingTop: 16,
+              paddingTop: 12,
             }}
           >
-            <Text style={{ fontSize: 9, color: C.ink500, textAlign: "center" }}>
-              Powered by 11 C-Level AI Agents | Auschain PTY LTD | ACN 659 615 111
+            <Text style={{ fontSize: 8, color: C.ink500, textAlign: "center" }}>
+              Powered by BlockID Startup Intelligence · 11 C-Level AI Agents · Auschain PTY LTD · ACN 659 615 111
             </Text>
           </View>
         </View>
