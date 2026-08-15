@@ -1,6 +1,6 @@
 {
-  "version": "3.3.3",
-  "updatedAt": "2026-08-13T16:00:02.556Z",
+  "version": "3.4.0",
+  "updatedAt": "2026-08-15T16:30:00.000Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-07-22T14:00:02.174Z",
@@ -28,7 +28,8 @@
       "v3.0.0 — RND: Develop Conversion/CTA experiment ideas & A/B test hypotheses for startup tooling",
       "v3.0.0 — CFO: Integrate VC valuation methods library (VC Method, DCF, comparables, Berkus, Scorecard, Risk‑Factor Summation) with formulae and usage guidance",
       "v3.0.0 — CPO: Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features",
-      "v3.1.0 — CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier"
+      "v3.1.0 — CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier",
+      "v3.4.0 — Visual upgrade: dashboard health-score-widget (2-col, glow gauge, valuation estimate, action cards), value-impact-banner (SVI delta, AUD gain, readiness %, milestones). Lifecycle email templates fully rebranded (navy header, stat grid, SVI progress bars). PDF cover page: 3-stat row. Auth UX: login shows already-signed-in card; LogoutButton broadcasts SIGNED_OUT to all tabs; SIGNED_IN broadcast after Google/password/magic-link login. Stripe credit-reset cron bug fixed (grantCredits instead of raw insert). v2 SKU audit extended."
     ]
   },
   "plan": {
