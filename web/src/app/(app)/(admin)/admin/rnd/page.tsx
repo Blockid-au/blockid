@@ -5,6 +5,7 @@ import { getCurrentUser, ADMIN_EMAIL} from "@/lib/auth";
 import { Logo } from "@/components/brand/logo";
 import { ArrowLeft, Shield } from "lucide-react";
 import { RndDashboard } from "./rnd-dashboard";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 export const metadata: Metadata = {
   title: "AI R&D Agent — Admin",
@@ -40,9 +41,9 @@ export default async function RndPage() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-xs text-ink-700">{user.email}</span>
-          <form action="/api/auth/logout" method="post">
-            <button type="submit" className="text-xs text-ink-700 hover:text-ink-800 transition-colors cursor-pointer">Sign out</button>
-          </form>
+          <LogoutButton className="text-xs text-ink-700 hover:text-ink-800 transition-colors cursor-pointer">
+            Sign out
+          </LogoutButton>
         </div>
       </header>
 
