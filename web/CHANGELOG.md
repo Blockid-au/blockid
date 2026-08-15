@@ -27,6 +27,21 @@
 
 ---
 
+## 2026-08-15 — v3.5.0: Code & Website Analyzer — PTD sub-score + valuation adjuster
+
+### New feature: `/dashboard/analyzer`
+- **feat** `lib/analyzer/github.ts` — deterministic GitHub signal collector (commits/month, contributors, stars, tests, CI, license, README). No LLM calls — pure HTTP + REST v3.
+- **feat** `lib/analyzer/website.ts` — website signal collector (HTTPS, TTFB, Lighthouse perf/SEO/a11y via PSI or heuristic fallback, sitemap, robots, meta tags).
+- **feat** `lib/analyzer/score.ts` — pure scoring engine: GitHub side 8 weighted signals, website side 8 weighted signals; combined PTD sub-score 0–100; valuation adjuster −10/0/+5/+12%.
+- **feat** `lib/analyzer/svi-adjustments.ts` — hooks sub-score into SVI PTD dimension.
+- **feat** `api/analyzer/run` — POST endpoint (auth required, 5/hr rate limit); parallel signal collection, persist to `analyzer_runs` table, fail-soft if DB unavailable.
+- **feat** `dashboard/analyzer/page.tsx` + `analyzer-form.tsx` — full-page UI: startup selector, GitHub + website URL inputs, visual results panel with arc gauge, side-by-side bar chart, valuation adjuster badge, strengths/gaps list (icons + colour-coded).
+- **feat** `supabase/migrations/20260815120000_analyzer_runs.sql` — `analyzer_runs` table (startup_id scoped, RLS policies). Applied to production DB.
+- **feat** `nav-groups.ts` — "Code & Web Analyzer" added to Build → Strategy section (beta badge).
+- **docs** `docs/analyzer/CODE_WEBSITE_ANALYZER.md` — full design spec.
+
+---
+
 ## 2026-08-07 — v3.3.4: Clean-code P2B + security hardening + SEO
 
 ### Security
