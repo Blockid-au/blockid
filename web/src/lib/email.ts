@@ -480,6 +480,62 @@ export async function sendSVIReport(args: {
   const gaps = args.analysis.evidenceGaps.slice(0, 3);
   const strengthRows = strengths.map((s) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(s.label)} <span style="color:#64748B;">(${s.value}/100)</span></td></tr>`).join("");
   const gapRows = gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#94A3B8;">${escapeHtml(g.action)}</span></td></tr>`).join("");
+
+  // Visual dimension bar chart — email-safe (table cells + inline bg)
+  const dimRows = args.analysis.subs.slice(0, 8).map((s) => {
+    const pct = Math.min(Math.round(s.value), 100);
+    const barColor = pct >= 80 ? "#06b6d4" : pct >= 60 ? "#10b981" : pct >= 40 ? "#f59e0b" : "#ef4444";
+    const barWidth = Math.max(pct, 4);
+    return `
+      <tr>
+        <td style="padding:4px 0;vertical-align:middle;width:160px;font-size:11px;color:#94A3B8;">${escapeHtml(s.label)}</td>
+        <td style="padding:4px 6px;vertical-align:middle;">
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="background:${barColor};height:8px;width:${barWidth}%;border-radius:4px 0 0 4px;font-size:0">&nbsp;</td>
+            <td style="background:#1F2A44;height:8px;border-radius:0 4px 4px 0;font-size:0">&nbsp;</td>
+          </tr></table>
+        </td>
+        <td style="padding:4px 0;vertical-align:middle;width:32px;font-size:11px;color:#F8FAFC;text-align:right;font-weight:600">${s.value}</td>
+      </tr>`;
+  }).join("");
+  const dimensionChartHtml = args.analysis.subs.length > 0
+    ? `<div style="margin:16px 0">
+        <p style="margin:0 0 10px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600">${isVi ? "Phan Tich 8 Chieu" : "8-Dimension Breakdown"}</p>
+        <table width="100%" cellpadding="0" cellspacing="0">${dimRows}</table>
+       </div>`
+    : "";
+
+  // 3-stat summary grid (table cells for Outlook compat)
+  const sviVal = args.analysis.totalSVI;
+  let estVal = "";
+  if (sviVal >= 85) estVal = "A$5M+";
+  else if (sviVal >= 70) estVal = `A$${Math.round(2 + (sviVal - 70) * 0.2)}M`;
+  else if (sviVal >= 50) estVal = `A$${Math.round(500 + (sviVal - 50) * 75)}K`;
+  else estVal = `A$${Math.round(sviVal * 3)}K`;
+  const statGridHtml = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0">
+      <tr>
+        <td width="33%" style="padding:4px">
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 8px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:#22D3EE">${sviVal}</div>
+            <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.08em">SVI Score</div>
+          </div>
+        </td>
+        <td width="33%" style="padding:4px">
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 8px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:#10B981">${estVal}</div>
+            <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.08em">${isVi ? "Dinh Gia" : "Est. Value"}</div>
+          </div>
+        </td>
+        <td width="33%" style="padding:4px">
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 8px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:#3B82F6">${escapeHtml(args.analysis.stageLabel)}</div>
+            <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.08em">${isVi ? "Giai Doan" : "Stage"}</div>
+          </div>
+        </td>
+      </tr>
+    </table>`;
+
   const ideaLabel = isVi ? "Y Tuong Cua Ban" : "Your Idea";
   const ideaSummaryHtml = ideaSummary ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${ideaLabel}</p><p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
 
@@ -516,14 +572,12 @@ export async function sendSVIReport(args: {
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">${tagline}</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${headline}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${bodyIntro}</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#22D3EE;font-weight:600;">${tagline}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:700;color:#F8FAFC;letter-spacing:-0.01em;">${headline}</h1>
+          <p style="margin:0 0 20px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${bodyIntro}</p>
           ${ideaSummaryHtml}
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.analysis.totalSVI}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(args.analysis.stageLabel)} Stage</p>
-          </div>
+          ${statGridHtml}
+          ${dimensionChartHtml}
           ${strengths.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${strengthsLabel}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>` : ""}
           ${gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${gapsLabel}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0 0;">

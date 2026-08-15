@@ -37,6 +37,7 @@ import { ScnDirectionNavigator, type DirectionStep } from "@/components/dashboar
 import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-action-plan";
 import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
+import { ValueImpactBanner } from "@/components/dashboard/value-impact-banner";
 import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
 import { NextUnlockCard } from "@/components/dashboard/next-unlock-card";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
@@ -806,6 +807,18 @@ export default async function DashboardPage({
           valuationLabel={valuation.value}
           phase6={phase}
         />
+
+        {/* ── Value Impact Banner — BlockID value delivered to this founder ── */}
+        {sviScore != null && (
+          <ValueImpactBanner
+            sviFirst={sviHistory.length > 0 ? sviHistory[0].total_svi : null}
+            sviCurrent={sviScore}
+            readinessPct={readiness}
+            evidenceCount={evidenceCount}
+            actionsCompleted={userActions.filter(a => a.completed_at).length}
+            startupName={projectName}
+          />
+        )}
 
         {/* ── G8-P4: Next Unlock card — phase gate progress + top blockers ──── */}
         {phaseGateResult && (
