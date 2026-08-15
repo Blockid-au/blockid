@@ -6,6 +6,7 @@ import { ChevronDown, Menu, X, LayoutDashboard, LogOut, BarChart3, FileText, Tre
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/language-toggle";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 interface NavLink {
   href: string;
@@ -231,15 +232,10 @@ function UserMenu({ user }: { user: AuthUser }) {
               <LayoutDashboard strokeWidth={1.75} className="h-4 w-4 text-ink-500" />
               Dashboard
             </Link>
-            <form action="/api/auth/logout" method="post" className="w-full">
-              <button
-                type="submit"
-                className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer text-left"
-              >
-                <LogOut strokeWidth={1.75} className="h-4 w-4 text-ink-500" />
-                Sign out
-              </button>
-            </form>
+            <LogoutButton className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer text-left">
+              <LogOut strokeWidth={1.75} className="h-4 w-4 text-ink-500" />
+              Sign out
+            </LogoutButton>
           </div>
         </div>
       )}
@@ -403,14 +399,9 @@ export function Navbar() {
                         Go to Dashboard
                       </Button>
                     </Link>
-                    <form action="/api/auth/logout" method="post">
-                      <button
-                        type="submit"
-                        className="w-full py-2 text-center text-sm font-medium text-ink-500 hover:text-ink-800 transition-colors cursor-pointer"
-                      >
-                        Sign out
-                      </button>
-                    </form>
+                    <LogoutButton className="w-full py-2 text-center text-sm font-medium text-ink-500 hover:text-ink-800 transition-colors cursor-pointer">
+                      Sign out
+                    </LogoutButton>
                   </>
                 ) : (
                   <>

@@ -148,3 +148,23 @@ export function openChannel(
 export function newTabId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
+
+/**
+ * Fire-and-forget: post an auth event to peer tabs without keeping a
+ * channel open. Call this right before `window.location.href` redirects
+ * so the current tab's broadcast reaches other tabs before navigation.
+ *
+ * Custom sessions don't fire `supabase.auth.onAuthStateChange`, so we
+ * need this manual broadcast so other tabs call `router.refresh()`.
+ */
+export function broadcastAuthEvent(
+  event: AuthEvent,
+  userId?: string,
+): void {
+  if (!canUseBroadcastChannel()) return;
+  const ch = openChannel(() => {/* no incoming messages needed */});
+  if (!ch) return;
+  ch.post({ event, at: Date.now(), userId, tabId: newTabId() });
+  // Small delay lets the message queue drain before the channel closes.
+  setTimeout(() => ch.close(), 200);
+}

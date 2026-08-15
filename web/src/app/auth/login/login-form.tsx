@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
+import { broadcastAuthEvent } from "@/components/auth/auth-sync-logic";
 
 /* ---------- Types ---------- */
 type EmailState = "idle" | "sending" | "sent" | "error";
@@ -39,6 +40,7 @@ function GoogleSignIn({ nextUrl }: { nextUrl: string | null }) {
           throw new Error(data.error ?? `Google sign-in failed (${res.status})`);
         }
         trackEvent("login_google_success", {});
+        broadcastAuthEvent("SIGNED_IN", data.user?.id);
         const target = nextUrl ?? data.redirect ?? "/";
         const sep = target.includes("?") ? "&" : "?";
         window.location.href = `${target}${sep}logged_in=true`;
@@ -444,6 +446,7 @@ function EmailPasswordForm({ nextUrl }: { nextUrl: string | null }) {
       }
 
       trackEvent(mode === "register" ? "register_password_success" : "login_password_success", {});
+      broadcastAuthEvent("SIGNED_IN", data.user?.id);
       // New registrations go to Evidence Vault for guided onboarding
       const target = mode === "register" && !nextUrl
         ? "/workspace/evidence?onboarding=true"
@@ -542,6 +545,21 @@ export function LoginForm() {
   const plan = searchParams.get("plan");
   const nextUrl = searchParams.get("next");
   const [authMethod, setAuthMethod] = useState<"password" | "magic">("password");
+
+  // Client-side auth guard — redirects if already signed in.
+  // The server page already handles this via getCurrentUser(), but this
+  // catches edge cases where the cookie is fresh but wasn't available
+  // during SSR (e.g. after a same-tab login without a full navigation).
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok && data.user) {
+          window.location.href = nextUrl ?? "/dashboard";
+        }
+      })
+      .catch(() => {/* ignore — show login form */});
+  }, [nextUrl]);
 
   // Track login page view
   useEffect(() => { trackEvent("login_page_viewed", {}); }, []);
