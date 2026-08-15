@@ -15,6 +15,7 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { grantCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 
@@ -114,35 +115,42 @@ export async function GET(req: Request) {
     });
   }
 
-  // Batch grants via credit_transactions inserts. This intentionally does NOT
-  // call web/src/lib/credits.ts grantCredits() so we keep this cron pure —
-  // grantCredits() updates the `credit_balances` running total via a
-  // race-guarded path, but for a monthly bulk grant the simpler pattern is
-  // an insert here + a nightly reconcile job to refresh balances. Doing the
-  // balance update inline requires per-user optimistic locking; deferred to
-  // P3.5 (balance reconcile cron).
-  const inserts = toGrant.map((u) => ({
-    user_id: u.user_id,
-    amount: u.monthly_credits,
-    balance_after: null,           // reconciled separately
-    reason: "plan_grant_monthly",
-    metadata: { month_key: monthKey, plan: u.plan, cron_run_at: runAt },
-  }));
+  // Per-user grants via grantCredits(). Historically this cron did a raw
+  // batch insert into credit_transactions with balance_after=null and
+  // deferred the balance refresh to a "reconcile cron" that never landed
+  // (P3.5 in reseller-module-plan.md). Result: credit_balances stayed stale
+  // and users couldn't spend refilled credits. Delegating to grantCredits()
+  // atomically updates credit_balances + writes the transaction log via the
+  // same race-guarded path used at Stripe checkout, so refilled credits
+  // are immediately spendable and the audit trail matches.
+  //
+  // Cost: N serial roundtrips instead of one batch insert. At ~100ms per
+  // user this scales to a few thousand grants inside the Vercel serverless
+  // limit; if the roster grows beyond that, chunk with p-limit.
+  const grants = await Promise.all(
+    toGrant.map((u) =>
+      grantCredits(u.user_id, u.monthly_credits, "plan_grant_monthly", {
+        month_key: monthKey,
+        plan: u.plan,
+        cron_run_at: runAt,
+      }),
+    ),
+  );
 
-  const { error: insErr } = await supabase.from("credit_transactions").insert(inserts);
-  if (insErr) {
-    return NextResponse.json({ ok: false, reason: "insert_failed", error: insErr.message }, { status: 500 });
-  }
+  const succeeded = grants.filter((g) => g.ok).length;
+  const failed = grants.length - succeeded;
+
+  const perPlan = toGrant.reduce<Record<string, number>>((acc, u, i) => {
+    if (grants[i]!.ok) acc[u.plan] = (acc[u.plan] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return NextResponse.json({
-    ok: true,
-    granted: inserts.length,
+    ok: failed === 0,
+    granted: succeeded,
+    failed,
     month: monthKey,
-    per_plan: inserts.reduce<Record<string, number>>((acc, r) => {
-      const plan = (r.metadata as { plan: string }).plan;
-      acc[plan] = (acc[plan] ?? 0) + 1;
-      return acc;
-    }, {}),
+    per_plan: perPlan,
     ran_at: runAt,
   });
 }
