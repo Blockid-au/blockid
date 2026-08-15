@@ -1,7 +1,7 @@
 {
-  "git_sha": "ff45737a9cd5e046f7b5da4d9c0ca09c00808d6a",
+  "git_sha": "c1dcfaebbc38156fca5eae976aa39458aa4406e2",
   "deployed_at": "2026-08-15T17:00:00Z",
   "next_hash": "",
   "task_id": "manual",
-  "version": "v3.5.0"
+  "version": "v3.6.0"
 }
