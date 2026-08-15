@@ -285,12 +285,13 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
     }
   });
 
-  it("assembles the full 8-plan roster in the shipped order with per-row cadence + label", async () => {
+  it("keeps the 8 legacy plans first, in shipped order, with per-row cadence + label", async () => {
     getStripeMock.mockReturnValue(makeStripe().stripe);
     getPlatformConfigMock.mockResolvedValue(makeConfig());
 
     const { rows } = await runStripePricingAudit();
-    expect(rows.map((r) => r.planId)).toEqual([
+    // Legacy plans lead — v2 SKUs are auto-appended after (see next test).
+    expect(rows.slice(0, 8).map((r) => r.planId)).toEqual([
       "founding50",
       "growth",
       "growth_annual",
@@ -307,6 +308,36 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
     expect(rowFor(rows, "growth").label).toBe("Growth — monthly");
     expect(rowFor(rows, "growth_annual").label).toBe("Growth — annual");
   });
+
+  it("auto-derives v2 SKU audit rows from GENERATED_PLANS with the correct envVar-based remediation", async () => {
+    getStripeMock.mockReturnValue(makeStripe().stripe);
+    getPlatformConfigMock.mockResolvedValue(makeConfig());
+
+    const { rows } = await runStripePricingAudit();
+    // A representative v2 SKU (founder_starter — monthly, price A$29).
+    const founderStarter = rowFor(rows, "founder_starter");
+    expect(founderStarter.cadence).toBe("monthly");
+    expect(founderStarter.expectedCents).toBe(2900);
+    expect(founderStarter.expectedAud).toBe(29);
+    expect(founderStarter.status).toBe("missing_price_id");
+    // Env var name follows the plans.csv stripe_env_var column.
+    expect(founderStarter.remediation).toContain("STRIPE_PRICE_FOUNDER_STARTER");
+
+    // One-off v2 SKU (founder_package — A$149).
+    const pkg = rowFor(rows, "founder_package");
+    expect(pkg.cadence).toBe("one-off");
+    expect(pkg.expectedCents).toBe(14900);
+    expect(pkg.remediation).toContain("STRIPE_PRICE_STARTUP_PACKAGE");
+
+    // Accelerator SKU uses non-obvious env-var name (STRIPE_PRICE_ACCEL_STARTER,
+    // not the naive STRIPE_PRICE_ACCELERATOR_STARTER derivation).
+    const accel = rowFor(rows, "accelerator_starter");
+    expect(accel.remediation).toContain("STRIPE_PRICE_ACCEL_STARTER");
+
+    // Contact-sales / free / zero-price SKUs are excluded.
+    expect(rows.find((r) => r.planId === "founder_free")).toBeUndefined();
+    expect(rows.find((r) => r.planId === "investor_vc_ent")).toBeUndefined();
+  });
 });
 
 // ─── runStripePricingAudit — aggregate flags + generatedAt ──────────────────
@@ -322,7 +353,10 @@ describe("stripe-pricing-audit — aggregate result envelope", () => {
     expect(result.stripeConfigured).toBe(true);
     expect(typeof result.generatedAt).toBe("string");
     expect(() => new Date(result.generatedAt)).not.toThrow();
-    expect(result.rows).toHaveLength(8);
+    // 8 legacy plans + auto-derived v2 SKUs from GENERATED_PLANS. Exact length
+    // grows as plans.csv gains SKUs; assert lower bound so this test survives
+    // future catalogue expansion without unrelated breakage.
+    expect(result.rows.length).toBeGreaterThanOrEqual(8);
   });
 
   it("stripeConfigured false when getStripe() returns null AND a price id is set", async () => {

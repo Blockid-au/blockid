@@ -18,6 +18,7 @@
 import type Stripe from "stripe";
 import { getStripe, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlatformConfig } from "@/lib/platform-config";
+import { GENERATED_PLANS } from "@/config/pricing/plans.generated";
 
 export type AuditStatus = "match" | "drift" | "missing_price_id" | "stripe_not_configured" | "stripe_lookup_failed" | "archived";
 
@@ -53,9 +54,17 @@ interface PlanExpectation {
   /** Or a static expected value (credit packs are not in config — they're tied to credits_N tier). */
   staticCents?: number;
   cadence: PlanAuditRow["cadence"];
+  /**
+   * Explicit env var to read the Stripe Price ID from. When set, bypasses
+   * STRIPE_PRICE_MAP (used for v2 SKUs whose env var name doesn't follow the
+   * `STRIPE_PRICE_${planId.toUpperCase()}` convention — e.g. accelerator_*
+   * maps to STRIPE_PRICE_ACCEL_STARTER, founder_package to
+   * STRIPE_PRICE_STARTUP_PACKAGE).
+   */
+  envVar?: string;
 }
 
-const PLANS: PlanExpectation[] = [
+const LEGACY_PLANS: PlanExpectation[] = [
   // Headline tiers — driven by platform-config
   { planId: "founding50",    label: "Founding 100 (one-off)", configField: "founding_price_cents",      cadence: "one-off" },
   { planId: "growth",        label: "Growth — monthly",       configField: "growth_price_monthly_cents", cadence: "monthly" },
@@ -69,13 +78,53 @@ const PLANS: PlanExpectation[] = [
   { planId: "credits_100", label: "100 credits pack", staticCents: 2500, cadence: "credit-pack" },
 ];
 
+/**
+ * Derive audit rows for every active v2 SKU wired to a Stripe env var.
+ *
+ * Reads GENERATED_PLANS (built from plans.csv) so adding a new SKU to the CSV
+ * automatically extends audit coverage — no manual PLANS[] edits needed.
+ *
+ * Skipped SKUs:
+ *   - `interval: "free"`     — no Stripe Price exists (Free tier)
+ *   - `interval: "custom"`   — enterprise / contact-sales, negotiated per-deal
+ *   - `stripe_env_var: ""`   — not-yet-wired (dev placeholders)
+ *   - `active: false`        — retired SKUs
+ *   - `price_aud_cents: 0`   — zero-price rows (belong under 'free')
+ */
+function v2Plans(): PlanExpectation[] {
+  return GENERATED_PLANS
+    .filter((p) => p.active)
+    .filter((p) => p.stripe_env_var !== "")
+    .filter((p) => p.price_aud_cents > 0)
+    .filter((p) => p.interval === "monthly" || p.interval === "yearly" || p.interval === "once")
+    .map<PlanExpectation>((p) => ({
+      planId: p.id,
+      label: `${p.name} — ${p.interval}`,
+      staticCents: p.price_aud_cents,
+      cadence: p.interval === "monthly" ? "monthly"
+             : p.interval === "yearly"  ? "yearly"
+             : "one-off",
+      envVar: p.stripe_env_var,
+    }));
+}
+
+/** Full audit roster = legacy + auto-derived v2 (dedup by planId, legacy wins). */
+function allPlans(): PlanExpectation[] {
+  const seen = new Set(LEGACY_PLANS.map((p) => p.planId));
+  const v2 = v2Plans().filter((p) => !seen.has(p.planId));
+  return [...LEGACY_PLANS, ...v2];
+}
+
 // ─── Audit a single plan ──────────────────────────────────────────────────────
 
 async function auditPlan(plan: PlanExpectation, cfg: Awaited<ReturnType<typeof getPlatformConfig>>): Promise<PlanAuditRow> {
   const expectedCents: number = plan.configField
     ? (cfg[plan.configField] as number)
     : (plan.staticCents ?? 0);
-  const stripePriceId = STRIPE_PRICE_MAP[plan.planId] ?? null;
+  const envVar = plan.envVar ?? `STRIPE_PRICE_${plan.planId.toUpperCase()}`;
+  const stripePriceId = plan.envVar
+    ? (process.env[plan.envVar] ?? null)
+    : (STRIPE_PRICE_MAP[plan.planId] ?? null);
 
   // Base row, refined below
   const base: PlanAuditRow = {
@@ -93,7 +142,7 @@ async function auditPlan(plan: PlanExpectation, cfg: Awaited<ReturnType<typeof g
   };
 
   if (!stripePriceId) {
-    base.remediation = `Set env var STRIPE_PRICE_${plan.planId.toUpperCase()} to the Stripe Price ID for this plan.`;
+    base.remediation = `Set env var ${envVar} to the Stripe Price ID for this plan.`;
     return base;
   }
 
@@ -156,7 +205,7 @@ async function auditPlan(plan: PlanExpectation, cfg: Awaited<ReturnType<typeof g
 
 export async function runStripePricingAudit(): Promise<AuditResult> {
   const cfg = await getPlatformConfig();
-  const rows = await Promise.all(PLANS.map((p) => auditPlan(p, cfg)));
+  const rows = await Promise.all(allPlans().map((p) => auditPlan(p, cfg)));
   return {
     rows,
     generatedAt: new Date().toISOString(),
@@ -176,7 +225,7 @@ export interface CreatePriceResult {
 }
 
 export async function createFreshStripePrice(planId: string, opts: { productName?: string } = {}): Promise<CreatePriceResult> {
-  const plan = PLANS.find((p) => p.planId === planId);
+  const plan = allPlans().find((p) => p.planId === planId);
   if (!plan) return { ok: false, error: `Unknown plan: ${planId}` };
 
   const stripe = getStripe();
@@ -226,7 +275,7 @@ export async function createFreshStripePrice(planId: string, opts: { productName
     return {
       ok: true,
       newPriceId: price.id,
-      envVarName: `STRIPE_PRICE_${planId.toUpperCase()}`,
+      envVarName: plan.envVar ?? `STRIPE_PRICE_${planId.toUpperCase()}`,
     };
   } catch (err) {
     return { ok: false, error: (err as Error).message };
