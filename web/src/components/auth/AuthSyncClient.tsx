@@ -25,9 +25,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
 import {
+  broadcastAuthEvent,
   handleMessage,
   initialState,
   newTabId,
@@ -38,7 +39,15 @@ import {
 
 export function AuthSyncClient(): null {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const stateRef = useRef<AuthSyncState | null>(null);
+
+  // Detect magic-link / server-side login redirects — broadcast to peer tabs.
+  useEffect(() => {
+    if (searchParams.get("logged_in") === "true") {
+      broadcastAuthEvent("SIGNED_IN");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (stateRef.current === null) {
