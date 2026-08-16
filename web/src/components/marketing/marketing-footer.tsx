@@ -11,31 +11,13 @@
  * palette with the unified marketing shell.
  */
 
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import Link from "next/link";
 import { PartnerFooterRow } from "@/components/marketing/partner-footer-row";
-
-type VersionFile = {
-  version?: unknown;
-};
+import versionData from "../../../content/reports/version.json";
 
 function readVersionString(): string | null {
-  const candidates = [
-    path.join(process.cwd(), "content", "reports", "version.json"),
-    path.join(process.cwd(), "web", "content", "reports", "version.json"),
-  ];
-  for (const p of candidates) {
-    try {
-      const parsed = JSON.parse(readFileSync(p, "utf8")) as VersionFile;
-      if (typeof parsed.version === "string" && parsed.version.length > 0) {
-        return parsed.version;
-      }
-    } catch {
-      // try next candidate
-    }
-  }
-  return null;
+  const v = (versionData as { version?: unknown }).version;
+  return typeof v === "string" && v.length > 0 ? v : null;
 }
 
 type FooterColumn = {
