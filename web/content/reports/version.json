@@ -1,24 +1,27 @@
 {
-  "version": "v3.6.5",
-  "updated_at": "2026-08-16T07:30:00Z",
-  "git_sha": "fa6bae32c",
-  "release_id": "v3.6.5-svi-v2.1",
+  "version": "v3.6.6",
+  "updated_at": "2026-08-16T07:45:00Z",
+  "git_sha": "d249338ef",
+  "release_id": "v3.6.6-report-quality",
   "shipped_summary": [
-    "v3.6.5 — SVI v2.1: computeFundingReadiness() — Seed/SeriesA/B gate assessment with per-criterion milestone checklist",
-    "v3.6.5 — SVI v2.1: CFO agent prompt — sensitivity table (bear/base/bull), CAC payback, LTV @ 15% AU discount rate, R&D Tax + ESIC + GST",
-    "v3.6.5 — SVI v2.1: CEO agent prompt — 3/5/7yr exit scenarios with AU M&A multiples + strategic buyer landscape",
-    "v3.6.5 — SVI v2.1: CDO agent prompt — per-dimension cohort benchmarking vs stage medians (8 dims × 4 stages)",
-    "v3.6.5 — fix(ts): revenue-spend .rpc().catch() + nurture.ts .upsert() ignoreDuplicates",
-    "v3.6.4 — T_FEEDBACK_0001: feedback-for-credits system (submit → AI scoring via Claude Haiku → credit grant + workspace UI + Telegram digest cron)",
-    "v3.6.4 — T_EMAIL_0001: D1/D4/D9 nurture email sequence (queue table + enqueue on signup + cron sender respecting email prefs)",
-    "v3.6.4 — T_REVENUE_0001: admin revenue+spend dashboard (/admin/revenue-spend) + weekly email digest cron",
-    "v3.6.4 — fix: broken markdown href in ga4-daily-tiles (last 404 — site fully clean, 431 routes audited)"
+    "v3.6.6 — Funding Readiness tile in SVI dashboard (gate badge, progress bar, milestone checklist per Seed/SeriesA/B gate)",
+    "v3.6.6 — Funding Readiness section in Investor Pack PDF (top 3 unmet milestones by gap)",
+    "v3.6.6 — Report Section 11: Funding Journey & Capital Strategy (deterministic, AU investor map by sector, raise bands)",
+    "v3.6.6 — CRO prompt: Revenue Growth Framework (funnel benchmarks, NRR targets, AU ARR bands)",
+    "v3.6.6 — CMO prompt: AU GTM Analysis (channel economics, moat 1-5 ratings, category creation vs entry)",
+    "v3.6.5 — SVI v2.1: computeFundingReadiness() Seed/SeriesA/B gates + milestone checklist",
+    "v3.6.5 — SVI v2.1: CFO prompt sensitivity table (bear/base/bull) + unit economics + AU tax context",
+    "v3.6.5 — SVI v2.1: CEO prompt exit scenarios 3/5/7yr + AU M&A multiples + buyer landscape",
+    "v3.6.5 — SVI v2.1: CDO prompt 8-dimension cohort benchmarking vs stage medians",
+    "v3.6.4 — T_FEEDBACK_0001: feedback-for-credits + AI scoring + Telegram digest",
+    "v3.6.4 — T_EMAIL_0001: D1/D4/D9 nurture sequence + queue cron",
+    "v3.6.4 — T_REVENUE_0001: admin revenue+spend dashboard + weekly email digest"
   ],
   "task_ids": [
-    "SVI-v2.1: funding readiness + C-level prompt enhancements",
-    "T_FEEDBACK_0001: feedback-for-credits",
-    "T_EMAIL_0001: D1/D4/D9 nurture",
-    "T_REVENUE_0001: admin revenue dashboard"
+    "SVI-v2.1: funding readiness gates + C-level prompt enhancements",
+    "T_SVI_REPORT: CRO/CMO prompts + Section 11 Funding Journey",
+    "T_FUNDING_UI: Funding Readiness tile + investor pack section",
+    "T_FEEDBACK_0001", "T_EMAIL_0001", "T_REVENUE_0001"
   ],
-  "notes": "v3.6.5 = SVI v2.1 quality uplift: funding readiness gates, CFO sensitivity analysis, CEO exit modeling, CDO cohort benchmarking. Combined with v3.6.4 retention/monetization features. Site fully 404-clean."
+  "notes": "v3.6.6 = full C-level report quality uplift: 11-section reports with deterministic Funding Journey, enhanced CRO/CMO/CFO/CEO/CDO prompts, funding readiness dashboard tile, investor pack integration. SVI engine at v2.1.0. Site fully 404-clean."
 }
