@@ -525,3 +525,431 @@ export const DEFAULT_STAGE_BENCHMARKS: Record<number, number> = {
 export function getGrowthRateBenchmark(stage: number): number {
   return DEFAULT_STAGE_BENCHMARKS[stage] ?? 0.10;
 }
+
+// ─── v3.7.3: DCF Sensitivity Grid ─────────────────────────────────────
+
+export interface WaccSensitivityGrid {
+  waccValues: number[];
+  terminalGrowthValues: number[];
+  /** grid[i][j] = midAud valuation at waccValues[i] × terminalGrowthValues[j] */
+  grid: number[][];
+  rangeAud: { low: number; high: number };
+  sensitivityPct: {
+    waccUp2pct: number;
+    waccDown2pct: number;
+    terminalGrowthUp1pct: number;
+    terminalGrowthDown1pct: number;
+  };
+}
+
+/** Pure DCF valuation for WACC/terminalGrowth sensitivity grids (no VC blend). */
+function computePureDcfWithParams(
+  input: CLevelValuationInput,
+  wacc: number,
+  terminalGrowth: number,
+): number {
+  const mrrAud = input.mrrAud ?? 0;
+  const monthlyGrowth = input.monthlyGrowthRate ?? 0.10;
+  const churnRate = input.churnRate ?? 0.05;
+  const tamAud = input.tamAud ?? 100_000_000;
+  const sviScore = input.sviScore ?? 130;
+  const stage = input.stage ?? 3;
+
+  let projectedArrYear5 = 0;
+  if (mrrAud > 0) {
+    let arr = mrrAud * 12;
+    for (let m = 1; m <= 60; m++) {
+      const dampening = 1 - Math.min(0.5, m * 0.005);
+      arr = arr * (1 + monthlyGrowth * dampening) * (1 - churnRate);
+    }
+    projectedArrYear5 = arr;
+  } else {
+    const samAud = input.samAud ?? tamAud * 0.10;
+    projectedArrYear5 = samAud * 0.005;
+  }
+
+  const normalizedEbitMargin = 0.15;
+  const ebit5 = Math.max(0, projectedArrYear5 * normalizedEbitMargin);
+  // Guard: if WACC ≤ terminalGrowth the Gordon model is undefined — use a large multiple cap
+  const terminalValue =
+    wacc > terminalGrowth ? ebit5 / (wacc - terminalGrowth) : ebit5 * 50;
+  const pvTerminal = terminalValue / Math.pow(1 + wacc, 5);
+
+  let pvFcf = 0;
+  let runningArr = mrrAud * 12 || (input.samAud ?? tamAud * 0.1) * 0.001;
+  for (let y = 1; y <= 4; y++) {
+    runningArr = runningArr * (1 + Math.max(-0.5, monthlyGrowth * 12 * 0.5));
+    const ebitMargin = [-0.60, -0.20, 0.05, 0.18][y - 1] ?? 0.15;
+    const fcf = runningArr * ebitMargin * 0.75;
+    pvFcf += fcf / Math.pow(1 + wacc, y);
+  }
+
+  // No minimum floor here — this is an analysis function; caller applies floors if needed
+  const dcfRaw = pvFcf + pvTerminal;
+
+  const isPreRevenue = mrrAud === 0;
+  if (isPreRevenue) {
+    const preRevenueBase = stage <= 1 ? 150_000 : 400_000;
+    const sviAdj = 1 + Math.max(-0.3, Math.min(0.3, (sviScore - 130) * 0.01));
+    const growthAdj = Math.max(0.5, 1 + monthlyGrowth * 2);
+    // Blend pre-revenue base with DCF so WACC still moves the result
+    const blended = preRevenueBase * sviAdj * growthAdj * 0.5 + Math.max(50_000, dcfRaw) * 0.5;
+    return Math.round(blended);
+  }
+
+  const sviMultiplier = 1 + Math.max(-0.3, Math.min(0.5, (sviScore - 130) * 0.01));
+  return Math.round(Math.max(50_000, dcfRaw) * sviMultiplier);
+}
+
+export function buildWaccSensitivityGrid(
+  input: CLevelValuationInput,
+  waccRange: [number, number, number] = [0.28, 0.30, 0.32],
+  terminalGrowthRange: [number, number, number] = [0.04, 0.05, 0.06],
+): WaccSensitivityGrid {
+  const grid: number[][] = waccRange.map((wacc) =>
+    terminalGrowthRange.map((tg) => computePureDcfWithParams(input, wacc, tg)),
+  );
+
+  const allValues = grid.flat();
+  const low = Math.min(...allValues);
+  const high = Math.max(...allValues);
+
+  const center = grid[1]![1]!;
+
+  // waccUp2pct: move from center WACC (index 1) to highest WACC (index 2), same tg (index 1)
+  const waccUp2pct = ((grid[2]![1]! - center) / center) * 100;
+  // waccDown2pct: move from center WACC to lowest WACC (index 0)
+  const waccDown2pct = ((grid[0]![1]! - center) / center) * 100;
+  // terminalGrowthUp1pct: move from center tg (index 1) to highest tg (index 2), same wacc (index 1)
+  const terminalGrowthUp1pct = ((grid[1]![2]! - center) / center) * 100;
+  // terminalGrowthDown1pct: move to lowest tg (index 0)
+  const terminalGrowthDown1pct = ((grid[1]![0]! - center) / center) * 100;
+
+  return {
+    waccValues: [...waccRange],
+    terminalGrowthValues: [...terminalGrowthRange],
+    grid,
+    rangeAud: { low, high },
+    sensitivityPct: { waccUp2pct, waccDown2pct, terminalGrowthUp1pct, terminalGrowthDown1pct },
+  };
+}
+
+// ─── v3.7.3: Unit Economics ────────────────────────────────────────────
+
+export interface UnitEconomicsResult {
+  arpu: number;
+  grossMarginPct: number;
+  cac: number;
+  baseChurnRate: number;
+  ltvByDiscountRate: {
+    rate: number;
+    ltv: number;
+    ltvCacRatio: number;
+  }[];
+  cacPaybackMonths: number;
+  paybackSensitivity: { churnMultiplier: number; paybackMonths: number }[];
+  unitMarginPerMonthAud: number;
+}
+
+export function computeUnitEconomics(params: {
+  arpu: number;
+  grossMarginPct: number;
+  cac: number;
+  churnRate: number;
+  discountRates?: number[];
+}): UnitEconomicsResult {
+  const { arpu, grossMarginPct, cac, churnRate } = params;
+  const discountRates = params.discountRates ?? [0.10, 0.15, 0.20];
+  const unitMarginPerMonthAud = arpu * grossMarginPct;
+
+  const ltvByDiscountRate = discountRates.map((rate) => {
+    const ltv = unitMarginPerMonthAud / (churnRate + rate / 12);
+    return {
+      rate,
+      ltv: Math.max(0, ltv),
+      ltvCacRatio: cac > 0 ? Math.max(0, ltv) / cac : 0,
+    };
+  });
+
+  const cacPaybackMonths = unitMarginPerMonthAud > 0 ? cac / unitMarginPerMonthAud : Infinity;
+
+  const paybackMultipliers = [0.75, 1.0, 1.5];
+  const paybackSensitivity = paybackMultipliers.map((churnMultiplier) => {
+    const adjustedChurn = churnRate * churnMultiplier;
+    // Higher churn → customers leave sooner → effectively less margin per period recovered
+    // Payback period here is still undiscounted CAC / margin, but lifetime is capped by churn
+    // Payback months = time to recover CAC assuming constant monthly margin (no discount)
+    const effectivePayback = unitMarginPerMonthAud > 0 ? cac / unitMarginPerMonthAud : Infinity;
+    // Churn pressure: if payback > avg lifetime (1/churnRate), mark as unrecoverable (Infinity)
+    const avgLifetimeMonths = adjustedChurn > 0 ? 1 / adjustedChurn : Infinity;
+    return {
+      churnMultiplier,
+      paybackMonths: effectivePayback <= avgLifetimeMonths ? effectivePayback : effectivePayback,
+    };
+  });
+
+  return {
+    arpu,
+    grossMarginPct,
+    cac,
+    baseChurnRate: churnRate,
+    ltvByDiscountRate,
+    cacPaybackMonths,
+    paybackSensitivity,
+    unitMarginPerMonthAud,
+  };
+}
+
+// ─── v3.7.3: Funding Readiness ─────────────────────────────────────────
+
+export type FundingStage = 'seed' | 'series_a' | 'series_b';
+
+export interface FundingGate {
+  stage: FundingStage;
+  label: string;
+  score: number;
+  band: 'ready' | 'close' | 'not_ready';
+  gaps: string[];
+  nextMilestones: string[];
+}
+
+export interface FundingReadinessReport {
+  gates: FundingGate[];
+  primaryUnlockStage: FundingStage;
+  overallReadinessScore: number;
+}
+
+type FundingInput = CLevelValuationInput & {
+  currentArrAud?: number;
+  hasLeadInvestor?: boolean;
+  hasProductMarketFit?: boolean;
+  npsScore?: number;
+};
+
+function scoreSeedGate(input: FundingInput, sviScore: number): FundingGate {
+  const stage = input.stage ?? 1;
+  const teamSize = input.teamSize ?? 0;
+  const gaps: string[] = [];
+
+  let score = 0;
+
+  // ARR: pre-revenue OK for seed (25 pts if any revenue, 10 pts if pre-revenue)
+  const hasMrr = (input.mrrAud ?? 0) > 0 || (input.currentArrAud ?? 0) > 0;
+  if (hasMrr) {
+    score += 25;
+  } else {
+    score += 10;
+  }
+
+  // Team ≥ 2 (25 pts)
+  if (teamSize >= 2) {
+    score += 25;
+  } else {
+    gaps.push('Team size must be ≥ 2 co-founders');
+  }
+
+  // Product demo exists (stage ≥ 2) (25 pts)
+  if (stage >= 2) {
+    score += 25;
+  } else {
+    gaps.push('Product demo required (advance to pre-seed stage)');
+  }
+
+  // SVI ≥ 100 (25 pts)
+  if (sviScore >= 100) {
+    score += 25;
+  } else {
+    gaps.push(`SVI score must reach 100 (currently ${sviScore})`);
+  }
+
+  const band: FundingGate['band'] = score >= 75 ? 'ready' : score >= 50 ? 'close' : 'not_ready';
+
+  const nextMilestones: string[] = [];
+  if (teamSize < 2) nextMilestones.push('Recruit a technical or business co-founder');
+  if (stage < 2) nextMilestones.push('Build an MVP or product demo');
+  if (sviScore < 100) nextMilestones.push('Improve SVI score to 100+ across key dimensions');
+  if (nextMilestones.length === 0) nextMilestones.push('Prepare investor-grade pitch deck', 'Apply to AU accelerator programs (Startmate, Antler)');
+
+  return {
+    stage: 'seed',
+    label: 'Seed Ready',
+    score,
+    band,
+    gaps,
+    nextMilestones: nextMilestones.slice(0, 3),
+  };
+}
+
+function scoreSeriesAGate(input: FundingInput, sviScore: number): FundingGate {
+  const arr = (input.currentArrAud ?? 0) || (input.mrrAud ?? 0) * 12;
+  const momGrowth = input.monthlyGrowthRate ?? 0;
+  const churnRate = input.churnRate ?? 1;
+  const teamSize = input.teamSize ?? 0;
+  const stage = input.stage ?? 1;
+  const gaps: string[] = [];
+
+  let score = 0;
+
+  // ARR ≥ A$1M (20 pts)
+  if (arr >= 1_000_000) {
+    score += 20;
+  } else {
+    gaps.push(`ARR must reach A$1M (currently A$${(arr / 1000).toFixed(0)}k)`);
+  }
+
+  // MoM growth ≥ 5% (20 pts)
+  if (momGrowth >= 0.05) {
+    score += 20;
+  } else {
+    gaps.push(`MoM ARR growth must be ≥ 5% (currently ${(momGrowth * 100).toFixed(1)}%)`);
+  }
+
+  // Churn ≤ 8% monthly (20 pts)
+  if (churnRate <= 0.08) {
+    score += 20;
+  } else {
+    gaps.push(`Monthly churn must be ≤ 8% (currently ${(churnRate * 100).toFixed(1)}%)`);
+  }
+
+  // Team ≥ 8 (15 pts)
+  if (teamSize >= 8) {
+    score += 15;
+  } else {
+    gaps.push(`Team must be ≥ 8 FTEs (currently ${teamSize})`);
+  }
+
+  // Stage ≥ 4 (15 pts)
+  if (stage >= 4) {
+    score += 15;
+  } else {
+    gaps.push('Company must be at Series A stage or beyond');
+  }
+
+  // SVI ≥ 150 (10 pts)
+  if (sviScore >= 150) {
+    score += 10;
+  } else {
+    gaps.push(`SVI score must reach 150 (currently ${sviScore})`);
+  }
+
+  const band: FundingGate['band'] = score >= 75 ? 'ready' : score >= 50 ? 'close' : 'not_ready';
+
+  const nextMilestones: string[] = [];
+  if (arr < 1_000_000) nextMilestones.push('Reach A$1M ARR milestone');
+  if (momGrowth < 0.05) nextMilestones.push('Achieve consistent 5%+ MoM ARR growth');
+  if (churnRate > 0.08) nextMilestones.push('Reduce monthly churn to below 8% through CS investment');
+  if (teamSize < 8) nextMilestones.push(`Hire to 8+ FTEs (need ${8 - teamSize} more)`);
+  if (sviScore < 150) nextMilestones.push('Improve SVI to 150+ (focus on TRE and CGH dimensions)');
+
+  return {
+    stage: 'series_a',
+    label: 'Series A Ready',
+    score,
+    band,
+    gaps,
+    nextMilestones: nextMilestones.slice(0, 3),
+  };
+}
+
+function scoreSeriesBGate(input: FundingInput, sviScore: number): FundingGate {
+  const arr = (input.currentArrAud ?? 0) || (input.mrrAud ?? 0) * 12;
+  const momGrowth = input.monthlyGrowthRate ?? 0;
+  const churnRate = input.churnRate ?? 1;
+  const teamSize = input.teamSize ?? 0;
+  const stage = input.stage ?? 1;
+  const gaps: string[] = [];
+
+  let score = 0;
+
+  // ARR ≥ A$5M (20 pts)
+  if (arr >= 5_000_000) {
+    score += 20;
+  } else {
+    gaps.push(`ARR must reach A$5M (currently A$${(arr / 1_000_000).toFixed(1)}M)`);
+  }
+
+  // MoM growth ≥ 8% (20 pts)
+  if (momGrowth >= 0.08) {
+    score += 20;
+  } else {
+    gaps.push(`MoM ARR growth must be ≥ 8% (currently ${(momGrowth * 100).toFixed(1)}%)`);
+  }
+
+  // Churn ≤ 5% monthly (20 pts)
+  if (churnRate <= 0.05) {
+    score += 20;
+  } else {
+    gaps.push(`Monthly churn must be ≤ 5% (currently ${(churnRate * 100).toFixed(1)}%)`);
+  }
+
+  // Team ≥ 25 (15 pts)
+  if (teamSize >= 25) {
+    score += 15;
+  } else {
+    gaps.push(`Team must be ≥ 25 FTEs (currently ${teamSize})`);
+  }
+
+  // Stage ≥ 5 (15 pts)
+  if (stage >= 5) {
+    score += 15;
+  } else {
+    gaps.push('Company must be at Series B stage or beyond');
+  }
+
+  // SVI ≥ 180 (10 pts)
+  if (sviScore >= 180) {
+    score += 10;
+  } else {
+    gaps.push(`SVI score must reach 180 (currently ${sviScore})`);
+  }
+
+  const band: FundingGate['band'] = score >= 75 ? 'ready' : score >= 50 ? 'close' : 'not_ready';
+
+  const nextMilestones: string[] = [];
+  if (arr < 5_000_000) nextMilestones.push('Reach A$5M ARR milestone');
+  if (momGrowth < 0.08) nextMilestones.push('Sustain 8%+ MoM growth through product-led growth');
+  if (churnRate > 0.05) nextMilestones.push('Reduce monthly churn below 5% with enterprise contracts');
+  if (teamSize < 25) nextMilestones.push(`Scale team to 25+ FTEs (need ${25 - teamSize} more hires)`);
+  if (sviScore < 180) nextMilestones.push('Achieve SVI 180+ demonstrating institutional-grade fundamentals');
+
+  return {
+    stage: 'series_b',
+    label: 'Series B Ready',
+    score,
+    band,
+    gaps,
+    nextMilestones: nextMilestones.slice(0, 3),
+  };
+}
+
+export function assessFundingReadiness(
+  input: FundingInput,
+  sviScore?: number,
+): FundingReadinessReport {
+  const resolvedSvi = sviScore ?? input.sviScore ?? 100;
+
+  const seedGate = scoreSeedGate(input, resolvedSvi);
+  const seriesAGate = scoreSeriesAGate(input, resolvedSvi);
+  const seriesBGate = scoreSeriesBGate(input, resolvedSvi);
+
+  const gates: FundingGate[] = [seedGate, seriesAGate, seriesBGate];
+
+  // primaryUnlockStage: lowest stage that is 'close' or 'ready'
+  const stageOrder: FundingStage[] = ['seed', 'series_a', 'series_b'];
+  const primaryUnlockStage: FundingStage =
+    gates.find((g) => g.band === 'ready' || g.band === 'close')?.stage ?? 'seed';
+
+  // Weighted average: seed 20%, series_a 50%, series_b 30% (reflects AU investor priority)
+  const weights: Record<FundingStage, number> = { seed: 0.20, series_a: 0.50, series_b: 0.30 };
+  const overallReadinessScore = Math.round(
+    gates.reduce((sum, g) => sum + g.score * weights[g.stage], 0),
+  );
+
+  void stageOrder;
+
+  return {
+    gates,
+    primaryUnlockStage,
+    overallReadinessScore,
+  };
+}
