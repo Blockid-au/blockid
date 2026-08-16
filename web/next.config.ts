@@ -30,6 +30,15 @@ const nextConfig: NextConfig = {
    * dynamic-route 404). Advisor stays on `/for/advisor` because there is
    * no `/solutions/advisor` in the plan's persona set.
    */
+  async rewrites() {
+    return [
+      // /index/* → /startup-index/* (internal rename to avoid Next.js 16 webpack
+      // naming clash where `app/index/page.tsx` compiles to a doubled
+      // `app/index/index/page.js` path with no client reference manifest).
+      { source: "/index", destination: "/startup-index" },
+      { source: "/index/:path*", destination: "/startup-index/:path*" },
+    ];
+  },
   async redirects() {
     return [
       {

@@ -23,7 +23,7 @@ import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
 const SITE_URL = "https://blockid.au";
 
-type DocSlug = "terms" | "privacy" | "disclaimers";
+type DocSlug = "terms" | "privacy" | "disclaimers" | "mentor-access-policy";
 
 const DOC_META: Record<DocSlug, { title: string; description: string; heading: string }> = {
   terms: {
@@ -44,10 +44,21 @@ const DOC_META: Record<DocSlug, { title: string; description: string; heading: s
       "Canonical disclaimers surfaced across BlockID.au — advice, wholesale, equity offer, share issuance, trial, and more.",
     heading: "Legal disclaimers",
   },
+  "mentor-access-policy": {
+    title: "Mentor Access Policy — BlockID.au",
+    description:
+      "What mentors see when a founder shares access, how long consent lasts, and how founders can revoke access at any time.",
+    heading: "Mentor Access Policy",
+  },
 };
 
 function isDocSlug(v: string): v is DocSlug {
-  return v === "terms" || v === "privacy" || v === "disclaimers";
+  return (
+    v === "terms" ||
+    v === "privacy" ||
+    v === "disclaimers" ||
+    v === "mentor-access-policy"
+  );
 }
 
 // Read at request time so a hot-swap of a legal MDX file does not require a
@@ -56,7 +67,12 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export function generateStaticParams(): { doc: DocSlug }[] {
-  return [{ doc: "terms" }, { doc: "privacy" }, { doc: "disclaimers" }];
+  return [
+    { doc: "terms" },
+    { doc: "privacy" },
+    { doc: "disclaimers" },
+    { doc: "mentor-access-policy" },
+  ];
 }
 
 export async function generateMetadata({
@@ -115,6 +131,13 @@ function readLegalBody(doc: DocSlug): string | null {
     if (doc === "privacy") {
       const raw = readFileSync(
         path.join(root, "legal", "privacy-v2.mdx"),
+        "utf8",
+      );
+      return stripFrontmatter(raw);
+    }
+    if (doc === "mentor-access-policy") {
+      const raw = readFileSync(
+        path.join(root, "legal", "mentor-access-policy.mdx"),
         "utf8",
       );
       return stripFrontmatter(raw);

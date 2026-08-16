@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TechAnalysisPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login?next=/workspace/tech-analysis");
 
   const startupId = await getProjectIdFromRequest();
   if (!startupId) redirect("/workspace/projects");
