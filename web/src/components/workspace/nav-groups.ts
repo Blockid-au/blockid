@@ -491,6 +491,7 @@ const ACCOUNT_SUBGROUPS: NavSubgroup[] = [
       { href: "/workspace/founder-profile", label: "Founder Profile", icon: User, lifecycle: "beta" },
       { href: "/workspace/notifications", label: "Notifications", icon: Bell },
       { href: "/workspace/referrals", label: "Referrals", icon: Gift },
+      { href: "/workspace/feedback", label: "Feedback & Credits", icon: MessageSquare },
     ],
   },
   {
