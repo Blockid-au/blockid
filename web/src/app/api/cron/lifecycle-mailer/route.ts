@@ -10,9 +10,35 @@ import { NextResponse } from "next/server";
 
 import { advance, loadDue } from "@/lib/conversion/lifecycle";
 import { assign } from "@/lib/conversion/experiments";
+import { shouldFire, recordConversionEvent, type ConversionTrigger } from "@/lib/conversion/triggers";
 import { renderLifecycleEmail } from "@/emails/lifecycle/render";
 import { sendEmail } from "@/lib/email";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+
+/** Map lifecycle steps that have matching CRO triggers to their trigger IDs. */
+const STEP_TO_TRIGGER: Partial<Record<string, ConversionTrigger>> = {
+  day5: "trial_day_5",
+  day6: "trial_day_6",
+  day7: "trial_day_7",
+};
+
+/**
+ * Fire the matching CRO conversion trigger for lifecycle steps that
+ * correspond to trial-day nudges. Best-effort — never throws so the
+ * email send path is unaffected by analytics failures.
+ */
+async function fireLifecycleTrigger(userId: string, step: string): Promise<void> {
+  const trigger = STEP_TO_TRIGGER[step];
+  if (!trigger) return;
+  try {
+    const decision = await shouldFire({ userId, sessionId: null, trigger });
+    if (decision.fire) {
+      await recordConversionEvent({ userId, trigger, action: "shown" });
+    }
+  } catch {
+    // analytics failure must never block email dispatch
+  }
+}
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -113,6 +139,9 @@ export async function GET(request: Request) {
     });
 
     if (send.ok) {
+      // Fire the CRO in-app trigger for day5/6/7 so the upgrade modal can
+      // surface on the founder's next session alongside the email nudge.
+      await fireLifecycleTrigger(row.user_id, step);
       const next = await advance(row.user_id, step);
       results.push({ user: row.user_id, step, ok: true, reason: `→${next}` });
     } else {
