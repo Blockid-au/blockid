@@ -16,6 +16,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { InvestorPackGenerateForm } from "./generate/InvestorPackGenerateForm";
+import { ReportArchive, type InvestorPackRow } from "@/components/workspace/report-archive";
 
 export const metadata: Metadata = {
   title: "Investor Pack | BlockID",
@@ -123,6 +124,31 @@ async function loadOverview(userId: string, projectId: string | null): Promise<{
 
   return { startupName, sviGrade, lastGeneratedAt, lastShareId, lastDownloadUrl };
 }
+async function loadRecentPacks(userId: string): Promise<InvestorPackRow[]> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return [];
+  const now = new Date();
+  try {
+    const { data } = await admin
+      .from("investor_pack_shares")
+      .select("id, share_id, created_at, expires_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    if (!data) return [];
+    return (data as any[]).map((row: any) => ({
+      id: row.id,
+      share_id: row.share_id,
+      created_at: row.created_at,
+      expires_at: row.expires_at,
+      is_expired: new Date(row.expires_at).getTime() < now.getTime(),
+      download_url: `/api/investor-pack/download/${row.share_id}`,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export default async function InvestorPackPage() {
@@ -132,7 +158,10 @@ export default async function InvestorPackPage() {
   const isSandbox = await getCurrentProjectIsSandbox();
 
   const projectId = await getProjectIdFromRequest();
-  const overview = await loadOverview(user.id, projectId);
+  const [overview, recentPacks] = await Promise.all([
+    loadOverview(user.id, projectId),
+    loadRecentPacks(user.id),
+  ]);
 
   const previewHref = "/api/investor-pack/preview";
 
@@ -228,6 +257,14 @@ export default async function InvestorPackPage() {
         )}
 
         <NotFinancialAdvice kind="not_financial_advice" compact />
+
+        {/* Previously generated packs archive (last 3) */}
+        <ReportArchive
+          investorPacks={recentPacks}
+          assembledReports={[]}
+          compact
+          limit={3}
+        />
       </div>
     </WorkspaceLayout>
   );
