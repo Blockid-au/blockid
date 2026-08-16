@@ -17,6 +17,7 @@ import "server-only";
 
 import { getPlanCached } from "@/lib/plans-db";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { shouldFire, recordConversionEvent } from "@/lib/conversion/triggers";
 
 // ---------------------------------------------------------------------------
 // Feature catalog — union of every gate name used across the product.
@@ -237,7 +238,31 @@ export async function getEntitlements(planId: string | null | undefined): Promis
 export async function can(user: UserWithPlan | null, feature: Feature): Promise<boolean> {
   if (!user) return false;
   const flags = await getEntitlements(user.plan);
-  return flags.includes(feature);
+  const allowed = flags.includes(feature);
+  if (!allowed) {
+    // Fire-and-forget CRO trigger — analytics must never block feature gate.
+    void (async () => {
+      try {
+        const decision = await shouldFire({
+          userId: user.id,
+          sessionId: null, // session not available server-side; client cap enforced by useUpgradePrompt()
+          trigger: "feature_gate_hit",
+        });
+        if (decision.fire) {
+          await recordConversionEvent({
+            userId: user.id,
+            trigger: "feature_gate_hit",
+            action: "shown",
+            planFrom: user.plan ?? null,
+            detail: { feature },
+          });
+        }
+      } catch {
+        // never block the gate result
+      }
+    })();
+  }
+  return allowed;
 }
 
 // ---------------------------------------------------------------------------
