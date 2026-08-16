@@ -21,6 +21,8 @@ build / build.equity-setup	Shareholders	/workspace/shareholders
 build / build.people	ESOP Setup	/workspace/esop
 build / build.people	Vesting	/workspace/vesting
 build / build.strategy	Competitors	/workspace/competitors
+build / build.strategy	Tech Analysis	/workspace/tech-analysis
+build / build.strategy	Code & Web Analyzer	/dashboard/analyzer
 build / build.strategy	GTM Strategy	/workspace/gtm-strategy
 build / build.strategy	Pricing Tiers	/workspace/pricing-tiers
 build / build.strategy	Roadmap	/workspace/roadmap-builder
@@ -32,6 +34,8 @@ build	Shareholders	/workspace/shareholders
 build	ESOP Setup	/workspace/esop
 build	Vesting	/workspace/vesting
 build	Competitors	/workspace/competitors
+build	Tech Analysis	/workspace/tech-analysis
+build	Code & Web Analyzer	/dashboard/analyzer
 build	GTM Strategy	/workspace/gtm-strategy
 build	Pricing Tiers	/workspace/pricing-tiers
 build	Roadmap	/workspace/roadmap-builder
