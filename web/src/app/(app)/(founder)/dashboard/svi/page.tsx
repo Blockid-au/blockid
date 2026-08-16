@@ -18,7 +18,8 @@ import { SviExplainerCard } from "@/components/dashboard/svi-explainer-card";
 import { AntlerSignalsCard } from "@/components/dashboard/antler-signals-card";
 import { AcceleratorReadinessCard } from "@/components/dashboard/accelerator-readiness-card";
 import { TechIntelligenceRow } from "@/components/founder/tech-intelligence-row";
-import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { FundingReadinessTile } from "@/components/workspace/funding-readiness-tile";
+import { computeFundingReadiness, type SVIAnalysis, type FundingReadiness } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
   title: "SVI Dashboard",
@@ -51,6 +52,7 @@ export default async function SVIDashboardPage() {
 
   const supabase = getSupabaseAdmin();
   let analysis: SVIAnalysis | null = null;
+  let fundingReadiness: FundingReadiness | null = null;
   let latestAnalysisId: string | undefined;
   let weeklyDelta: number | undefined;
   let startupName: string | undefined;
@@ -110,6 +112,7 @@ export default async function SVIDashboardPage() {
       analysis = latestAnalysis.analysis_json as SVIAnalysis;
       lastAnalysisDate = latestAnalysis.created_at as string;
       latestAnalysisId = latestAnalysis.id as string;
+      fundingReadiness = computeFundingReadiness(analysis);
     }
 
     // ── Load SVI score history (trend chart) ─────────────────────────────
@@ -337,6 +340,12 @@ export default async function SVIDashboardPage() {
             mini-series + top-3 missing. Reuses the /api/nudge/next-steps
             payload (readiness_by_phase[currentPhase]). ── */}
         <InvestorReadinessTile />
+
+        {/* ── Funding Readiness tile — gate progress + milestone checklist
+            derived from computeFundingReadiness(analysis). ── */}
+        {fundingReadiness && (
+          <FundingReadinessTile fundingReadiness={fundingReadiness} />
+        )}
 
         {/* ── Chapter 5 cohort retention tile (P5-cohort-svi) — client-side
             paste-your-own-CSV live preview around the pure

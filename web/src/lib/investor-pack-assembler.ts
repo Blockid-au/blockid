@@ -45,8 +45,28 @@ import {
   buildTractionCohortSection,
   type TractionCohortSection,
 } from "@/lib/investor-pack/traction-cohort-section";
+import {
+  computeFundingReadiness,
+  type FundingReadiness,
+} from "@/lib/svi-analysis";
 
 /* ─── Public types ──────────────────────────────────────────────────────── */
+
+/** Top 3 unmet required milestones for investor pack rendering. */
+export interface FundingReadinessMilestoneSnapshot {
+  dimension: string;
+  label: string;
+  currentValue: number;
+  targetValue: number;
+  action: string;
+}
+
+/** Funding Readiness section assembled for the investor pack. */
+export interface FundingReadinessSection {
+  currentGate: FundingReadiness["currentGate"];
+  gateScore: number;
+  topUnmetMilestones: FundingReadinessMilestoneSnapshot[];
+}
 
 export interface InvestorPackData {
   project: {
@@ -85,6 +105,8 @@ export interface InvestorPackData {
   // (Stripe / product-analytics OAuth → signup+activity streams) is a
   // follow-up under P5-cohort-ingest.
   tractionCohort: TractionCohortSection;
+  /** Funding Readiness — current gate, gate score, top 3 unmet milestones. */
+  fundingReadiness: FundingReadinessSection;
   team: Array<{ name: string; role: string }>;
   capTable: Array<{ holder: string; pctFullyDiluted: number }>;
   ask: {
@@ -141,6 +163,48 @@ function stageNumberFromSvi(total: number): number {
   return 0;
 }
 
+/* ─── Funding Readiness section builder. ───────────────────────────────── */
+
+function buildFundingReadinessSection(
+  sviAnalysis: Parameters<typeof computeFundingReadiness>[0] | null,
+): FundingReadinessSection {
+  if (!sviAnalysis) {
+    return {
+      currentGate: "pre-seed",
+      gateScore: 0,
+      topUnmetMilestones: [],
+    };
+  }
+
+  const fr = computeFundingReadiness(sviAnalysis);
+
+  // Top 3 unmet milestones: required=true ones first (all milestones here are
+  // required=true by current computeFundingReadiness implementation), then by
+  // furthest from target.
+  const unmet = fr.milestones
+    .filter((m) => !m.met)
+    .sort((a, b) => {
+      // Required first (both true here, but defensive)
+      if (a.required !== b.required) return a.required ? -1 : 1;
+      // Then largest gap first
+      return (b.targetValue - b.currentValue) - (a.targetValue - a.currentValue);
+    })
+    .slice(0, 3)
+    .map((m) => ({
+      dimension: m.dimension,
+      label: m.label,
+      currentValue: m.currentValue,
+      targetValue: m.targetValue,
+      action: m.action,
+    }));
+
+  return {
+    currentGate: fr.currentGate,
+    gateScore: fr.gateScore,
+    topUnmetMilestones: unmet,
+  };
+}
+
 /* ─── Default use-of-funds copy — safe when the founder hasn't filled one. */
 
 function defaultUseOfFunds(raiseAmountAud: number): string {
@@ -159,6 +223,8 @@ interface LoadedSvi {
   sector: string | null;
   signals: Record<string, unknown> | null;
   scoresForChecklist: Record<string, number>;
+  /** Raw analysis_json for passing to computeFundingReadiness. */
+  rawAnalysisJson: Record<string, unknown> | null;
 }
 
 async function loadLatestSvi(
@@ -247,6 +313,10 @@ async function loadLatestSvi(
         ? (analysis.signals as Record<string, unknown>)
         : null,
     scoresForChecklist,
+    rawAnalysisJson:
+      data.analysis_json && typeof data.analysis_json === "object"
+        ? (data.analysis_json as Record<string, unknown>)
+        : null,
   };
 }
 
@@ -453,6 +523,17 @@ export async function assemblePackData(
   // SVG hint so the section slot never leaves a gap.
   const tractionCohort = buildTractionCohortSection();
 
+  // Funding readiness — current gate, gate score, top 3 unmet milestones.
+  // computeFundingReadiness needs a SVIAnalysis-shaped object; we pass the
+  // raw analysis_json from the DB (which has dimensionScores) or fall back
+  // to a minimal shape derived from dimensionsMap.
+  const sviAnalysisForFunding = svi?.rawAnalysisJson
+    ? (svi.rawAnalysisJson as unknown as Parameters<typeof computeFundingReadiness>[0])
+    : svi
+    ? ({ dimensionScores: svi.dimensionsMap } as unknown as Parameters<typeof computeFundingReadiness>[0])
+    : null;
+  const fundingReadinessSection = buildFundingReadinessSection(sviAnalysisForFunding);
+
   // Team + cap-table + ask.
   const { members, founderName } = await loadTeam(userId);
   const capTable = await loadCapTable(userId, projectId);
@@ -498,6 +579,7 @@ export async function assemblePackData(
     esopEligibility,
     exitBenchmark,
     tractionCohort,
+    fundingReadiness: fundingReadinessSection,
     team: members,
     capTable,
     ask: {
