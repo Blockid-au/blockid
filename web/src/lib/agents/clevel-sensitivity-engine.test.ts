@@ -9,7 +9,7 @@
  * - Regression (nightly cron at scale)
  */
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, it, expect, beforeEach } from 'vitest';
 import {
   generateScenarios,
   generateScenarioValuation,
@@ -17,6 +17,9 @@ import {
   findBreakevenChurn,
   churnSensitivityPercentage,
   exportSensitivityAsMarkdown,
+  buildWaccSensitivityGrid,
+  computeUnitEconomics,
+  assessFundingReadiness,
   type CLevelValuationInput,
   type Scenario,
   type ScenarioAssumptions,
@@ -595,5 +598,161 @@ describe('clevel-sensitivity: Valuation Realism', () => {
     const highTable = buildSensitivityTable(highSVI, generateScenarios(highSVI));
 
     expect(highTable.baseValuationMid).toBeGreaterThan(lowTable.baseValuationMid);
+  });
+});
+
+// ─── v3.7.3 DCF Enhancements ───────────────────────────────────────────
+
+describe('DCF v3.7.3 enhancements', () => {
+  // ── buildWaccSensitivityGrid ─────────────────────────────────────────
+
+  it('grid is 3×3 with correct dimensions', () => {
+    const grid = buildWaccSensitivityGrid(MOCK_SEED_STARTUP);
+
+    expect(grid.waccValues).toHaveLength(3);
+    expect(grid.terminalGrowthValues).toHaveLength(3);
+    expect(grid.grid).toHaveLength(3);
+    grid.grid.forEach((row) => expect(row).toHaveLength(3));
+  });
+
+  it('center cell [1][1] matches base WACC=0.30 / tg=0.05', () => {
+    const grid = buildWaccSensitivityGrid(MOCK_SEED_STARTUP, [0.28, 0.30, 0.32], [0.04, 0.05, 0.06]);
+    const centerCell = grid.grid[1]![1]!;
+
+    expect(centerCell).toBeGreaterThan(0);
+    // waccDown2pct is the change from center to WACC=0.28; it should be positive (lower WACC → higher value)
+    expect(grid.sensitivityPct.waccDown2pct).toBeGreaterThan(0);
+  });
+
+  it('sensitivityPct.waccUp2pct is negative (higher WACC → lower valuation)', () => {
+    const grid = buildWaccSensitivityGrid(MOCK_SEED_STARTUP);
+
+    expect(grid.sensitivityPct.waccUp2pct).toBeLessThan(0);
+  });
+
+  it('sensitivityPct.terminalGrowthUp1pct is positive (higher terminal growth → higher valuation)', () => {
+    const grid = buildWaccSensitivityGrid(MOCK_SEED_STARTUP);
+
+    expect(grid.sensitivityPct.terminalGrowthUp1pct).toBeGreaterThan(0);
+  });
+
+  it('rangeAud.low < rangeAud.high', () => {
+    const grid = buildWaccSensitivityGrid(MOCK_SEED_STARTUP);
+
+    expect(grid.rangeAud.low).toBeLessThan(grid.rangeAud.high);
+  });
+
+  // ── computeUnitEconomics ──────────────────────────────────────────────
+
+  it('LTV increases as discount rate decreases', () => {
+    const result = computeUnitEconomics({
+      arpu: 500,
+      grossMarginPct: 0.72,
+      cac: 3_000,
+      churnRate: 0.05,
+      discountRates: [0.10, 0.15, 0.20],
+    });
+
+    const ltvs = result.ltvByDiscountRate.map((e) => e.ltv);
+    expect(ltvs[0]).toBeGreaterThan(ltvs[1]!);
+    expect(ltvs[1]).toBeGreaterThan(ltvs[2]!);
+  });
+
+  it('LTV:CAC ratio is > 1 with reasonable SaaS inputs', () => {
+    const result = computeUnitEconomics({
+      arpu: 500,
+      grossMarginPct: 0.72,
+      cac: 2_000,
+      churnRate: 0.03,
+      discountRates: [0.12],
+    });
+
+    expect(result.ltvByDiscountRate[0]!.ltvCacRatio).toBeGreaterThan(1);
+  });
+
+  it('CAC payback months is positive and scales with CAC', () => {
+    const lowCac = computeUnitEconomics({ arpu: 500, grossMarginPct: 0.72, cac: 1_000, churnRate: 0.05 });
+    const highCac = computeUnitEconomics({ arpu: 500, grossMarginPct: 0.72, cac: 4_000, churnRate: 0.05 });
+
+    expect(lowCac.cacPaybackMonths).toBeGreaterThan(0);
+    expect(highCac.cacPaybackMonths).toBeGreaterThan(lowCac.cacPaybackMonths);
+  });
+
+  it('paybackSensitivity has exactly 3 entries', () => {
+    const result = computeUnitEconomics({
+      arpu: 500,
+      grossMarginPct: 0.72,
+      cac: 3_000,
+      churnRate: 0.05,
+    });
+
+    expect(result.paybackSensitivity).toHaveLength(3);
+  });
+
+  it('unitMarginPerMonthAud equals arpu × grossMarginPct', () => {
+    const result = computeUnitEconomics({
+      arpu: 400,
+      grossMarginPct: 0.75,
+      cac: 2_000,
+      churnRate: 0.05,
+    });
+
+    expect(result.unitMarginPerMonthAud).toBeCloseTo(300, 5);
+  });
+
+  // ── assessFundingReadiness ────────────────────────────────────────────
+
+  it('Series A is not_ready for a pre-revenue startup', () => {
+    const report = assessFundingReadiness(MOCK_PRESEED_STARTUP, 110);
+    const seriesA = report.gates.find((g) => g.stage === 'series_a');
+
+    expect(seriesA?.band).toBe('not_ready');
+  });
+
+  it('Seed is ready for a basic seed-stage startup meeting all criteria', () => {
+    const readyInput: CLevelValuationInput = {
+      ...MOCK_SEED_STARTUP,
+      teamSize: 3,
+      stage: 3,
+      sviScore: 130,
+    };
+    const report = assessFundingReadiness(readyInput, 130);
+    const seed = report.gates.find((g) => g.stage === 'seed');
+
+    expect(seed?.band).toBe('ready');
+  });
+
+  it('gaps array is non-empty for not_ready stages', () => {
+    const report = assessFundingReadiness(MOCK_PRESEED_STARTUP, 110);
+    const seriesA = report.gates.find((g) => g.stage === 'series_a');
+
+    expect(seriesA?.gaps.length).toBeGreaterThan(0);
+  });
+
+  it('nextMilestones for Series A includes ARR milestone when pre-revenue', () => {
+    const report = assessFundingReadiness(MOCK_PRESEED_STARTUP, 110);
+    const seriesA = report.gates.find((g) => g.stage === 'series_a');
+    const hasArrMilestone = seriesA?.nextMilestones.some((m) => m.toLowerCase().includes('arr'));
+
+    expect(hasArrMilestone).toBe(true);
+  });
+
+  it('primaryUnlockStage is seed for a very early startup', () => {
+    const earlyInput: CLevelValuationInput = {
+      stage: 1,
+      teamSize: 1,
+      sviScore: 80,
+      mrrAud: 0,
+    };
+    const report = assessFundingReadiness(earlyInput, 80);
+
+    expect(report.primaryUnlockStage).toBe('seed');
+  });
+
+  it('overallReadinessScore is between 0 and 100', () => {
+    const report = assessFundingReadiness(MOCK_SEED_STARTUP, 145);
+
+    expect(report.overallReadinessScore).toBeGreaterThanOrEqual(0);
+    expect(report.overallReadinessScore).toBeLessThanOrEqual(100);
   });
 });
