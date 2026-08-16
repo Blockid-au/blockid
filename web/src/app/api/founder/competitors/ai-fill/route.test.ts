@@ -163,9 +163,9 @@ describe("POST /api/founder/competitors/ai-fill", () => {
     expect(res.status).toBe(200);
     const body = await res.json() as { ok: boolean; suggestions: Array<{ name: string; category: string }> };
     expect(body.ok).toBe(true);
-    // SaaS template contains Atlassian / Employment Hero / Visible.vc
+    // SaaS template uses generic category descriptions (compliance — no real company names)
     const names = body.suggestions.map((s) => s.name);
-    expect(names).toContain("Atlassian");
+    expect(names.length).toBeGreaterThan(0);
   });
 
   it("falls back to deterministic template when the LLM call itself throws", async () => {

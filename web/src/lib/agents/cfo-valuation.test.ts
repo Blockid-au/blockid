@@ -185,12 +185,12 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
       expect(check.sampleSize).toBeGreaterThan(0);
       expect(check.anchorExits.length).toBeGreaterThan(0);
       expect(check.anchorExits.length).toBeLessThanOrEqual(3);
-      // Anchor deals must be real AU tech exits from the fixture.
+      // Anchor exits use anonymized labels (compliance — no real company names in output).
       const anchorCompanies = check.anchorExits.map((a) => a.company);
-      const hasKnownAnchor = anchorCompanies.some((c) =>
-        /Atlassian|OpsGenie|Trello|Loom|Nitro|MYOB|Nearmap|Elmo|WiseTech|Xero/i.test(c)
+      const hasAnonymizedLabel = anchorCompanies.every((c) =>
+        /^AU \w+ exit \d+ \(\d{4}\)$/.test(c)
       );
-      expect(hasKnownAnchor).toBe(true);
+      expect(hasAnonymizedLabel).toBe(true);
       expect(check.disclaimer).toBe(AU_EXIT_DISCLAIMER);
     });
 
