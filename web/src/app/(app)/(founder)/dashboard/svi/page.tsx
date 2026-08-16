@@ -19,6 +19,7 @@ import { AntlerSignalsCard } from "@/components/dashboard/antler-signals-card";
 import { AcceleratorReadinessCard } from "@/components/dashboard/accelerator-readiness-card";
 import { TechIntelligenceRow } from "@/components/founder/tech-intelligence-row";
 import { FundingReadinessTile } from "@/components/workspace/funding-readiness-tile";
+import { SeriesAActionPlan } from "@/components/workspace/series-a-action-plan";
 import { computeFundingReadiness, type SVIAnalysis, type FundingReadiness } from "@/lib/svi-analysis";
 
 export const metadata: Metadata = {
@@ -345,6 +346,15 @@ export default async function SVIDashboardPage() {
             derived from computeFundingReadiness(analysis). ── */}
         {fundingReadiness && (
           <FundingReadinessTile fundingReadiness={fundingReadiness} />
+        )}
+
+        {/* ── Series A Action Plan — week-by-week roadmap from unmet gates ── */}
+        {fundingReadiness && (
+          <SeriesAActionPlan
+            fundingReadiness={fundingReadiness}
+            sviScore={analysisWithDelta.totalSVI}
+            stage={analysisWithDelta.stageLabel}
+          />
         )}
 
         {/* ── Chapter 5 cohort retention tile (P5-cohort-svi) — client-side
