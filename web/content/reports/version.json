@@ -1,30 +1,24 @@
 {
-  "version": "v3.0.0-phase6-core",
-  "updated_at": "2026-07-31T01:15:00Z",
-  "git_sha": "65fc1d98",
-  "release_id": "v3-master-upgrade-phase-1-6-core",
+  "version": "v3.6.1",
+  "updated_at": "2026-08-16T03:09:00Z",
+  "git_sha": "45e17b830",
+  "release_id": "v3.6.1-build-fix-404-fix",
   "shipped_summary": [
-    "Phase 1 — HeroV3 + EmotionalBand v3 messaging behind NEXT_PUBLIC_UPGRADE_V3 + SSO-aware CTA via readSignedInHint()",
-    "Phase 1 — Report paywall (migration 0270_report_orders 9-state) + /api/reports/checkout A$5.50 + /api/reports/redeem 200 credits + <ReportPaywallGate/>",
-    "Stage 3 — Stripe webhook report_order branch + 0272 queue + report-order-worker + /api/cron/report-order-drain (2 min)",
-    "Stage 3 — 4 solution pages + /business-id + sitemap + robots + /for/* → /solutions/* 301s + PersonaRail + JourneySidebar + TierGate + UpgradeChip",
-    "Stage 4 — /id/[slug] public verified profile (SEO-indexable) + migration 0273 + PII whitelist + JSON-LD + /embed/badge SVG",
-    "Stage 4 — Consent domain 0250 + consent_state_events + 0251 share_packages + 0252 revocations (BCR-004) + enforceConsent middleware",
-    "Phase 2 — 0202_business_profile VIEW + ABR adapter (JSONP + Zod) + verification-level engine + POST /api/verification/abr",
-    "Phase 3 — Evidence pipeline: 0210_evidence + 0211_evidence_versions + 0212_evidence_extractions + hash-verify + state-machine",
-    "Phase 4 — AI orchestration: 0230_prompt_versions + 0231_ai_runs + Zod contracts + prompt-registry canary→prod + callStructured",
-    "Phase 5 — Programme + marketplace + partner API: 0290 + 0291 + 0292 + verifyPartnerBearer + /api/v1/id/[slug]",
-    "Phase 6 — Unicorn framework: 0280_unicorn_stages + framework.ts + goals.ts + <UnicornPathDashboard/> + 2 nightly crons",
-    "Agent K (in flight) — reseller_promotion_codes v3 schema + IFV/DVL seed + resolvePromoCode runtime helper",
-    "Agent L (in flight) — 0295 reseller_startup_roster view + readResellerRoster helper",
-    "Agent M (in flight) — ?ref= deep-link capture + first-touch cookie + POST /api/reseller/validate-promo"
+    "v3.6.1 — Fix webpack build failures: add remotion/rspack/esbuild to serverExternalPackages",
+    "v3.6.1 — Fix marketing-footer.tsx: replace node:fs readFileSync with static JSON import (client bundle fix)",
+    "v3.6.0 — Fix 7 site-wide 404 pages: /register, /legal, /how-it-works, /reports/samples, /guide, /solutions, /index/listings",
+    "v3.6.0 — Fix all pre-existing TypeScript errors (zero errors for deploy gate)",
+    "v3.6.0 — Fix all vitest test failures (27,533 tests pass): cmo-market-research, cdo-data-quality, competitors/ai-fill mock, tier-nav golden snapshots",
+    "v3.6.0 — CAPITAL Funding Readiness scorecard: cfo-valuation.ts extended with scorecardMethod, auExitRealisationCheck, ESIC/RDTI uplift, AU benchmarks",
+    "v3.6.0 — CMO agent rewrite: AU_MARKET_DATA (7 keys), CONTENT_BENCHMARKS, generateGtmStrategy + generateCompetitorAnalysis async with AI + fallbacks",
+    "v3.5.x — Stripe+credits+UI upgrade: credit-reset cron fix, v2 SKU audit, full dashboard/email/PDF visual redesign with brand colors and charts"
   ],
   "task_ids": [
-    "N1 marketing roadmap.md rewritten for v3.0 phase 1-6 (docs/N1)",
-    "N2 CHANGELOG.md v3.0 entry — 8 shipped pillars + reseller promo landed state (docs/N2)",
-    "N3 /roadmap page RECENTLY_LANDED + IN_PROGRESS + HUMAN_BLOCKED refreshed to master plan (docs/N3)",
-    "N4 version.json bumped to v3.0.0-phase6-core + deploy-log v3-upgrade-milestone appended (docs/N4)",
-    "Master plan reference: /home/dovanlong/.claude/plans/h-y-k-t-h-p-n-ng-hazy-sutton.md"
+    "T-build-fix: serverExternalPackages + static JSON import for marketing-footer",
+    "T-404-fix: 7 missing pages created (register redirect, legal index, how-it-works, reports/samples redirect, guide index, solutions index, index/listings fail-soft)",
+    "T-test-fix: zero failures across 27533 vitest tests",
+    "T-ts-fix: zero TypeScript errors",
+    "T-capital-scorecard: CAPITAL Funding Readiness in cfo-valuation.ts"
   ],
-  "notes": "v3.0.0-phase6-core — v3 Master Upgrade Plan Phases 1-6 core landed across ~40 feat commits from 10+ parallel agents (2026-07-30 → 2026-07-31). Docs sync (N1-N4) reflects Business ID surface, verification ladder, evidence pipeline, AI orchestration, programme+marketplace, and Unicorn framework. Reseller promo/roster/attribution (Agents K/L/M) partial — Stripe checkout attribution + roster page + notes/activity migration (0296) still in flight. Human-blocked on CFO: migration 0271_grandfather_a149 and scripts/stripe/sync-plans.mjs live provisioning."
+  "notes": "v3.6.1 deployed 2026-08-16 — 11/11 CI gates passed (Playwright hydrated smoke). Fixes: webpack build crash (Remotion native binaries), node:fs in client bundle (marketing footer), 7 x 404 pages across public site. v3.6.0 delivered CAPITAL scorecard, CMO agent overhaul, full test suite green."
 }
