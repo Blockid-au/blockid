@@ -17,6 +17,7 @@ import {
   markWebhookEventProcessed,
 } from "@/lib/stripe/verify";
 import { FOUNDING_PROMO_END } from "@/lib/founding-promo";
+import { emitEvent } from "@/lib/analytics/server";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -370,6 +371,20 @@ export async function POST(request: Request) {
       `[blockid:stripe] activated plan "${planId}" for user ${userId}`,
     );
 
+    // CDO T-1009: checkout_completed → analytics_events → BQ pipeline.
+    void emitEvent({
+      name: "checkout_completed",
+      params: {
+        plan: planId,
+        user_id: userId,
+        session_id: session.id,
+        gross_aud_cents: session.amount_total ?? 0,
+      },
+      userId,
+      source: "webhook:stripe",
+      consentGranted: true,
+    });
+
     // Reseller founder-attribution linker — INSERTs a reseller_attribution
     // row keyed on stripe_session_id. Gated behind RESELLER_ATTRIBUTION_LINKER
     // for staged rollout (migration 0111 lands the UNIQUE constraint first).
@@ -472,6 +487,18 @@ export async function POST(request: Request) {
               trial_converted_at: null,
             })
             .eq("id", userId);
+          // CDO T-1009: trial_activated → analytics_events → BQ pipeline.
+          void emitEvent({
+            name: "trial_activated",
+            params: {
+              plan: planId,
+              user_id: userId,
+              ...(trialEnd ? { trial_end_at: trialEnd } : {}),
+            },
+            userId,
+            source: "webhook:stripe",
+            consentGranted: true,
+          });
         }
       } catch (err) {
         console.error(

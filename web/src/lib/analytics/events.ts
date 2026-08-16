@@ -48,7 +48,12 @@ export type AnalyticsEvent =
   | { name: "agent_invoke"; params: { agent: string; credits_spent: number; duration_ms?: number } }
   | { name: "cohort_action"; params: { cohort: string; action: string; detail?: Record<string, string | number | boolean> } }
   | { name: "investor_view_deal"; params: { deal_id: string; segment: UserSegment; source?: string } }
-  | { name: "session_start"; params: { segment: UserSegment; jurisdiction?: string; referrer?: string } };
+  | { name: "session_start"; params: { segment: UserSegment; jurisdiction?: string; referrer?: string } }
+  // ── SVI score pipeline (CDO T-1009 — BQ analytics export) ─────────────
+  | { name: "svi_score_computed"; params: { project_id: string; score: number; slug: string; user_id?: string } }
+  | { name: "investor_pack_generated"; params: { project_id: string; user_id: string; pages?: number } }
+  | { name: "trial_activated"; params: { plan: PlanCode; user_id: string; trial_end_at?: string } }
+  | { name: "checkout_completed"; params: { plan: PlanCode; user_id: string; session_id: string; gross_aud_cents?: number } };
 
 export type AnalyticsEventName = AnalyticsEvent["name"];
 
