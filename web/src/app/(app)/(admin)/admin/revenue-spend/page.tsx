@@ -72,7 +72,8 @@ export default async function AdminRevenueSpendPage() {
 
   if (supabase) {
     // Weekly revenue from stripe_webhook_events (last 12 weeks)
-    const { data: weekly } = await supabase.rpc("admin_weekly_revenue_12w").catch(() => ({ data: null }));
+    const rpcResult = await supabase.rpc("admin_weekly_revenue_12w");
+    const weekly = rpcResult.error ? null : rpcResult.data;
 
     // Fallback: manual query via .from() since RPC might not exist yet
     if (!weekly) {

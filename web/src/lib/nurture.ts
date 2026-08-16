@@ -37,7 +37,7 @@ export async function enqueueNurtureSequence(userId: string): Promise<void> {
 
     const { error } = await supabase
       .from("nurture_email_queue")
-      .insert(rows, { ignoreDuplicates: true } as { ignoreDuplicates: boolean });
+      .upsert(rows, { onConflict: "user_id,day", ignoreDuplicates: true });
 
     if (error) {
       console.error("[nurture] Failed to enqueue nurture sequence for", userId, error);
