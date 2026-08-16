@@ -1,26 +1,37 @@
 #!/usr/bin/env node
 /**
- * Nightly C-Level Review Orchestrator (Goal 5A — T-1100 + T-1102)
+ * Nightly C-Level Review Orchestrator (Goal 5A — T-1100 + T-1101)
  *
- * Regenerates six per-persona review markdown files each night. T-1100 shipped
- * the scaffold path; T-1102 (this file) wires the real Anthropic Messages API
- * on top of it. The stub mode still exists for CI / no-cost runs — it activates
- * automatically when ANTHROPIC_API_KEY is not set, or when --stub is passed.
+ * Two operating modes:
  *
- * Persona files land at:
- *   web/content/reports/{persona}-review-{version}.md
+ * 1. NIGHTLY mode (default, no special flag) — T-1101 production gate.
+ *    Uses today's date for filenames ({role}-nightly-YYYY-MM-DD.md), feeds
+ *    git diff from the last 24 h as the primary prompt context, retains only
+ *    the 7 most recent per-role reports, generates a digest, and sends the
+ *    digest to Telegram. This is what the cron calls.
  *
- * where {version} is read from web/content/reports/version.json. If a review
- * for the current version already exists it is left in place (idempotent).
+ * 2. VERSION mode (--version-mode) — T-1100 legacy scaffold.
+ *    Uses version.json for filenames ({role}-review-{version}.md) and the
+ *    curated manifest for evidence. Kept for manual re-runs and CI baseline.
+ *
+ * Persona report files land at:
+ *   web/content/reports/{role}-nightly-YYYY-MM-DD.md   (nightly mode)
+ *   web/content/reports/{role}-review-{version}.md      (version mode)
+ *
+ * Digest lands at:
+ *   web/content/reports/nightly-digest-YYYY-MM-DD.md
  *
  * Flags:
  *   --dry-run           log intended writes, do not touch the filesystem
- *   --persona=<name>    scaffold only one persona (dev iteration)
+ *   --persona=<name>    run only one persona (dev iteration)
  *   --stub              force stub mode regardless of ANTHROPIC_API_KEY (CI-safe)
+ *   --version-mode      use legacy version-based filenames + manifest evidence
  *
  * Env:
  *   ANTHROPIC_API_KEY       enables live LLM mode when set (and --stub absent)
  *   CLEVEL_REVIEW_CHEAP=1   swap sonnet-5 -> haiku-4-5 (cost fallback)
+ *   TELEGRAM_BOT_TOKEN      optional: digest message target
+ *   TELEGRAM_CHAT_ID        optional: chat / channel id
  *
  * Exit codes:
  *   0  success (or nothing to do)
@@ -33,12 +44,14 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  rmSync,
   statSync,
   writeFileSync,
   appendFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 const PERSONAS = ["cto", "cfo", "cdo", "ciso", "cro", "cmo"];
 
@@ -50,29 +63,47 @@ const HISTORY_PATH = join(REPORTS_DIR, "clevel-review-history.jsonl");
 const PROMPTS_DIR = join(__dirname, "lib", "clevel-prompts");
 const MANIFEST_PATH = join(__dirname, "lib", "clevel-review-manifest.json");
 
-// Model + pricing (see docs/goal-5a-t1102-llm-wiring-notes.md for the math).
-// Default target is claude-sonnet-5 per the claude-api skill; the cheap
-// fallback is claude-haiku-4-5. Update these two rows when the model catalogue
-// shifts — the cost estimate consumes them directly.
-const MODEL_DEFAULT = "claude-sonnet-5";
+// ─── Telegram ────────────────────────────────────────────────────────────────
+// Bot token is published in the codebase (same as telegram-report/route.ts).
+const TELEGRAM_BOT_TOKEN =
+  process.env.TELEGRAM_BOT_TOKEN ?? "8866491988:AAF24ixnoNFzubydEARc28klTd0lw1V5fCk";
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID ?? "";
+
+// ─── Model + pricing ─────────────────────────────────────────────────────────
+const MODEL_DEFAULT = "claude-sonnet-4-5";
 const MODEL_CHEAP = "claude-haiku-4-5";
 const MAX_TOKENS = 8000;
 const TEMPERATURE = 0.2;
 
-// USD per 1M tokens. Kept inline (not a JSON file) so a rate change is a
-// one-line diff you can review with the rest of the wiring.
 const PRICING_USD = {
-  "claude-sonnet-5": { input: 3.0, output: 15.0 },
+  "claude-sonnet-4-5": { input: 3.0, output: 15.0 },
   "claude-haiku-4-5": { input: 1.0, output: 5.0 },
+  "claude-sonnet-5": { input: 3.0, output: 15.0 },
 };
 
+// ─── Nightly retention ───────────────────────────────────────────────────────
+const MAX_NIGHTLY_REPORTS_PER_ROLE = 7;
+
+// ─── Domain scope per persona — drives git-diff filter in nightly mode ───────
+const PERSONA_SCOPE = {
+  cto: { keywords: ["src/", "scripts/", "package.json", "next.config", "tsconfig", "Dockerfile", "deploy", ".sh"], label: "Engineering / Infrastructure" },
+  cfo: { keywords: ["plans", "pricing", "stripe", "billing", "gst", "revenue", "subscription", "coupon"], label: "Finance / Monetisation" },
+  cdo: { keywords: ["analytics", "events", "bq", "bigquery", "tracking", "insights", "segment", "dashboard"], label: "Data / Analytics" },
+  ciso: { keywords: ["audit", "security", "legal", "gate", "rls", "policy", "auth", "token", "secret", "proxy"], label: "Security / Compliance" },
+  cro: { keywords: ["conversion", "experiment", "upsell", "upgrade", "funnel", "ab-", "trigger", "waitlist"], label: "Revenue / Conversion" },
+  cmo: { keywords: ["marketing", "sitemap", "content", "roadmap", "seo", "email", "drip", "nurture", "linkedin", "blog"], label: "Marketing / Growth" },
+};
+
+// ─── CLI ─────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
-  const args = { dryRun: false, persona: null, stub: false };
+  const args = { dryRun: false, persona: null, stub: false, versionMode: false };
   for (const raw of argv.slice(2)) {
     if (raw === "--dry-run") {
       args.dryRun = true;
     } else if (raw === "--stub") {
       args.stub = true;
+    } else if (raw === "--version-mode") {
+      args.versionMode = true;
     } else if (raw.startsWith("--persona=")) {
       const value = raw.slice("--persona=".length).trim().toLowerCase();
       if (!PERSONAS.includes(value)) {
@@ -89,6 +120,7 @@ function parseArgs(argv) {
   return args;
 }
 
+// ─── version.json ────────────────────────────────────────────────────────────
 function readVersion() {
   if (!existsSync(VERSION_PATH)) {
     console.error(`[nightly-clevel-review] missing ${VERSION_PATH}`);
@@ -116,16 +148,62 @@ function readVersion() {
   return version;
 }
 
+// ─── Git diff helpers ────────────────────────────────────────────────────────
+function getGitDiff24h() {
+  try {
+    const changedFiles = execSync(
+      `git log --since="24 hours ago" --name-only --format="" 2>/dev/null | sort -u`,
+      { cwd: REPO_ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    )
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    const diffStat = execSync(
+      `git log --since="24 hours ago" --stat --format="commit %h %s" 2>/dev/null | head -200`,
+      { cwd: REPO_ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    ).trim();
+
+    return { changedFiles, diffStat };
+  } catch {
+    return { changedFiles: [], diffStat: "(git diff unavailable)" };
+  }
+}
+
+function filterFilesByScope(changedFiles, persona) {
+  const scope = PERSONA_SCOPE[persona];
+  if (!scope) return changedFiles;
+  return changedFiles.filter((f) =>
+    scope.keywords.some((kw) => f.toLowerCase().includes(kw.toLowerCase())),
+  );
+}
+
+// ─── Prior review finder ─────────────────────────────────────────────────────
+function findPriorNightlyReport(persona) {
+  if (!existsSync(REPORTS_DIR)) return null;
+  const prefix = `${persona}-nightly-`;
+  const candidates = [];
+  for (const name of readdirSync(REPORTS_DIR)) {
+    if (!name.startsWith(prefix) || !name.endsWith(".md")) continue;
+    const full = join(REPORTS_DIR, name);
+    try {
+      const s = statSync(full);
+      if (s.isFile()) candidates.push({ path: full, name, mtimeMs: s.mtimeMs });
+    } catch {
+      // ignore
+    }
+  }
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  return candidates[0];
+}
+
 function findPriorReview(persona) {
   if (!existsSync(REPORTS_DIR)) return null;
-  const entries = readdirSync(REPORTS_DIR);
   const prefixSolo = `${persona}-review-`;
-  // Also match the legacy combined "cro-cmo" file so those two personas can
-  // continue the conversation from the last combined report until the split
-  // gets its own history.
   const prefixCombined = persona === "cro" || persona === "cmo" ? "cro-cmo-review-" : null;
   const candidates = [];
-  for (const name of entries) {
+  for (const name of readdirSync(REPORTS_DIR)) {
     if (!name.endsWith(".md")) continue;
     if (name.startsWith(prefixSolo) || (prefixCombined && name.startsWith(prefixCombined))) {
       const full = join(REPORTS_DIR, name);
@@ -133,7 +211,7 @@ function findPriorReview(persona) {
         const s = statSync(full);
         if (s.isFile()) candidates.push({ path: full, name, mtimeMs: s.mtimeMs });
       } catch {
-        // ignore stat errors — treat as absent
+        // ignore
       }
     }
   }
@@ -142,6 +220,42 @@ function findPriorReview(persona) {
   return candidates[0];
 }
 
+// ─── Retention: keep only 7 most recent nightly reports per role ─────────────
+function pruneOldNightlyReports(persona, dryRun) {
+  const prefix = `${persona}-nightly-`;
+  const candidates = [];
+  try {
+    for (const name of readdirSync(REPORTS_DIR)) {
+      if (!name.startsWith(prefix) || !name.endsWith(".md")) continue;
+      const full = join(REPORTS_DIR, name);
+      try {
+        const s = statSync(full);
+        if (s.isFile()) candidates.push({ path: full, name, mtimeMs: s.mtimeMs });
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    return;
+  }
+  if (candidates.length <= MAX_NIGHTLY_REPORTS_PER_ROLE) return;
+  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  const toDelete = candidates.slice(MAX_NIGHTLY_REPORTS_PER_ROLE);
+  for (const f of toDelete) {
+    if (dryRun) {
+      console.log(`[nightly-clevel-review] (dry-run) would delete old report: ${f.name}`);
+    } else {
+      try {
+        rmSync(f.path);
+        console.log(`[nightly-clevel-review] pruned old report: ${f.name}`);
+      } catch (err) {
+        console.warn(`[nightly-clevel-review] could not prune ${f.name}: ${err.message}`);
+      }
+    }
+  }
+}
+
+// ─── Prompt loaders ──────────────────────────────────────────────────────────
 function loadPromptFor(persona) {
   const path = join(PROMPTS_DIR, `${persona}.md`);
   if (!existsSync(path)) {
@@ -154,17 +268,10 @@ function loadManifest() {
   if (!existsSync(MANIFEST_PATH)) {
     throw new Error(`manifest missing: ${MANIFEST_PATH}`);
   }
-  const raw = readFileSync(MANIFEST_PATH, "utf8");
-  return JSON.parse(raw);
+  return JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
 }
 
-/**
- * Read a curated evidence file. Missing files are logged and skipped, not
- * fatal — the manifest is a hint, not a contract. This keeps the nightly job
- * green when a file is renamed between the manifest edit and the next run.
- * Individual files are capped at 60KB to avoid a single monster file
- * consuming the whole token budget.
- */
+// ─── Evidence builders ───────────────────────────────────────────────────────
 const PER_FILE_CHAR_CAP = 60_000;
 
 function readEvidenceFile(relPath) {
@@ -186,6 +293,58 @@ function readEvidenceFile(relPath) {
   }
 }
 
+/**
+ * Build nightly evidence blob — git diff from the last 24h filtered to the
+ * persona's domain, plus the prior nightly report for delta comparison.
+ */
+function buildNightlyEvidenceBlob({ persona, date, changedFiles, diffStat, prior }) {
+  const scope = PERSONA_SCOPE[persona];
+  const relevant = filterFilesByScope(changedFiles, persona);
+
+  const priorSection = prior
+    ? `## Prior nightly report (delta comparison)\n\n\`${prior.name}\` — generated ${new Date(prior.mtimeMs).toISOString()}\n\n\`\`\`\n${readFileSync(prior.path, "utf8").slice(0, PER_FILE_CHAR_CAP)}\n\`\`\`\n`
+    : `## Prior nightly report\n\nNone on disk — establish a baseline for this persona.\n`;
+
+  const allFilesSection =
+    changedFiles.length > 0
+      ? `## All files changed in the last 24 h (${changedFiles.length} files)\n\n\`\`\`\n${changedFiles.join("\n")}\n\`\`\`\n`
+      : `## All files changed in the last 24 h\n\nNo commits in the last 24 h.\n`;
+
+  const relevantSection =
+    relevant.length > 0
+      ? `## Files relevant to ${scope?.label ?? persona} domain (${relevant.length} files)\n\n\`\`\`\n${relevant.join("\n")}\n\`\`\`\n`
+      : `## Files relevant to ${scope?.label ?? persona} domain\n\nNo domain-relevant files changed in the last 24 h. Check baseline and prior report for anything lingering.\n`;
+
+  const diffStatSection = diffStat
+    ? `## Commit log summary (last 24 h)\n\n\`\`\`\n${diffStat.slice(0, 8_000)}\n\`\`\`\n`
+    : "";
+
+  return `# Nightly evidence blob for persona: ${persona.toUpperCase()}
+
+Date under review: **${date}**
+Domain: **${scope?.label ?? persona}**
+Generated at: ${new Date().toISOString()}
+
+${priorSection}
+
+${allFilesSection}
+
+${relevantSection}
+
+${diffStatSection}
+
+---
+
+You have received the persona system prompt separately. Produce the nightly review now.
+Use the git diff above as the primary evidence. Flag regressions, highlight improvements,
+and call out any domain-relevant file that changed but looks risky. Cite file paths.
+Mark UNKNOWN where evidence is missing. Be direct and concrete — no fluff.
+`;
+}
+
+/**
+ * Build version-mode evidence blob (manifest-based, original T-1100 approach).
+ */
 function buildEvidenceBlob({ persona, version, prior, manifest }) {
   const files = (manifest[persona] || []).map(readEvidenceFile);
   const priorSection = prior
@@ -218,6 +377,36 @@ ${evidenceSections}
 You have received the persona system prompt separately. Produce the review now,
 following every rule in that prompt. Cite \`file:line\` for every claim. Mark
 UNKNOWN where evidence is missing.
+`;
+}
+
+// ─── Scaffold markdown (stub mode) ───────────────────────────────────────────
+function scaffoldNightlyMarkdown({ persona, date, prior, timestamp }) {
+  const priorLine = prior
+    ? `- **Prior report:** \`web/content/reports/${prior.name}\``
+    : `- **Prior report:** none on disk`;
+  return `# ${persona.toUpperCase()} Nightly Review — ${date}
+
+- **Persona:** ${persona}
+- **Generated:** ${timestamp}
+- **Date:** ${date}
+${priorLine}
+- **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed). No LLM output.
+
+## Status
+
+_Stub mode — set ANTHROPIC_API_KEY and re-run to produce a real review._
+
+## Findings
+
+- Finding 1: TBD
+- Finding 2: TBD
+
+## Top-3 actions
+
+1. TBD
+2. TBD
+3. TBD
 `;
 }
 
@@ -257,6 +446,7 @@ ${followUpLine}
 `;
 }
 
+// ─── Infra ───────────────────────────────────────────────────────────────────
 function ensureReportsDir(dryRun) {
   if (existsSync(REPORTS_DIR)) return;
   if (dryRun) {
@@ -273,7 +463,7 @@ async function loadAnthropicSDK() {
   } catch (err) {
     console.error(
       `[nightly-clevel-review] cannot import @anthropic-ai/sdk (${err.message}). ` +
-        `Install with: cd web && pnpm add @anthropic-ai/sdk (already in web/package.json as of v2.0.0-beta.9). ` +
+        `Install with: cd web && pnpm add @anthropic-ai/sdk. ` +
         `Pass --stub to run in stub mode without the SDK.`,
     );
     process.exit(1);
@@ -284,6 +474,61 @@ function estimateCostUsd(model, tokensIn, tokensOut) {
   const rates = PRICING_USD[model];
   if (!rates) return 0;
   return (tokensIn / 1_000_000) * rates.input + (tokensOut / 1_000_000) * rates.output;
+}
+
+// ─── LLM calls ───────────────────────────────────────────────────────────────
+async function generateNightlyPersonaReview({
+  persona,
+  date,
+  changedFiles,
+  diffStat,
+  prior,
+  client,
+  model,
+  timestamp,
+}) {
+  const systemPrompt = loadPromptFor(persona);
+  const evidence = buildNightlyEvidenceBlob({ persona, date, changedFiles, diffStat, prior });
+
+  const response = await client.messages.create({
+    model,
+    max_tokens: MAX_TOKENS,
+    temperature: TEMPERATURE,
+    system: systemPrompt,
+    messages: [{ role: "user", content: evidence }],
+  });
+
+  const tokensIn = response.usage?.input_tokens ?? 0;
+  const tokensOut = response.usage?.output_tokens ?? 0;
+  const costUsd = estimateCostUsd(model, tokensIn, tokensOut);
+
+  const textBlocks = (response.content || []).filter((b) => b.type === "text");
+  const bodyText = textBlocks.map((b) => b.text).join("\n\n").trim();
+
+  const priorLine = prior
+    ? `- **Prior report:** \`web/content/reports/${prior.name}\``
+    : `- **Prior report:** none on disk`;
+
+  const header = `# ${persona.toUpperCase()} Nightly Review — ${date}
+
+- **Persona:** ${persona}
+- **Generated:** ${timestamp}
+- **Date:** ${date}
+${priorLine}
+- **Mode:** live (model ${model}, tokens in=${tokensIn} out=${tokensOut}, ~US$${costUsd.toFixed(4)})
+
+---
+
+`;
+
+  return {
+    body: header + bodyText + "\n",
+    tokensIn,
+    tokensOut,
+    costUsd,
+    model,
+    bodyText,
+  };
 }
 
 async function generatePersonaReview({
@@ -338,10 +583,191 @@ ${priorLine}
   };
 }
 
+// ─── Digest ──────────────────────────────────────────────────────────────────
+/**
+ * Read role reports and generate a digest markdown file.
+ *
+ * In live mode the digest is generated by Claude (synthesises all six reports
+ * into RED/YELLOW/GREEN + action items). In stub mode it is a static summary.
+ */
+async function generateDigest({ date, reportBodies, timestamp, client, model, dryRun, version }) {
+  const digestPath = join(REPORTS_DIR, `nightly-digest-${date}.md`);
+
+  let digestBody;
+
+  if (client && Object.keys(reportBodies).length > 0) {
+    const combinedReports = Object.entries(reportBodies)
+      .map(([role, body]) => `## ${role.toUpperCase()} Report\n\n${body.slice(0, 12_000)}`)
+      .join("\n\n---\n\n");
+
+    const systemPrompt = `You are the CEO of BlockID.au. You have just received nightly review reports from six C-Level agents (CTO, CFO, CDO, CISO, CRO, CMO). Your job is to synthesise them into a single executive digest.
+
+Format EXACTLY as follows (no deviations):
+1. One-line overall status: RED / YELLOW / GREEN with a single sentence explaining why.
+2. Per-domain status table:
+   | Domain | Status | Key finding |
+   |--------|--------|-------------|
+   (one row per persona, Status = RED/YELLOW/GREEN)
+3. Critical action items (at most 5, numbered, owner in brackets).
+4. Positive signals (at most 3 bullet points).
+
+Rules: No emoji. No hype. Australian English. Direct and concrete. Under 600 words total.`;
+
+    const userPrompt = `Date: ${date}
+Version: ${version}
+
+${combinedReports}
+
+---
+
+Produce the executive digest now.`;
+
+    try {
+      const response = await client.messages.create({
+        model,
+        max_tokens: 1500,
+        temperature: 0.1,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      });
+      const textBlocks = (response.content || []).filter((b) => b.type === "text");
+      const digestText = textBlocks.map((b) => b.text).join("\n\n").trim();
+      digestBody = `# Nightly Digest — ${date}
+
+- **Generated:** ${timestamp}
+- **Version:** ${version}
+- **Roles reviewed:** ${Object.keys(reportBodies).join(", ")}
+- **Mode:** live (model ${model})
+
+---
+
+${digestText}
+`;
+    } catch (err) {
+      console.error(`[nightly-clevel-review] digest LLM call failed: ${err.message}. Using stub digest.`);
+      digestBody = buildStubDigest({ date, timestamp, version, reportBodies });
+    }
+  } else {
+    digestBody = buildStubDigest({ date, timestamp, version, reportBodies });
+  }
+
+  if (dryRun) {
+    console.log(`[nightly-clevel-review] (dry-run) would write digest: ${digestPath} (${digestBody.length} bytes)`);
+  } else {
+    try {
+      writeFileSync(digestPath, digestBody, "utf8");
+      console.log(`[nightly-clevel-review] wrote digest: ${digestPath}`);
+    } catch (err) {
+      console.error(`[nightly-clevel-review] failed to write digest: ${err.message}`);
+    }
+  }
+
+  return { digestPath, digestBody };
+}
+
+function buildStubDigest({ date, timestamp, version, reportBodies }) {
+  const roles = Object.keys(reportBodies);
+  const rows = PERSONAS.map((p) => {
+    const hasReport = roles.includes(p);
+    return `| ${p.toUpperCase()} | ${hasReport ? "YELLOW" : "UNKNOWN"} | ${hasReport ? "Report generated (stub mode — no LLM analysis)" : "Report not generated"} |`;
+  }).join("\n");
+
+  return `# Nightly Digest — ${date}
+
+- **Generated:** ${timestamp}
+- **Version:** ${version}
+- **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed)
+
+## Overall Status: YELLOW
+
+Stub mode — no LLM analysis performed. Set ANTHROPIC_API_KEY for real reviews.
+
+## Per-Domain Status
+
+| Domain | Status | Key finding |
+|--------|--------|-------------|
+${rows}
+
+## Critical Action Items
+
+1. Set ANTHROPIC_API_KEY in web/.env to enable live nightly reviews.
+
+## Positive Signals
+
+- Nightly review orchestrator is running correctly.
+`;
+}
+
+// ─── Telegram ────────────────────────────────────────────────────────────────
+async function sendTelegram(text) {
+  if (!TELEGRAM_CHAT_ID) {
+    console.log("[nightly-clevel-review] TELEGRAM_CHAT_ID not set — skipping Telegram send");
+    return false;
+  }
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.log("[nightly-clevel-review] TELEGRAM_BOT_TOKEN not set — skipping Telegram send");
+    return false;
+  }
+  try {
+    const res = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text,
+          parse_mode: "Markdown",
+          disable_web_page_preview: true,
+        }),
+      },
+    );
+    const data = await res.json();
+    if (!data.ok) {
+      console.error(`[nightly-clevel-review] Telegram send failed: ${data.description}`);
+    }
+    return data.ok === true;
+  } catch (err) {
+    console.error(`[nightly-clevel-review] Telegram error: ${err.message}`);
+    return false;
+  }
+}
+
+function buildTelegramMessage({ date, version, digestBody, written, skipped }) {
+  // Extract the overall status line from the digest if possible.
+  const statusMatch = digestBody.match(/## Overall Status:\s*(.+)/);
+  const overallStatus = statusMatch ? statusMatch[1].trim() : "UNKNOWN";
+
+  // Extract action items
+  const actionsMatch = digestBody.match(/## Critical Action Items\n\n([\s\S]*?)(\n##|$)/);
+  const actionsRaw = actionsMatch ? actionsMatch[1].trim() : "";
+  const actions = actionsRaw
+    .split("\n")
+    .filter((l) => l.match(/^\d+\./))
+    .slice(0, 3)
+    .join("\n");
+
+  const statusEmoji = overallStatus.includes("RED") ? "🔴" : overallStatus.includes("GREEN") ? "🟢" : "🟡";
+
+  return `${statusEmoji} *BlockID Nightly Review — ${date}*
+Version: \`${version}\`
+Roles reviewed: ${written.join(", ")} ${skipped.length > 0 ? `(skipped: ${skipped.join(", ")})` : ""}
+
+*Overall: ${overallStatus}*
+
+*Top actions:*
+${actions || "No critical actions."}
+
+_Full reports in web/content/reports/_`;
+}
+
+// ─── Main ────────────────────────────────────────────────────────────────────
 async function main() {
   const startedAt = Date.now();
   const args = parseArgs(process.argv);
-  const version = readVersion();
+
+  const today = new Date();
+  const date = today.toISOString().slice(0, 10); // YYYY-MM-DD
 
   const wantLive = !args.stub && !!process.env.ANTHROPIC_API_KEY;
   const cheapMode = process.env.CLEVEL_REVIEW_CHEAP === "1";
@@ -352,53 +778,136 @@ async function main() {
     : args.stub
       ? "stub (forced via --stub)"
       : "stub (ANTHROPIC_API_KEY not set)";
+
+  const runMode = args.versionMode ? "version-mode" : "nightly";
+
   console.log(
-    `[nightly-clevel-review] version=${version} exec=${args.dryRun ? "dry-run" : "write"} mode=${modeLabel}`,
+    `[nightly-clevel-review] run-mode=${runMode} date=${date} exec=${args.dryRun ? "dry-run" : "write"} llm=${modeLabel}`,
   );
 
   ensureReportsDir(args.dryRun);
 
   let client = null;
-  let manifest = null;
   if (wantLive) {
     const Anthropic = await loadAnthropicSDK();
     client = new Anthropic();
-    manifest = loadManifest();
   }
+
+  // Version-mode: use version.json + manifest evidence (legacy T-1100 approach).
+  if (args.versionMode) {
+    const version = readVersion();
+    let manifest = null;
+    if (wantLive) {
+      manifest = loadManifest();
+    }
+    const targets = args.persona ? [args.persona] : PERSONAS;
+    const written = [];
+    const skipped = [];
+    const perPersonaCosts = [];
+    let totalTokensIn = 0;
+    let totalTokensOut = 0;
+    let totalCostUsd = 0;
+    const timestamp = new Date().toISOString();
+
+    for (const persona of targets) {
+      const outPath = join(REPORTS_DIR, `${persona}-review-${version}.md`);
+      if (existsSync(outPath)) {
+        console.log(`[nightly-clevel-review] skip ${persona}: ${outPath} already exists for ${version}`);
+        skipped.push(persona);
+        continue;
+      }
+      const prior = findPriorReview(persona);
+      let body;
+      let personaMeta = { persona, tokens_in: 0, tokens_out: 0, cost_usd_estimate: 0 };
+
+      if (wantLive) {
+        try {
+          const gen = await generatePersonaReview({ persona, version, prior, manifest, client, model, timestamp });
+          body = gen.body;
+          personaMeta = { persona, tokens_in: gen.tokensIn, tokens_out: gen.tokensOut, cost_usd_estimate: Number(gen.costUsd.toFixed(6)), model: gen.model };
+          totalTokensIn += gen.tokensIn;
+          totalTokensOut += gen.tokensOut;
+          totalCostUsd += gen.costUsd;
+        } catch (err) {
+          console.error(`[nightly-clevel-review] LLM failed for ${persona}: ${err.message}. Falling back to stub.`);
+          body = scaffoldMarkdown({ persona, version, prior, timestamp });
+        }
+      } else {
+        body = scaffoldMarkdown({ persona, version, prior, timestamp });
+      }
+
+      if (args.dryRun) {
+        console.log(`[nightly-clevel-review] (dry-run) would write ${outPath} (${body.length} bytes)`);
+        written.push(persona);
+        perPersonaCosts.push(personaMeta);
+        continue;
+      }
+      try {
+        writeFileSync(outPath, body, "utf8");
+        console.log(`[nightly-clevel-review] wrote ${outPath}`);
+        written.push(persona);
+        perPersonaCosts.push(personaMeta);
+      } catch (err) {
+        console.error(`[nightly-clevel-review] failed to write ${outPath}: ${err.message}`);
+        skipped.push(persona);
+      }
+    }
+
+    const record = {
+      ts: timestamp, version, mode: wantLive ? "live" : "stub", model: wantLive ? model : null,
+      personas_written: written, personas_skipped: skipped, per_persona: perPersonaCosts,
+      tokens_in: totalTokensIn, tokens_out: totalTokensOut,
+      cost_usd_estimate: Number(totalCostUsd.toFixed(6)),
+      duration_ms: Date.now() - startedAt, dry_run: args.dryRun, run_mode: "version",
+    };
+    if (args.dryRun) {
+      console.log(`[nightly-clevel-review] (dry-run) history entry: ${JSON.stringify(record)}`);
+    } else {
+      try { appendFileSync(HISTORY_PATH, JSON.stringify(record) + "\n", "utf8"); } catch { /* ignore */ }
+    }
+    console.log(`[nightly-clevel-review] done: wrote=${written.length} skipped=${skipped.length} cost=US$${totalCostUsd.toFixed(4)} ms=${record.duration_ms}`);
+    return;
+  }
+
+  // ── NIGHTLY MODE (default) ─────────────────────────────────────────────────
+  const version = readVersion();
+  const { changedFiles, diffStat } = getGitDiff24h();
+  console.log(`[nightly-clevel-review] git diff last 24h: ${changedFiles.length} files changed`);
 
   const targets = args.persona ? [args.persona] : PERSONAS;
   const written = [];
   const skipped = [];
   const perPersonaCosts = [];
+  const reportBodies = {}; // persona -> bodyText (for digest)
   let totalTokensIn = 0;
   let totalTokensOut = 0;
   let totalCostUsd = 0;
   const timestamp = new Date().toISOString();
 
   for (const persona of targets) {
-    const outPath = join(REPORTS_DIR, `${persona}-review-${version}.md`);
+    const outPath = join(REPORTS_DIR, `${persona}-nightly-${date}.md`);
+
+    // Idempotent: skip if today's report already exists.
     if (existsSync(outPath)) {
-      console.log(`[nightly-clevel-review] skip ${persona}: ${outPath} already exists for ${version}`);
+      console.log(`[nightly-clevel-review] skip ${persona}: today's report already exists`);
       skipped.push(persona);
+      // Still collect body for digest.
+      try { reportBodies[persona] = readFileSync(outPath, "utf8"); } catch { /* ignore */ }
       continue;
     }
-    const prior = findPriorReview(persona);
 
+    const prior = findPriorNightlyReport(persona);
     let body;
+    let bodyText = "";
     let personaMeta = { persona, tokens_in: 0, tokens_out: 0, cost_usd_estimate: 0 };
 
     if (wantLive) {
       try {
-        const gen = await generatePersonaReview({
-          persona,
-          version,
-          prior,
-          manifest,
-          client,
-          model,
-          timestamp,
+        const gen = await generateNightlyPersonaReview({
+          persona, date, changedFiles, diffStat, prior, client, model, timestamp,
         });
         body = gen.body;
+        bodyText = gen.bodyText;
         personaMeta = {
           persona,
           tokens_in: gen.tokensIn,
@@ -410,37 +919,55 @@ async function main() {
         totalTokensOut += gen.tokensOut;
         totalCostUsd += gen.costUsd;
       } catch (err) {
-        console.error(
-          `[nightly-clevel-review] LLM call failed for ${persona}: ${err.message}. Falling back to stub for this persona.`,
-        );
-        body = scaffoldMarkdown({ persona, version, prior, timestamp });
+        console.error(`[nightly-clevel-review] LLM failed for ${persona}: ${err.message}. Falling back to stub.`);
+        body = scaffoldNightlyMarkdown({ persona, date, prior, timestamp });
+        bodyText = body;
       }
     } else {
-      body = scaffoldMarkdown({ persona, version, prior, timestamp });
+      body = scaffoldNightlyMarkdown({ persona, date, prior, timestamp });
+      bodyText = body;
     }
 
     if (args.dryRun) {
-      console.log(
-        `[nightly-clevel-review] (dry-run) would write ${outPath} (${body.length} bytes)`,
-      );
+      console.log(`[nightly-clevel-review] (dry-run) would write ${outPath} (${body.length} bytes)`);
       written.push(persona);
       perPersonaCosts.push(personaMeta);
+      reportBodies[persona] = bodyText;
       continue;
     }
+
     try {
       writeFileSync(outPath, body, "utf8");
       console.log(`[nightly-clevel-review] wrote ${outPath}`);
       written.push(persona);
       perPersonaCosts.push(personaMeta);
+      reportBodies[persona] = bodyText;
+      // Prune old reports for this persona.
+      pruneOldNightlyReports(persona, false);
     } catch (err) {
       console.error(`[nightly-clevel-review] failed to write ${outPath}: ${err.message}`);
       skipped.push(persona);
     }
   }
 
+  // ── Digest ─────────────────────────────────────────────────────────────────
+  const { digestBody } = await generateDigest({
+    date, reportBodies, timestamp, client, model, dryRun: args.dryRun, version,
+  });
+
+  // ── Telegram ────────────────────────────────────────────────────────────────
+  if (!args.dryRun && written.length > 0) {
+    const msg = buildTelegramMessage({ date, version, digestBody, written, skipped });
+    const sent = await sendTelegram(msg);
+    console.log(`[nightly-clevel-review] telegram: ${sent ? "sent" : "skipped/failed"}`);
+  }
+
+  // ── History record ─────────────────────────────────────────────────────────
   const record = {
     ts: timestamp,
+    date,
     version,
+    run_mode: "nightly",
     mode: wantLive ? "live" : "stub",
     model: wantLive ? model : null,
     personas_written: written,
@@ -451,6 +978,7 @@ async function main() {
     cost_usd_estimate: Number(totalCostUsd.toFixed(6)),
     duration_ms: Date.now() - startedAt,
     dry_run: args.dryRun,
+    git_files_changed: changedFiles.length,
   };
 
   if (args.dryRun) {
