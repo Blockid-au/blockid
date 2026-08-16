@@ -49,6 +49,7 @@ import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
 import { computePhaseGate, topBlockers, type SviDimension } from "@/lib/growth/phase-gate";
 import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
+import { getCompletedOnboardingSteps } from "@/lib/onboarding-steps";
 
 export const dynamic = "force-dynamic";
 
@@ -757,8 +758,11 @@ export default async function DashboardPage({
   // Reseller sandbox flag — controls the persistent AUP banner (CLO D4-CLO-06).
   const isSandbox = await getCurrentProjectIsSandbox();
 
+  // T_ONBOARD_0001 — 12-step investor-readiness progress bar signals.
+  const completedOnboardingSteps = await getCompletedOnboardingSteps(user.id);
+
   return (
-    <WorkspaceLayout user={user} startupName={startupName} currentPhase={phase} isSandbox={isSandbox}>
+    <WorkspaceLayout user={user} startupName={startupName} currentPhase={phase} isSandbox={isSandbox} completedOnboardingSteps={completedOnboardingSteps}>
       <PageTracker page="dashboard" />
       {sp.onboarding === "complete" && <OnboardingWelcomeModal />}
 
