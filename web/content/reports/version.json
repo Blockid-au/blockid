@@ -1,9 +1,10 @@
 {
-  "version": "v3.6.7",
-  "updated_at": "2026-08-16T07:45:00Z",
+  "version": "v3.6.8",
+  "updated_at": "2026-08-16T07:40:00Z",
   "git_sha": "188a69dc1",
-  "release_id": "v3.6.7-startup-quality",
+  "release_id": "v3.6.8-compliance",
   "shipped_summary": [
+    "v3.6.8 — compliance: strip real startup names from all AI analysis output (cfo-valuation, cmo-market-research, au-comparable-raises, au-comparables)",
     "v3.6.7 — T_ONBOARD_0001: 12-step onboarding progress bar in workspace (6 phases, dismissible, DB-backed completion detection)",
     "v3.6.7 — T_REPORT_ARCHIVE: PDF report history + re-download (investor packs + assembled reports archive in workspace/reports + investor-pack page)",
     "v3.6.7 — T_SERIES_A: Week-by-week Series A action plan (timeline phases: Now/Month1/Month2-3, gap-sorted milestones, gate unlock indicators)",
