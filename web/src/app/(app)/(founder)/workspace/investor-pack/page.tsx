@@ -124,6 +124,78 @@ async function loadOverview(userId: string, projectId: string | null): Promise<{
 
   return { startupName, sviGrade, lastGeneratedAt, lastShareId, lastDownloadUrl };
 }
+// v3.7.1 — Fetch the pinned forecast + exit scenario names so the pack page
+// shows what will land in the generated PDF before the founder clicks Generate.
+async function loadPinnedArtefacts(
+  userId: string,
+  projectId: string | null,
+): Promise<{
+  pinnedForecast: { id: string; name: string; scenario: string } | null;
+  pinnedExit: { id: string; scenario_name: string; exit_type: string } | null;
+}> {
+  const admin = getSupabaseAdmin();
+  if (!admin) return { pinnedForecast: null, pinnedExit: null };
+
+  let pinnedForecast: { id: string; name: string; scenario: string } | null = null;
+  let pinnedExit:
+    | { id: string; scenario_name: string; exit_type: string }
+    | null = null;
+
+  if (projectId) {
+    try {
+      const { data } = await admin
+        .from("financial_models")
+        .select("id, name, scenario")
+        .eq("project_id", projectId)
+        .eq("use_for_investor_pack", true)
+        .eq("is_deleted", false)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        pinnedForecast = {
+          id: (data as { id: string }).id,
+          name: (data as { name: string }).name,
+          scenario: (data as { scenario: string }).scenario,
+        };
+      }
+    } catch {
+      /* table may not be migrated yet — degrade silently */
+    }
+  }
+
+  try {
+    const { data: acc } = await admin
+      .from("svi_accounts")
+      .select("id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (acc) {
+      const { data } = await admin
+        .from("exit_scenarios")
+        .select("id, scenario_name, exit_type")
+        .eq("account_id", (acc as { id: string }).id)
+        .eq("use_for_investor_pack", true)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        pinnedExit = {
+          id: (data as { id: string }).id,
+          scenario_name: (data as { scenario_name: string }).scenario_name,
+          exit_type: (data as { exit_type: string }).exit_type,
+        };
+      }
+    }
+  } catch {
+    /* column may not exist yet before migration is applied — degrade silently */
+  }
+
+  return { pinnedForecast, pinnedExit };
+}
+
 async function loadRecentPacks(userId: string): Promise<InvestorPackRow[]> {
   const admin = getSupabaseAdmin();
   if (!admin) return [];
@@ -158,9 +230,10 @@ export default async function InvestorPackPage() {
   const isSandbox = await getCurrentProjectIsSandbox();
 
   const projectId = await getProjectIdFromRequest();
-  const [overview, recentPacks] = await Promise.all([
+  const [overview, recentPacks, pinned] = await Promise.all([
     loadOverview(user.id, projectId),
     loadRecentPacks(user.id),
+    loadPinnedArtefacts(user.id, projectId),
   ]);
 
   const previewHref = "/api/investor-pack/preview";
@@ -255,6 +328,72 @@ export default async function InvestorPackPage() {
             </div>
           </section>
         )}
+
+        {/* v3.7.1 — Pinned artefacts panel */}
+        <section
+          aria-labelledby="pinned-artefacts"
+          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 mb-4"
+        >
+          <h2
+            id="pinned-artefacts"
+            className="text-sm font-semibold text-ink-800 dark:text-slate-100 mb-3"
+          >
+            Pinned to next investor pack
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+            The next generated pack will embed the forecast and exit thesis
+            pinned below. Change these from the forecast or exit-strategy
+            results pages.
+          </p>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Revenue forecast
+              </dt>
+              <dd className="mt-1 text-sm text-ink-800 dark:text-slate-100">
+                {pinned.pinnedForecast ? (
+                  <a
+                    href={`/workspace/financial-forecast/${pinned.pinnedForecast.id}`}
+                    className="font-medium text-brand-700 hover:underline"
+                  >
+                    {pinned.pinnedForecast.name}{" "}
+                    <span className="text-xs text-slate-500">
+                      ({pinned.pinnedForecast.scenario})
+                    </span>
+                  </a>
+                ) : (
+                  <span className="text-slate-500 italic">
+                    None pinned — visit a forecast and click &ldquo;Add to
+                    Investor Pack&rdquo;.
+                  </span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Exit thesis
+              </dt>
+              <dd className="mt-1 text-sm text-ink-800 dark:text-slate-100">
+                {pinned.pinnedExit ? (
+                  <a
+                    href={`/workspace/exit-strategy/${pinned.pinnedExit.id}`}
+                    className="font-medium text-brand-700 hover:underline"
+                  >
+                    {pinned.pinnedExit.scenario_name}{" "}
+                    <span className="text-xs text-slate-500 capitalize">
+                      ({pinned.pinnedExit.exit_type})
+                    </span>
+                  </a>
+                ) : (
+                  <span className="text-slate-500 italic">
+                    None pinned — visit an exit scenario and click &ldquo;Add
+                    to Investor Pack&rdquo;.
+                  </span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </section>
 
         <NotFinancialAdvice kind="not_financial_advice" compact />
 

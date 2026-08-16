@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Target, Clock, TrendingUp, Users, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Target, Clock, TrendingUp, Users, AlertTriangle, CheckCircle2, Bookmark, BookmarkCheck } from "lucide-react";
 import type { FetchExitScenarioResponse } from "@/types/exit-strategy";
 
 function formatAUD(value: number): string {
@@ -46,17 +46,44 @@ export function ExitStrategyResultsClient({ scenarioId }: { scenarioId: string }
   const [data, setData] = useState<FetchExitScenarioResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pinning, setPinning] = useState(false);
+  const [pinMessage, setPinMessage] = useState<string | null>(null);
+  const [pinned, setPinned] = useState(false);
 
   useEffect(() => {
     fetch(`/api/exit-strategy/scenarios/${scenarioId}`)
       .then((r) => r.json())
       .then((body: FetchExitScenarioResponse) => {
-        if (body.ok) setData(body);
-        else setError(body.error ?? "Failed to load scenario");
+        if (body.ok) {
+          setData(body);
+          setPinned(!!body.scenario?.use_for_investor_pack);
+        } else setError(body.error ?? "Failed to load scenario");
       })
       .catch(() => setError("Network error"))
       .finally(() => setLoading(false));
   }, [scenarioId]);
+
+  // v3.7.1 — Pin / unpin this exit scenario for the investor pack.
+  const handleTogglePack = async () => {
+    try {
+      setPinning(true);
+      setPinMessage(null);
+      const next = !pinned;
+      const res = await fetch(`/api/exit-strategy/scenarios/${scenarioId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ use_for_investor_pack: next }),
+      });
+      if (!res.ok) throw new Error("Failed to update investor pack pin");
+      setPinned(next);
+      setPinMessage(next ? "Added to investor pack" : "Removed from investor pack");
+    } catch (err) {
+      setPinMessage(err instanceof Error ? err.message : "Failed to update");
+    } finally {
+      setPinning(false);
+      setTimeout(() => setPinMessage(null), 3500);
+    }
+  };
 
   if (loading) {
     return (
@@ -281,14 +308,40 @@ export function ExitStrategyResultsClient({ scenarioId }: { scenarioId: string }
       )}
 
       {/* Actions */}
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={() => router.push("/workspace/exit-strategy")}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          All Scenarios
-        </Button>
-        <Button variant="outline" onClick={() => router.push("/workspace/investor-pack")}>
-          Add to Investor Pack
-        </Button>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => router.push("/workspace/exit-strategy")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            All Scenarios
+          </Button>
+          <Button
+            variant={pinned ? "default" : "outline"}
+            onClick={handleTogglePack}
+            disabled={pinning}
+          >
+            {pinned ? (
+              <BookmarkCheck className="h-4 w-4 mr-2" />
+            ) : (
+              <Bookmark className="h-4 w-4 mr-2" />
+            )}
+            {pinning
+              ? "Saving..."
+              : pinned
+                ? "Remove from Investor Pack"
+                : "Add to Investor Pack"}
+          </Button>
+          <Button variant="ghost" onClick={() => router.push("/workspace/investor-pack")}>
+            View Investor Pack
+          </Button>
+        </div>
+        {pinMessage && (
+          <div
+            role="status"
+            className="rounded-md bg-blue-50 text-blue-800 text-sm px-3 py-2 border border-blue-100"
+          >
+            {pinMessage}
+          </div>
+        )}
       </div>
     </div>
   );

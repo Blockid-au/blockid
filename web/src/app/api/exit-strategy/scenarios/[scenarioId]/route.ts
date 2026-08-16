@@ -115,6 +115,106 @@ export async function GET(
   return NextResponse.json(response);
 }
 
+// ─── PATCH — toggle flags (use_for_investor_pack, is_primary) ────────────────
+//
+// v3.7.1 (Week 3 — Investor Pack integration): allows the exit-strategy
+// results client to pin/unpin a scenario for inclusion in the generated
+// investor pack PDF. Only a small allowlist of fields is patchable to
+// keep the surface tight.
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: RouteParams,
+): Promise<NextResponse> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Authentication required" }, { status: 401 });
+  }
+
+  const { scenarioId } = params;
+  if (!scenarioId) {
+    return NextResponse.json({ ok: false, error: "scenarioId required" }, { status: 400 });
+  }
+
+  let body: { use_for_investor_pack?: boolean; is_primary?: boolean };
+  try {
+    body = (await request.json()) as {
+      use_for_investor_pack?: boolean;
+      is_primary?: boolean;
+    };
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ ok: false, error: "Service unavailable" }, { status: 503 });
+  }
+
+  // Ownership check via account_id.
+  const { data: account } = await supabase
+    .from("svi_accounts")
+    .select("id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!account?.id) {
+    return NextResponse.json({ ok: false, error: "Account not found" }, { status: 404 });
+  }
+
+  const { data: existing } = await supabase
+    .from("exit_scenarios")
+    .select("id")
+    .eq("id", scenarioId)
+    .eq("account_id", account.id)
+    .single();
+
+  if (!existing) {
+    return NextResponse.json({ ok: false, error: "Scenario not found" }, { status: 404 });
+  }
+
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (typeof body.use_for_investor_pack === "boolean") {
+    updateData.use_for_investor_pack = body.use_for_investor_pack;
+  }
+  if (typeof body.is_primary === "boolean") {
+    updateData.is_primary = body.is_primary;
+  }
+
+  if (Object.keys(updateData).length === 1) {
+    return NextResponse.json({ ok: false, error: "No patchable fields supplied" }, { status: 400 });
+  }
+
+  // When pinning to investor pack, unpin all other scenarios for this
+  // account so exactly one exit thesis lands in the pack.
+  if (body.use_for_investor_pack === true) {
+    await supabase
+      .from("exit_scenarios")
+      .update({ use_for_investor_pack: false })
+      .eq("account_id", account.id)
+      .neq("id", scenarioId);
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("exit_scenarios")
+    .update(updateData)
+    .eq("id", scenarioId)
+    .eq("account_id", account.id)
+    .select()
+    .single();
+
+  if (updateError) {
+    console.error("[PATCH /api/exit-strategy/scenarios/[scenarioId]] Update error:", updateError);
+    return NextResponse.json({ ok: false, error: "Failed to update scenario" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, scenario: updated });
+}
+
 // ─── DELETE — remove scenario ─────────────────────────────────────────────────
 
 export async function DELETE(

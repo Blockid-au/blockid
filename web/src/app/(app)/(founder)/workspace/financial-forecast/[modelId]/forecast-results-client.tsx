@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, ArrowLeft } from "lucide-react";
+import { Download, ArrowLeft, Bookmark, BookmarkCheck } from "lucide-react";
 import type { ProjectionOutput } from "@/types/financial";
 
 interface ForecastData {
@@ -14,6 +14,8 @@ interface ForecastData {
   scenario: "bear" | "base" | "bull";
   projectionData: ProjectionOutput;
   createdAt: string;
+  projectId?: string;
+  useForInvestorPack?: boolean;
 }
 
 interface ForecastResultsClientProps {
@@ -26,6 +28,8 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [pinning, setPinning] = useState(false);
+  const [pinMessage, setPinMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchForecast = async () => {
@@ -33,7 +37,20 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
         const res = await fetch(`/api/financial/forecast/${modelId}/fetch`);
         if (!res.ok) throw new Error("Failed to fetch forecast");
         const data = await res.json();
-        setForecast(data.forecast);
+        // Compat: server returns `{ ok, model }`; older client expected `forecast`.
+        const src = data.forecast ?? data.model;
+        if (src) {
+          setForecast({
+            id: src.id,
+            name: src.name,
+            scenario: src.scenario,
+            projectionData: src.projectionData ?? src.projection_data,
+            createdAt: src.createdAt ?? src.created_at,
+            projectId: src.projectId ?? src.project_id,
+            useForInvestorPack:
+              src.useForInvestorPack ?? src.use_for_investor_pack ?? false,
+          });
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
@@ -43,6 +60,35 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
 
     fetchForecast();
   }, [modelId]);
+
+  // v3.7.1 — Pin / unpin this forecast for the investor pack.
+  const handleTogglePack = async () => {
+    if (!forecast?.projectId) {
+      setPinMessage("Missing project context — reload the page.");
+      return;
+    }
+    try {
+      setPinning(true);
+      setPinMessage(null);
+      const next = !forecast.useForInvestorPack;
+      const res = await fetch(`/api/financial/forecast/${forecast.projectId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modelId: forecast.id,
+          useForInvestorPack: next,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update investor pack pin");
+      setForecast((prev) => (prev ? { ...prev, useForInvestorPack: next } : prev));
+      setPinMessage(next ? "Added to investor pack" : "Removed from investor pack");
+    } catch (err) {
+      setPinMessage(err instanceof Error ? err.message : "Failed to update");
+    } finally {
+      setPinning(false);
+      setTimeout(() => setPinMessage(null), 3500);
+    }
+  };
 
   const handleExport = async () => {
     try {
@@ -93,11 +139,38 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
             </div>
           </div>
         </div>
-        <Button onClick={handleExport} disabled={exporting} className="gap-2">
-          <Download className="w-4 h-4" />
-          {exporting ? "Exporting..." : "Export CSV"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={forecast.useForInvestorPack ? "default" : "outline"}
+            onClick={handleTogglePack}
+            disabled={pinning}
+            className="gap-2"
+          >
+            {forecast.useForInvestorPack ? (
+              <BookmarkCheck className="w-4 h-4" />
+            ) : (
+              <Bookmark className="w-4 h-4" />
+            )}
+            {pinning
+              ? "Saving..."
+              : forecast.useForInvestorPack
+                ? "Remove from Investor Pack"
+                : "Add to Investor Pack"}
+          </Button>
+          <Button onClick={handleExport} disabled={exporting} className="gap-2">
+            <Download className="w-4 h-4" />
+            {exporting ? "Exporting..." : "Export CSV"}
+          </Button>
+        </div>
       </div>
+      {pinMessage && (
+        <div
+          role="status"
+          className="rounded-md bg-blue-50 text-blue-800 text-sm px-3 py-2 border border-blue-100"
+        >
+          {pinMessage}
+        </div>
+      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-4 gap-4">
