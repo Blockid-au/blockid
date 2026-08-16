@@ -1,5 +1,20 @@
 # BlockID.au Changelog
 
+## 2026-08-16 — v3.6.3: CRO/CDO/CPO/CTO feature sprint (5 tasks shipped)
+
+### Features
+- **feat(cdo-t1009)** Wire 5 dark analytics events into server paths: `svi_score_computed` (after SVI INSERT), `checkout_completed` + `trial_activated` (Stripe webhook), `feature_gate_hit` (typed `emitEvent()` in `can()`), `investor_pack_generated` (type-registered). `/api/cron/bq-export` already wired — no changes needed. 84/84 analytics tests pass.
+- **feat(cro-t1020)** Upgrade trigger pipeline: `shouldFire()` wired into `can()` entitlement gate + lifecycle mailer cron. New `GET /api/conversion/pending-trigger` read-path for client modal. Founders hitting paywalls now receive upgrade nudges.
+- **feat(cro-t1301)** Submit-Your-Startup: `/submit` public marketing form + `POST /api/index/submit` (Zod + IP rate-limit + `public_index_submissions` table + Telegram alert). "Startup Index" + "Submit startup" CTA added to nav. 13/13 tests.
+- **feat(cpo-t1203)** Investor Pack v2 one-click PDF: `POST /api/investor-pack/one-click` assembles SVI + cap table + founder profile → PDF → share token in `investor_pack_shares`. `GET /api/investor-pack/download/[shareId]` serves PDF with 30-day expiry. Workspace tile updated with live SVI grade + share link display. Migration `20260816140000_investor_pack_shares.sql`. 3/3 tests.
+- **feat(cto-t1101)** Nightly C-Level quality gate full ship: `nightly-clevel-review.mjs` rewrote from stub to production mode — git diff 24h → 6 parallel C-Level agent reviews → RED/YELLOW/GREEN digest → Telegram. Date-based report filenames, 7-report retention per role. Cron route updated to non-blocking spawn. First run: 7 reports generated (144 files reviewed). Crontab at 04:30 UTC already scheduled.
+- **fix(404-500)** 3 dead links (`/agents`, `/login`, `/legal/mentor-access-policy`) + 2 server errors (`/index/listings` InvariantError via segment rename + rewrites, `/startup/[slug]` DYNAMIC_SERVER_USAGE via `force-dynamic`).
+
+### Deploy
+- Deployed: **2026-08-16** — see manifest for SHA + timestamp.
+
+---
+
 ## 2026-08-16 — v3.6.2: Reseller M3 (Stripe attribution) + SVI dimension chart + startup-package tour
 
 ### Features

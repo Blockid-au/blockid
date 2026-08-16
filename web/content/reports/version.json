@@ -1,24 +1,25 @@
 {
-  "version": "v3.6.2",
-  "updated_at": "2026-08-16T04:10:00Z",
-  "git_sha": "60564a438",
-  "release_id": "v3.6.2-reseller-m3-svi-chart",
+  "version": "v3.6.3",
+  "updated_at": "2026-08-16T05:08:00Z",
+  "git_sha": "6b0f6d122",
+  "release_id": "v3.6.3-feature-sprint",
   "shipped_summary": [
-    "v3.6.2 — Reseller M3: Stripe checkout attribution + reseller_commissions ledger (20% ex-GST) with idempotent upsert on stripe_session_id",
-    "v3.6.2 — Dashboard SVI dimension bar chart (8 dimensions + AU benchmark overlay)",
-    "v3.6.2 — Startup-package feature tour (sub-goal 11) + Ship 1 landing note in roadmap",
-    "v3.6.1 — Fix webpack build failures: add remotion/rspack/esbuild to serverExternalPackages",
-    "v3.6.1 — Fix marketing-footer.tsx: replace node:fs readFileSync with static JSON import (client bundle fix)",
-    "v3.6.0 — Fix 7 site-wide 404 pages: /register, /legal, /how-it-works, /reports/samples, /guide, /solutions, /index/listings",
-    "v3.6.0 — Fix all pre-existing TypeScript errors (zero errors for deploy gate)",
-    "v3.6.0 — Fix all vitest test failures (27,533 tests pass)",
-    "v3.6.0 — CAPITAL Funding Readiness scorecard: cfo-valuation.ts extended with scorecardMethod, auExitRealisationCheck, ESIC/RDTI uplift, AU benchmarks",
-    "v3.6.0 — CMO agent rewrite: AU_MARKET_DATA (7 keys), CONTENT_BENCHMARKS, generateGtmStrategy + generateCompetitorAnalysis async with AI + fallbacks"
+    "v3.6.3 — T-1009: Wire 5 dark analytics events (svi_score_computed, checkout_completed, trial_activated, feature_gate_hit, investor_pack_generated type-registered)",
+    "v3.6.3 — T-1020: CRO upgrade triggers wired into can() + lifecycle mailer; /api/conversion/pending-trigger read-path for modal",
+    "v3.6.3 — T-1301: /submit public index form + /api/index/submit (Zod, rate-limit, public_index_submissions, Telegram) + nav CTA",
+    "v3.6.3 — T-1203: Investor Pack v2 one-click PDF (/api/investor-pack/one-click + /download/[shareId] + workspace tile + investor_pack_shares migration)",
+    "v3.6.3 — T-1101: Nightly C-Level quality gate full ship (6 agent parallel, git diff 24h, digest + Telegram, date-based reports, 7-report retention)",
+    "v3.6.3 — fix: /index/listings 500 (startup-index rename + rewrites), /startup/sample 500 (force-dynamic), 3x404 dead links",
+    "v3.6.2 — Reseller M3 Stripe checkout attribution + commissions ledger",
+    "v3.6.2 — Dashboard SVI dimension bar chart",
+    "v3.6.1 — webpack build fixes + 7x404 page fixes"
   ],
   "task_ids": [
-    "T-reseller-m3: Stripe checkout attribution + commissions ledger",
-    "T-svi-chart: dashboard 8-dimension bar chart with AU benchmark",
-    "T-startup-package-tour: feature tour sub-goal 11"
+    "T-1009: dark analytics events + BQ cron",
+    "T-1020: CRO upgrade triggers",
+    "T-1301: submit-your-startup form",
+    "T-1203: investor pack v2 one-click",
+    "T-1101: nightly quality gate"
   ],
-  "notes": "v3.6.2 ships reseller commission attribution end-to-end (Stripe webhook → ledger), SVI dimension chart in dashboard, and startup-package tour. Live redeploy on 2026-08-16 following v3.6.1 build/404 fixes."
+  "notes": "v3.6.3 ships 5 feature tasks (CRO/CDO/CPO/CTO sprint) + 404/500 site fixes. CDO now has 4 live analytics events flowing to BQ. Upgrade modal pipeline active. Public index submit form live at /submit. Investor Pack v2 one-click at /workspace/investor-pack. Nightly C-Level quality gate runs at 04:30 UTC daily."
 }
