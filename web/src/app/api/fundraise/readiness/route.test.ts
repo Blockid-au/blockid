@@ -147,6 +147,8 @@ const summariseComparablesMock = vi.fn<(input: unknown) => unknown>();
 vi.mock("@/lib/au-comparable-raises", () => ({
   getComparableRaises: (input: unknown) => getComparableRaisesMock(input),
   summariseComparables: (input: unknown) => summariseComparablesMock(input),
+  anonymizeRaiseLabel: (r: { sector: string; stage: string; year: number }) =>
+    `AU ${r.sector} startup (${r.stage}, ${r.year})`,
 }));
 
 import { GET } from "./route";
@@ -463,7 +465,8 @@ describe("GET /api/fundraise/readiness", () => {
     expect(getComparableRaisesMock).toHaveBeenCalledWith({ stage: "preseed", limit: 8 });
     expect(summariseComparablesMock).toHaveBeenCalledTimes(1);
     expect(summariseComparablesMock.mock.calls[0][0]).toEqual(getComparableRaisesMock.mock.results[0]!.value);
-    expect(body.comparablesV2).toEqual(getComparableRaisesMock.mock.results[0]!.value);
+    // comparablesV2 is anonymized — company name replaced with generic label
+    expect(body.comparablesV2[0].company).toBe("AU saas startup (seed, 2025)");
     expect(body.comparablesSummary).toEqual({ count: 1, medianRoundAud: 1_000_000, medianValuationAud: null });
   });
 

@@ -73,7 +73,7 @@ export const AU_MULTIPLES_BY_STAGE: Record<
  */
 export const AU_MULTIPLES_BY_INDUSTRY: Record<AUIndustry, number> = {
   SaaS:        1.20,   // Premium: recurring, sticky revenue
-  FinTech:     1.10,   // Strong AU market; Block Earner, Airwallex
+  FinTech:     1.10,   // Strong AU market; payments and cross-border fintech premium
   HealthTech:  1.05,   // Regulated, longer sales cycle
   PropTech:    0.90,   // Cyclical, housing-market dependent
   AgriTech:    0.85,   // Hardware + software, slower adoption
@@ -544,8 +544,8 @@ export interface ComparablesBenchmark {
   stage: AUStage;
   /** Blended ARR multiple range for this industry/stage combination. */
   multiples: { low: number; median: number; high: number };
-  /** Top 3 most relevant comparable companies. */
-  topComps: Pick<AUComparableCompany, "name" | "industry" | "stage" | "arr_multiple" | "notable" | "note">[];
+  /** Top 3 most relevant comparable companies — name omitted for compliance. */
+  topComps: Pick<AUComparableCompany, "industry" | "stage" | "arr_multiple" | "notable" | "note">[];
   /** The median ARR multiple from actual comparable deals. */
   medianArrMultiple: number;
 }
@@ -564,7 +564,6 @@ export function buildComparablesBenchmark(
   const auStage = mapStageToAUStage(stage ?? 0);
   const multiples = getMultiplesBenchmark(auIndustry, auStage);
   const topComps = getTopComparables(auIndustry, auStage, 3).map((c) => ({
-    name: c.name,
     industry: c.industry,
     stage: c.stage,
     arr_multiple: c.arr_multiple,

@@ -215,12 +215,11 @@ export function auExitRealisationCheck(
   const summary = summariseAuExits(exits);
   const usedFallback = normSector === "default" && sector !== "default";
 
-  // Pick up to 3 anchor exits (prefer well-known AU tech exits)
-  const knownAnchorNames = ["Atlassian", "OpsGenie", "Trello", "Loom", "Nitro", "MYOB", "WiseTech", "Xero", "Nearmap", "Elmo"];
-  const anchors = exits
-    .filter(e => knownAnchorNames.some(n => e.company?.toLowerCase().includes(n.toLowerCase())))
-    .slice(0, 3);
-  const anchorExits = (anchors.length > 0 ? anchors : exits.slice(0, 3)).map(e => ({ ...e }));
+  // Pick up to 3 anchor exits — prefer highest-valuation exits in sector (no named filtering)
+  const anchorExits = exits
+    .sort((a, b) => (b.exitValueAud ?? 0) - (a.exitValueAud ?? 0))
+    .slice(0, 3)
+    .map(e => ({ ...e, company: undefined })); // strip company name from report output
 
   // Pre-revenue: no numeric signal but still surface AU comps
   const isPreRevenue = mrrAud === 0 || monthlyGrowthRatePct === 0;

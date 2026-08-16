@@ -68,6 +68,25 @@ const COMPARABLES: ComparableRaise[] = [
   { company: "Blackbird Giants (representative)", sector: "saas", stage: "preseed", roundAud: 500_000, valuationAud: 5_000_000, year: 2024, leadInvestor: "Blackbird Ventures", sourceNote: "reported program terms" },
 ];
 
+const STAGE_LABEL: Record<ComparableRaise["stage"], string> = {
+  preseed: "Pre-Seed",
+  seed: "Seed",
+  seriesA: "Series A",
+  seriesB: "Series B",
+};
+
+const SECTOR_LABEL: Record<string, string> = {
+  fintech: "FinTech", saas: "SaaS", marketplace: "Marketplace",
+  healthtech: "HealthTech", deeptech: "DeepTech", edtech: "EdTech",
+};
+
+/** Returns an anonymous display label (never exposes the company name). */
+export function anonymizeRaiseLabel(r: ComparableRaise): string {
+  const sector = SECTOR_LABEL[r.sector] ?? r.sector;
+  const stage = STAGE_LABEL[r.stage] ?? r.stage;
+  return `AU ${sector} startup (${stage}, ${r.year})`;
+}
+
 function normalizeStage(stage: string): ComparableRaise["stage"] {
   const s = stage.toLowerCase().replace(/[\s_-]/g, "");
   if (s.startsWith("pre")) return "preseed";

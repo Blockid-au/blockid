@@ -6,7 +6,7 @@ import {
   computeReadinessScore,
   groupChecklistByCategory,
 } from "@/lib/fundraise-checklist";
-import { getComparableRaises, summariseComparables } from "@/lib/au-comparable-raises";
+import { getComparableRaises, summariseComparables, anonymizeRaiseLabel } from "@/lib/au-comparable-raises";
 
 export const dynamic = "force-dynamic";
 
@@ -206,8 +206,9 @@ export async function GET() {
 
   const stageForComparables =
     currentStage === "pre-seed" ? "preseed" : currentStage === "series-a" ? "seriesA" : "seed";
-  const comparablesV2 = getComparableRaises({ stage: stageForComparables, limit: 8 });
-  const comparablesSummary = summariseComparables(comparablesV2);
+  const comparablesV2Raw = getComparableRaises({ stage: stageForComparables, limit: 8 });
+  const comparablesV2 = comparablesV2Raw.map((r) => ({ ...r, company: anonymizeRaiseLabel(r) }));
+  const comparablesSummary = summariseComparables(comparablesV2Raw);
 
   return NextResponse.json({
     ok: true,
