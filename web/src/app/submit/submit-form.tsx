@@ -103,6 +103,12 @@ export function SubmitForm() {
         <p className="max-w-md text-[var(--fintech-ink-muted)]">
           We&apos;ll review your startup and list it on the AU Startup Public Index within 24 hours. Keep an eye on your inbox.
         </p>
+        <div className="mt-6 pt-6 border-t border-white/20 text-center w-full max-w-md">
+          <p className="text-sm text-[var(--fintech-ink-muted)] mb-3">While we review your submission, get your free SVI score:</p>
+          <a href="/score" className="inline-flex items-center gap-2 rounded-xl bg-[var(--fintech-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--fintech-bg-primary)] hover:bg-[var(--fintech-accent-hover)] transition-colors">
+            Get Your Free SVI Score →
+          </a>
+        </div>
       </div>
     );
   }
