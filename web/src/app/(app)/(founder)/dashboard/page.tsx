@@ -38,6 +38,7 @@ import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-act
 import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { ValueImpactBanner } from "@/components/dashboard/value-impact-banner";
+import { SviDimensionChart } from "@/components/dashboard/svi-dimension-chart";
 import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
 import { NextUnlockCard } from "@/components/dashboard/next-unlock-card";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
@@ -818,6 +819,11 @@ export default async function DashboardPage({
             actionsCompleted={userActions.filter(a => a.completed_at).length}
             startupName={projectName}
           />
+        )}
+
+        {/* ── SVI Dimension Bar Chart — visual 8-dimension breakdown ─────────── */}
+        {analysis?.dimensionScores && Object.keys(analysis.dimensionScores).length > 0 && (
+          <SviDimensionChart dimensionScores={analysis.dimensionScores as Record<string, number>} />
         )}
 
         {/* ── G8-P4: Next Unlock card — phase gate progress + top blockers ──── */}
