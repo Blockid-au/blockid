@@ -29,6 +29,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { initializeCredits } from "./credits";
 import { processReferral } from "./referrals";
 import { processAttribution } from "./reseller/process-attribution";
+import { enqueueNurtureSequence } from "./nurture";
 
 async function seedWelcomeNotification(userId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
@@ -267,6 +268,7 @@ export async function consumeMagicLink(
     // Grant free credits to new users.
     await initializeCredits(created.id);
     await seedWelcomeNotification(created.id);
+    await enqueueNurtureSequence(created.id);
 
     // Process referral if a referral code was passed in the pending payload.
     const pendingRef = (row.pending_payload as PendingPayload)?.referralCode;
@@ -537,6 +539,7 @@ export async function loginWithGoogle(
     // Grant free credits to new users.
     await initializeCredits(created.id);
     await seedWelcomeNotification(created.id);
+    await enqueueNurtureSequence(created.id);
 
     // Process referral if a referral code was provided (from cookie/session).
     if (opts?.referralCode) {
@@ -670,6 +673,7 @@ export async function registerWithPassword(args: {
 
   await initializeCredits(created.id);
   await seedWelcomeNotification(created.id);
+  await enqueueNurtureSequence(created.id);
   if (args.referralCode) {
     await processReferral(created.id, args.referralCode).catch(() => {});
   }
@@ -814,6 +818,7 @@ export async function autoCreateUserWithTempPassword(
   // Grant free credits to new users
   await initializeCredits(created.id);
   await seedWelcomeNotification(created.id);
+  await enqueueNurtureSequence(created.id);
 
   return { ok: true, userId: created.id, tempPassword, isNewUser: true };
 }
