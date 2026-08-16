@@ -179,7 +179,7 @@ export function GtmStrategyPDF({ input }: { input: GtmStrategyPdfInput }) {
                 Sector market size
               </Text>
               <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.ink900 }}>
-                {fmtAud(gtm.marketSize)}
+                {typeof gtm.marketSize === "number" ? fmtAud(gtm.marketSize) : (gtm.marketSize ?? "—")}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -233,7 +233,7 @@ export function GtmStrategyPDF({ input }: { input: GtmStrategyPdfInput }) {
 
         <View style={s.section}>
           <Text style={s.sectionTitle}>First 90 days</Text>
-          {gtm.first90Days.map((step, i) => (
+          {(gtm.first90Days ?? []).map((step, i) => (
             <View key={i} style={s.bullet}>
               <Text style={s.dot}>{i + 1}.</Text>
               <Text style={s.bulletText}>{step}</Text>
@@ -243,7 +243,7 @@ export function GtmStrategyPDF({ input }: { input: GtmStrategyPdfInput }) {
 
         <View style={s.section}>
           <Text style={s.sectionTitle}>Key metrics to track</Text>
-          {gtm.keyMetrics.map((m, i) => (
+          {(gtm.keyMetrics ?? []).map((m, i) => (
             <View key={i} style={s.bullet}>
               <Text style={s.dot}>•</Text>
               <Text style={s.bulletText}>{m}</Text>

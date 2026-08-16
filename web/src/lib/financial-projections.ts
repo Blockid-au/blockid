@@ -481,11 +481,12 @@ export function isProjectionScenario(v: unknown): v is ProjectionScenario {
 export function generateProjection(input: ProjectionInput): Projection {
   const sector = normaliseSector(input.sector);
   const bm = VC_BENCHMARKS[sector] ?? VC_BENCHMARKS.default;
+  const bmArrMultiple: { low: number; mid: number; high: number } = bm.arrMultiple ?? { low: bm.multipleRange[0], mid: bm.medianMultiple, high: bm.multipleRange[1] };
   const baseGrowth = SECTOR_BASE_GROWTH_PCT[sector] ?? SECTOR_BASE_GROWTH_PCT.default;
   const scenarioMult = SCENARIO_MULTIPLIER[input.scenario] ?? 1;
   const effectiveBaseGrowthPct = baseGrowth * scenarioMult;
 
-  const grossMarginPct = Math.max(20, Math.min(95, bm.grossMarginTarget));
+  const grossMarginPct = Math.max(20, Math.min(95, bm.grossMarginTarget ?? 70));
   const rdIntensityPct = SECTOR_RD_INTENSITY_PCT[sector] ?? SECTOR_RD_INTENSITY_PCT.default;
 
   const startingMrr = Math.max(0, input.startingMrrAud);
@@ -571,7 +572,7 @@ export function generateProjection(input: ProjectionInput): Projection {
         : "Conservative: 0.7x sector-baseline growth, 1.0%/mo opex ramp, hire every 6 months.";
 
   const arrY3Ending = (months[35]?.revenueAud ?? 0) * 12;
-  const impliedValuationMid = arrY3Ending * bm.arrMultiple.mid;
+  const impliedValuationMid = arrY3Ending * bmArrMultiple.mid;
 
   const investorReadinessNote = buildInvestorReadinessNote({
     sector,
@@ -582,7 +583,7 @@ export function generateProjection(input: ProjectionInput): Projection {
     revenueYear3,
     runwayMonths,
     impliedValuationMid,
-    arrMultipleMid: bm.arrMultiple.mid,
+    arrMultipleMid: bmArrMultiple.mid,
     includeTaxIncentives: input.includeTaxIncentives,
   });
 
@@ -603,7 +604,7 @@ export function generateProjection(input: ProjectionInput): Projection {
     baseMonthlyGrowthPct: effectiveBaseGrowthPct,
     grossMarginPct,
     rdIntensityPct,
-    arrMultipleMidYr3: bm.arrMultiple.mid,
+    arrMultipleMidYr3: bmArrMultiple.mid,
   };
 
   return {

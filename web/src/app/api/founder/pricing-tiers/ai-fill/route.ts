@@ -52,7 +52,7 @@ function mapLlmTiers(
   const isPreRevenue = stage <= 2;
 
   return tiers.map((t, i): PricingTierSuggestion => {
-    const monthly = t.price_aud_monthly;
+    const monthly = t.price_aud_monthly ?? 0;
     const annual = monthly === 0 ? 0 : Math.round(monthly * 12 * 0.8);
     const isFree = monthly === 0;
     const isScale = i >= 2;
@@ -73,7 +73,7 @@ function mapLlmTiers(
       price_annual_aud: annual,
       billing_note: billing,
       features: t.features,
-      target_segment: t.target_segment,
+      target_segment: t.target_segment ?? "",
       cta_label: isFree
         ? "Start free"
         : isScale

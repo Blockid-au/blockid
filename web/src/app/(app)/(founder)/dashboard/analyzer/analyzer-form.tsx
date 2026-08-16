@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle, Github, Globe, TrendingUp, Zap } from "lucide-react";
+import { CheckCircle2, XCircle, Code2, Globe, TrendingUp, Zap } from "lucide-react";
 
 interface ProjectOption {
   id: string;
@@ -113,7 +113,7 @@ function RationaleItem({ text }: { text: string }) {
 
 export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
   const [startupId, setStartupId] = useState<string>(projects[0]?.id ?? "");
-  const [githubUrl, setGithubUrl] = useState("");
+  const [githubUrl, setCode2Url] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<RunResponse | null>(null);
@@ -168,14 +168,14 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
 
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-1 flex items-center gap-1.5">
-            <Github className="h-3.5 w-3.5" />GitHub repo URL <span className="normal-case text-ink-400 font-normal">(optional)</span>
+            <Code2 className="h-3.5 w-3.5" />GitHub repo URL <span className="normal-case text-ink-400 font-normal">(optional)</span>
           </span>
           <input
             type="url"
             placeholder="https://github.com/owner/repo"
             className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none"
             value={githubUrl}
-            onChange={(e) => setGithubUrl(e.target.value)}
+            onChange={(e) => setCode2Url(e.target.value)}
           />
         </label>
 
@@ -255,7 +255,7 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
                 <ScoreBar
                   label="GitHub repo"
                   score={result.breakdown.githubSide}
-                  icon={<Github className="h-3.5 w-3.5 text-ink-500" />}
+                  icon={<Code2 className="h-3.5 w-3.5 text-ink-500" />}
                 />
                 <ScoreBar
                   label="Website"

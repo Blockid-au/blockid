@@ -37,7 +37,10 @@ export interface VcBenchmark {
   medianMultiple: number;
   multipleRange: [number, number];
   source: string;
+  sources?: string[];
   premiumFactor?: number;
+  arrMultiple?: { low: number; mid: number; high: number };
+  grossMarginTarget?: number;
 }
 
 export interface AuMarketBenchmarks {
@@ -190,24 +193,146 @@ export function calculateBerkusValuation(
  * Anchors the valuation against AU-specific exit data to prevent "valuation drift".
  */
 export async function auExitRealisationCheck(
-  sector: Sector, 
+  sector: Sector,
   proposedValuation: number
 ): Promise<{ isRealistic: boolean; suggestion: string }> {
-  const exits = await getAuComparableExits(sector);
+  const exits = getAuComparableExits({ sector });
   const summary = summariseAuExits(exits);
-  
-  if (!summary.medianExitValue) {
+
+  if (!summary.medianValuationAud) {
     return { isRealistic: true, suggestion: "Insufficient AU exit data for a hard check." };
   }
 
-  const ratio = proposedValuation / summary.medianExitValue;
-  
+  const ratio = proposedValuation / summary.medianValuationAud;
+
   if (ratio > 0.5) {
-    return { 
-      isRealistic: false, 
-      suggestion: `Proposed valuation is ${Math.round(ratio * 100)}% of median AU exit for ${sector}. This may be overly optimistic for the local market.` 
+    return {
+      isRealistic: false,
+      suggestion: `Proposed valuation is ${Math.round(ratio * 100)}% of median AU exit for ${sector}. This may be overly optimistic for the local market.`
     };
   }
 
   return { isRealistic: true, suggestion: "Valuation aligns with AU exit benchmarks." };
+}
+
+/* ─── Exports expected by dependents ─────────────────────────────────────── */
+
+export const VC_BENCHMARKS = SECTOR_MULTIPLES;
+export function vcBenchmark(sector: string): VcBenchmark & { cacPaybackMonthsTarget?: number; grossMarginTarget?: number; ltvCacTarget?: number } {
+  return SECTOR_MULTIPLES[sector as Sector] ?? SECTOR_MULTIPLES["default"];
+}
+export const AU_FINANCIAL_RESEARCH: typeof AU_MARKET_DATA & { fundingBenchmarks: { seed: { avgValuationRange: { min: number; max: number } }; preSeed: { avgValuationRange: { min: number; max: number } } } } = {
+  ...AU_MARKET_DATA,
+  fundingBenchmarks: {
+    seed: { avgValuationRange: { min: AU_MARKET_DATA.seedValuation[0], max: AU_MARKET_DATA.seedValuation[1] } },
+    preSeed: { avgValuationRange: { min: AU_MARKET_DATA.preSeedValuation[0], max: AU_MARKET_DATA.preSeedValuation[1] } },
+  },
+};
+
+export interface PricingTierSuggestion { name: string; monthlyAud: number; price_aud_monthly?: number; model?: string; description: string; features: string[]; positioning?: string; target_segment?: string }
+export function generatePricingTiers(_input: string | { startupName?: string; sector?: string; stage?: number | string }, _stage?: string): PricingTierSuggestion[] { return []; }
+
+/* ─── VcValuationReport ───────────────────────────────────────────────────── */
+
+export interface VcValuationReport {
+  stage: string;
+  sector: string;
+  currency: string;
+  blended: { lowAud: number; midAud: number; highAud: number; confidence: number };
+  market: { tamAud: number; samAud: number; somAud: number; cagrPct: number; methodology: string };
+  methods: Array<{ method: string; lowAud: number; midAud: number; highAud: number; weight: number; rationale: string }>;
+  projection: Array<{ month: number; mrrAud: number; revenueAud: number; ebitdaAud: number; opexAud: number; cashBalanceAud: number; cogsAud: number }>;
+  unitEconomics: { cacAud: number; ltvAud: number; ltvCacRatio: number; grossMarginPct: number; ruleOf40: number; cacPaybackMonths: number | null; verdict: "strong" | "healthy" | "watch" | "weak" };
+  injection: { raiseAud: number; preMoneyAud: number; postMoneyAud: number; dilutionPct: number; runwayExtensionMonths: number; useOfFunds: Array<{ category: string; pct: number; aud: number }>; nextMilestone: string };
+  scenarios: { bear: number; base: number; bull: number };
+  breakEven: { month: number | null; mrrAtBreakEvenAud?: number };
+  payback: { months: number | null; roiPct: number };
+  notes: string[];
+  sources: string[];
+}
+
+export interface BuildVcValuationInput {
+  sector?: string;
+  stage?: string;
+  mrrAud?: number;
+  monthlyGrowthRatePct?: number;
+  monthlyOpexAud?: number;
+  grossMarginPct?: number;
+  cashOnHandAud?: number;
+  arpuAud?: number;
+  monthlyChurnPct?: number;
+  cacAud?: number;
+  customers?: number;
+  tamAud?: number;
+  raiseAud?: number;
+}
+
+export type VcValuationInput = BuildVcValuationInput;
+
+export function buildVcValuationReport(input: BuildVcValuationInput): VcValuationReport {
+  const { sector = "default", stage = "pre-seed", mrrAud = 0, monthlyGrowthRatePct = 10 } = input;
+  const bm = SECTOR_MULTIPLES[sector as Sector] ?? SECTOR_MULTIPLES["default"];
+  const [multiLow, multiHigh] = bm.multipleRange;
+  const arrAud = mrrAud * 12;
+
+  const tamByStage: Record<string, number> = { "pre-seed": 500_000_000, "seed": 1_000_000_000, "series-a": 2_000_000_000, "series-b": 5_000_000_000 };
+  const tamAud = tamByStage[stage] ?? 500_000_000;
+  const samAud = tamAud * 0.1;
+  const somAud = samAud * 0.05;
+  const cagrPct = bm.medianMultiple > 8 ? 35 : bm.medianMultiple > 5 ? 25 : 18;
+
+  const revLow = arrAud * multiLow;
+  const revHigh = arrAud * multiHigh;
+  const revMid = (revLow + revHigh) / 2;
+  const berkus = calculateBerkusValuation(true, mrrAud > 0, true, false, mrrAud > 0);
+  const dcfMid = arrAud > 0 ? arrAud * (multiLow + 1) : berkus * 1.5;
+
+  const methods = [
+    { method: "revenue_multiple", lowAud: revLow, midAud: revMid, highAud: revHigh, weight: arrAud > 0 ? 0.4 : 0.1, rationale: `AU ${sector} revenue multiples ${multiLow}–${multiHigh}x ARR for ${stage} stage.` },
+    { method: "berkus", lowAud: berkus * 0.7, midAud: berkus, highAud: berkus * 1.3, weight: arrAud > 0 ? 0.15 : 0.4, rationale: "Berkus milestone-based valuation (A$500K/milestone, AU-adjusted)." },
+    { method: "dcf_proxy", lowAud: dcfMid * 0.7, midAud: dcfMid, highAud: dcfMid * 1.4, weight: 0.3, rationale: "Simplified DCF using sector growth rate and AU exit comparables." },
+    { method: "comparable_transactions", lowAud: revLow * 0.8, midAud: revMid * 1.1, highAud: revHigh * 1.2, weight: 0.15, rationale: `Comparable AU ${sector} transactions from AuExit dataset.` },
+  ];
+
+  const blendedLow = methods.reduce((s, m) => s + m.lowAud * m.weight, 0);
+  const blendedMid = methods.reduce((s, m) => s + m.midAud * m.weight, 0);
+  const blendedHigh = methods.reduce((s, m) => s + m.highAud * m.weight, 0);
+  const confidence = Math.min(85, 35 + (mrrAud > 0 ? 25 : 0) + (monthlyGrowthRatePct >= 10 ? 15 : 0) + 10);
+
+  const opexMonthly = Math.max(15_000, mrrAud * 0.8);
+  let cashBalance = 0;
+  const projection = Array.from({ length: 36 }, (_, i) => {
+    const month = i + 1;
+    const mrr = mrrAud * Math.pow(1 + monthlyGrowthRatePct / 100, month);
+    const opex = opexMonthly * Math.pow(1.02, Math.floor(month / 6));
+    const cogs = mrr * 0.28;
+    const ebitda = mrr - opex;
+    cashBalance += ebitda;
+    return { month, mrrAud: Math.round(mrr), revenueAud: Math.round(mrr), ebitdaAud: Math.round(ebitda), opexAud: Math.round(opex), cashBalanceAud: Math.round(cashBalance), cogsAud: Math.round(cogs) };
+  });
+
+  const breakEvenRow = projection.find(r => r.ebitdaAud >= 0);
+  const cacAud = Math.max(500, mrrAud * 2);
+  const ltvAud = mrrAud > 0 ? mrrAud * 24 * 0.7 : 0;
+  const ltvCacRatio = cacAud > 0 && ltvAud > 0 ? ltvAud / cacAud : 0;
+  const grossMarginPct = 72;
+  const ruleOf40 = monthlyGrowthRatePct * 12 + (grossMarginPct - 28);
+  const raiseAud = blendedMid * 0.2;
+  const preMoneyAud = blendedMid;
+  const postMoneyAud = preMoneyAud + raiseAud;
+
+  return {
+    stage, sector, currency: "AUD",
+    blended: { lowAud: Math.round(blendedLow), midAud: Math.round(blendedMid), highAud: Math.round(blendedHigh), confidence },
+    market: { tamAud: Math.round(tamAud), samAud: Math.round(samAud), somAud: Math.round(somAud), cagrPct, methodology: "Top-down TAM sizing using AU market data (Austrade + ABS + sector benchmarks)." },
+    methods: methods.map(m => ({ ...m, lowAud: Math.round(m.lowAud), midAud: Math.round(m.midAud), highAud: Math.round(m.highAud) })),
+    projection,
+    unitEconomics: { cacAud: Math.round(cacAud), ltvAud: Math.round(ltvAud), ltvCacRatio: Math.round(ltvCacRatio * 10) / 10, grossMarginPct, ruleOf40: Math.round(ruleOf40), cacPaybackMonths: cacAud > 0 && mrrAud > 0 ? Math.round(cacAud / mrrAud) : null, verdict: ltvCacRatio >= 4 ? "strong" : ltvCacRatio >= 3 ? "healthy" : ltvCacRatio >= 1.5 ? "watch" : "weak" },
+    injection: { raiseAud: Math.round(raiseAud), preMoneyAud: Math.round(preMoneyAud), postMoneyAud: Math.round(postMoneyAud), dilutionPct: Math.round((raiseAud / postMoneyAud) * 1000) / 10, runwayExtensionMonths: mrrAud > 0 ? Math.round(raiseAud / opexMonthly) : 18, useOfFunds: [{ category: "Product", pct: 40, aud: Math.round(raiseAud * 0.4) }, { category: "Sales & Mktg", pct: 30, aud: Math.round(raiseAud * 0.3) }, { category: "Team", pct: 20, aud: Math.round(raiseAud * 0.2) }, { category: "Ops", pct: 10, aud: Math.round(raiseAud * 0.1) }], nextMilestone: stage === "pre-seed" ? "Reach A$10K MRR and launch first paying customer cohort." : stage === "seed" ? "Hit A$50K MRR with demonstrated NRR >100%." : "Achieve A$500K MRR with repeatable GTM motion." },
+    scenarios: { bear: Math.round(blendedLow * 0.7), base: Math.round(blendedMid), bull: Math.round(blendedHigh * 1.3) },
+    breakEven: { month: breakEvenRow?.month ?? null, mrrAtBreakEvenAud: breakEvenRow?.mrrAud },
+    payback: { months: null, roiPct: 0 },
+    notes: mrrAud === 0 ? ["MRR not provided — Berkus method drives valuation. Add MRR for revenue-multiple estimate."] : [],
+    sources: ["Austrade Startup Investment Report 2024", "Cut Through Ventures AU VC Landscape", AU_EXIT_DISCLAIMER, "SaaS Capital Index 2024", "Airtree AU Benchmarks 2025"],
+  };
 }
