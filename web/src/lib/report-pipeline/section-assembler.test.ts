@@ -136,7 +136,7 @@ describe("assembleReport() — tier filtering", () => {
 
   it("premium tier ships every section template (standard + premium)", () => {
     const report = assembleReport(makeContext(), "premium", "rep_2");
-    expect(report.sections.length).toBe(21);
+    expect(report.sections.length).toBe(22);
     const ids = new Set(report.sections.map((s) => s.id));
     expect(ids.has("board_memo")).toBe(true);
     expect(ids.has("action_plan")).toBe(true);
@@ -148,7 +148,7 @@ describe("assembleReport() — tier filtering", () => {
     const ids = new Set(report.sections.map((s) => s.id));
     expect(ids.has("board_memo")).toBe(true);
     expect(ids.has("competitive")).toBe(true);
-    expect(report.sections.length).toBe(21);
+    expect(report.sections.length).toBe(22);
   });
 
   it("returns the ReportTier verbatim in the assembled report", () => {
