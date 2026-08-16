@@ -308,9 +308,9 @@ export function calculatePositioningValuation(_arr: number | Record<string, unkn
 
 const SECTOR_COMPETITOR_TEMPLATES: Record<string, CompetitorProfile[]> = {
   saas: [
-    { name: "Atlassian", website: "https://atlassian.com", category: "indirect", region: "AU", positioning: "Team collaboration platform", pricing: "A$10/user/mo", strengths: ["AU brand", "Enterprise scale"], weaknesses: ["Not founder-specific"], ourEdge: "SVI scoring for AU founders", threatLevel: "medium" },
-    { name: "Employment Hero", website: "https://employmenthero.com", category: "indirect", region: "AU", positioning: "AU HR SaaS", pricing: "A$9/employee/mo", strengths: ["AU compliance"], weaknesses: ["HR vertical only"], ourEdge: "Multi-domain startup navigation", threatLevel: "low" },
-    { name: "Visible.vc", website: "https://visible.vc", category: "direct", region: "US", positioning: "Investor updates platform", pricing: "US$79/mo", strengths: ["Investor network"], weaknesses: ["No AU benchmarks"], ourEdge: "AU-native SVI scoring", threatLevel: "high" },
+    { name: "AU Enterprise Collaboration Leader", website: "", category: "indirect", region: "AU", positioning: "Team collaboration platform for enterprise", pricing: "A$10/user/mo", strengths: ["AU brand recognition", "Enterprise scale"], weaknesses: ["Not founder-specific"], ourEdge: "SVI scoring purpose-built for AU founders", threatLevel: "medium" },
+    { name: "AU HR SaaS Platform", website: "", category: "indirect", region: "AU", positioning: "AU workforce management SaaS", pricing: "A$9/employee/mo", strengths: ["AU compliance built-in"], weaknesses: ["Single vertical only"], ourEdge: "Multi-domain startup intelligence", threatLevel: "low" },
+    { name: "US Investor Updates Platform", website: "", category: "direct", region: "US", positioning: "Investor updates and reporting platform", pricing: "US$79/mo", strengths: ["Investor network access"], weaknesses: ["No AU benchmarks or compliance"], ourEdge: "AU-native SVI scoring with local context", threatLevel: "high" },
   ],
 };
 

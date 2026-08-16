@@ -408,7 +408,7 @@ describe("buildComparablesBenchmark()", () => {
     const b = buildComparablesBenchmark("SaaS", 6);
     for (const r of b.topComps) {
       expect(Object.keys(r).sort()).toEqual(
-        ["arr_multiple", "industry", "name", "notable", "note", "stage"].sort(),
+        ["arr_multiple", "industry", "notable", "note", "stage"].sort(),
       );
     }
   });
