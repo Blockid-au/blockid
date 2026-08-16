@@ -33,6 +33,11 @@ import {
   SVI_13_CRITERIA,
   type InvestorPackData,
 } from "@/lib/pdf/investor-pack";
+import {
+  suggestAcquirers,
+  computeExitReadiness,
+} from "@/lib/exit-strategy.helpers";
+import type { ProjectionOutput } from "@/types/financial";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -260,6 +265,175 @@ async function assembleOneClick(
     }
   }
 
+  // ── Forecast (v3.7.1) — pinned financial model ────────────────────────────
+  let forecast: InvestorPackData["forecast"];
+
+  if (admin && projectId) {
+    try {
+      const { data: model } = await admin
+        .from("financial_models")
+        .select(
+          "id, name, scenario, current_arr_aud, monthly_growth_pct, projection_data, arr_month_12_aud, arr_month_24_aud, arr_month_36_aud, month_breakeven, runway_months, peak_monthly_burn_aud",
+        )
+        .eq("project_id", projectId)
+        .eq("use_for_investor_pack", true)
+        .eq("is_deleted", false)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (model) {
+        const m = model as {
+          name: string | null;
+          scenario: string | null;
+          current_arr_aud: number | null;
+          monthly_growth_pct: number | null;
+          projection_data: ProjectionOutput | null;
+          arr_month_12_aud: number | null;
+          arr_month_24_aud: number | null;
+          arr_month_36_aud: number | null;
+          month_breakeven: number | null;
+          runway_months: number | null;
+          peak_monthly_burn_aud: number | null;
+        };
+        const months = m.projection_data?.months ?? [];
+        forecast = {
+          name: m.name ?? "Revenue forecast",
+          scenario: m.scenario ?? "base",
+          currentArrAud: m.current_arr_aud ?? 0,
+          monthlyGrowthPct: m.monthly_growth_pct ?? 0,
+          revenueYear1: m.arr_month_12_aud ?? 0,
+          revenueYear2: m.arr_month_24_aud ?? 0,
+          revenueYear3: m.arr_month_36_aud ?? 0,
+          monthBreakeven: m.month_breakeven ?? null,
+          runwayMonths: m.runway_months ?? null,
+          peakMonthlyBurnAud: m.peak_monthly_burn_aud ?? 0,
+          months: months.map((mo) => ({
+            month: mo.month,
+            revenueAud: mo.revenueAud,
+            ebitdaAud: mo.ebitdaAud,
+            cumCashAud: mo.cumCashAud,
+          })),
+        };
+      }
+    } catch (err) {
+      console.error("[investor-pack:one-click] forecast load failed", err);
+    }
+  }
+
+  // ── Exit Strategy (v3.7.1) — pinned exit scenario ─────────────────────────
+  let exitStrategy: InvestorPackData["exitStrategy"];
+
+  if (admin) {
+    try {
+      // Resolve founder's account_id via svi_accounts (mirrors exit-strategy API).
+      const { data: account } = await admin
+        .from("svi_accounts")
+        .select("id, sector, current_arr_aud, team_size")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (account) {
+        const acc = account as {
+          id: string;
+          sector: string | null;
+          current_arr_aud: number | null;
+          team_size: number | null;
+        };
+
+        const { data: scenario } = await admin
+          .from("exit_scenarios")
+          .select("*")
+          .eq("account_id", acc.id)
+          .eq("use_for_investor_pack", true)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (scenario) {
+          const sc = scenario as {
+            scenario_name: string;
+            exit_type: string;
+            exit_timeline_years: number;
+            target_exit_valuation_aud: number;
+            narrative: string | null;
+            series_a_planned: boolean | null;
+            series_a_target_raise_aud: number | null;
+            series_a_target_valuation_aud: number | null;
+            series_a_year_relative: number | null;
+            series_b_planned: boolean | null;
+            series_b_target_raise_aud: number | null;
+            series_b_target_valuation_aud: number | null;
+            series_b_year_relative: number | null;
+          };
+
+          const sectorSlug = acc.sector ?? "saas";
+          const acquirerProfiles = suggestAcquirers(
+            sectorSlug,
+            sc.target_exit_valuation_aud,
+          );
+
+          const readinessComputed = computeExitReadiness(
+            null,
+            acc.current_arr_aud ?? 0,
+            sc.target_exit_valuation_aud,
+            sc.target_exit_valuation_aud / 8,
+            acc.team_size ?? 5,
+            [],
+          );
+
+          exitStrategy = {
+            scenarioName: sc.scenario_name,
+            exitType: sc.exit_type,
+            exitTimelineYears: sc.exit_timeline_years,
+            targetExitValuationAud: sc.target_exit_valuation_aud,
+            narrative: sc.narrative,
+            seriesA: {
+              planned: !!sc.series_a_planned,
+              raiseAud: sc.series_a_target_raise_aud,
+              valuationAud: sc.series_a_target_valuation_aud,
+              yearRelative: sc.series_a_year_relative,
+            },
+            seriesB: {
+              planned: !!sc.series_b_planned,
+              raiseAud: sc.series_b_target_raise_aud,
+              valuationAud: sc.series_b_target_valuation_aud,
+              yearRelative: sc.series_b_year_relative,
+            },
+            readiness: {
+              overallScore: readinessComputed.overallScore,
+              band: readinessComputed.band,
+              productMaturity: readinessComputed.checkpoints[0]?.score ?? 0,
+              revenueScale: readinessComputed.checkpoints[1]?.score ?? 0,
+              teamStability: readinessComputed.checkpoints[2]?.score ?? 0,
+              marketFit: readinessComputed.checkpoints[3]?.score ?? 0,
+              criticalGaps: readinessComputed.criticalGaps,
+            },
+            // Acquirer labels come from the helper which uses anonymized
+            // archetype names (e.g. "AU SaaS Strategic 2016–2024") — no
+            // real company names are ever emitted (compliance rule).
+            acquirers: acquirerProfiles.map((a) => ({
+              label: a.label,
+              exitLow: a.valuationRangeMin,
+              exitHigh: a.valuationRangeMax,
+              multipleLow: a.medianRevenueMultiple
+                ? Math.max(1, a.medianRevenueMultiple - 2)
+                : 3,
+              multipleHigh: a.medianRevenueMultiple
+                ? a.medianRevenueMultiple + 3
+                : 10,
+              dealCount: a.countOfDeals,
+            })),
+          };
+        }
+      }
+    } catch (err) {
+      console.error("[investor-pack:one-click] exit-strategy load failed", err);
+    }
+  }
+
   const data: InvestorPackData = {
     startup: { name: startupName, tagline, sector, asOfDate },
     svi: {
@@ -278,6 +452,8 @@ async function assembleOneClick(
       opportunity,
       risk,
     },
+    forecast,
+    exitStrategy,
   };
 
   return { data, startupName, sviGrade };

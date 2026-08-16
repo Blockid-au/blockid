@@ -101,6 +101,72 @@ export interface InvestorPackData {
     opportunity?: string;
     risk?: string;
   };
+  /**
+   * v3.7.1 — Revenue Forecast section (from `financial_models`).
+   * Populated when the founder pins a forecast with `use_for_investor_pack=true`.
+   * Missing = section is omitted from the PDF (no placeholder).
+   */
+  forecast?: {
+    name: string;
+    scenario: string;
+    currentArrAud: number;
+    monthlyGrowthPct: number;
+    // Summary metrics
+    revenueYear1: number;
+    revenueYear2: number;
+    revenueYear3: number;
+    monthBreakeven: number | null;
+    runwayMonths: number | null;
+    peakMonthlyBurnAud: number;
+    // 36-month projection (subset of fields for compact table)
+    months: Array<{
+      month: number;
+      revenueAud: number;
+      ebitdaAud: number;
+      cumCashAud: number;
+    }>;
+  };
+  /**
+   * v3.7.1 — Exit Strategy thesis section (from `exit_scenarios`).
+   * Populated when the founder pins a scenario with `use_for_investor_pack=true`.
+   */
+  exitStrategy?: {
+    scenarioName: string;
+    exitType: string;
+    exitTimelineYears: number;
+    targetExitValuationAud: number;
+    narrative: string | null;
+    seriesA: {
+      planned: boolean;
+      raiseAud: number | null;
+      valuationAud: number | null;
+      yearRelative: number | null;
+    };
+    seriesB: {
+      planned: boolean;
+      raiseAud: number | null;
+      valuationAud: number | null;
+      yearRelative: number | null;
+    };
+    readiness: {
+      overallScore: number;
+      band: string;
+      productMaturity: number;
+      revenueScale: number;
+      teamStability: number;
+      marketFit: number;
+      criticalGaps: string[];
+    } | null;
+    // Anonymized acquirer landscape (never real company names).
+    acquirers: Array<{
+      label: string;
+      exitLow: number;
+      exitHigh: number;
+      multipleLow: number;
+      multipleHigh: number;
+      dealCount: number;
+    }>;
+  };
 }
 
 /* ─── Brand palette (mirrors svi-report-pdf.tsx) ────────────────────────── */
@@ -925,6 +991,325 @@ function OnePageTeaserPage({ data }: { data: InvestorPackData }) {
   );
 }
 
+/* ─── 7. Revenue forecast (v3.7.1) ──────────────────────────────────────── */
+
+function ForecastPage({ data }: { data: InvestorPackData }) {
+  const f = data.forecast;
+  if (!f) return null;
+
+  // Sample 12 evenly-spaced points from the 36-month projection to keep the
+  // PDF table one page. Include first and last for anchoring.
+  const stride = Math.max(1, Math.floor(f.months.length / 12));
+  const sampled = f.months.filter((_, i) => i % stride === 0 || i === f.months.length - 1);
+
+  return (
+    <Page size="A4" style={s.page}>
+      <HeaderBar />
+      <Text style={s.h1}>Revenue forecast</Text>
+      <Text style={s.h1Sub}>
+        {f.name} · {f.scenario} scenario · 36-month projection
+      </Text>
+
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+        <View style={s.quadrantBox}>
+          <Text style={s.label}>Year 1 revenue</Text>
+          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.brand700, marginTop: 4 }}>
+            {formatAud(f.revenueYear1)}
+          </Text>
+        </View>
+        <View style={s.quadrantBox}>
+          <Text style={s.label}>Year 2 revenue</Text>
+          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.brand700, marginTop: 4 }}>
+            {formatAud(f.revenueYear2)}
+          </Text>
+        </View>
+        <View style={s.quadrantBox}>
+          <Text style={s.label}>Year 3 revenue</Text>
+          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.brand700, marginTop: 4 }}>
+            {formatAud(f.revenueYear3)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+        <View style={s.quadrantBox}>
+          <Text style={s.label}>Breakeven</Text>
+          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.emerald600, marginTop: 4 }}>
+            {f.monthBreakeven ? `Month ${f.monthBreakeven}` : "Not reached"}
+          </Text>
+        </View>
+        <View style={s.quadrantBox}>
+          <Text style={s.label}>Runway</Text>
+          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.amber700, marginTop: 4 }}>
+            {f.runwayMonths ? `${f.runwayMonths} months` : "—"}
+          </Text>
+        </View>
+        <View style={s.quadrantBox}>
+          <Text style={s.label}>Peak monthly burn</Text>
+          <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: C.red600, marginTop: 4 }}>
+            {formatAud(f.peakMonthlyBurnAud)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 4 }}>
+        <View style={s.tableHeader}>
+          <Text style={[s.tableHeaderCell, { width: "15%" }]}>Month</Text>
+          <Text style={[s.tableHeaderCell, { width: "30%", textAlign: "right" }]}>Revenue</Text>
+          <Text style={[s.tableHeaderCell, { width: "27%", textAlign: "right" }]}>EBITDA</Text>
+          <Text style={[s.tableHeaderCell, { width: "28%", textAlign: "right" }]}>Cum. cash</Text>
+        </View>
+        {sampled.map((m, i) => (
+          <View
+            key={m.month}
+            style={[s.tableRow, { backgroundColor: i % 2 === 0 ? C.white : C.surface50 }]}
+          >
+            <Text style={[s.tableCell, { width: "15%", fontFamily: "Helvetica-Bold", color: C.ink700 }]}>
+              M{m.month}
+            </Text>
+            <Text style={[s.tableCell, { width: "30%", textAlign: "right" }]}>
+              {formatAud(m.revenueAud)}
+            </Text>
+            <Text
+              style={[
+                s.tableCell,
+                {
+                  width: "27%",
+                  textAlign: "right",
+                  color: m.ebitdaAud >= 0 ? C.emerald600 : C.red600,
+                },
+              ]}
+            >
+              {formatAud(m.ebitdaAud)}
+            </Text>
+            <Text
+              style={[
+                s.tableCell,
+                {
+                  width: "28%",
+                  textAlign: "right",
+                  color: m.cumCashAud >= 0 ? C.emerald600 : C.red600,
+                },
+              ]}
+            >
+              {formatAud(m.cumCashAud)}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <Text
+        style={{
+          marginTop: 10,
+          fontSize: 8,
+          color: C.ink500,
+          fontStyle: "italic",
+          lineHeight: 1.4,
+        }}
+      >
+        Projection assumes {f.monthlyGrowthPct}% MoM growth on a starting ARR
+        base of {formatAud(f.currentArrAud)}. Sampled from a 36-month model.
+        Not financial advice — outcomes depend on execution.
+      </Text>
+
+      <RegulatoryFooter />
+    </Page>
+  );
+}
+
+/* ─── 8. Exit strategy thesis (v3.7.1) ──────────────────────────────────── */
+
+function ExitStrategyPage({ data }: { data: InvestorPackData }) {
+  const e = data.exitStrategy;
+  if (!e) return null;
+
+  return (
+    <Page size="A4" style={s.page}>
+      <HeaderBar />
+      <Text style={s.h1}>Exit thesis</Text>
+      <Text style={s.h1Sub}>
+        {e.scenarioName} · {e.exitType} · {e.exitTimelineYears}-year timeline
+      </Text>
+
+      <View
+        style={{
+          marginBottom: 12,
+          padding: 12,
+          borderRadius: 6,
+          backgroundColor: C.brand50,
+          borderLeftWidth: 3,
+          borderLeftColor: C.brand600,
+        }}
+      >
+        <Text style={s.label}>Target exit valuation</Text>
+        <Text style={{ fontSize: 22, fontFamily: "Helvetica-Bold", color: C.brand700, marginTop: 4 }}>
+          {formatAud(e.targetExitValuationAud)}
+        </Text>
+      </View>
+
+      {/* Funding path */}
+      <Text style={s.h2}>Funding path</Text>
+      <View style={{ flexDirection: "row", gap: 6, marginBottom: 12 }}>
+        <View style={[s.quadrantBox, { minHeight: 70 }]}>
+          <Text style={s.label}>Seed</Text>
+          <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.ink800, marginTop: 4 }}>
+            Current
+          </Text>
+          <Text style={{ fontSize: 8, color: C.ink500, marginTop: 2 }}>Year 0</Text>
+        </View>
+        {e.seriesA.planned && (
+          <View style={[s.quadrantBox, { minHeight: 70 }]}>
+            <Text style={[s.label, { color: C.brand600 }]}>Series A</Text>
+            <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.ink800, marginTop: 4 }}>
+              {e.seriesA.raiseAud ? formatAud(e.seriesA.raiseAud) : "—"}
+            </Text>
+            <Text style={{ fontSize: 8, color: C.ink500, marginTop: 2 }}>
+              {e.seriesA.valuationAud ? `${formatAud(e.seriesA.valuationAud)} pre` : ""}
+              {e.seriesA.yearRelative != null ? ` · Y${e.seriesA.yearRelative}` : ""}
+            </Text>
+          </View>
+        )}
+        {e.seriesB.planned && (
+          <View style={[s.quadrantBox, { minHeight: 70 }]}>
+            <Text style={[s.label, { color: C.brand600 }]}>Series B</Text>
+            <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.ink800, marginTop: 4 }}>
+              {e.seriesB.raiseAud ? formatAud(e.seriesB.raiseAud) : "—"}
+            </Text>
+            <Text style={{ fontSize: 8, color: C.ink500, marginTop: 2 }}>
+              {e.seriesB.valuationAud ? `${formatAud(e.seriesB.valuationAud)} pre` : ""}
+              {e.seriesB.yearRelative != null ? ` · Y${e.seriesB.yearRelative}` : ""}
+            </Text>
+          </View>
+        )}
+        <View style={[s.quadrantBox, { minHeight: 70, backgroundColor: C.emerald100 }]}>
+          <Text style={[s.label, { color: C.emerald600 }]}>Exit</Text>
+          <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: C.ink800, marginTop: 4 }}>
+            {formatAud(e.targetExitValuationAud)}
+          </Text>
+          <Text style={{ fontSize: 8, color: C.ink500, marginTop: 2 }}>
+            Year {e.exitTimelineYears}
+          </Text>
+        </View>
+      </View>
+
+      {/* Readiness */}
+      {e.readiness && (
+        <>
+          <Text style={s.h2}>
+            Exit readiness — score {e.readiness.overallScore}/100 ({e.readiness.band})
+          </Text>
+          <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 4, marginBottom: 10 }}>
+            {[
+              { label: "Product maturity", score: e.readiness.productMaturity },
+              { label: "Revenue scale", score: e.readiness.revenueScale },
+              { label: "Team stability", score: e.readiness.teamStability },
+              { label: "Market fit", score: e.readiness.marketFit },
+            ].map((row, i) => (
+              <View
+                key={row.label}
+                style={[s.tableRow, { backgroundColor: i % 2 === 0 ? C.white : C.surface50 }]}
+              >
+                <Text style={[s.tableCell, { width: "60%", color: C.ink700 }]}>
+                  {row.label}
+                </Text>
+                <Text
+                  style={[
+                    s.tableCell,
+                    {
+                      width: "40%",
+                      textAlign: "right",
+                      fontFamily: "Helvetica-Bold",
+                      color: scoreBarColor(row.score),
+                    },
+                  ]}
+                >
+                  {row.score} / 100
+                </Text>
+              </View>
+            ))}
+          </View>
+          {e.readiness.criticalGaps.length > 0 && (
+            <View
+              style={[
+                s.callout,
+                { borderLeftColor: C.amber700, backgroundColor: C.amber100 },
+              ]}
+            >
+              <Text style={[s.calloutLabel, { color: C.amber700 }]}>
+                Critical gaps to close
+              </Text>
+              {e.readiness.criticalGaps.slice(0, 4).map((gap, i) => (
+                <Text
+                  key={i}
+                  style={{ fontSize: 9, color: C.ink700, lineHeight: 1.5, marginTop: 2 }}
+                >
+                  • {gap}
+                </Text>
+              ))}
+            </View>
+          )}
+        </>
+      )}
+
+      {/* Acquirer landscape — anonymized only */}
+      {e.acquirers.length > 0 && (
+        <>
+          <Text style={s.h2}>AU acquirer landscape (anonymized)</Text>
+          <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 4 }}>
+            <View style={s.tableHeader}>
+              <Text style={[s.tableHeaderCell, { width: "35%" }]}>Acquirer archetype</Text>
+              <Text style={[s.tableHeaderCell, { width: "30%", textAlign: "right" }]}>Exit range</Text>
+              <Text style={[s.tableHeaderCell, { width: "20%", textAlign: "right" }]}>Multiple</Text>
+              <Text style={[s.tableHeaderCell, { width: "15%", textAlign: "right" }]}>Deals</Text>
+            </View>
+            {e.acquirers.slice(0, 5).map((a, i) => (
+              <View
+                key={a.label}
+                style={[s.tableRow, { backgroundColor: i % 2 === 0 ? C.white : C.surface50 }]}
+              >
+                <Text style={[s.tableCell, { width: "35%", fontFamily: "Helvetica-Bold", color: C.ink800 }]}>
+                  {a.label}
+                </Text>
+                <Text style={[s.tableCell, { width: "30%", textAlign: "right" }]}>
+                  {formatAud(a.exitLow)} – {formatAud(a.exitHigh)}
+                </Text>
+                <Text style={[s.tableCell, { width: "20%", textAlign: "right" }]}>
+                  {a.multipleLow}x – {a.multipleHigh}x
+                </Text>
+                <Text style={[s.tableCell, { width: "15%", textAlign: "right" }]}>
+                  {a.dealCount}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Text
+            style={{
+              marginTop: 8,
+              fontSize: 7.5,
+              color: C.ink500,
+              fontStyle: "italic",
+              lineHeight: 1.4,
+            }}
+          >
+            Source: AU M&amp;A benchmark dataset. All acquirer names anonymized
+            to archetypes. Historical transactions are indicative and do not
+            guarantee future outcomes.
+          </Text>
+        </>
+      )}
+
+      {e.narrative && (
+        <>
+          <Text style={s.h2}>Narrative</Text>
+          <Text style={s.bodyPara}>{e.narrative}</Text>
+        </>
+      )}
+
+      <RegulatoryFooter />
+    </Page>
+  );
+}
+
 /* ─── Top-level document ────────────────────────────────────────────────── */
 
 export const InvestorPackPdf: React.FC<{ data: InvestorPackData }> = ({ data }) => (
@@ -940,6 +1325,8 @@ export const InvestorPackPdf: React.FC<{ data: InvestorPackData }> = ({ data }) 
     <SviCriteriaPage data={data} />
     <CapTablePage data={data} />
     <TractionPage data={data} />
+    {data.forecast && <ForecastPage data={data} />}
+    {data.exitStrategy && <ExitStrategyPage data={data} />}
     <OnePageTeaserPage data={data} />
   </Document>
 );

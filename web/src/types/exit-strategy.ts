@@ -49,6 +49,10 @@ export interface ExitScenario {
   // Primary flag
   is_primary: boolean;
 
+  // Investor pack pin flag (v3.7.1) — when true this scenario is embedded
+  // into the auto-generated investor pack PDF.
+  use_for_investor_pack?: boolean;
+
   // Timestamps
   created_at: string;
   updated_at: string;
