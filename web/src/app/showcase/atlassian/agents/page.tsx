@@ -127,7 +127,7 @@ export default function AtlassianAgentsIndexPage() {
             <p className="font-medium">In BlockID your own C-Level AI agents would draft these live for your startup.</p>
             <p className="mt-1">
               See{" "}
-              <Link href="/agents" className="underline">
+              <Link href="/showcase/atlassian/agents" className="underline">
                 /agents
               </Link>{" "}
               to try them on your own company data.

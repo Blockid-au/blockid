@@ -38,6 +38,12 @@ const SITE_URL = "https://blockid.au";
 // ISR — every 60s any /startup/[slug] not covered by generateStaticParams
 // re-renders on next request. Keeps the SVI badge fresh without a redeploy.
 export const revalidate = 60;
+// Next.js 16 workaround: notFound() inside a revalidate-mode render bails out
+// with `DYNAMIC_SERVER_USAGE` and returns 500 instead of 404 for unknown
+// slugs. Forcing per-request SSR restores clean 404 semantics. The
+// `revalidate` value above becomes a no-op but is retained for clarity so a
+// future Next.js fix can restore ISR by simply dropping this line.
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
   // Best-effort — if the DB isn't reachable during the build, the caller
