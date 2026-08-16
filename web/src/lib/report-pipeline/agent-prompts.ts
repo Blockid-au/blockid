@@ -43,7 +43,22 @@ Cover:
 - Top 3 strengths and top 3 critical gaps
 - Investment thesis: why this startup is worth backing
 - Critical path to next funding milestone
-- Overall verdict and confidence level`,
+- Overall verdict and confidence level
+
+## Exit Path Analysis (ALWAYS include)
+
+### Realistic Exit Scenarios
+Based on sector EBITDA benchmarks and stage, include a table:
+| Timeline | Path | Valuation Range | Key Driver |
+|---|---|---|---|
+| 3 years | Strategic acquisition | A$Xm–A$Ym | [sector-specific driver] |
+| 5 years | PE buyout / Series B exit | A$Xm–A$Ym | MRR scale |
+| 7+ years | IPO / ASX listing | A$Xm+ | Market share |
+
+Use AU M&A sector multiples: SaaS 4-8x ARR, Fintech 6-12x ARR, Marketplace 3-6x GMV, Deeptech 8-15x revenue.
+
+### Strategic Buyer Landscape
+Name 3-5 realistic acquirer categories for this sector/stage in Australia.`,
   },
 
   cto: {
@@ -80,7 +95,29 @@ Cover:
 - Financial projections: 12-month and 36-month scenarios (base/bull/bear)
 - R&D Tax Incentive eligibility (43.5% refundable offset for <A$20M revenue)
 - Break-even timeline and path to profitability
-- Data room financial document completeness`,
+- Data room financial document completeness
+
+## Quantitative Analysis Requirements (ALWAYS include these subsections)
+
+### Sensitivity Analysis
+Include a markdown table with 3 scenarios:
+| Scenario | Assumption | Revenue Impact | Runway Impact |
+|---|---|---|---|
+| Bear | MRR -30%, churn +50% | ... | ... |
+| Base | Current trajectory | ... | ... |
+| Bull | MRR +40%, CAC -20% | ... | ... |
+Fill with estimated figures based on the revenue data provided, or use stage benchmarks if no data.
+
+### Unit Economics Depth
+- CAC Payback Period: estimated months to recover customer acquisition cost
+- LTV/CAC Ratio: use 15% AU discount rate for LTV discounting
+- Churn Sensitivity: what churn rate breaks LTV/CAC > 3x?
+- Gross Margin estimate by sector (SaaS: 70-80%, Marketplace: 40-60%, Fintech: 55-70%)
+
+### AU-Specific Financial Context
+- R&D Tax Incentive (43.5% refundable offset) eligibility assessment
+- ESIC eligibility for investor tax concessions
+- GST threshold (A$75k) and cash flow timing`,
   },
 
   cpo: {
@@ -217,7 +254,29 @@ Cover:
 - Analytics maturity: what is being measured and how
 - AI governance: responsible AI practices if applicable
 - Data quality issues in the evaluation inputs
-- Recommendations for evidence improvement`,
+- Recommendations for evidence improvement
+
+## Cohort Benchmarking (ALWAYS include)
+
+For each of the 8 SVI dimensions, include a comparison table:
+| Dimension | Your Score | Stage Median | Stage P75 | Gap to P75 |
+|---|---|---|---|---|
+| TRE | X | Y | Z | +/- delta |
+| FTV | X | Y | Z | +/- delta |
+| MPC | X | Y | Z | +/- delta |
+| PTD | X | Y | Z | +/- delta |
+| CGH | X | Y | Z | +/- delta |
+| IRI | X | Y | Z | +/- delta |
+| LCO | X | Y | Z | +/- delta |
+| SVM | X | Y | Z | +/- delta |
+
+Interpret: "You outperform 75% of [sector] startups at [stage] on TRE, but trail the median on CGH — your cap table and governance score (X) is below the 40th percentile, which may concern institutional investors."
+
+Use these stage medians (approximate benchmarks):
+- Concept: FTV:30, MPC:25, PTD:20, TRE:10, CGH:25, IRI:15, LCO:30, SVM:20
+- Validated: FTV:45, MPC:40, PTD:35, TRE:25, CGH:35, IRI:30, LCO:40, SVM:30
+- Early Traction: FTV:55, MPC:55, PTD:50, TRE:45, CGH:50, IRI:45, LCO:55, SVM:40
+- Growth: FTV:65, MPC:65, PTD:60, TRE:65, CGH:60, IRI:60, LCO:65, SVM:55`,
   },
 
   coo: {
