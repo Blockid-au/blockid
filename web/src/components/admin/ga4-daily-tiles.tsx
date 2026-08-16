@@ -83,12 +83,7 @@ function PlaceholderCard({ message, hint }: { message: string; hint?: string }) 
         <AlertTriangle strokeWidth={1.75} className="mx-auto h-8 w-8 text-amber-500 mb-3" />
         <p className="text-sm font-medium text-ink-800">{message}</p>
         {hint && <p className="mt-2 text-xs text-ink-600 max-w-lg mx-auto leading-relaxed">{hint}</p>}
-        <Link
-          href="/docs/plans/mega-2026-07-24/05-cdo-ga4-dashboard.md"
-          className="mt-3 inline-block text-xs font-medium text-brand-600 hover:text-brand-700"
-        >
-          Setup runbook →
-        </Link>
+        <p className="mt-3 text-xs text-ink-500">See <code className="font-mono">docs/plans/mega-2026-07-24/05-cdo-ga4-dashboard.md</code> in the repo.</p>
       </div>
     </section>
   );
