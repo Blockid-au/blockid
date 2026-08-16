@@ -735,77 +735,77 @@ const TOURS: FeatureTour[] = [
   },
   // -------------------------------------------------------------------------
   // Startup Package (subgoal 11) — 5-step walkthrough attached to the
-  // /startup-package route. Screenshots are captured manually later; until
-  // then the FeatureSpotlight overlay renders each step without media.
+  // /startup-package route. Auto-launches on /startup-package when the founder
+  // has never seen it (see tour-state). Screenshots captured manually later.
   // -------------------------------------------------------------------------
   {
     slug: "startup-package",
     route: "/startup-package",
     icon: "rocket",
     version: 1,
-    estimatedMinutes: 2,
+    estimatedMinutes: 3,
     name: {
-      en: "Startup Package walkthrough",
-      vi: "Hướng dẫn Startup Package",
+      en: "Startup Package",
+      vi: "Startup Package",
     },
     summary: {
-      en: "5 steps: buy → interview → analyze → dashboard → auto-fill",
-      vi: "5 bước: mua → phỏng vấn → phân tích → dashboard → tự động điền",
+      en: "Free 1-page teaser → A$149 guided interview → AI agent analysis → deliverables dashboard → cap-table reservation.",
+      vi: "Teaser 1 trang miễn phí → phỏng vấn hướng dẫn A$149 → phân tích AI agent → dashboard deliverables → đặt chỗ cổ phần.",
     },
     steps: [
       {
-        id: "buy",
+        id: "get-package",
         title: {
-          en: "1. Buy the Package",
-          vi: "1. Mua gói Package",
+          en: "Get your Startup Package",
+          vi: "Nhận Startup Package của bạn",
         },
         body: {
-          en: "One-off A$149 unlock: 25 credits, four agent passes, ten dataroom templates, and your public /startup/[slug] listing spin up on checkout.",
-          vi: "Mở khóa một lần A$149: 25 credits, bốn lượt agent, mười template data room, và trang /startup/[slug] công khai sẵn sàng khi thanh toán.",
+          en: "Visit /startup-package for a free 1-page teaser showing your SVI tier and sample deliverables. Unlock the full package for a one-off A$149 — no subscription, no lock-in.",
+          vi: "Truy cập /startup-package để xem teaser 1 trang miễn phí với tier SVI và mẫu deliverables. Mở khóa gói đầy đủ với A$149 một lần — không đăng ký, không ràng buộc.",
         },
-        anchor: "[data-tour=\"package-buy-cta\"]",
+        anchor: "[data-tour=\"package-teaser-cta\"]",
         cta: {
-          label: { en: "Start checkout", vi: "Bắt đầu thanh toán" },
-          href: "/startup-package#pricing",
+          label: { en: "View the package", vi: "Xem gói" },
+          href: "/startup-package",
         },
       },
       {
         id: "interview",
         title: {
-          en: "2. Answer the 8-step interview",
-          vi: "2. Trả lời 8 bước phỏng vấn",
+          en: "Complete the guided interview",
+          vi: "Hoàn thành phỏng vấn hướng dẫn",
         },
         body: {
-          en: "Guided prompts capture your vision, customers, and traction. Each answer auto-saves and rebuilds your SVI signal in real time.",
-          vi: "Câu hỏi hướng dẫn ghi lại tầm nhìn, khách hàng và đà tiến. Mỗi câu trả lời tự lưu và cập nhật SVI thời gian thực.",
+          en: "The 8-step interview at /startup-package/interview captures your vision, market, traction and team. Every answer auto-saves and feeds the AI agents in real time.",
+          vi: "Phỏng vấn 8 bước tại /startup-package/interview ghi lại tầm nhìn, thị trường, đà tiến và đội ngũ. Mỗi câu trả lời tự lưu và cung cấp cho AI agent thời gian thực.",
         },
         anchor: "[data-tour=\"package-interview-step\"]",
         cta: {
-          label: { en: "Open interview", vi: "Mở phỏng vấn" },
+          label: { en: "Start interview", vi: "Bắt đầu phỏng vấn" },
           href: "/startup-package/interview",
         },
       },
       {
-        id: "analyze",
+        id: "ai-agents",
         title: {
-          en: "3. Run a C-Level analysis",
-          vi: "3. Chạy phân tích C-Level",
+          en: "AI agent analysis",
+          vi: "Phân tích AI agent",
         },
         body: {
-          en: "Each phase spawns its lead agent on your latest answers. Cost + word count show before you spend — nothing is auto-charged.",
-          vi: "Mỗi giai đoạn kích hoạt agent dẫn dắt trên câu trả lời mới nhất. Chi phí + số từ hiển thị trước khi chi — không tự động tính phí.",
+          en: "CEO, CFO, and CMO agents run on your interview answers. Each agent wave dispatches in sequence — your SVI score updates in real time as findings arrive.",
+          vi: "Agent CEO, CFO và CMO chạy trên câu trả lời phỏng vấn. Mỗi đợt agent kích hoạt tuần tự — điểm SVI cập nhật thời gian thực khi phát hiện về.",
         },
-        anchor: "[data-tour=\"package-analyze-button\"]",
+        anchor: "[data-tour=\"package-agent-wave\"]",
       },
       {
         id: "dashboard",
         title: {
-          en: "4. Track the 12-phase dashboard",
-          vi: "4. Theo dõi dashboard 12 giai đoạn",
+          en: "Package dashboard & deliverables",
+          vi: "Dashboard & deliverables Package",
         },
         body: {
-          en: "One card per phase shows deliverables, credit prices, SVI trend, and your reserved cap-table allocation — the founder cockpit in one view.",
-          vi: "Một thẻ mỗi giai đoạn hiển thị deliverables, giá credit, xu hướng SVI và phần cổ phần đã dành — trạm điều khiển founder trong một view.",
+          en: "Your /startup-package/[projectId] dashboard shows all deliverables: pitch deck, investor pack, and GTM strategy. One click auto-fills each from your interview + agent output.",
+          vi: "Dashboard /startup-package/[projectId] hiển thị mọi deliverables: pitch deck, bộ tài liệu nhà đầu tư, chiến lược GTM. Một cú nhấp tự điền từ phỏng vấn + đầu ra agent.",
         },
         anchor: "[data-tour=\"package-dashboard-grid\"]",
         cta: {
@@ -814,19 +814,19 @@ const TOURS: FeatureTour[] = [
         },
       },
       {
-        id: "autofill",
+        id: "cap-table",
         title: {
-          en: "5. Auto-fill a deliverable",
-          vi: "5. Tự động điền một deliverable",
+          en: "Reserve your cap-table allocation",
+          vi: "Đặt chỗ phân bổ cổ phần",
         },
         body: {
-          en: "Click any deliverable to spend credits, dispatch the matching PDF generator, and drop the file straight into your dataroom.",
-          vi: "Nhấp deliverable bất kỳ để chi credit, gọi generator PDF phù hợp và đẩy file trực tiếp vào data room.",
+          en: "DB-first reservation locks a minimum 10% equity allocation against your startup ticker. The reservation is visible to investors in your /startup/[slug] public listing.",
+          vi: "Đặt chỗ ưu tiên DB khóa tối thiểu 10% phân bổ cổ phần cho ticker startup. Đặt chỗ hiển thị với nhà đầu tư trên trang /startup/[slug] công khai.",
         },
-        anchor: "[data-tour=\"package-autofill-button\"]",
+        anchor: "[data-tour=\"package-cap-table-reserve\"]",
         cta: {
-          label: { en: "Open data room", vi: "Mở data room" },
-          href: "/workspace/data-room",
+          label: { en: "Reserve allocation", vi: "Đặt chỗ phân bổ" },
+          href: "/startup-package#cap-table",
         },
       },
     ],

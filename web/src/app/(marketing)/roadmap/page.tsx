@@ -148,6 +148,12 @@ type ShippedItem = {
 
 const RECENTLY_LANDED: ShippedItem[] = [
   {
+    id: "startup-package-ship1",
+    title: "Startup Package — guided founder journey (Ship 1)",
+    detail:
+      "Guided 8-step interview → AI agent dispatch (CEO/CFO/CMO/CDO waves) → real-time SVI recompute → auto-fill PDF deliverables (pitch deck, investor pack, financial projection, GTM strategy, ABN/trademark guide) → dataroom upload → DB-first cap-table reservation (min 10%) → public /startup/[slug] listing → weekly email progress digest. One-off A$149 unlock + credit-based pay-per-analysis. Stripe SKU founder_package live. 27,533 tests green.",
+  },
+  {
     id: "v3-hero-paywall",
     title: "Phase 1 — HeroV3 + SSO-aware CTA + report paywall",
     detail:
