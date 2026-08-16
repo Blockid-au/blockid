@@ -51,7 +51,7 @@ export function HeroSection() {
   }, []);
 
   function handleSearch() {
-    router.push("/auth/login?next=/workspace/competitors");
+    router.push("/score");
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -215,7 +215,7 @@ export function HeroSection() {
             <button
               key={tag.label}
               type="button"
-              onClick={() => router.push("/auth/login")}
+              onClick={() => router.push("/score")}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-all duration-200",
                 "hover:scale-[1.03] hover:border-[rgba(0,212,255,0.5)]",
