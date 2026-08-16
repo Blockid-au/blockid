@@ -1,10 +1,12 @@
-// Investor Pack workspace surface (Goal 5B — T-1201 shell).
+// Investor Pack workspace surface (Goal 5B — T-1201 shell, T-1203 update).
 //
 // Server component: auth-gated redirect to /auth/login. Renders the
-// summary card (startup name + SVI grade + last generated date) plus the
-// Preview and Generate PDF CTAs that hit the T-1201 preview route.
-// Share-link creation is a T-1207 deliverable — represented here as a
-// placeholder card only.
+// summary card (startup name + SVI grade + last generated date) plus:
+//   - One-click "Generate Investor Pack" CTA (T-1203, posts to /api/investor-pack/one-click)
+//   - Last generated share link if investor_pack_shares has a row for this user
+//   - Preview CTA (inline PDF viewer)
+// The client form component (InvestorPackGenerateForm) handles the POST +
+// progress state + success/error + share link display.
 
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -13,6 +15,7 @@ import { getProjectIdFromRequest, getCurrentProjectIsSandbox } from "@/lib/proje
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { InvestorPackGenerateForm } from "./generate/InvestorPackGenerateForm";
 
 export const metadata: Metadata = {
   title: "Investor Pack | BlockID",
@@ -28,11 +31,15 @@ async function loadOverview(userId: string, projectId: string | null): Promise<{
   startupName: string;
   sviGrade: string;
   lastGeneratedAt: string | null;
+  lastShareId: string | null;
+  lastDownloadUrl: string | null;
 }> {
   const admin = getSupabaseAdmin();
   let startupName = "Untitled startup";
   let sviGrade = "—";
   let lastGeneratedAt: string | null = null;
+  let lastShareId: string | null = null;
+  let lastDownloadUrl: string | null = null;
 
   if (admin && projectId) {
     try {
@@ -49,26 +56,72 @@ async function loadOverview(userId: string, projectId: string | null): Promise<{
     }
   }
 
-  // investor_pack_history table is a T-1205 migration deliverable. Query it
-  // defensively so we degrade gracefully today when it does not exist.
+  // Fetch SVI grade (latest report).
   if (admin) {
     try {
       const q = admin
-        .from("investor_pack_history")
-        .select("generated_at")
+        .from("svi_reports")
+        .select("grade")
         .eq("user_id", userId)
-        .order("generated_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(1);
-      const { data, error } = await q.maybeSingle();
-      if (!error && data && typeof (data as any).generated_at === "string") {
-        lastGeneratedAt = (data as any).generated_at;
+      if (projectId) q.eq("project_id", projectId);
+      const { data: report } = await q.maybeSingle();
+      if (report && typeof (report as any).grade === "string") {
+        sviGrade = (report as any).grade;
       }
     } catch {
-      /* table not yet migrated — stub silently */
+      /* ignore */
     }
   }
 
-  return { startupName, sviGrade, lastGeneratedAt };
+  // Fetch most recent share from investor_pack_shares (T-1203 table).
+  if (admin) {
+    try {
+      const q = admin
+        .from("investor_pack_shares")
+        .select("share_id, created_at, expires_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const { data, error } = await q.maybeSingle();
+      if (!error && data) {
+        const row = data as any;
+        // Only surface share links that haven't expired yet.
+        if (
+          typeof row.share_id === "string" &&
+          new Date(row.expires_at).getTime() > Date.now()
+        ) {
+          lastShareId = row.share_id;
+          lastDownloadUrl = `/api/investor-pack/download/${row.share_id}`;
+          lastGeneratedAt =
+            typeof row.created_at === "string" ? row.created_at : null;
+        }
+      }
+    } catch {
+      /* investor_pack_shares not yet migrated — degrade gracefully */
+    }
+
+    // Fallback: investor_pack_history (T-1205 deliverable, may not exist yet).
+    if (!lastGeneratedAt) {
+      try {
+        const q = admin
+          .from("investor_pack_history")
+          .select("generated_at")
+          .eq("user_id", userId)
+          .order("generated_at", { ascending: false })
+          .limit(1);
+        const { data, error } = await q.maybeSingle();
+        if (!error && data && typeof (data as any).generated_at === "string") {
+          lastGeneratedAt = (data as any).generated_at;
+        }
+      } catch {
+        /* table not yet migrated — stub silently */
+      }
+    }
+  }
+
+  return { startupName, sviGrade, lastGeneratedAt, lastShareId, lastDownloadUrl };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -82,7 +135,6 @@ export default async function InvestorPackPage() {
   const overview = await loadOverview(user.id, projectId);
 
   const previewHref = "/api/investor-pack/preview";
-  const downloadHref = "/api/investor-pack/preview?download=1";
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -95,6 +147,7 @@ export default async function InvestorPackPage() {
           </p>
         </div>
 
+        {/* Summary card */}
         <section
           aria-labelledby="pack-summary"
           className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 mb-4"
@@ -102,7 +155,7 @@ export default async function InvestorPackPage() {
           <h2 id="pack-summary" className="sr-only">
             Pack summary
           </h2>
-          <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
             <div>
               <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Startup
@@ -134,45 +187,45 @@ export default async function InvestorPackPage() {
             </div>
           </dl>
 
-          <div className="mt-5 flex flex-wrap gap-3">
-            <a
-              href={downloadHref}
-              className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 px-4 py-2 text-sm font-medium text-white"
-              download
-            >
-              Generate PDF
-            </a>
-            <a
-              href={previewHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium text-ink-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-            >
-              Preview
-            </a>
-          </div>
+          {/* One-click generate form (T-1203) */}
+          <InvestorPackGenerateForm
+            initialDownloadUrl={overview.lastDownloadUrl}
+            previewHref={previewHref}
+          />
         </section>
 
-        <section
-          aria-labelledby="share-link-future"
-          className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 p-5 mb-4"
-        >
-          <h2
-            id="share-link-future"
-            className="text-sm font-semibold text-ink-800 dark:text-slate-100"
+        {/* Last-generated share link (T-1203) */}
+        {overview.lastDownloadUrl && (
+          <section
+            aria-labelledby="share-link-live"
+            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 mb-4"
           >
-            Share link
-          </h2>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Coming in T-1207: opaque share URL, view tracking, and investor
-            reply capture from a hosted viewer at
-            {" "}
-            <code className="rounded bg-slate-200 dark:bg-slate-800 px-1 py-0.5 text-xs">
-              /pack/&lt;shareId&gt;
-            </code>
-            .
-          </p>
-        </section>
+            <h2
+              id="share-link-live"
+              className="text-sm font-semibold text-ink-800 dark:text-slate-100 mb-2"
+            >
+              Share link
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+              Share this link with investors. It expires 30 days after
+              generation and allows direct PDF download — no login required.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded bg-slate-100 dark:bg-slate-800 px-3 py-1.5 text-xs text-ink-700 dark:text-slate-200 break-all">
+                {typeof window === "undefined"
+                  ? overview.lastDownloadUrl
+                  : `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}${overview.lastDownloadUrl}`}
+              </code>
+              <a
+                href={overview.lastDownloadUrl}
+                className="shrink-0 inline-flex items-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-ink-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                download
+              >
+                Download
+              </a>
+            </div>
+          </section>
+        )}
 
         <NotFinancialAdvice kind="not_financial_advice" compact />
       </div>

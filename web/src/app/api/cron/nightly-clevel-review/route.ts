@@ -1,21 +1,27 @@
 import { NextResponse } from "next/server";
-import { execSync } from "node:child_process";
+import { appendFileSync } from "node:fs";
+import { spawn, execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 30; // Route returns immediately; script runs in background.
+
+const HEALTH_LOG = "/home/dovanlong/blockid.au/web/content/reports/cron-health.jsonl";
 
 /**
- * Nightly C-Level review orchestrator (Goal 5A — T-1100).
+ * Nightly C-Level review orchestrator — T-1101 production gate.
  *
- * Spawns web/scripts/nightly-clevel-review.mjs. Fail-closed on CRON_SECRET —
- * we mirror the bq-export / audit-verify routes deliberately (NOT the
- * lifecycle-mailer fail-open regression flagged in today's audit).
+ * Spawns web/scripts/nightly-clevel-review.mjs in a detached background
+ * process (non-blocking). The script takes 2-5 min to complete (6 × LLM
+ * calls + digest) so we cannot block the HTTP connection.
  *
- * The script is a stub until T-1102 wires the real Anthropic Messages call;
- * this route intentionally does no LLM work itself.
+ * Auth: Bearer $CRON_SECRET (same pattern as bq-export, svi-index-populate).
+ *
+ * Returns immediately with { ok: true, triggered: true }. The script writes
+ * its own history to web/content/reports/clevel-review-history.jsonl. Cron
+ * health is logged here on trigger; the script itself does not call this route.
  */
 export async function GET(req: Request) {
   const expected = process.env.CRON_SECRET;
@@ -36,36 +42,73 @@ export async function GET(req: Request) {
   }
 
   const cwd = process.cwd();
-  const scriptPath = join(cwd, "web", "scripts", "nightly-clevel-review.mjs");
-  const scriptExists = existsSync(scriptPath);
-  const command = scriptExists
-    ? `node web/scripts/nightly-clevel-review.mjs`
-    : `node scripts/nightly-clevel-review.mjs`;
-
-  const startedAt = Date.now();
-  let stdout = "";
-  let exitCode = 0;
-  try {
-    stdout = execSync(command, {
-      cwd,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: 290_000,
-      maxBuffer: 8 * 1024 * 1024,
-    });
-  } catch (err) {
-    const e = err as { status?: number; stdout?: Buffer | string; stderr?: Buffer | string; message?: string };
-    exitCode = typeof e.status === "number" ? e.status : 1;
-    const so = typeof e.stdout === "string" ? e.stdout : e.stdout?.toString("utf8") ?? "";
-    const se = typeof e.stderr === "string" ? e.stderr : e.stderr?.toString("utf8") ?? "";
-    stdout = [so, se, e.message ?? ""].filter(Boolean).join("\n");
+  // Resolve script path — handle both standalone (cwd = web/) and repo-root layouts.
+  let scriptPath = join(cwd, "web", "scripts", "nightly-clevel-review.mjs");
+  if (!existsSync(scriptPath)) {
+    scriptPath = join(cwd, "scripts", "nightly-clevel-review.mjs");
   }
 
+  const ts = new Date().toISOString();
+
+  if (!existsSync(scriptPath)) {
+    const detail = `script not found at ${scriptPath}`;
+    logHealth({ ts, status: "fail", detail, duration_ms: 0 });
+    return NextResponse.json({ ok: false, error: detail }, { status: 500 });
+  }
+
+  // Spawn in background — detached so it outlives the HTTP request.
+  try {
+    const child = spawn("node", [scriptPath], {
+      cwd,
+      detached: true,
+      stdio: "ignore",
+      env: {
+        ...process.env,
+        // Ensure the script can find the API key even when Next.js masks it.
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
+        TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN ?? "",
+        TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID ?? "",
+      },
+    });
+    child.unref();
+  } catch (err) {
+    const e = err as Error;
+    const detail = `spawn failed: ${e.message}`;
+    logHealth({ ts, status: "fail", detail, duration_ms: 0 });
+    return NextResponse.json({ ok: false, error: detail }, { status: 500 });
+  }
+
+  logHealth({ ts, status: "ok", detail: `triggered background nightly review (script=${scriptPath})`, duration_ms: 0 });
+
   return NextResponse.json({
-    ok: exitCode === 0,
-    exit_code: exitCode,
-    duration_ms: Date.now() - startedAt,
-    script: command,
-    stdout: stdout.slice(-16_000),
+    ok: true,
+    triggered: true,
+    script: scriptPath,
+    ts,
   });
+}
+
+function logHealth({
+  ts,
+  status,
+  detail,
+  duration_ms,
+}: {
+  ts: string;
+  status: string;
+  detail: string;
+  duration_ms: number;
+}) {
+  try {
+    const line = JSON.stringify({
+      ts,
+      endpoint: "nightly-clevel-review",
+      status,
+      duration_ms,
+      detail,
+    });
+    appendFileSync(HEALTH_LOG, line + "\n", "utf8");
+  } catch {
+    // Non-fatal — if the health log is unavailable the review still runs.
+  }
 }
