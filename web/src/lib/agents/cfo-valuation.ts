@@ -217,9 +217,9 @@ export function auExitRealisationCheck(
 
   // Pick up to 3 anchor exits — prefer highest-valuation exits in sector (no named filtering)
   const anchorExits = exits
-    .sort((a, b) => (b.exitValueAud ?? 0) - (a.exitValueAud ?? 0))
+    .sort((a, b) => (b.valuationAud ?? 0) - (a.valuationAud ?? 0))
     .slice(0, 3)
-    .map(e => ({ ...e, company: undefined })); // strip company name from report output
+    .map((e, i) => ({ ...e, company: `AU ${e.sector} exit ${i + 1} (${e.year})` }));
 
   // Pre-revenue: no numeric signal but still surface AU comps
   const isPreRevenue = mrrAud === 0 || monthlyGrowthRatePct === 0;
