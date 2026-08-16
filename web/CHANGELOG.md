@@ -1,5 +1,33 @@
 # BlockID.au Changelog
 
+## 2026-08-16 — v3.6.1: Build fixes + 7x 404 page fixes (deployed live)
+
+### Build fixes
+- **fix** `next.config.ts`: added `@remotion/renderer`, `@remotion/bundler`, `@remotion/compositor-linux-x64-gnu`, `@rspack/binding`, `@rspack/core`, `esbuild` to `serverExternalPackages` — webpack was crashing on native `.node` binaries from Remotion pitch-video route.
+- **fix** `marketing-footer.tsx`: replaced `node:fs` + `readFileSync` with static `import versionData from "version.json"` — eliminates "fs not found" crash when the footer is bundled into a client component tree.
+
+### 404 pages resolved (7 total)
+- `/register` → 301 redirect to `/signup`
+- `/legal` → legal docs index page (Terms / Privacy / Disclaimers cards)
+- `/how-it-works` → HowItWorksSection + SVI explainer page
+- `/reports/samples` → 301 redirect to `/guide/reports`
+- `/guide` → chapter index grid (11 guide sections)
+- `/solutions` → persona card index (Founders / Investors / Advisors / Accelerators)
+- `/index/listings` → fail-soft wrapper (graceful 500 → Explore CTA)
+
+### Test suite (v3.6.0 fixes, gate-blocking)
+- **fix** `cmo-market-research.ts`: `AU_MARKET_DATA` canonical 7-key object; `generateGtmStrategy` + `generateCompetitorAnalysis` + `generatePricingTiers` made async with `callAI` + deterministic fallbacks
+- **fix** `cdo-data-quality.ts`: restored original `assessAnalyticsMaturity` capability-object signature + `AI_GOVERNANCE_CHECKLIST` export
+- **fix** `competitors/ai-fill` route test: updated mock to support `.order().limit().maybeSingle()` chain
+- **fix** tier-nav golden snapshots: updated with "Code & Web Analyzer" nav item
+- Result: **27,533 tests pass, 0 failures**
+
+### Deploy
+- Deployed: **2026-08-16 03:09 UTC** — 11/11 CI gates passed (Playwright hydrated smoke ✅)
+- Git SHA: `45e17b830` | Release: `y3VWxpZaC2WG-MlBjy_YG`
+
+---
+
 ## 2026-08-15 — v3.6.0: CAPITAL Funding Readiness scorecard + CDO data-quality benchmarks
 
 ### New feature: CAPITAL investor readiness scorecard (`/dashboard/fundraise`)
