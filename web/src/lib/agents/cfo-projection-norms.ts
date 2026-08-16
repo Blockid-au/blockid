@@ -247,15 +247,16 @@ function pickSectorBenchmark(sector: string | undefined, arrAud: number): Sector
   const bm = (VC_BENCHMARKS as Record<string, (typeof VC_BENCHMARKS)[keyof typeof VC_BENCHMARKS]>)[key];
   if (!bm) return undefined;
   const arr = Math.max(0, arrAud);
+  const arrMultiple = bm.arrMultiple ?? { low: bm.multipleRange[0], mid: bm.medianMultiple, high: bm.multipleRange[1] };
   return {
     sector: bm.sector,
-    arrMultiple: bm.arrMultiple,
+    arrMultiple,
     impliedValuationAud: {
-      low: Math.round(arr * bm.arrMultiple.low),
-      mid: Math.round(arr * bm.arrMultiple.mid),
-      high: Math.round(arr * bm.arrMultiple.high),
+      low: Math.round(arr * arrMultiple.low),
+      mid: Math.round(arr * arrMultiple.mid),
+      high: Math.round(arr * arrMultiple.high),
     },
-    sources: bm.sources,
+    sources: bm.sources ?? [bm.source],
   };
 }
 

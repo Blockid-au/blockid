@@ -121,7 +121,7 @@ function pickPrimaryChannel(channels: GtmChannel[], stage: number, sector: strin
 function pickSecondaryChannels(channels: GtmChannel[], stage: number): string[] {
   const rank = { high: 3, medium: 2, low: 1 } as const;
   const sorted = [...channels].sort((a, b) => rank[b.priority] - rank[a.priority]);
-  const rest = sorted.slice(1).map((c) => c.name).filter(Boolean);
+  const rest = sorted.slice(1).map((c) => c.name ?? c.channel).filter((x): x is string => Boolean(x));
   if (rest.length > 0) return rest.slice(0, 3);
   if (stage <= 1) return ["communities", "events"];
   if (stage === 2) return ["seo-content", "partnerships"];
@@ -159,12 +159,12 @@ export async function POST() {
 
   const nsm = northStarMetric(sector, stage);
   // Prefer the first LLM-suggested metric name if it looks quantitative.
-  const llmMetricName = gtm.keyMetrics[0];
+  const llmMetricName = gtm.keyMetrics?.[0];
   const nsMetric = llmMetricName && llmMetricName.length < 80 ? llmMetricName : nsm.metric;
 
   const launchPlan =
-    gtm.first90Days.length > 0
-      ? gtm.first90Days.join(" ") + ` Track: ${nsMetric} target ${nsm.target.toLocaleString()}.`
+    (gtm.first90Days?.length ?? 0) > 0
+      ? (gtm.first90Days ?? []).join(" ") + ` Track: ${nsMetric} target ${nsm.target.toLocaleString()}.`
       : `Week 1–2: activate 20+ founder discovery interviews (${STAGE_LABELS[stage]} segment). Week 3–4: launch landing page with SVI waitlist. Month 2: onboard 5 design partners at discounted pricing. Month 3: first public cohort. Track: ${nsm.metric} target A$${nsm.target.toLocaleString()}.`;
 
   const suggestion: GtmSuggestion = {
