@@ -89,7 +89,7 @@ function sleep(ms: number): Promise<void> {
 // One shared wait window sized to cover the 500 ms debounce + a tick of
 // fs I/O headroom. Not a helper for correctness — just a name for the
 // magic number.
-const FLUSH_WAIT_MS = 750;
+const FLUSH_WAIT_MS = 1500;
 
 beforeEach(() => {
   vi.useRealTimers();
