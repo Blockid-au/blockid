@@ -118,3 +118,8 @@ export async function computeCohortPercentile(args: {
     };
   }
 }
+
+export {
+  computeDimensionPercentiles,
+  type DimensionPercentileResult,
+} from "@/lib/svi-dimension-benchmarks";
