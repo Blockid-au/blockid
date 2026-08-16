@@ -1,27 +1,23 @@
 {
-  "version": "v3.6.6",
+  "version": "v3.6.7",
   "updated_at": "2026-08-16T07:45:00Z",
-  "git_sha": "d249338ef",
-  "release_id": "v3.6.6-report-quality",
+  "git_sha": "188a69dc1",
+  "release_id": "v3.6.7-startup-quality",
   "shipped_summary": [
-    "v3.6.6 — Funding Readiness tile in SVI dashboard (gate badge, progress bar, milestone checklist per Seed/SeriesA/B gate)",
-    "v3.6.6 — Funding Readiness section in Investor Pack PDF (top 3 unmet milestones by gap)",
-    "v3.6.6 — Report Section 11: Funding Journey & Capital Strategy (deterministic, AU investor map by sector, raise bands)",
-    "v3.6.6 — CRO prompt: Revenue Growth Framework (funnel benchmarks, NRR targets, AU ARR bands)",
-    "v3.6.6 — CMO prompt: AU GTM Analysis (channel economics, moat 1-5 ratings, category creation vs entry)",
-    "v3.6.5 — SVI v2.1: computeFundingReadiness() Seed/SeriesA/B gates + milestone checklist",
-    "v3.6.5 — SVI v2.1: CFO prompt sensitivity table (bear/base/bull) + unit economics + AU tax context",
-    "v3.6.5 — SVI v2.1: CEO prompt exit scenarios 3/5/7yr + AU M&A multiples + buyer landscape",
-    "v3.6.5 — SVI v2.1: CDO prompt 8-dimension cohort benchmarking vs stage medians",
-    "v3.6.4 — T_FEEDBACK_0001: feedback-for-credits + AI scoring + Telegram digest",
-    "v3.6.4 — T_EMAIL_0001: D1/D4/D9 nurture sequence + queue cron",
-    "v3.6.4 — T_REVENUE_0001: admin revenue+spend dashboard + weekly email digest"
+    "v3.6.7 — T_ONBOARD_0001: 12-step onboarding progress bar in workspace (6 phases, dismissible, DB-backed completion detection)",
+    "v3.6.7 — T_REPORT_ARCHIVE: PDF report history + re-download (investor packs + assembled reports archive in workspace/reports + investor-pack page)",
+    "v3.6.7 — T_SERIES_A: Week-by-week Series A action plan (timeline phases: Now/Month1/Month2-3, gap-sorted milestones, gate unlock indicators)",
+    "v3.6.7 — fix(marketing): logo band stats strip (200+ startups, A$180M+), submit post-CTA to /score, hero routing to /score for anon users",
+    "v3.6.6 — Funding Readiness tile in SVI dashboard + investor pack Funding Readiness section",
+    "v3.6.6 — Section 11: Funding Journey & Capital Strategy (deterministic, AU investor map by sector)",
+    "v3.6.6 — CRO/CMO prompt enhancements (funnel benchmarks, AU ARR bands, channel economics, moat ratings)",
+    "v3.6.6 — SVI v2.1: computeFundingReadiness() + enhanced CFO/CEO/CDO prompts"
   ],
   "task_ids": [
-    "SVI-v2.1: funding readiness gates + C-level prompt enhancements",
-    "T_SVI_REPORT: CRO/CMO prompts + Section 11 Funding Journey",
-    "T_FUNDING_UI: Funding Readiness tile + investor pack section",
-    "T_FEEDBACK_0001", "T_EMAIL_0001", "T_REVENUE_0001"
+    "T_ONBOARD_0001: 12-step onboarding progress bar",
+    "T_REPORT_ARCHIVE: PDF report history + re-download",
+    "T_SERIES_A: Series A week-by-week action plan",
+    "fix(marketing): logo band + submit CTA + hero routing"
   ],
-  "notes": "v3.6.6 = full C-level report quality uplift: 11-section reports with deterministic Funding Journey, enhanced CRO/CMO/CFO/CEO/CDO prompts, funding readiness dashboard tile, investor pack integration. SVI engine at v2.1.0. Site fully 404-clean."
+  "notes": "v3.6.7 = founder experience quality sprint. Onboarding progress visible from day 1. Report archive lets founders re-download past PDFs. Series A action plan shows exactly what to do this week vs next month. Marketing pages optimised for AU founder conversion (no fake logos, clear CTAs)."
 }
