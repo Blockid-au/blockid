@@ -50,6 +50,7 @@ import { decideVisibility, type LockedDecision } from "@/lib/nav/hide-when-locke
 import { UpgradeChip } from "@/components/nav/upgrade-chip";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { OnboardingProgressBar } from "@/components/workspace/onboarding-progress-bar";
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode;
@@ -69,6 +70,13 @@ interface WorkspaceLayoutProps {
    * true, the `SandboxBanner` renders above `TrialBanner` per CLO D4-CLO-06.
    */
   isSandbox?: boolean;
+  /**
+   * T_ONBOARD_0001 — Step IDs the founder has already completed.
+   * When provided, the `OnboardingProgressBar` renders between the
+   * topbar and page content. Omit (or pass an empty array) on pages
+   * that don't fetch onboarding signals — the bar simply won't show.
+   */
+  completedOnboardingSteps?: string[];
 }
 
 /**
@@ -414,7 +422,7 @@ function renderNavGroup(args: {
   );
 }
 
-export function WorkspaceLayout({ children, user, startupName, currentPhase = 0, isSandbox = false }: Omit<WorkspaceLayoutProps, "notificationCount">) {
+export function WorkspaceLayout({ children, user, startupName, currentPhase = 0, isSandbox = false, completedOnboardingSteps }: Omit<WorkspaceLayoutProps, "notificationCount">) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -791,6 +799,16 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
             dismisses. Rendered immediately above <main> so the paywall
             provider (see wrapper) can trigger contextual nudges below. */}
         <TrialCountdownBanner />
+
+        {/* T_ONBOARD_0001 — 12-step investor-readiness progress bar.
+            Renders only when the parent page passes `completedOnboardingSteps`.
+            Self-hides once all 12 steps are done or the founder dismisses it. */}
+        {completedOnboardingSteps && (
+          <OnboardingProgressBar
+            completedSteps={completedOnboardingSteps}
+            currentPath={pathname}
+          />
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
