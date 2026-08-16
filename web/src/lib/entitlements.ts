@@ -18,6 +18,7 @@ import "server-only";
 import { getPlanCached } from "@/lib/plans-db";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { shouldFire, recordConversionEvent } from "@/lib/conversion/triggers";
+import { emitEvent } from "@/lib/analytics/server";
 
 // ---------------------------------------------------------------------------
 // Feature catalog — union of every gate name used across the product.
@@ -386,16 +387,14 @@ export async function recordGateHit(
     segment: user?.segment ?? null,
   };
 
-  // analytics_events (CDO — GA4 mirror). Table may not exist yet; ignore errors.
-  try {
-    await supabase.from("analytics_events").insert({
-      user_id: user?.id ?? null,
-      event_name: "feature_gate_hit",
-      params,
-    });
-  } catch {
-    // table missing or write failed — do not block UX
-  }
+  // analytics_events (CDO T-1009 — GA4 + BQ mirror via typed emitEvent pipeline).
+  void emitEvent({
+    name: "feature_gate_hit",
+    params,
+    userId: user?.id ?? null,
+    source: "server",
+    consentGranted: true,
+  });
 
   // entitlement_events (audit trail from 0075_entitlements_audit.sql).
   try {

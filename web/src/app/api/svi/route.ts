@@ -17,6 +17,7 @@ import { computeCohortPercentile } from "@/lib/agents/cohort-percentile";
 import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
 import { loadFounderProfileByEmail, profileToSviInputText } from "@/lib/founder-profile";
 import { evaluateAcceleratorReadiness } from "@/lib/agents/accelerator-readiness";
+import { emitEvent } from "@/lib/analytics/server";
 
 // POST /api/svi
 // Body: { email, input: { rawText, fileName? } }
@@ -332,6 +333,20 @@ export async function POST(request: Request) {
     if (error) {
       console.error("[blockid:svi] Supabase insert failed", error);
       slug = `svi-demo-${slug.slice(0, 6)}`;
+    } else {
+      // CDO T-1009: fire svi_score_computed into analytics_events → BQ pipeline.
+      void emitEvent({
+        name: "svi_score_computed",
+        params: {
+          project_id: projectId ?? slug,
+          score: analysis.totalSVI,
+          slug,
+          ...(authenticatedUserId ? { user_id: authenticatedUserId } : {}),
+        },
+        userId: authenticatedUserId,
+        source: "server",
+        consentGranted: true,
+      });
     }
   }
 
