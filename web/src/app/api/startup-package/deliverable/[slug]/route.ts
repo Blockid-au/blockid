@@ -438,7 +438,6 @@ async function renderPdfForEntry(
         sector: p.sector,
         stage: p.stage,
         description: p.description,
-        targetCustomer: p.targetCustomer,
       });
       return renderGtmStrategyPdf({
         startupName: p.startupName,

@@ -36,8 +36,11 @@ import { POST } from "./route";
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeSupabase(project: { name: string; industry: string; stage: number; description?: string } | null) {
+  const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+  const limit = vi.fn().mockReturnValue({ maybeSingle });
+  const order = vi.fn().mockReturnValue({ limit });
   const single = vi.fn().mockResolvedValue({ data: project, error: null });
-  const eq2 = vi.fn().mockReturnValue({ single });
+  const eq2 = vi.fn().mockReturnValue({ single, order });
   const eq1 = vi.fn().mockReturnValue({ eq: eq2 });
   const select = vi.fn().mockReturnValue({ eq: eq1 });
   const from = vi.fn().mockReturnValue({ select });

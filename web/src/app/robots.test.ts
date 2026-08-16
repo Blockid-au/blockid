@@ -18,6 +18,8 @@ const SITE_URL = "https://blockid.au";
 
 const ALLOW_EXPECTED = ["/", "/solutions/", "/business-id", "/id/"];
 const DISALLOW_EXPECTED = [
+  "/api/",
+  "/workspace/",
   "/dashboard",
   "/dashboard/",
   "/checkout",

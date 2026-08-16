@@ -26,6 +26,8 @@ build / build.people	ESOP Manage	/workspace/equity-esop
 build / build.blockchain	Wallet	/workspace/wallet
 build / build.blockchain	Blockchain Sync	/workspace/equity-dashboard
 build / build.strategy	Competitors	/workspace/competitors
+build / build.strategy	Tech Analysis	/workspace/tech-analysis
+build / build.strategy	Code & Web Analyzer	/dashboard/analyzer
 build / build.strategy	GTM Strategy	/workspace/gtm-strategy
 build / build.strategy	Pricing Tiers	/workspace/pricing-tiers
 build / build.strategy	Roadmap	/workspace/roadmap-builder
@@ -40,6 +42,8 @@ build	ESOP Manage	/workspace/equity-esop
 build	Wallet	/workspace/wallet
 build	Blockchain Sync	/workspace/equity-dashboard
 build	Competitors	/workspace/competitors
+build	Tech Analysis	/workspace/tech-analysis
+build	Code & Web Analyzer	/dashboard/analyzer
 build	GTM Strategy	/workspace/gtm-strategy
 build	Pricing Tiers	/workspace/pricing-tiers
 build	Roadmap	/workspace/roadmap-builder
