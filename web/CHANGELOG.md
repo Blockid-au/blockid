@@ -1,5 +1,21 @@
 # BlockID.au Changelog
 
+## 2026-08-16 — v3.6.2: Reseller M3 (Stripe attribution) + SVI dimension chart + startup-package tour
+
+### Features
+- **feat(reseller M3)** Stripe checkout attribution + `reseller_commissions` ledger (20% ex-GST).
+  - New migration `20260816120000_checkout_session_reseller_commissions.sql` — checkout-session-keyed commission rows (avoids conflict with invoice-event table from migration 0094).
+  - `lib/reseller/checkout-commission.ts` → `recordResellerCommission()`: idempotent upsert on `stripe_session_id`, commission = `round(gross/1.1*0.2)`.
+  - Wired into `api/stripe/webhook/route.ts` `checkout.session.completed` handler after plan activation; fires when `session.metadata` carries `reseller_id` + `reseller_code`.
+  - Test coverage: `checkout-commission.test.ts` validates 14900 → 2709 and edge cases.
+- **feat(dashboard)** SVI dimension bar chart — visual breakdown of the 8 scoring dimensions with AU benchmark overlay.
+- **feat(startup-package)** Register feature tour (sub-goal 11) + mark Ship 1 as recently landed in roadmap.
+
+### Deploy
+- Deployed: **2026-08-16** — see manifest for exact timestamp + SHA.
+
+---
+
 ## 2026-08-16 — v3.6.1: Build fixes + 7x 404 page fixes (deployed live)
 
 ### Build fixes

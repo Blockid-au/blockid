@@ -1,24 +1,24 @@
 {
-  "version": "v3.6.1",
-  "updated_at": "2026-08-16T03:09:00Z",
-  "git_sha": "45e17b830",
-  "release_id": "v3.6.1-build-fix-404-fix",
+  "version": "v3.6.2",
+  "updated_at": "2026-08-16T04:10:00Z",
+  "git_sha": "60564a438",
+  "release_id": "v3.6.2-reseller-m3-svi-chart",
   "shipped_summary": [
+    "v3.6.2 — Reseller M3: Stripe checkout attribution + reseller_commissions ledger (20% ex-GST) with idempotent upsert on stripe_session_id",
+    "v3.6.2 — Dashboard SVI dimension bar chart (8 dimensions + AU benchmark overlay)",
+    "v3.6.2 — Startup-package feature tour (sub-goal 11) + Ship 1 landing note in roadmap",
     "v3.6.1 — Fix webpack build failures: add remotion/rspack/esbuild to serverExternalPackages",
     "v3.6.1 — Fix marketing-footer.tsx: replace node:fs readFileSync with static JSON import (client bundle fix)",
     "v3.6.0 — Fix 7 site-wide 404 pages: /register, /legal, /how-it-works, /reports/samples, /guide, /solutions, /index/listings",
     "v3.6.0 — Fix all pre-existing TypeScript errors (zero errors for deploy gate)",
-    "v3.6.0 — Fix all vitest test failures (27,533 tests pass): cmo-market-research, cdo-data-quality, competitors/ai-fill mock, tier-nav golden snapshots",
+    "v3.6.0 — Fix all vitest test failures (27,533 tests pass)",
     "v3.6.0 — CAPITAL Funding Readiness scorecard: cfo-valuation.ts extended with scorecardMethod, auExitRealisationCheck, ESIC/RDTI uplift, AU benchmarks",
-    "v3.6.0 — CMO agent rewrite: AU_MARKET_DATA (7 keys), CONTENT_BENCHMARKS, generateGtmStrategy + generateCompetitorAnalysis async with AI + fallbacks",
-    "v3.5.x — Stripe+credits+UI upgrade: credit-reset cron fix, v2 SKU audit, full dashboard/email/PDF visual redesign with brand colors and charts"
+    "v3.6.0 — CMO agent rewrite: AU_MARKET_DATA (7 keys), CONTENT_BENCHMARKS, generateGtmStrategy + generateCompetitorAnalysis async with AI + fallbacks"
   ],
   "task_ids": [
-    "T-build-fix: serverExternalPackages + static JSON import for marketing-footer",
-    "T-404-fix: 7 missing pages created (register redirect, legal index, how-it-works, reports/samples redirect, guide index, solutions index, index/listings fail-soft)",
-    "T-test-fix: zero failures across 27533 vitest tests",
-    "T-ts-fix: zero TypeScript errors",
-    "T-capital-scorecard: CAPITAL Funding Readiness in cfo-valuation.ts"
+    "T-reseller-m3: Stripe checkout attribution + commissions ledger",
+    "T-svi-chart: dashboard 8-dimension bar chart with AU benchmark",
+    "T-startup-package-tour: feature tour sub-goal 11"
   ],
-  "notes": "v3.6.1 deployed 2026-08-16 — 11/11 CI gates passed (Playwright hydrated smoke). Fixes: webpack build crash (Remotion native binaries), node:fs in client bundle (marketing footer), 7 x 404 pages across public site. v3.6.0 delivered CAPITAL scorecard, CMO agent overhaul, full test suite green."
+  "notes": "v3.6.2 ships reseller commission attribution end-to-end (Stripe webhook → ledger), SVI dimension chart in dashboard, and startup-package tour. Live redeploy on 2026-08-16 following v3.6.1 build/404 fixes."
 }
