@@ -81,7 +81,23 @@ export default async function ListingsPage({ searchParams }: PageProps) {
   const order = (sp.order ?? "desc") as "asc" | "desc";
   const page = Math.max(1, Number(sp.page ?? 1));
 
-  const data = await computeListings({ filter, sort, order, page, pageSize: 50 });
+  // Fail-soft: if the aggregator throws (e.g. Supabase env missing at build
+  // or transient DB error) we render an empty-listings state instead of a
+  // 500. The page still serves the filter chrome so crawlers see something.
+  let data: Awaited<ReturnType<typeof computeListings>>;
+  try {
+    data = await computeListings({ filter, sort, order, page, pageSize: 50 });
+  } catch (err) {
+    console.error("[/index/listings] computeListings failed:", err);
+    data = {
+      rows: [],
+      total: 0,
+      page: 1,
+      pageSize: 50,
+      totalPages: 0,
+      generatedAt: new Date().toISOString(),
+    };
+  }
 
   function urlWith(updates: Record<string, string | number | undefined>): string {
     const next = new URLSearchParams();
