@@ -417,7 +417,12 @@ describe('computeProjection - Determinism', () => {
     const result1 = computeProjection(DEFAULT_INPUT);
     const result2 = computeProjection(DEFAULT_INPUT);
 
-    expect(JSON.stringify(result1)).toBe(JSON.stringify(result2));
+    // Exclude generatedAt timestamp from comparison (changes per call)
+    const strip = (r: typeof result1) => {
+      const copy = { ...r, generatedAt: '' };
+      return JSON.stringify(copy);
+    };
+    expect(strip(result1)).toBe(strip(result2));
   });
 
   it('should be consistent across multiple runs (except timestamps)', () => {
