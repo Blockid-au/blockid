@@ -15,6 +15,7 @@ import type {
 } from "./types";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERIA } from "@/lib/evaluation-criteria";
+import { computeFundingReadiness } from "@/lib/svi-analysis";
 import {
   getPhaseProgress,
   renderGrowthJourneySVG,
@@ -49,6 +50,7 @@ const SECTION_ORDER: SectionTemplate[] = [
   { id: "gtm", title: "Go-to-Market Strategy", agentRole: "cmo", criterion: "gtm_strategy", tier: "standard" },
   { id: "documents", title: "Documentation Quality", agentRole: "clo", criterion: "documents", tier: "standard" },
   { id: "revenue", title: "Revenue & Unit Economics", agentRole: "cfo", criterion: "revenue", tier: "standard" },
+  { id: "funding_journey", title: "Funding Journey & Capital Strategy", agentRole: "cfo", tier: "standard" },
   { id: "risk", title: "Risk Assessment & Mitigation", agentRole: "clo", tier: "standard" },
   { id: "dataroom", title: "Data Room Assessment", agentRole: "clo", criterion: "dataroom", tier: "premium" },
   { id: "org", title: "Organizational Structure", agentRole: "chro", criterion: "team_structure", tier: "premium" },
@@ -137,6 +139,8 @@ function buildSection(
     }
   } else if (template.id === "executive") {
     content = context.executiveSummary ?? "*Executive summary being generated...*";
+  } else if (template.id === "funding_journey") {
+    content = buildFundingJourneySection(context);
   } else if (template.id === "risk") {
     content = buildRiskSection(context);
   } else if (template.id === "competitive") {
@@ -164,6 +168,87 @@ function buildSection(
 }
 
 // ── Cross-Cutting Sections (assembled from multiple agent results) ──────────
+
+// ── AU Investor Lookup by Sector ────────────────────────────────────────────
+
+const AU_INVESTORS_BY_SECTOR: Record<string, string[]> = {
+  saas: ["Blackbird Ventures", "Square Peg", "AirTree"],
+  fintech: ["Reinventure", "AirTree", "NAB Ventures"],
+  healthtech: ["Brandon Capital", "OneVentures"],
+  deeptech: ["Main Sequence Ventures", "CSIRO ON"],
+  marketplace: ["Blackbird Ventures", "Grok Ventures"],
+  default: ["Blackbird Ventures", "Square Peg", "AirTree", "Startmate"],
+};
+
+// Stage-based typical raise bands
+const STAGE_RAISE_BANDS: Record<string, string> = {
+  "pre-seed": "A$150k–A$500k",
+  seed: "A$500k–A$2m",
+  "series-a": "A$3m–A$15m",
+  "series-b": "A$15m–A$60m",
+};
+
+const STAGE_INVESTOR_PROFILE: Record<string, string> = {
+  "pre-seed": "Angel investors, friends & family, accelerators (Startmate, Antler AU)",
+  seed: "Seed VCs, angels, family offices, government grants (EMDG, EIF)",
+  "series-a": "Institutional VCs, corporate VCs, lead-syndicate structures",
+  "series-b": "Growth-stage VCs, PE-adjacent funds, international crossover funds",
+};
+
+const NEXT_GATE_LABEL: Record<string, string> = {
+  "pre-seed": "Seed",
+  seed: "Series A",
+  "series-a": "Series B",
+  "series-b": "Series B+ / Growth",
+};
+
+function buildFundingJourneySection(context: ReportContext): string {
+  const funding = computeFundingReadiness(context.sviAnalysis);
+  const sector = context.sviAnalysis.sector ?? "default";
+  const stageLabel = context.sviAnalysis.stageLabel;
+  const investors = AU_INVESTORS_BY_SECTOR[sector] ?? AU_INVESTORS_BY_SECTOR.default;
+  const raiseBand = STAGE_RAISE_BANDS[funding.currentGate] ?? "A$150k–A$500k";
+  const investorProfile = STAGE_INVESTOR_PROFILE[funding.currentGate] ?? STAGE_INVESTOR_PROFILE["pre-seed"];
+  const nextGateLabel = NEXT_GATE_LABEL[funding.currentGate] ?? "Seed";
+  const currentGateFormatted = funding.currentGate
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+  const sectorLabel = context.sviAnalysis.sectorLabel ?? sector;
+
+  let md = `### Current Funding Gate: ${currentGateFormatted}\n\n`;
+  md += `**${funding.gateScore}%** toward ${nextGateLabel} readiness.\n\n`;
+
+  // Milestone table
+  md += "### Gate Requirements\n\n";
+  md += `| Milestone | Required | Status | Current | Target |\n`;
+  md += `|---|---|---|---|---|\n`;
+  for (const m of funding.milestones) {
+    const status = m.met ? "✓ Met" : "✗ Unmet";
+    md += `| ${m.label} | Yes | ${status} | ${m.currentValue}/100 | ${m.targetValue}/100 |\n`;
+  }
+
+  md += `\n### AU Funding Landscape — ${sectorLabel} at ${stageLabel}\n\n`;
+  md += `- **Typical raise size at this stage:** ${raiseBand}\n`;
+  md += `- **Lead investor profile:** ${investorProfile}\n`;
+  md += `- **Key AU investors active in ${sectorLabel}:** ${investors.join(", ")}\n`;
+  md += `- **Average time from Seed to Series A in AU:** 18–24 months\n`;
+
+  // Top 5 unmet required milestones as action items
+  const unmetMilestones = funding.milestones.filter((m) => !m.met);
+  if (unmetMilestones.length > 0) {
+    md += "\n### 5 Priority Actions to Advance Funding Readiness\n\n";
+    const top5 = unmetMilestones.slice(0, 5);
+    for (let i = 0; i < top5.length; i++) {
+      md += `${i + 1}. **${top5[i].label}** — ${top5[i].action}\n`;
+    }
+  } else {
+    md += "\n### 5 Priority Actions to Advance Funding Readiness\n\n";
+    md += "All required milestones for the next gate are met. Focus on exceeding thresholds and preparing institutional-grade documentation for the next round.\n";
+  }
+
+  return md;
+}
 
 function buildRiskSection(context: ReportContext): string {
   const allRisks: string[] = [];

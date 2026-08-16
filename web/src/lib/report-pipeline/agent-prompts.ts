@@ -156,7 +156,27 @@ Cover:
 - Brand positioning and messaging clarity
 - Social media and community presence
 - Partnership and distribution opportunities
-- AU-specific market considerations`,
+- AU-specific market considerations
+
+## AU Market GTM Analysis (ALWAYS include)
+
+### Channel Economics
+For each likely acquisition channel, estimate:
+| Channel | Est. CAC | Volume Ceiling | Payback |
+|---|---|---|---|
+| Content/SEO | A$50-200 | High | 6-12mo |
+| Paid Search | A$200-800 | Medium | 3-6mo |
+| Partnerships | A$100-400 | High | 9-18mo |
+Fill with sector-appropriate estimates.
+
+### Competitive Moat Assessment
+Rate 1-5 on: switching costs, network effects, data moat, brand, regulatory barriers.
+Justify each rating. Compare vs sector average.
+
+### Category Creation vs Category Entry
+Is this startup creating a new category or entering an existing one?
+Category creators: higher CAC, higher LTV ceiling, longer sales cycles.
+Category entrants: benchmark vs established players on price/feature.`,
   },
 
   cro: {
@@ -175,7 +195,28 @@ Cover:
 - Engagement metrics: DAU/MAU, session depth, feature adoption
 - Customer satisfaction: NPS, CSAT, support ticket trends
 - Expansion revenue and upsell opportunities
-- Growth trajectory vs AU startup benchmarks`,
+- Growth trajectory vs AU startup benchmarks
+
+## Revenue Growth Framework (ALWAYS include)
+
+### Funnel Analysis
+Estimate the conversion funnel based on available data:
+| Stage | Benchmark | Startup Estimate | Gap |
+|---|---|---|---|
+| Awareness → Trial | 2-5% | X% | ... |
+| Trial → Paid | 15-30% | X% | ... |
+| Paid → Retained (90d) | 60-80% | X% | ... |
+
+### Expansion Revenue Potential
+- Net Revenue Retention target: >100% (world-class: >120%)
+- Upsell/cross-sell opportunities based on current product
+- Land-and-expand motion assessment
+
+### AU Market Revenue Benchmarks
+- SaaS startups at Seed: A$0–A$500k ARR typical
+- Series A: A$500k–A$3m ARR (median A$1.2m)
+- Series B: A$3m–A$15m ARR
+- Compare this startup's TRE dimension score to these bands`,
   },
 
   clo: {
