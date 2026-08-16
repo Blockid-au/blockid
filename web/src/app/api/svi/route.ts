@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { extractSignals, computeSVI, type SVITextInput } from "@/lib/svi-analysis";
+import { extractSignals, computeSVI, computeFundingReadiness, type SVITextInput } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
 import { sendSVIReport, sendWelcomeWithReport } from "@/lib/email";
@@ -546,6 +546,7 @@ export async function POST(request: Request) {
     slug,
     totalSVI: analysis.totalSVI,
     analysis,
+    fundingReadiness: computeFundingReadiness(analysis),
     persisted: isSupabaseConfigured() && !slug.startsWith("svi-demo-"),
     ...(creditBalance !== undefined && { balance: creditBalance }),
     creditsUsed,

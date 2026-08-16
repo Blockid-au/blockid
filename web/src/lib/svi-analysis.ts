@@ -7,7 +7,7 @@ import type { TechAuditResult } from "./rnd-input";
 import type { GitHubRepoAudit } from "./github-repo-audit";
 import type { WebsiteCompetitiveIntelligence, MarketEbitdaMetrics } from "./competitive-intelligence";
 
-export const SVI_VERSION = "2.0.0";
+export const SVI_VERSION = "2.1.0";
 
 // ─── Stage labels ─────────────────────────────────────────────────────────────
 // DEPRECATED: This 8-stage vocabulary predates the canonical journey
@@ -1431,5 +1431,114 @@ export function computeSVI(
     dimensionScores,
     ciBoost: effectiveCIBoost !== 0 ? effectiveCIBoost : undefined,
     marketEbitdaMetrics: ciBoosts?.ebitdaMetrics,
+  };
+}
+
+// ─── v2.1: Funding Readiness ──────────────────────────────────────────────────
+
+export interface FundingMilestone {
+  gate: string;
+  label: string;
+  required: boolean;
+  met: boolean;
+  dimension: string;
+  currentValue: number;
+  targetValue: number;
+  action: string;
+}
+
+export interface FundingReadiness {
+  seedReady: boolean;
+  seriesAReady: boolean;
+  seriesBReady: boolean;
+  currentGate: "pre-seed" | "seed" | "series-a" | "series-b";
+  gateScore: number; // 0-100 how close to next gate
+  milestones: FundingMilestone[];
+}
+
+// Gate criteria thresholds
+const SEED_CRITERIA: { dimension: string; threshold: number; label: string; action: string }[] = [
+  { dimension: "tre", threshold: 35, label: "Traction & Revenue ≥ 35", action: "Get first paying customers and demonstrate early traction" },
+  { dimension: "ftv", threshold: 40, label: "Founder & Team ≥ 40", action: "Add co-founder or domain advisor to strengthen team credibility" },
+  { dimension: "iri", threshold: 30, label: "Investor Readiness ≥ 30", action: "Upload a pitch deck and add your raise target to the data room" },
+];
+
+const SERIES_A_CRITERIA: { dimension: string; threshold: number; label: string; action: string }[] = [
+  { dimension: "tre", threshold: 65, label: "Traction & Revenue ≥ 65", action: "Reach A$100k+ ARR and establish consistent MRR growth" },
+  { dimension: "mpc", threshold: 60, label: "Market & Problem ≥ 60", action: "Document TAM/SAM/SOM with credible sources and validated customer interviews" },
+  { dimension: "cgh", threshold: 55, label: "Cap Table & Governance ≥ 55", action: "Formalise cap table, vesting schedules, and shareholders agreement" },
+  { dimension: "ftv", threshold: 55, label: "Founder & Team ≥ 55", action: "Hire key team roles and engage domain-specific advisors" },
+  { dimension: "iri", threshold: 60, label: "Investor Readiness ≥ 60", action: "Build a complete data room with financial model and 3-year projections" },
+];
+
+const SERIES_B_CRITERIA: { dimension: string; threshold: number; label: string; action: string }[] = [
+  { dimension: "tre", threshold: 80, label: "Traction & Revenue ≥ 80", action: "Scale to A$1M+ ARR with repeatable growth engine and low churn" },
+  { dimension: "mpc", threshold: 75, label: "Market & Problem ≥ 75", action: "Demonstrate market leadership in at least one segment" },
+  { dimension: "cgh", threshold: 70, label: "Cap Table & Governance ≥ 70", action: "Establish board with independent directors and audit cadence" },
+  { dimension: "ftv", threshold: 65, label: "Founder & Team ≥ 65", action: "Complete C-suite with experienced operators in key functions" },
+  { dimension: "iri", threshold: 70, label: "Investor Readiness ≥ 70", action: "Engage Series B advisors and prepare institutional-grade data room" },
+  { dimension: "ptd", threshold: 65, label: "Product & Technical ≥ 65", action: "Achieve enterprise-grade security, uptime SLAs, and documented API" },
+];
+
+export function computeFundingReadiness(analysis: SVIAnalysis): FundingReadiness {
+  const scores = analysis.dimensionScores ?? {};
+
+  const getDim = (key: string): number => scores[key] ?? 0;
+
+  // Evaluate gate criteria
+  const seedMet = SEED_CRITERIA.every((c) => getDim(c.dimension) >= c.threshold);
+  const seriesAMet = SERIES_A_CRITERIA.every((c) => getDim(c.dimension) >= c.threshold);
+  const seriesBMet = SERIES_B_CRITERIA.every((c) => getDim(c.dimension) >= c.threshold);
+
+  // Current gate = highest fully met gate
+  let currentGate: FundingReadiness["currentGate"] = "pre-seed";
+  if (seriesBMet) currentGate = "series-b";
+  else if (seriesAMet) currentGate = "series-a";
+  else if (seedMet) currentGate = "seed";
+
+  // Next gate criteria and progress toward it
+  let nextGateCriteria: typeof SEED_CRITERIA;
+  let nextGateName: string;
+  if (currentGate === "series-b") {
+    // Already at Series B — measure how far above thresholds they are (100%)
+    nextGateCriteria = SERIES_B_CRITERIA;
+    nextGateName = "series-b";
+  } else if (currentGate === "series-a") {
+    nextGateCriteria = SERIES_B_CRITERIA;
+    nextGateName = "series-b";
+  } else if (currentGate === "seed") {
+    nextGateCriteria = SERIES_A_CRITERIA;
+    nextGateName = "series-a";
+  } else {
+    nextGateCriteria = SEED_CRITERIA;
+    nextGateName = "seed";
+  }
+
+  const metCount = nextGateCriteria.filter((c) => getDim(c.dimension) >= c.threshold).length;
+  const gateScore = Math.round((metCount / nextGateCriteria.length) * 100);
+
+  // Build milestones — one entry per unmet criterion for the next gate
+  const milestones: FundingMilestone[] = nextGateCriteria.map((c) => {
+    const current = getDim(c.dimension);
+    const isMet = current >= c.threshold;
+    return {
+      gate: nextGateName,
+      label: c.label,
+      required: true,
+      met: isMet,
+      dimension: c.dimension,
+      currentValue: Math.round(current),
+      targetValue: c.threshold,
+      action: c.action,
+    };
+  });
+
+  return {
+    seedReady: seedMet,
+    seriesAReady: seriesAMet,
+    seriesBReady: seriesBMet,
+    currentGate,
+    gateScore,
+    milestones,
   };
 }
