@@ -219,7 +219,7 @@ describe("computeSVI", () => {
     expect(result.totalSVI).toBeLessThan(100);
     expect(result.totalSVI).toBeGreaterThanOrEqual(30); // min clamp
     expect(result.baselineSVI).toBe(100);
-    expect(result.version).toBe("2.0.0");
+    expect(result.version).toBe("2.1.0");
     expect(result.stage).toBe(0);
     expect(result.stageLabel).toBe("Concept");
   });
