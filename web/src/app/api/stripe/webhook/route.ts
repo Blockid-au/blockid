@@ -409,6 +409,33 @@ export async function POST(request: Request) {
       }
     }
 
+    // M3 — Reseller commission recording (checkout_session_reseller_commissions).
+    // Fires when session.metadata contains reseller_id + reseller_code, stamped
+    // by the checkout route (reseller attribution block in /api/stripe/checkout).
+    // Idempotent (UNIQUE stripe_session_id). Non-fatal — never throws.
+    const sessionResellerId = session.metadata?.reseller_id as string | undefined;
+    const sessionResellerCode = session.metadata?.reseller_code as string | undefined;
+    if (sessionResellerId && sessionResellerCode && session.amount_total && session.amount_total > 0) {
+      try {
+        const { recordResellerCommission } = await import(
+          "@/lib/reseller/checkout-commission"
+        );
+        await recordResellerCommission({
+          resellerId: sessionResellerId,
+          founderId: userId,
+          promoCode: sessionResellerCode,
+          stripeSessionId: session.id,
+          grossAmountAudCents: session.amount_total,
+        });
+        console.info(
+          `[reseller] commission recorded for session ${session.id} reseller ${sessionResellerId}`,
+        );
+      } catch (err) {
+        // Never fail the webhook on a commission-recording side-effect.
+        console.warn("[reseller] recordResellerCommission threw", err);
+      }
+    }
+
     // Grant credits (legacy PLAN_CREDITS map — v2 will migrate to plans.usage_limits).
     const planCredits = PLAN_CREDITS[planId];
     if (planCredits && userId) {
