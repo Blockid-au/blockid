@@ -1,25 +1,24 @@
 {
-  "version": "v3.6.3",
-  "updated_at": "2026-08-16T05:08:00Z",
-  "git_sha": "6b0f6d122",
-  "release_id": "v3.6.3-feature-sprint",
+  "version": "v3.6.4",
+  "updated_at": "2026-08-16T06:50:00Z",
+  "git_sha": "7840f6023",
+  "release_id": "v3.6.4-feature-sprint",
   "shipped_summary": [
+    "v3.6.4 — T_FEEDBACK_0001: feedback-for-credits system (submit → AI scoring via Claude Haiku → credit grant + workspace UI + Telegram digest cron)",
+    "v3.6.4 — T_EMAIL_0001: D1/D4/D9 nurture email sequence (queue table + enqueue on signup + cron sender respecting email prefs)",
+    "v3.6.4 — T_REVENUE_0001: admin revenue+spend dashboard (/admin/revenue-spend) + weekly email digest cron",
+    "v3.6.4 — fix: broken markdown href in ga4-daily-tiles admin component (1 remaining 404 eliminated)",
     "v3.6.3 — T-1009: Wire 5 dark analytics events (svi_score_computed, checkout_completed, trial_activated, feature_gate_hit, investor_pack_generated type-registered)",
     "v3.6.3 — T-1020: CRO upgrade triggers wired into can() + lifecycle mailer; /api/conversion/pending-trigger read-path for modal",
     "v3.6.3 — T-1301: /submit public index form + /api/index/submit (Zod, rate-limit, public_index_submissions, Telegram) + nav CTA",
     "v3.6.3 — T-1203: Investor Pack v2 one-click PDF (/api/investor-pack/one-click + /download/[shareId] + workspace tile + investor_pack_shares migration)",
-    "v3.6.3 — T-1101: Nightly C-Level quality gate full ship (6 agent parallel, git diff 24h, digest + Telegram, date-based reports, 7-report retention)",
-    "v3.6.3 — fix: /index/listings 500 (startup-index rename + rewrites), /startup/sample 500 (force-dynamic), 3x404 dead links",
-    "v3.6.2 — Reseller M3 Stripe checkout attribution + commissions ledger",
-    "v3.6.2 — Dashboard SVI dimension bar chart",
-    "v3.6.1 — webpack build fixes + 7x404 page fixes"
+    "v3.6.3 — T-1101: Nightly C-Level quality gate full ship (6 agent parallel, git diff 24h, digest + Telegram, date-based reports, 7-report retention)"
   ],
   "task_ids": [
-    "T-1009: dark analytics events + BQ cron",
-    "T-1020: CRO upgrade triggers",
-    "T-1301: submit-your-startup form",
-    "T-1203: investor pack v2 one-click",
-    "T-1101: nightly quality gate"
+    "T_FEEDBACK_0001: feedback-for-credits + AI scoring",
+    "T_EMAIL_0001: D1/D4/D9 nurture sequence",
+    "T_REVENUE_0001: admin revenue+spend dashboard",
+    "fix: ga4-daily-tiles broken href"
   ],
-  "notes": "v3.6.3 ships 5 feature tasks (CRO/CDO/CPO/CTO sprint) + 404/500 site fixes. CDO now has 4 live analytics events flowing to BQ. Upgrade modal pipeline active. Public index submit form live at /submit. Investor Pack v2 one-click at /workspace/investor-pack. Nightly C-Level quality gate runs at 04:30 UTC daily."
+  "notes": "v3.6.4 ships 3 retention/monetization features + final 404 fix. Site is now fully 404-clean (431 routes audited). Feedback-for-credits live at /workspace/feedback. D1/D4/D9 nurture auto-enqueued on all signup paths. Admin revenue dashboard at /admin/revenue-spend."
 }
