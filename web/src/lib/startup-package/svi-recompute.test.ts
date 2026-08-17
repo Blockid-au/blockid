@@ -480,6 +480,8 @@ describe("svi-recompute.recomputeAndSnapshot — snapshot insert payload", () =>
     queueThroughAccountLookup();
     state.queue.push({ data: [] });
     state.queue.push({ data: { svi_total: 60 } });
+    // v3.7.6: exit-strategy lookup consumes one queue slot before the insert.
+    state.queue.push({ data: null }); // exit_scenarios select — no scenarios
     state.queue.push({ error: { code: "42P01", message: "undefined_table" } }); // insert fails
     // account update should NOT fire on the failure branch — nothing more queued.
     const { recomputeAndSnapshot } = await import("./svi-recompute");

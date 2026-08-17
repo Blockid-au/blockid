@@ -18,7 +18,12 @@ import {
   computeSVI,
   extractSignals,
   type SVIAnalysis,
+  type SVISubScore,
 } from "@/lib/svi-analysis";
+import {
+  computeExitStrategyBonusPoints,
+  type ExitStrategyBonusResult,
+} from "@/lib/svi/exit-strategy-svi-boost";
 
 export interface RecomputeResult {
   ok: boolean;
@@ -129,6 +134,71 @@ export async function recomputeAndSnapshot(
     .maybeSingle();
 
   const analysis: SVIAnalysis = computeSVI(signals);
+
+  // ── 3b. Exit-strategy bonus (Week 4 — v3.7.6) ──
+  //     Award +N IRI / +M SVM if the account has planned an exit. Fully
+  //     bounded by EXIT_STRATEGY_IRI_MAX / _SVM_MAX. Fail-soft: if the
+  //     exit_scenarios table is missing (older env) we skip silently.
+  let exitBonus: ExitStrategyBonusResult = {
+    iriBonus: 0,
+    svmBonus: 0,
+    reasons: [],
+    narrativeLine: "",
+  };
+  try {
+    const { data: scenarios } = await supabase
+      .from("exit_scenarios")
+      .select("id, is_primary, series_a_planned, series_b_planned, use_for_investor_pack")
+      .eq("account_id", accountId);
+
+    if (scenarios && scenarios.length > 0) {
+      const primaryId =
+        (scenarios.find((s) => (s as { is_primary?: boolean }).is_primary)?.id as
+          | string
+          | undefined) ?? (scenarios[0].id as string);
+
+      const { data: readiness } = await supabase
+        .from("exit_readiness_assessments")
+        .select("overall_readiness_score")
+        .eq("exit_scenario_id", primaryId)
+        .maybeSingle();
+
+      exitBonus = computeExitStrategyBonusPoints({
+        scenarios: scenarios as Parameters<typeof computeExitStrategyBonusPoints>[0]["scenarios"],
+        primaryReadiness: readiness as { overall_readiness_score: number } | null,
+      });
+
+      // Fold bonuses into the dimension sub-scores (capped at 100) so
+      // downstream consumers (dashboard, evidence rescore) see the boost.
+      if (exitBonus.iriBonus > 0 || exitBonus.svmBonus > 0) {
+        for (const sub of analysis.subs as SVISubScore[]) {
+          if (sub.key === "iri" && exitBonus.iriBonus > 0) {
+            const before = sub.value;
+            sub.value = Math.min(100, sub.value + exitBonus.iriBonus);
+            sub.evidence.push(
+              `Exit strategy: +${sub.value - before} pts (${exitBonus.reasons.filter((r) => r.includes("IRI")).join("; ")})`,
+            );
+          }
+          if (sub.key === "svm" && exitBonus.svmBonus > 0) {
+            const before = sub.value;
+            sub.value = Math.min(100, sub.value + exitBonus.svmBonus);
+            sub.evidence.push(
+              `Exit strategy: +${sub.value - before} pts (${exitBonus.reasons.filter((r) => r.includes("SVM")).join("; ")})`,
+            );
+          }
+        }
+        // Best-effort narrative annotation on the analysis payload.
+        if (exitBonus.narrativeLine) {
+          (analysis as unknown as { exitStrategyNarrative?: string }).exitStrategyNarrative =
+            exitBonus.narrativeLine;
+        }
+      }
+    }
+  } catch (err) {
+    // Missing table / RLS mismatch → skip silently. Exit-strategy is optional.
+    console.warn("[blockid:svi:recompute] exit-strategy bonus skipped", err);
+  }
+
   const priorSVI = (prior?.svi_total as number | undefined) ?? null;
   const delta = priorSVI !== null ? analysis.totalSVI - priorSVI : null;
 
