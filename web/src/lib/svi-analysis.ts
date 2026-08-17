@@ -710,6 +710,14 @@ export function computeSVI(
   repoAuditBoosts?: { ptdBoost: number; svmBoost: number; ftvBoost: number; treBoost: number },
   metricsBonus?: number,
   ciBoosts?: CIBoosts,
+  /**
+   * Optional evidence-completeness boosts derived from `assessEvidenceQuality()`.
+   * Pass in when calling computeSVI server-side with access to the evidence DB.
+   * lco_pct: completeness % of LCO dimension (0-100)
+   * overall_pct: overall evidence completeness % (0-100)
+   * Fail-soft: if omitted, LCO is unchanged.
+   */
+  evidenceBoosts?: { lco_pct: number; overall_pct: number },
 ): SVIAnalysis {
   const confidence = EVIDENCE_CONFIDENCE[signals.evidenceLevel] ?? 0.20;
 
@@ -915,7 +923,23 @@ export function computeSVI(
   }
 
   const lcoScore = clamp(lcoRaw, 0, 100);
-  const lcoAdj = Math.round((lcoScore - 50) * 0.08 * confidence);
+  let lcoAdj = Math.round((lcoScore - 50) * 0.08 * confidence);
+
+  // Evidence-completeness bonus/penalty for LCO (fail-soft if not provided)
+  try {
+    if (evidenceBoosts) {
+      if (evidenceBoosts.lco_pct < 50) {
+        lcoAdj -= 10;
+        lcoGaps.push("Evidence vault: LCO documents less than 50% complete — upload legal docs to unlock full score");
+      }
+      if (evidenceBoosts.overall_pct > 75) {
+        lcoAdj += 5;
+        lcoEvidence.push("Evidence vault: overall completeness >75% — compliance bonus applied");
+      }
+    }
+  } catch {
+    // Fail soft — leave lcoAdj unchanged if evidenceBoosts causes any error
+  }
 
   // ── Dimension 8: SVM — Strategic Vision & Moat (5%) ──────────────────────
   let svmRaw = 35;
