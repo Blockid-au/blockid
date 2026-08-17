@@ -28,10 +28,18 @@
  *   --version-mode      use legacy version-based filenames + manifest evidence
  *
  * Env:
- *   ANTHROPIC_API_KEY       enables live LLM mode when set (and --stub absent)
- *   CLEVEL_REVIEW_CHEAP=1   swap sonnet-5 -> haiku-4-5 (cost fallback)
- *   TELEGRAM_BOT_TOKEN      optional: digest message target
- *   TELEGRAM_CHAT_ID        optional: chat / channel id
+ *   ANTHROPIC_API_KEY         enables live LLM mode when set (and --stub absent)
+ *   CLEVEL_REVIEW_CHEAP=1     swap sonnet-5 -> haiku-4-5 (cost fallback)
+ *   TELEGRAM_BOT_TOKEN        optional: digest message target
+ *   TELEGRAM_CHAT_ID          optional: chat / channel id
+ *   SUPABASE_URL              optional: Supabase project URL for DB writes
+ *   SUPABASE_SERVICE_ROLE_KEY optional: service-role key for cron DB writes
+ *   CLEVEL_PROJECT_ID         optional: projects.id to scope DB writes per-startup
+ *   CLEVEL_STARTUP_ID         optional: svi_accounts.id to scope DB writes per-startup
+ *
+ * DB writes (when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY + CLEVEL_PROJECT_ID set):
+ *   clevel_reports_v2       — one row per persona per run (upsert by role+scenario+date)
+ *   clevel_trend_snapshots  — one row per persona per run (upsert by project+role+date)
  *
  * Exit codes:
  *   0  success (or nothing to do)
@@ -52,6 +60,47 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
+
+// ─── Supabase lazy loader ─────────────────────────────────────────────────────
+// Loaded only when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are present.
+// Fail-soft: if the package is missing, DB writes are silently skipped.
+let _supabaseClient = null;
+
+async function getSupabaseClient() {
+  if (_supabaseClient) return _supabaseClient;
+  const url = process.env.SUPABASE_URL || _loadEnvVar("SUPABASE_URL");
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    _loadEnvVar("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+  try {
+    const { createClient } = await import("@supabase/supabase-js");
+    _supabaseClient = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    return _supabaseClient;
+  } catch (err) {
+    console.warn(
+      `[nightly-clevel-review] @supabase/supabase-js not available — DB writes skipped (${err.message})`,
+    );
+    return null;
+  }
+}
+
+/** Read a single env var from web/.env without loading all vars into process.env */
+function _loadEnvVar(name) {
+  try {
+    const envPath = join(dirname(fileURLToPath(import.meta.url)), "..", ".env");
+    const raw = readFileSync(envPath, "utf8");
+    for (const line of raw.split("\n")) {
+      const m = line.match(/^([A-Z_]+)=(.*)/);
+      if (m && m[1] === name) return m[2].replace(/^["']|["']$/g, "");
+    }
+  } catch {
+    // .env not readable — ignore
+  }
+  return null;
+}
 
 const PERSONAS = ["cto", "cfo", "ceo", "cdo", "ciso", "cro", "cmo"];
 
@@ -734,6 +783,352 @@ async function sendTelegram(text) {
   }
 }
 
+// ─── Report metric parsers ────────────────────────────────────────────────────
+
+/**
+ * Parse AUD valuation estimate from a CFO report.
+ * Looks for patterns like "A$2,500,000" or "AUD 2.5M" or "valuation: $2.5M".
+ * Returns integer cents (AUD) or null if not found.
+ */
+export function parseValuationAud(reportText) {
+  if (!reportText) return null;
+  // Match patterns: A$1,234,567 | AUD 1.2M | $1.5m | valuation.*$2M
+  const patterns = [
+    // A$1,234,567 or A$1.2M
+    /A\$\s*([\d,]+(?:\.\d+)?)\s*([MmKk]?)/g,
+    // AUD 1.2M or AUD 1,234,567
+    /AUD\s+([\d,]+(?:\.\d+)?)\s*([MmKk]?)/gi,
+    // plain $2.5M after "valuation" keyword
+    /valuation[^$\d]*\$\s*([\d,]+(?:\.\d+)?)\s*([MmKk]?)/gi,
+  ];
+  for (const re of patterns) {
+    let m;
+    while ((m = re.exec(reportText)) !== null) {
+      const raw = parseFloat(m[1].replace(/,/g, ""));
+      const suffix = (m[2] || "").toLowerCase();
+      if (!Number.isFinite(raw) || raw <= 0) continue;
+      let aud;
+      if (suffix === "m") aud = Math.round(raw * 1_000_000);
+      else if (suffix === "k") aud = Math.round(raw * 1_000);
+      else aud = Math.round(raw);
+      if (aud > 10_000) return aud; // sanity: >$10k before accepting
+    }
+  }
+  return null;
+}
+
+/**
+ * Parse a simple metrics snapshot from any report.
+ * Returns { arr_aud, runway_months, team_size } with null for missing fields.
+ */
+export function parseMetricsSnapshot(reportText) {
+  if (!reportText) return null;
+  const snapshot = {};
+
+  // ARR: "ARR: A$500k" | "ARR A$500,000" | "ARR of $500K"
+  const arrMatch = reportText.match(
+    /\bARR[:\s]+(?:A\$|AUD\s*)?([\d,]+(?:\.\d+)?)\s*([MmKk]?)/i,
+  );
+  if (arrMatch) {
+    const raw = parseFloat(arrMatch[1].replace(/,/g, ""));
+    const suf = (arrMatch[2] || "").toLowerCase();
+    if (Number.isFinite(raw) && raw > 0) {
+      snapshot.arr_aud =
+        suf === "m"
+          ? Math.round(raw * 1_000_000)
+          : suf === "k"
+            ? Math.round(raw * 1_000)
+            : Math.round(raw);
+    }
+  }
+
+  // Runway: "runway: 18 months" | "18 months runway" | "runway of 12 months"
+  const runwayMatch = reportText.match(
+    /\brunway[^0-9]*(\d+)\s*months|\b(\d+)\s*months?\s+runway/i,
+  );
+  if (runwayMatch) {
+    const months = parseInt(runwayMatch[1] || runwayMatch[2], 10);
+    if (months > 0 && months < 120) snapshot.runway_months = months;
+  }
+
+  // Team size: "team of 12" | "12 FTEs" | "team size: 8"
+  const teamMatch = reportText.match(
+    /\bteam(?:\s+size)?[:\s]+(\d+)|\b(\d+)\s+(?:FTEs?|employees?|headcount)/i,
+  );
+  if (teamMatch) {
+    const n = parseInt(teamMatch[1] || teamMatch[2], 10);
+    if (n > 0 && n < 50_000) snapshot.team_size = n;
+  }
+
+  if (Object.keys(snapshot).length === 0) return null;
+  return snapshot;
+}
+
+// ─── Supabase DB writers (fail-soft) ─────────────────────────────────────────
+
+/**
+ * Insert a persona report into clevel_reports_v2.
+ * Fail-soft: any error is logged and execution continues.
+ *
+ * @param {object} opts
+ * @param {string} opts.projectId    - projects.id UUID
+ * @param {string} opts.startupId   - svi_accounts.id UUID
+ * @param {string} opts.role        - e.g. "cfo"
+ * @param {string} opts.reportText  - full markdown body
+ * @param {string} opts.date        - YYYY-MM-DD
+ * @param {string} opts.model       - model name or null
+ * @param {number} opts.tokensIn
+ * @param {number} opts.tokensOut
+ * @param {number} opts.costUsd
+ * @param {number} opts.durationMs
+ * @returns {Promise<string|null>} inserted row id or null
+ */
+export async function insertReportToDb({
+  projectId,
+  startupId,
+  role,
+  reportText,
+  date,
+  model,
+  tokensIn,
+  tokensOut,
+  costUsd,
+  durationMs,
+}) {
+  const supabase = await getSupabaseClient();
+  if (!supabase) return null;
+
+  const valuation = role === "cfo" ? parseValuationAud(reportText) : null;
+  const metrics = parseMetricsSnapshot(reportText);
+
+  const row = {
+    project_id: projectId,
+    startup_id: startupId,
+    role,
+    scenario: "base", // nightly cron always writes the base scenario
+    title: `${role.toUpperCase()} Nightly Review — ${date}`,
+    body_markdown: reportText,
+    sections: {},
+    key_findings: [],
+    action_items: [],
+    generated_at: new Date().toISOString(),
+    generated_by: "nightly-cron-v2",
+    model_used: model || null,
+    tokens_in: tokensIn || null,
+    tokens_out: tokensOut || null,
+    cost_usd_estimate: costUsd ? Number(costUsd.toFixed(4)) : null,
+    duration_ms: durationMs || null,
+    is_confidential: true,
+    has_real_startup_names: false,
+    // CFO-specific valuation (stored in AUD cents)
+    dcf_valuation_base: valuation ?? null,
+    // Metrics snapshot stored in sensitivity_drivers field as JSONB
+    sensitivity_drivers: metrics ?? null,
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from("clevel_reports_v2")
+      .upsert(row, {
+        onConflict: "project_id,role,scenario,generated_at::date",
+        ignoreDuplicates: false,
+      })
+      .select("id")
+      .single();
+    if (error) {
+      console.warn(
+        `[nightly-clevel-review] DB insert clevel_reports_v2 (${role}): ${error.message}`,
+      );
+      return null;
+    }
+    console.log(
+      `[nightly-clevel-review] DB wrote clevel_reports_v2 (${role}) id=${data?.id}`,
+    );
+    return data?.id ?? null;
+  } catch (err) {
+    console.warn(
+      `[nightly-clevel-review] DB insert clevel_reports_v2 (${role}) threw: ${err.message}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * Insert a trend snapshot into clevel_trend_snapshots.
+ * Fail-soft: any error is logged and execution continues.
+ *
+ * @param {object} opts
+ * @param {string} opts.projectId   - projects.id UUID
+ * @param {string} opts.role        - e.g. "cfo"
+ * @param {string} opts.date        - YYYY-MM-DD snapshot date
+ * @param {string} opts.reportId    - clevel_reports_v2.id (for data_source)
+ * @param {string} opts.reportText  - used to parse metric values
+ */
+export async function insertTrendSnapshot({
+  projectId,
+  role,
+  date,
+  reportId,
+  reportText,
+}) {
+  const supabase = await getSupabaseClient();
+  if (!supabase) return;
+
+  const metrics = parseMetricsSnapshot(reportText) || {};
+  const valuation = role === "cfo" ? parseValuationAud(reportText) : null;
+
+  // Derive week number from the date (ISO week within the year)
+  const dt = new Date(date);
+  const startOfYear = new Date(dt.getFullYear(), 0, 1);
+  const weekNumber = Math.ceil(
+    ((dt - startOfYear) / 86_400_000 + startOfYear.getDay() + 1) / 7,
+  );
+
+  const row = {
+    project_id: projectId,
+    role,
+    week_number: weekNumber,
+    snapshot_date: date,
+    arr_aud: metrics.arr_aud ?? null,
+    runway_months: metrics.runway_months ?? null,
+    dcf_valuation_base: valuation ?? null,
+    data_source: reportId ? `clevel_report:${reportId}` : "nightly-cron",
+  };
+
+  try {
+    const { error } = await supabase
+      .from("clevel_trend_snapshots")
+      .upsert(row, { onConflict: "project_id,role,snapshot_date", ignoreDuplicates: false });
+    if (error) {
+      console.warn(
+        `[nightly-clevel-review] DB insert clevel_trend_snapshots (${role}): ${error.message}`,
+      );
+      return;
+    }
+    console.log(
+      `[nightly-clevel-review] DB wrote clevel_trend_snapshots (${role}) date=${date}`,
+    );
+  } catch (err) {
+    console.warn(
+      `[nightly-clevel-review] DB insert clevel_trend_snapshots (${role}) threw: ${err.message}`,
+    );
+  }
+}
+
+// ─── WoW trend alert routing ──────────────────────────────────────────────────
+
+const WOW_ALERT_THRESHOLD_PCT = -15; // negative = drop
+const WOW_ALERT_ROLES = ["cfo", "ceo", "cto", "cmo", "cdo"];
+
+// Primary metric per role (mirrors compare-trend.ts logic without importing TS)
+const PRIMARY_METRIC_FOR_ROLE = {
+  cfo: "dcf_valuation_base",
+  ceo: "runway_months",
+  cto: "svi_score",
+  cmo: "cac_payback_months",
+  cdo: "svi_score",
+};
+
+// Metrics where bigger = worse (so a rise triggers the alert)
+const GOOD_IS_SMALLER = new Set(["churn_rate_pct", "cac_payback_months", "burn_rate_monthly"]);
+
+/**
+ * Fetch the last 12 weekly snapshots for a project+role from Supabase,
+ * compute week-over-week change, and return an alert object if critical.
+ *
+ * Returns null on any DB failure or insufficient data.
+ *
+ * @param {object} opts
+ * @param {object} opts.supabase    - Supabase client
+ * @param {string} opts.projectId   - projects.id UUID
+ * @param {string} opts.role        - one of WOW_ALERT_ROLES
+ * @returns {Promise<{role:string, metric:string, wowPct:number}|null>}
+ */
+export async function checkWoWAlertForRole({ supabase, projectId, role }) {
+  const metric = PRIMARY_METRIC_FOR_ROLE[role];
+  if (!metric) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from("clevel_trend_snapshots")
+      .select(`snapshot_date, ${metric}`)
+      .eq("project_id", projectId)
+      .eq("role", role)
+      .not(metric, "is", null)
+      .order("snapshot_date", { ascending: false })
+      .limit(12);
+
+    if (error || !data || data.length < 2) return null;
+
+    // data[0] = most recent, data[1] = previous week
+    const latest = Number(data[0][metric]);
+    const prev = Number(data[1][metric]);
+    if (!Number.isFinite(latest) || !Number.isFinite(prev) || prev === 0) return null;
+
+    const wowPct = ((latest - prev) / Math.abs(prev)) * 100;
+
+    const isCritical = GOOD_IS_SMALLER.has(metric)
+      ? wowPct >= Math.abs(WOW_ALERT_THRESHOLD_PCT) // rise is bad
+      : wowPct <= WOW_ALERT_THRESHOLD_PCT; // drop is bad
+
+    if (!isCritical) return null;
+
+    return { role, metric, wowPct: Math.round(wowPct * 10) / 10 };
+  } catch (err) {
+    console.warn(
+      `[nightly-clevel-review] WoW check failed for ${role}: ${err.message}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * After all personas run: check WoW alerts and send Telegram for any critical.
+ * Skips entirely if TELEGRAM_CHAT_ID is unset or no DB client is available.
+ *
+ * @param {object} opts
+ * @param {string} opts.projectId   - projects.id UUID
+ * @param {string[]} opts.roles     - roles that ran successfully
+ */
+export async function routeWoWAlertsToTelegram({ projectId, roles }) {
+  // Read TELEGRAM_CHAT_ID at call-time so tests can inject it via process.env.
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID ?? TELEGRAM_CHAT_ID;
+  if (!telegramChatId) {
+    console.log("[nightly-clevel-review] WoW alerts: TELEGRAM_CHAT_ID not set, skipping");
+    return;
+  }
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    console.log("[nightly-clevel-review] WoW alerts: no Supabase client, skipping");
+    return;
+  }
+
+  const alertRoles = roles.filter((r) => WOW_ALERT_ROLES.includes(r));
+  if (alertRoles.length === 0) {
+    console.log("[nightly-clevel-review] WoW alerts: no eligible roles ran, skipping");
+    return;
+  }
+
+  const checks = await Promise.all(
+    alertRoles.map((role) => checkWoWAlertForRole({ supabase, projectId, role })),
+  );
+  const criticals = checks.filter(Boolean);
+
+  if (criticals.length === 0) {
+    console.log("[nightly-clevel-review] WoW alerts: no critical WoW drops detected");
+    return;
+  }
+
+  for (const alert of criticals) {
+    const direction = GOOD_IS_SMALLER.has(alert.metric) ? "rose" : "dropped";
+    const absPct = Math.abs(alert.wowPct);
+    const msg =
+      `⚠️ BlockID Alert: ${alert.role.toUpperCase()} ${alert.metric} ${direction} ${absPct}% WoW. Review recommended.`;
+    console.log(`[nightly-clevel-review] sending WoW alert: ${msg}`);
+    await sendTelegram(msg);
+  }
+}
+
 function buildTelegramMessage({ date, version, digestBody, written, skipped }) {
   // Extract the overall status line from the digest if possible.
   const statusMatch = digestBody.match(/## Overall Status:\s*(.+)/);
@@ -875,6 +1270,22 @@ async function main() {
   const { changedFiles, diffStat } = getGitDiff24h();
   console.log(`[nightly-clevel-review] git diff last 24h: ${changedFiles.length} files changed`);
 
+  // DB write config — optional; skipped gracefully when absent
+  const DB_PROJECT_ID =
+    process.env.CLEVEL_PROJECT_ID || _loadEnvVar("CLEVEL_PROJECT_ID") || null;
+  const DB_STARTUP_ID =
+    process.env.CLEVEL_STARTUP_ID || _loadEnvVar("CLEVEL_STARTUP_ID") || null;
+  const dbEnabled = !!(DB_PROJECT_ID && DB_STARTUP_ID);
+  if (dbEnabled) {
+    console.log(
+      `[nightly-clevel-review] DB writes enabled: project_id=${DB_PROJECT_ID} startup_id=${DB_STARTUP_ID}`,
+    );
+  } else {
+    console.log(
+      "[nightly-clevel-review] DB writes disabled (CLEVEL_PROJECT_ID / CLEVEL_STARTUP_ID not set)",
+    );
+  }
+
   const targets = args.persona ? [args.persona] : PERSONAS;
   const written = [];
   const skipped = [];
@@ -937,7 +1348,32 @@ async function main() {
       writeFileSync(outPath, body, "utf8");
       console.log(`[nightly-clevel-review] wrote ${outPath}`);
       pruneOldNightlyReports(persona, false);
-      return { persona, status: "written", body: bodyText, personaMeta };
+
+      // ── DB write (fail-soft) ────────────────────────────────────────────────
+      let reportId = null;
+      if (dbEnabled) {
+        reportId = await insertReportToDb({
+          projectId: DB_PROJECT_ID,
+          startupId: DB_STARTUP_ID,
+          role: persona,
+          reportText: body,
+          date,
+          model: personaMeta.model ?? null,
+          tokensIn: personaMeta.tokens_in,
+          tokensOut: personaMeta.tokens_out,
+          costUsd: personaMeta.cost_usd_estimate,
+          durationMs: Date.now() - startedAt,
+        });
+        await insertTrendSnapshot({
+          projectId: DB_PROJECT_ID,
+          role: persona,
+          date,
+          reportId,
+          reportText: body,
+        });
+      }
+
+      return { persona, status: "written", body: bodyText, personaMeta, reportId };
     } catch (err) {
       console.error(`[nightly-clevel-review] failed to write ${outPath}: ${err.message}`);
       return { persona, status: "failed", body: "", personaMeta: null, error: err.message };
@@ -966,11 +1402,17 @@ async function main() {
     date, reportBodies, timestamp, client, model, dryRun: args.dryRun, version,
   });
 
-  // ── Telegram ────────────────────────────────────────────────────────────────
+  // ── Telegram digest ─────────────────────────────────────────────────────────
   if (!args.dryRun && written.length > 0) {
     const msg = buildTelegramMessage({ date, version, digestBody, written, skipped });
     const sent = await sendTelegram(msg);
     console.log(`[nightly-clevel-review] telegram: ${sent ? "sent" : "skipped/failed"}`);
+  }
+
+  // ── WoW trend alert routing ──────────────────────────────────────────────────
+  // Only runs when DB is enabled and at least one persona wrote data.
+  if (!args.dryRun && dbEnabled && written.length > 0) {
+    await routeWoWAlertsToTelegram({ projectId: DB_PROJECT_ID, roles: written });
   }
 
   // ── History record ─────────────────────────────────────────────────────────

@@ -29,6 +29,10 @@ interface FakeState {
   holders: Array<{ name: string | null; shares_held: number | null }>;
   holdersError: { message: string } | null;
   esopRow: { total_pool_shares: number | null } | null;
+  // clevel_reports_v2 rows per role
+  cLevelReports: Record<string, Record<string, unknown> | null>;
+  // svi_accounts row
+  sviAccount: { id: string } | null;
 }
 
 const state: FakeState = {
@@ -39,17 +43,24 @@ const state: FakeState = {
   holders: [],
   holdersError: null,
   esopRow: null,
+  cLevelReports: {},
+  sviAccount: null,
 };
 
 function makeSupabase() {
   const supa = {
     from(table: string) {
+      // Track role filter for clevel_reports_v2 dispatch per chain.
+      let _cLevelRole: string | null = null;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const chain: any = {
         select() {
           return chain;
         },
-        eq() {
+        eq(col: string, val: unknown) {
+          if (table === "clevel_reports_v2" && col === "role") {
+            _cLevelRole = String(val);
+          }
           return chain;
         },
         order() {
@@ -63,6 +74,12 @@ function makeSupabase() {
           if (table === "svi_analyses")
             return { data: state.sviAnalysis, error: state.sviAnalysisError };
           if (table === "esop_pool") return { data: state.esopRow, error: null };
+          if (table === "clevel_reports_v2") {
+            const role = _cLevelRole ?? "cfo";
+            return { data: state.cLevelReports[role] ?? null, error: null };
+          }
+          if (table === "svi_accounts")
+            return { data: state.sviAccount, error: null };
           return { data: null, error: null };
         },
         // Awaited directly (holdersQuery) — must be thenable.
@@ -148,6 +165,23 @@ vi.mock("@/lib/investor-pack/traction-cohort-section", () => ({
   buildTractionCohortSection: () => buildTractionCohortMock(),
 }));
 
+const buildExitStrategyChapterMock = vi.fn();
+vi.mock("@/lib/investor-pack/exit-strategy-chapter", () => ({
+  buildExitStrategyChapter: (...args: unknown[]) =>
+    buildExitStrategyChapterMock(...args),
+}));
+
+const buildCLevelChapterMock = vi.fn();
+vi.mock("@/lib/investor-pack/c-level-chapter", () => ({
+  buildCLevelChapter: (input: unknown) => buildCLevelChapterMock(input),
+}));
+
+// compute-c-level-dcf is imported transitively by c-level-chapter.
+// Mock it to avoid server-only import chain issues in tests.
+vi.mock("@/lib/c-level/compute-c-level-dcf", () => ({
+  scanForRealNames: (text: string) => ({ ok: true, violations: [] as string[] }),
+}));
+
 // Import after mocks are registered.
 import { assemblePackData } from "./investor-pack-assembler";
 
@@ -177,6 +211,8 @@ function resetState() {
   state.holders = [];
   state.holdersError = null;
   state.esopRow = null;
+  state.cLevelReports = {};
+  state.sviAccount = null;
 }
 
 beforeEach(() => {
@@ -220,6 +256,12 @@ beforeEach(() => {
   buildTractionCohortMock
     .mockReset()
     .mockReturnValue({ heading: "Traction", svg: "<svg/>", emptyState: true });
+  buildExitStrategyChapterMock
+    .mockReset()
+    .mockResolvedValue({ present: false, reason: "no_primary_scenario" });
+  buildCLevelChapterMock
+    .mockReset()
+    .mockReturnValue(null);
 });
 
 // ── SVI grade ladder ────────────────────────────────────────────────────
@@ -762,5 +804,140 @@ describe("assemblePackData — pass-throughs", () => {
     expect(out.generatedAt).toMatch(
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/,
     );
+  });
+});
+
+// ── Exit strategy + c-level chapter wiring (v3.8.1) ─────────────────────
+
+describe("assemblePackData — exitStrategy chapter (v3.8.1)", () => {
+  it("exitStrategy present:true forwarded verbatim when buildExitStrategyChapter returns it", async () => {
+    const chapter = {
+      present: true,
+      scenarioName: "IPO by 2030",
+      exitType: "ipo",
+      timelineYears: 5,
+      targetExitValuationAud: 50_000_000,
+      dilutionTable: [],
+      founderPayouts: [],
+      acquirerLandscape: [],
+      readinessScore: 72,
+      readinessBand: "nearly_ready",
+      criticalGaps: [],
+      narrative: "Strong growth trajectory.",
+      markdown: "## Chapter 11\n\nIPO by 2030.",
+      disclaimer: "General info only.",
+    };
+    // Provide a svi_accounts row so the assembler attempts the chapter call.
+    state.sviAccount = { id: "acct-123" };
+    buildExitStrategyChapterMock.mockResolvedValueOnce(chapter);
+    const out = await assemblePackData("u1", "p1");
+    expect(out.exitStrategy).toMatchObject({ present: true, scenarioName: "IPO by 2030" });
+  });
+
+  it("exitStrategy present:false when no svi_accounts row (no chapter call made)", async () => {
+    state.sviAccount = null;
+    const out = await assemblePackData("u1", "p1");
+    expect(out.exitStrategy).toEqual({ present: false, reason: "no_primary_scenario" });
+    // buildExitStrategyChapter should NOT have been called
+    expect(buildExitStrategyChapterMock).not.toHaveBeenCalled();
+  });
+
+  it("exitStrategy present:false gracefully when buildExitStrategyChapter throws", async () => {
+    state.sviAccount = { id: "acct-err" };
+    buildExitStrategyChapterMock.mockRejectedValueOnce(new Error("DB timeout"));
+    const out = await assemblePackData("u1", "p1");
+    expect(out.exitStrategy).toEqual({ present: false, reason: "query_error" });
+  });
+
+  it("exitStrategy narrative must not contain any real AU company names", async () => {
+    const REAL_NAMES = /\b(canva|atlassian|afterpay|airtree|blackbird|xero)\b/gi;
+    state.sviAccount = { id: "acct-ok" };
+    buildExitStrategyChapterMock.mockResolvedValueOnce({
+      present: true,
+      scenarioName: "Trade sale",
+      exitType: "trade_sale",
+      timelineYears: 3,
+      targetExitValuationAud: 10_000_000,
+      dilutionTable: [],
+      founderPayouts: [],
+      acquirerLandscape: [],
+      readinessScore: 60,
+      readinessBand: "not_ready",
+      criticalGaps: [],
+      narrative: "The company targets a strategic buyer.",
+      markdown: "## Chapter 11\n\nTrade sale plan.",
+      disclaimer: "General info only.",
+    });
+    const out = await assemblePackData("u1", "p1");
+    if (out.exitStrategy.present) {
+      expect(REAL_NAMES.test(out.exitStrategy.narrative)).toBe(false);
+      expect(REAL_NAMES.test(out.exitStrategy.markdown)).toBe(false);
+    }
+  });
+});
+
+describe("assemblePackData — cLevelChapter (v3.8.1)", () => {
+  it("cLevelChapter forwarded verbatim when buildCLevelChapter returns a chapter", async () => {
+    const chapter = {
+      title: "Chapter X — C-Level Financial Advisory",
+      markdown: "# Chapter X\n\n## CFO — DCF Valuation\n\nEV: A$5M",
+      complianceOk: true,
+      complianceViolations: [],
+    };
+    // Provide CFO body_markdown in the fake supabase so loadCLevelChapter
+    // triggers buildCLevelChapter.
+    state.cLevelReports["cfo"] = {
+      body_markdown: "## CFO — DCF Valuation\n\nEV: A$5M",
+      generated_at: "2026-08-17T00:00:00Z",
+    };
+    buildCLevelChapterMock.mockReturnValueOnce(chapter);
+    const out = await assemblePackData("u1", "p1");
+    expect(out.cLevelChapter).toMatchObject({
+      complianceOk: true,
+      title: "Chapter X — C-Level Financial Advisory",
+    });
+  });
+
+  it("cLevelChapter is null when no clevel_reports_v2 rows exist (fail-soft)", async () => {
+    state.cLevelReports = {};
+    // buildCLevelChapter should not be called (no markdown to pass in)
+    const out = await assemblePackData("u1", "p1");
+    expect(out.cLevelChapter).toBeNull();
+  });
+
+  it("cLevelChapter compliance-blocked stub returned without throw when complianceOk=false", async () => {
+    state.cLevelReports["cfo"] = {
+      body_markdown: "Canva-style growth trajectory.",
+      generated_at: "2026-08-17T00:00:00Z",
+    };
+    buildCLevelChapterMock.mockReturnValueOnce({
+      title: "Chapter X — C-Level Financial Advisory",
+      markdown: "# Chapter X\n\n_Blocked by compliance scanner._",
+      complianceOk: false,
+      complianceViolations: ["canva"],
+    });
+    const out = await assemblePackData("u1", "p1");
+    // Must not throw — just return the blocked stub
+    expect(out.cLevelChapter).not.toBeNull();
+    expect(out.cLevelChapter?.complianceOk).toBe(false);
+    expect(out.cLevelChapter?.markdown).toMatch(/Blocked by compliance scanner/);
+  });
+
+  it("cLevelChapter output markdown must not contain real AU company names (compliance check)", async () => {
+    const REAL_NAMES = /\b(canva|atlassian|afterpay|blackbird|xero|airtree)\b/gi;
+    state.cLevelReports["cfo"] = {
+      body_markdown: "Strong AU SaaS comparable exits.",
+      generated_at: "2026-08-17T00:00:00Z",
+    };
+    buildCLevelChapterMock.mockReturnValueOnce({
+      title: "Chapter X — C-Level Financial Advisory",
+      markdown: "# Chapter X\n\nStrong AU SaaS comparable exits.",
+      complianceOk: true,
+      complianceViolations: [],
+    });
+    const out = await assemblePackData("u1", "p1");
+    if (out.cLevelChapter) {
+      expect(REAL_NAMES.test(out.cLevelChapter.markdown)).toBe(false);
+    }
   });
 });
