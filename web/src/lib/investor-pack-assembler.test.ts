@@ -69,6 +69,9 @@ function makeSupabase() {
         limit() {
           return chain;
         },
+        in() {
+          return chain;
+        },
         async maybeSingle() {
           if (table === "app_users") return { data: state.appUsers, error: null };
           if (table === "svi_analyses")

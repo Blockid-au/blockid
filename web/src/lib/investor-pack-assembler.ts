@@ -402,6 +402,37 @@ async function loadCapTable(
   return rows;
 }
 
+/* ─── Founder share counts — from cap-table (role IN founder/co-founder). ─ */
+
+/**
+ * Loads shares_held for shareholders whose role is 'founder' or 'co-founder'
+ * for the given account+project. Returns a name→shares map. Falls back to an
+ * empty map when the table is empty or the query fails (caller must handle
+ * the equal-split fallback).
+ */
+async function loadFounderShareCounts(
+  userId: string,
+  projectId: string | null,
+): Promise<Map<string, number>> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return new Map();
+  const q = supabase
+    .from("shareholders")
+    .select("name, shares_held, role")
+    .eq("account_id", userId)
+    .in("role", ["founder", "co-founder"]);
+  if (projectId) q.eq("project_id", projectId);
+  const { data, error } = await q;
+  if (error || !data) return new Map();
+  const result = new Map<string, number>();
+  for (const row of data as Array<{ name: string | null; shares_held: number | null; role: string | null }>) {
+    const name = (row.name ?? "").trim();
+    const shares = Number(row.shares_held ?? 0);
+    if (name && shares > 0) result.set(name, (result.get(name) ?? 0) + shares);
+  }
+  return result;
+}
+
 /* ─── Team loader — founder + co-founders + advisors. ──────────────────── */
 
 async function loadTeam(userId: string): Promise<{
@@ -647,13 +678,17 @@ export async function assemblePackData(
         // the chapter renders zero payouts).
         // Note: `members` is loaded further down — resolve here after.
         const { members: teamMembers } = await loadTeam(userId);
-        const founderMembers = teamMembers
-          .filter((m) => /founder/i.test(m.role))
-          .map((m, idx) => ({
-            name: m.name,
-            // Even split among founders when no share data is available.
-            sharesAtSeed: 1000 - idx * 0,
-          }));
+        const shareMap = await loadFounderShareCounts(userId, projectId ?? null);
+        const founderTeamMembers = teamMembers.filter((m) => /founder/i.test(m.role));
+        const totalSharesKnown = Array.from(shareMap.values()).reduce((a, b) => a + b, 0);
+        const founderMembers = founderTeamMembers.map((m) => ({
+          name: m.name,
+          // Use real shares from DB; fall back to equal 1000-share split
+          // when no shareholder record exists for this founder.
+          sharesAtSeed:
+            shareMap.get(m.name) ??
+            (totalSharesKnown > 0 ? 0 : 1000),
+        }));
         exitStrategy = await buildExitStrategyChapter(
           sviAccount.id as string,
           founderMembers.length > 0 ? founderMembers : [{ name: "Founder", sharesAtSeed: 1000 }],

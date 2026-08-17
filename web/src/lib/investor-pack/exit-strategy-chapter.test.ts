@@ -96,6 +96,50 @@ describe("buildFounderPayouts", () => {
     // Falls back to series_a founder_stake_pct_after (60%)
     expect(payout.stakeAtExitPct).toBeCloseTo(60, 1);
   });
+
+  it("uses real share counts from DB — Alice 700k, Bob 300k shares", () => {
+    // Simulates the assembler passing DB-sourced shares (e.g. from shareholders table)
+    // instead of the old hardcoded 1000 for everyone.
+    const payouts = buildFounderPayouts(
+      [
+        { name: "Alice", sharesAtSeed: 700_000 },
+        { name: "Bob", sharesAtSeed: 300_000 },
+      ],
+      SAMPLE_PROJECTIONS,
+      50_000_000,
+    );
+    // Total seed = 1_000_000; Alice 70%, Bob 30% of founder block.
+    // Exit founder block = 40% (from SAMPLE_PROJECTIONS exit row).
+    // Alice stake = 70% × 40% = 28%; gross = 28% × $50M = $14M
+    expect(payouts[0].stakeAtExitPct).toBeCloseTo(28, 1);
+    expect(payouts[0].grossAud).toBe(14_000_000);
+    // Bob stake = 30% × 40% = 12%; gross = $6M
+    expect(payouts[1].stakeAtExitPct).toBeCloseTo(12, 1);
+    expect(payouts[1].grossAud).toBe(6_000_000);
+  });
+
+  it("falls back to equal split when no share data exists (all founders get sharesAtSeed=1000)", () => {
+    // Simulates the assembler's fallback when loadFounderShareCounts returns
+    // an empty map — every founder gets the same 1000-share sentinel value.
+    const payouts = buildFounderPayouts(
+      [
+        { name: "Alice", sharesAtSeed: 1000 },
+        { name: "Bob", sharesAtSeed: 1000 },
+        { name: "Carol", sharesAtSeed: 1000 },
+      ],
+      SAMPLE_PROJECTIONS,
+      60_000_000,
+    );
+    // 3 equal founders → each 33.33% of founder block (40%) = 13.33%
+    // gross ≈ 13.33% × $60M = $8M each
+    expect(payouts).toHaveLength(3);
+    expect(payouts[0].stakeAtExitPct).toBeCloseTo(13.33, 1);
+    expect(payouts[1].stakeAtExitPct).toBeCloseTo(13.33, 1);
+    expect(payouts[2].stakeAtExitPct).toBeCloseTo(13.33, 1);
+    expect(payouts[0].grossAud).toBe(8_000_000);
+    expect(payouts[1].grossAud).toBe(8_000_000);
+    expect(payouts[2].grossAud).toBe(8_000_000);
+  });
 });
 
 describe("buildAcquirerRows", () => {
