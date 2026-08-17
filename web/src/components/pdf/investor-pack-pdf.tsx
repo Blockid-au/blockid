@@ -865,6 +865,407 @@ function TeamAndCapPage({ data }: { data: InvestorPackData }) {
   );
 }
 
+/* ─── Shared markdown renderer ─────────────────────────────────────────── */
+//
+// react-pdf/renderer has no HTML or markdown parser — we do a minimal
+// line-by-line pass that handles the patterns our chapter builders emit:
+//   ## heading  →  h2 bold
+//   ### heading →  h3 bold (slightly smaller)
+//   | table |    →  simple table rows (two-col where possible)
+//   - bullet     →  bullet item
+//   _italic_     →  italic body text (single-line)
+//   > blockquote →  indented italic note
+//   blank line   →  vertical gap
+//   everything else → body paragraph
+
+function renderMarkdownLines(lines: string[]): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  let inTable = false;
+  let tableRows: string[][] = [];
+
+  function flushTable() {
+    if (tableRows.length === 0) return;
+    // First row is the header; second is the separator (---) — skip it.
+    const header = tableRows[0];
+    const dataRows = tableRows.slice(2);
+    nodes.push(
+      <View
+        key={`table-${nodes.length}`}
+        style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 4, marginBottom: 6 }}
+      >
+        {/* Header */}
+        <View style={s.tableHeader}>
+          {header.map((cell, ci) => (
+            <Text
+              key={ci}
+              style={[s.tableHeaderCell, { flex: 1 }]}
+            >
+              {cell.trim()}
+            </Text>
+          ))}
+        </View>
+        {/* Data rows */}
+        {dataRows.map((row, ri) => (
+          <View
+            key={ri}
+            style={[s.tableRow, { backgroundColor: ri % 2 === 0 ? C.white : C.surface50 }]}
+          >
+            {row.map((cell, ci) => (
+              <Text key={ci} style={[s.tableCell, { flex: 1 }]}>
+                {cell.trim()}
+              </Text>
+            ))}
+          </View>
+        ))}
+      </View>,
+    );
+    tableRows = [];
+    inTable = false;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const line = raw.trimEnd();
+
+    // Table row
+    if (line.startsWith("|")) {
+      inTable = true;
+      const cells = line.split("|").slice(1, -1);
+      tableRows.push(cells);
+      continue;
+    }
+
+    // End of table
+    if (inTable) {
+      flushTable();
+    }
+
+    // Blank line
+    if (line.trim() === "") {
+      nodes.push(<View key={`gap-${i}`} style={{ height: 4 }} />);
+      continue;
+    }
+
+    // ## heading
+    if (line.startsWith("## ")) {
+      const text = line.slice(3).replace(/\*\*/g, "").trim();
+      nodes.push(
+        <Text key={i} style={s.h2}>{text}</Text>,
+      );
+      continue;
+    }
+
+    // ### heading
+    if (line.startsWith("### ")) {
+      const text = line.slice(4).replace(/\*\*/g, "").trim();
+      nodes.push(
+        <Text
+          key={i}
+          style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.ink800, marginTop: 10, marginBottom: 4 }}
+        >
+          {text}
+        </Text>,
+      );
+      continue;
+    }
+
+    // # heading (chapter title — render as h1)
+    if (line.startsWith("# ")) {
+      const text = line.slice(2).replace(/\*\*/g, "").trim();
+      nodes.push(
+        <Text key={i} style={s.h1}>{text}</Text>,
+      );
+      continue;
+    }
+
+    // - bullet
+    if (line.startsWith("- ")) {
+      const text = line.slice(2).replace(/\*\*/g, "").trim();
+      nodes.push(
+        <View key={i} style={{ flexDirection: "row", marginBottom: 2 }}>
+          <Text style={[s.bodyPara, { width: 12, marginBottom: 0 }]}>{"•"}</Text>
+          <Text style={[s.bodyPara, { flex: 1, marginBottom: 0 }]}>{text}</Text>
+        </View>,
+      );
+      continue;
+    }
+
+    // > blockquote (NFA footer)
+    if (line.startsWith("> ")) {
+      const text = line.slice(2).trim();
+      nodes.push(
+        <Text
+          key={i}
+          style={{
+            fontSize: 8.5,
+            color: C.ink500,
+            fontStyle: "italic",
+            borderLeftWidth: 2,
+            borderLeftColor: C.brand600,
+            paddingLeft: 8,
+            marginTop: 6,
+            marginBottom: 4,
+            lineHeight: 1.45,
+          }}
+        >
+          {text}
+        </Text>,
+      );
+      continue;
+    }
+
+    // _italic_ single-line (e.g. disclaimer lines)
+    if (line.startsWith("_") && line.endsWith("_")) {
+      const text = line.slice(1, -1);
+      nodes.push(
+        <Text
+          key={i}
+          style={{ fontSize: 8.5, color: C.ink500, fontStyle: "italic", marginBottom: 4, lineHeight: 1.4 }}
+        >
+          {text}
+        </Text>,
+      );
+      continue;
+    }
+
+    // **bold: value** inline (key-value metadata lines from chapter header)
+    // e.g. "**Scenario:** Growth" — render as a small body paragraph
+    const bodyText = line.replace(/\*\*/g, "").trim();
+    if (bodyText.length > 0) {
+      nodes.push(
+        <Text key={i} style={s.bodyPara}>{bodyText}</Text>,
+      );
+    }
+  }
+
+  // Flush table if file ends mid-table
+  if (inTable) flushTable();
+
+  return nodes;
+}
+
+function renderMarkdown(markdown: string): React.ReactNode[] {
+  return renderMarkdownLines(markdown.split("\n"));
+}
+
+/* ─── 9. Exit Strategy (Chapter 11) ─────────────────────────────────────── */
+
+function ExitStrategyPage({ data }: { data: InvestorPackData }) {
+  const { exitStrategy } = data;
+
+  if (!exitStrategy.present) {
+    return (
+      <Page size="A4" style={s.page}>
+        <HeaderBar />
+        <Text style={s.h1}>Chapter 11 — Exit Strategy & Cap Table Roadmap</Text>
+        <Text style={s.h1Sub}>Exit planning section</Text>
+        <Placeholder label="No primary exit scenario on file — set one up in the workspace to populate this chapter." />
+        <RegulatoryFooter />
+      </Page>
+    );
+  }
+
+  return (
+    <Page size="A4" style={s.page}>
+      <HeaderBar />
+      <Text style={s.h1}>Chapter 11 — Exit Strategy</Text>
+      <Text style={s.h1Sub}>
+        {exitStrategy.scenarioName} · {exitStrategy.exitType} · {exitStrategy.timelineYears} yr
+      </Text>
+
+      {/* Dilution table */}
+      <Text style={s.h2}>Dilution Progression</Text>
+      <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 4, marginBottom: 8 }}>
+        <View style={s.tableHeader}>
+          <Text style={[s.tableHeaderCell, { width: "22%" }]}>Round</Text>
+          <Text style={[s.tableHeaderCell, { width: "19%", textAlign: "right" }]}>Pre-money</Text>
+          <Text style={[s.tableHeaderCell, { width: "19%", textAlign: "right" }]}>Post-money</Text>
+          <Text style={[s.tableHeaderCell, { width: "13%", textAlign: "right" }]}>Founder %</Text>
+          <Text style={[s.tableHeaderCell, { width: "13%", textAlign: "right" }]}>Investor %</Text>
+          <Text style={[s.tableHeaderCell, { width: "14%", textAlign: "right" }]}>ESOP %</Text>
+        </View>
+        {exitStrategy.dilutionTable.map((row, i) => (
+          <View
+            key={i}
+            style={[s.tableRow, { backgroundColor: i % 2 === 0 ? C.white : C.surface50 }]}
+          >
+            <Text style={[s.tableCell, { width: "22%", fontFamily: "Helvetica-Bold" }]}>
+              {row.round}
+            </Text>
+            <Text style={[s.tableCell, { width: "19%", textAlign: "right" }]}>
+              {row.preMoneyAud != null ? formatAud(row.preMoneyAud) : "—"}
+            </Text>
+            <Text style={[s.tableCell, { width: "19%", textAlign: "right" }]}>
+              {row.postMoneyAud != null ? formatAud(row.postMoneyAud) : "—"}
+            </Text>
+            <Text style={[s.tableCell, { width: "13%", textAlign: "right", color: C.brand700 }]}>
+              {row.founderPct.toFixed(1)}%
+            </Text>
+            <Text style={[s.tableCell, { width: "13%", textAlign: "right" }]}>
+              {row.investorPct.toFixed(1)}%
+            </Text>
+            <Text style={[s.tableCell, { width: "14%", textAlign: "right" }]}>
+              {row.esopPct.toFixed(1)}%
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Founder payouts */}
+      {exitStrategy.founderPayouts.length > 0 && (
+        <>
+          <Text style={s.h2}>Founder Payout Estimates</Text>
+          <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 4, marginBottom: 6 }}>
+            <View style={s.tableHeader}>
+              <Text style={[s.tableHeaderCell, { width: "28%" }]}>Founder</Text>
+              <Text style={[s.tableHeaderCell, { width: "18%", textAlign: "right" }]}>Stake</Text>
+              <Text style={[s.tableHeaderCell, { width: "18%", textAlign: "right" }]}>Gross</Text>
+              <Text style={[s.tableHeaderCell, { width: "18%", textAlign: "right" }]}>CGT est.</Text>
+              <Text style={[s.tableHeaderCell, { width: "18%", textAlign: "right" }]}>Net</Text>
+            </View>
+            {exitStrategy.founderPayouts.map((p, i) => (
+              <View
+                key={i}
+                style={[s.tableRow, { backgroundColor: i % 2 === 0 ? C.white : C.surface50 }]}
+              >
+                <Text style={[s.tableCell, { width: "28%", fontFamily: "Helvetica-Bold" }]}>
+                  {p.founderName}
+                </Text>
+                <Text style={[s.tableCell, { width: "18%", textAlign: "right" }]}>
+                  {p.stakeAtExitPct.toFixed(2)}%
+                </Text>
+                <Text style={[s.tableCell, { width: "18%", textAlign: "right", color: C.emerald600 }]}>
+                  {formatAud(p.grossAud)}
+                </Text>
+                <Text style={[s.tableCell, { width: "18%", textAlign: "right", color: C.amber700 }]}>
+                  {formatAud(p.cgtEstimateAud)}
+                </Text>
+                <Text style={[s.tableCell, { width: "18%", textAlign: "right", fontFamily: "Helvetica-Bold", color: C.brand700 }]}>
+                  {formatAud(p.netAud)}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Text style={{ fontSize: 7.5, color: C.ink500, fontStyle: "italic", lineHeight: 1.4, marginBottom: 6 }}>
+            {exitStrategy.disclaimer}
+          </Text>
+        </>
+      )}
+
+      {/* Acquirer landscape */}
+      {exitStrategy.acquirerLandscape.length > 0 && (
+        <>
+          <Text style={s.h2}>Acquirer Landscape (Anonymized)</Text>
+          {exitStrategy.acquirerLandscape.map((a, i) => (
+            <View key={i} style={{ flexDirection: "row", marginBottom: 3 }}>
+              <Text style={[s.tableCell, { flex: 1 }]}>
+                <Text style={{ fontFamily: "Helvetica-Bold" }}>{a.label}</Text>
+                {" — "}
+                {a.dealCount} deals · {formatAud(a.valuationRangeAud.low)}–{formatAud(a.valuationRangeAud.high)}
+                {a.medianRevenueMultiple != null ? ` · median ${a.medianRevenueMultiple.toFixed(1)}x revenue` : ""}
+              </Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {/* Exit readiness */}
+      <Text style={s.h2}>Exit Readiness</Text>
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>
+        <View style={s.statTile}>
+          <Text style={s.label}>Readiness score</Text>
+          <Text style={[s.statValue, { color: scoreBarColor(exitStrategy.readinessScore) }]}>
+            {exitStrategy.readinessScore}/100
+          </Text>
+          <Text style={s.statSub}>{exitStrategy.readinessBand.replace(/_/g, " ")}</Text>
+        </View>
+        {exitStrategy.criticalGaps.length > 0 && (
+          <View style={[s.statTile, { flex: 2 }]}>
+            <Text style={s.label}>Critical gaps</Text>
+            {exitStrategy.criticalGaps.slice(0, 3).map((g, i) => (
+              <Text key={i} style={{ fontSize: 8.5, color: C.red600, marginTop: 2 }}>
+                • {g}
+              </Text>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Narrative */}
+      {exitStrategy.narrative.trim().length > 0 && (
+        <>
+          <Text style={s.h2}>Narrative</Text>
+          <Text style={s.bodyPara}>{exitStrategy.narrative}</Text>
+        </>
+      )}
+
+      <RegulatoryFooter />
+    </Page>
+  );
+}
+
+/* ─── 10. C-Level Financial Advisory ────────────────────────────────────── */
+
+const NFA_FOOTER =
+  "This report is not financial advice. For investment decisions consult a licensed financial adviser.";
+
+function CLevelChapterPage({ data }: { data: InvestorPackData }) {
+  const { cLevelChapter } = data;
+
+  if (!cLevelChapter) {
+    return (
+      <Page size="A4" style={s.page}>
+        <HeaderBar />
+        <Text style={s.h1}>C-Level Financial Advisory</Text>
+        <Text style={s.h1Sub}>CFO · CEO advisory summary</Text>
+        <Placeholder label="C-Level reports not yet generated — run the nightly cron or trigger a manual report from the workspace." />
+        <Text style={{ fontSize: 8, color: C.ink400, fontStyle: "italic", marginTop: 8, lineHeight: 1.4 }}>
+          {NFA_FOOTER}
+        </Text>
+        <RegulatoryFooter />
+      </Page>
+    );
+  }
+
+  const lines = cLevelChapter.markdown.split("\n");
+
+  return (
+    <Page size="A4" style={s.page}>
+      <HeaderBar />
+      {!cLevelChapter.complianceOk && (
+        <View
+          style={{
+            padding: 8,
+            backgroundColor: C.amber100,
+            borderWidth: 0.5,
+            borderColor: C.amber700,
+            borderRadius: 4,
+            marginBottom: 8,
+          }}
+        >
+          <Text style={{ fontSize: 8, color: C.amber700, fontFamily: "Helvetica-Bold" }}>
+            Compliance notice: chapter blocked — real names detected and redacted.
+          </Text>
+        </View>
+      )}
+      {renderMarkdownLines(lines)}
+      <View
+        style={{
+          marginTop: 10,
+          paddingTop: 6,
+          borderTopWidth: 0.5,
+          borderTopColor: C.surface200,
+        }}
+      >
+        <Text style={{ fontSize: 8, color: C.ink400, fontStyle: "italic", lineHeight: 1.4 }}>
+          {NFA_FOOTER}
+        </Text>
+      </View>
+      <RegulatoryFooter />
+    </Page>
+  );
+}
+
 /* ─── 8. Contact + AFSL disclaimer ──────────────────────────────────────── */
 
 function ContactPage({ data }: { data: InvestorPackData }) {
@@ -965,6 +1366,8 @@ export function InvestorPackPDF({ data }: { data: InvestorPackData }) {
       <ValuationAskPage data={data} />
       <ComparablesPage data={data} />
       <TeamAndCapPage data={data} />
+      <ExitStrategyPage data={data} />
+      <CLevelChapterPage data={data} />
       <ContactPage data={data} />
     </Document>
   );

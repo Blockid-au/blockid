@@ -50,6 +50,11 @@ import {
   type ExitStrategyChapterResult,
 } from "@/lib/investor-pack/exit-strategy-chapter";
 import {
+  buildCLevelChapter,
+  type CLevelChapter,
+} from "@/lib/investor-pack/c-level-chapter";
+import type { CFOValuationReport } from "@/lib/c-level/compute-c-level-dcf";
+import {
   computeFundingReadiness,
   type FundingReadiness,
 } from "@/lib/svi-analysis";
@@ -119,6 +124,12 @@ export interface InvestorPackData {
   exitStrategy: ExitStrategyChapterResult;
   /** Funding Readiness — current gate, gate score, top 3 unmet milestones. */
   fundingReadiness: FundingReadinessSection;
+  // C-Level Financial Advisory chapter (v3.8.1). Assembled from the latest
+  // CFO+CEO report in clevel_reports_v2 scoped to this project. Null when
+  // no report exists yet — the PDF template renders a placeholder instead.
+  // Compliance: buildCLevelChapter() runs scanForRealNames() and replaces
+  // the chapter with a blocked stub on any violation.
+  cLevelChapter: CLevelChapter | null;
   team: Array<{ name: string; role: string }>;
   capTable: Array<{ holder: string; pctFullyDiluted: number }>;
   ask: {
@@ -430,6 +441,85 @@ async function loadTeam(userId: string): Promise<{
   return { members, founderName };
 }
 
+/* ─── C-Level chapter loader — best-effort, returns null on any failure. ─ */
+
+async function loadCLevelChapter(
+  userId: string,
+  projectId: string | null,
+): Promise<CLevelChapter | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  try {
+    // Fetch the latest base-scenario CFO report for this project+account.
+    // We scope by project_id + startup_id (via svi_accounts → account_id=userId)
+    // to ensure multi-startup isolation.
+    const cfoQuery = supabase
+      .from("clevel_reports_v2")
+      .select("body_markdown, title, generated_at")
+      .eq("role", "cfo")
+      .eq("scenario", "base");
+    if (projectId) cfoQuery.eq("project_id", projectId);
+
+    const ceoQuery = supabase
+      .from("clevel_reports_v2")
+      .select("body_markdown, generated_at")
+      .eq("role", "ceo")
+      .eq("scenario", "base");
+    if (projectId) ceoQuery.eq("project_id", projectId);
+
+    const [cfoRes, ceoRes] = await Promise.all([
+      cfoQuery
+        .order("generated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      ceoQuery
+        .order("generated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    // Build a minimal CFOValuationReport-compatible stub from the stored
+    // markdown. The chapter builder only uses narrativeMarkdown so we
+    // don't need to reconstruct the full DCF object.
+    const cfoMarkdown =
+      typeof cfoRes.data?.body_markdown === "string"
+        ? cfoRes.data.body_markdown.trim()
+        : null;
+    const ceoMarkdown =
+      typeof ceoRes.data?.body_markdown === "string"
+        ? ceoRes.data.body_markdown.trim()
+        : null;
+
+    if (!cfoMarkdown && !ceoMarkdown) return null;
+
+    const cfoReport: CFOValuationReport | null = cfoMarkdown
+      ? ({
+          computedAt: String(cfoRes.data?.generated_at ?? new Date().toISOString()),
+          version: "3.8.0",
+          scenarios: {} as CFOValuationReport["scenarios"],
+          enterpriseValue: { lowAud: 0, midAud: 0, highAud: 0, confidence: "low" },
+          sensitivity: { baseEvAud: 0, drivers: [], dominantLever: "" },
+          founderExits: [],
+          comps: [],
+          rdtiRefundYear1Aud: 0,
+          esicQualifies: false,
+          narrativeMarkdown: cfoMarkdown,
+          disclaimer: "",
+        } as CFOValuationReport)
+      : null;
+
+    return buildCLevelChapter({
+      cfoReport,
+      ceoRoadmapMarkdown: ceoMarkdown,
+      cdoComplianceMarkdown: null,
+    });
+  } catch (err) {
+    console.warn("[investor-pack:assemble] c-level chapter skipped", err);
+    return null;
+  }
+}
+
 /* ─── Public entry point. ──────────────────────────────────────────────── */
 
 export async function assemblePackData(
@@ -588,6 +678,10 @@ export async function assemblePackData(
     : null;
   const fundingReadinessSection = buildFundingReadinessSection(sviAnalysisForFunding);
 
+  // C-Level Financial Advisory chapter — CFO + CEO reports from clevel_reports_v2.
+  // Fail-soft: returns null when no report exists yet so the PDF renders a placeholder.
+  const cLevelChapter = await loadCLevelChapter(userId, projectId);
+
   // Team + cap-table + ask.
   const { members, founderName } = await loadTeam(userId);
   const capTable = await loadCapTable(userId, projectId);
@@ -635,6 +729,7 @@ export async function assemblePackData(
     tractionCohort,
     exitStrategy,
     fundingReadiness: fundingReadinessSection,
+    cLevelChapter,
     team: members,
     capTable,
     ask: {
