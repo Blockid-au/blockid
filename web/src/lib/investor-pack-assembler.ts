@@ -46,6 +46,10 @@ import {
   type TractionCohortSection,
 } from "@/lib/investor-pack/traction-cohort-section";
 import {
+  buildExitStrategyChapter,
+  type ExitStrategyChapterResult,
+} from "@/lib/investor-pack/exit-strategy-chapter";
+import {
   computeFundingReadiness,
   type FundingReadiness,
 } from "@/lib/svi-analysis";
@@ -105,6 +109,14 @@ export interface InvestorPackData {
   // (Stripe / product-analytics OAuth → signup+activity streams) is a
   // follow-up under P5-cohort-ingest.
   tractionCohort: TractionCohortSection;
+  // ch11 exit-strategy roadmap (v3.7.6). Present only when the account
+  // has a primary exit_scenario on file — the PDF template renders
+  // Chapter 11 with dilution table, founder payouts, anonymized
+  // acquirer landscape, readiness band and narrative. AFSL/tax
+  // disclaimer is on every payout. See MEMORY note
+  // `feedback_no_real_startup_names` — compliance regex enforced in
+  // buildExitStrategyChapter().
+  exitStrategy: ExitStrategyChapterResult;
   /** Funding Readiness — current gate, gate score, top 3 unmet milestones. */
   fundingReadiness: FundingReadinessSection;
   team: Array<{ name: string; role: string }>;
@@ -523,6 +535,48 @@ export async function assemblePackData(
   // SVG hint so the section slot never leaves a gap.
   const tractionCohort = buildTractionCohortSection();
 
+  // ch11 exit-strategy roadmap — resolve svi_accounts.id for this
+  // founder+project first (exit_scenarios keys off it), then call the
+  // chapter builder. Fail-soft: if no primary scenario or table missing
+  // the chapter returns present:false and the PDF template skips it.
+  let exitStrategy: ExitStrategyChapterResult = {
+    present: false,
+    reason: "no_primary_scenario",
+  };
+  if (supabase && userEmail) {
+    const accountQuery = supabase
+      .from("svi_accounts")
+      .select("id")
+      .eq("email", userEmail);
+    if (projectId) accountQuery.eq("project_id", projectId);
+    const { data: sviAccount } = await accountQuery.maybeSingle();
+    if (sviAccount?.id) {
+      try {
+        // Founders list from the loaded team (best-effort; if members
+        // haven't been loaded yet we pass an empty founders array and
+        // the chapter renders zero payouts).
+        // Note: `members` is loaded further down — resolve here after.
+        const { members: teamMembers } = await loadTeam(userId);
+        const founderMembers = teamMembers
+          .filter((m) => /founder/i.test(m.role))
+          .map((m, idx) => ({
+            name: m.name,
+            // Even split among founders when no share data is available.
+            sharesAtSeed: 1000 - idx * 0,
+          }));
+        exitStrategy = await buildExitStrategyChapter(
+          sviAccount.id as string,
+          founderMembers.length > 0 ? founderMembers : [{ name: "Founder", sharesAtSeed: 1000 }],
+          [],
+          sector ?? svi?.sector ?? null,
+        );
+      } catch (err) {
+        console.warn("[investor-pack:assemble] exit-strategy chapter skipped", err);
+        exitStrategy = { present: false, reason: "query_error" };
+      }
+    }
+  }
+
   // Funding readiness — current gate, gate score, top 3 unmet milestones.
   // computeFundingReadiness needs a SVIAnalysis-shaped object; we pass the
   // raw analysis_json from the DB (which has dimensionScores) or fall back
@@ -579,6 +633,7 @@ export async function assemblePackData(
     esopEligibility,
     exitBenchmark,
     tractionCohort,
+    exitStrategy,
     fundingReadiness: fundingReadinessSection,
     team: members,
     capTable,

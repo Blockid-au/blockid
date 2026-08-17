@@ -53,7 +53,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 
-const PERSONAS = ["cto", "cfo", "cdo", "ciso", "cro", "cmo"];
+const PERSONAS = ["cto", "cfo", "ceo", "cdo", "ciso", "cro", "cmo"];
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..", "..");
@@ -87,7 +87,8 @@ const MAX_NIGHTLY_REPORTS_PER_ROLE = 7;
 // ─── Domain scope per persona — drives git-diff filter in nightly mode ───────
 const PERSONA_SCOPE = {
   cto: { keywords: ["src/", "scripts/", "package.json", "next.config", "tsconfig", "Dockerfile", "deploy", ".sh"], label: "Engineering / Infrastructure" },
-  cfo: { keywords: ["plans", "pricing", "stripe", "billing", "gst", "revenue", "subscription", "coupon"], label: "Finance / Monetisation" },
+  cfo: { keywords: ["plans", "pricing", "stripe", "billing", "gst", "revenue", "subscription", "coupon", "dcf", "c-level", "forecast"], label: "Finance / Monetisation" },
+  ceo: { keywords: ["roadmap", "svi", "goals", "founder", "startup-journey", "guide", "vision", "changelog"], label: "Strategy / Roadmap" },
   cdo: { keywords: ["analytics", "events", "bq", "bigquery", "tracking", "insights", "segment", "dashboard"], label: "Data / Analytics" },
   ciso: { keywords: ["audit", "security", "legal", "gate", "rls", "policy", "auth", "token", "secret", "proxy"], label: "Security / Compliance" },
   cro: { keywords: ["conversion", "experiment", "upsell", "upgrade", "funnel", "ab-", "trigger", "waitlist"], label: "Revenue / Conversion" },
@@ -884,16 +885,18 @@ async function main() {
   let totalCostUsd = 0;
   const timestamp = new Date().toISOString();
 
-  for (const persona of targets) {
+  // v3.8.0 — Run all personas in parallel (Promise.all). Each personaTask is
+  // self-contained (no shared mutable state during the LLM call), and we
+  // reduce the per-persona meta into totals after the fact.
+  const personaTasks = targets.map(async (persona) => {
     const outPath = join(REPORTS_DIR, `${persona}-nightly-${date}.md`);
 
     // Idempotent: skip if today's report already exists.
     if (existsSync(outPath)) {
       console.log(`[nightly-clevel-review] skip ${persona}: today's report already exists`);
-      skipped.push(persona);
-      // Still collect body for digest.
-      try { reportBodies[persona] = readFileSync(outPath, "utf8"); } catch { /* ignore */ }
-      continue;
+      let existingBody = "";
+      try { existingBody = readFileSync(outPath, "utf8"); } catch { /* ignore */ }
+      return { persona, status: "skipped", body: existingBody, personaMeta: null };
     }
 
     const prior = findPriorNightlyReport(persona);
@@ -915,9 +918,6 @@ async function main() {
           cost_usd_estimate: Number(gen.costUsd.toFixed(6)),
           model: gen.model,
         };
-        totalTokensIn += gen.tokensIn;
-        totalTokensOut += gen.tokensOut;
-        totalCostUsd += gen.costUsd;
       } catch (err) {
         console.error(`[nightly-clevel-review] LLM failed for ${persona}: ${err.message}. Falling back to stub.`);
         body = scaffoldNightlyMarkdown({ persona, date, prior, timestamp });
@@ -930,23 +930,34 @@ async function main() {
 
     if (args.dryRun) {
       console.log(`[nightly-clevel-review] (dry-run) would write ${outPath} (${body.length} bytes)`);
-      written.push(persona);
-      perPersonaCosts.push(personaMeta);
-      reportBodies[persona] = bodyText;
-      continue;
+      return { persona, status: "written-dry", body: bodyText, personaMeta };
     }
 
     try {
       writeFileSync(outPath, body, "utf8");
       console.log(`[nightly-clevel-review] wrote ${outPath}`);
-      written.push(persona);
-      perPersonaCosts.push(personaMeta);
-      reportBodies[persona] = bodyText;
-      // Prune old reports for this persona.
       pruneOldNightlyReports(persona, false);
+      return { persona, status: "written", body: bodyText, personaMeta };
     } catch (err) {
       console.error(`[nightly-clevel-review] failed to write ${outPath}: ${err.message}`);
-      skipped.push(persona);
+      return { persona, status: "failed", body: "", personaMeta: null, error: err.message };
+    }
+  });
+
+  const results = await Promise.all(personaTasks);
+
+  for (const r of results) {
+    if (r.status === "skipped" || r.status === "failed") {
+      skipped.push(r.persona);
+    } else {
+      written.push(r.persona);
+    }
+    if (r.body) reportBodies[r.persona] = r.body;
+    if (r.personaMeta) {
+      perPersonaCosts.push(r.personaMeta);
+      totalTokensIn += r.personaMeta.tokens_in ?? 0;
+      totalTokensOut += r.personaMeta.tokens_out ?? 0;
+      totalCostUsd += r.personaMeta.cost_usd_estimate ?? 0;
     }
   }
 
