@@ -95,10 +95,21 @@ vi.mock("./reseller/wholesale-welcome-email", () => ({
 
 vi.mock("@react-pdf/renderer", () => ({
   renderToBuffer: vi.fn().mockResolvedValue(Buffer.from("pdf-bytes")),
+  StyleSheet: { create: (s: unknown) => s },
+  Document: (props: { children?: unknown }) => props.children ?? null,
+  Page: (props: { children?: unknown }) => props.children ?? null,
+  View: (props: { children?: unknown }) => props.children ?? null,
+  Text: (props: { children?: unknown }) => props.children ?? null,
+  Image: () => null,
+  Font: { register: () => {} },
 }));
 
 vi.mock("@/lib/pdf/svi-report-pdf", () => ({
   SVIReportPDF: () => null,
+}));
+
+vi.mock("@/lib/pdf/score-pdf", () => ({
+  ScorePDF: () => null,
 }));
 
 const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});

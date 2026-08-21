@@ -6,9 +6,12 @@
 // { ok: false, reason: 'not_configured' }.
 
 import "server-only";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { SVIReportPDF } from "@/lib/pdf/svi-report-pdf";
+import { ScorePDF, type ScorePdfData } from "@/lib/pdf/score-pdf";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import {
   ensureEmailPreferences,
@@ -66,11 +69,32 @@ async function sendViaResend(args: {
   to: string;
   subject: string;
   html: string;
+  attachments?: { filename: string; content: Buffer | Uint8Array | string; contentType?: string }[];
 }): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { ok: false, reason: "not_configured" };
 
   const from = process.env.RESEND_FROM_EMAIL || fromAddress();
+
+  // Resend API accepts attachments as an array of { filename, content }
+  // where content is base64-encoded string (or a remote URL via `path`).
+  // See https://resend.com/docs/api-reference/emails/send-email.
+  const resendAttachments = args.attachments?.map((a) => {
+    let contentB64: string;
+    if (typeof a.content === "string") {
+      // Assume already base64 if it's plain ASCII / no whitespace, otherwise encode.
+      contentB64 = /^[A-Za-z0-9+/=\r\n]+$/.test(a.content)
+        ? a.content.replace(/\s+/g, "")
+        : Buffer.from(a.content, "utf8").toString("base64");
+    } else {
+      contentB64 = Buffer.from(a.content).toString("base64");
+    }
+    return {
+      filename: a.filename,
+      content: contentB64,
+      ...(a.contentType && { content_type: a.contentType }),
+    };
+  });
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -84,6 +108,7 @@ async function sendViaResend(args: {
         to: [args.to],
         subject: args.subject,
         html: args.html,
+        ...(resendAttachments?.length && { attachments: resendAttachments }),
       }),
     });
     const data = await res.json() as { id?: string; message?: string };
@@ -142,12 +167,40 @@ export async function sendEmail(args: {
 
   // Priority 2: Resend API
   if (isResendConfigured()) {
-    return sendViaResend({ to: args.to, subject: args.subject, html: args.html });
+    return sendViaResend({
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+      attachments: args.attachments,
+    });
   }
 
   // Neither configured
   console.warn("[blockid:email] No email provider configured (set SMTP_USER+SMTP_PASS or RESEND_API_KEY)", { to: args.to, subject: args.subject });
   return { ok: false, reason: "not_configured" };
+}
+
+// ---------- Audit trail for missed sends -------------------------------------
+// When neither SMTP nor Resend is configured, drop a JSONL row so operators
+// can later see what wasn't delivered. Best-effort, never throws.
+
+function auditMissedSend(row: Record<string, unknown>): void {
+  try {
+    const dir = path.resolve(process.cwd(), "content", "reports");
+    if (!fs.existsSync(dir)) return;
+    const file = path.join(dir, "email-send-events.jsonl");
+    const line = JSON.stringify({ ts: new Date().toISOString(), ...row }) + "\n";
+    fs.appendFileSync(file, line, "utf8");
+  } catch {
+    /* swallow — audit trail must never break sends */
+  }
+}
+
+function redactEmail(e: string): string {
+  const [user = "", dom = ""] = e.split("@");
+  if (!dom) return "<invalid>";
+  const head = user.slice(0, 2);
+  return `${head}***@${dom}`;
 }
 
 // ---------- Helpers for subscription-aware sending ----------------------------
@@ -233,6 +286,13 @@ export interface ScoreReadyEnrichment {
   } | null;
 }
 
+function fmtAudMillions(v: number): string {
+  if (!Number.isFinite(v) || v <= 0) return "A$0";
+  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(v >= 10_000_000 ? 1 : 2)}M`;
+  if (v >= 1_000) return `A$${Math.round(v / 1_000)}k`;
+  return `A$${Math.round(v)}`;
+}
+
 export async function sendScoreReady(args: {
   to: string;
   slug: string;
@@ -243,6 +303,132 @@ export async function sendScoreReady(args: {
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const url = `${siteUrl()}/s/${args.slug}`;
   const co = args.companyName || "Your company";
+
+  // ---- Try to render the score PDF for attachment (best-effort) ---------
+  let pdfAttachment: { filename: string; content: Buffer; contentType: string } | undefined;
+  const breakdownSubs = args.breakdown?.subs;
+  if (breakdownSubs && breakdownSubs.length > 0) {
+    try {
+      const pdfData: ScorePdfData = {
+        slug: args.slug,
+        totalScore: args.totalScore,
+        scoreVersion: args.breakdown?.version ?? null,
+        confidenceScore: args.breakdown?.confidence ?? null,
+        companyName: args.companyName ?? null,
+        email: args.to,
+        subScores: breakdownSubs.map((s) => ({ label: s.label, value: Math.round(s.value) })),
+        missingInputs: args.breakdown?.missingInputs ?? args.evidenceGaps ?? null,
+        actionPlan: args.actionPlan ?? args.breakdown?.actionPlan ?? null,
+        benchmark: args.benchmark ?? args.breakdown?.benchmark ?? null,
+        inputs: {},
+        createdAt: new Date().toISOString(),
+        shareUrl: url,
+        valuation: args.valuation ?? null,
+        fundingReadiness: args.fundingReadiness ?? null,
+        evidenceGaps: args.evidenceGaps ?? null,
+      };
+      const pdfBuffer = await renderToBuffer(ScorePDF({ data: pdfData }));
+      pdfAttachment = {
+        filename: `BlockID-Score-Report-${args.slug}.pdf`,
+        content: Buffer.from(pdfBuffer),
+        contentType: "application/pdf",
+      };
+    } catch (pdfErr) {
+      console.error("[blockid:email] score PDF render failed, sending without attachment", pdfErr);
+    }
+  }
+
+  // ---- HTML fragments (all optional, degrade gracefully) ----------------
+  const benchmarkHtml = args.benchmark
+    ? `<p style="margin:0 0 16px 0;color:#94A3B8;font-size:13px;line-height:1.5;text-align:center;">
+        <strong style="color:#F8FAFC;">${escapeHtml(args.benchmark.label)}</strong> &middot;
+        ${escapeHtml(args.benchmark.band)} &middot; median ${args.benchmark.medianScore}
+       </p>`
+    : "";
+
+  const topSubs = (breakdownSubs ?? []).slice(0, 5);
+  const subsTableHtml = topSubs.length > 0
+    ? `<p style="margin:24px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Sub-scores</p>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 16px;margin:0 0 20px 0;">
+         ${topSubs.map((s) => {
+           const pct = Math.max(0, Math.min(100, Math.round(s.value)));
+           const barColor = pct >= 75 ? "#4ADE80" : pct >= 55 ? "#3B7DD8" : pct >= 35 ? "#FBBF24" : "#F87171";
+           return `<tr>
+             <td style="padding:4px 0;color:#CBD5E1;font-size:13px;width:45%;">${escapeHtml(s.label)}</td>
+             <td style="padding:4px 6px;">
+               <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                 <td style="background:${barColor};height:6px;width:${Math.max(pct, 3)}%;border-radius:3px 0 0 3px;font-size:0;">&nbsp;</td>
+                 <td style="background:#1F2A44;height:6px;border-radius:0 3px 3px 0;font-size:0;">&nbsp;</td>
+               </tr></table>
+             </td>
+             <td style="padding:4px 0;color:#F8FAFC;font-size:13px;text-align:right;width:40px;font-weight:600;">${pct}</td>
+           </tr>`;
+         }).join("")}
+       </table>`
+    : "";
+
+  const topActions = (args.actionPlan ?? args.breakdown?.actionPlan ?? []).slice(0, 3);
+  const actionsHtml = topActions.length > 0
+    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Top actions</p>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
+         ${topActions.map((a, i) => `<tr>
+           <td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:24px;font-weight:700;">${i + 1}.</td>
+           <td style="padding:6px 8px;">
+             <div style="color:#F8FAFC;font-size:13px;font-weight:600;">${escapeHtml(a.title)} <span style="color:#64748B;font-weight:400;text-transform:uppercase;font-size:10px;letter-spacing:0.1em;">&middot; ${escapeHtml(a.impact)}</span></div>
+             <div style="color:#94A3B8;font-size:12px;line-height:1.5;margin-top:2px;">${escapeHtml(a.detail)}</div>
+           </td>
+         </tr>`).join("")}
+       </table>`
+    : "";
+
+  const valuationHtml = args.valuation
+    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Valuation range</p>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
+         <tr>
+           <td width="33%" style="padding:4px;text-align:center;">
+             <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 6px;">
+               <div style="font-size:16px;font-weight:700;color:#94A3B8;">${fmtAudMillions(args.valuation.lowAud)}</div>
+               <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.1em;">Low</div>
+             </div>
+           </td>
+           <td width="34%" style="padding:4px;text-align:center;">
+             <div style="background:#0B1220;border:1px solid #3B7DD8;border-radius:10px;padding:12px 6px;">
+               <div style="font-size:20px;font-weight:700;color:#3B7DD8;">${fmtAudMillions(args.valuation.midAud)}</div>
+               <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.1em;">Mid</div>
+             </div>
+           </td>
+           <td width="33%" style="padding:4px;text-align:center;">
+             <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 6px;">
+               <div style="font-size:16px;font-weight:700;color:#4ADE80;">${fmtAudMillions(args.valuation.highAud)}</div>
+               <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.1em;">High</div>
+             </div>
+           </td>
+         </tr>
+       </table>
+       <p style="margin:0 0 20px 0;color:#64748B;font-size:11px;text-align:center;">VC scorecard blend. Not a fairness opinion or financial advice.</p>`
+    : "";
+
+  const chip = (label: string, pass: boolean) => `
+    <span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.05em;color:${pass ? "#0B1220" : "#F8FAFC"};background:${pass ? "#4ADE80" : "#1F2A44"};border:1px solid ${pass ? "#4ADE80" : "#334155"};">${escapeHtml(label)} ${pass ? "&#10003;" : "&#8211;"}</span>`;
+  const fundingHtml = args.fundingReadiness
+    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Funding readiness</p>
+       <div style="margin:0 0 20px 0;">
+         <div style="margin-bottom:6px;">${chip(`Seed ${args.fundingReadiness.seed.pass ? "ready" : "not ready"}`, args.fundingReadiness.seed.pass)} ${chip(`Series A ${args.fundingReadiness.seriesA.pass ? "ready" : "not ready"}`, args.fundingReadiness.seriesA.pass)}</div>
+         ${args.fundingReadiness.seed.missing.length > 0 ? `<p style="margin:8px 0 4px 0;color:#94A3B8;font-size:12px;font-weight:600;">Seed gaps</p><p style="margin:0;color:#CBD5E1;font-size:12px;line-height:1.5;">${args.fundingReadiness.seed.missing.slice(0, 4).map(escapeHtml).join(" &middot; ")}</p>` : ""}
+       </div>`
+    : "";
+
+  const gaps = (args.evidenceGaps ?? []).slice(0, 3);
+  const gapsHtml = gaps.length > 0
+    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Top evidence gaps</p>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
+         ${gaps.map((g) => `<tr>
+           <td style="padding:4px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:24px;">&#9888;</td>
+           <td style="padding:4px 8px;color:#CBD5E1;font-size:13px;line-height:1.5;">${escapeHtml(g)}</td>
+         </tr>`).join("")}
+       </table>`
+    : "";
+
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -250,23 +436,48 @@ export async function sendScoreReady(args: {
         <tr><td>
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Investor-Ready Score</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(co)}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your Investor-Ready Score has been generated. Share the link below with investors — they can open it without signing up.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your Investor-Ready Score has been generated${pdfAttachment ? " and the full PDF report is attached to this email" : ""}. Share the link below with investors — they can open it without signing up.</p>
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.totalScore}<span style="color:#64748B;font-size:24px;">/100</span></div>
           </div>
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Share link</p>
-          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#F8FAFC;word-break:break-all;">${url}</p>
+          ${benchmarkHtml}
+          ${subsTableHtml}
+          ${valuationHtml}
+          ${fundingHtml}
+          ${gapsHtml}
+          ${actionsHtml}
+          <p style="margin:24px 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Share link</p>
+          <p style="margin:0 0 16px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#F8FAFC;word-break:break-all;">${url}</p>
           <p style="margin:0;text-align:center;">
-            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View score</a>
+            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View full report</a>
           </p>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">BlockID — Persistent Identity & Trust Infrastructure for Private Capital Markets. AU data residency.</p>
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">BlockID &mdash; Persistent Identity &amp; Trust Infrastructure for Private Capital Markets. AU data residency. Not financial advice.</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
   ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
-  return sendEmail({ to: args.to, subject: "Your Investor-Ready Score is ready", html, unsubscribeUrl });
+
+  const result = await sendEmail({
+    to: args.to,
+    subject: "Your Investor-Ready Score is ready",
+    html,
+    unsubscribeUrl,
+    ...(pdfAttachment && { attachments: [pdfAttachment] }),
+  });
+
+  // Audit: if we couldn't send because no provider is configured, log a row
+  // so operators can see what was dropped.
+  if (!result.ok && result.reason === "not_configured") {
+    auditMissedSend({
+      to: redactEmail(args.to),
+      type: "score_ready",
+      reason: "no_provider",
+      slug: args.slug,
+    });
+  }
+  return result;
 }
 
 // ---------- magic-link --------------------------------------------------------
