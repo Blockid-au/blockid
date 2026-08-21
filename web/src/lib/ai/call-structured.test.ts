@@ -78,7 +78,7 @@ beforeEach(() => {
 const baseArgs = {
   promptVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   agent: "AIR-004",
-  model: "claude-sonnet-4-6",
+  model: "claude-sonnet-5",
   inputSchema: InputSchema,
   outputSchema: OutputSchema,
   input: { q: "hello" },

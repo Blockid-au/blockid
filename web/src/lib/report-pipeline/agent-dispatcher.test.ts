@@ -240,7 +240,7 @@ describe("schema-validated dispatch", () => {
     expect(inserted).toHaveLength(1);
     expect(inserted[0].status).toBe("ok");
     expect(inserted[0].purpose).toBe("customer_report");
-    expect(inserted[0].model).toBe("free-chain");
+    expect(inserted[0].model).toBe("claude-sonnet-5");
     expect((inserted[0].evidence_ids as string[]).length).toBeGreaterThan(0);
     expect(result.runId).toBe(inserted[0].id);
   });
