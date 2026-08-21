@@ -55,6 +55,18 @@ export interface ScorePdfData {
   inputs: Record<string, unknown>;
   createdAt: string; // ISO
   shareUrl: string;
+  // ---- v3.9 enrichment (all optional; template degrades gracefully) -----
+  valuation?: {
+    lowAud: number;
+    midAud: number;
+    highAud: number;
+    method: string;
+  } | null;
+  fundingReadiness?: {
+    seed: { pass: boolean; missing: string[] };
+    seriesA: { pass: boolean; missing: string[] };
+  } | null;
+  evidenceGaps?: string[] | null;
 }
 
 const styles = StyleSheet.create({
@@ -206,7 +218,60 @@ const styles = StyleSheet.create({
     borderTopColor: C.ink700,
     borderTopWidth: 1,
   },
+  // ---- v3.9 enrichment blocks ------------------------------------------
+  valRow: { flexDirection: "row", gap: 10, marginTop: 8 },
+  valBox: {
+    flex: 1,
+    backgroundColor: C.ink900,
+    borderColor: C.ink700,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+  },
+  valBoxMid: {
+    flex: 1,
+    backgroundColor: C.ink900,
+    borderColor: C.brand500,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+  },
+  valLabel: { fontSize: 8, color: C.slate500, textTransform: "uppercase", letterSpacing: 1, marginTop: 4 },
+  valNumber: { fontSize: 16, fontWeight: 700, color: C.slate50, fontFamily: "Helvetica-Bold" },
+  valNumberMid: { fontSize: 20, fontWeight: 700, color: C.brand400, fontFamily: "Helvetica-Bold" },
+  gateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderColor: C.ink700,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: C.ink900,
+    padding: 10,
+    marginBottom: 8,
+  },
+  gateChip: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    marginRight: 10,
+  },
+  gateText: { fontSize: 9, color: C.slate400, flex: 1, lineHeight: 1.4 },
+  bullet: { flexDirection: "row", marginBottom: 4 },
+  bulletDot: { color: C.brand400, fontSize: 9, width: 12 },
+  bulletText: { color: C.slate300, fontSize: 9, flex: 1, lineHeight: 1.4 },
+  caption: { color: C.slate500, fontSize: 8, marginTop: 6, fontStyle: "italic" },
 });
+
+function fmtAudMillions(v: number): string {
+  if (!Number.isFinite(v) || v <= 0) return "A$0";
+  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(v >= 10_000_000 ? 1 : 2)}M`;
+  if (v >= 1_000) return `A$${Math.round(v / 1_000)}k`;
+  return `A$${Math.round(v)}`;
+}
 
 function clampPct(v: number): number {
   return Math.max(0, Math.min(100, v));
@@ -312,6 +377,65 @@ export function ScorePDF({ data }: { data: ScorePdfData }) {
             </View>
           ))}
         </View>
+
+        {data.valuation && (
+          <>
+            <Text style={styles.sectionTitle}>Valuation range</Text>
+            <View style={styles.valRow}>
+              <View style={styles.valBox}>
+                <Text style={styles.valNumber}>{fmtAudMillions(data.valuation.lowAud)}</Text>
+                <Text style={styles.valLabel}>Low</Text>
+              </View>
+              <View style={styles.valBoxMid}>
+                <Text style={styles.valNumberMid}>{fmtAudMillions(data.valuation.midAud)}</Text>
+                <Text style={styles.valLabel}>Mid</Text>
+              </View>
+              <View style={styles.valBox}>
+                <Text style={styles.valNumber}>{fmtAudMillions(data.valuation.highAud)}</Text>
+                <Text style={styles.valLabel}>High</Text>
+              </View>
+            </View>
+            <Text style={styles.caption}>
+              VC scorecard blend. Not a fairness opinion. Method: {data.valuation.method}.
+            </Text>
+          </>
+        )}
+
+        {data.fundingReadiness && (
+          <>
+            <Text style={styles.sectionTitle}>Funding readiness gates</Text>
+            {(["seed", "seriesA"] as const).map((k) => {
+              const gate = data.fundingReadiness![k];
+              const label = k === "seed" ? "Seed" : "Series A";
+              const chipColor = gate.pass ? "#4ADE80" : C.slate500;
+              const chipBg = gate.pass ? "#0F2A1E" : C.ink700;
+              return (
+                <View key={k} style={styles.gateRow}>
+                  <Text style={[styles.gateChip, { color: chipColor, backgroundColor: chipBg }]}>
+                    {label} {gate.pass ? "READY" : "NOT READY"}
+                  </Text>
+                  <Text style={styles.gateText}>
+                    {gate.pass
+                      ? "All gates met — you can credibly open an investor conversation."
+                      : (gate.missing.slice(0, 3).join(" · ") || "No gaps recorded.")}
+                  </Text>
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {data.evidenceGaps && data.evidenceGaps.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Evidence gaps to close</Text>
+            {data.evidenceGaps.slice(0, 10).map((g, i) => (
+              <View key={`gap-${i}`} style={styles.bullet}>
+                <Text style={styles.bulletDot}>&bull;</Text>
+                <Text style={styles.bulletText}>{g}</Text>
+              </View>
+            ))}
+          </>
+        )}
 
         {actions.length > 0 && (
           <>
