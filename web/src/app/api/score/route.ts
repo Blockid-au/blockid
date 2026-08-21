@@ -3,17 +3,102 @@ import { computeScore, type ScoreInput } from "@/lib/score";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
 import { sendScoreReady } from "@/lib/email";
+import {
+  buildVcValuationReport,
+  type BuildVcValuationInput,
+} from "@/lib/agents/cfo-valuation";
 
 // POST /api/score
 // Body: { email, companyName?, inputs: ScoreInput }
 // Behaviour:
-//   - Always computes the score (deterministic, no external deps).
+//   - Always computes the deterministic score.
+//   - Enriches with VC-scorecard valuation (via cfo-valuation) + funding
+//     readiness gates + evidence gaps so the returned payload is
+//     "investor-ready" not just a headline number.
 //   - Persists to Supabase if configured.
-//   - Fire-and-forgets the score-ready email (response NOT blocked).
+//   - Fires the score-ready email (with score PDF attachment) fire-and-forget
+//     for EVERY submission — even demo-mode (Supabase absent) — so founders
+//     always get something in their inbox.
 //   - Falls back to a `demo-XXXX` slug when Supabase is missing so the dev
 //     UX (share link + PDF) still works locally.
 //
-// Returns: { slug, totalScore, subScores }
+// Returns: { slug, totalScore, subScores, valuation, fundingReadiness, evidenceGaps, ... }
+
+interface FundingGate {
+  pass: boolean;
+  missing: string[];
+}
+
+interface FundingReadinessBlock {
+  seed: FundingGate;
+  seriesA: FundingGate;
+}
+
+function computeSimpleFundingReadiness(
+  inputs: ScoreInput,
+  subScoresMap: Record<string, number>,
+): FundingReadinessBlock {
+  const mrr = inputs.monthlyRevenue ?? 0;
+  const runway = inputs.runwayMonths ?? 0;
+  const arrBand = inputs.arrBand ?? "pre-revenue";
+  const seedMissing: string[] = [];
+  const seriesAMissing: string[] = [];
+
+  // Seed gates
+  if (mrr < 8000) seedMissing.push("Reach at least A$8k MRR");
+  if (runway < 12) seedMissing.push("Extend runway to 12+ months");
+  if (!inputs.hasShareholdersAgreement) seedMissing.push("Shareholders agreement signed");
+  if ((subScoresMap.governance ?? 0) < 55) seedMissing.push("Lift governance score above 55");
+  if ((subScoresMap.capTable ?? 0) < 55) seedMissing.push("Tidy cap-table hygiene (ESOP + SHA)");
+  if (inputs.esopAllocated < 8) seedMissing.push("Allocate an 8-15% ESOP pool");
+
+  // Series A gates
+  if (mrr < 83000) seriesAMissing.push("Reach A$83k MRR (~A$1M ARR)");
+  if (!["250k-1m", "1m-3m", "3m-plus"].includes(arrBand)) {
+    seriesAMissing.push("Reach A$250k+ ARR band");
+  }
+  if (runway < 15) seriesAMissing.push("Runway of 15+ months for Series A pitch");
+  if (!inputs.hasFinancialAudit) seriesAMissing.push("Complete a financial audit or review");
+  if (!inputs.hasBoardMeetings) seriesAMissing.push("Establish regular board cadence");
+  if ((subScoresMap.governance ?? 0) < 70) seriesAMissing.push("Governance score of 70+");
+  if ((subScoresMap.financials ?? 0) < 65) seriesAMissing.push("Financials score of 65+");
+
+  return {
+    seed: { pass: seedMissing.length === 0, missing: seedMissing },
+    seriesA: { pass: seriesAMissing.length === 0, missing: seriesAMissing },
+  };
+}
+
+function computeValuation(inputs: ScoreInput): {
+  lowAud: number;
+  midAud: number;
+  highAud: number;
+  method: "vc_scorecard_blend";
+} | null {
+  try {
+    const arg: BuildVcValuationInput = {
+      sector: inputs.sector,
+      stage: inputs.stage,
+      mrrAud: inputs.monthlyRevenue,
+      monthlyOpexAud: inputs.monthlyBurn,
+      raiseAud: inputs.targetRaiseAud,
+      hasShareholdersAgreement: inputs.hasShareholdersAgreement,
+      hasFounderVesting: inputs.hasShareholdersAgreement,
+      hasEsopPool: inputs.esopAllocated > 0,
+      hasDataRoom: inputs.hasFinancialAudit,
+    };
+    const rep = buildVcValuationReport(arg);
+    return {
+      lowAud: rep.blended.lowAud,
+      midAud: rep.blended.midAud,
+      highAud: rep.blended.highAud,
+      method: "vc_scorecard_blend",
+    };
+  } catch (err) {
+    console.error("[blockid:score] valuation failed", err);
+    return null;
+  }
+}
 
 export async function POST(request: Request) {
   let body: unknown = null;
@@ -109,8 +194,14 @@ export async function POST(request: Request) {
   }
   const benchmark = breakdown.benchmark;
 
+  // ---- Enrichment: valuation + funding readiness + evidence gaps ----------
+  const valuation = computeValuation(inputs);
+  const fundingReadiness = computeSimpleFundingReadiness(inputs, subScoresMap);
+  const evidenceGaps = breakdown.missingInputs.slice(0, 10);
+
   const supabase = getSupabaseAdmin();
   let slug = newSlug();
+  let persisted = false;
 
   if (!supabase) {
     slug = `demo-${slug.slice(0, 6)}`;
@@ -137,15 +228,26 @@ export async function POST(request: Request) {
       // Degrade: return a demo slug so the UI still has somewhere to land.
       slug = `demo-${slug.slice(0, 6)}`;
     } else {
-      // Fire-and-forget: don't await, don't block the response.
-      void sendScoreReady({
-        to: parsed.email,
-        slug,
-        totalScore: breakdown.total,
-        companyName: parsed.companyName ?? inputs.companyName ?? null,
-      });
+      persisted = true;
     }
   }
+
+  // Fire-and-forget email — always attempt, even in demo mode.
+  void sendScoreReady({
+    to: parsed.email,
+    slug,
+    totalScore: breakdown.total,
+    companyName: parsed.companyName ?? inputs.companyName ?? null,
+    subScores: subScoresMap,
+    actionPlan: breakdown.actionPlan,
+    valuation,
+    fundingReadiness,
+    evidenceGaps,
+    benchmark,
+    breakdown,
+  }).catch((err) => {
+    console.error("[blockid:score] sendScoreReady failed", err);
+  });
 
   return NextResponse.json({
     ok: true,
@@ -158,7 +260,10 @@ export async function POST(request: Request) {
     actionPlan: breakdown.actionPlan,
     benchmark,
     breakdown,
-    persisted: isSupabaseConfigured() && !slug.startsWith("demo-"),
+    valuation,
+    fundingReadiness,
+    evidenceGaps,
+    persisted: persisted && isSupabaseConfigured() && !slug.startsWith("demo-"),
   });
 }
 

@@ -189,12 +189,56 @@ function unsubFooter(unsubUrl: string, prefsUrl: string, locale?: "en" | "vi"): 
 
 // ---------- score-ready --------------------------------------------------------
 
+export interface ScoreReadyEnrichment {
+  subScores?: Record<string, number> | null;
+  actionPlan?: {
+    title: string;
+    detail: string;
+    impact: "high" | "medium" | "low";
+  }[] | null;
+  valuation?: {
+    lowAud: number;
+    midAud: number;
+    highAud: number;
+    method: string;
+  } | null;
+  fundingReadiness?: {
+    seed: { pass: boolean; missing: string[] };
+    seriesA: { pass: boolean; missing: string[] };
+  } | null;
+  evidenceGaps?: string[] | null;
+  benchmark?: {
+    label: string;
+    medianScore: number;
+    band: string;
+    rationale: string;
+  } | null;
+  breakdown?: {
+    version?: string;
+    total?: number;
+    confidence?: number;
+    subs?: { label: string; value: number; rationale?: string; evidence?: string[] }[];
+    missingInputs?: string[];
+    actionPlan?: {
+      title: string;
+      detail: string;
+      impact: "high" | "medium" | "low";
+    }[];
+    benchmark?: {
+      label: string;
+      medianScore: number;
+      band: string;
+      rationale: string;
+    };
+  } | null;
+}
+
 export async function sendScoreReady(args: {
   to: string;
   slug: string;
   totalScore: number;
   companyName?: string | null;
-}): Promise<SendResult> {
+} & ScoreReadyEnrichment): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const url = `${siteUrl()}/s/${args.slug}`;
