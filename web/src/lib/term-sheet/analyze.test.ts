@@ -216,7 +216,7 @@ describe("analyzeTermSheet — live-mode Anthropic invocation", () => {
       thinking: { type: string };
       output_config: { effort: string; format: unknown };
     };
-    expect(call.model).toBe("claude-sonnet-4-6");
+    expect(call.model).toBe("claude-sonnet-5");
     expect(call.max_tokens).toBe(8192);
     expect(call.thinking).toEqual({ type: "adaptive" });
     expect(call.output_config.effort).toBe("medium");

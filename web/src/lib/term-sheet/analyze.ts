@@ -6,7 +6,7 @@
  * the AU market reference data warm at ~0.1× input cost across analyses.
  *
  * Hard rules from the brief:
- *   - Model: claude-sonnet-4-6 (NOT Opus 4.7)
+ *   - Model: claude-sonnet-5 (NOT Opus 4.7)
  *   - thinking: { type: "adaptive" } (NOT budget_tokens)
  *   - effort: "medium" (max is Opus-only)
  *   - No streaming, max_tokens: 8192, no temperature/top_p/top_k
@@ -26,7 +26,7 @@ import { TermSheetAnalysisSchema, type TermSheetAnalysis } from "./schema";
 import { AU_MARKET_REFERENCE } from "./au-market-data";
 import { DEMO_ANALYSIS } from "./demo";
 
-const MODEL_ID = "claude-sonnet-4-6";
+const MODEL_ID = "claude-sonnet-5";
 const MAX_TOKENS = 8192;
 
 /**

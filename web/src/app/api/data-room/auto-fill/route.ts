@@ -226,7 +226,7 @@ Return ONLY the filled document in Markdown format.`;
   try {
     const anthropic = new Anthropic();
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-5",
       max_tokens: 4096,
       messages: [{ role: "user", content: userPrompt }],
       system: systemPrompt,
