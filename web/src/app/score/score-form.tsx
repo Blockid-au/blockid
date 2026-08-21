@@ -16,8 +16,6 @@ import { Button } from "@/components/ui/button";
 import { ScoreCard } from "@/components/score/score-card";
 import type { ScoreInput } from "@/lib/score";
 
-const STEPS = ["Company basics", "Financials", "Cap table & docs"] as const;
-
 const defaultInput: ScoreInput = {
   companyName: "",
   abn: "",
@@ -74,19 +72,16 @@ interface ScoreApiResponse {
 }
 
 export function ScoreForm() {
-  const [step, setStep] = React.useState(0);
   const [input, setInput] = React.useState<ScoreInput>(defaultInput);
   const [email, setEmail] = React.useState("");
   const [result, setResult] = React.useState<ScoreApiResponse | null>(null);
   const [submitState, setSubmitState] = React.useState<
     "idle" | "submitting" | "ok" | "err"
   >("idle");
+  const [advancedOpen, setAdvancedOpen] = React.useState(false);
 
   const update = <K extends keyof ScoreInput>(key: K, value: ScoreInput[K]) =>
     setInput((p) => ({ ...p, [key]: value }));
-
-  const next = () => setStep((s) => Math.min(s + 1, STEPS.length));
-  const prev = () => setStep((s) => Math.max(s - 1, 0));
 
   const onCompute = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +107,6 @@ export function ScoreForm() {
         return;
       }
       setResult(data as ScoreApiResponse);
-      setStep(STEPS.length);
       setSubmitState("ok");
     } catch (err) {
       console.error("[score-form] Network error:", err);
@@ -120,7 +114,7 @@ export function ScoreForm() {
     }
   };
 
-  if (result && step >= STEPS.length) {
+  if (result) {
     return (
       <ResultPanel
         result={result}
@@ -128,31 +122,61 @@ export function ScoreForm() {
         founderEmail={email}
         onReset={() => {
           setResult(null);
-          setStep(0);
           setSubmitState("idle");
+          setAdvancedOpen(false);
         }}
       />
     );
   }
 
   return (
-    <form onSubmit={onCompute} className="space-y-8">
-      <Stepper current={step} />
+    <form onSubmit={onCompute} className="space-y-6">
+      <fieldset className="space-y-5">
+        <legend className="sr-only">Get your score</legend>
+        <p className="text-sm text-ink-500">
+          Two fields, one click. We&apos;ll compute your full SVI report and
+          email the detailed evaluation. Sector + financial defaults are used
+          so you can skip the cap-table paperwork — unlock <em>Advanced</em>{" "}
+          below to tune anything.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-5">
+          <Field label="Company name" htmlFor="company">
+            <Input
+              id="company"
+              required
+              value={input.companyName}
+              onChange={(e) => update("companyName", e.target.value)}
+              placeholder="Acme Co Pty Ltd"
+              autoComplete="organization"
+            />
+          </Field>
+          <Field label="Work email (report is sent here)" htmlFor="email">
+            <Input
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="founder@yourstartup.com.au"
+            />
+          </Field>
+        </div>
+      </fieldset>
 
-      {step === 0 && (
-        <fieldset className="space-y-5">
-          <legend className="sr-only">Company basics</legend>
+      <details
+        open={advancedOpen}
+        onToggle={(e) => setAdvancedOpen((e.target as HTMLDetailsElement).open)}
+        className="rounded-xl border border-surface-200 bg-white/60"
+      >
+        <summary className="cursor-pointer select-none px-5 py-3 text-sm font-medium text-ink-700 hover:text-ink-900">
+          Advanced (optional) — sector, financials, cap-table
+          <span className="ml-2 text-xs font-normal text-ink-400">
+            Improves accuracy; not required
+          </span>
+        </summary>
+        <div className="space-y-6 border-t border-surface-200 px-5 py-5">
           <div className="grid sm:grid-cols-2 gap-5">
-            <Field label="Company name" htmlFor="company">
-              <Input
-                id="company"
-                required
-                value={input.companyName}
-                onChange={(e) => update("companyName", e.target.value)}
-                placeholder="Acme Co Pty Ltd"
-                autoComplete="organization"
-              />
-            </Field>
             <Field label="ABN (optional)" htmlFor="abn">
               <Input
                 id="abn"
@@ -208,14 +232,6 @@ export function ScoreForm() {
                 className="font-mono tabular-nums"
               />
             </Field>
-          </div>
-        </fieldset>
-      )}
-
-      {step === 1 && (
-        <fieldset className="space-y-5">
-          <legend className="sr-only">Financials</legend>
-          <div className="grid sm:grid-cols-2 gap-5">
             <Field label="Monthly revenue (AUD)" htmlFor="rev">
               <Input
                 id="rev"
@@ -297,14 +313,6 @@ export function ScoreForm() {
                 className="font-mono tabular-nums"
               />
             </Field>
-          </div>
-        </fieldset>
-      )}
-
-      {step === 2 && (
-        <fieldset className="space-y-5">
-          <legend className="sr-only">Cap table & documentation</legend>
-          <div className="grid sm:grid-cols-2 gap-5">
             <Field label="Founders" htmlFor="founders">
               <Input
                 id="founders"
@@ -353,49 +361,21 @@ export function ScoreForm() {
               onChange={(v) => update("hasFinancialAudit", v)}
             />
           </div>
-          <div className="grid sm:grid-cols-2 gap-5 pt-3 border-t border-surface-200">
-            <Field label="Work email (for your shareable link)" htmlFor="email">
-              <Input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="founder@yourstartup.com.au"
-              />
-            </Field>
-          </div>
-        </fieldset>
-      )}
+        </div>
+      </details>
 
-      <div className="flex items-center justify-between gap-3 pt-4 border-t border-surface-200">
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-200">
         <Button
-          type="button"
-          variant="ghost"
-          onClick={prev}
-          disabled={step === 0}
+          type="submit"
+          variant="primary"
+          disabled={submitState === "submitting"}
         >
-          <ArrowLeft strokeWidth={1.75} className="h-5 w-5" />
-          Back
+          <Sparkles strokeWidth={1.75} className="h-5 w-5" />
+          {submitState === "submitting"
+            ? "Generating your report…"
+            : "Score & email me the report"}
+          <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
         </Button>
-        {step < STEPS.length - 1 ? (
-          <Button type="button" variant="primary" onClick={next}>
-            Continue
-            <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={submitState === "submitting"}
-          >
-            <Sparkles strokeWidth={1.75} className="h-5 w-5" />
-            {submitState === "submitting"
-              ? "Generating…"
-              : "Generate score"}
-          </Button>
-        )}
       </div>
 
       {submitState === "err" && (
@@ -404,51 +384,11 @@ export function ScoreForm() {
           aria-live="assertive"
           className="text-sm text-amber-300"
         >
-          Something went wrong. Please check all fields are filled and try again.
+          Something went wrong. Please double-check the company name + email
+          and try again.
         </p>
       )}
     </form>
-  );
-}
-
-function Stepper({ current }: { current: number }) {
-  return (
-    <ol className="flex flex-col sm:flex-row gap-3 sm:gap-2">
-      {STEPS.map((label, i) => {
-        const active = i === current;
-        const done = i < current;
-        return (
-          <li
-            key={label}
-            className="flex-1 rounded-lg border border-surface-200 bg-white px-4 py-3"
-            aria-current={active ? "step" : undefined}
-          >
-            <div className="flex items-center gap-3">
-              <span
-                className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold font-mono tabular-nums ${
-                  done
-                    ? "bg-brand-500 text-ink-950"
-                    : active
-                      ? "bg-brand-500/20 text-brand-600 ring-1 ring-brand-500/40"
-                      : "bg-surface-100 text-ink-800"
-                }`}
-              >
-                {done ? (
-                  <CheckCircle2 strokeWidth={1.75} className="h-4 w-4" />
-                ) : (
-                  i + 1
-                )}
-              </span>
-              <span
-                className={`text-sm ${active ? "text-ink-800 font-medium" : "text-ink-400"}`}
-              >
-                {label}
-              </span>
-            </div>
-          </li>
-        );
-      })}
-    </ol>
   );
 }
 

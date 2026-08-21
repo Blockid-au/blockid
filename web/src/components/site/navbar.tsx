@@ -28,6 +28,27 @@ type NavEntry = NavLink | NavDropdown;
 const navItems: NavEntry[] = [
   { href: "/score", label: "Get SVI Score" },
   {
+    label: "Trust Reports",
+    groups: [
+      {
+        heading: "For investors",
+        items: [
+          { href: "/investor", label: "Investor Home" },
+          { href: "/listings", label: "Browse startups" },
+          { href: "/startup-index", label: "Startup Value Index" },
+        ],
+      },
+      {
+        heading: "See a sample",
+        items: [
+          { href: "/reports/samples", label: "Sample reports" },
+          { href: "/showcase", label: "Case studies" },
+          { href: "/how-it-works", label: "How the score works" },
+        ],
+      },
+    ],
+  },
+  {
     label: "Free Tools",
     groups: [
       {
