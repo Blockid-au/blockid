@@ -1,0 +1,414 @@
+================================================================================
+REVENUE FORECAST + UNIT ECONOMICS BUILDER (T0121) — COMPLETE DESIGN PACKAGE
+================================================================================
+
+PROJECT OVERVIEW
+================
+Feature Name:      Revenue Forecast + Unit Economics Builder
+Status:            P1 — Highest ROI, 2-week execution sprint
+Effort:            2 weeks (14 days)
+Team:              1 backend eng + 1 frontend eng + 1 product designer
+Success Metric:    60%+ adoption by premium founders within 2 weeks of ship
+Credit Cost:       2 credits per saved model (free to generate/preview)
+
+KEY FEATURES
+============
+✓ Interactive 5-step wizard (model type → current state → costs → scenario → results)
+✓ 36-month deterministic projection engine (no randomness)
+✓ Scenario modeling (bear/base/bull)
+✓ RDTI tax incentive calculations (AU-specific)
+✓ Series A readiness gate detection
+✓ Dashboard widget (cash runway summary)
+✓ Investor pack integration (revenue projections section)
+✓ SVI scoring boost (FIN + TRE dimensions)
+✓ CSV export for spreadsheet analysis
+✓ Model versioning & audit trail
+
+DELIVERABLES (4 DOCUMENTS)
+===========================
+
+1. REVENUE_FORECAST_DESIGN.md (18 KB)
+   ├─ Complete feature specification
+   ├─ Data model schema (SQL migration)
+   ├─ Component architecture (5-step wizard)
+   ├─ Calculation engine (pseudocode)
+   ├─ API route signatures
+   ├─ Dashboard & investor pack integration
+   ├─ SVI scoring impact
+   ├─ Validation rules
+   ├─ Test scenarios (9 cases)
+   ├─ Compliance notes (AFSL, no named benchmarks)
+   └─ Implementation roadmap (14-day sprint)
+
+2. REVENUE_FORECAST_IMPLEMENTATION.md (12 KB)
+   ├─ Complete file structure
+   ├─ Code organization (lib/, components/, app/api/)
+   ├─ Key implementation files (7 detailed examples)
+   ├─ Database migration script
+   ├─ Testing strategy (unit + E2E)
+   ├─ Performance checklist
+   ├─ Feature flag rollout plan
+   ├─ Monitoring & alerts
+   └─ Dependencies & versions
+
+3. REVENUE_FORECAST_QUICK_REFERENCE.md (8 KB)
+   ├─ Feature at a glance
+   ├─ User journey (happy path)
+   ├─ Input fields & output metrics
+   ├─ Scenario explanations (bear/base/bull)
+   ├─ Sector defaults (SaaS, fintech, marketplace, deeptech)
+   ├─ Integrations (dashboard, investor pack, SVI)
+   ├─ Pricing & credits
+   ├─ FAQ (15 common questions)
+   ├─ Visual comparison charts
+   └─ Rollout checklist
+
+4. REVENUE_FORECAST_API_EXAMPLES.md (10 KB)
+   ├─ API endpoint overview (7 routes)
+   ├─ Detailed request/response examples
+   ├─ Error handling (400, 402, 429)
+   ├─ Jest testing script (complete test suite)
+   ├─ cURL testing cheatsheet
+   ├─ Postman collection (JSON)
+   └─ Real-world usage patterns
+
+DATA MODEL SUMMARY
+==================
+Table: financial_models
+├─ id (UUID, PK)
+├─ project_id (FK to projects)
+├─ user_id (audit trail)
+├─ name (founder-provided label)
+├─ model_type (saas/marketplace/agency/other)
+├─ current_arr_aud (0..1e9)
+├─ monthly_growth_pct (-100..500)
+├─ churn_pct (0..100)
+├─ cogs_pct (0..100)
+├─ opex_monthly_aud (0..1e9)
+├─ fixed_costs_aud (0..1e9)
+├─ include_tax_incentives (bool)
+├─ scenario (bear/base/bull)
+├─ month_breakeven (INT, 1-indexed)
+├─ months_to_seriesA (INT, 1-indexed)
+├─ peak_monthly_burn_aud (numeric)
+├─ arr_month_12_aud (numeric)
+├─ arr_month_24_aud (numeric)
+├─ arr_month_36_aud (numeric)
+├─ runway_months (INT, nullable)
+├─ projection_data (JSONB, immutable snapshot)
+├─ use_for_investor_pack (bool)
+├─ version (INT, auto-increment)
+├─ is_deleted (bool, soft-delete)
+├─ replaced_by_id (FK self-reference for versioning)
+├─ created_at, updated_at, published_at (timestamps)
+└─ RLS policies (founder-only access)
+
+API ENDPOINTS
+=============
+POST   /api/financial-model                    Generate projection (free, no save)
+POST   /api/financial-model/save               Save model to DB (2 credits)
+GET    /api/financial-model?projectId=...     List all models for project
+GET    /api/financial-model/[id]              Fetch single model with projection data
+GET    /api/financial-model/[id]/projection   Export as CSV (with ?format=csv)
+PUT    /api/financial-model/[id]              Update metadata (name, flags, notes)
+DELETE /api/financial-model/[id]              Soft-delete model
+
+CALCULATION ENGINE
+==================
+Inputs:
+  • Current ARR (AUD)
+  • Monthly growth % (decaying S-curve)
+  • Monthly churn %
+  • COGS % of revenue
+  • Monthly OpEx (escalating by scenario)
+  • Fixed costs
+  • Scenario multiplier (bear=0.7, base=1.0, bull=1.4)
+  • Tax incentives flag (RDTI)
+
+Outputs (36 months):
+  • Month-by-month revenue, COGS, gross margin, OpEx, EBITDA
+  • Cash flow analysis (outflow, cumulative burn)
+  • Team headcount projection
+  • Tax offset calculations (RDTI monthly)
+  • Breakeven month
+  • Series A funding gate month
+  • Peak monthly burn
+  • Runway in months
+
+Key Logic:
+  • Deterministic (no randomness, same inputs = identical output)
+  • Growth decay: max(2%, baseGrowth - (month/6) * 1.0)
+  • OpEx escalation: scenario-dependent (1-3.5% monthly)
+  • Headcount ramp: scenario-dependent (hire every 2-6 months)
+  • RDTI: 43.5% premium on eligible R&D spend (min A$20k/year)
+
+DASHBOARD INTEGRATION
+=====================
+Widget: "Financial Forecast Card"
+├─ Latest model summary (cash runway, Series A gate, ARR milestones)
+├─ Quick-action buttons (View Details, Download CSV, Edit)
+└─ Empty state if no model yet
+
+Widget: "Series A Readiness"
+├─ Funding timeline (month X estimated)
+├─ Runway gap analysis
+└─ Update button (edit projection)
+
+INVESTOR PACK INTEGRATION
+=========================
+Section: "Revenue Projections" (new, Page 3)
+├─ Model metadata (ARR, growth %, scenario)
+├─ 12/24/36-month ARR milestones
+├─ Breakeven month
+├─ Series A funding timeline
+├─ Key assumptions (COGS, OpEx, tax incentives)
+├─ Founder notes
+└─ Use-of-Funds subsection (auto-calculated if Series A needed)
+
+Compliance:
+  • No named company benchmarks (e.g., no "vs Stripe")
+  • Only AU sector anonymous comparisons
+  • AFSL disclaimer on every output
+  • Projection snapshot is immutable (audit trail)
+
+SVI SCORING IMPACT
+==================
+FIN Dimension (Financial Strength):
+  • Base: 25 points
+  • +15 if Series A gate < 24 months (planning ahead)
+  • +10 if breakeven < 24 months (profitability path)
+  • +5 if projection accuracy high (actual ≥ 90% of projected)
+  • Max: 50 points
+
+TRE Dimension (Traction & Revenue):
+  • Base: 30 points
+  • +20 if model confirms actual revenue trajectory
+  • Max: 50 points
+
+COMPONENT STRUCTURE
+===================
+src/components/financial-model/
+├─ financial-model-wizard.tsx        (main 5-step component)
+├─ wizard-step-1.tsx                 (model type selector)
+├─ wizard-step-2.tsx                 (current state: ARR, growth, churn)
+├─ wizard-step-3.tsx                 (cost structure: COGS, OpEx, fixed)
+├─ wizard-step-4.tsx                 (scenario + assumptions + RDTI)
+├─ wizard-step-5.tsx                 (results: chart, table, metrics)
+├─ projection-chart.tsx              (Recharts ComposedChart)
+├─ projection-table.tsx              (virtualized 36-row table)
+├─ metrics-card.tsx                  (summary KPIs)
+├─ scenario-explainer.tsx            (bear/base/bull comparison)
+├─ sector-defaults.tsx               (collapsible reference)
+└─ input-validators.ts               (client-side validation)
+
+src/lib/financial-model/
+├─ engine.ts                         (core calculation logic)
+├─ validations.ts                    (input validation rules)
+├─ csv-export.ts                     (CSV serialization)
+├─ sector-defaults.ts                (base growth, COGS, R&D %, OpEx)
+└─ tax-incentives.ts                 (RDTI wrapper)
+
+src/app/api/financial-model/
+├─ route.ts                          (POST /api/financial-model)
+├─ save/route.ts                     (POST /api/financial-model/save)
+├─ [id]/route.ts                     (GET/PUT/DELETE)
+└─ [id]/projection/route.ts          (GET with CSV export)
+
+TESTING STRATEGY
+================
+Unit Tests (calculation engine):
+  • Determinism: same inputs → identical output
+  • Happy path: ARR $50K, 8% growth → breakeven month 18
+  • Edge cases: 0% growth, 100% churn, negative burn
+  • RDTI: tax offset calculation
+  • Scenarios: bear/base/bull produce expected results
+
+E2E Tests (wizard flow):
+  • Step 1-5 navigation
+  • Form validation
+  • Projection generation
+  • CSV export
+  • Save to DB
+  • Dashboard widget display
+  • Investor pack assembly
+
+Performance Tests:
+  • Projection generation: <100ms target
+  • CSV export: <200ms
+  • Mobile responsiveness
+  • Chart virtualization
+
+VALIDATION RULES
+================
+Input Ranges:
+  • currentArrAud: 0 ≤ x ≤ 1,000,000,000
+  • monthlyGrowthPct: -100 ≤ x ≤ 500
+  • churnPct: 0 ≤ x ≤ 100
+  • cogsPercent: 0 ≤ x ≤ 100
+  • opexMonthlyAud: 0 ≤ x ≤ 1,000,000,000
+  • fixedCostsAud: 0 ≤ x ≤ 1,000,000,000
+
+Warnings (non-blocking):
+  • ARR=0 AND growth=0: "No revenue and no growth?"
+  • OpEx > Revenue: "Monthly burn exceeds revenue"
+  • Churn > Growth: "Negative unit economics?"
+  • Growth > 50%/mo: "Hypergrowth assumption"
+  • ARR > 10M: "Projected ARR very high"
+
+Error Responses:
+  • 400: Validation error (out of range)
+  • 402: Insufficient credits
+  • 429: Rate limited
+  • 500: Server error (logged)
+
+SUCCESS METRICS (2-week target)
+===============================
+Adoption:           60%+ of premium founders
+Time-to-completion: <5 minutes (p50)
+Save rate:          40%+ of completions
+Investor pack use:  35%+ include in pack
+Support tickets:    -30% (runway-related questions)
+Credit revenue:     TBD (2 credits × saves/week)
+
+COMPLIANCE & DISCLAIMERS
+========================
+Every response includes:
+  "General information only. Not financial advice. Projections are 
+   illustrative estimates based on AU sector benchmarks and may differ 
+   materially from actual outcomes."
+
+No named benchmarks allowed:
+  ✗ "vs Stripe's growth"
+  ✗ "vs Canva's burn rate"
+  ✓ "vs AU SaaS median (8%)"
+  ✓ "vs fintech baseline COGS"
+
+Data retention:
+  • Snapshots stored indefinitely
+  • Soft-delete only (never purged)
+  • Audit trail via user_id + created_at
+  • Founder can export anytime
+
+ROLLOUT PLAN
+============
+Phase 1: Backend (Days 1-4)
+  ├─ SQL migration + RLS
+  ├─ API routes (generate, save, list, fetch, update, delete)
+  ├─ Calculation engine
+  └─ Unit tests
+
+Phase 2: Frontend (Days 5-7)
+  ├─ 5-step wizard component
+  ├─ Chart rendering (Recharts)
+  ├─ Validation & error messages
+  └─ CSV export
+
+Phase 3: Integration (Days 8-10)
+  ├─ Dashboard widget
+  ├─ Series A readiness gate
+  ├─ Investor pack section
+  ├─ SVI scoring updates
+  └─ E2E tests
+
+Phase 4: Polish & Ship (Days 11-14)
+  ├─ Mobile responsiveness
+  ├─ Performance optimization
+  ├─ Help documentation
+  ├─ Feature flag setup
+  └─ Gradual rollout (10% → 50% → 100%)
+
+DEPENDENCIES
+============
+Frontend:
+  • recharts ^2.10.0        (charting)
+  • react-hook-form ^7.48   (form state)
+  • zod ^3.22.0             (validation)
+  • next ^16.0              (framework)
+
+Backend:
+  • supabase ^2.38.0        (auth, DB, RLS)
+  • postgres                (database)
+  • node-postgres           (driver)
+
+Testing:
+  • jest ^29                (unit tests)
+  • @testing-library/react  (component tests)
+  • vitest                  (alternate)
+
+FILE LOCATIONS
+==============
+Design Docs (this folder):
+  • REVENUE_FORECAST_DESIGN.md              (18 KB, full spec)
+  • REVENUE_FORECAST_IMPLEMENTATION.md      (12 KB, code guide)
+  • REVENUE_FORECAST_QUICK_REFERENCE.md     (8 KB, product overview)
+  • REVENUE_FORECAST_API_EXAMPLES.md        (10 KB, API testing)
+  • REVENUE_FORECAST_SUMMARY.txt            (this file)
+
+Code (web/src):
+  • app/api/financial-model/                (API routes)
+  • components/financial-model/             (UI components)
+  • lib/financial-model/                    (business logic)
+  • lib/svi-analysis/                       (SVI scoring updates)
+  • lib/investor-pack/                      (pack assembly)
+
+Database (web/supabase/migrations):
+  • 20260817_financial_models.sql           (schema + RLS)
+
+Tests (web/test):
+  • financial-model.test.ts                 (unit tests)
+  • financial-model.e2e.test.ts             (E2E tests)
+  • financial-model-api.test.ts             (API tests)
+
+QUICK START
+===========
+For Developers:
+  1. Read REVENUE_FORECAST_DESIGN.md (overview)
+  2. Read REVENUE_FORECAST_IMPLEMENTATION.md (code org)
+  3. Start with backend: lib/financial-model/engine.ts
+  4. Then frontend: components/financial-model/wizard.tsx
+  5. Run tests: npm run test -- financial-model
+
+For Product/Design:
+  1. Read REVENUE_FORECAST_QUICK_REFERENCE.md
+  2. Review wireframes in DESIGN.md §10
+  3. Discuss UX with designer (mobile responsiveness, chart design)
+  4. Plan marketing messaging (adoption goals)
+
+For QA:
+  1. Read REVENUE_FORECAST_API_EXAMPLES.md
+  2. Use cURL testing cheatsheet or Postman collection
+  3. Run Jest test suite
+  4. Test scenarios: happy path, zero revenue, hypergrowth, edge cases
+  5. Verify RLS (can only access own projects)
+
+FUTURE ENHANCEMENTS (Post-T0121)
+=================================
+v2: Monte Carlo scenarios (probabilistic distribution)
+v2: Sensitivity analysis ("What if growth drops 5%?")
+v3: Comparable-company benchmarking
+v3: Financing scenarios ("With $500K seed, runway extends to month X")
+v4: AI assumptions assistant (auto-suggest growth, COGS, OpEx)
+v4: Equity dilution modeling (Series A share count)
+v4: Founder collaboration (share read-only link, comments)
+v4: Detailed audit trail (change history, disputes resolution)
+
+SUPPORT & QUESTIONS
+===================
+For technical questions:
+  • See REVENUE_FORECAST_IMPLEMENTATION.md §Implementation Files
+  • See REVENUE_FORECAST_API_EXAMPLES.md §Testing Script
+
+For product/design questions:
+  • See REVENUE_FORECAST_QUICK_REFERENCE.md §FAQ
+  • See REVENUE_FORECAST_DESIGN.md §Component Architecture
+
+For deployment/operations:
+  • See REVENUE_FORECAST_DESIGN.md §Rollout Plan
+  • See REVENUE_FORECAST_IMPLEMENTATION.md §Rollout Plan
+
+================================================================================
+DOCUMENT GENERATED: 2026-08-17
+STATUS: PRODUCTION-READY DESIGN
+EFFORT ESTIMATE: 14 days (2 engineers)
+ROI: Highest (adoption, investor pack, SVI scoring)
+================================================================================

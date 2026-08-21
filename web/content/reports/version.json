@@ -1,24 +1,22 @@
 {
-  "version": "v3.6.8",
-  "updated_at": "2026-08-16T07:40:00Z",
-  "git_sha": "188a69dc1",
-  "release_id": "v3.6.8-compliance",
+  "version": "v3.8.2",
+  "updated_at": "2026-08-21T06:45:00Z",
+  "git_sha": "0cc879ea9",
+  "release_id": "v3.8.2-svi-evidence-completeness",
   "shipped_summary": [
-    "v3.6.8 — compliance: strip real startup names from all AI analysis output (cfo-valuation, cmo-market-research, au-comparable-raises, au-comparables)",
-    "v3.6.7 — T_ONBOARD_0001: 12-step onboarding progress bar in workspace (6 phases, dismissible, DB-backed completion detection)",
-    "v3.6.7 — T_REPORT_ARCHIVE: PDF report history + re-download (investor packs + assembled reports archive in workspace/reports + investor-pack page)",
-    "v3.6.7 — T_SERIES_A: Week-by-week Series A action plan (timeline phases: Now/Month1/Month2-3, gap-sorted milestones, gate unlock indicators)",
-    "v3.6.7 — fix(marketing): logo band stats strip (200+ startups, A$180M+), submit post-CTA to /score, hero routing to /score for anon users",
-    "v3.6.6 — Funding Readiness tile in SVI dashboard + investor pack Funding Readiness section",
-    "v3.6.6 — Section 11: Funding Journey & Capital Strategy (deterministic, AU investor map by sector)",
-    "v3.6.6 — CRO/CMO prompt enhancements (funnel benchmarks, AU ARR bands, channel economics, moat ratings)",
-    "v3.6.6 — SVI v2.1: computeFundingReadiness() + enhanced CFO/CEO/CDO prompts"
+    "v3.8.2 — SVI evidence completeness engine: per-dimension gap scoring, API routes, cap-table integration, migrations 20260817_svi_evidence_completeness_cache",
+    "v3.8.1 — Investor-pack PDF chapters wired end-to-end, cron DB writer, Telegram alerts on cron failure",
+    "v3.8.0 — Investor-pack Chapter 11 (funding journey), SVI IRI/SVM boost, C-Level DCF hub",
+    "v3.7.5 — Competitive Positioning dashboard: matrix, AI positioning generator, SVI lift signals",
+    "v3.7.4 — Per-dimension peer benchmarking with cohort comparison widget",
+    "v3.7.3 — CFO DCF sensitivity grid, unit economics, funding readiness gates",
+    "orchestrator — Platform auto-upgrade ticks 2026-08-17 & 2026-08-19"
   ],
   "task_ids": [
-    "T_ONBOARD_0001: 12-step onboarding progress bar",
-    "T_REPORT_ARCHIVE: PDF report history + re-download",
-    "T_SERIES_A: Series A week-by-week action plan",
-    "fix(marketing): logo band + submit CTA + hero routing"
+    "T_SVI_EVIDENCE_V2: gap scoring engine + fix roadmap",
+    "T_INVESTOR_PACK_V2: PDF chapter assembly + archive",
+    "T_COMPETITIVE_V1: matrix + AI positioning generator",
+    "T_DCF_HUB: C-Level DCF sensitivity + valuation range"
   ],
-  "notes": "v3.6.7 = founder experience quality sprint. Onboarding progress visible from day 1. Report archive lets founders re-download past PDFs. Series A action plan shows exactly what to do this week vs next month. Marketing pages optimised for AU founder conversion (no fake logos, clear CTAs)."
+  "notes": "v3.8.x = SVI evidence + investor-pack + DCF valuation sprint. Founders now see per-dimension evidence gaps with a prioritised fix roadmap and can generate a full investor pack with financial forecast, exit scenarios, and competitive positioning."
 }
