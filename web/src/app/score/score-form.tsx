@@ -68,7 +68,25 @@ interface ScoreApiResponse {
       evidence: string[];
     }[];
   };
+  valuation?: {
+    lowAud: number;
+    midAud: number;
+    highAud: number;
+    method: string;
+  } | null;
+  fundingReadiness?: {
+    seed: { pass: boolean; missing: string[] };
+    seriesA: { pass: boolean; missing: string[] };
+  } | null;
+  evidenceGaps?: string[] | null;
   persisted: boolean;
+}
+
+function fmtAudMillionsShort(v: number): string {
+  if (!Number.isFinite(v) || v <= 0) return "A$0";
+  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(v >= 10_000_000 ? 1 : 2)}M`;
+  if (v >= 1_000) return `A$${Math.round(v / 1_000)}k`;
+  return `A$${Math.round(v)}`;
 }
 
 export function ScoreForm() {
@@ -604,6 +622,114 @@ function ResultPanel({
             </li>
           ))}
         </ul>
+
+        {result.valuation && (
+          <div className="mt-6 rounded-2xl border border-surface-200 bg-white p-5">
+            <h3 className="text-sm font-semibold text-ink-800">
+              Valuation range
+            </h3>
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-surface-200 bg-surface-100/40 px-3 py-4 text-center">
+                <div className="text-lg font-semibold text-ink-500 tabular-nums">
+                  {fmtAudMillionsShort(result.valuation.lowAud)}
+                </div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-ink-400">
+                  Low
+                </div>
+              </div>
+              <div className="rounded-xl border border-brand-500/40 bg-brand-500/5 px-3 py-4 text-center">
+                <div className="text-xl font-bold text-brand-600 tabular-nums">
+                  {fmtAudMillionsShort(result.valuation.midAud)}
+                </div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-ink-400">
+                  Mid
+                </div>
+              </div>
+              <div className="rounded-xl border border-surface-200 bg-surface-100/40 px-3 py-4 text-center">
+                <div className="text-lg font-semibold text-emerald-600 tabular-nums">
+                  {fmtAudMillionsShort(result.valuation.highAud)}
+                </div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-ink-400">
+                  High
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-ink-400 italic">
+              VC Scorecard blend, {result.benchmark.label} benchmarks. Indicative only — not a fairness opinion or financial advice.
+            </p>
+          </div>
+        )}
+
+        {result.fundingReadiness && (
+          <div className="mt-6 rounded-2xl border border-surface-200 bg-white p-5">
+            <h3 className="text-sm font-semibold text-ink-800">
+              Funding readiness gates
+            </h3>
+            <div className="mt-4 space-y-3">
+              {(["seed", "seriesA"] as const).map((k) => {
+                const gate = result.fundingReadiness![k];
+                const label = k === "seed" ? "Seed" : "Series A";
+                return (
+                  <div
+                    key={k}
+                    className="flex flex-col sm:flex-row sm:items-start gap-3 rounded-xl border border-surface-200 bg-surface-100/30 px-4 py-3"
+                  >
+                    <span
+                      className={
+                        "inline-flex h-6 items-center gap-1.5 rounded-full px-3 text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap " +
+                        (gate.pass
+                          ? "bg-emerald-500/15 text-emerald-700 border border-emerald-500/40"
+                          : "bg-surface-200 text-ink-500 border border-surface-300")
+                      }
+                    >
+                      {gate.pass ? (
+                        <>
+                          <CheckCircle2 strokeWidth={2} className="h-3.5 w-3.5" />
+                          {label} ready
+                        </>
+                      ) : (
+                        <>{label} not ready</>
+                      )}
+                    </span>
+                    <div className="flex-1 text-xs text-ink-500 leading-relaxed">
+                      {gate.pass
+                        ? "All gates met — you can credibly open an investor conversation."
+                        : gate.missing.length > 0
+                          ? (
+                              <ul className="space-y-1">
+                                {gate.missing.slice(0, 5).map((m) => (
+                                  <li key={m} className="flex gap-2">
+                                    <span className="text-amber-500">&middot;</span>
+                                    <span>{m}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )
+                          : "No gaps recorded."}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {result.evidenceGaps && result.evidenceGaps.length > 0 && (
+          <div className="mt-6 rounded-2xl border border-surface-200 bg-white p-5">
+            <h3 className="text-sm font-semibold text-ink-800">
+              Evidence gaps to close
+            </h3>
+            <ul className="mt-3 space-y-2">
+              {result.evidenceGaps.slice(0, 8).map((g) => (
+                <li key={g} className="flex gap-2 text-xs text-ink-500">
+                  <Sparkles strokeWidth={1.75} className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <span>{g}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="mt-6 rounded-2xl border border-surface-200 bg-white p-5">
           <h3 className="text-sm font-semibold text-ink-800">
             Next founder actions
@@ -702,6 +828,24 @@ function ResultPanel({
               <Button variant="secondary">View activity</Button>
             </a>
           </div>
+          {result.persisted && (
+            <a
+              href={`/reports/${result.slug}`}
+              target="_blank"
+              rel="noopener"
+              className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-brand-500/30 bg-brand-500/5 px-4 py-3 hover:bg-brand-500/10 transition"
+            >
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-brand-600 font-semibold">
+                  Public trust report
+                </p>
+                <p className="mt-0.5 text-xs text-ink-500">
+                  Deep, indexable listing for search engines & directories.
+                </p>
+              </div>
+              <ArrowRight strokeWidth={1.75} className="h-5 w-5 text-brand-600 shrink-0" />
+            </a>
+          )}
         </div>
 
         <form
