@@ -49,7 +49,7 @@ LOAD_1MIN=$(cut -d' ' -f1 /proc/loadavg)
 NPROC=$(nproc)
 
 # Count how many blockid production processes are running (should be 1).
-BLOCKID_PROCS=$(pgrep -f "next-server\|/releases/.*/server.js" | wc -l)
+BLOCKID_PROCS=$(pgrep -f 'next-server|/releases/.*/server\.js' | wc -l)
 
 # ────────────────────────────────────────────────────────────────────────
 # 2. Health verdict + fail tracking.
