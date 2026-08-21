@@ -126,8 +126,8 @@ const MICROSERVICES: MicroService[] = [
 
 const AI_PROVIDERS: AIProvider[] = [
   // Priority: Subscription (S-tier default) → Free (unlimited) → Local. NO paid APIs. NO Codex.
-  { name: "Claude OAuth", tier: "1", tierLabel: "Default", models: "claude-sonnet-4-6 (S-tier, score 52), claude-haiku-4-5-20251001 (B)", modelCount: 2, costPer1k: "$0.00", status: "active" },
-  { name: "Proxy", tier: "1", tierLabel: "Default", models: "claude-sonnet-4-6 (S), claude-haiku-4-5-20251001 (B)", modelCount: 2, costPer1k: "$0.00", status: "active" },
+  { name: "Claude OAuth", tier: "1", tierLabel: "Default", models: "claude-sonnet-5 (S-tier, score 52), claude-haiku-4-5-20251001 (B)", modelCount: 2, costPer1k: "$0.00", status: "active" },
+  { name: "Proxy", tier: "1", tierLabel: "Default", models: "claude-sonnet-5 (S), claude-haiku-4-5-20251001 (B)", modelCount: 2, costPer1k: "$0.00", status: "active" },
   { name: "Cerebras", tier: "2", tierLabel: "Free", models: "gpt-oss-120b (A), llama-3.3-70b (B), zai-glm-4.7 (A)", modelCount: 3, costPer1k: "$0.00", status: "active" },
   { name: "Groq", tier: "2", tierLabel: "Free", models: "gpt-oss-120b (A), llama-3.3-70b (B), qwen3-32b (A), llama-4-scout-17b (B)", modelCount: 5, costPer1k: "$0.00", status: "active" },
   { name: "SambaNova", tier: "2", tierLabel: "Free", models: "DeepSeek-V3.2 (S), DeepSeek-V3.1 (S), gpt-oss-120b (A), Llama-3.3-70B (B)", modelCount: 4, costPer1k: "$0.00", status: "active" },

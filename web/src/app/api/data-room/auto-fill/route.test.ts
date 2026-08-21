@@ -345,7 +345,7 @@ describe("POST /api/data-room/auto-fill — AI success path", () => {
     expect(anthropicCreateMock).toHaveBeenCalledTimes(1);
     // Model + max_tokens contract pinned so a silent drift doesn't burn credits.
     const [params] = anthropicCreateMock.mock.calls[0];
-    expect(params.model).toBe("claude-sonnet-4-6");
+    expect(params.model).toBe("claude-sonnet-5");
     expect(params.max_tokens).toBe(4096);
     expect(String(params.system)).toContain("Australian startup advisor");
     expect(String((params.messages as Array<{ content: string }>)[0].content))

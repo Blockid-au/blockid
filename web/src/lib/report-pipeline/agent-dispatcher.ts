@@ -33,6 +33,7 @@ import type {
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { buildAgentPrompt } from "./agent-prompts";
 import { buildAuMarketAnchorBlock } from "./au-market-anchor";
+import { modelForAgent } from "./agent-model-tiers";
 import { REPORT_TIER_CONFIG } from "./types";
 import {
   callStructured,
@@ -381,7 +382,7 @@ async function dispatchAgent(
   const structured = await callStructured({
     promptVersionId,
     agent: `report-${task.agentRole}`,
-    model: opts.model ?? "free-chain",
+    model: opts.model ?? modelForAgent(task.agentRole),
     inputSchema: DispatchInput,
     outputSchema: AgentAnalysisPayload,
     input: {

@@ -416,7 +416,7 @@ const BUDGET_FILE = "/tmp/blockid-ai-budget.json";
 // Rough cost estimates per 1K tokens (input+output averaged)
 const COST_PER_1K: Record<string, number> = {
   "claude-haiku-4-5-20251001": 0.001,
-  "claude-sonnet-4-6": 0.015,
+  "claude-sonnet-5": 0.015,
   "gpt-4o-mini": 0.0003,
   "o3-mini": 0.0055,
   "gpt-4.1-mini": 0.002,
@@ -627,7 +627,7 @@ export function isAIConfigured(): boolean {
 async function callClaude(apiKey: string, opts: AICallOptions): Promise<AICallResult> {
   const isOAuth = apiKey.startsWith("sk-ant-oat");
   // Always use Sonnet 4.6 (S-tier, score 52) — subscription = no extra cost.
-  const model = "claude-sonnet-4-6";
+  const model = "claude-sonnet-5";
 
   // Use raw fetch for OAuth tokens — SDK may send wrong header format
   if (isOAuth) {
@@ -1015,7 +1015,7 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
   const dbKeys = dbProxy?.api_key ? dbProxy.api_key.split(",").map((k) => k.trim()).filter(Boolean) : [];
   const keys = [...new Set([...envKeys, ...dbKeys])];
   // Always use Sonnet 4.6 (S-tier) — maximize quality for every call.
-  const model = "claude-sonnet-4-6";
+  const model = "claude-sonnet-5";
   const maxTokens = opts.maxTokens ?? 8192;
 
   let lastErr: Error | null = null;
