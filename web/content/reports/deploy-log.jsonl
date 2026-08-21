@@ -9082,3 +9082,10 @@
 {"ts":"2026-08-13T22:27:21.602Z","event":"github-push-master","detail":"Blockid-au: chore(loop): autonomous tick 2026-08-13T22-20-01-339Z — commit uncommitted edits (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-13T22:34:57.756Z","event":"github-push-master","detail":"Blockid-au: chore(atlassian-loop): P9-blockchain-sync-route-test — 35-case vitest for /api/cron/blockchain-sync (1 commits)","source":"github-webhook"}
 {"ts":"2026-08-15T16:00:06.008Z","event":"github-push-master","detail":"Blockid-au: feat(orchestrator): platform auto-upgrade 2026-08-15 (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-21T06:55:33.531Z","event":"github-push-master","detail":"Blockid-au: chore: consolidate root docs + fix watchdog regex + bump version.json to v3.8.2 (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-21T07:00:49.854Z","event":"github-push-master","detail":"Blockid-au: fix(cfo-valuation): restore 539-line module — orchestrator 87d8e5b6 truncated to 204 lines (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-21T07:13:58.764Z","event":"github-push-master","detail":"Blockid-au: fix(cro-conversion): restore 290-line module — orchestrator 0cc879ea9 truncated to 179 lines (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-21T07:24:51Z","status":"success","gates":"11/11","pid":"118263","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-08-21T07:26:09.795Z","event":"github-push-master","detail":"Blockid-au: feat(migration): investor-portal-core tables for startupvalueindex.com (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-21T07:38:33.848Z","event":"github-push-master","detail":"Blockid-au: feat(ux): 1-step /score flow + investor-first navbar + public trust-report route (1 commits)","source":"github-webhook"}
+{"ts":"2026-08-21T07:50:42Z","status":"success","gates":"11/11","pid":"210936","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}

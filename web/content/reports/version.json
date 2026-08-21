@@ -1,22 +1,23 @@
 {
-  "version": "v3.8.2",
-  "updated_at": "2026-08-21T06:45:00Z",
-  "git_sha": "0cc879ea9",
-  "release_id": "v3.8.2-svi-evidence-completeness",
+  "version": "v3.8.3",
+  "updated_at": "2026-08-21T07:55:00Z",
+  "git_sha": "23fe7ce73",
+  "release_id": "v3.8.3-investor-trust-report",
   "shipped_summary": [
-    "v3.8.2 — SVI evidence completeness engine: per-dimension gap scoring, API routes, cap-table integration, migrations 20260817_svi_evidence_completeness_cache",
-    "v3.8.1 — Investor-pack PDF chapters wired end-to-end, cron DB writer, Telegram alerts on cron failure",
+    "v3.8.3 — 1-step /score wizard (skip cap-table by default, Advanced collapsible), Trust Reports navbar dropdown, public /reports/[ticker] and /investor landing",
+    "v3.8.2 — SVI evidence completeness engine: per-dimension gap scoring, API routes, cap-table integration",
+    "v3.8.1 — Investor-pack PDF chapters, cron DB writer, Telegram alerts on cron failure",
     "v3.8.0 — Investor-pack Chapter 11 (funding journey), SVI IRI/SVM boost, C-Level DCF hub",
     "v3.7.5 — Competitive Positioning dashboard: matrix, AI positioning generator, SVI lift signals",
     "v3.7.4 — Per-dimension peer benchmarking with cohort comparison widget",
     "v3.7.3 — CFO DCF sensitivity grid, unit economics, funding readiness gates",
-    "orchestrator — Platform auto-upgrade ticks 2026-08-17 & 2026-08-19"
+    "hotfix — restore cfo-valuation.ts + cro-conversion.ts (orchestrator truncation regressions)"
   ],
   "task_ids": [
-    "T_SVI_EVIDENCE_V2: gap scoring engine + fix roadmap",
-    "T_INVESTOR_PACK_V2: PDF chapter assembly + archive",
-    "T_COMPETITIVE_V1: matrix + AI positioning generator",
-    "T_DCF_HUB: C-Level DCF sensitivity + valuation range"
+    "UX_SCORE_1STEP: collapse 3-step wizard to 1 required step + Advanced",
+    "UX_INVESTOR_NAV: Trust Reports navbar dropdown",
+    "UX_TRUST_REPORT: public /reports/[ticker] anonymous entry point",
+    "UX_INVESTOR_LANDING: /investor persona landing with SVI grid"
   ],
-  "notes": "v3.8.x = SVI evidence + investor-pack + DCF valuation sprint. Founders now see per-dimension evidence gaps with a prioritised fix roadmap and can generate a full investor pack with financial forecast, exit scenarios, and competitive positioning."
+  "notes": "v3.8.3 = investor-first UX sprint. Founders now finish the SVI questionnaire in two fields; investors reach a trust report in one click from the navbar without signing up. Full data-room access remains gated through founder-issued investor-links."
 }
