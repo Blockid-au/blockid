@@ -31,6 +31,15 @@ export type Sector =
   | "insurtech"
   | "legaltech"
   | "gaming"
+  | "hrtech"
+  | "mediatech"
+  | "sportstech"
+  | "traveltech"
+  | "logisticstech"
+  | "retailtech"
+  | "govtech"
+  | "constructiontech"
+  | "spacetech"
   | "default";
 
 export interface VcBenchmark {
@@ -89,6 +98,15 @@ export const SECTOR_MULTIPLES: Record<Sector, VcBenchmark> = {
   insurtech: { sector: "insurtech", medianMultiple: 5.0, multipleRange: [4.0, 7.0], source: "SaaS Capital" },
   legaltech: { sector: "legaltech", medianMultiple: 5.0, multipleRange: [4.0, 6.0], source: "PitchBook" },
   gaming: { sector: "gaming", medianMultiple: 6.0, multipleRange: [4.0, 10.0], source: "Gaming Industry Benchmarks" },
+  hrtech: { sector: "hrtech", medianMultiple: 5.5, multipleRange: [4.5, 6.5], source: "SaaS Capital / Deel & Rippling comps 2025" },
+  mediatech: { sector: "mediatech", medianMultiple: 4.0, multipleRange: [3.0, 5.5], source: "PitchBook Media & CreatorTech 2025" },
+  sportstech: { sector: "sportstech", medianMultiple: 4.5, multipleRange: [3.5, 6.0], source: "PitchBook SportsTech Report 2025" },
+  traveltech: { sector: "traveltech", medianMultiple: 3.5, multipleRange: [2.5, 5.0], source: "Skift Research / Phocuswright 2025" },
+  logisticstech: { sector: "logisticstech", medianMultiple: 4.5, multipleRange: [3.5, 6.0], source: "PitchBook Supply Chain & Logistics 2025" },
+  retailtech: { sector: "retailtech", medianMultiple: 3.5, multipleRange: [2.5, 5.0], source: "SaaS Capital / RetailTech comps 2025" },
+  govtech: { sector: "govtech", medianMultiple: 6.0, multipleRange: [5.0, 8.0], source: "GovTech VC Index 2025 (long-cycle contracts)" },
+  constructiontech: { sector: "constructiontech", medianMultiple: 4.5, multipleRange: [3.5, 6.0], source: "PitchBook Built World / ConTech 2025" },
+  spacetech: { sector: "spacetech", medianMultiple: 7.0, multipleRange: [5.0, 12.0], source: "Space Capital / Bryce Space 2025 (deeptech premium)" },
   default: { sector: "default", medianMultiple: 5.0, multipleRange: [4.0, 6.0], source: "Generalist VC" },
 };
 

@@ -80,6 +80,33 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
     }
   });
 
+  // T0167 — coverage for AU-relevant sectors that the SVI classifier can emit
+  // (see SECTOR_LABELS in src/lib/svi-analysis.ts). Previously anything outside
+  // the original 17 sectors silently fell back to "default" (5.0x), which
+  // under- or over-priced SpaceTech, GovTech, HRTech, LogisticsTech, etc.
+  it("covers extended AU-relevant sectors with distinct multiples (not default)", () => {
+    const extended = [
+      "hrtech",
+      "mediatech",
+      "sportstech",
+      "traveltech",
+      "logisticstech",
+      "retailtech",
+      "govtech",
+      "constructiontech",
+      "spacetech",
+    ];
+    const defaultMid = vcBenchmark("default").arrMultiple.mid;
+    for (const key of extended) {
+      const bm = vcBenchmark(key);
+      expect(bm.sector).toBe(key);
+      expect(bm.arrMultiple.high).toBeGreaterThan(bm.arrMultiple.low);
+      // Every extended sector must diverge from the generalist fallback so it
+      // materially changes valuation output.
+      expect(bm.arrMultiple.mid).not.toBe(defaultMid);
+    }
+  });
+
   // T0133 — R&D Tax Incentive + ESIC valuation modifier
   it("applies an AU tax-incentive uplift when ESIC qualifies and RDTI refund is present", () => {
     const baseline = buildVcValuationReport(input);
