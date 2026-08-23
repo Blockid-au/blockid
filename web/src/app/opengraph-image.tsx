@@ -92,9 +92,9 @@ export default async function OGImage() {
           borderTop: "1px solid rgba(255,255,255,0.1)",
         }}>
           {[
-            { value: "2,400+", label: "Startups" },
-            { value: "A$180M+", label: "Value Indexed" },
-            { value: "50+", label: "AI Agents" },
+            { value: "AU-first", label: "SVI scoring" },
+            { value: "Evidence-linked", label: "8 dimensions" },
+            { value: "Human-reviewable", label: "AI-assisted" },
           ].map((stat) => (
             <div key={stat.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
               <div style={{ fontSize: 28, fontWeight: 700, color: "#00D4FF", display: "flex" }}>{stat.value}</div>
