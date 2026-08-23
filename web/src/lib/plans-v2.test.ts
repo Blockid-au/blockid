@@ -137,7 +137,7 @@ describe("PLANS_V2 catalogue", () => {
     expect(investorIds).toEqual([
       "investor_angel",
       "investor_advisor",
-      "investor_vc_sm",
+      "investor_vc_small",
       "investor_vc_ent",
     ]);
   });
@@ -170,7 +170,7 @@ describe("PLANS_V2 catalogue", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
     expect(byId.get("investor_angel")!.monthly_aud).toBe(79);
     expect(byId.get("investor_advisor")!.monthly_aud).toBe(149);
-    expect(byId.get("investor_vc_sm")!.monthly_aud).toBe(349);
+    expect(byId.get("investor_vc_small")!.monthly_aud).toBe(349);
   });
 
   it("accelerator pricing anchors (starter=A$500, growth=A$1500, enterprise=A$3500) are stable", () => {

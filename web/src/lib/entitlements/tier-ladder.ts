@@ -60,7 +60,7 @@ export type PlanId =
   | "founder_enterprise"
   | "investor_angel"
   | "investor_advisor"
-  | "investor_vc_sm"
+  | "investor_vc_small"
   | "investor_vc_ent"
   | "accelerator_starter"
   | "accelerator_growth"
@@ -269,7 +269,7 @@ export const INVESTOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
     hiddenFromPublic: false,
   },
   {
-    id: "investor_vc_sm",
+    id: "investor_vc_small",
     segment: "investor",
     label: "VC Small",
     rank: 30,
@@ -397,7 +397,7 @@ export const TIER_LADDER_BY_ID: Readonly<Record<PlanId, TierLadderEntry>> =
     founder_enterprise: FOUNDER_LADDER[4]!,
     investor_angel: INVESTOR_LADDER[0]!,
     investor_advisor: INVESTOR_LADDER[1]!,
-    investor_vc_sm: INVESTOR_LADDER[2]!,
+    investor_vc_small: INVESTOR_LADDER[2]!,
     investor_vc_ent: INVESTOR_LADDER[3]!,
     accelerator_starter: ACCELERATOR_LADDER[0]!,
     accelerator_growth: ACCELERATOR_LADDER[1]!,

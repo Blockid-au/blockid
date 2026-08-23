@@ -18,7 +18,7 @@ export default async function CapTablePage() {
   // Server-side tier gate — redirects unauthenticated to /auth/login and
   // sub-tier users to /pricing?feature=... before we touch the DB.
   await requireTierForPage({
-    feature: "share_management",
+    feature: "cap_table.write",
     minTier: "growth",
     fromPath: "/workspace/cap-table",
   });

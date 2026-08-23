@@ -43,7 +43,7 @@ describe("planIdToTier — v2 SKU coverage", () => {
     ["founder_enterprise", "enterprise"],
     ["investor_angel", "angel"],
     ["investor_advisor", "advisor"],
-    ["investor_vc_sm", "vc_small"],
+    ["investor_vc_small", "vc_small"],
     ["investor_vc_ent", "vc_ent"],
     ["accelerator_starter", "accel_starter"],
     ["accelerator_growth", "accel_growth"],

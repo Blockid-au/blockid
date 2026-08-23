@@ -39,7 +39,7 @@ function plansForWizardSegment(segment: Segment): Plan[] {
     // VC-sized plan highlighted instead.
     return plans.map((p) => ({
       ...p,
-      most_popular: p.id === "investor_vc_sm",
+      most_popular: p.id === "investor_vc_small",
     }));
   }
   if (segment === "founder") {

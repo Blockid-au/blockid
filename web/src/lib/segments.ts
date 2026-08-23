@@ -119,7 +119,7 @@ export const PLAN_ID_TO_TIER: Record<string, PlanTier> = {
   // Investor v2
   investor_angel: "angel",
   investor_advisor: "advisor",
-  investor_vc_sm: "vc_small",
+  investor_vc_small: "vc_small",
   investor_vc_ent: "vc_ent",
   // Accelerator v2 — canonical SKU ids (post accel_* → accelerator_* reconciliation)
   accelerator_starter: "accel_starter",
