@@ -495,7 +495,8 @@ export async function POST(request: Request) {
       // payload (seller ABN + description + footer already set above).
       // Stripe caps custom_fields at 4, so slice defensively.
       const baseInvoice = sessionParams.invoice_creation;
-      const existingFields = baseInvoice?.invoice_data?.custom_fields ?? [];
+      const rawFields = baseInvoice?.invoice_data?.custom_fields;
+      const existingFields = Array.isArray(rawFields) ? rawFields : [];
       sessionParams.invoice_creation = {
         enabled: true,
         invoice_data: {
