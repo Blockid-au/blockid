@@ -53,11 +53,19 @@ export function HeroSection() {
   }, []);
 
   function handleSearch() {
-    router.push("/score");
+    const q = query.trim();
+    if (q.length > 0) {
+      router.push(`/score?q=${encodeURIComponent(q)}`);
+    } else {
+      router.push("/score");
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") handleSearch();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    }
   }
 
   return (
