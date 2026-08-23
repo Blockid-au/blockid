@@ -178,7 +178,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </span>
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
-            AUD pricing, GST-inclusive
+            AUD pricing, GST-exclusive; GST added at checkout on ATO tax invoice
           </span>
         </div>
       </section>
