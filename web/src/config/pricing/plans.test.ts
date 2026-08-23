@@ -121,7 +121,7 @@ describe("PRC-INV — 13-SKU pricing matrix (12 tier SKUs + Startup Package one-
       expect.arrayContaining([
         "investor_angel",
         "investor_advisor",
-        "investor_vc_sm",
+        "investor_vc_small",
         "investor_vc_ent",
       ]),
     );

@@ -144,7 +144,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         title="Get fundable in 7 days. Then choose your plan."
         subtitle="Every monthly plan includes a 7-day free trial. Card required at signup, charged only on Day 8. Cancel anytime before with no charge."
         primaryCta={{
-          href: "/signup?plan=founder-starter&trial=1",
+          href: "/signup?plan=founder_starter&trial=1",
           label: "Start 7-day free trial",
         }}
       />

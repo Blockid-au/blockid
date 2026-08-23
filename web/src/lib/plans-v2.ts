@@ -169,7 +169,7 @@ const INVESTOR: Plan[] = [
     ],
   },
   {
-    id: "investor_vc_sm",
+    id: "investor_vc_small",
     segment: "investor",
     name: "VC Small",
     monthly_aud: 349,
