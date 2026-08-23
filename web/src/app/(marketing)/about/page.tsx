@@ -43,13 +43,17 @@ export const metadata: Metadata = {
   },
 };
 
+// Qualitative trust signals — "empty until real" per SOURCE-OF-TRUTH.
+// Kept: 8 SVI dimensions, 10 free tools (both verifiable in code). Removed:
+// "200+ Australian startups", "A$2M+ Funding facilitated", "95% User
+// satisfaction", "8 AI-powered agents" (contradicts LogoBand's 50+ claim).
 const STATS = [
-  { num: "200+", label: "Australian startups" },
-  { num: "A$2M+", label: "Funding facilitated" },
-  { num: "95%", label: "User satisfaction" },
-  { num: "7 days", label: "Average to investor-ready" },
+  { num: "Sydney NSW", label: "Australian-owned HQ" },
+  { num: "AU compliance-first", label: "ASIC · ESIC · R&D" },
+  { num: "8 SVI dimensions", label: "Evidence-linked scoring" },
+  { num: "Auschain Pty Ltd", label: "ABN 79 659 615 111" },
   { num: "10", label: "Free startup tools" },
-  { num: "8", label: "AI-powered agents" },
+  { num: "AI-powered", label: "Human-reviewable" },
 ];
 
 const APPROACH_ITEMS = [

@@ -5,11 +5,13 @@
 
 import { cn } from "@/lib/utils";
 
+// Qualitative trust signals — kept "empty until real" per SOURCE-OF-TRUTH.
+// No fabricated numeric claims (startups analysed / value indexed / rating).
 const STATS = [
-  { value: "200+", label: "AU startups analysed" },
-  { value: "A$180M+", label: "value indexed" },
-  { value: "50+", label: "investors active" },
-  { value: "4.9★", label: "founder rating" },
+  { value: "Sydney NSW", label: "Australian-owned HQ" },
+  { value: "ABN registered", label: "Auschain Pty Ltd" },
+  { value: "8 SVI dimensions", label: "AI-powered scoring" },
+  { value: "AU compliance-first", label: "ASIC · ESIC · R&D" },
 ];
 
 export function LogoBand({ className }: { className?: string }) {
