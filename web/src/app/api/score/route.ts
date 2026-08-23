@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { computeScore, type ScoreInput } from "@/lib/score";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
@@ -97,6 +98,51 @@ function computeValuation(inputs: ScoreInput): {
   } catch (err) {
     console.error("[blockid:score] valuation failed", err);
     return null;
+  }
+}
+
+// Best-effort read of first-touch / last-touch attribution cookies dropped
+// by <UtmCapture />. Returns null on parse failure so the pipeline never
+// blocks a submit if the cookie is malformed. The scores table does NOT
+// currently carry attribution columns (checked 2026-08-23 against
+// migrations/0001_init.sql) — we return the payload to the client so
+// score_form_submitted can include it in GA4 without a schema change.
+interface AttributionSnapshot {
+  ts?: string;
+  source?: string | null;
+  medium?: string | null;
+  campaign?: string | null;
+  term?: string | null;
+  content?: string | null;
+  gclid?: string | null;
+  fbclid?: string | null;
+  referrer?: string | null;
+  landing_path?: string | null;
+}
+
+async function readAttributionCookies(): Promise<{
+  firstTouch: AttributionSnapshot | null;
+  lastTouch: AttributionSnapshot | null;
+}> {
+  try {
+    const store = await cookies();
+    const ft = store.get("bid_ft")?.value ?? null;
+    const lt = store.get("bid_lt")?.value ?? null;
+    const parse = (raw: string | null): AttributionSnapshot | null => {
+      if (!raw) return null;
+      try {
+        return JSON.parse(decodeURIComponent(raw)) as AttributionSnapshot;
+      } catch {
+        try {
+          return JSON.parse(raw) as AttributionSnapshot;
+        } catch {
+          return null;
+        }
+      }
+    };
+    return { firstTouch: parse(ft), lastTouch: parse(lt) };
+  } catch {
+    return { firstTouch: null, lastTouch: null };
   }
 }
 
@@ -199,6 +245,12 @@ export async function POST(request: Request) {
   const fundingReadiness = computeSimpleFundingReadiness(inputs, subScoresMap);
   const evidenceGaps = breakdown.missingInputs.slice(0, 10);
 
+  // Attribution (best-effort, never blocks). See readAttributionCookies()
+  // for the schema-check note — scores table has no attribution columns
+  // today, so we echo the payload back to the client for GA4 emission
+  // instead of a silent DB insert.
+  const { firstTouch, lastTouch } = await readAttributionCookies();
+
   const supabase = getSupabaseAdmin();
   let slug = newSlug();
   let persisted = false;
@@ -264,6 +316,10 @@ export async function POST(request: Request) {
     fundingReadiness,
     evidenceGaps,
     persisted: persisted && isSupabaseConfigured() && !slug.startsWith("demo-"),
+    attribution: {
+      firstTouch,
+      lastTouch,
+    },
   });
 }
 
