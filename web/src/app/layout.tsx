@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import Script from "next/script";
 import { Inter, IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
 import { ConsentBanner } from "@/components/analytics/consent-banner";
+import { UtmCapture } from "@/components/analytics/utm-capture";
 import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
 import { AuthSyncClient } from "@/components/auth/AuthSyncClient";
@@ -197,6 +199,15 @@ export default async function RootLayout({
             {children}
           </TranslationProvider>
           <GoogleAnalytics nonce={nonce} />
+          {/* First-touch / last-touch attribution capture — writes to
+              localStorage + first-party cookies (bid_ft / bid_lt) so
+              server routes (e.g. /api/score) and downstream trackEvent
+              calls can enrich payloads with utm_source/medium/campaign,
+              gclid, fbclid, and referrer. Suspense-wrapped because it
+              reads useSearchParams(). */}
+          <Suspense fallback={null}>
+            <UtmCapture />
+          </Suspense>
           <OrganizationJsonLd />
           <SoftwareApplicationJsonLd />
           <FeedbackWidget />
@@ -204,8 +215,12 @@ export default async function RootLayout({
         {/* GA4 consent-mode v2 banner + always-visible revoke pill. Sits
             outside <Providers> so it hydrates independently of dashboard
             surfaces. Consent-default is denied in the <head> Script above;
-            this component only fires the consent-update. */}
-        <ConsentBanner />
+            this component only fires the consent-update. Wrapped in Suspense
+            because Next 15's client hooks (usePathname) trigger a bail-out
+            when a parent tree suspends. */}
+        <Suspense fallback={null}>
+          <ConsentBanner />
+        </Suspense>
       </body>
     </html>
   );

@@ -18,6 +18,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
+import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { ItemListJsonLd } from "@/components/seo/json-ld";
 import {
   buildShowcaseDataRoomRows,
@@ -281,6 +282,10 @@ export default async function GuideReportsPage() {
             </Link>
           </div>
         </aside>
+
+        <div className="mt-10">
+          <NotFinancialAdvice kind="not_financial_advice" />
+        </div>
       </main>
       <Footer />
     </>
