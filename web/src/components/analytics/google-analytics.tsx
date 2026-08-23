@@ -48,6 +48,13 @@ export function GoogleAnalytics({ nonce }: GoogleAnalyticsProps = {}) {
             strategy="afterInteractive"
             nonce={nonce}
           />
+          {/*
+            Consent Mode v2 default (all storage denied) is emitted from
+            web/src/app/layout.tsx via a beforeInteractive Script BEFORE
+            this file loads. GA4 therefore respects consent even though
+            send_page_view remains true — the first page_view is queued
+            until the ConsentBanner grants or denies (wait_for_update:500).
+          */}
           <Script id="google-analytics" strategy="afterInteractive" nonce={nonce}>
             {`
               window.dataLayer = window.dataLayer || [];

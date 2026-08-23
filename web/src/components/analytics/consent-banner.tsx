@@ -34,7 +34,7 @@ export function ConsentBanner() {
     if (!hasResponded()) setVisible(true);
   }, []);
 
-  if (!mounted || !visible || !shouldShowOnRoute(pathname)) return null;
+  if (!mounted || !shouldShowOnRoute(pathname)) return null;
 
   const accept = () => {
     grantConsent();
@@ -44,6 +44,22 @@ export function ConsentBanner() {
     denyConsent();
     setVisible(false);
   };
+
+  // Always render the small "Cookie prefs" pill on public routes so users
+  // can revoke or re-open the banner at any time (OAIC APP 6 — revocable
+  // consent). The full banner only shows while `visible` is true.
+  if (!visible) {
+    return (
+      <button
+        type="button"
+        onClick={() => setVisible(true)}
+        aria-label="Open cookie preferences"
+        className="fixed bottom-3 left-3 z-[70] rounded-full border border-brand-900/15 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-brand-900/80 shadow-md backdrop-blur hover:bg-white dark:border-white/10 dark:bg-brand-900/90 dark:text-ink-200 dark:hover:bg-brand-900"
+      >
+        Cookie prefs
+      </button>
+    );
+  }
 
   return (
     <div
