@@ -34,10 +34,25 @@ export interface AnalyticsEventMap {
   svi_modular_complete: { sectionCount: number; totalCredits: number };
 
   // ── Score Form ──
-  score_form_started: Record<string, never>;
+  // Extended payloads (2026-08-23): capture source attribution + submit-time
+  // signal so /score funnel is measurable in GA4 without a rebuild. Keep
+  // legacy fields (company_name / total_score) optional for pre-existing
+  // dashboards.
+  score_form_started: {
+    source?: "hero_search" | "direct";
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+  };
   score_form_step: { step: number; step_name: string };
-  score_form_submitted: { company_name: string };
-  score_result_viewed: { total_score: number };
+  score_form_submitted: {
+    company_name?: string;
+    totalScore?: number;
+    persisted?: boolean;
+    hasValuation?: boolean;
+    hasFundingReadiness?: boolean;
+  };
+  score_result_viewed: { slug?: string; total_score?: number };
 
   // ── Auth ──
   login_page_viewed: Record<string, never>;
