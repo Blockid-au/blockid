@@ -59,7 +59,7 @@ export function CTASection({ className }: { className?: string }) {
               className="relative mb-8 text-base leading-relaxed"
               style={{ color: "#94A3B8" }}
             >
-              Join 2,400+ Australian founders who use BlockID to analyse, benchmark and grow their startup value.
+              Join the Australian founders using BlockID to analyse, benchmark and grow their startup value — with evidence-linked SVI scoring and AU-first compliance.
             </p>
 
             <div className="relative flex flex-col items-center gap-4 sm:flex-row sm:justify-center">

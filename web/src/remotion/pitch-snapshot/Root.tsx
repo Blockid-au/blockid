@@ -33,7 +33,7 @@ const DEFAULT_PROPS: PitchSnapshotProps = {
   sam: "A$3.2B cap-table management market",
   som: "A$250K Year 1 (AU bootstrapped SaaS)",
   traction:
-    "500+ founders signed up. 2,400+ SVI analyses run. A$5 Founding50 lifetime deal selling.",
+    "Founders onboarding. SVI analyses running. Founding50 A$5 lifetime deal open.",
   team: "Do Van Long — Founder & CEO. Full-stack engineer with 10+ years building SaaS products.",
   ask: "Raising A$500K seed round. 18-month runway. Product, growth, compliance.",
   slug: "acme-ai",
