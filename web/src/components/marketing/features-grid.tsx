@@ -27,7 +27,7 @@ const FEATURES: Feature[] = [
     iconColor: "#00D4FF",
     title: "Competitor Intelligence",
     description:
-      "Map your competitive landscape with AI-powered analysis across 2,400+ AU startups.",
+      "Map your competitive landscape with AI-powered analysis across the AU startup ecosystem.",
   },
   {
     icon: MapPin,

@@ -30,10 +30,12 @@ const QUICK_TAGS = [
   { emoji: "🗺", label: "GTM Strategy" },
 ];
 
+// Qualitative trust signals only — no fabricated numeric claims until real
+// metrics are wired to a source of truth. See feedback: kill-fabricated-stats.
 const STATS = [
-  "2,400+ Startups Analysed",
-  "A$180M+ Value Indexed",
-  "50+ AI Agents",
+  "AU-first",
+  "Evidence-linked",
+  "AI-powered · human-reviewable",
 ];
 
 export function HeroSection() {
