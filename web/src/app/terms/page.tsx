@@ -122,19 +122,139 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-xl font-semibold text-ink-800">
-                7. Governing Law
+                6a. Australian Consumer Law non-excludable guarantees
+              </h2>
+              <p className="mt-3">
+                Nothing in these Terms limits or excludes rights that cannot
+                be excluded under the Australian Consumer Law (Schedule 2 of
+                the <em>Competition and Consumer Act 2010</em> (Cth)),
+                including the consumer guarantees in sections 54 to 59.
+                Where a consumer guarantee is contravened, our liability is
+                limited (to the extent permitted by law) to, at our option,
+                the re-supply of the affected service or the refund of
+                amounts paid for the affected service. Section 6 above
+                applies subject to this section 6a.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-ink-800">
+                7. Fees, GST and tax invoices
+              </h2>
+              <p className="mt-3">
+                All fees are stated in Australian dollars (AUD) and are
+                exclusive of GST unless expressly stated otherwise. Where
+                GST is payable, we will add GST to the fee at the applicable
+                rate and Stripe will issue an ATO-compliant tax invoice on
+                payment. You are responsible for any withholding or other
+                tax obligations arising in your own jurisdiction.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-ink-800">
+                8. Cancellation and refunds
+              </h2>
+              <ul className="mt-3 list-disc pl-5 space-y-1.5">
+                <li>
+                  <strong>Cooling-off:</strong> You may cancel a first paid
+                  subscription within seven (7) days of the initial charge
+                  for a full refund, provided you have not run more than
+                  one paid analysis in that period.
+                </li>
+                <li>
+                  <strong>Monthly plans:</strong> Cancel at any time from
+                  the Billing Portal; access continues until the end of the
+                  paid period and no pro-rata refund is issued.
+                </li>
+                <li>
+                  <strong>Annual plans:</strong> Cancellation within 14 days
+                  of a renewal charge attracts a pro-rata refund for the
+                  unused period. After that window, annual plans run to
+                  term without refund.
+                </li>
+                <li>
+                  <strong>Credits and add-ons:</strong> Prepaid credit
+                  packs are non-refundable once consumed, but any unused
+                  balance is refunded on written request within 14 days of
+                  purchase.
+                </li>
+              </ul>
+              <p className="mt-3">
+                These rights are in addition to any remedy available under
+                the Australian Consumer Law (see section 6a).
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-ink-800">
+                9. Dispute resolution
+              </h2>
+              <p className="mt-3">
+                Before commencing formal proceedings, the parties agree to
+                use the following ladder in good faith:
+              </p>
+              <ol className="mt-3 list-decimal pl-5 space-y-1.5">
+                <li>
+                  <strong>Informal negotiation</strong> — email{" "}
+                  <a
+                    href="mailto:admin@blockid.au"
+                    className="text-brand-600 hover:text-brand-500 underline"
+                  >
+                    admin@blockid.au
+                  </a>{" "}
+                  with a written description of the dispute; we will
+                  respond within 10 business days.
+                </li>
+                <li>
+                  <strong>Escalation</strong> — if unresolved, either party
+                  may escalate to a nominated senior manager for a
+                  structured discussion within a further 10 business days.
+                </li>
+                <li>
+                  <strong>Mediation</strong> — if still unresolved, the
+                  parties agree to attempt mediation administered by the
+                  <em> Resolution Institute</em> (
+                  <a
+                    href="https://www.resolution.institute"
+                    className="text-brand-600 hover:text-brand-500 underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    resolution.institute
+                  </a>
+                  ) under its standard mediation rules, with costs shared
+                  equally.
+                </li>
+                <li>
+                  <strong>Courts</strong> — only after the steps above have
+                  been attempted may a party commence proceedings in the
+                  Supreme Court of New South Wales, which the parties
+                  submit to as the exclusive jurisdiction.
+                </li>
+              </ol>
+              <p className="mt-3">
+                Nothing in this section prevents a party from seeking
+                urgent interlocutory relief.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-ink-800">
+                10. Governing Law
               </h2>
               <p className="mt-3">
                 These Terms are governed by the laws of New South Wales,
-                Australia. Any dispute arising from these Terms or your use of
-                the platform shall be subject to the exclusive jurisdiction of
+                Australia. Subject to section 9 (Dispute resolution), any
+                dispute arising from these Terms or your use of the
+                platform shall be subject to the exclusive jurisdiction of
                 the courts of New South Wales.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold text-ink-800">
-                8. Changes to These Terms
+                11. Changes to These Terms
               </h2>
               <p className="mt-3">
                 We may update these Terms from time to time. If we make
