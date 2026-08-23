@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Script from "next/script";
 import { Inter, IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
+import { ConsentBanner } from "@/components/analytics/consent-banner";
 import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
 import { AuthSyncClient } from "@/components/auth/AuthSyncClient";
@@ -153,6 +155,33 @@ export default async function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem("blockid_theme");if(t==="dark"){document.documentElement.classList.add("dark")}}catch(e){}})()`,
           }}
         />
+        {/* Google Consent Mode v2 — set defaults to DENIED BEFORE gtag.js
+            loads. Required for OAIC APP 3 / APP 6 (opt-in analytics) and to
+            keep GA4 from firing a page_view before the visitor has answered
+            the ConsentBanner. `wait_for_update` throttles GA4 for 500ms so
+            an immediate accept still captures the first page_view. The
+            banner's grantConsent()/denyConsent() helpers then push the
+            consent-update. Must be beforeInteractive so this executes ahead
+            of the gtag.js script tag that afterInteractive schedules. */}
+        <Script
+          id="gtag-consent-default"
+          strategy="beforeInteractive"
+          nonce={nonce}
+        >
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('consent', 'default', {
+              analytics_storage: 'denied',
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied',
+              functionality_storage: 'granted',
+              security_storage: 'granted',
+              wait_for_update: 500
+            });
+          `}
+        </Script>
       </head>
       <body className="min-h-full bg-surface-50 text-brand-900 dark:text-ink-800 font-sans flex flex-col">
         <GTMNoScript />
@@ -172,6 +201,11 @@ export default async function RootLayout({
           <SoftwareApplicationJsonLd />
           <FeedbackWidget />
         </Providers>
+        {/* GA4 consent-mode v2 banner + always-visible revoke pill. Sits
+            outside <Providers> so it hydrates independently of dashboard
+            surfaces. Consent-default is denied in the <head> Script above;
+            this component only fires the consent-update. */}
+        <ConsentBanner />
       </body>
     </html>
   );
