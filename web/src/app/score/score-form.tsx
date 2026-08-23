@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScoreCard } from "@/components/score/score-card";
+import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import type { ScoreInput } from "@/lib/score";
 import { trackEvent } from "@/lib/analytics";
 
@@ -812,6 +813,9 @@ function ResultPanel({
               </li>
             ))}
           </ul>
+        </div>
+        <div className="mt-6">
+          <NotFinancialAdvice kind="not_financial_advice" compact />
         </div>
         <Button
           type="button"

@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ArrowDownRight, ArrowUpRight, ExternalLink, Minus, Sparkles, TrendingUp } from "lucide-react";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { computeListingDetail } from "@/lib/startup-index-listings";
 
 export const dynamic = "force-dynamic";
@@ -259,6 +260,10 @@ export default async function TickerDetailPage({ params }: PageProps) {
         <p className="text-[11px] text-ink-400 mt-6 text-center">
           Data refreshes every 5 minutes &middot; <Link href={`/api/index/listing/${detail.ticker}`} className="text-brand-600 hover:underline font-mono">JSON</Link> &middot; Methodology: median SVI of all analyses in last 90 days · Anonymous-by-default
         </p>
+
+        <div className="mt-6">
+          <NotFinancialAdvice kind="not_financial_advice" />
+        </div>
       </main>
 
       <Footer />

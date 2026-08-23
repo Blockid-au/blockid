@@ -9,6 +9,7 @@ import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
+import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { getPublicListings } from "@/lib/listings/listings-db";
 
 export const dynamic = "force-dynamic";
@@ -113,6 +114,10 @@ export default async function InvestorPage() {
             body="Full data-room access still runs through the founder — investors request; founders authorise."
           />
         </ul>
+      </MarketingSection>
+
+      <MarketingSection>
+        <NotFinancialAdvice kind="not_financial_advice" />
       </MarketingSection>
     </MarketingShell>
   );

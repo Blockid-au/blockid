@@ -10,6 +10,7 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Clock, Minus, Spar
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
+import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { computeIndexHeadlines } from "@/lib/startup-index-aggregator";
 
 export const metadata: Metadata = {
@@ -321,6 +322,10 @@ export default async function IndexExchangePage() {
             <Clock className="h-3 w-3" /> Updated {updatedAt} UTC &middot; refreshes every 5 minutes
           </span>
           <Link href="/api/index/headlines" className="text-brand-700 hover:underline font-mono">/api/index/headlines (JSON)</Link>
+        </div>
+
+        <div className="mt-8">
+          <NotFinancialAdvice kind="not_financial_advice" />
         </div>
       </main>
 
