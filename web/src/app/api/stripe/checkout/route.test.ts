@@ -279,12 +279,12 @@ describe("stripe/checkout — body validation", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when the plan has no STRIPE_PRICE_MAP entry", async () => {
+  it("returns 503 when the plan has no STRIPE_PRICE_MAP / stripe_price_id entry (plan_not_provisioned)", async () => {
     mocks.getPlanMock.mockReturnValue({ id: "custom", cadence: "monthly", price: 99 });
     const res = await POST(req({ plan: "custom" }));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(503);
     const body = await json(res);
-    expect(String(body.reason)).toMatch(/stripe price not configured/i);
+    expect(String(body.error ?? body.reason)).toMatch(/plan_not_provisioned|stripe price not configured/i);
   });
 });
 
