@@ -21,17 +21,17 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p className="mt-2 text-sm text-ink-600">
-            Last updated: May 2026
+            Last updated: 2026-08-23
           </p>
 
           <div className="mt-8 space-y-10 text-ink-600 leading-relaxed">
             <section>
               <p>
-                Auschain PTY LTD (ABN pending) (&quot;BlockID&quot;,
-                &quot;we&quot;, &quot;us&quot;) is committed to protecting your
-                privacy. This policy explains how we collect, use, store, and
-                share your personal information when you use our platform and
-                services.
+                Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111), of
+                Sydney, NSW, Australia (&quot;BlockID&quot;, &quot;we&quot;,
+                &quot;us&quot;) is committed to protecting your privacy. This
+                policy explains how we collect, use, store, and share your
+                personal information when you use our platform and services.
               </p>
             </section>
 
@@ -141,6 +141,8 @@ export default function PrivacyPage() {
               </p>
               <p className="mt-2">
                 Auschain PTY LTD
+                <br />
+                ACN 659 615 111 · ABN 79 659 615 111
                 <br />
                 Sydney, NSW, Australia
               </p>
