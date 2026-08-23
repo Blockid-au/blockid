@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScoreCard } from "@/components/score/score-card";
 import type { ScoreInput } from "@/lib/score";
+import { trackEvent } from "@/lib/analytics";
 
 const defaultInput: ScoreInput = {
   companyName: "",
@@ -90,6 +92,9 @@ function fmtAudMillionsShort(v: number): string {
 }
 
 export function ScoreForm() {
+  const searchParams = useSearchParams();
+  const heroQuery = (searchParams?.get("q") ?? "").trim();
+
   const [input, setInput] = React.useState<ScoreInput>(defaultInput);
   const [email, setEmail] = React.useState("");
   const [result, setResult] = React.useState<ScoreApiResponse | null>(null);
@@ -97,6 +102,25 @@ export function ScoreForm() {
     "idle" | "submitting" | "ok" | "err"
   >("idle");
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
+
+  // Prefill company name from hero search query, if provided. Only runs
+  // when the query changes so we don't clobber a user's typed edit.
+  React.useEffect(() => {
+    if (heroQuery.length > 0) {
+      setInput((p) => (p.companyName ? p : { ...p, companyName: heroQuery }));
+    }
+  }, [heroQuery]);
+
+  // Fire score_form_started exactly once per session on first Company Name
+  // focus. Guarded by ref so quick blur/focus doesn't double-fire.
+  const startedFiredRef = React.useRef(false);
+  const handleCompanyFocus = React.useCallback(() => {
+    if (startedFiredRef.current) return;
+    startedFiredRef.current = true;
+    trackEvent("score_form_started", {
+      source: heroQuery.length > 0 ? "hero_search" : "direct",
+    });
+  }, [heroQuery]);
 
   const update = <K extends keyof ScoreInput>(key: K, value: ScoreInput[K]) =>
     setInput((p) => ({ ...p, [key]: value }));
@@ -124,8 +148,16 @@ export function ScoreForm() {
         setSubmitState("err");
         return;
       }
-      setResult(data as ScoreApiResponse);
+      const payload = data as ScoreApiResponse;
+      setResult(payload);
       setSubmitState("ok");
+      trackEvent("score_form_submitted", {
+        company_name: input.companyName || "My Startup",
+        totalScore: payload.totalScore,
+        persisted: payload.persisted,
+        hasValuation: !!payload.valuation,
+        hasFundingReadiness: !!payload.fundingReadiness,
+      });
     } catch (err) {
       console.error("[score-form] Network error:", err);
       setSubmitState("err");
@@ -149,6 +181,21 @@ export function ScoreForm() {
 
   return (
     <form onSubmit={onCompute} className="space-y-6">
+      {heroQuery.length > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-brand-500/30 bg-brand-500/5 px-4 py-3 text-sm text-brand-700"
+        >
+          Analyzing:{" "}
+          <span className="font-medium text-ink-700">
+            &ldquo;{heroQuery}&rdquo;
+          </span>
+          <span className="ml-2 text-xs text-ink-400">
+            — we prefilled the company name; edit anything below.
+          </span>
+        </div>
+      )}
       <fieldset className="space-y-5">
         <legend className="sr-only">Get your score</legend>
         <p className="text-sm text-ink-500">
@@ -164,6 +211,7 @@ export function ScoreForm() {
               required
               value={input.companyName}
               onChange={(e) => update("companyName", e.target.value)}
+              onFocus={handleCompanyFocus}
               placeholder="Acme Co Pty Ltd"
               autoComplete="organization"
             />
@@ -484,6 +532,19 @@ function ResultPanel({
 }) {
   const shareUrl = `${siteUrl()}/s/${result.slug}`;
   const pdfUrl = `/s/${result.slug}/pdf`;
+
+  // Fire score_result_viewed once per rendered result. Guarded so a re-render
+  // (state change on the panel) does not re-fire for the same slug.
+  const viewedSlugRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (viewedSlugRef.current === result.slug) return;
+    viewedSlugRef.current = result.slug;
+    trackEvent("score_result_viewed", {
+      slug: result.slug,
+      total_score: result.totalScore,
+    });
+  }, [result.slug, result.totalScore]);
+
   const [copied, setCopied] = React.useState(false);
   const [investorEmail, setInvestorEmail] = React.useState("");
   const [investorName, setInvestorName] = React.useState("");

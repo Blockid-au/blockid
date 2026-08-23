@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
@@ -59,7 +60,9 @@ export default function ScorePage() {
             </p>
           </header>
           <section className="mt-10 rounded-2xl border border-surface-200 bg-white p-6 md:p-10 shadow-sm">
-            <ScoreForm />
+            <Suspense fallback={null}>
+              <ScoreForm />
+            </Suspense>
           </section>
         </div>
       </main>
