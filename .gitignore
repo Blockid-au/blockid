@@ -10,6 +10,17 @@ build/
 next-env.d.ts
 *.tsbuildinfo
 
+# Blockchain — private keys + wallet state (Cosmos testnet + Anvil)
+# Never commit priv_validator_key, node_key, keyring-test blobs, or chain data.
+chain/data/
+chain/config/priv_validator_key.json
+chain/config/node_key.json
+chain/keyring-*/
+chain/keys/
+*/priv_validator_key.json
+*/node_key.json
+**/keyring-test/
+
 # Env (secrets — never commit populated env files)
 .env
 .env.local
