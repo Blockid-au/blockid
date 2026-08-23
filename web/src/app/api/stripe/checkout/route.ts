@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
-import { getPlan, isGrowthEarlyBird } from "@/lib/plans";
+import { getPlan, isGrowthEarlyBird, type LegacyPlan } from "@/lib/plans";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
@@ -126,28 +126,84 @@ export async function POST(request: Request) {
     );
   }
 
-  // Startup Package — one-off checkout that lives in plans.csv (v2 matrix)
-  // but not in the legacy LEGACY_PLANS array getPlan() reads. Synthesise a
-  // minimal LegacyPlan shape so the rest of the flow (isRecurring branch,
-  // audit log, idempotency key) sees a normal one-off plan.
+  // Plan + Stripe price resolver.
+  //
+  // Order of resolution:
+  //   1. Startup Package — synthesise a fixed LegacyPlan shape (not in DB or
+  //      LEGACY_PLANS as a recurring plan; env var STRIPE_PRICE_STARTUP_PACKAGE
+  //      provides the price).
+  //   2. plans-db (v2 SKUs from plans.csv → plans table). Wins for all
+  //      founder_*, investor_*, accelerator_* SKUs; uses the row's
+  //      stripe_price_id directly (env-backed via plans-db.fromGenerated).
+  //   3. LEGACY_PLANS + STRIPE_PRICE_MAP (grandfathers founding50, growth,
+  //      growth_annual — kept alive for renewals).
+  //
+  // If a plan resolves but its Stripe price ID cannot be found (env var
+  // missing / plans table not seeded), we return 503 `plan_not_provisioned`
+  // — NOT a 400 — so the CFO ops runbook can distinguish "bad user input"
+  // from "we forgot to mint the Stripe price".
   const IS_STARTUP_PACKAGE = planId === "founder_package";
-  const plan = IS_STARTUP_PACKAGE
-    ? {
-        id: "founder_package",
-        name: "Startup Package",
-        price: 14900,
-        cadence: "once" as const,
-        features: ["startup_package", "pdf_branding"],
+
+  let plan: LegacyPlan | null = null;
+  let priceId: string | null | undefined;
+  let trialDays = 0;
+  let dbPlanSegment: string | null = null;
+
+  if (IS_STARTUP_PACKAGE) {
+    plan = {
+      id: "founder_package",
+      name: "Startup Package",
+      price: 14900,
+      cadence: "once",
+      features: ["startup_package", "pdf_branding"],
+    };
+    priceId = STRIPE_PRICE_MAP[planId];
+  } else {
+    try {
+      const { getPlanCached } = await import("@/lib/plans-db");
+      const dbPlan = await getPlanCached(planId);
+      if (dbPlan) {
+        const cadence: LegacyPlan["cadence"] =
+          dbPlan.interval === "yearly"
+            ? "yearly"
+            : dbPlan.interval === "monthly"
+              ? "monthly"
+              : dbPlan.interval === "once"
+                ? "once"
+                : "free";
+        const cents =
+          dbPlan.interval === "yearly"
+            ? (dbPlan.annual_price_aud_cents || dbPlan.price_aud_cents)
+            : dbPlan.price_aud_cents;
+        plan = {
+          id: dbPlan.id,
+          name: dbPlan.name,
+          price: cents,
+          cadence,
+          features: dbPlan.feature_flags,
+        };
+        priceId = dbPlan.stripe_price_id ?? STRIPE_PRICE_MAP[planId];
+        trialDays = Number(dbPlan.trial_days ?? 0) || 0;
+        dbPlanSegment = typeof dbPlan.segment === "string" ? dbPlan.segment : null;
       }
-    : getPlan(planId);
+    } catch {
+      // plans-db not available yet (W1 rollout in progress) — legacy behaviour.
+    }
+    if (!plan) {
+      const legacy = getPlan(planId);
+      if (legacy) {
+        plan = legacy;
+        priceId = STRIPE_PRICE_MAP[planId];
+      }
+    }
+  }
+
   if (!plan || plan.cadence === "free") {
     return NextResponse.json(
       { ok: false, reason: "Invalid or free plan" },
       { status: 400 },
     );
   }
-
-  let priceId = STRIPE_PRICE_MAP[planId];
 
   // After the Growth early-bird deadline, switch to the standard $499/mo price.
   if (planId === "growth" && !isGrowthEarlyBird()) {
@@ -156,25 +212,14 @@ export async function POST(request: Request) {
 
   if (!priceId) {
     return NextResponse.json(
-      { ok: false, reason: `Stripe price not configured for plan "${planId}"` },
-      { status: 400 },
+      {
+        ok: false,
+        error: "plan_not_provisioned",
+        planId,
+        hint: `set STRIPE_PRICE_${planId.toUpperCase()} env var and seed plans table`,
+      },
+      { status: 503 },
     );
-  }
-
-  // Look up the DB plan row (v2 plans matrix) to read trial_days + segment.
-  // Falls back gracefully when the plans-db helper / row is missing so legacy
-  // plans (free/founding50/growth/growth_annual) keep working.
-  let trialDays = 0;
-  let dbPlanSegment: string | null = null;
-  try {
-    const { getPlanCached } = await import("@/lib/plans-db");
-    const dbPlan = await getPlanCached(planId);
-    if (dbPlan) {
-      trialDays = Number(dbPlan.trial_days ?? 0) || 0;
-      dbPlanSegment = typeof dbPlan.segment === "string" ? dbPlan.segment : null;
-    }
-  } catch {
-    // plans-db not available yet (W1 rollout in progress) — legacy behaviour.
   }
 
   // Resolve the user's segment (for customer metadata + attribution).
@@ -309,7 +354,19 @@ export async function POST(request: Request) {
     customer_email: user.email,
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: buildCheckoutSuccessUrl(siteUrl, planId, bodyOrigin),
-    cancel_url: `${siteUrl}/#pricing`,
+    cancel_url: `${siteUrl}/pricing`,
+    // ATO tax-invoice compliance:
+    //   - `automatic_tax` lets Stripe Tax compute AU GST from the seller
+    //     origin + buyer country/state. For subscriptions Stripe auto-applies
+    //     this to every generated invoice.
+    //   - `tax_id_collection` surfaces the ABN/GST field on Checkout so B2B
+    //     buyers can supply their ABN (reverse-charge for AU business
+    //     customers, or Australian-address enforcement).
+    //   - `billing_address_collection: "required"` — needed both for GST
+    //     jurisdiction determination and for a compliant tax invoice.
+    automatic_tax: { enabled: true },
+    tax_id_collection: { enabled: true },
+    billing_address_collection: "required",
     // r-04-exempt: transition window — raw kept alongside hash for webhook back-compat (D3-CISO-07 phase 1)
     metadata: {
       blockid_user_id: user.id,
@@ -340,6 +397,12 @@ export async function POST(request: Request) {
   // Trial configuration — only for recurring plans with trial_days > 0.
   // Legacy plans (Founding-50 one-off, Enterprise custom, or DB plans with
   // trial_days=0) skip this block and charge immediately.
+  //
+  // The `description` lands on the generated subscription invoices and the
+  // Stripe dashboard so support + finance can see which SKU without opening
+  // the metadata drawer. The reseller path below (when applicable) overrides
+  // this with "Introduced by …".
+  const subscriptionDescription = `BlockID.au — ${plan.name}`;
   if (isRecurring && trialDays > 0) {
     sessionParams.subscription_data = {
       trial_period_days: trialDays,
@@ -347,9 +410,28 @@ export async function POST(request: Request) {
         end_behavior: { missing_payment_method: "cancel" },
       },
       metadata: customerMetadata,
+      description: subscriptionDescription,
     };
   } else if (isRecurring) {
-    sessionParams.subscription_data = { metadata: customerMetadata };
+    sessionParams.subscription_data = {
+      metadata: customerMetadata,
+      description: subscriptionDescription,
+    };
+  }
+
+  // One-off checkouts: enable invoice creation with ATO-compliant tax-invoice
+  // fields (seller ABN as a custom_field + GST-registered footer). Reseller
+  // attribution (below) appends its "Reseller" custom_field onto this same
+  // payload — Stripe caps custom_fields at 4 entries.
+  if (!isRecurring) {
+    sessionParams.invoice_creation = {
+      enabled: true,
+      invoice_data: {
+        description: `BlockID.au — ${plan.name}`,
+        custom_fields: [{ name: "Seller ABN", value: "79 659 615 111" }],
+        footer: "Auschain Pty Ltd · ACN 659 615 111 · GST-registered",
+      },
+    };
   }
 
   // Stash customer metadata on the Stripe Customer itself when possible so
@@ -409,12 +491,19 @@ export async function POST(request: Request) {
     if (isRecurring && sessionParams.subscription_data) {
       sessionParams.subscription_data.description = `Introduced by ${displayNameShort}`;
     } else if (!isRecurring) {
+      // Append the Reseller custom_field to the base invoice_creation
+      // payload (seller ABN + description + footer already set above).
+      // Stripe caps custom_fields at 4, so slice defensively.
+      const baseInvoice = sessionParams.invoice_creation;
+      const existingFields = baseInvoice?.invoice_data?.custom_fields ?? [];
       sessionParams.invoice_creation = {
         enabled: true,
         invoice_data: {
+          ...(baseInvoice?.invoice_data ?? {}),
           custom_fields: [
+            ...existingFields,
             { name: "Reseller", value: displayNameShort },
-          ],
+          ].slice(0, 4),
         },
       };
     }
