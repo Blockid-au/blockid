@@ -83,6 +83,35 @@ interface ScoreApiResponse {
   } | null;
   evidenceGaps?: string[] | null;
   persisted: boolean;
+  attribution?: {
+    firstTouch: AttributionEcho | null;
+    lastTouch: AttributionEcho | null;
+  } | null;
+}
+
+interface AttributionEcho {
+  source?: string | null;
+  medium?: string | null;
+  campaign?: string | null;
+  term?: string | null;
+  content?: string | null;
+  gclid?: string | null;
+  fbclid?: string | null;
+  referrer?: string | null;
+  landing_path?: string | null;
+}
+
+// Read attribution snapshot from localStorage (written by <UtmCapture />).
+// Guards against private-mode SecurityError + malformed JSON.
+function readLocalAttribution(key: string): AttributionEcho | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as AttributionEcho;
+  } catch {
+    return null;
+  }
 }
 
 function fmtAudMillionsShort(v: number): string {
@@ -118,8 +147,12 @@ export function ScoreForm() {
   const handleCompanyFocus = React.useCallback(() => {
     if (startedFiredRef.current) return;
     startedFiredRef.current = true;
+    const lt = readLocalAttribution("bid_last_touch_v1");
     trackEvent("score_form_started", {
       source: heroQuery.length > 0 ? "hero_search" : "direct",
+      utm_source: lt?.source ?? undefined,
+      utm_medium: lt?.medium ?? undefined,
+      utm_campaign: lt?.campaign ?? undefined,
     });
   }, [heroQuery]);
 
