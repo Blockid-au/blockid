@@ -127,6 +127,25 @@ export interface InvestorPackData {
     }>;
   };
   /**
+   * v3.8.2 — Evidence Completeness section (SVI sprint Day 8-9).
+   * Populated from svi_dimension_evidence rows for this project.
+   * When absent the page is skipped — same pattern as forecast/exitStrategy.
+   */
+  evidenceCompleteness?: {
+    overallPercent: number;
+    rows: Array<{
+      dimension: string;
+      label: string;
+      completenessPercent: number;
+      presentCount: number;
+      totalCount: number;
+      status: "Strong" | "Developing" | "Needs Work";
+    }>;
+    interpretation: string;
+    disclosure: string;
+    asOfDate: string;
+  };
+  /**
    * v3.7.1 — Exit Strategy thesis section (from `exit_scenarios`).
    * Populated when the founder pins a scenario with `use_for_investor_pack=true`.
    */
@@ -1310,6 +1329,179 @@ function ExitStrategyPage({ data }: { data: InvestorPackData }) {
   );
 }
 
+/* ─── 9. Evidence Completeness (v3.8.2 / SVI sprint Day 8-9) ─────────────── */
+
+function statusColor(status: "Strong" | "Developing" | "Needs Work"): string {
+  if (status === "Strong") return C.emerald600;
+  if (status === "Developing") return C.amber700;
+  return C.red600;
+}
+
+function statusBgColor(status: "Strong" | "Developing" | "Needs Work"): string {
+  if (status === "Strong") return C.emerald100;
+  if (status === "Developing") return C.amber100;
+  return C.red100;
+}
+
+function EvidenceCompletenessPage({ data }: { data: InvestorPackData }) {
+  const ec = data.evidenceCompleteness;
+  if (!ec) return null;
+
+  return (
+    <Page size="A4" style={s.page}>
+      <HeaderBar />
+      <Text style={s.h1}>Evidence Completeness</Text>
+      <Text style={s.h1Sub}>
+        SVI evidence coverage across 8 dimensions — as of {ec.asOfDate}
+      </Text>
+
+      {/* Overall % badge */}
+      <View
+        style={{
+          marginBottom: 12,
+          padding: 12,
+          borderRadius: 6,
+          backgroundColor: C.brand50,
+          borderLeftWidth: 3,
+          borderLeftColor: C.brand600,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 16,
+        }}
+      >
+        <View style={{ alignItems: "center", minWidth: 60 }}>
+          <Text
+            style={{
+              fontSize: 28,
+              fontFamily: "Helvetica-Bold",
+              color: C.brand700,
+              lineHeight: 1,
+            }}
+          >
+            {ec.overallPercent}%
+          </Text>
+          <Text style={{ fontSize: 7, color: C.ink500, marginTop: 2 }}>overall</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.label}>Evidence completeness</Text>
+          <Text
+            style={{
+              fontSize: 9,
+              color: C.ink700,
+              marginTop: 4,
+              lineHeight: 1.5,
+            }}
+          >
+            {ec.interpretation}
+          </Text>
+        </View>
+      </View>
+
+      {/* Per-dimension table */}
+      <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 4 }}>
+        <View style={s.tableHeader}>
+          <Text style={[s.tableHeaderCell, { width: "10%" }]}>DIM</Text>
+          <Text style={[s.tableHeaderCell, { width: "44%" }]}>Evidence dimension</Text>
+          <Text style={[s.tableHeaderCell, { width: "20%", textAlign: "right" }]}>
+            Complete
+          </Text>
+          <Text style={[s.tableHeaderCell, { width: "12%", textAlign: "right" }]}>
+            Items
+          </Text>
+          <Text style={[s.tableHeaderCell, { width: "14%", textAlign: "right" }]}>
+            Status
+          </Text>
+        </View>
+        {ec.rows.map((row, i) => (
+          <View
+            key={row.dimension}
+            style={[
+              s.tableRow,
+              { backgroundColor: i % 2 === 0 ? C.white : C.surface50 },
+            ]}
+          >
+            <Text
+              style={[
+                s.tableCell,
+                {
+                  width: "10%",
+                  fontFamily: "Helvetica-Bold",
+                  color: C.ink500,
+                },
+              ]}
+            >
+              {row.dimension.toUpperCase()}
+            </Text>
+            <Text style={[s.tableCell, { width: "44%" }]}>{row.label}</Text>
+            <Text
+              style={[
+                s.tableCell,
+                {
+                  width: "20%",
+                  textAlign: "right",
+                  fontFamily: "Helvetica-Bold",
+                  color: statusColor(row.status),
+                },
+              ]}
+            >
+              {row.completenessPercent}%
+            </Text>
+            <Text
+              style={[
+                s.tableCell,
+                { width: "12%", textAlign: "right", color: C.ink500 },
+              ]}
+            >
+              {row.presentCount}/{row.totalCount}
+            </Text>
+            <View
+              style={{
+                width: "14%",
+                alignItems: "flex-end",
+                justifyContent: "center",
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: statusBgColor(row.status),
+                  paddingHorizontal: 5,
+                  paddingVertical: 2,
+                  borderRadius: 3,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 7.5,
+                    fontFamily: "Helvetica-Bold",
+                    color: statusColor(row.status),
+                  }}
+                >
+                  {row.status}
+                </Text>
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Disclosure */}
+      <Text
+        style={{
+          marginTop: 12,
+          fontSize: 7.5,
+          color: C.ink500,
+          fontStyle: "italic",
+          lineHeight: 1.4,
+        }}
+      >
+        {ec.disclosure}
+      </Text>
+
+      <RegulatoryFooter />
+    </Page>
+  );
+}
+
 /* ─── Top-level document ────────────────────────────────────────────────── */
 
 export const InvestorPackPdf: React.FC<{ data: InvestorPackData }> = ({ data }) => (
@@ -1327,6 +1519,7 @@ export const InvestorPackPdf: React.FC<{ data: InvestorPackData }> = ({ data }) 
     <TractionPage data={data} />
     {data.forecast && <ForecastPage data={data} />}
     {data.exitStrategy && <ExitStrategyPage data={data} />}
+    {data.evidenceCompleteness && <EvidenceCompletenessPage data={data} />}
     <OnePageTeaserPage data={data} />
   </Document>
 );
