@@ -58,6 +58,14 @@ import {
   computeFundingReadiness,
   type FundingReadiness,
 } from "@/lib/svi-analysis";
+import {
+  buildEvidenceCompletenessSection,
+  type EvidenceCompletenessSection,
+} from "@/lib/investor-pack/evidence-completeness-section";
+import {
+  calculateDimensionCompleteness,
+  EVIDENCE_CATALOG,
+} from "@/lib/svi-completeness";
 
 /* ─── Public types ──────────────────────────────────────────────────────── */
 
@@ -130,6 +138,11 @@ export interface InvestorPackData {
   // Compliance: buildCLevelChapter() runs scanForRealNames() and replaces
   // the chapter with a blocked stub on any violation.
   cLevelChapter: CLevelChapter | null;
+  // ch12b Evidence Completeness section (Day 8-9 SVI sprint). Assembled from
+  // svi_dimension_evidence rows for this project. Optional — when no evidence
+  // rows exist, overall% is 0 and all dimensions show "Needs Work". The PDF
+  // renders the section only when this field is present.
+  evidenceCompleteness: EvidenceCompletenessSection;
   team: Array<{ name: string; role: string }>;
   capTable: Array<{ holder: string; pctFullyDiluted: number }>;
   ask: {
@@ -551,6 +564,54 @@ async function loadCLevelChapter(
   }
 }
 
+/* ─── Evidence completeness loader — best-effort, returns empty-state on failure. ─ */
+
+/**
+ * Loads svi_dimension_evidence rows for this project and computes per-dimension
+ * completeness results, then delegates to buildEvidenceCompletenessSection().
+ *
+ * Scoped to projectId. When projectId is null or Supabase is unavailable the
+ * section returns with 0% completeness across all 8 dimensions (empty-state).
+ */
+async function loadEvidenceCompleteness(
+  projectId: string | null,
+  asOfDate?: string,
+): Promise<EvidenceCompletenessSection> {
+  const supabase = getSupabaseAdmin();
+  const emptySection = buildEvidenceCompletenessSection([], asOfDate);
+
+  if (!supabase || !projectId) return emptySection;
+
+  try {
+    const { data, error } = await supabase
+      .from("svi_dimension_evidence")
+      .select("dimension, evidence_type")
+      .eq("project_id", projectId);
+
+    if (error || !data) return emptySection;
+
+    const evidenceRows = data as Array<{ dimension: string; evidence_type: string }>;
+
+    // Group evidence types by dimension.
+    const presentByDimension = new Map<string, Set<string>>();
+    for (const row of evidenceRows) {
+      const dim = (row.dimension ?? "").toLowerCase();
+      if (!presentByDimension.has(dim)) presentByDimension.set(dim, new Set());
+      presentByDimension.get(dim)!.add(row.evidence_type);
+    }
+
+    // Compute DimensionCompletenessResult for every dimension in the catalog.
+    const dimensionResults = Object.keys(EVIDENCE_CATALOG).map((dim) =>
+      calculateDimensionCompleteness(dim, presentByDimension.get(dim) ?? new Set()),
+    );
+
+    return buildEvidenceCompletenessSection(dimensionResults, asOfDate);
+  } catch (err) {
+    console.warn("[investor-pack:assemble] evidence-completeness section skipped", err);
+    return emptySection;
+  }
+}
+
 /* ─── Public entry point. ──────────────────────────────────────────────── */
 
 export async function assemblePackData(
@@ -717,6 +778,19 @@ export async function assemblePackData(
   // Fail-soft: returns null when no report exists yet so the PDF renders a placeholder.
   const cLevelChapter = await loadCLevelChapter(userId, projectId);
 
+  // ch12b Evidence Completeness section — loads svi_dimension_evidence rows
+  // scoped to this project and computes per-dimension completeness. Falls back
+  // to a 0%-complete all-8-dimensions section when no evidence is on file.
+  const evidenceCompleteness = await loadEvidenceCompleteness(
+    projectId,
+    new Date().toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    }),
+  );
+
   // Team + cap-table + ask.
   const { members, founderName } = await loadTeam(userId);
   const capTable = await loadCapTable(userId, projectId);
@@ -765,6 +839,7 @@ export async function assemblePackData(
     exitStrategy,
     fundingReadiness: fundingReadinessSection,
     cLevelChapter,
+    evidenceCompleteness,
     team: members,
     capTable,
     ask: {
