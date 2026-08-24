@@ -264,6 +264,7 @@ const VALIDATE_SUBGROUPS: NavSubgroup[] = [
       { href: "/workspace/evaluation", label: "Evaluation (13)", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 1 },
       // v3 metadata — full annotation deferred to journey-sidebar migration PR
       { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 1, persona: "founder", journeyGroup: "analysis" },
+      { href: "/workspace/svi-evidence", label: "Evidence Completeness", icon: ClipboardCheck, minPlan: "starter", minTier: "starter", growthPhase: 2 },
     ],
   },
   {
@@ -367,6 +368,7 @@ const FUNDRAISE_SUBGROUPS: NavSubgroup[] = [
     id: "fundraise.raise",
     label: "Raise",
     items: [
+      { href: "/workspace/financial-forecast", label: "Financial Forecast", icon: LineChart, minPlan: "starter", minTier: "starter", growthPhase: 4 },
       { href: "/dashboard/fundraise", label: "Fundraise Readiness", icon: TrendingUp, minPlan: "starter", minTier: "starter", growthPhase: 3 },
       { href: "/workspace/fundraise", label: "Raise Capital", icon: Banknote, minPlan: "starter", minTier: "starter", growthPhase: 3 },
     ],
@@ -390,6 +392,7 @@ const SCALE_EXIT_SUBGROUPS: NavSubgroup[] = [
     label: "Exit",
     items: [
       { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen, minPlan: "growth", minTier: "growth", growthPhase: 5 },
+      { href: "/workspace/exit-strategy", label: "Exit Strategy Builder", icon: TrendingUp, minPlan: "growth", minTier: "growth", growthPhase: 5 },
       { href: "/dashboard/exit-readiness", label: "Exit Benchmark", icon: BarChart3, minPlan: "starter", minTier: "starter", growthPhase: 5 },
     ],
   },
