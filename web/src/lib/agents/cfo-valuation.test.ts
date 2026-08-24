@@ -107,6 +107,26 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
     }
   });
 
+  // Berkus method should honour real input signals for pre-revenue startups
+  // (founder vesting = quality team, SHA/data room = strategic relationships)
+  // instead of using hardcoded flags that under- or over-credit every founder.
+  it("pre-revenue Berkus responds to governance signals — vesting + SHA + data room lifts mid", () => {
+    const preRev = { sector: "saas", stage: "pre-seed", mrrAud: 0, monthlyGrowthRatePct: 0 };
+    const bare = buildVcValuationReport(preRev);
+    const strong = buildVcValuationReport({
+      ...preRev,
+      hasFounderVesting: true,
+      hasShareholdersAgreement: true,
+      hasDataRoom: true,
+    });
+    const bareBerkus = bare.methods.find((m) => m.method === "berkus")!;
+    const strongBerkus = strong.methods.find((m) => m.method === "berkus")!;
+    expect(strongBerkus.midAud).toBeGreaterThan(bareBerkus.midAud);
+    // Berkus carries 0.35 weight when pre-revenue, so the governance signal
+    // must also lift the blended mid — the point of the change.
+    expect(strong.blended.midAud).toBeGreaterThan(bare.blended.midAud);
+  });
+
   // T0133 — R&D Tax Incentive + ESIC valuation modifier
   it("applies an AU tax-incentive uplift when ESIC qualifies and RDTI refund is present", () => {
     const baseline = buildVcValuationReport(input);
