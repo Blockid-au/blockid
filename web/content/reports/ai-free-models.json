@@ -1,16 +1,25 @@
 {
-  "updatedAt": "2026-08-13T21:05:02.361Z",
+  "updatedAt": "2026-08-24T08:01:41.229Z",
   "openrouter": [
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
     "nvidia/nemotron-3.5-lightning:free",
     "poolside/laguna-s-2.1:free",
-    "nvidia/nemotron-nano-12b-v2-vl:free"
+    "nvidia/nemotron-nano-12b-v2-vl:free",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "liquid/lfm-2.5-2.6b:free",
+    "nvidia/nemotron-3-nano-30b-a3b:free",
+    "thinkingmachines/inkling-small:free",
+    "thinkingmachines/inkling:free",
+    "google/lyria-3-pro-preview",
+    "google/lyria-3-clip-preview",
+    "z-ai/glm-5.2:free",
+    "stealth/ox-alpha",
+    "dots-studio/dots-3-note-preview:free"
   ],
   "groq": [
+    "canopylabs/orpheus-arabic-saudi",
+    "groq/compound-mini",
     "qwen/qwen3.6-27b",
     "openai/gpt-oss-120b",
     "llama-3.3-70b-versatile",
@@ -21,11 +30,11 @@
     "canopylabs/orpheus-v1-english"
   ],
   "cerebras": [
-    "zai-glm-4.7",
-    "gpt-oss-120b",
-    "gemma-4-31b"
+    "gemma-4-31b",
+    "gpt-oss-120b"
   ],
   "sambanova": [
+    "MiniMax-M3",
     "DeepSeek-V3.1",
     "DeepSeek-V3.2",
     "gpt-oss-120b",
