@@ -486,7 +486,17 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
   const revLow = arrAud * multiLow;
   const revHigh = arrAud * multiHigh;
   const revMid = (revLow + revHigh) / 2;
-  const berkus = calculateBerkusValuation(true, mrrAud > 0, true, false, mrrAud > 0);
+
+  // Berkus signals derived from real input rather than hardcoded flags.
+  // Quality-team credit needs a governance signal (founder vesting is the
+  // cheapest AU proxy: it separates committed teams from paper co-founders).
+  // Strategic-relationships credit needs structured investor artefacts (SHA
+  // or a populated data room — both imply the startup has done the legwork
+  // to be transactable with third parties).
+  const hasPrototype = mrrAud > 0 || (input.customers ?? 0) > 0;
+  const hasQualityTeam = input.hasFounderVesting === true;
+  const hasStrategicRelationships = input.hasShareholdersAgreement === true || input.hasDataRoom === true;
+  const berkus = calculateBerkusValuation(true, hasPrototype, hasQualityTeam, hasStrategicRelationships, mrrAud > 0);
   const dcfMid = arrAud > 0 ? arrAud * (multiLow + 1) : berkus * 1.5;
 
   // AU tax modifier for risk_factor_summation
