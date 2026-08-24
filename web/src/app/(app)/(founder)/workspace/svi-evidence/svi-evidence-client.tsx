@@ -11,6 +11,8 @@ import type {
   RoadmapItem,
   RoadmapForecast,
 } from "@/lib/svi-completeness";
+import { SviCompletenessHeatmap } from "@/components/svi/svi-completeness-heatmap";
+import { SviFixRoadmap } from "@/components/svi/svi-fix-roadmap";
 
 const DIMENSION_LABELS: Record<string, string> = {
   ftv: "Founder Traction Velocity",
@@ -146,6 +148,9 @@ export function SviEvidenceClient() {
         </div>
       )}
 
+      {/* Completeness heatmap */}
+      <SviCompletenessHeatmap projectId="" className="mb-2" />
+
       {/* Dimension cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {dimensions.map((dim) => {
@@ -276,6 +281,14 @@ export function SviEvidenceClient() {
           </div>
         </div>
       )}
+
+      {/* 4-week fix roadmap */}
+      <div>
+        <h2 className="text-base font-semibold text-ink-800 dark:text-ink-100 mb-3">
+          4-Week Fix Roadmap
+        </h2>
+        <SviFixRoadmap projectId="" />
+      </div>
 
       {/* Footer */}
       <p className="text-xs text-ink-500 dark:text-ink-400 border-t border-ink-100 dark:border-ink-800 pt-4">
