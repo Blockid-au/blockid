@@ -2629,7 +2629,7 @@ export async function sendGuestReport(params: {
       </p>`
     : "";
 
-  const signupUrl = `${siteUrl()}/sign-up`;
+  const signupUrl = `${siteUrl()}/signup`;
 
   const html = shell(`
     <div style="padding:32px 0 0;">

@@ -73,7 +73,7 @@ export default function OneClickSuccessPage() {
               analysis. No credit card required.
             </p>
             <div className="mt-5 flex justify-center">
-              <Link href="/auth/sign-up" className="inline-flex">
+              <Link href="/signup" className="inline-flex">
                 <Button variant="primary" size="lg">
                   Create free account
                   <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
