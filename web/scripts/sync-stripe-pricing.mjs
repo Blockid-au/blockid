@@ -59,6 +59,7 @@ const PLANS = [
   { planId: "credits_25",    label: "25 credits pack",        configCents: 2000,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_25" },
   { planId: "credits_50",    label: "50 credits pack",        configCents: 1500,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_50" },
   { planId: "credits_100",   label: "100 credits pack",       configCents: 2500,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_100" },
+  { planId: "one_click_report", label: "One-Click Report (A$3)", configCents: 300, cadence: "one-off", envVar: "STRIPE_PRICE_ONE_CLICK_REPORT" },
 ];
 
 // ─── Audit + (optionally) fix ──────────────────────────────────────────────
