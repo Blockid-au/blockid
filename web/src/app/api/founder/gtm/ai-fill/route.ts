@@ -174,8 +174,8 @@ export async function POST() {
     positioning:
       gtm.positioning ||
       `${name} is the ${sector === "saas" ? "only AU-native" : "first"} startup navigation system with SVI scoring — not just another ${sector} tool. Strategic navigation commands ${AU_MARKET_BENCHMARKS.VALUATIONS.STRATEGIC_MULTIPLE_MIN}–${AU_MARKET_BENCHMARKS.VALUATIONS.STRATEGIC_MULTIPLE_MAX}x revenue multiples vs ${AU_MARKET_BENCHMARKS.VALUATIONS.UTILITY_MULTIPLE_MIN}–${AU_MARKET_BENCHMARKS.VALUATIONS.UTILITY_MULTIPLE_MAX}x for utility tools.`,
-    primary_channel: pickPrimaryChannel(gtm.channels, stage, sector),
-    secondary_channels: pickSecondaryChannels(gtm.channels, stage),
+    primary_channel: pickPrimaryChannel(gtm.channels ?? [], stage, sector),
+    secondary_channels: pickSecondaryChannels(gtm.channels ?? [], stage),
     sales_motion: salesMotion(stage),
     price_anchor: priceAnchor(sector, stage),
     launch_plan: launchPlan,
