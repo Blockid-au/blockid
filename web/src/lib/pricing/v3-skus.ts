@@ -17,6 +17,7 @@
 
 export type SkuId =
   | "sku_trust_report_5aud"
+  | "sku_one_click_report_3aud"
   | "sku_starter"
   | "sku_growth_monthly"
   | "sku_growth_annual"
@@ -35,6 +36,7 @@ export interface V3Sku {
   /** Which tier ladder this SKU belongs to. Drives entitlement lookups. */
   tier:
     | "trust_report"
+    | "one_click_report"
     | "starter"
     | "growth"
     | "professional"
@@ -71,6 +73,28 @@ export const TRUST_REPORT_5AUD: V3Sku = {
   description:
     "Full 13-area Trust Business Report for one business, valid 90 days. Includes evidence citations, 30/60/90-day plan, PDF+DOCX export, share link with trust badge.",
   display_price_label: "A$5.50 inc-GST",
+};
+
+/**
+ * The A$3.00 inc-GST one-off SKU that fuels the guest-onboarding funnel:
+ * a visitor uploads a pitch deck OR pastes a website URL, pays A$3, and
+ * receives a full SVI valuation + Trusted Biz Report by email — no signup
+ * required. Rows land in `guest_analyses` (migration 20260825_guest_analysis)
+ * keyed by Stripe session id.
+ * §14bis D1: advertise A$3.00 (GST-inclusive) — Stripe automatic_tax splits
+ * into A$2.73 net + A$0.27 GST via `tax_behavior: "inclusive"` on the Product.
+ */
+export const ONE_CLICK_REPORT_3AUD: V3Sku = {
+  id: "sku_one_click_report_3aud",
+  name: "One-Click Investor Analysis — guest",
+  tier: "one_click_report",
+  unit_amount_incl_gst_cents: 300,
+  cadence: "one_off",
+  credits_per_cycle: 0,
+  stripe_managed: true,
+  description:
+    "Full SVI valuation from your pitch deck or website — 8-dimension investor scorecard, comparable valuation range (AUD low/mid/high), instant email delivery. No signup required.",
+  display_price_label: "A$3.00 inc-GST",
 };
 
 export const STARTER: V3Sku = {
@@ -172,6 +196,7 @@ export const ENTERPRISE_CUSTOM: V3Sku = {
 /** Ordered listing consumed by pricing UI and the Stripe sync script. */
 export const V3_SKUS: readonly V3Sku[] = [
   TRUST_REPORT_5AUD,
+  ONE_CLICK_REPORT_3AUD,
   STARTER,
   GROWTH_MONTHLY,
   GROWTH_ANNUAL,

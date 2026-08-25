@@ -52,6 +52,13 @@ export interface PlatformConfig {
   growth_price_yearly_cents: number;   // e.g. 95000 = A$950/yr
   growth_plan_credits_monthly: number; // e.g. 200 credits/mo
 
+  // ── Guest One-Click Analysis (sku_one_click_report_3aud) ───────────────────
+  // Displayed price for the A$3 guest paywall. The Stripe Price is the
+  // source of truth for what actually gets charged (STRIPE_PRICE_ONE_CLICK_REPORT);
+  // this value drives the /pricing surface + guest funnel copy so ops can
+  // A/B the display without a redeploy.
+  guest_analysis_price_aud_cents: number;   // e.g. 300 = A$3.00 inc-GST
+
   // ── Referral ────────────────────────────────────────────────────────────────
   referral_credits: number;         // credits granted per referral
 
@@ -97,6 +104,8 @@ export const CONFIG_DEFAULTS: PlatformConfig = {
   growth_price_monthly_cents: 9900,
   growth_price_yearly_cents: 95000,
   growth_plan_credits_monthly: 200,
+
+  guest_analysis_price_aud_cents: 300,
 
   referral_credits: 2,
 

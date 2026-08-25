@@ -49,6 +49,10 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   // Startup Package — one-off A$149 SKU. Provisions the guided founder flow
   // per web/supabase/migrations/0118_startup_package.sql.
   founder_package: process.env.STRIPE_PRICE_STARTUP_PACKAGE,
+  // One-Click Investor Analysis — A$3.00 inc-GST guest paywall
+  // (sku_one_click_report_3aud). Populated by scripts/stripe/sync-plans.mjs;
+  // consumed by the guest checkout route (Phase 2).
+  one_click_report: process.env.STRIPE_PRICE_ONE_CLICK_REPORT,
   // Share Management add-on — per docs/plans/reseller-module-plan.md § F.5 / P8.
   // Env vars minted by Stripe account owner (P8.5, human-blocked until then).
   addon_share_mgmt_monthly: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY,
