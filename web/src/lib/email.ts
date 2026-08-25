@@ -2550,6 +2550,165 @@ export async function sendD9LastCall(args: NurtureArgs): Promise<SendResult> {
   return sendEmail({ to: args.to, subject: "Last call: A$5 lifetime, 100 spots only", html, unsubscribeUrl });
 }
 
+// ── A$3 One-Click Guest Report (Phase 5) ──────────────────────────────────────
+// Transactional — no canSendEmail / prepareUnsubscribe because this is a paid
+// deliverable, not marketing. The upsell footer is the only CTA.
+
+function fmtAud(v: number | undefined | null): string {
+  if (v == null || !Number.isFinite(v) || v <= 0) return "—";
+  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(v >= 10_000_000 ? 0 : 1)}M`;
+  if (v >= 1_000) return `A$${Math.round(v / 1_000)}k`;
+  return `A$${Math.round(v)}`;
+}
+
+function scoreBar(score: number): string {
+  const pct = Math.max(0, Math.min(100, Math.round(score)));
+  const color = pct >= 70 ? "#4ADE80" : pct >= 40 ? "#FACC15" : "#F87171";
+  return `<div style="background:#1F2A44;border-radius:4px;height:8px;width:100%;margin:4px 0 0;">
+    <div style="background:${color};border-radius:4px;height:8px;width:${pct}%;"></div>
+  </div>`;
+}
+
+export async function sendGuestReport(params: {
+  email: string;
+  reportData: Record<string, unknown>;
+  pdfUrl: string;
+  guestAnalysisId: string;
+}): Promise<void> {
+  const { email: to, reportData, pdfUrl, guestAnalysisId } = params;
+
+  const totalScore = typeof reportData.totalScore === "number" ? reportData.totalScore : null;
+  const stageLabel = typeof reportData.stageLabel === "string" ? reportData.stageLabel : "";
+  const subScores = (reportData.subScores && typeof reportData.subScores === "object")
+    ? (reportData.subScores as Record<string, number>)
+    : {};
+  const valuation = (reportData.valuation && typeof reportData.valuation === "object")
+    ? (reportData.valuation as { lowAud?: number; midAud?: number; highAud?: number; method?: string })
+    : null;
+  const actionPlan: { title: string; detail?: string; impact?: string }[] =
+    Array.isArray(reportData.actionPlan) ? (reportData.actionPlan as { title: string; detail?: string; impact?: string }[]) : [];
+
+  const dimLabels: Record<string, string> = {
+    team: "Team", product: "Product", market: "Market", traction: "Traction",
+    financials: "Financials", governance: "Governance", innovation: "Innovation", sustainability: "Sustainability",
+  };
+
+  const dimRows = Object.entries(subScores)
+    .slice(0, 8)
+    .map(([key, val]) => {
+      const label = dimLabels[key] ?? key;
+      const pct = Math.round(val);
+      return `<tr>
+        <td style="padding:4px 0;color:#94A3B8;font-size:13px;width:110px;">${escapeHtml(label)}</td>
+        <td style="padding:4px 0 4px 8px;">${scoreBar(pct)}</td>
+        <td style="padding:4px 0 4px 8px;color:#F8FAFC;font-size:13px;width:36px;text-align:right;">${pct}</td>
+      </tr>`;
+    })
+    .join("");
+
+  const valBand = valuation
+    ? `${fmtAud(valuation.lowAud)} – ${fmtAud(valuation.midAud)} – ${fmtAud(valuation.highAud)}`
+    : null;
+
+  const topActions = actionPlan.slice(0, 3);
+  const actionRows = topActions
+    .map(
+      (a, i) => `<tr>
+        <td style="padding:8px 0;color:#4ADE80;font-size:14px;vertical-align:top;width:24px;">${i + 1}.</td>
+        <td style="padding:8px 0 8px 8px;">
+          <p style="margin:0 0 2px;color:#F8FAFC;font-size:14px;font-weight:600;">${escapeHtml(a.title)}</p>
+          ${a.detail ? `<p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.5;">${escapeHtml(a.detail)}</p>` : ""}
+        </td>
+      </tr>`,
+    )
+    .join("");
+
+  const pdfButton = pdfUrl
+    ? `<p style="margin:20px 0 0;text-align:center;">
+        <a href="${pdfUrl}" style="display:inline-block;background:#2563EB;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Download Full PDF Report</a>
+      </p>`
+    : "";
+
+  const signupUrl = `${siteUrl()}/sign-up`;
+
+  const html = shell(`
+    <div style="padding:32px 0 0;">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">One-Click Investor Snapshot</p>
+      <h1 style="margin:0 0 8px;color:#F8FAFC;font-size:28px;font-weight:700;">Your Startup Analysis</h1>
+      ${totalScore !== null ? `<p style="margin:0 0 24px;color:#94A3B8;font-size:15px;">How professional investors see your startup right now.</p>` : ""}
+
+      ${totalScore !== null ? `
+      <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;margin:0 0 20px;text-align:center;">
+        <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Startup Value Index</p>
+        <p style="margin:0;font-size:56px;font-weight:800;color:#4ADE80;line-height:1;">${Math.round(totalScore)}</p>
+        ${stageLabel ? `<p style="margin:8px 0 0;color:#94A3B8;font-size:14px;">${escapeHtml(stageLabel)}</p>` : ""}
+      </div>` : ""}
+
+      ${valBand ? `
+      <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
+        <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Estimated Valuation Band</p>
+        <p style="margin:0;color:#F8FAFC;font-size:22px;font-weight:700;">${escapeHtml(valBand)}</p>
+        ${valuation?.method ? `<p style="margin:4px 0 0;color:#64748B;font-size:12px;">${escapeHtml(valuation.method)}</p>` : ""}
+      </div>` : ""}
+
+      ${dimRows ? `
+      <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
+        <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">8-Dimension Breakdown</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${dimRows}</table>
+      </div>` : ""}
+
+      ${actionRows ? `
+      <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
+        <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Top 3 Investor-Ready Actions</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${actionRows}</table>
+      </div>` : ""}
+
+      ${pdfButton}
+
+      <div style="background:#0B1220;border:1px solid #2563EB;border-radius:12px;padding:20px;margin:24px 0 0;text-align:center;">
+        <p style="margin:0 0 8px;color:#F8FAFC;font-size:15px;font-weight:600;">Want to track your score over time?</p>
+        <p style="margin:0 0 16px;color:#94A3B8;font-size:14px;">Create a free BlockID account and get 5 analysis credits, evidence vault, and investor-ready PDF reports.</p>
+        <a href="${signupUrl}" style="display:inline-block;background:#2563EB;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Create Free Account</a>
+      </div>
+
+      <p style="margin:24px 0 0;color:#475569;font-size:12px;text-align:center;">
+        This report was generated for ${escapeHtml(to)} · Guest analysis ID: ${escapeHtml(guestAnalysisId.slice(0, 8))}
+      </p>
+    </div>
+  `);
+
+  let attachment: { filename: string; content: Buffer; contentType: string } | undefined;
+  if (pdfUrl && pdfUrl.startsWith("http")) {
+    try {
+      const res = await fetch(pdfUrl, { redirect: "follow" });
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer());
+        attachment = { filename: "startup-analysis.pdf", content: buf, contentType: "application/pdf" };
+      }
+    } catch {
+      // best-effort — email still goes out with download link
+    }
+  }
+
+  const result = await sendEmail({
+    to,
+    subject: `Your Startup Investor Snapshot${totalScore !== null ? ` — SVI ${Math.round(totalScore)}` : ""}`,
+    html,
+    attachments: attachment ? [attachment] : undefined,
+  });
+
+  if (!result.ok) {
+    throw new Error(`guest report email failed: ${result.reason}`);
+  }
+
+  console.info("[blockid:email] guest report sent", {
+    guestAnalysisId,
+    to: redactEmail(to),
+    id: result.id,
+    attached: Boolean(attachment),
+  });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

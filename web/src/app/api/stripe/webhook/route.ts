@@ -1127,12 +1127,17 @@ export async function POST(request: Request) {
       `[blockid:stripe] guest_analysis ${guestAnalysisId} → paid (session ${session.id})`,
     );
 
-    // TODO Phase 4: trigger guest-analysis-runner.ts
-    //   Fire-and-forget the analysis pipeline once it exists. Draft shape:
-    //     const { runGuestAnalysis } = await import("@/lib/guest-analysis/runner");
-    //     runGuestAnalysis(guestAnalysisId).catch((err) => {
-    //       console.error("[blockid:stripe] guest analysis runner failed", err);
-    //     });
+    // Fire-and-forget: runner handles its own error logging + status flips.
+    import("@/lib/guest-analysis/runner").then(({ runGuestAnalysis }) => {
+      runGuestAnalysis(guestAnalysisId).catch((err) => {
+        console.error("[blockid:stripe] guest analysis runner failed", {
+          guestAnalysisId,
+          err: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }).catch((err) => {
+      console.error("[blockid:stripe] runner dynamic import failed", String(err));
+    });
 
     // Revenue analytics — same shape as trust_report_5aud so the CFO
     // dashboard aggregates the guest funnel alongside other one-offs.
