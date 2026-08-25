@@ -152,6 +152,16 @@ export async function POST(request: Request) {
       return;
     }
 
+    // ── A$3 One-Click Guest Analysis (Phase 2) ──────────────────────
+    // Guest paywall: no auth, no plan grant, no credit pack. Flips the
+    // pending guest_analyses row to 'paid' and (Phase 4) triggers the
+    // analysis runner. Short-circuits so the subscription branches below
+    // never see the guest session.
+    if (session.metadata?.scope === "guest_analysis") {
+      await handleGuestAnalysisCompleted(session, e);
+      return;
+    }
+
     // ── Per-analysis payment (no auth required) ─────────────────────
     if (session.metadata?.blockid_type === "svi_analysis") {
       const email = session.metadata.blockid_email?.toLowerCase().trim();
@@ -1059,6 +1069,87 @@ export async function POST(request: Request) {
         );
       }
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // A$3 One-Click Guest Analysis — checkout.session.completed handler.
+  // -------------------------------------------------------------------------
+  //
+  // Phase 2. Fires when /api/guest-analysis/create-order has minted a
+  // Stripe Checkout Session for the A$3 inc-GST One-Click SKU. The row was
+  // inserted with status='pending' before Stripe was called; this handler
+  // guards the transition to 'paid' and stamps the payment intent.
+  //
+  // Idempotency:
+  //   - Outer claimWebhookEvent() dedupes duplicate Stripe deliveries.
+  //   - Guarded UPDATE (WHERE status='pending') makes a second delivery a
+  //     no-op even if the outer dedup missed.
+  //
+  // Never throws — bookkeeping failure must not cause Stripe to retry and
+  // re-charge the guest. Console-warns and returns.
+  async function handleGuestAnalysisCompleted(
+    session: Stripe.Checkout.Session,
+    event: Stripe.Event,
+  ): Promise<void> {
+    const guestAnalysisId = session.metadata?.guest_analysis_id;
+    if (!guestAnalysisId || typeof guestAnalysisId !== "string") {
+      console.warn(
+        "[blockid:stripe] guest_analysis webhook missing guest_analysis_id",
+        { session_id: session.id },
+      );
+      return;
+    }
+
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : null;
+
+    const { error: updErr } = await supabase
+      .from("guest_analyses")
+      .update({
+        status: "paid",
+        stripe_payment_intent: paymentIntentId,
+        amount_paid_aud_cents: session.amount_total ?? 300,
+      })
+      .eq("id", guestAnalysisId)
+      .eq("status", "pending");
+
+    if (updErr) {
+      console.warn(
+        "[blockid:stripe] guest_analyses paid update failed",
+        { code: updErr.code, message: updErr.message, id: guestAnalysisId },
+      );
+      return;
+    }
+
+    console.info(
+      `[blockid:stripe] guest_analysis ${guestAnalysisId} → paid (session ${session.id})`,
+    );
+
+    // TODO Phase 4: trigger guest-analysis-runner.ts
+    //   Fire-and-forget the analysis pipeline once it exists. Draft shape:
+    //     const { runGuestAnalysis } = await import("@/lib/guest-analysis/runner");
+    //     runGuestAnalysis(guestAnalysisId).catch((err) => {
+    //       console.error("[blockid:stripe] guest analysis runner failed", err);
+    //     });
+
+    // Revenue analytics — same shape as trust_report_5aud so the CFO
+    // dashboard aggregates the guest funnel alongside other one-offs.
+    await recordRevenueEvent({
+      userId: null,
+      planId: null,
+      stripeEventId: event.id,
+      grossCents: session.amount_total ?? 0,
+      currency: session.currency ?? "aud",
+      kind: "guest_analysis_3aud",
+      detail: {
+        session_id: session.id,
+        guest_analysis_id: guestAnalysisId,
+        sku: session.metadata?.sku ?? "sku_one_click_report_3aud",
+        email: session.metadata?.email ?? session.customer_email ?? null,
+      },
+    });
   }
 
   // -------------------------------------------------------------------------
