@@ -39,6 +39,32 @@ const ORIGIN_FALLBACK = "https://blockid.au";
 // real "is this deliverable" check happens when we try to email the report.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Domains that provide free disposable/throwaway addresses. Blocking them
+// prevents cheap-cycle abuse where one person generates many orders.
+// Not exhaustive — updated reactively when patterns emerge.
+const DISPOSABLE_DOMAINS = new Set([
+  "mailinator.com", "guerrillamail.com", "guerrillamail.info", "guerrillamail.net",
+  "guerrillamail.org", "guerrillamail.de", "guerrillamailblock.com",
+  "sharklasers.com", "guerrillamail.biz", "grr.la", "spam4.me",
+  "yopmail.com", "yopmail.fr", "cool.fr.nf", "jetable.fr.nf", "nospam.ze.tc",
+  "nomail.xl.cx", "mega.zik.dj", "speed.1s.fr", "courriel.fr.nf",
+  "moncourrier.fr.nf", "monemail.fr.nf", "monmail.fr.nf",
+  "trashmail.com", "trashmail.at", "trashmail.io", "trashmail.me",
+  "trashmail.net", "trashmail.org", "dispostable.com", "discard.email",
+  "mailnull.com", "spamgourmet.com", "spamgourmet.net", "spamgourmet.org",
+  "10minutemail.com", "10minutemail.net", "20minutemail.com",
+  "throwam.com", "throwam.net", "throwam.org",
+  "tempmail.com", "temp-mail.org", "tmpmail.org", "tmpmail.net",
+  "fakeinbox.com", "mailnesia.com", "mailnull.com",
+  "maildrop.cc", "harakirimail.com",
+  "tempr.email", "cust.in", "binkmail.com", "bobmail.info",
+]);
+
+function isDisposableEmail(email: string): boolean {
+  const domain = email.split("@")[1]?.toLowerCase();
+  return domain ? DISPOSABLE_DOMAINS.has(domain) : false;
+}
+
 interface CreateOrderBody {
   email?: unknown;
   inputType?: unknown;
@@ -88,6 +114,26 @@ export async function POST(request: Request) {
   if (email.length === 0 || email.length > 254 || !EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "Invalid email" }, { status: 400 });
   }
+
+  // Block disposable/throwaway email domains — real analyses require a
+  // deliverable address so the report can be emailed.
+  if (isDisposableEmail(email)) {
+    return NextResponse.json(
+      { error: "Please use a real email address to receive your report." },
+      { status: 400 },
+    );
+  }
+
+  // Per-email throttle — 3 per 24h. Prevents the same address paying A$3
+  // three times in a row to re-scrape an iterating pitch deck.
+  const emailLimited = enforceRateLimit(
+    "guest-analysis-per-email",
+    email,
+    request,
+    3,
+    24 * 60 * 60 * 1000,
+  );
+  if (emailLimited) return emailLimited;
 
   const inputType = body.inputType;
   if (inputType !== "pitch_file" && inputType !== "website_url") {
