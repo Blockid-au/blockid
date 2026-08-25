@@ -433,12 +433,13 @@ async function renderPdfForEntry(
         email?: string;
         founderName?: string;
       };
-      const gtm = await generateGtmStrategy({
+      const gtmPartial = await generateGtmStrategy({
         startupName: p.startupName,
         sector: p.sector,
         stage: p.stage,
         description: p.description,
       });
+      const gtm = { channels: [], ...gtmPartial } satisfies import("@/lib/agents/cmo-market-research").GtmStrategyOutput;
       return renderGtmStrategyPdf({
         startupName: p.startupName,
         sector: p.sector,
