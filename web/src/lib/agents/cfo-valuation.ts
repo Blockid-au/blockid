@@ -499,13 +499,21 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
   const berkus = calculateBerkusValuation(true, hasPrototype, hasQualityTeam, hasStrategicRelationships, mrrAud > 0);
   const dcfMid = arrAud > 0 ? arrAud * (multiLow + 1) : berkus * 1.5;
 
-  // AU tax modifier for risk_factor_summation
-  const auTaxPct = (esicQualifies ? AU_MARKET_DATA.esicOffset * 100 : 0) + (estimatedRdtiRefundAud > 0 ? AU_MARKET_DATA.rdtiRefundRate * 0.1 * 100 : 0);
+  // AU tax modifier for risk_factor_summation.
+  // RDTI uplift scales with refund magnitude relative to the RFS base (a $10
+  // refund cannot lift valuation the same as a $500K refund). Ratio floor
+  // guards divide-by-tiny-base when arrAud is 0; cap of 15% keeps a single
+  // tax attribute from dominating the method. ESIC offset stays flat (20%)
+  // because the concession is binary — either the company qualifies or not.
   const rfBase = arrAud > 0 ? arrAud * bm.medianMultiple : berkus * 1.2;
+  const rdtiLiftPct = estimatedRdtiRefundAud > 0
+    ? Math.min(15, (estimatedRdtiRefundAud / Math.max(rfBase, 250_000)) * 100)
+    : 0;
+  const auTaxPct = (esicQualifies ? AU_MARKET_DATA.esicOffset * 100 : 0) + rdtiLiftPct;
   const rfMid = rfBase * (1 + auTaxPct / 100);
   let rfsRationale = `Risk Factor Summation; au-tax: ${auTaxPct.toFixed(0)}%`;
   if (esicQualifies) rfsRationale += "; ESIC qualified (+20% offset)";
-  if (estimatedRdtiRefundAud > 0) rfsRationale += `; Refundable RDTI est. A$${Math.round(estimatedRdtiRefundAud / 1000)}K`;
+  if (estimatedRdtiRefundAud > 0) rfsRationale += `; Refundable RDTI est. A$${Math.round(estimatedRdtiRefundAud / 1000)}K (+${rdtiLiftPct.toFixed(1)}% proportional lift)`;
 
   // Comparables with growth tier adjustment
   const adjMultiple = bm.medianMultiple * growthTier.factor;
