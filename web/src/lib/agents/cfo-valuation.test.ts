@@ -152,6 +152,24 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
     expect(upliftRfs!.rationale).toMatch(/au-tax: 0%/);
   });
 
+  // Bug fix: the RDTI uplift was flat 4.35% for any positive refund, meaning a
+  // A$10 refund lifted valuation identically to a A$500K refund. The lift must
+  // scale with the refund's size relative to the RFS base — and stay capped so
+  // a single tax attribute cannot dominate the method.
+  it("RDTI valuation lift scales with refund magnitude and is capped", () => {
+    const small = buildVcValuationReport({ ...input, estimatedRdtiRefundAud: 5_000 });
+    const large = buildVcValuationReport({ ...input, estimatedRdtiRefundAud: 500_000 });
+    const smallRfs = small.methods.find(m => m.method === "risk_factor_summation")!;
+    const largeRfs = large.methods.find(m => m.method === "risk_factor_summation")!;
+    expect(largeRfs.midAud).toBeGreaterThan(smallRfs.midAud);
+    // Cap: even at a very large refund the RDTI-only lift stays ≤15%, so
+    // rfMid never exceeds rfBase * 1.15 when ESIC is off.
+    const bmMed = 6.75; // saas
+    const rfBase = input.mrrAud * 12 * bmMed;
+    expect(largeRfs.midAud).toBeLessThanOrEqual(Math.round(rfBase * 1.15) + 1);
+    expect(largeRfs.rationale).toMatch(/proportional lift/);
+  });
+
   // T0167 — growth-tier multiplier in comparables method
   it("classifies annualised growth into Bessemer tiers", () => {
     expect(growthTierAdjustment(150).tier).toBe("hyper");
