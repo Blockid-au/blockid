@@ -15,6 +15,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
+import { ObfuscatedEmail } from "@/components/marketing/obfuscated-email";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Mail } from "lucide-react";
 
@@ -54,12 +55,12 @@ export default function OneClickSuccessPage() {
             </p>
             <p className="mt-3 text-sm text-ink-500 leading-relaxed">
               Trouble? Check your spam folder, or email{" "}
-              <a
-                href="mailto:support@blockid.au"
+              <ObfuscatedEmail
+                user="support"
+                domain="blockid.au"
+                href
                 className="text-brand-600 underline underline-offset-2 hover:text-brand-700"
-              >
-                support@blockid.au
-              </a>{" "}
+              />{" "}
               and we&apos;ll re-send it.
             </p>
           </div>
