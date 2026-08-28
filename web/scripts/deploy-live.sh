@@ -631,7 +631,7 @@ echo "  ✅ Temp server healthy"
 
 # Smoke test critical endpoints
 SMOKE_FAIL=0
-for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/score" "/tools/idea-valuation"; do
+for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/one-click-report" "/tools/idea-valuation"; do
   SC=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$TEMP_PORT$path" 2>/dev/null)
   if [ "$SC" = "200" ]; then
     echo "  ✅ $path → $SC"
