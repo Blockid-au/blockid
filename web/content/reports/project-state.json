@@ -1,9 +1,9 @@
 {
-  "version": "3.6.0",
-  "updatedAt": "2026-08-15T23:52:00.000Z",
+  "version": "3.7.0",
+  "updatedAt": "2026-08-28T12:05:16.963Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
-    "lastReviewedAt": "2026-07-22T14:00:02.174Z",
+    "lastReviewedAt": "2026-08-28T12:05:16.963Z",
     "notes": [
       "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.",
       "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
@@ -30,7 +30,8 @@
       "v3.0.0 — CPO: Implement First‑Principles Question Engine to generate Socratic prompts and route founders to appropriate BlockID features",
       "v3.1.0 — CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier",
       "v3.4.0 — Visual upgrade: dashboard health-score-widget (2-col, glow gauge, valuation estimate, action cards), value-impact-banner (SVI delta, AUD gain, readiness %, milestones). Lifecycle email templates fully rebranded (navy header, stat grid, SVI progress bars). PDF cover page: 3-stat row. Auth UX: login shows already-signed-in card; LogoutButton broadcasts SIGNED_OUT to all tabs; SIGNED_IN broadcast after Google/password/magic-link login. Stripe credit-reset cron bug fixed (grantCredits instead of raw insert). v2 SKU audit extended.",
-      "v3.5.0 — Code & Website Analyzer: deterministic PTD sub-score 0-100 from GitHub signals (commits, tests, CI, license, README) + website signals (HTTPS, TTFB, Lighthouse/heuristic perf/SEO/a11y). Valuation adjuster -10/0/+5/+12%. Full dashboard UI with arc gauge, bar chart, rationale items. analyzer_runs table migrated. Added to Build→Strategy nav."
+      "v3.5.0 — Code & Website Analyzer: deterministic PTD sub-score 0-100 from GitHub signals (commits, tests, CI, license, README) + website signals (HTTPS, TTFB, Lighthouse/heuristic perf/SEO/a11y). Valuation adjuster -10/0/+5/+12%. Full dashboard UI with arc gauge, bar chart, rationale items. analyzer_runs table migrated. Added to Build→Strategy nav.",
+      "v3.7.0 — CMO: Create Competitor Feature Release Tracker module"
     ]
   },
   "plan": {
@@ -1258,8 +1259,10 @@
         "title": "Create Competitor Feature Release Tracker module",
         "rationale": "Ingests competitor product updates (Carta, Pulley, Equidam, etc.) and surfaces them in a dashboard to inform positioning and content strategy, addressing the CMO research on competitor feature releases.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-07-25T12:04:02.737Z"
+        "status": "done",
+        "createdAt": "2026-07-25T12:04:02.737Z",
+        "completedAt": "2026-08-28T12:05:16.963Z",
+        "commit": "cdfc4bf3a"
       },
       {
         "id": "T0176",
@@ -1619,6 +1622,15 @@
       "taskIds": [
         "T0133"
       ]
+    },
+    {
+      "id": "M017",
+      "title": "CMO: Create Competitor Feature Release Tracker module",
+      "version": "3.7.0",
+      "completedAt": "2026-08-28T12:05:16.963Z",
+      "taskIds": [
+        "T0175"
+      ]
     }
   ],
   "history": [
@@ -1741,6 +1753,12 @@
       "action": "release",
       "version": "3.1.0",
       "note": "1 task(s), minor bump (v3.0.0→v3.1.0)"
+    },
+    {
+      "ts": "2026-08-28T12:05:16.963Z",
+      "action": "release",
+      "version": "3.7.0",
+      "note": "1 task(s), minor bump (v3.6.0→v3.7.0)"
     }
   ],
   "shipped_this_session": {
