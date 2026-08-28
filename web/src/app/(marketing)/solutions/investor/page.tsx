@@ -110,6 +110,27 @@ export default async function SolutionsInvestorPage() {
         { q: t(m, "solutions.investor.faq.q3"), a: t(m, "solutions.investor.faq.a3") },
       ]}
       disclaimer={t(m, "solutions.investor.disclaimer")}
+      // B2 Task 6 — investor trust strip (ASIC ABN, Privacy Act, Essential
+      // Eight, Stripe verified, GST). Copy is hard-coded here (not through
+      // t()) because these badges represent live regulatory facts about
+      // Auschain PTY LTD, not translatable marketing copy.
+      trustBadges={[
+        { label: "ASIC ABN 79 659 615 111", sub: "Auschain PTY LTD" },
+        { label: "Privacy Act 1988 compliant", sub: "APP 1–13 controls" },
+        { label: "Essential Eight — ML1", sub: "ACSC-aligned baseline" },
+        { label: "Stripe verified merchant", sub: "PCI DSS via Stripe" },
+        { label: "GST-registered", sub: "ATO tax invoice on every charge" },
+      ]}
+      // B2 Task 7 — sample investor report preview. Links to the curated
+      // samples index served under /reports/samples (same href the shared
+      // hero secondary CTA already uses).
+      samplePreview={{
+        eyebrow: "Sample deliverable",
+        title: "See a real Investor Trust Report before you decide",
+        body: "Anonymised end-to-end memo: SVI score across 8 dimensions, AUD valuation range, cap-table + ESIC snapshot, and a 30-day investor-readiness plan. Same output you receive after checkout.",
+        ctaLabel: "View sample report",
+        ctaHref: "/reports/samples",
+      }}
     />
   );
 }

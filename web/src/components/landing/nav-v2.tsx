@@ -64,11 +64,12 @@ const MENU: MenuEntry[] = [
     label: "Product",
     width: "w-64",
     items: [
-      { label: "Investor-ready score", href: "/for/founder#svi" },
-      { label: "Cap table + ESOP", href: "/for/founder#captable" },
-      { label: "Data room", href: "/for/founder#dataroom" },
-      { label: "Valuation", href: "/for/founder#valuation" },
-      { label: "Investor pack", href: "/for/founder#pack" },
+      // B1 Task 3 — /for/founder is now a 301 to /solutions/founder.
+      { label: "Investor-ready score", href: "/solutions/founder#svi" },
+      { label: "Cap table + ESOP", href: "/solutions/founder#captable" },
+      { label: "Data room", href: "/solutions/founder#dataroom" },
+      { label: "Valuation", href: "/solutions/founder#valuation" },
+      { label: "Investor pack", href: "/solutions/founder#pack" },
     ],
   },
   {
@@ -77,10 +78,11 @@ const MENU: MenuEntry[] = [
     label: "For",
     width: "w-56",
     items: [
-      { label: "Founders", href: "/for/founder" },
-      { label: "Investors", href: "/for/investor" },
+      // B1 Task 3 — persona pages migrated to /solutions/*.
+      { label: "Founders", href: "/solutions/founder" },
+      { label: "Investors", href: "/solutions/investor" },
       { label: "Advisors", href: "/for/advisor" },
-      { label: "Accelerators", href: "/for/accelerator" },
+      { label: "Accelerators", href: "/solutions/accelerator" },
     ],
   },
   { kind: "link", key: "pricing", label: "Pricing", href: "/pricing" },

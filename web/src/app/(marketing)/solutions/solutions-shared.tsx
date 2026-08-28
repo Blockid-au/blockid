@@ -22,8 +22,19 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+
+/**
+ * B2 Task 6 — trust badges surfaced on `/solutions/investor` (and reusable on
+ * any other persona page that opts in via the `trustBadges` prop). Kept as a
+ * flat list of `{ label, sub }` records so the copy is source-controlled and
+ * doesn't require a new component file.
+ */
+export interface SolutionTrustBadge {
+  label: string;
+  sub: string;
+}
 
 export interface SolutionBenefit {
   title: string;
@@ -58,6 +69,23 @@ export interface SolutionPageProps {
   faqTitle: string;
   faqs: SolutionFaq[];
   disclaimer: ReactNode;
+  /**
+   * B2 Task 6 — optional compliance/trust badge strip. Rendered between the
+   * hero and the benefits grid when supplied. Investor persona currently
+   * opts in; other personas may follow.
+   */
+  trustBadges?: SolutionTrustBadge[];
+  /**
+   * B2 Task 7 — optional sample-report preview card. When present, renders a
+   * dedicated section between the benefits grid and the journey timeline.
+   */
+  samplePreview?: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    ctaLabel: string;
+    ctaHref: string;
+  };
 }
 
 const SIGNUP_HREF = "/founding-50";
@@ -81,6 +109,8 @@ export function SolutionsPageShell(props: SolutionPageProps) {
     faqTitle,
     faqs,
     disclaimer,
+    trustBadges,
+    samplePreview,
   } = props;
 
   return (
@@ -126,6 +156,36 @@ export function SolutionsPageShell(props: SolutionPageProps) {
           </div>
         </section>
 
+        {/* B2 Task 6 — trust / compliance badges (investor persona opts in) */}
+        {trustBadges && trustBadges.length > 0 && (
+          <section
+            aria-label="Compliance and trust badges"
+            className="mx-auto max-w-5xl px-6 pb-6"
+          >
+            <ul className="flex flex-wrap items-center gap-3">
+              {trustBadges.map((badge) => (
+                <li
+                  key={badge.label}
+                  className="inline-flex items-start gap-2 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] px-3 py-2"
+                >
+                  <ShieldCheck
+                    aria-hidden="true"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fintech-accent)]"
+                  />
+                  <span className="flex flex-col leading-tight">
+                    <span className="text-xs font-semibold text-[var(--fintech-ink)]">
+                      {badge.label}
+                    </span>
+                    <span className="text-[11px] text-[var(--fintech-ink-muted)]">
+                      {badge.sub}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Benefits — 3 cards */}
         <section
           aria-labelledby={`solutions-${slug}-benefits`}
@@ -156,6 +216,33 @@ export function SolutionsPageShell(props: SolutionPageProps) {
             ))}
           </ul>
         </section>
+
+        {/* B2 Task 7 — sample investor report preview (opt-in) */}
+        {samplePreview && (
+          <section
+            aria-label="Sample investor report preview"
+            className="mx-auto max-w-5xl px-6 py-8"
+          >
+            <div className="rounded-2xl border border-[var(--fintech-accent)]/40 bg-[var(--fintech-bg-elevated)] p-6 sm:p-8">
+              <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-[var(--fintech-accent)]">
+                {samplePreview.eyebrow}
+              </p>
+              <h2 className="mt-3 font-display text-xl font-semibold text-[var(--fintech-ink)] sm:text-2xl">
+                {samplePreview.title}
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+                {samplePreview.body}
+              </p>
+              <Link
+                href={samplePreview.ctaHref}
+                className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--fintech-accent)] px-5 text-sm font-semibold text-[var(--fintech-accent)] transition-colors duration-200 hover:bg-[var(--fintech-accent)]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+              >
+                {samplePreview.ctaLabel}
+                <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              </Link>
+            </div>
+          </section>
+        )}
 
         {/* Journey — 30/60/90 */}
         <section

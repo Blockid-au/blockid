@@ -29,7 +29,9 @@ const COLUMNS: FooterColumn[] = [
   {
     title: "Product",
     items: [
-      { href: "/svi", label: "SVI lookup" },
+      // B1 Task 5 — canonical SVI URL is /index (was /svi; now 301-redirected).
+      { href: "/index", label: "SVI lookup" },
+      { href: "/one-click-report", label: "One-Click Report · A$3" },
       { href: "/pricing", label: "Pricing" },
       { href: "/demo", label: "Book a demo" },
     ],
@@ -37,10 +39,11 @@ const COLUMNS: FooterColumn[] = [
   {
     title: "For",
     items: [
-      { href: "/for/founder", label: "Founders" },
-      { href: "/for/investor", label: "Investors" },
+      // B1 Task 3/4 — /for/{founder,investor,accelerator} now 301 → /solutions/*.
+      { href: "/solutions/founder", label: "Founders" },
+      { href: "/solutions/investor", label: "Investors" },
       { href: "/for/advisor", label: "Advisors" },
-      { href: "/for/accelerator", label: "Accelerators" },
+      { href: "/solutions/accelerator", label: "Accelerators" },
     ],
   },
   // ux-ia-startup-flow-v1 §C.7 — Case Studies column so the Demo walkthrough

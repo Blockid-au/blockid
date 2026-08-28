@@ -348,7 +348,7 @@ function PlanCard({
         <p className="mt-1 text-xs text-brand-ink-muted">
           {isCustom
             ? "Volume pricing on request"
-            : `AUD · ex-GST · billed ${interval === "annual" ? "annually" : "monthly"}`}
+            : `AUD · GST-inclusive · billed ${interval === "annual" ? "annually" : "monthly"} · ATO tax invoice included`}
         </p>
         {interval === "annual" && saving !== null && saving > 0 && (
           <p className="mt-1 text-xs font-medium text-brand-cyan">

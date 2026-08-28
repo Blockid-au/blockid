@@ -41,25 +41,48 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // B1 Task 3 — legacy `/for/*` marketing URLs return HTTP 301 (was 308).
+      // Next.js's `permanent: true` emits a 308; `statusCode: 301` is the
+      // explicit override for the classic SEO-friendly Moved Permanently.
       {
         source: "/for/founder",
         destination: "/solutions/founder",
-        permanent: true,
+        statusCode: 301,
       },
       {
         source: "/for/investor",
         destination: "/solutions/investor",
-        permanent: true,
+        statusCode: 301,
       },
       {
         source: "/for/accelerator",
         destination: "/solutions/accelerator",
-        permanent: true,
+        statusCode: 301,
+      },
+      // B1 Task 5 — consolidate 4 SVI landing routes onto a single canonical
+      // `/index` URL. `/index` is served via the /startup-index rewrite (see
+      // rewrites() above) because Next 16 webpack cannot compile an
+      // `app/index/page.tsx` route. `/score` remains a functional search
+      // entrypoint so we keep it as a 301 target too.
+      {
+        source: "/score",
+        destination: "/index",
+        statusCode: 301,
+      },
+      {
+        source: "/svi",
+        destination: "/index",
+        statusCode: 301,
+      },
+      {
+        source: "/startup-index",
+        destination: "/index",
+        statusCode: 301,
       },
       {
         source: "/founding-100",
         destination: "/founding-50",
-        permanent: true,
+        statusCode: 301,
       },
       {
         source: "/login",

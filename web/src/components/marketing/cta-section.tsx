@@ -63,8 +63,10 @@ export function CTASection({ className }: { className?: string }) {
             </p>
 
             <div className="relative flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              {/* PRIMARY: revenue product (A$3 One-Click Report). Was `/auth/login`
+                  Start Free — removed as part of B1 CTA consolidation. */}
               <Link
-                href="/auth/login"
+                href="/one-click-report"
                 className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 active:translate-y-0"
                 style={{
                   background:
@@ -72,10 +74,11 @@ export function CTASection({ className }: { className?: string }) {
                   boxShadow: "0 4px 24px -4px rgba(0,212,255,0.4)",
                 }}
               >
-                Start Free
+                Get One-Click Report · A$3
                 <ArrowRight size={16} aria-hidden />
               </Link>
 
+              {/* SECONDARY: Startup Index (public directory). */}
               <Link
                 href="/index"
                 className="inline-flex items-center gap-2 rounded-xl border px-8 py-3.5 text-sm font-semibold transition-all duration-200 hover:border-[rgba(0,212,255,0.4)] hover:text-white"
