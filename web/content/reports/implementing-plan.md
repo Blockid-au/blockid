@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.3.3  ·  **Updated:** 2026-08-15T16:00:02.479Z  ·  **Decided by:** ceo (2026-08-13T12:04:02.832Z)
+**Version:** v3.7.0  ·  **Updated:** 2026-08-28T12:05:16.963Z  ·  **Decided by:** ceo (2026-08-13T12:04:02.832Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -23,7 +23,6 @@
 | T0172 | CFO | Integrate VC valuation methods and sector ARR/revenue multiples into the Multi-Method Valuation Engine | minor | ⬜ pending |
 | T0173 | CRO | Develop and integrate the Next-Best-Action/DIRECTION engine to sequence founder actions by weakest SCN layer and stage | minor | ⬜ pending |
 | T0174 | RND | Integrate new AI tools and capabilities for founder narrative generation and startup ecosystem analysis | minor | ⬜ pending |
-| T0175 | CMO | Create Competitor Feature Release Tracker module | minor | ⬜ pending |
 | T0176 | CRO | Implement Pricing Psychology Engine for subscription tier optimization | minor | ⬜ pending |
 | T0177 | RND | Deploy Founder Pain‑Point Insight Service (API) | minor | ⬜ pending |
 | T0178 | CFO | Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator | minor | ⬜ pending |
@@ -45,6 +44,7 @@
 | T0194 | CRO | Implement Funding Readiness Scoring (CAPITAL framework) | minor | ⬜ pending |
 
 ## Recently shipped
+- ✅ `T0175` **CMO** — Create Competitor Feature Release Tracker module (`cdfc4bf3a`)
 - ✅ `T0236` **RND** — T0111 AI Idea Lab — sector-aware angle generator
 - ✅ `T0235` **CDO** — Fix /api/index/svi?format=csv — emit header row when snapshot empty
 - ✅ `T0234` **CPO** — Fix first-principles secondaryFeatures — always returns 2+ items
@@ -54,9 +54,9 @@
 - ✅ `T0230` **PRODUCT** — Simplify external funnel + plan-based workspace unlocks
 - ✅ `T0229` **CMO** — 3 more SEO pillar articles — DCF/Berkus, cap table, SAFE
 - ✅ `T0228` **OPS** — Fix /data/blockid-releases snapshot warning + backup verify
-- ✅ `T0227` **OPS** — Daily pg_dump cron — /data/backups was empty (critical gap)
 
 ## Milestones
+- **M017** v3.7.0 — CMO: Create Competitor Feature Release Tracker module (2026-08-28, 1 tasks)
 - **M016** v3.1.0 — CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier (2026-07-22, 1 tasks)
 - **M015** v3.0.0 — RND: Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics); CLO: Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link; CFO: Fundraising Readiness Report v2 — checklis (2026-07-20, 9 tasks)
 - **M014** v2.7.0 — CFO: R&D Tax Incentive and ESIC data integration (2026-07-19, 1 tasks)
@@ -68,4 +68,3 @@
 - **M016** v1.8.0 — T0075–T0083 — Onboarding flow, score confidence, SAFE calculator, investor email, GitHub evidence, /tools hub, SVI history, SEO content, AU comparables (2026-06-13, 9 tasks)
 - **M007** v0.8.0 — Founding 50 conversion prompt (T0017) — UpgradePrompt banner in workspace when balance===1, CTA to founding50 checkout (2026-06-13, 1 tasks)
 - **M006** v0.7.0 — Article pipeline fixed (T0015): 38 articles live, cron-runner auto-sync. T0011/T0013/T0014 verified done. Full self-analysis report generated. New tasks: T0016 (Evidence Vault), T0017 (Founding 50 conversion). (2026-06-13, 4 tasks)
-- **M005** v0.6.0 — Berkus method 5th valuation for pre-revenue (T0010) + onboarding verified (T0012) + plan/agent sync (2026-06-13, 2 tasks)
