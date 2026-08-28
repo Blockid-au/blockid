@@ -11,10 +11,11 @@
  * rendered above the hero so returning visitors know their session bounced.
  */
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import React, { Suspense } from "react";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
+import { ObfuscatedEmail } from "@/components/marketing/obfuscated-email";
 import { OneClickForm } from "./one-click-form";
 
 const TITLE = "One-Click Investor Analysis — A$3 | BlockID.au";
@@ -299,24 +300,39 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
             Frequently asked
           </h2>
           <dl className="mt-8 space-y-6">
-            {[
-              {
-                q: "What if I need my money back?",
-                a: "If your report doesn't arrive or the analysis clearly failed, email support@blockid.au and we'll refund the A$3 in full — no questions. It's a low-stakes trial for both of us.",
-              },
-              {
-                q: "How is my data used?",
-                a: "Your inputs power your report and are stored in Australia. We never sell your data, never train third-party models on it, and never expose it to other users. You can request full deletion any time.",
-              },
-              {
-                q: "Do you keep my pitch deck?",
-                a: "Only for as long as we need to generate your report — typically under an hour. After analysis, the raw upload is deleted. The generated PDF report is retained so we can re-send it if you lose the email.",
-              },
-              {
-                q: "Can I upgrade to a subscription?",
-                a: "Yes. After your one-click report, create a free BlockID account to save it, track your SVI over time, and unlock deeper analysis (comparables, evidence vault, per-investor share links). No upgrade pressure — the A$3 report is complete on its own.",
-              },
-            ].map((item) => (
+            {(
+              [
+                {
+                  q: "What if I need my money back?",
+                  a: (
+                    <>
+                      If your report doesn&apos;t arrive or the analysis clearly
+                      failed, email{" "}
+                      <ObfuscatedEmail
+                        user="support"
+                        domain="blockid.au"
+                        href
+                        className="text-brand-600 underline underline-offset-2"
+                      />{" "}
+                      and we&apos;ll refund the A$3 in full — no questions.
+                      It&apos;s a low-stakes trial for both of us.
+                    </>
+                  ),
+                },
+                {
+                  q: "How is my data used?",
+                  a: "Your inputs power your report and are stored in Australia. We never sell your data, never train third-party models on it, and never expose it to other users. You can request full deletion any time.",
+                },
+                {
+                  q: "Do you keep my pitch deck?",
+                  a: "Only for as long as we need to generate your report — typically under an hour. After analysis, the raw upload is deleted. The generated PDF report is retained so we can re-send it if you lose the email.",
+                },
+                {
+                  q: "Can I upgrade to a subscription?",
+                  a: "Yes. After your one-click report, create a free BlockID account to save it, track your SVI over time, and unlock deeper analysis (comparables, evidence vault, per-investor share links). No upgrade pressure — the A$3 report is complete on its own.",
+                },
+              ] as Array<{ q: string; a: React.ReactNode }>
+            ).map((item) => (
               <div
                 key={item.q}
                 className="rounded-2xl border border-surface-200 bg-white p-5 md:p-6"
