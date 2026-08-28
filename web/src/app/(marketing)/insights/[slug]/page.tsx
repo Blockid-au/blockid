@@ -19,6 +19,12 @@ const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   growth: { label: "Growth", color: "bg-purple-100 text-purple-700" },
 };
 
+// B3 Task 10 — ISR (1h). Articles are pre-rendered via generateStaticParams;
+// setting `revalidate` lets edits to the underlying .md content propagate
+// without a full deploy. Combined with the static-params list this becomes a
+// hybrid SSG + ISR page (Next 16 App Router).
+export const revalidate = 3600;
+
 export async function generateStaticParams() {
   return getAllArticles().map((a) => ({ slug: a.slug }));
 }

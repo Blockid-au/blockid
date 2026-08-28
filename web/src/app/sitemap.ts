@@ -98,14 +98,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     },
+    // B1 Task 5 — /score, /svi, /startup-index all 301 → /index (canonical).
+    // Only the canonical /index (served via internal rewrite to /startup-index)
+    // is advertised to search engines.
     {
-      url: `${SITE_URL}/score`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: `${SITE_URL}/svi`,
+      url: `${SITE_URL}/index`,
       lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
@@ -164,11 +161,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    // B1 Task 1 & 4 — /one-click-report is the primary A$3 revenue product;
+    // Google should crawl it daily and rank it as the highest-priority page.
     {
       url: `${SITE_URL}/one-click-report`,
       lastModified,
-      changeFrequency: "weekly",
-      priority: 0.9,
+      changeFrequency: "daily",
+      priority: 1.0,
     },
     {
       url: `${SITE_URL}/tools/cap-table`,
@@ -243,31 +242,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
-    // Per-segment marketing landings (T-0317)
-    {
-      url: `${SITE_URL}/for/founder`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/for/investor`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/for/advisor`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/for/accelerator`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
+    // B1 Task 4 — legacy `/for/{founder,investor,accelerator}` entries removed.
+    // Those URLs now emit a 301 (see next.config.ts) to `/solutions/*`, so we
+    // don't advertise the source in the sitemap (avoids duplicate-content
+    // signals and keeps Google's canonical clean). `/for/advisor` also
+    // dropped — it's a soft-deprecated dynamic-route slug with no
+    // `/solutions/advisor` twin and no traffic.
     // v3 persona landings under /solutions/* — Master Upgrade Plan §7.1
     // (Stage-3 sub-B3). Legacy /for/founder now 301s to /solutions/founder
     // via next.config.ts; we keep the sitemap entry to give Google a fresh

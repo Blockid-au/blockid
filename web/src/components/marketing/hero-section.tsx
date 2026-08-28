@@ -14,8 +14,9 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PLACEHOLDER_CYCLE = [
@@ -53,11 +54,13 @@ export function HeroSection() {
   }, []);
 
   function handleSearch() {
+    // B1 Task 5 — /score, /svi and /startup-index all 301 to /index (canonical).
+    // Push directly to canonical to avoid the extra 301 hop.
     const q = query.trim();
     if (q.length > 0) {
-      router.push(`/score?q=${encodeURIComponent(q)}`);
+      router.push(`/index?q=${encodeURIComponent(q)}`);
     } else {
-      router.push("/score");
+      router.push("/index");
     }
   }
 
@@ -146,6 +149,23 @@ export function HeroSection() {
           Platform
         </h1>
 
+        {/* Revenue chip — A$3 One-Click Report (primary revenue path).
+            Sits above the fold on mobile 360px; uses brand gradient border. */}
+        <Link
+          href="/one-click-report"
+          className="animate-fade-in-up inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 sm:text-sm"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(0,212,255,0.14) 0%, rgba(123,47,190,0.14) 100%)",
+            border: "1px solid rgba(0,212,255,0.55)",
+            color: "#F8FAFC",
+            animationDelay: "120ms",
+          }}
+        >
+          Try the A$3 One-Click Report
+          <ArrowRight size={14} aria-hidden />
+        </Link>
+
         {/* Sub-headline */}
         <p
           className="animate-fade-in-up max-w-xl text-balance text-base leading-relaxed sm:text-lg"
@@ -225,7 +245,7 @@ export function HeroSection() {
             <button
               key={tag.label}
               type="button"
-              onClick={() => router.push("/score")}
+              onClick={() => router.push("/index")}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-all duration-200",
                 "hover:scale-[1.03] hover:border-[rgba(0,212,255,0.5)]",

@@ -7,6 +7,11 @@ import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 import { InsightsCategoryFilter } from "./category-filter";
 
+// B3 Task 10 — ISR (1h). Insights index is read from disk via `getAllArticles`
+// (no per-request state). Revalidating hourly means a new .md article shows up
+// without a redeploy, while keeping the page CDN-cacheable between revalidations.
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "Insights — Valuation, Equity & Fundraising",
   description:
