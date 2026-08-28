@@ -116,16 +116,10 @@ export function getNextBestAction(
   scores: Record<string, number>,
   _stage: string,
 ): NBARecommendation {
-  const knownLayers = Object.keys(NBA_ACTIONS);
-  const knownScores = Object.entries(scores).filter(([k]) =>
-    knownLayers.includes(k),
-  );
-
-  let targetLayer = "Product";
-  if (knownScores.length > 0) {
-    const [weakest] = knownScores.sort(([, a], [, b]) => a - b);
-    targetLayer = weakest![0];
-  }
+  // Find the globally weakest layer; if it's unknown fall back to Product.
+  const sorted = Object.entries(scores).sort(([, a], [, b]) => a - b);
+  const weakestKey = sorted[0]?.[0] ?? "";
+  const targetLayer = weakestKey in NBA_ACTIONS ? weakestKey : "Product";
 
   return {
     targetLayer,
