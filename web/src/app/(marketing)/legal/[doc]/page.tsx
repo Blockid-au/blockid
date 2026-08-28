@@ -174,7 +174,10 @@ function renderInline(input: string): string {
   let s = escapeHtml(input);
   s = s.replace(
     /`([^`]+)`/g,
-    '<code class="rounded bg-[var(--fintech-surface)] px-1.5 py-0.5 text-[0.85em] text-[var(--fintech-accent)]">$1</code>',
+    (_, inner: string) =>
+      // Encode @ as &#64; so Cloudflare Email Obfuscation doesn't replace
+      // email addresses inside <code> with broken /cdn-cgi/l/email-protection links.
+      `<code class="rounded bg-[var(--fintech-surface)] px-1.5 py-0.5 text-[0.85em] text-[var(--fintech-accent)]">${inner.replace(/@/g, "&#64;")}</code>`,
   );
   s = s.replace(
     /\*\*([^*]+)\*\*/g,
