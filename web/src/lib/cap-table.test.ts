@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeDiff,
   demoCapTable,
+  suggestRoundSize,
   type CapTableDiff,
   type Holder,
   type Round,
@@ -353,5 +354,65 @@ describe("computeDiff — cross-consistency invariants", () => {
     const cheap = computeDiff(demoCapTable(), { ...STANDARD_ROUND, preMoneyAud: 5_000_000 });
     const rich = computeDiff(demoCapTable(), { ...STANDARD_ROUND, preMoneyAud: 20_000_000 });
     expect(rich.summary.investorPct).toBeLessThan(cheap.summary.investorPct);
+  });
+});
+
+describe("suggestRoundSize", () => {
+  it("returns zero raise + comfortable verdict when burn is zero", () => {
+    const r = suggestRoundSize({ monthlyBurnAud: 0, currentCashAud: 100_000 });
+    expect(r.recommendedRaiseAud).toBe(0);
+    expect(r.minRaiseAud).toBe(0);
+    expect(r.maxRaiseAud).toBe(0);
+    expect(r.currentRunwayVerdict).toBe("comfortable");
+    expect(r.rationale).toMatch(/default-alive/i);
+  });
+
+  it("flags a critical runway when cash covers less than 6 months of burn", () => {
+    const r = suggestRoundSize({ monthlyBurnAud: 100_000, currentCashAud: 300_000 });
+    expect(r.currentRunwayMonths).toBeCloseTo(3, 1);
+    expect(r.currentRunwayVerdict).toBe("critical");
+    expect(r.recommendedRaiseAud).toBeGreaterThan(0);
+  });
+
+  it("bands are ordered: min <= recommended <= max", () => {
+    const r = suggestRoundSize({ monthlyBurnAud: 80_000, currentCashAud: 200_000 });
+    expect(r.minRaiseAud).toBeLessThanOrEqual(r.recommendedRaiseAud);
+    expect(r.recommendedRaiseAud).toBeLessThanOrEqual(r.maxRaiseAud);
+  });
+
+  it("higher burn multiplier increases the recommended raise", () => {
+    const flat = suggestRoundSize({ monthlyBurnAud: 100_000, currentCashAud: 0, postRaiseBurnMultiplier: 1 });
+    const scale = suggestRoundSize({ monthlyBurnAud: 100_000, currentCashAud: 0, postRaiseBurnMultiplier: 2 });
+    expect(scale.recommendedRaiseAud).toBeGreaterThan(flat.recommendedRaiseAud);
+  });
+
+  it("longer target runway increases the recommended raise", () => {
+    const short = suggestRoundSize({ monthlyBurnAud: 100_000, currentCashAud: 0, targetRunwayMonths: 12 });
+    const long = suggestRoundSize({ monthlyBurnAud: 100_000, currentCashAud: 0, targetRunwayMonths: 30 });
+    expect(long.recommendedRaiseAud).toBeGreaterThan(short.recommendedRaiseAud);
+  });
+
+  it("larger existing cash reduces the recommended raise", () => {
+    const empty = suggestRoundSize({ monthlyBurnAud: 100_000, currentCashAud: 0 });
+    const flush = suggestRoundSize({ monthlyBurnAud: 100_000, currentCashAud: 2_000_000 });
+    expect(flush.recommendedRaiseAud).toBeLessThan(empty.recommendedRaiseAud);
+  });
+
+  it("clamps NaN inputs defensively without throwing", () => {
+    const r = suggestRoundSize({ monthlyBurnAud: Number.NaN, currentCashAud: Number.NaN });
+    expect(Number.isFinite(r.recommendedRaiseAud)).toBe(true);
+    expect(r.recommendedRaiseAud).toBe(0);
+  });
+
+  it("healthy verdict lands between 12 and 18 months of runway", () => {
+    const r = suggestRoundSize({ monthlyBurnAud: 100_000, currentCashAud: 1_400_000 });
+    expect(r.currentRunwayMonths).toBeCloseTo(14, 0);
+    expect(r.currentRunwayVerdict).toBe("healthy");
+  });
+
+  it("rationale mentions target runway and buffer explicitly", () => {
+    const r = suggestRoundSize({ monthlyBurnAud: 100_000, currentCashAud: 0, targetRunwayMonths: 20, bufferPct: 0.25 });
+    expect(r.rationale).toMatch(/20 months/);
+    expect(r.rationale).toMatch(/25% buffer/);
   });
 });

@@ -287,6 +287,133 @@ export function computeDiff(holders: Holder[], round: Round): CapTableDiff {
   };
 }
 
+/**
+ * Round-Sizing Simulator (T0180) — companion to computeDiff().
+ *
+ * Given today's cash position and monthly burn, recommend a raise size that
+ * hits the founder's target runway. Follows the standard AU seed-to-Series-A
+ * convention: aim for 18–24 months post-close, size for the target midpoint,
+ * and add a buffer for burn-rate creep as headcount scales after the raise.
+ *
+ * Pure, deterministic, side-effect free. No AI or network calls.
+ */
+
+export type RunwayVerdict = "critical" | "tight" | "healthy" | "comfortable";
+
+export interface RoundSizingInput {
+  /** Current monthly burn in AUD (opex - revenue, positive number). */
+  monthlyBurnAud: number;
+  /** Cash in the bank right now, AUD. */
+  currentCashAud: number;
+  /**
+   * Target runway after closing the round, in months. Defaults to 21 —
+   * midpoint of the AU 18–24 month convention.
+   */
+  targetRunwayMonths?: number;
+  /**
+   * Expected post-raise monthly burn multiplier (headcount scales after
+   * capital lands). Defaults to 1.5x today's burn — a conservative-but-
+   * standard assumption for a seed/Series-A hire ramp.
+   */
+  postRaiseBurnMultiplier?: number;
+  /**
+   * Safety buffer above the modelled requirement (e.g. 0.2 = 20% extra).
+   * Defaults to 0.15 — enough for one bad quarter without a bridge.
+   */
+  bufferPct?: number;
+}
+
+export interface RoundSizingResult {
+  /** Recommended raise (AUD), midpoint of the low/high band. */
+  recommendedRaiseAud: number;
+  /** Minimum viable raise — hits 18 months at today's burn (no scale-up). */
+  minRaiseAud: number;
+  /** Comfort raise — hits 24 months at post-raise burn with buffer. */
+  maxRaiseAud: number;
+  /** Runway months implied by the recommended raise at post-raise burn. */
+  targetRunwayMonths: number;
+  /** Runway months implied by today's cash alone (no raise). */
+  currentRunwayMonths: number;
+  currentRunwayVerdict: RunwayVerdict;
+  rationale: string;
+  assumptions: {
+    postRaiseBurnAud: number;
+    bufferPct: number;
+    postRaiseBurnMultiplier: number;
+  };
+}
+
+/**
+ * Recommend a raise size for a given burn + runway target. Handles
+ * pre-revenue (currentCashAud=0), no-burn (returns comfortable verdict with
+ * zero raise), and NaN/negative inputs (clamped to 0) defensively.
+ */
+export function suggestRoundSize(input: RoundSizingInput): RoundSizingResult {
+  const burn = safeNum(input.monthlyBurnAud);
+  const cash = safeNum(input.currentCashAud);
+  const finiteOr = (n: number | undefined, fallback: number): number =>
+    typeof n === "number" && Number.isFinite(n) ? n : fallback;
+  const targetMonths = Math.max(6, Math.min(36, finiteOr(input.targetRunwayMonths, 21)));
+  const multiplier = Math.max(1, Math.min(3, finiteOr(input.postRaiseBurnMultiplier, 1.5)));
+  const buffer = Math.max(0, Math.min(0.5, finiteOr(input.bufferPct, 0.15)));
+
+  // No burn → the founder is default-alive; recommend nothing.
+  if (burn <= 0) {
+    return {
+      recommendedRaiseAud: 0,
+      minRaiseAud: 0,
+      maxRaiseAud: 0,
+      targetRunwayMonths: targetMonths,
+      currentRunwayMonths: cash > 0 ? Number.POSITIVE_INFINITY : 0,
+      currentRunwayVerdict: "comfortable",
+      rationale:
+        "Zero monthly burn — you're default-alive. No raise required. Revisit once headcount or infrastructure costs kick in.",
+      assumptions: { postRaiseBurnAud: 0, bufferPct: buffer, postRaiseBurnMultiplier: multiplier },
+    };
+  }
+
+  const postRaiseBurn = burn * multiplier;
+  const currentRunway = cash / burn;
+  const currentRunwayVerdict: RunwayVerdict =
+    currentRunway < 6 ? "critical"
+    : currentRunway < 12 ? "tight"
+    : currentRunway < 18 ? "healthy"
+    : "comfortable";
+
+  // Min: 18 months of runway at today's burn (assumes team stays flat).
+  const minNeed = Math.max(0, 18 * burn - cash);
+  // Recommended: targetMonths at post-raise burn, with buffer.
+  const midNeed = Math.max(0, targetMonths * postRaiseBurn * (1 + buffer) - cash);
+  // Max: 24 months at post-raise burn with buffer.
+  const maxNeed = Math.max(0, 24 * postRaiseBurn * (1 + buffer) - cash);
+
+  const round = (n: number): number => Math.round(n / 50_000) * 50_000;
+  const recommended = round(midNeed);
+  const impliedRunway = postRaiseBurn > 0 ? (cash + recommended) / postRaiseBurn : targetMonths;
+
+  const m = (n: number): string => `A$${(n / 1_000_000).toFixed(2)}M`;
+  const rationale =
+    `At A$${Math.round(burn / 1_000)}k/mo burn today you have ${currentRunway.toFixed(1)} months of runway ` +
+    `(${currentRunwayVerdict}). Sized for ${targetMonths} months post-close at ${multiplier.toFixed(1)}x burn ` +
+    `(A$${Math.round(postRaiseBurn / 1_000)}k/mo) plus ${Math.round(buffer * 100)}% buffer, ` +
+    `you should raise ${m(recommended)} (band: ${m(round(minNeed))}–${m(round(maxNeed))}).`;
+
+  return {
+    recommendedRaiseAud: recommended,
+    minRaiseAud: round(minNeed),
+    maxRaiseAud: round(maxNeed),
+    targetRunwayMonths: Math.round(impliedRunway * 10) / 10,
+    currentRunwayMonths: Math.round(currentRunway * 10) / 10,
+    currentRunwayVerdict,
+    rationale,
+    assumptions: {
+      postRaiseBurnAud: Math.round(postRaiseBurn),
+      bufferPct: buffer,
+      postRaiseBurnMultiplier: multiplier,
+    },
+  };
+}
+
 function buildPlainEnglish(args: {
   preMoney: number;
   raise: number;
