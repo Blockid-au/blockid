@@ -89,15 +89,6 @@ const nextConfig: NextConfig = {
         destination: "/auth/login",
         permanent: false,
       },
-      // Cloudflare Email Obfuscation rewrites plain-text emails to
-      // /cdn-cgi/l/email-protection. When JS is enabled the decoder runs
-      // client-side, but the href fallback 404s if CF doesn't proxy the
-      // path. Send those clicks to the contact page which lists emails.
-      {
-        source: "/cdn-cgi/l/email-protection",
-        destination: "/contact",
-        permanent: false,
-      },
     ];
   },
   async headers() {
