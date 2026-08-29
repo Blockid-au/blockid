@@ -16,9 +16,9 @@ export function ObfuscatedEmail({ user, domain, href = false, className }: Props
     return (
       <a
         className={className}
-        // mailto is left as-is on purpose; CF only rewrites text nodes in
-        // its default config, not the href attribute value.
-        href={`mailto:${user}@${domain}`}
+        // %40 keeps CF's email-obfuscation regex from matching the href;
+        // browsers URL-decode it back to @ when launching the mail client.
+        href={`mailto:${user}%40${domain}`}
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
