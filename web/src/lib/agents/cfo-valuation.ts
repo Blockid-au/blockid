@@ -304,6 +304,76 @@ export function vcBenchmark(sector: string): VcBenchmark & { cacPaybackMonthsTar
     ltvCacTarget: 3,
   };
 }
+/**
+ * T0167 — Sector-Specific Revenue Multiple Library
+ *
+ * Bessemer "State of the Cloud" and PitchBook publish revenue multiples by
+ * growth cohort, not a single sector-wide median. High-growth SaaS trades
+ * ~3× the multiple of low-growth SaaS at the same ARR. This helper returns a
+ * growth-adjusted {low, mid, high} band that comparables/VC-method callers
+ * can use instead of the flat `SECTOR_MULTIPLES[sector].medianMultiple`.
+ *
+ * Growth cohorts (monthly growth-rate → implied YoY):
+ *   - high  ≥ 4% MoM (~60% YoY) — top-quartile
+ *   - mid   1.5%-4% MoM (~20-60% YoY) — median
+ *   - low   < 1.5% MoM (~<20% YoY) — bottom-quartile
+ *
+ * Sources: Bessemer State of the Cloud 2025, PitchBook Q2 2025 SaaS Report,
+ * Carta AI Startup Benchmarks 2025.
+ */
+export type GrowthBand = "high" | "mid" | "low";
+
+interface GrowthMultipleRow { low: number; mid: number; high: number }
+
+const GROWTH_MULTIPLES: Partial<Record<Sector, Record<GrowthBand, GrowthMultipleRow>>> = {
+  saas: {
+    high: { low: 9.0, mid: 12.0, high: 15.0 },
+    mid:  { low: 5.5, mid: 7.0,  high: 8.5 },
+    low:  { low: 2.5, mid: 3.5,  high: 4.5 },
+  },
+  fintech: {
+    high: { low: 7.0, mid: 9.0,  high: 11.0 },
+    mid:  { low: 4.0, mid: 5.25, high: 6.5 },
+    low:  { low: 1.8, mid: 2.5,  high: 3.2 },
+  },
+  ai: {
+    high: { low: 20.0, mid: 25.0, high: 32.0 },
+    mid:  { low: 12.0, mid: 16.0, high: 20.0 },
+    low:  { low: 6.0,  mid: 8.0,  high: 11.0 },
+  },
+};
+
+export function classifyGrowthBand(monthlyGrowthRatePct: number): GrowthBand {
+  if (!Number.isFinite(monthlyGrowthRatePct) || monthlyGrowthRatePct <= 0) return "low";
+  if (monthlyGrowthRatePct >= 4) return "high";
+  if (monthlyGrowthRatePct >= 1.5) return "mid";
+  return "low";
+}
+
+export function growthAdjustedSectorMultiple(
+  sector: string,
+  monthlyGrowthRatePct: number,
+): { low: number; mid: number; high: number; band: GrowthBand; sector: Sector; source: string } {
+  const band = classifyGrowthBand(monthlyGrowthRatePct);
+  const key = (SECTOR_MULTIPLES[sector as Sector] ? sector : "default") as Sector;
+  const row = GROWTH_MULTIPLES[key]?.[band];
+  if (row) {
+    return { ...row, band, sector: key, source: SECTOR_MULTIPLES[key].source };
+  }
+  // Sector without a growth-band table: scale the flat range by a
+  // cohort factor so callers still get a growth-sensitive number.
+  const base = SECTOR_MULTIPLES[key];
+  const factor = band === "high" ? 1.4 : band === "mid" ? 1.0 : 0.55;
+  return {
+    low: Number((base.multipleRange[0] * factor).toFixed(2)),
+    mid: Number((base.medianMultiple * factor).toFixed(2)),
+    high: Number((base.multipleRange[1] * factor).toFixed(2)),
+    band,
+    sector: key,
+    source: base.source,
+  };
+}
+
 export const AU_FINANCIAL_RESEARCH: typeof AU_MARKET_DATA & { fundingBenchmarks: { seed: { avgValuationRange: { min: number; max: number } }; preSeed: { avgValuationRange: { min: number; max: number } } } } = {
   ...AU_MARKET_DATA,
   fundingBenchmarks: {
