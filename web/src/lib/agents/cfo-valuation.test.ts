@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   auExitRealisationCheck,
   buildVcValuationReport,
+  classifyGrowthBand,
   estimateMarketSizing,
+  growthAdjustedSectorMultiple,
   growthTierAdjustment,
   projectFinancials,
   scorecardFactors,
@@ -105,6 +107,47 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
       // materially changes valuation output.
       expect(bm.arrMultiple.mid).not.toBe(defaultMid);
     }
+  });
+
+  // T0167 — growth-adjusted sector revenue multiple library (Bessemer/PitchBook 2025)
+  it("classifyGrowthBand maps monthly growth to Bessemer cohorts", () => {
+    expect(classifyGrowthBand(6)).toBe("high");
+    expect(classifyGrowthBand(4)).toBe("high");
+    expect(classifyGrowthBand(2)).toBe("mid");
+    expect(classifyGrowthBand(1.5)).toBe("mid");
+    expect(classifyGrowthBand(0.5)).toBe("low");
+    expect(classifyGrowthBand(0)).toBe("low");
+    expect(classifyGrowthBand(NaN)).toBe("low");
+  });
+
+  it("growthAdjustedSectorMultiple ranks high > mid > low for SaaS/Fintech/AI", () => {
+    for (const sector of ["saas", "fintech", "ai"]) {
+      const hi = growthAdjustedSectorMultiple(sector, 6);
+      const md = growthAdjustedSectorMultiple(sector, 2);
+      const lo = growthAdjustedSectorMultiple(sector, 0.5);
+      expect(hi.band).toBe("high");
+      expect(md.band).toBe("mid");
+      expect(lo.band).toBe("low");
+      expect(hi.mid).toBeGreaterThan(md.mid);
+      expect(md.mid).toBeGreaterThan(lo.mid);
+      expect(hi.high).toBeGreaterThan(hi.low);
+    }
+  });
+
+  it("growthAdjustedSectorMultiple falls back to scaled sector range for uncovered sectors", () => {
+    const hi = growthAdjustedSectorMultiple("proptech", 6);
+    const md = growthAdjustedSectorMultiple("proptech", 2);
+    const lo = growthAdjustedSectorMultiple("proptech", 0.5);
+    expect(hi.sector).toBe("proptech");
+    expect(hi.high).toBeGreaterThan(hi.low);
+    expect(hi.mid).toBeGreaterThan(md.mid);
+    expect(md.mid).toBeGreaterThan(lo.mid);
+  });
+
+  it("growthAdjustedSectorMultiple normalises unknown sectors to default", () => {
+    const r = growthAdjustedSectorMultiple("not-a-real-sector", 2);
+    expect(r.sector).toBe("default");
+    expect(r.mid).toBeGreaterThan(0);
   });
 
   // Berkus method should honour real input signals for pre-revenue startups
