@@ -1,0 +1,542 @@
+"use client";
+
+import React, { useState, useCallback, useRef } from "react";
+import { cn } from "@/lib/utils";
+
+// ── Dimension metadata ────────────────────────────────────────────────────────
+
+const DIMS: Record<string, { label: string; icon: string; weight: number }> = {
+  ftv: { label: "Founder & Team", icon: "👥", weight: 15 },
+  mpc: { label: "Market & Problem", icon: "🎯", weight: 18 },
+  ptd: { label: "Product & Tech", icon: "⚙️", weight: 12 },
+  tre: { label: "Traction & Revenue", icon: "📈", weight: 20 },
+  cgh: { label: "Cap Table & Governance", icon: "🏛️", weight: 12 },
+  iri: { label: "Investor Readiness", icon: "💼", weight: 10 },
+  lco: { label: "Legal & Compliance", icon: "⚖️", weight: 8 },
+  svm: { label: "Strategic Vision & Moat", icon: "🔮", weight: 5 },
+};
+
+const DIM_KEYS = Object.keys(DIMS);
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type DimStatus = "idle" | "loading" | "complete" | "error";
+
+interface DimState {
+  status: DimStatus;
+  score: number | null;
+  markdown: string | null;
+  insights: string[];
+  priority: "high" | "medium" | "low" | null;
+  errorMsg: string | null;
+  expanded: boolean;
+}
+
+type SSEEvent =
+  | { type: "dimension_start"; dimension: string; label: string }
+  | {
+      type: "dimension_complete";
+      dimension: string;
+      label: string;
+      score: number;
+      markdown: string;
+      insights: string[];
+      priority: "high" | "medium" | "low";
+    }
+  | { type: "progress"; completed: number; total: number }
+  | { type: "done"; totalMs: number }
+  | { type: "error"; dimension: string; message: string }
+  | { type: "fatal_error"; message: string };
+
+// ── Score colour helpers ──────────────────────────────────────────────────────
+
+function scoreColor(score: number | null): string {
+  if (score === null) return "bg-ink-100 border-ink-200 dark:bg-ink-800 dark:border-ink-700";
+  if (score >= 70) return "bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800";
+  if (score >= 40) return "bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800";
+  return "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800";
+}
+
+function scoreBadgeColor(score: number | null): string {
+  if (score === null) return "bg-ink-200 text-ink-700 dark:bg-ink-700 dark:text-ink-300";
+  if (score >= 70) return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200";
+  if (score >= 40) return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+  return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+}
+
+function priorityBadge(priority: string | null): string {
+  if (priority === "high") return "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300";
+  if (priority === "medium") return "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300";
+  return "bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-400";
+}
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+
+function Spinner() {
+  return (
+    <svg
+      className="h-4 w-4 animate-spin text-brand-500"
+      viewBox="0 0 24 24"
+      fill="none"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeDasharray="20 50"
+        opacity="0.3"
+      />
+      <path
+        d="M12 2a10 10 0 0 1 10 10"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// ── Markdown renderer (lightweight — just handles **bold** and \n\n) ──────────
+
+function SimpleMarkdown({ text }: { text: string }) {
+  const lines = text.split(/\n\n+/);
+  return (
+    <div className="space-y-2">
+      {lines.map((block, i) => {
+        // Handle **Heading:** pattern
+        const headingMatch = block.match(/^\*\*([^*]+)\*\*/);
+        if (headingMatch) {
+          const heading = headingMatch[1];
+          const rest = block.slice(headingMatch[0].length).replace(/^:\s*/, "");
+          return (
+            <div key={i}>
+              <p className="text-xs font-semibold text-ink-700 dark:text-ink-200">{heading}</p>
+              {rest && (
+                <p className="text-xs text-ink-600 dark:text-ink-400 mt-0.5 leading-relaxed">
+                  {rest}
+                </p>
+              )}
+            </div>
+          );
+        }
+        // Bullet list items starting with -
+        if (block.startsWith("- ")) {
+          const items = block.split("\n").filter((l) => l.startsWith("- "));
+          return (
+            <ul key={i} className="space-y-0.5">
+              {items.map((item, j) => (
+                <li key={j} className="flex items-start gap-1.5 text-xs text-ink-600 dark:text-ink-400">
+                  <span className="mt-1 h-1 w-1 rounded-full bg-ink-400 shrink-0" />
+                  {item.slice(2)}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <p key={i} className="text-xs text-ink-600 dark:text-ink-400 leading-relaxed">
+            {block}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Single dimension card ─────────────────────────────────────────────────────
+
+function DimCard({
+  dimKey,
+  state,
+  onToggle,
+}: {
+  dimKey: string;
+  state: DimState;
+  onToggle: (key: string) => void;
+}) {
+  const meta = DIMS[dimKey];
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border transition-all duration-300",
+        state.status === "loading" && "animate-pulse border-brand-200 bg-brand-50/50 dark:bg-brand-950/20",
+        state.status === "idle" && "border-ink-200 bg-white dark:bg-ink-900 dark:border-ink-800",
+        state.status === "error" && "border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800",
+        state.status === "complete" && scoreColor(state.score),
+      )}
+    >
+      {/* Card header */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        <span className="text-xl leading-none">{meta.icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-ink-800 dark:text-ink-100 truncate">
+              {meta.label}
+            </span>
+            <span className="text-[10px] text-ink-400 dark:text-ink-500 tabular-nums">
+              {meta.weight}% weight
+            </span>
+          </div>
+
+          {/* Status line */}
+          {state.status === "idle" && (
+            <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">Waiting…</p>
+          )}
+          {state.status === "loading" && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Spinner />
+              <span className="text-xs text-brand-600 dark:text-brand-400">Analysing…</span>
+            </div>
+          )}
+          {state.status === "error" && (
+            <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
+              {state.errorMsg ?? "Skipped (rate limited)"}
+            </p>
+          )}
+          {state.status === "complete" && state.score !== null && (
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span
+                className={cn(
+                  "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold tabular-nums",
+                  scoreBadgeColor(state.score),
+                )}
+              >
+                {state.score}/100
+              </span>
+              {state.priority && (
+                <span
+                  className={cn(
+                    "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium",
+                    priorityBadge(state.priority),
+                  )}
+                >
+                  {state.priority} priority
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Expand toggle (complete state only) */}
+        {state.status === "complete" && (
+          <button
+            type="button"
+            onClick={() => onToggle(dimKey)}
+            className="shrink-0 rounded-md px-2 py-1 text-xs text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+          >
+            {state.expanded ? "Collapse" : "View full"}
+          </button>
+        )}
+      </div>
+
+      {/* Insights (always visible when complete) */}
+      {state.status === "complete" && state.insights.length > 0 && (
+        <div className="px-4 pb-2 space-y-1 animate-in fade-in duration-300">
+          {state.insights.slice(0, 2).map((insight, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand-400 shrink-0" />
+              <p className="text-xs text-ink-600 dark:text-ink-400 leading-snug">{insight}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Full markdown (expandable) */}
+      {state.status === "complete" && state.expanded && state.markdown && (
+        <div className="border-t border-ink-100 dark:border-ink-800 px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <SimpleMarkdown text={state.markdown} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+interface SviStreamAnalysisProps {
+  projectId?: string;
+}
+
+export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
+  const [dimStates, setDimStates] = useState<Record<string, DimState>>(() =>
+    Object.fromEntries(
+      DIM_KEYS.map((k) => [
+        k,
+        {
+          status: "idle",
+          score: null,
+          markdown: null,
+          insights: [],
+          priority: null,
+          errorMsg: null,
+          expanded: false,
+        },
+      ]),
+    ),
+  );
+
+  const [running, setRunning] = useState(false);
+  const [completed, setCompleted] = useState(0);
+  const [total, setTotal] = useState(8);
+  const [done, setDone] = useState(false);
+  const [totalMs, setTotalMs] = useState<number | null>(null);
+  const [fatalError, setFatalError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const updateDim = useCallback(
+    (key: string, patch: Partial<DimState>) => {
+      setDimStates((prev) => ({
+        ...prev,
+        [key]: { ...prev[key], ...patch },
+      }));
+    },
+    [],
+  );
+
+  const toggleExpand = useCallback((key: string) => {
+    setDimStates((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], expanded: !prev[key].expanded },
+    }));
+  }, []);
+
+  const reset = useCallback(() => {
+    setDimStates(
+      Object.fromEntries(
+        DIM_KEYS.map((k) => [
+          k,
+          {
+            status: "idle",
+            score: null,
+            markdown: null,
+            insights: [],
+            priority: null,
+            errorMsg: null,
+            expanded: false,
+          },
+        ]),
+      ),
+    );
+    setCompleted(0);
+    setTotal(8);
+    setDone(false);
+    setTotalMs(null);
+    setFatalError(null);
+  }, []);
+
+  const startAnalysis = useCallback(async () => {
+    reset();
+    setRunning(true);
+
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    try {
+      const res = await fetch("/api/svi/dimensions/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+        signal: ctrl.signal,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        setFatalError(`Request failed (${res.status}): ${text.slice(0, 200)}`);
+        setRunning(false);
+        return;
+      }
+
+      if (!res.body) {
+        setFatalError("No response stream received");
+        setRunning(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done: streamDone, value } = await reader.read();
+        if (streamDone) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Split on double-newlines (SSE message boundary)
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+
+          let event: SSEEvent;
+          try {
+            event = JSON.parse(raw) as SSEEvent;
+          } catch {
+            continue;
+          }
+
+          switch (event.type) {
+            case "dimension_start":
+              updateDim(event.dimension, { status: "loading" });
+              break;
+
+            case "dimension_complete":
+              updateDim(event.dimension, {
+                status: "complete",
+                score: event.score,
+                markdown: event.markdown,
+                insights: event.insights,
+                priority: event.priority,
+              });
+              break;
+
+            case "error":
+              updateDim(event.dimension, {
+                status: "error",
+                errorMsg: event.message,
+              });
+              break;
+
+            case "progress":
+              setCompleted(event.completed);
+              setTotal(event.total);
+              break;
+
+            case "done":
+              setDone(true);
+              setTotalMs(event.totalMs);
+              break;
+
+            case "fatal_error":
+              setFatalError(event.message);
+              break;
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as { name?: string }).name !== "AbortError") {
+        setFatalError(err instanceof Error ? err.message : String(err));
+      }
+    } finally {
+      setRunning(false);
+    }
+  }, [projectId, reset, updateDim]);
+
+  const stopAnalysis = useCallback(() => {
+    abortRef.current?.abort();
+    setRunning(false);
+  }, []);
+
+  const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return (
+    <div className="space-y-5">
+      {/* Action bar */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          {!running && !done && (
+            <p className="text-sm text-ink-600 dark:text-ink-400">
+              Run instant AI analysis across all 8 SVI dimensions in parallel — free preview.
+            </p>
+          )}
+          {running && (
+            <p className="text-sm text-brand-700 dark:text-brand-400">
+              Analysing {completed} of {total} dimensions…
+            </p>
+          )}
+          {done && totalMs !== null && (
+            <p className="text-sm text-emerald-700 dark:text-emerald-400">
+              All {total} dimensions analysed in {(totalMs / 1000).toFixed(1)}s
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {running && (
+            <button
+              type="button"
+              onClick={stopAnalysis}
+              className="rounded-lg border border-ink-200 dark:border-ink-700 px-3 py-1.5 text-sm text-ink-600 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+            >
+              Stop
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={running ? undefined : done ? () => { reset(); void startAnalysis(); } : () => void startAnalysis()}
+            disabled={running}
+            className={cn(
+              "rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200",
+              running
+                ? "bg-brand-300 text-white cursor-not-allowed opacity-70"
+                : "bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow-md active:scale-95",
+            )}
+          >
+            {running ? (
+              <span className="flex items-center gap-2">
+                <Spinner />
+                Analysing…
+              </span>
+            ) : done ? (
+              "Re-analyse"
+            ) : (
+              "Analyse All Dimensions"
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Fatal error */}
+      {fatalError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+          <strong>Error:</strong> {fatalError}
+        </div>
+      )}
+
+      {/* Progress bar (visible once started) */}
+      {(running || done) && !fatalError && (
+        <div className="space-y-1.5 animate-in fade-in duration-300">
+          <div className="flex justify-between text-xs text-ink-500 dark:text-ink-400">
+            <span>{completed}/{total} dimensions complete</span>
+            <span>{progressPct}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-brand-500 transition-all duration-500"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Dimension cards grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {DIM_KEYS.map((key) => (
+          <DimCard
+            key={key}
+            dimKey={key}
+            state={dimStates[key]}
+            onToggle={toggleExpand}
+          />
+        ))}
+      </div>
+
+      {/* Done summary */}
+      {done && !fatalError && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-800 px-4 py-3 animate-in fade-in duration-300">
+          <p className="text-sm text-brand-800 dark:text-brand-300">
+            <strong>Analysis complete.</strong> Scores reflect current evidence quality. Upload
+            documents to the Evidence Vault to improve dimension scores.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

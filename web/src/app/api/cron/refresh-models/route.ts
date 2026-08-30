@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const orAll = await fetchJson("https://openrouter.ai/api/v1/models");
   const orFree = filterFreeOpenRouter(orAll);
   if (orFree.length > 0) {
-    config.openrouter = rank(orFree, 8); // top 8 strongest free models — wider fallback breadth
+    config.openrouter = rank(orFree, 12); // top 12 strongest free models — wider fallback breadth
     summary.openrouter = config.openrouter.length;
   }
 
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const key = (env && process.env[env]) || (await dbKey(provider));
     if (!key) continue;
     const models = await fetchJson(url, { Authorization: `Bearer ${key}` });
-    const ranked = rank(models, 8); // top 8 strongest free models — wider fallback breadth
+    const ranked = rank(models, 12); // top 12 strongest free models — wider fallback breadth
     if (ranked.length > 0) {
       config[provider] = ranked;
       summary[provider] = ranked.length;

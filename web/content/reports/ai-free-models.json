@@ -1,32 +1,31 @@
 {
-  "updatedAt": "2026-08-24T08:33:20.830Z",
+  "updatedAt": "2026-08-30T12:00:00.000Z",
   "openrouter": [
-    "thinkingmachines/inkling:free",
-    "google/lyria-3-pro-preview",
-    "google/lyria-3-clip-preview",
-    "z-ai/glm-5.2:free",
-    "stealth/ox-alpha",
-    "dots-studio/dots-3-note-preview:free",
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "google/gemma-4-31b-it:free",
-    "google/gemma-4-26b-a4b-it:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "nvidia/nemotron-3.5-lightning:free",
-    "poolside/laguna-s-2.1:free",
-    "nvidia/nemotron-nano-12b-v2-vl:free",
-    "nvidia/nemotron-nano-9b-v2:free"
+    "google/gemini-2.5-flash:free",
+    "deepseek/deepseek-r1:free",
+    "deepseek/deepseek-v3:free",
+    "meta-llama/llama-4-maverick:free",
+    "qwen/qwen3-235b-a22b:free",
+    "moonshotai/kimi-k2:free",
+    "meta-llama/llama-4-scout:free",
+    "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",
+    "microsoft/phi-4-reasoning-plus:free",
+    "tngtech/deepseek-r1t-chimera:free",
+    "google/gemma-3-27b-it:free",
+    "mistralai/mistral-small-3.2-24b-instruct:free"
   ],
   "groq": [
-    "canopylabs/orpheus-arabic-saudi",
-    "groq/compound-mini",
     "qwen/qwen3.6-27b",
     "openai/gpt-oss-120b",
     "llama-3.3-70b-versatile",
+    "deepseek-r1-distill-llama-70b",
+    "qwen-qwq-32b",
     "openai/gpt-oss-20b",
+    "llama3-70b-8192",
+    "mixtral-8x7b-32768",
     "groq/compound",
+    "groq/compound-mini",
     "llama-3.1-8b-instant",
-    "allam-2-7b",
     "canopylabs/orpheus-v1-english"
   ],
   "cerebras": [
@@ -34,11 +33,17 @@
     "gpt-oss-120b"
   ],
   "sambanova": [
-    "MiniMax-M3",
-    "DeepSeek-V3.1",
+    "DeepSeek-V3-0324",
+    "DeepSeek-R1",
     "DeepSeek-V3.2",
+    "DeepSeek-V3.1",
+    "Qwen3-235B-A22B",
+    "Meta-Llama-3.1-405B-Instruct",
+    "Llama-4-Maverick-17B-128E-Instruct",
+    "Llama-4-Scout-17B-16E-Instruct",
     "gpt-oss-120b",
+    "gemma-4-31B-it",
     "Meta-Llama-3.3-70B-Instruct",
-    "gemma-4-31B-it"
+    "Meta-Llama-3.1-8B-Instruct"
   ]
 }

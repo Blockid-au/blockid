@@ -13,6 +13,7 @@ import type {
 } from "@/lib/svi-completeness";
 import { SviCompletenessHeatmap } from "@/components/svi/svi-completeness-heatmap";
 import { SviFixRoadmap } from "@/components/svi/svi-fix-roadmap";
+import { SviStreamAnalysis } from "@/components/svi/svi-stream-analysis";
 
 const DIMENSION_LABELS: Record<string, string> = {
   ftv: "Founder Traction Velocity",
@@ -45,7 +46,7 @@ function progressColor(pct: number): string {
   return "bg-red-500";
 }
 
-export function SviEvidenceClient() {
+export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
   const [data, setData] = useState<CompletenessData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +56,10 @@ export function SviEvidenceClient() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/svi/evidence-completeness");
+      const url = projectId
+        ? `/api/svi/evidence-completeness?projectId=${encodeURIComponent(projectId)}`
+        : "/api/svi/evidence-completeness";
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to load evidence data");
       const json = await res.json() as CompletenessData & { ok: boolean };
       if (!json.ok) throw new Error("API error");
@@ -65,7 +69,7 @@ export function SviEvidenceClient() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     void fetchData();
@@ -121,6 +125,19 @@ export function SviEvidenceClient() {
 
   return (
     <div className="space-y-8">
+      {/* AI Dimension Analysis — streams results as each dimension completes */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold text-ink-800 dark:text-ink-100">
+            AI Dimension Analysis
+          </h2>
+          <p className="text-sm text-ink-500 dark:text-ink-400 mt-0.5">
+            Instant AI-powered analysis across all 8 SVI dimensions — results stream as each completes.
+          </p>
+        </div>
+        <SviStreamAnalysis projectId={projectId} />
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -149,7 +166,7 @@ export function SviEvidenceClient() {
       )}
 
       {/* Completeness heatmap */}
-      <SviCompletenessHeatmap projectId="" className="mb-2" />
+      <SviCompletenessHeatmap projectId={projectId} className="mb-2" />
 
       {/* Dimension cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -287,7 +304,7 @@ export function SviEvidenceClient() {
         <h2 className="text-base font-semibold text-ink-800 dark:text-ink-100 mb-3">
           4-Week Fix Roadmap
         </h2>
-        <SviFixRoadmap projectId="" />
+        <SviFixRoadmap projectId={projectId} />
       </div>
 
       {/* Footer */}
