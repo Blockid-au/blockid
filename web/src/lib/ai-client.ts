@@ -434,16 +434,39 @@ const COST_PER_1K: Record<string, number> = {
   "gemma-4-31b": 0,           // Cerebras: 1424 ok in prod — most reliable model
   "zai-glm-4.7": 0,           // Cerebras: zero cost (but high fail rate — demoted by health)
   // SambaNova free tier (model IDs as of Aug 2026)
-  "DeepSeek-V3.1": 0,         // SambaNova: newest DeepSeek V3 checkpoint
-  "DeepSeek-V3.2": 0,         // SambaNova: latest DeepSeek V3 checkpoint
-  "DeepSeek-V3-0324": 0,      // SambaNova: legacy ID kept for health record continuity
+  "DeepSeek-V3.1": 0,                        // SambaNova: newest DeepSeek V3 checkpoint
+  "DeepSeek-V3.2": 0,                        // SambaNova: latest DeepSeek V3 checkpoint
+  "DeepSeek-V3-0324": 0,                     // SambaNova: latest DeepSeek V3 alias
+  "DeepSeek-R1": 0,                          // SambaNova: DeepSeek R1 reasoning model
   "Meta-Llama-3.3-70B-Instruct": 0,
+  "Meta-Llama-3.1-405B-Instruct": 0,         // SambaNova: Llama 3.1 405B — largest Llama
   "Qwen2.5-72B-Instruct": 0,
+  "Qwen3-235B-A22B": 0,                      // SambaNova: Qwen3 235B MoE
   "Meta-Llama-3.1-8B-Instruct": 0,
-  "gpt-oss-120b": 0,          // SambaNova: available as of Aug 2026 discovery
-  "gemma-4-31B-it": 0,        // SambaNova: Gemma 4 31B instruct
+  "Llama-4-Maverick-17B-128E-Instruct": 0,   // SambaNova: Llama 4 Maverick
+  "Llama-4-Scout-17B-16E-Instruct": 0,       // SambaNova: Llama 4 Scout
+  "gpt-oss-120b": 0,                         // SambaNova: available as of Aug 2026 discovery
+  "gemma-4-31B-it": 0,                       // SambaNova: Gemma 4 31B instruct
+  // Groq free tier (additional strong models)
+  "deepseek-r1-distill-llama-70b": 0,        // Groq: DeepSeek R1 distill 70B
+  "qwen-qwq-32b": 0,                         // Groq: QwQ 32B reasoning
+  "llama3-70b-8192": 0,                      // Groq: Llama 3 70B legacy
+  "mixtral-8x7b-32768": 0,                   // Groq: Mixtral 8x7B
   // OpenRouter free models — all $0 cost
-  "nvidia/nemotron-3-ultra-550b-a55b:free": 0,           // Aug 2026 discovery #1 — 550B ultra
+  "google/gemini-2.5-flash:free": 0,
+  "deepseek/deepseek-r1:free": 0,
+  "deepseek/deepseek-v3:free": 0,
+  "meta-llama/llama-4-maverick:free": 0,
+  "qwen/qwen3-235b-a22b:free": 0,
+  "moonshotai/kimi-k2:free": 0,
+  "meta-llama/llama-4-scout:free": 0,
+  "nvidia/llama-3.1-nemotron-ultra-253b-v1:free": 0,
+  "microsoft/phi-4-reasoning-plus:free": 0,
+  "tngtech/deepseek-r1t-chimera:free": 0,
+  "google/gemma-3-27b-it:free": 0,
+  "mistralai/mistral-small-3.2-24b-instruct:free": 0,
+  // Legacy OpenRouter entries (kept for health record continuity)
+  "nvidia/nemotron-3-ultra-550b-a55b:free": 0,
   "deepseek/deepseek-v4-flash:free": 0,
   "qwen/qwen3-coder:free": 0,
   "nvidia/nemotron-3-super-120b-a12b:free": 0,
@@ -455,11 +478,11 @@ const COST_PER_1K: Record<string, number> = {
   "google/gemma-4-31b-it:free": 0,
   "google/gemma-4-26b-a4b-it:free": 0,
   "poolside/laguna-m.1:free": 0,
-  "poolside/laguna-s-2.1:free": 0,                       // Aug 2026 discovery — Poolside Laguna S
+  "poolside/laguna-s-2.1:free": 0,
   "poolside/laguna-xs.2:free": 0,
   "nvidia/nemotron-3-nano-30b-a3b:free": 0,
   "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": 0,
-  "nvidia/nemotron-3.5-lightning:free": 0,               // Aug 2026 discovery — Nemotron 3.5
+  "nvidia/nemotron-3.5-lightning:free": 0,
   "minimax/minimax-m2.5:free": 0,
   "meta-llama/llama-3.3-70b-instruct:free": 0,
   "z-ai/glm-4.5-air:free": 0,
@@ -911,40 +934,23 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
   // Last updated: 2026-08-13 — daily refresh writes to ai-free-models.json.
   // Hardcoded list is fallback if file is missing/stale (getDynamicModels prefers file).
   const FREE_MODELS = getDynamicModels("openrouter", [
-    // ── S-tier: Frontier-class free models (score 47-54) ────────────
-    "nvidia/nemotron-3-ultra-550b-a55b:free",             // 1M ctx, NVIDIA 550B ultra — top of Aug discovery
-    "moonshotai/kimi-k2.6:free",                          // 262K ctx, score ~54, Moonshot best
-    "deepseek/deepseek-v4-flash:free",                    // 1M ctx, score ~47, MoE 284B reasoning
-    "minimax/minimax-m2.5:free",                          // 205K ctx, score ~50, SWE-bench strong
-    "qwen/qwen3-next-80b-a3b-instruct:free",              // 262K ctx, score ~46, Qwen3 next-gen
-    "qwen/qwen3-coder:free",                              // 1M ctx, score ~45, strongest free coding
+    // ── S-tier: Frontier-class free models ──────────────────────────
+    "google/gemini-2.5-flash:free",                        // Google Gemini 2.5 Flash — fastest frontier model
+    "deepseek/deepseek-r1:free",                           // DeepSeek R1 reasoning — strongest free reasoning
+    "deepseek/deepseek-v3:free",                           // DeepSeek V3 — top-tier general + coding
+    "meta-llama/llama-4-maverick:free",                    // Llama 4 Maverick — Meta's best free MoE
+    "qwen/qwen3-235b-a22b:free",                           // Qwen3 235B MoE — Alibaba flagship free
+    "moonshotai/kimi-k2:free",                             // Kimi K2 — 1T MoE, strong agentic tasks
 
-    // ── A-tier: Strong general-purpose (score 40-47) ────────────────
-    "nvidia/nemotron-3-super-120b-a12b:free",             // 1M ctx, NVIDIA 120B, Aug discovery #2
-    "openai/gpt-oss-120b:free",                           // 131K ctx, OpenAI 117B MoE open-weight
-    "z-ai/glm-4.5-air:free",                              // 131K ctx, Zhipu GLM 4.5 (GLM-5 family)
-    "openrouter/owl-alpha",                                // 1M ctx, OpenRouter agentic model
-    "nousresearch/hermes-3-llama-3.1-405b:free",          // 131K ctx, 405B params — largest free
+    // ── A-tier: Strong general-purpose ──────────────────────────────
+    "meta-llama/llama-4-scout:free",                       // Llama 4 Scout — Meta efficient MoE
+    "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",        // NVIDIA Nemotron 253B — large reasoning
+    "microsoft/phi-4-reasoning-plus:free",                 // Phi-4 Reasoning Plus — strong for size
+    "tngtech/deepseek-r1t-chimera:free",                   // DeepSeek R1T Chimera — hybrid reasoning
 
-    // ── B-tier: Solid quality, reliable (score 35-42) ───────────────
-    "nvidia/nemotron-3.5-lightning:free",                  // Aug 2026 discovery — Nemotron 3.5
-    "poolside/laguna-s-2.1:free",                          // Aug 2026 discovery — Poolside Laguna S
-    "google/gemma-4-31b-it:free",                          // 262K ctx, Gemma 4 multimodal — Aug discovery #3
-    "meta-llama/llama-3.3-70b-instruct:free",              // 131K ctx, Meta Llama 3.3 70B
-    "google/gemma-4-26b-a4b-it:free",                      // 262K ctx, Gemma 4 smaller
-    "poolside/laguna-m.1:free",                            // 262K ctx, Poolside coding agent
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",  // 256K ctx, NVIDIA reasoning — Aug discovery
-    "nvidia/nemotron-3-nano-30b-a3b:free",                 // 256K ctx, NVIDIA 30B
-    "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", // 33K ctx, Mistral 24B
-
-    // ── C-tier: Fast fallback / small models (score <35) ────────────
-    "openai/gpt-oss-20b:free",                            // 131K ctx, OpenAI 20B fast
-    "poolside/laguna-xs.2:free",                          // 262K ctx, Poolside small
-    "nvidia/nemotron-nano-12b-v2-vl:free",                // 128K ctx, NVIDIA 12B vision — Aug discovery
-    "nvidia/nemotron-nano-9b-v2:free",                    // 128K ctx, NVIDIA 9B
-    "meta-llama/llama-3.2-3b-instruct:free",              // 131K ctx, Meta 3B ultra-fast
-    "liquid/lfm-2.5-1.2b-thinking:free",                  // 33K ctx, Liquid 1.2B thinking
-    "liquid/lfm-2.5-1.2b-instruct:free",                  // 33K ctx, Liquid 1.2B instruct
+    // ── B-tier: Solid quality, reliable ─────────────────────────────
+    "google/gemma-3-27b-it:free",                          // Gemma 3 27B — Google efficient instruct
+    "mistralai/mistral-small-3.2-24b-instruct:free",       // Mistral Small 3.2 — reliable European model
   ]);
 
   let lastErr: Error | null = null;
