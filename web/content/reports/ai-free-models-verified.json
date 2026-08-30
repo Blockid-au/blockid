@@ -1,76 +1,237 @@
 {
-  "verifiedAt": "2026-08-09T03:00:34.210Z",
+  "verifiedAt": "2026-08-30T03:00:13.785Z",
   "source": "ai-free-models.json",
   "verified": {
     "openrouter": [
-      "nvidia/nemotron-3-nano-30b-a3b:free",
-      "nvidia/nemotron-nano-9b-v2:free",
-      "inclusionai/ling-3.0-tiny:free",
-      "openai/gpt-oss-20b:free",
       "nvidia/nemotron-3-ultra-550b-a55b:free",
-      "nvidia/nemotron-3-super-120b-a12b:free",
-      "google/gemma-4-31b-it:free",
-      "google/gemma-4-26b-a4b-it:free",
-      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-      "poolside/laguna-s-2.1:free",
-      "nvidia/nemotron-nano-12b-v2-vl:free"
+      "minimax/minimax-m3:free",
+      "minimax/minimax-m2.7:free"
     ],
     "groq": [
-      "groq/compound-mini",
+      "qwen/qwen3.8-27b",
+      "allam-2-7b",
       "qwen/qwen3.6-27b",
       "openai/gpt-oss-120b",
-      "llama-3.3-70b-versatile",
       "openai/gpt-oss-20b",
       "groq/compound",
-      "llama-3.1-8b-instant",
-      "allam-2-7b"
-    ],
-    "cerebras": [
-      "zai-glm-4.7",
-      "gpt-oss-120b",
-      "gemma-4-31b"
-    ],
-    "sambanova": [
-      "DeepSeek-V3.1",
-      "gpt-oss-120b",
-      "Meta-Llama-3.3-70B-Instruct",
-      "gemma-4-31B-it"
+      "groq/compound-mini"
     ]
   },
   "excluded": {
-    "paidLeaks": [],
+    "paidLeaks": [
+      {
+        "provider": "cerebras",
+        "model": "gemma-4-31b",
+        "status": "payment_required",
+        "detail": "{\"message\":\"Payment required to access this resource. Visit your billing tab.\",\"type\":\"payment_required_error\",\"param\":\"quota\",\"code\":\"payment_required\"}"
+      },
+      {
+        "provider": "cerebras",
+        "model": "gpt-oss-120b",
+        "status": "payment_required",
+        "detail": "{\"message\":\"Payment required to access this resource. Visit your billing tab.\",\"type\":\"payment_required_error\",\"param\":\"quota\",\"code\":\"payment_required\"}"
+      },
+      {
+        "provider": "sambanova",
+        "model": "MiniMax-M3",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "DeepSeek-V3-0324",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "DeepSeek-R1",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "DeepSeek-V3.2",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "DeepSeek-V3.1",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "Meta-Llama-3.1-405B-Instruct",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "Llama-4-Maverick-17B-128E-Instruct",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "Llama-4-Scout-17B-16E-Instruct",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "gpt-oss-120b",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "gemma-4-31B-it",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "Meta-Llama-3.3-70B-Instruct",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      },
+      {
+        "provider": "sambanova",
+        "model": "Meta-Llama-3.1-8B-Instruct",
+        "status": "payment_required",
+        "detail": "{\"error\":{\"balance_units\":0,\"billing_portal_url\":\"https://cloud.sambanova.ai/plans/billing\",\"code\":\"PAYMENT_METHOD_REQUIRED\",\"message\":\"A payment method is required. Add one at https://cloud.sambanova"
+      }
+    ],
     "notFound": [
       {
         "provider": "openrouter",
-        "model": "inclusionai/ling-3.0-flash:free",
+        "model": "google/gemini-2.5-flash:free",
         "status": "not_found",
-        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: inclusionai/ling-3.0-flash\",\"code\":404},\"use"
+        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: google/gemini-2.5-flash\",\"code\":404},\"user_i"
+      },
+      {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-r1:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: deepseek/deepseek-r1\",\"code\":404},\"user_id\":"
+      },
+      {
+        "provider": "openrouter",
+        "model": "meta-llama/llama-4-maverick:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: meta-llama/llama-4-maverick\",\"code\":404},\"us"
+      },
+      {
+        "provider": "openrouter",
+        "model": "qwen/qwen3-235b-a22b:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: qwen/qwen3-235b-a22b\",\"code\":404},\"user_id\":"
+      },
+      {
+        "provider": "openrouter",
+        "model": "moonshotai/kimi-k2:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: moonshotai/kimi-k2\",\"code\":404},\"user_id\":\"u"
+      },
+      {
+        "provider": "openrouter",
+        "model": "meta-llama/llama-4-scout:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: meta-llama/llama-4-scout\",\"code\":404},\"user_"
+      },
+      {
+        "provider": "openrouter",
+        "model": "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"No endpoints found for nvidia/llama-3.1-nemotron-ultra-253b-v1:free.\",\"code\":404},\"user_id\":\"user_3Ah3bHtM4oVipun7LAei12V0dn9\"}"
+      },
+      {
+        "provider": "openrouter",
+        "model": "microsoft/phi-4-reasoning-plus:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"No endpoints found for microsoft/phi-4-reasoning-plus:free.\",\"code\":404},\"user_id\":\"user_3Ah3bHtM4oVipun7LAei12V0dn9\"}"
+      },
+      {
+        "provider": "openrouter",
+        "model": "tngtech/deepseek-r1t-chimera:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"No endpoints found for tngtech/deepseek-r1t-chimera:free.\",\"code\":404},\"user_id\":\"user_3Ah3bHtM4oVipun7LAei12V0dn9\"}"
+      },
+      {
+        "provider": "openrouter",
+        "model": "google/gemma-3-27b-it:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: google/gemma-3-27b-it\",\"code\":404},\"user_id\""
+      },
+      {
+        "provider": "openrouter",
+        "model": "mistralai/mistral-small-3.2-24b-instruct:free",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: mistralai/mistral-small-3.2-24b-instruct\",\"c"
+      },
+      {
+        "provider": "groq",
+        "model": "llama-3.3-70b-versatile",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.\",\"type\":\"invalid_request_error\",\"code\":\"model_not_found"
+      },
+      {
+        "provider": "groq",
+        "model": "llama-3.1-8b-instant",
+        "status": "not_found",
+        "detail": "{\"error\":{\"message\":\"The model `llama-3.1-8b-instant` does not exist or you do not have access to it.\",\"type\":\"invalid_request_error\",\"code\":\"model_not_found\"}}"
+      },
+      {
+        "provider": "sambanova",
+        "model": "Qwen3-235B-A22B",
+        "status": "not_found",
+        "detail": "{\"error\":{\"code\":\"model_not_found\",\"message\":\"The model `Qwen3-235B-A22B` does not exist or you do not have access to it.\",\"param\":\"model\",\"type\":\"invalid_reque"
       }
     ],
     "other": [
       {
         "provider": "openrouter",
-        "model": "google/lyria-3-pro-preview",
+        "model": "deepseek/deepseek-v3:free",
         "status": "other",
-        "detail": "502 {\"error\":{\"message\":\"Provider returned error\",\"code\":502,\"metadata\":{\"raw\":\"{\\n  \\\"error\\\": {\\n    \\\"code\\\": 500,\\n    \\\"message\\\": \\\"Internal error encountered"
-      },
-      {
-        "provider": "openrouter",
-        "model": "google/lyria-3-clip-preview",
-        "status": "other",
-        "detail": "502 {\"error\":{\"message\":\"Provider returned error\",\"code\":502,\"metadata\":{\"raw\":\"{\\n  \\\"error\\\": {\\n    \\\"code\\\": 500,\\n    \\\"message\\\": \\\"Internal error encountered"
-      },
-      {
-        "provider": "groq",
-        "model": "canopylabs/orpheus-v1-english",
-        "status": "other",
-        "detail": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com"
+        "detail": "400 {\"error\":{\"message\":\"deepseek/deepseek-v3:free is not a valid model ID\",\"code\":400},\"user_id\":\"user_3Ah3bHtM4oVipun7LAei12V0dn9\"}"
       },
       {
         "provider": "groq",
         "model": "canopylabs/orpheus-arabic-saudi",
         "status": "other",
         "detail": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-arabic-saudi` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.c"
+      },
+      {
+        "provider": "groq",
+        "model": "deepseek-r1-distill-llama-70b",
+        "status": "other",
+        "detail": "400 {\"error\":{\"message\":\"The model `deepseek-r1-distill-llama-70b` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs"
+      },
+      {
+        "provider": "groq",
+        "model": "qwen-qwq-32b",
+        "status": "other",
+        "detail": "400 {\"error\":{\"message\":\"The model `qwen-qwq-32b` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for"
+      },
+      {
+        "provider": "groq",
+        "model": "llama3-70b-8192",
+        "status": "other",
+        "detail": "400 {\"error\":{\"message\":\"The model `llama3-70b-8192` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations "
+      },
+      {
+        "provider": "groq",
+        "model": "mixtral-8x7b-32768",
+        "status": "other",
+        "detail": "400 {\"error\":{\"message\":\"The model `mixtral-8x7b-32768` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecatio"
+      },
+      {
+        "provider": "groq",
+        "model": "canopylabs/orpheus-v1-english",
+        "status": "other",
+        "detail": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com"
       }
     ]
   }
