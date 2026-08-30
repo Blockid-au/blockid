@@ -1,19 +1,30 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from "react";
+import {
+  Users,
+  Target,
+  Cog,
+  TrendingUp,
+  Landmark,
+  Briefcase,
+  Scale,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── Dimension metadata ────────────────────────────────────────────────────────
 
-const DIMS: Record<string, { label: string; icon: string; weight: number }> = {
-  ftv: { label: "Founder & Team", icon: "👥", weight: 15 },
-  mpc: { label: "Market & Problem", icon: "🎯", weight: 18 },
-  ptd: { label: "Product & Tech", icon: "⚙️", weight: 12 },
-  tre: { label: "Traction & Revenue", icon: "📈", weight: 20 },
-  cgh: { label: "Cap Table & Governance", icon: "🏛️", weight: 12 },
-  iri: { label: "Investor Readiness", icon: "💼", weight: 10 },
-  lco: { label: "Legal & Compliance", icon: "⚖️", weight: 8 },
-  svm: { label: "Strategic Vision & Moat", icon: "🔮", weight: 5 },
+const DIMS: Record<string, { label: string; Icon: LucideIcon; weight: number }> = {
+  ftv: { label: "Founder & Team", Icon: Users, weight: 15 },
+  mpc: { label: "Market & Problem", Icon: Target, weight: 18 },
+  ptd: { label: "Product & Tech", Icon: Cog, weight: 12 },
+  tre: { label: "Traction & Revenue", Icon: TrendingUp, weight: 20 },
+  cgh: { label: "Cap Table & Governance", Icon: Landmark, weight: 12 },
+  iri: { label: "Investor Readiness", Icon: Briefcase, weight: 10 },
+  lco: { label: "Legal & Compliance", Icon: Scale, weight: 8 },
+  svm: { label: "Strategic Vision & Moat", Icon: Sparkles, weight: 5 },
 };
 
 const DIM_KEYS = Object.keys(DIMS);
@@ -170,7 +181,10 @@ function DimCard({
     >
       {/* Card header */}
       <div className="flex items-center gap-3 px-4 py-3">
-        <span className="text-xl leading-none">{meta.icon}</span>
+        <meta.Icon
+          className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-400"
+          aria-hidden="true"
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-ink-800 dark:text-ink-100 truncate">
@@ -330,6 +344,16 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
   const startAnalysis = useCallback(async () => {
     reset();
     setRunning(true);
+    // Prime every card to "loading" immediately so the grid shows pulsing
+    // placeholders during the ~500ms round-trip before the server emits its
+    // first dimension_start event — otherwise users stare at 8 idle cards.
+    setDimStates((prev) => {
+      const primed: Record<string, DimState> = { ...prev };
+      for (const k of DIM_KEYS) {
+        primed[k] = { ...primed[k], status: "loading" };
+      }
+      return primed;
+    });
 
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -440,7 +464,7 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
     <div className="space-y-5">
       {/* Action bar */}
       <div className="flex items-center justify-between gap-4">
-        <div>
+        <div aria-live="polite" aria-atomic="true">
           {!running && !done && (
             <p className="text-sm text-ink-600 dark:text-ink-400">
               Run instant AI analysis across all 8 SVI dimensions in parallel — free preview.
@@ -507,7 +531,14 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
             <span>{completed}/{total} dimensions complete</span>
             <span>{progressPct}%</span>
           </div>
-          <div className="h-2 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden">
+          <div
+            role="progressbar"
+            aria-valuenow={progressPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`SVI analysis progress: ${completed} of ${total} dimensions`}
+            className="h-2 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden"
+          >
             <div
               className="h-full rounded-full bg-brand-500 transition-all duration-500"
               style={{ width: `${progressPct}%` }}
