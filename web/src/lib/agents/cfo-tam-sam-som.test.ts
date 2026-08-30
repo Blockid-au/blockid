@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   auMarketProfile,
   computeTamSamSom,
+  computeTopDownTamSamSom,
   type TamSamSomInput,
 } from "./cfo-tam-sam-som";
 
@@ -73,5 +74,66 @@ describe("cfo-tam-sam-som — bottom-up market sizing", () => {
         expect(src.year).toBeGreaterThanOrEqual(2020);
       }
     }
+  });
+});
+
+describe("cfo-tam-sam-som — top-down market sizing", () => {
+  const baseInput = {
+    sector: "saas",
+    totalMarketSizeAud: 10_000_000_000, // A$10B sector TAM anchor
+    samSharePct: 20,
+    achievableSomSharePct: 5,
+  };
+
+  it("returns AUD-denominated TAM ≥ SAM ≥ SOM in the base case", () => {
+    const r = computeTopDownTamSamSom(baseInput);
+    expect(r.currency).toBe("AUD");
+    expect(r.base.tamAud).toBeGreaterThan(0);
+    expect(r.base.samAud).toBeLessThanOrEqual(r.base.tamAud);
+    expect(r.base.somAud).toBeLessThanOrEqual(r.base.samAud);
+  });
+
+  it("computes SAM = TAM × samShare and SOM = SAM × somShare", () => {
+    const r = computeTopDownTamSamSom(baseInput);
+    expect(r.base.tamAud).toBe(10_000_000_000);
+    expect(r.base.samAud).toBe(2_000_000_000); // 10B × 20%
+    expect(r.base.somAud).toBe(100_000_000);   // 2B × 5%
+  });
+
+  it("orders bear < base < bull for SOM under symmetric sensitivity", () => {
+    const r = computeTopDownTamSamSom({ ...baseInput, sensitivity: 0.3 });
+    expect(r.bear.somAud).toBeLessThan(r.base.somAud);
+    expect(r.bull.somAud).toBeGreaterThan(r.base.somAud);
+  });
+
+  it("keeps TAM identical across bear/base/bull — only share inputs flex", () => {
+    const r = computeTopDownTamSamSom({ ...baseInput, sensitivity: 0.4 });
+    expect(r.bear.tamAud).toBe(r.base.tamAud);
+    expect(r.bull.tamAud).toBe(r.base.tamAud);
+  });
+
+  it("falls back to the default profile sources for unknown sectors", () => {
+    const r = computeTopDownTamSamSom({ ...baseInput, sector: "unknown-thing" });
+    expect(r.sector).toBe("default");
+    expect(r.sources.length).toBeGreaterThan(0);
+  });
+
+  it("clamps share inputs to [0, 100] and sensitivity to a safe range", () => {
+    const r = computeTopDownTamSamSom({
+      sector: "saas",
+      totalMarketSizeAud: 1_000_000_000,
+      samSharePct: 500,             // absurd input
+      achievableSomSharePct: 500,   // absurd input
+      sensitivity: 5,               // absurd input
+    });
+    expect(r.base.samSharePct).toBeLessThanOrEqual(100);
+    expect(r.base.achievableSomSharePct).toBeLessThanOrEqual(100);
+    // Sensitivity clamped to ≤0.9 → bear is not negative.
+    expect(r.bear.somAud).toBeGreaterThanOrEqual(0);
+  });
+
+  it("carries sector CAGR from the AU profile onto the result", () => {
+    const r = computeTopDownTamSamSom({ ...baseInput, sector: "ai" });
+    expect(r.cagrPct).toBe(auMarketProfile("ai").cagrPct);
   });
 });

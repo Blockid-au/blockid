@@ -1,7 +1,7 @@
 // src/lib/agents/cfo-tam-sam-som.ts
 //
-// CFO domain helper — Bottom-up TAM/SAM/SOM calculator with an AU source
-// library (T0135).
+// CFO domain helper — Bottom-up + top-down TAM/SAM/SOM calculator with an AU
+// source library (T0135, T0178, T0193).
 //
 // Pure-logic module. Takes a founder's target segment (sector, reachable
 // customer base, ARPU, penetration assumptions) and returns a defensible
@@ -396,6 +396,120 @@ export function computeTamSamSom(input: TamSamSomInput): TamSamSomResult {
     bull,
     methodology:
       "Bottom-up SOM from reachable AU customer units × achievable penetration × annual ARPU. SAM inferred from realistic long-run capture rate. TAM scaled by an adjacent-segment expansion multiplier. Bear and bull scenarios apply the sensitivity spread to both penetration and ARPU.",
+    assumptions,
+    sources: profile.sources,
+  };
+}
+
+// ── Top-down TAM/SAM/SOM ─────────────────────────────────────────────────
+//
+// Founders often have a published sector-level market size (e.g. IDC ANZ SaaS
+// spend, ABS health expenditure, IBISWorld online retail). Top-down starts
+// from that anchor and walks DOWN: TAM → SAM (serviceable slice) → SOM
+// (achievable share). Investors compare the two: if bottom-up SOM diverges
+// wildly from top-down SOM, at least one of the assumption sets is wrong.
+
+export interface TopDownTamSamSomInput {
+  sector?: string;
+  /** Published sector-level TAM anchor, AUD. */
+  totalMarketSizeAud: number;
+  /** Share of TAM that is realistically serviceable by our product (%). */
+  samSharePct: number;
+  /** Share of SAM we can realistically capture in the SOM horizon (%). */
+  achievableSomSharePct: number;
+  /** Bear/bull sensitivity spread applied to both share inputs (0-1). */
+  sensitivity?: number;
+}
+
+export interface TopDownTamSamSomScenario {
+  samSharePct: number;
+  achievableSomSharePct: number;
+  tamAud: number;
+  samAud: number;
+  somAud: number;
+}
+
+export interface TopDownTamSamSomResult {
+  sector: Sector;
+  currency: "AUD";
+  cagrPct: number;
+  base: TopDownTamSamSomScenario;
+  bear: TopDownTamSamSomScenario;
+  bull: TopDownTamSamSomScenario;
+  methodology: string;
+  assumptions: string[];
+  sources: AuMarketSource[];
+}
+
+function topDownScenario(
+  totalMarketSizeAud: number,
+  samSharePct: number,
+  achievableSomSharePct: number,
+): TopDownTamSamSomScenario {
+  const samShare = clamp(samSharePct, 0, 100);
+  const somShare = clamp(achievableSomSharePct, 0, 100);
+  const tamAud = round(totalMarketSizeAud);
+  const samAud = round(tamAud * (samShare / 100));
+  const somAud = round(samAud * (somShare / 100));
+  return {
+    samSharePct: Number(samShare.toFixed(3)),
+    achievableSomSharePct: Number(somShare.toFixed(3)),
+    tamAud,
+    samAud,
+    somAud,
+  };
+}
+
+/**
+ * Top-down TAM/SAM/SOM calculator.
+ *
+ * TAM = published sector market size (AUD).
+ * SAM = TAM × serviceable share (product fit % of the market).
+ * SOM = SAM × achievable capture share (realistic long-run share).
+ *
+ * Bear/bull sensitivity flexes both share inputs so the founder can defend a
+ * range, mirroring the bottom-up model. Sources are the sector-specific AU
+ * publications used by bottom-up so the two views cite the same evidence.
+ */
+export function computeTopDownTamSamSom(
+  input: TopDownTamSamSomInput,
+): TopDownTamSamSomResult {
+  const sector = normSector(input.sector);
+  const profile = AU_MARKET_PROFILES[sector];
+  const tamAnchor = Math.max(1, input.totalMarketSizeAud);
+  const baseSamShare = clamp(input.samSharePct, 0, 100);
+  const baseSomShare = clamp(input.achievableSomSharePct, 0, 100);
+  const spread = clamp(input.sensitivity ?? 0.3, 0.05, 0.9);
+
+  const base = topDownScenario(tamAnchor, baseSamShare, baseSomShare);
+  const bear = topDownScenario(
+    tamAnchor,
+    baseSamShare * (1 - spread),
+    baseSomShare * (1 - spread),
+  );
+  const bull = topDownScenario(
+    tamAnchor,
+    baseSamShare * (1 + spread),
+    baseSomShare * (1 + spread),
+  );
+
+  const assumptions = [
+    `Published sector TAM anchor: A$${tamAnchor.toLocaleString("en-AU")}`,
+    `Serviceable share of TAM (SAM): ${baseSamShare.toFixed(2)}%`,
+    `Achievable share of SAM (SOM): ${baseSomShare.toFixed(2)}%`,
+    `Sector CAGR (5y forward): ${profile.cagrPct}%`,
+    `Sensitivity spread applied to both share inputs: ±${Math.round(spread * 100)}%`,
+  ];
+
+  return {
+    sector,
+    currency: "AUD",
+    cagrPct: profile.cagrPct,
+    base,
+    bear,
+    bull,
+    methodology:
+      "Top-down TAM anchored to a published AU sector market size. SAM = TAM × serviceable share (product fit). SOM = SAM × achievable long-run capture share. Bear and bull scenarios flex both share inputs by the sensitivity spread. Compare against the bottom-up model — large divergence indicates one assumption set is off.",
     assumptions,
     sources: profile.sources,
   };
