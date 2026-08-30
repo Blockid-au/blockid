@@ -1,20 +1,26 @@
 {
-  "updatedAt": "2026-08-30T12:00:00.000Z",
+  "updatedAt": "2026-08-30T05:00:06.299Z",
   "openrouter": [
-    "google/gemini-2.5-flash:free",
-    "deepseek/deepseek-r1:free",
-    "deepseek/deepseek-v3:free",
-    "meta-llama/llama-4-maverick:free",
-    "qwen/qwen3-235b-a22b:free",
-    "moonshotai/kimi-k2:free",
-    "meta-llama/llama-4-scout:free",
-    "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",
-    "microsoft/phi-4-reasoning-plus:free",
-    "tngtech/deepseek-r1t-chimera:free",
-    "google/gemma-3-27b-it:free",
-    "mistralai/mistral-small-3.2-24b-instruct:free"
+    "poolside/laguna-s-2.1:free",
+    "liquid/lfm-2.5-2.6b:free",
+    "google/lyria-3-pro-preview",
+    "nvidia/nemotron-3.5-lightning:free",
+    "dots-studio/dots-3-note-preview:free",
+    "inclusionai/ling-3.0-flash-fin:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "thinkingmachines/inkling:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "z-ai/glm-5.2:free",
+    "google/gemma-4-31b-it:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "minimax/minimax-m3:free",
+    "minimax/minimax-m2.7:free"
   ],
   "groq": [
+    "qwen/qwen3.8-27b",
+    "allam-2-7b",
+    "canopylabs/orpheus-arabic-saudi",
     "qwen/qwen3.6-27b",
     "openai/gpt-oss-120b",
     "llama-3.3-70b-versatile",
@@ -33,6 +39,7 @@
     "gpt-oss-120b"
   ],
   "sambanova": [
+    "MiniMax-M3",
     "DeepSeek-V3-0324",
     "DeepSeek-R1",
     "DeepSeek-V3.2",
