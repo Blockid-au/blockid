@@ -19,7 +19,7 @@ import {
   type MentorAccessTier,
 } from "./access-tiers";
 
-const NOW = new Date("2026-07-31T00:00:00.000Z");
+const NOW = new Date("2027-01-01T00:00:00.000Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
 const iso = (msFromNow: number) => new Date(NOW.getTime() + msFromNow).toISOString();
 
@@ -154,22 +154,22 @@ describe("canViewReport", () => {
   const report = { id: "rep-1", shared_with_mentor: true };
 
   it("returns false when there is no grant", () => {
-    expect(canViewReport(null, report)).toBe(false);
+    expect(canViewReport(null, report, NOW)).toBe(false);
   });
 
   it("returns false at attributed_only even when the founder toggled sharing", () => {
     const grant = makeGrant({ tier: "attributed_only", expires_at: null });
-    expect(canViewReport(grant, report)).toBe(false);
+    expect(canViewReport(grant, report, NOW)).toBe(false);
   });
 
   it("returns true at reports_shared when the founder toggled sharing", () => {
     const grant = makeGrant({ tier: "reports_shared" });
-    expect(canViewReport(grant, report)).toBe(true);
+    expect(canViewReport(grant, report, NOW)).toBe(true);
   });
 
   it("returns false at full_mentor when the founder has NOT toggled sharing (toggle wins over tier)", () => {
     const grant = makeGrant({ tier: "full_mentor" });
-    expect(canViewReport(grant, { id: "rep-2", shared_with_mentor: false })).toBe(false);
+    expect(canViewReport(grant, { id: "rep-2", shared_with_mentor: false }, NOW)).toBe(false);
   });
 
   it("returns false when the grant is expired even at full_mentor with sharing on", () => {
@@ -177,56 +177,56 @@ describe("canViewReport", () => {
       tier: "full_mentor",
       expires_at: iso(-1 * DAY_MS),
     });
-    expect(canViewReport(grant, report)).toBe(false);
+    expect(canViewReport(grant, report, NOW)).toBe(false);
   });
 
   it("returns false when the grant is revoked", () => {
     const grant = makeGrant({ tier: "reports_shared", revoked_at: NOW.toISOString() });
-    expect(canViewReport(grant, report)).toBe(false);
+    expect(canViewReport(grant, report, NOW)).toBe(false);
   });
 });
 
 describe("canViewSviEvidence", () => {
   it("returns false when there is no grant", () => {
-    expect(canViewSviEvidence(null)).toBe(false);
+    expect(canViewSviEvidence(null, NOW)).toBe(false);
   });
 
   it("returns false at attributed_only + reports_shared", () => {
     expect(
-      canViewSviEvidence(makeGrant({ tier: "attributed_only", expires_at: null })),
+      canViewSviEvidence(makeGrant({ tier: "attributed_only", expires_at: null }), NOW),
     ).toBe(false);
-    expect(canViewSviEvidence(makeGrant({ tier: "reports_shared" }))).toBe(false);
+    expect(canViewSviEvidence(makeGrant({ tier: "reports_shared" }), NOW)).toBe(false);
   });
 
   it("returns true at full_mentor when active", () => {
-    expect(canViewSviEvidence(makeGrant({ tier: "full_mentor" }))).toBe(true);
+    expect(canViewSviEvidence(makeGrant({ tier: "full_mentor" }), NOW)).toBe(true);
   });
 
   it("returns false at full_mentor when expired", () => {
     const grant = makeGrant({ tier: "full_mentor", expires_at: iso(-DAY_MS) });
-    expect(canViewSviEvidence(grant)).toBe(false);
+    expect(canViewSviEvidence(grant, NOW)).toBe(false);
   });
 
   it("returns false at full_mentor when revoked", () => {
     const grant = makeGrant({ tier: "full_mentor", revoked_at: NOW.toISOString() });
-    expect(canViewSviEvidence(grant)).toBe(false);
+    expect(canViewSviEvidence(grant, NOW)).toBe(false);
   });
 });
 
 describe("canLeaveNote", () => {
   it("returns true only at full_mentor when the grant is active", () => {
-    expect(canLeaveNote(null)).toBe(false);
-    expect(canLeaveNote(makeGrant({ tier: "attributed_only", expires_at: null }))).toBe(false);
-    expect(canLeaveNote(makeGrant({ tier: "reports_shared" }))).toBe(false);
-    expect(canLeaveNote(makeGrant({ tier: "full_mentor" }))).toBe(true);
+    expect(canLeaveNote(null, NOW)).toBe(false);
+    expect(canLeaveNote(makeGrant({ tier: "attributed_only", expires_at: null }), NOW)).toBe(false);
+    expect(canLeaveNote(makeGrant({ tier: "reports_shared" }), NOW)).toBe(false);
+    expect(canLeaveNote(makeGrant({ tier: "full_mentor" }), NOW)).toBe(true);
   });
 
   it("returns false at full_mentor when expired or revoked", () => {
     expect(
-      canLeaveNote(makeGrant({ tier: "full_mentor", expires_at: iso(-DAY_MS) })),
+      canLeaveNote(makeGrant({ tier: "full_mentor", expires_at: iso(-DAY_MS) }), NOW),
     ).toBe(false);
     expect(
-      canLeaveNote(makeGrant({ tier: "full_mentor", revoked_at: NOW.toISOString() })),
+      canLeaveNote(makeGrant({ tier: "full_mentor", revoked_at: NOW.toISOString() }), NOW),
     ).toBe(false);
   });
 });
