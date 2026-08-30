@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.8.0  ·  **Updated:** 2026-08-29T12:05:10.444Z  ·  **Decided by:** ceo (2026-08-13T12:04:02.832Z)
+**Version:** v3.8.1  ·  **Updated:** 2026-08-30T12:05:10.173Z  ·  **Decided by:** ceo (2026-08-13T12:04:02.832Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -16,7 +16,6 @@
 | T0134 | CDO | Build 'Next-Best-Action' Analytics Engine | major | ⬜ pending |
 | T0165 | CFO | Implement Multi-Method Valuation Engine | minor | ⬜ pending |
 | T0166 | CFO | Build TAM/SAM/SOM Calculation Framework | minor | ⬜ pending |
-| T0167 | CFO | Sector-Specific Revenue Multiple Library | patch | ⬜ pending |
 | T0169 | CFO | Integrate Australian R&D Tax Incentive data into the Multi-Method Valuation Engine | minor | ⬜ pending |
 | T0170 | CRO | Implement Funding Readiness Scoring (CAPITAL framework) with automated recommendations | minor | ⬜ pending |
 | T0171 | RND | Add a new AI insight provider (e.g., GPT‑4o) to the AI provider chain for founder narrative generation | minor | ⬜ pending |
@@ -45,6 +44,7 @@
 ## Recently shipped
 - ✅ `T0180` **CFO** — Implement Cap Table Dilution & Round Sizing Simulator (`a4aa14f01`)
 - ✅ `T0175` **CMO** — Create Competitor Feature Release Tracker module (`cdfc4bf3a`)
+- ✅ `T0167` **CFO** — Sector-Specific Revenue Multiple Library (`abb12f4c6`)
 - ✅ `T0236` **RND** — T0111 AI Idea Lab — sector-aware angle generator
 - ✅ `T0235` **CDO** — Fix /api/index/svi?format=csv — emit header row when snapshot empty
 - ✅ `T0234` **CPO** — Fix first-principles secondaryFeatures — always returns 2+ items
@@ -52,9 +52,9 @@
 - ✅ `T0232` **CPO** — Wire hero to live analyzer + per-project SVI page
 - ✅ `T0231` **CTO** — Perf audit + top 3 wins — image caching, /insights payload, version.json cache
 - ✅ `T0230` **PRODUCT** — Simplify external funnel + plan-based workspace unlocks
-- ✅ `T0229` **CMO** — 3 more SEO pillar articles — DCF/Berkus, cap table, SAFE
 
 ## Milestones
+- **M019** v3.8.1 — CFO: Sector-Specific Revenue Multiple Library (2026-08-30, 1 tasks)
 - **M018** v3.8.0 — CFO: Implement Cap Table Dilution & Round Sizing Simulator (2026-08-29, 1 tasks)
 - **M017** v3.7.0 — CMO: Create Competitor Feature Release Tracker module (2026-08-28, 1 tasks)
 - **M016** v3.1.0 — CFO: Implement R&D Tax Incentive & ESIC Valuation Modifier (2026-07-22, 1 tasks)
@@ -66,4 +66,3 @@
 - **M018** v2.0.0 — Feature Batch 8 (T0086–T0090): Financial Projection Norms calculator, Term Sheet AI v2 persistence, Fundraising Report v2, Google Analytics evidence connector, SVI Cohort Benchmark page (2026-06-13, 6 tasks)
 - **M017** v1.9.0 — T0084 — C-Level blended valuation engine + BlockID self-analysis financial model (2026-06-13, 1 tasks)
 - **M016** v1.8.0 — T0075–T0083 — Onboarding flow, score confidence, SAFE calculator, investor email, GitHub evidence, /tools hub, SVI history, SEO content, AU comparables (2026-06-13, 9 tasks)
-- **M007** v0.8.0 — Founding 50 conversion prompt (T0017) — UpgradePrompt banner in workspace when balance===1, CTA to founding50 checkout (2026-06-13, 1 tasks)
