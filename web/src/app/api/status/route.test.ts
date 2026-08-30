@@ -33,6 +33,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import path from "node:path";
 
+// Grant the tests trusted access to the /api/status payload so existing
+// assertions on sha, release_id, disk_pct, mem_pct, and the cron catalogue
+// keep working — the redaction behavior for public callers has its own
+// dedicated tests below.
+process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+vi.mock("next/headers", () => ({
+  headers: async () => ({
+    get: (name: string) =>
+      name.toLowerCase() === "authorization"
+        ? `Bearer ${process.env.STATUS_FULL_TOKEN ?? ""}`
+        : null,
+  }),
+}));
+
 // ─── fs fixture ────────────────────────────────────────────────────────
 
 interface FsState {
@@ -238,10 +252,14 @@ describe("happy path — everything healthy", () => {
     );
   });
 
-  it("returns HTTP 200 with s-maxage=30 SWR 60 cache-control", async () => {
+  it("returns HTTP 200 with no-store cache-control on trusted (full-payload) requests", async () => {
+    // Test mocks headers() to always present a Bearer token, so callGet() is
+    // trusted and gets the full payload — which is not safe to CDN-cache.
+    // The unauthenticated public payload keeps the historical s-maxage=30
+    // SWR 60 policy; that's covered in the redaction suite below.
     const { status, headers } = await callGet();
     expect(status).toBe(200);
-    expect(headers.get("cache-control")).toBe("s-maxage=30, stale-while-revalidate=60");
+    expect(headers.get("cache-control")).toBe("no-store");
   });
 
   it("aggregate ok=true when services all ok and SLO under thresholds", async () => {
@@ -769,5 +787,60 @@ describe("healthz unreachable — degrade gracefully", () => {
     expect(body.slo.p95_ms).toBeUndefined();
     expect(body.slo.disk_pct).toBeUndefined();
     expect(body.slo.mem_pct).toBeUndefined();
+  });
+});
+
+// ─── Redaction contract (H2 CISO finding) ───────────────────────────────────
+//
+// Public callers (no Bearer token) MUST NOT see git sha, release id, host
+// disk/mem %, or the cron catalogue. Trusted callers (Bearer STATUS_FULL_TOKEN
+// or CRON_SECRET) see the full payload for uptime-monitor / dashboard use.
+
+describe("public payload redaction", () => {
+  const originalToken = process.env.STATUS_FULL_TOKEN;
+
+  beforeEach(() => {
+    resetFs();
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(
+      path.join(process.cwd(), "content", "reports", "deploy-log.jsonl"),
+      jsonl([
+        { ts: "2026-08-01T00:00:00Z", status: "ok", gates: "10/10", sha: "abc123", pid: "12345" },
+      ]),
+    );
+    fsState.files.set(
+      path.join(process.cwd(), "content", "reports", "cron-health.jsonl"),
+      jsonl([{ ts: new Date().toISOString(), endpoint: "vesting", status: "ok", duration_ms: 100 }]),
+    );
+  });
+
+  afterEach(() => {
+    process.env.STATUS_FULL_TOKEN = originalToken;
+  });
+
+  it("strips sha, release_id, disk/mem/p95 slo, and crons for unauthenticated callers", async () => {
+    // Blank the token so the file-level mock's Bearer no longer matches — the
+    // route drops to untrusted and serves the redacted public payload.
+    process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
+    const { body, headers } = await callGet();
+    expect(body.last_deploy.sha).toBe("");
+    expect(body.last_deploy.release_id).toBe("");
+    expect(body.slo.disk_pct).toBeUndefined();
+    expect(body.slo.mem_pct).toBeUndefined();
+    expect(body.slo.p95_ms).toBeUndefined();
+    expect(body.slo.uptime_pct_24h).toBeDefined();
+    expect(body.crons).toEqual([]);
+    // Public payload is safe to CDN-cache for 30s.
+    expect(headers.get("cache-control")).toBe("s-maxage=30, stale-while-revalidate=60");
+  });
+
+  it("returns the full payload for callers presenting the STATUS_FULL_TOKEN Bearer", async () => {
+    process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+    const { body, headers } = await callGet();
+    expect(body.last_deploy.sha).not.toBe("");
+    expect(body.slo.disk_pct).toBeDefined();
+    expect(body.crons.length).toBeGreaterThan(0);
+    expect(headers.get("cache-control")).toBe("no-store");
   });
 });
