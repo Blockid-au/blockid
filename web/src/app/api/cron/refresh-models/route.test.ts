@@ -187,9 +187,9 @@ describe("POST /api/cron/refresh-models — OpenRouter", () => {
     expect(parsed.openrouter).toEqual(["openrouter/free-1", "openrouter/free-2"]);
   });
 
-  it("ranks the top-8 openrouter models (breadth budget)", async () => {
+  it("ranks the top-12 openrouter models (breadth budget)", async () => {
     await POST(req({ authorization: "Bearer test_cron_secret" }));
-    expect(mocks.rankMock).toHaveBeenCalledWith(expect.any(Array), 8);
+    expect(mocks.rankMock).toHaveBeenCalledWith(expect.any(Array), 12);
   });
 
   it("emits openrouterTop5 in the response (first 5 of the discovered list)", async () => {
