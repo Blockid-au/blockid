@@ -1,6 +1,6 @@
 # Architecture — BlockID.au (living)
 
-**Version:** v3.8.0  ·  **Last reviewed:** 2026-08-29T12:05:10.444Z
+**Version:** v3.8.1  ·  **Last reviewed:** 2026-08-29T12:05:10.444Z
 
 ## Summary
 BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.
