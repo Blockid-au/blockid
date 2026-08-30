@@ -162,10 +162,14 @@ function DimCard({
   dimKey,
   state,
   onToggle,
+  onRetry,
+  canRetry,
 }: {
   dimKey: string;
   state: DimState;
   onToggle: (key: string) => void;
+  onRetry: (key: string) => void;
+  canRetry: boolean;
 }) {
   const meta = DIMS[dimKey];
 
@@ -173,9 +177,13 @@ function DimCard({
     <div
       className={cn(
         "rounded-xl border transition-all duration-300",
-        state.status === "loading" && "animate-pulse border-brand-200 bg-brand-50/50 dark:bg-brand-950/20",
+        // Scope pulse to a subtle background so the label + spinner stay
+        // readable, and skip motion entirely for users with reduced-motion.
+        state.status === "loading" && "motion-safe:animate-pulse border-brand-200 bg-brand-50/50 dark:bg-brand-950/20",
         state.status === "idle" && "border-ink-200 bg-white dark:bg-ink-900 dark:border-ink-800",
-        state.status === "error" && "border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800",
+        // Error uses red + dashed so it never gets mistaken for the amber
+        // "medium score" complete state.
+        state.status === "error" && "border-red-300 border-dashed bg-red-50 dark:bg-red-950/20 dark:border-red-800",
         state.status === "complete" && scoreColor(state.score),
       )}
     >
@@ -206,7 +214,7 @@ function DimCard({
             </div>
           )}
           {state.status === "error" && (
-            <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
+            <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
               {state.errorMsg ?? "Skipped (rate limited)"}
             </p>
           )}
@@ -239,9 +247,23 @@ function DimCard({
           <button
             type="button"
             onClick={() => onToggle(dimKey)}
-            className="shrink-0 rounded-md px-2 py-1 text-xs text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+            aria-expanded={state.expanded}
+            aria-label={state.expanded ? `Collapse ${meta.label} details` : `View full ${meta.label} details`}
+            className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-medium text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
           >
             {state.expanded ? "Collapse" : "View full"}
+          </button>
+        )}
+        {/* Retry (error state only) — retries just this dimension without
+            wiping the other 7 completed scores or burning full API quota. */}
+        {state.status === "error" && canRetry && (
+          <button
+            type="button"
+            onClick={() => onRetry(dimKey)}
+            aria-label={`Retry ${meta.label} analysis`}
+            className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+          >
+            Retry
           </button>
         )}
       </div>
@@ -341,19 +363,35 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
     setFatalError(null);
   }, []);
 
-  const startAnalysis = useCallback(async () => {
-    reset();
+  const startAnalysis = useCallback(async (dimsFilter?: string[]) => {
+    // Full-run: clear all cards. Retry: only touch the cards being re-run so
+    // we don't wipe the other 7 completed scores.
+    if (dimsFilter && dimsFilter.length > 0) {
+      setFatalError(null);
+      setDimStates((prev) => {
+        const next: Record<string, DimState> = { ...prev };
+        for (const k of dimsFilter) {
+          next[k] = { ...next[k], status: "loading", errorMsg: null };
+        }
+        return next;
+      });
+      setTotal(dimsFilter.length);
+      setCompleted(0);
+      setDone(false);
+    } else {
+      reset();
+      // Prime every card to "loading" immediately so the grid shows pulsing
+      // placeholders during the ~500ms round-trip before the server emits its
+      // first dimension_start event — otherwise users stare at 8 idle cards.
+      setDimStates((prev) => {
+        const primed: Record<string, DimState> = { ...prev };
+        for (const k of DIM_KEYS) {
+          primed[k] = { ...primed[k], status: "loading" };
+        }
+        return primed;
+      });
+    }
     setRunning(true);
-    // Prime every card to "loading" immediately so the grid shows pulsing
-    // placeholders during the ~500ms round-trip before the server emits its
-    // first dimension_start event — otherwise users stare at 8 idle cards.
-    setDimStates((prev) => {
-      const primed: Record<string, DimState> = { ...prev };
-      for (const k of DIM_KEYS) {
-        primed[k] = { ...primed[k], status: "loading" };
-      }
-      return primed;
-    });
 
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -362,7 +400,10 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
       const res = await fetch("/api/svi/dimensions/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId }),
+        body: JSON.stringify({
+          projectId,
+          ...(dimsFilter && dimsFilter.length > 0 ? { dims: dimsFilter } : {}),
+        }),
         signal: ctrl.signal,
       });
 
@@ -458,6 +499,10 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
     setRunning(false);
   }, []);
 
+  const retryDim = useCallback((key: string) => {
+    void startAnalysis([key]);
+  }, [startAnalysis]);
+
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
@@ -487,7 +532,7 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
             <button
               type="button"
               onClick={stopAnalysis}
-              className="rounded-lg border border-ink-200 dark:border-ink-700 px-3 py-1.5 text-sm text-ink-600 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors"
+              className="inline-flex items-center justify-center min-h-[44px] rounded-lg border border-ink-200 dark:border-ink-700 px-4 text-sm text-ink-600 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
             >
               Stop
             </button>
@@ -497,7 +542,7 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
             onClick={running ? undefined : done ? () => { reset(); void startAnalysis(); } : () => void startAnalysis()}
             disabled={running}
             className={cn(
-              "rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200",
+              "inline-flex items-center justify-center min-h-[44px] rounded-lg px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900",
               running
                 ? "bg-brand-300 text-white cursor-not-allowed opacity-70"
                 : "bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow-md active:scale-95",
@@ -555,6 +600,8 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
             dimKey={key}
             state={dimStates[key]}
             onToggle={toggleExpand}
+            onRetry={retryDim}
+            canRetry={!running}
           />
         ))}
       </div>
