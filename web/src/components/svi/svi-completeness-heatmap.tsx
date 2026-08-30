@@ -67,6 +67,15 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
   const [selectedDim, setSelectedDim] = useState<DimensionCompletenessResult | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
 
+  // Keep the modal in sync when data refreshes after adding evidence
+  useEffect(() => {
+    if (!data) return;
+    setSelectedDim((prev) => {
+      if (!prev) return null;
+      return data.dimensions.find((d) => d.dimension === prev.dimension) ?? null;
+    });
+  }, [data]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -104,12 +113,7 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
         }),
       });
       await fetchData();
-      // refresh modal state
-      setSelectedDim((prev) =>
-        prev?.dimension === dim.dimension
-          ? (data?.dimensions.find((d) => d.dimension === dim.dimension) ?? null)
-          : prev
-      );
+      // Modal state is refreshed reactively via the useEffect on [data]
     } finally {
       setAdding(null);
     }
