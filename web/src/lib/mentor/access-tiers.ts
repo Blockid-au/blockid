@@ -149,9 +149,10 @@ export function tierDisclosure(t: MentorAccessTier): string {
 export function canViewReport(
   grant: MentorAccessGrant | null,
   report: AssembledReportLite,
+  now = new Date(),
 ): boolean {
   if (!grant) return false;
-  if (isExpired(grant) || grant.revoked_at) return false;
+  if (isExpired(grant, now) || grant.revoked_at) return false;
   if (!tierAtLeast(grant.tier, "reports_shared")) return false;
   // Per-report toggle map wins over tier — mentor at C still needs the
   // founder to have opted in to THIS report.
@@ -159,16 +160,22 @@ export function canViewReport(
 }
 
 /** True if the mentor can view SVI evidence (raw source-of-truth rows). */
-export function canViewSviEvidence(grant: MentorAccessGrant | null): boolean {
+export function canViewSviEvidence(
+  grant: MentorAccessGrant | null,
+  now = new Date(),
+): boolean {
   if (!grant) return false;
-  if (isExpired(grant) || grant.revoked_at) return false;
+  if (isExpired(grant, now) || grant.revoked_at) return false;
   return tierAtLeast(grant.tier, "full_mentor");
 }
 
 /** True if the mentor can leave a note the founder sees. */
-export function canLeaveNote(grant: MentorAccessGrant | null): boolean {
+export function canLeaveNote(
+  grant: MentorAccessGrant | null,
+  now = new Date(),
+): boolean {
   if (!grant) return false;
-  if (isExpired(grant) || grant.revoked_at) return false;
+  if (isExpired(grant, now) || grant.revoked_at) return false;
   return tierAtLeast(grant.tier, "full_mentor");
 }
 
