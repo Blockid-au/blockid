@@ -1210,16 +1210,25 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
       return result;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      // Cooldown so the next call skips this provider instantly. A rate-limited
-      // provider (Claude subscription / OpenRouter free tier) stays limited for
-      // minutes-to-hours, so back off LONGER than a generic transient failure —
-      // otherwise we hammer it every 2 min and spam 429s in the logs.
+      // Cooldown so the next call skips this provider instantly. Three tiers:
+      //  - 24h  hard quota exhausted (HTTP 402 payment_required / billing) —
+      //         daily free-tier caps only reset at provider midnight.
+      //  - 15m  rate limited (429, "quota", "capacity") — transient burst.
+      //  - 2m   generic transient failure (timeouts, 5xx).
       const msg = lastError.message.toLowerCase();
-      const cooldownMs = /rate.?limit|\b429\b|quota|too many requests|overloaded|capacity/.test(msg)
-        ? 15 * 60_000 // rate-limited → 15 min
-        : 120_000;    // transient → 2 min
+      let cooldownMs: number;
+      if (/\b402\b|payment.?required|billing|insufficient.?quota|hard.?limit/.test(msg)) {
+        cooldownMs = 24 * 60 * 60_000; // 24h
+      } else if (/rate.?limit|\b429\b|quota|too many requests|overloaded|capacity/.test(msg)) {
+        cooldownMs = 15 * 60_000; // 15 min
+      } else {
+        cooldownMs = 120_000; // 2 min
+      }
       providerCooldown.set(provider, Date.now() + cooldownMs);
-      console.warn(`[ai-client] ${provider} failed (cooldown ${Math.round(cooldownMs / 60_000)}min): ${lastError.message}`);
+      const cooldownLabel = cooldownMs >= 60 * 60_000
+        ? `${Math.round(cooldownMs / (60 * 60_000))}h`
+        : `${Math.round(cooldownMs / 60_000)}min`;
+      console.warn(`[ai-client] ${provider} failed (cooldown ${cooldownLabel}): ${lastError.message}`);
     }
   }
 
