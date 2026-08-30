@@ -11,6 +11,7 @@
 // Cache: s-maxage=30 with 60s stale-while-revalidate.
 
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -62,10 +63,18 @@ type StatusResponse = {
 // (git sha, release id, disk %, mem %, cron catalogue). Public callers get
 // a minimal payload so we don't hand attackers commit SHAs for CVE targeting
 // or infra footprints for capacity planning.
-function isTrustedCaller(req: Request): boolean {
-  const auth = req.headers.get("authorization") ?? "";
+async function isTrustedCaller(): Promise<boolean> {
   const secret = process.env.STATUS_FULL_TOKEN ?? process.env.CRON_SECRET ?? "";
-  return secret !== "" && auth === `Bearer ${secret}`;
+  if (!secret) return false;
+  try {
+    const h = await headers();
+    const auth = h.get("authorization") ?? "";
+    return auth === `Bearer ${secret}`;
+  } catch {
+    // headers() is only available inside request scope — tests / SSG don't
+    // have one. Fall back to untrusted so the public payload is served.
+    return false;
+  }
 }
 
 // Shape returned by /api/healthz (kept in sync with web/src/app/api/healthz).
@@ -335,12 +344,13 @@ function computeUptimeFromCrons(crons: CronRow[]): number | undefined {
 
 // ---------- Handler ----------
 
-export async function GET(req: Request): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion] = await Promise.all([
+export async function GET(): Promise<Response> {
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
     readVersionFallback(),
+    isTrustedCaller(),
   ]);
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({
@@ -363,8 +373,6 @@ export async function GET(req: Request): Promise<Response> {
     (slo.p95_ms === undefined || slo.p95_ms === 0 || slo.p95_ms <= P95_TARGET_MS) &&
     (slo.disk_pct === undefined || slo.disk_pct <= DISK_TARGET_PCT) &&
     (slo.mem_pct === undefined || slo.mem_pct <= MEM_TARGET_PCT);
-
-  const trusted = isTrustedCaller(req);
 
   // Public payload is deliberately minimal — enough for a status widget /
   // uptime monitor, but nothing that helps a would-be attacker map the fleet.
