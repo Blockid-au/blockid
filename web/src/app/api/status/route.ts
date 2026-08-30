@@ -58,6 +58,16 @@ type StatusResponse = {
   crons: CronRow[];
 };
 
+// Whether the caller is trusted enough to see the full internal telemetry
+// (git sha, release id, disk %, mem %, cron catalogue). Public callers get
+// a minimal payload so we don't hand attackers commit SHAs for CVE targeting
+// or infra footprints for capacity planning.
+function isTrustedCaller(req: Request): boolean {
+  const auth = req.headers.get("authorization") ?? "";
+  const secret = process.env.STATUS_FULL_TOKEN ?? process.env.CRON_SECRET ?? "";
+  return secret !== "" && auth === `Bearer ${secret}`;
+}
+
 // Shape returned by /api/healthz (kept in sync with web/src/app/api/healthz).
 type HealthzCheck = { ok: boolean; latency_ms?: number; error?: string };
 type HealthzBody = {
@@ -325,7 +335,7 @@ function computeUptimeFromCrons(crons: CronRow[]): number | undefined {
 
 // ---------- Handler ----------
 
-export async function GET(): Promise<Response> {
+export async function GET(req: Request): Promise<Response> {
   const [healthz, crons, fallbackSha, fallbackVersion] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
@@ -354,7 +364,29 @@ export async function GET(): Promise<Response> {
     (slo.disk_pct === undefined || slo.disk_pct <= DISK_TARGET_PCT) &&
     (slo.mem_pct === undefined || slo.mem_pct <= MEM_TARGET_PCT);
 
-  const body: StatusResponse = {
+  const trusted = isTrustedCaller(req);
+
+  // Public payload is deliberately minimal — enough for a status widget /
+  // uptime monitor, but nothing that helps a would-be attacker map the fleet.
+  // Bearer STATUS_FULL_TOKEN (or CRON_SECRET fallback) unlocks the full
+  // telemetry: git sha, release id, host resource %, per-cron catalogue.
+  const publicBody: StatusResponse = {
+    ok: servicesOk && sloOk,
+    version: healthz?.version ?? fallbackVersion,
+    updated_at: new Date().toISOString(),
+    services: services.map((s) => ({ name: s.name, status: s.status })),
+    slo: { uptime_pct_24h: slo.uptime_pct_24h },
+    last_deploy: {
+      ts: last_deploy.ts,
+      sha: "",
+      release_id: "",
+      gates_passed: last_deploy.gates_passed,
+      gates_expected: last_deploy.gates_expected,
+    },
+    crons: [],
+  };
+
+  const fullBody: StatusResponse = {
     ok: servicesOk && sloOk,
     version: healthz?.version ?? fallbackVersion,
     updated_at: new Date().toISOString(),
@@ -364,10 +396,10 @@ export async function GET(): Promise<Response> {
     crons,
   };
 
-  return NextResponse.json(body, {
+  return NextResponse.json(trusted ? fullBody : publicBody, {
     status: 200,
     headers: {
-      "cache-control": "s-maxage=30, stale-while-revalidate=60",
+      "cache-control": trusted ? "no-store" : "s-maxage=30, stale-while-revalidate=60",
     },
   });
 }
