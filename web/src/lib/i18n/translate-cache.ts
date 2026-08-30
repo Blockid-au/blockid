@@ -39,7 +39,13 @@ const CACHE_ROOT =
  * Append an audit line so `scripts/i18n/lint-cache.mjs` can drift-check
  * new entries in CI (the cache itself is sha-keyed so EN isn't
  * recoverable without this side-channel).
+ *
+ * Callers use `void appendAudit(...)` fire-and-forget from `cacheSetMany`.
+ * Without serialization two rapid calls race on `mkdir` + `appendFile` and
+ * the second flush can land before the first, corrupting drift-check order.
+ * We chain per-locale so appends complete in call order.
  */
+const auditChain = new Map<Locale, Promise<void>>();
 async function appendAudit(
   locale: Locale,
   pairs: Record<string, string>,
@@ -50,12 +56,17 @@ async function appendAudit(
     .map(([en, vi]) => JSON.stringify({ ts, en, vi }))
     .join("\n");
   if (!lines) return;
-  try {
-    await mkdir(dirname(path), { recursive: true });
-    await appendFile(path, lines + "\n", "utf8");
-  } catch {
-    // Silent — audit is best-effort telemetry.
-  }
+  const prev = auditChain.get(locale) ?? Promise.resolve();
+  const next = prev.then(async () => {
+    try {
+      await mkdir(dirname(path), { recursive: true });
+      await appendFile(path, lines + "\n", "utf8");
+    } catch {
+      // Silent — audit is best-effort telemetry.
+    }
+  });
+  auditChain.set(locale, next);
+  return next;
 }
 
 type CacheMap = Record<string, string>;
