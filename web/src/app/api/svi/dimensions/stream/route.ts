@@ -231,9 +231,16 @@ export async function POST(request: Request) {
   }
 
   let projectId: string | null = null;
+  let dimsFilter: string[] | null = null;
   try {
-    const body = (await request.json()) as { projectId?: string };
+    const body = (await request.json()) as { projectId?: string; dims?: string[] };
     projectId = body.projectId ?? null;
+    // Optional per-dimension retry: only run the dims the client asks for.
+    // Unknown keys are dropped silently — the UI passes valid keys.
+    if (Array.isArray(body.dims)) {
+      const valid = body.dims.filter((k) => typeof k === "string" && k in DIM_META);
+      dimsFilter = valid.length > 0 ? valid : null;
+    }
   } catch {
     // body is optional
   }
@@ -255,7 +262,7 @@ export async function POST(request: Request) {
         // Fetch startup context once for all dimensions
         const ctx = await fetchStartupContext(user.id, projectId);
 
-        const dims = Object.keys(DIM_META);
+        const dims = dimsFilter ?? Object.keys(DIM_META);
         let completed = 0;
         const total = dims.length;
 
