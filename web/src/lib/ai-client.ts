@@ -1286,7 +1286,13 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
     return null;
   }
 
-  for (const provider of freeProviders) {
+  // Respect providerCooldown from callAI — if a provider (e.g. Cerebras 402)
+  // is dead for the day, skip it here too instead of retrying every request.
+  const now = Date.now();
+  const eligible = freeProviders.filter((p) => (providerCooldown.get(p) ?? 0) <= now);
+  const runList = eligible.length > 0 ? eligible : freeProviders; // last-resort try-all
+
+  for (const provider of runList) {
     try {
       const result = await callProvider(provider, opts);
       // Track cost (should be $0 for subscription/free)
@@ -1295,7 +1301,18 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
       console.log(`[ai-client:upgrade] Success via ${provider} (${result.model})`);
       return result;
     } catch (err) {
-      console.warn(`[ai-client:upgrade] ${provider} failed: ${err instanceof Error ? err.message : err}. Trying next...`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const msgLower = errMsg.toLowerCase();
+      let cooldownMs: number;
+      if (/\b402\b|payment.?required|billing|insufficient.?quota|hard.?limit/.test(msgLower)) {
+        cooldownMs = 24 * 60 * 60_000;
+      } else if (/rate.?limit|\b429\b|quota|too many requests|overloaded|capacity/.test(msgLower)) {
+        cooldownMs = 15 * 60_000;
+      } else {
+        cooldownMs = 120_000;
+      }
+      providerCooldown.set(provider, Date.now() + cooldownMs);
+      console.warn(`[ai-client:upgrade] ${provider} failed: ${errMsg}. Trying next...`);
     }
   }
 

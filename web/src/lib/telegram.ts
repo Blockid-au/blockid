@@ -4,8 +4,13 @@
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "8866491988:AAF24ixnoNFzubydEARc28klTd0lw1V5fCk";
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID ?? "539796782";
 
+// Once the bot token is confirmed invalid (401 Unauthorized), don't keep
+// hitting the API for the rest of the process — it's a permanent error
+// until the token is rotated, and every retry just spams the log.
+let telegramDisabled = false;
+
 export async function sendTelegram(text: string, parseMode: "Markdown" | "HTML" = "Markdown"): Promise<boolean> {
-  if (!TELEGRAM_CHAT_ID) return false;
+  if (!TELEGRAM_CHAT_ID || telegramDisabled) return false;
   try {
     const res = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -21,7 +26,14 @@ export async function sendTelegram(text: string, parseMode: "Markdown" | "HTML" 
       },
     );
     const data = await res.json();
-    if (!data.ok) console.error("[telegram] send failed:", data.description);
+    if (!data.ok) {
+      if (res.status === 401 || /unauthorized/i.test(String(data.description ?? ""))) {
+        telegramDisabled = true;
+        console.warn("[telegram] bot token invalid (401) — disabling sendTelegram for process lifetime");
+      } else {
+        console.error("[telegram] send failed:", data.description);
+      }
+    }
     return data.ok === true;
   } catch (err) {
     console.error("[telegram] error:", err);
