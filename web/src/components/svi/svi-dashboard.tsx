@@ -16,6 +16,8 @@ import { PriorityTasks, generatePriorityTasks } from "@/components/workspace/pri
 import { SVIComparison } from "@/components/svi/svi-comparison";
 import { ComplianceChecker } from "@/components/svi/compliance-checker";
 import { RecentAnalyses } from "@/components/dashboard/recent-analyses";
+import { SviCompletenessHeatmap } from "@/components/svi/svi-completeness-heatmap";
+import { SviFixRoadmap } from "@/components/svi/svi-fix-roadmap";
 
 import type { ReportEntry, SVIHistoryPoint } from "@/app/(app)/(founder)/dashboard/svi/page";
 
@@ -369,6 +371,7 @@ interface SVIDashboardProps {
   startupName?: string;
   snapshotHistory?: Array<{ date: string; svi: number; delta: number | null }>;
   userEmail?: string;
+  projectId?: string;
   sviHistory?: SVIHistoryPoint[];
   recentReports?: ReportEntry[];
   lastAnalysisDate?: string;
@@ -380,6 +383,7 @@ export function SVIDashboard({
   startupName,
   snapshotHistory,
   userEmail,
+  projectId,
   sviHistory = [],
   recentReports = [],
   lastAnalysisDate,
@@ -584,6 +588,26 @@ export function SVIDashboard({
           {analysis.subs.map((sub, idx) => <DimensionBar key={sub.key} sub={sub} rank={idx + 1} />)}
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          EVIDENCE COMPLETENESS HEATMAP — per-dimension completeness grid
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {projectId && (
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-ink-700 font-medium mb-3">Evidence Completeness</p>
+          <SviCompletenessHeatmap projectId={projectId} />
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          FIX ROADMAP — ranked actions to improve SVI
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {projectId && (
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-ink-700 font-medium mb-3">Evidence Roadmap</p>
+          <SviFixRoadmap projectId={projectId} />
+        </div>
+      )}
 
       {/* Stage Journey */}
       <StageJourney currentStage={analysis.stage} />
