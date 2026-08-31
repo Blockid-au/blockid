@@ -420,18 +420,22 @@ function SectorCohortWidget({ userTotal, industry }: { userTotal: number; indust
 
   const topPct = computeTopPercent(userTotal, row);
   return (
-    <p className="text-xs text-brand-700 dark:text-brand-300 border-t border-brand-200/50 dark:border-brand-800/50 pt-3">
-      Your SVI <strong className="font-semibold tabular-nums">{userTotal}</strong>{" "}
-      vs {sectorLabel} median{" "}
-      <strong className="font-semibold tabular-nums">{Math.round(median)}</strong>
-      {topPct !== null && (
-        <>
-          {" "}— top{" "}
-          <strong className="font-semibold tabular-nums">{topPct}%</strong>
-        </>
-      )}{" "}
-      of {row.count} peers
-    </p>
+    <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3 space-y-1 text-xs text-brand-700 dark:text-brand-300">
+      <p className="flex items-baseline gap-2 flex-wrap">
+        <span>Your SVI</span>
+        <strong className="font-semibold tabular-nums text-sm">{userTotal}</strong>
+        <span className="text-ink-500 dark:text-ink-400">·</span>
+        <span>{sectorLabel} median</span>
+        <strong className="font-semibold tabular-nums text-sm">{Math.round(median)}</strong>
+      </p>
+      <p className="text-ink-600 dark:text-ink-400">
+        {topPct !== null ? (
+          <>Top <strong className="font-semibold tabular-nums text-brand-700 dark:text-brand-300">{topPct}%</strong> of {row.count} peers.</>
+        ) : (
+          <>Compared against {row.count} peers.</>
+        )}
+      </p>
+    </div>
   );
 }
 

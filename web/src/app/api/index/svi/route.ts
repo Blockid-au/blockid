@@ -27,11 +27,28 @@ const DISCLAIMER =
 
 const VALID_BUCKETS = new Set<SviBucket>(["overall", "sector", "stage"]);
 const VALID_FORMATS = new Set<string>(["json", "csv"]);
+// Unknown params to reject. Prevents silent behaviour drift when clients
+// pass e.g. `?limit=5` thinking pagination is honoured — the QA audit
+// caught exactly that. Explicit 400 is kinder than silently ignoring.
+const KNOWN_PARAMS = new Set<string>(["bucket", "format"]);
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const bucketParam = (searchParams.get("bucket") ?? "overall").toLowerCase();
   const formatParam = (searchParams.get("format") ?? "json").toLowerCase();
+
+  // Reject unsupported query params explicitly.
+  const unknown = [...searchParams.keys()].filter((k) => !KNOWN_PARAMS.has(k));
+  if (unknown.length > 0) {
+    return NextResponse.json(
+      {
+        error: "unsupported query parameter",
+        unknown,
+        allowed: Array.from(KNOWN_PARAMS),
+      },
+      { status: 400 },
+    );
+  }
 
   if (!VALID_BUCKETS.has(bucketParam as SviBucket)) {
     return NextResponse.json(
