@@ -606,15 +606,85 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
         ))}
       </div>
 
-      {/* Done summary */}
-      {done && !fatalError && (
-        <div className="rounded-lg border border-brand-200 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-800 px-4 py-3 animate-in fade-in duration-300">
-          <p className="text-sm text-brand-800 dark:text-brand-300">
-            <strong>Analysis complete.</strong> Scores reflect current evidence quality. Upload
-            documents to the Evidence Vault to improve dimension scores.
-          </p>
-        </div>
-      )}
+      {/* Done summary — weighted total + fastest-lift callout */}
+      {done && !fatalError && (() => {
+        const scored = DIM_KEYS
+          .map((k) => ({
+            key: k,
+            score: dimStates[k].score,
+            weight: DIMS[k].weight,
+            label: DIMS[k].label,
+          }))
+          .filter((d): d is { key: string; score: number; weight: number; label: string } =>
+            d.score !== null,
+          );
+        if (scored.length === 0) return null;
+        const totalWeight = scored.reduce((acc, d) => acc + d.weight, 0);
+        const weightedTotal = scored.reduce(
+          (acc, d) => acc + (d.score * d.weight) / totalWeight,
+          0,
+        );
+        const totalSvi = Math.round(weightedTotal);
+        const totalBand: "strong" | "developing" | "early" =
+          totalSvi >= 70 ? "strong" : totalSvi >= 40 ? "developing" : "early";
+        // "Fastest lift" = the two scored-lowest dimensions weighted by
+        // impact so improving them moves the total SVI the most.
+        const weakest = [...scored]
+          .sort((a, b) => (a.score - b.score) || (b.weight - a.weight))
+          .slice(0, 2);
+        return (
+          <div className="rounded-xl border border-brand-200 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-800 px-5 py-4 space-y-3 animate-in fade-in duration-300">
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="text-xs uppercase tracking-[0.14em] text-brand-700 dark:text-brand-300 font-semibold">
+                Current SVI
+              </span>
+              <span
+                className={cn(
+                  "text-3xl font-bold tabular-nums",
+                  totalBand === "strong" && "text-emerald-700 dark:text-emerald-300",
+                  totalBand === "developing" && "text-amber-700 dark:text-amber-300",
+                  totalBand === "early" && "text-red-700 dark:text-red-300",
+                )}
+                aria-label={`Weighted SVI total ${totalSvi} out of 100`}
+              >
+                {totalSvi}
+                <span className="text-lg text-ink-500 dark:text-ink-400 font-normal">/100</span>
+              </span>
+              <span className="text-xs text-ink-500 dark:text-ink-400">
+                weighted from {scored.length} of {DIM_KEYS.length} dimensions
+              </span>
+            </div>
+            {weakest.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs uppercase tracking-[0.14em] text-ink-600 dark:text-ink-400 font-semibold">
+                  Fastest way to lift your score
+                </p>
+                <ul className="space-y-1">
+                  {weakest.map((w) => (
+                    <li
+                      key={w.key}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <span className="text-ink-700 dark:text-ink-300">
+                        <span className="font-medium">{w.label}</span>{" "}
+                        <span className="text-ink-500 dark:text-ink-400 tabular-nums">
+                          ({w.score}/100 · {w.weight}% weight)
+                        </span>
+                      </span>
+                      <a
+                        href={`/workspace/svi-evidence?dim=${w.key}`}
+                        className="inline-flex items-center justify-center min-h-[36px] rounded-md bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-50 dark:focus-visible:ring-offset-brand-950 transition-colors"
+                      >
+                        Add evidence
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
