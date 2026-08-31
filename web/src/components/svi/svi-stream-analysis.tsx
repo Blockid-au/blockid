@@ -654,6 +654,34 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
                 weighted from {scored.length} of {DIM_KEYS.length} dimensions
               </span>
             </div>
+            {/* Band legend — spells out what colour means so a founder isn't
+                left guessing what "amber" or "green" implies about fundability. */}
+            <div className="flex items-center gap-1.5 flex-wrap text-[11px]" aria-label="Score band legend">
+              <span className={cn(
+                "inline-flex items-center rounded-full px-2 py-0.5 border transition-all",
+                totalBand === "early"
+                  ? "bg-red-100 border-red-400 text-red-800 dark:bg-red-900/40 dark:border-red-500 dark:text-red-200 font-semibold"
+                  : "bg-ink-50 border-ink-200 text-ink-500 dark:bg-ink-900 dark:border-ink-800 dark:text-ink-500",
+              )}>
+                0–39 · Early
+              </span>
+              <span className={cn(
+                "inline-flex items-center rounded-full px-2 py-0.5 border transition-all",
+                totalBand === "developing"
+                  ? "bg-amber-100 border-amber-400 text-amber-800 dark:bg-amber-900/40 dark:border-amber-500 dark:text-amber-200 font-semibold"
+                  : "bg-ink-50 border-ink-200 text-ink-500 dark:bg-ink-900 dark:border-ink-800 dark:text-ink-500",
+              )}>
+                40–69 · Developing
+              </span>
+              <span className={cn(
+                "inline-flex items-center rounded-full px-2 py-0.5 border transition-all",
+                totalBand === "strong"
+                  ? "bg-emerald-100 border-emerald-400 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-500 dark:text-emerald-200 font-semibold"
+                  : "bg-ink-50 border-ink-200 text-ink-500 dark:bg-ink-900 dark:border-ink-800 dark:text-ink-500",
+              )}>
+                70–100 · Investor-ready
+              </span>
+            </div>
             {weakest.length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-xs uppercase tracking-[0.14em] text-ink-600 dark:text-ink-400 font-semibold">

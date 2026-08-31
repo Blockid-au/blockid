@@ -11,6 +11,7 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
+import { SampleSviCard } from "@/components/svi/sample-svi-card";
 import { computeIndexHeadlines } from "@/lib/startup-index-aggregator";
 
 export const metadata: Metadata = {
@@ -280,6 +281,15 @@ export default async function IndexExchangePage() {
             ))}
           </div>
         </section>
+
+        {/* ── SAMPLE SVI CARD ───────────────────────────────────────────
+             Show founders exactly what an SVI report looks like — total
+             score, 8-dimension grid, band legend, fastest-lift guidance —
+             before they commit to /score. Turns the gradient CTA below
+             from a cold "click me" into an earned continuation. */}
+        <div className="mb-6">
+          <SampleSviCard />
+        </div>
 
         {/* ── CTA ────────────────────────────────────────────────────── */}
         <section className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-600 to-amber-600 text-white p-8 mb-6 text-center shadow-md">
