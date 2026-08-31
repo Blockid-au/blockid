@@ -140,10 +140,13 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
           return (
             <button
               key={dim.dimension}
+              id={`svi-dim-${dim.dimension}`}
+              data-dim={dim.dimension}
               type="button"
               onClick={() => setSelectedDim(dim)}
               className={cn(
                 "rounded-lg border p-3 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-500",
+                "target:ring-2 target:ring-brand-500 target:ring-offset-2 target:ring-offset-white dark:target:ring-offset-ink-950",
                 colors.cell
               )}
             >
