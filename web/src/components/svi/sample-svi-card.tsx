@@ -115,7 +115,7 @@ export function SampleSviCard() {
                   {meta.short}
                 </span>
               </div>
-              <p className="text-[11px] text-ink-500 dark:text-ink-500 leading-tight mb-1.5">
+              <p className="text-[11px] text-ink-600 dark:text-ink-400 leading-tight mb-1.5">
                 {meta.label}
               </p>
               <div className="flex items-center justify-between gap-1">
@@ -127,7 +127,7 @@ export function SampleSviCard() {
                 >
                   {score}
                 </span>
-                <span className="text-[10px] text-ink-400 dark:text-ink-500 tabular-nums">
+                <span className="text-[10px] text-ink-600 dark:text-ink-400 tabular-nums">
                   {meta.weight}%
                 </span>
               </div>
