@@ -1825,7 +1825,11 @@ export function SVIResultsPanel({
                 value={`Top ${Math.max(1, 100 - (analysis.percentileRank ?? 50))}%`}
                 subtext={
                   analysis.cohortPercentile?.source === "real_cohort"
-                    ? `P${analysis.percentileRank} of ${analysis.cohortPercentile.cohortSize} ${analysis.stageLabel} peers`
+                    ? `P${analysis.percentileRank} of ${analysis.cohortPercentile.cohortSize} ${analysis.stageLabel} peers${
+                        analysis.cohortPercentile.median !== undefined
+                          ? ` · peer median ${analysis.cohortPercentile.median}`
+                          : ""
+                      }`
                     : `P${analysis.percentileRank ?? 50} at ${analysis.stageLabel} stage`
                 }
                 color="text-brand-600"
