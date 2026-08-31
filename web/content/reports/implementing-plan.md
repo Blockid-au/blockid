@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.8.1  ·  **Updated:** 2026-08-30T12:05:10.173Z  ·  **Decided by:** ceo (2026-08-13T12:04:02.832Z)
+**Version:** v3.8.1  ·  **Updated:** 2026-08-31T12:04:02.326Z  ·  **Decided by:** ceo (2026-08-31T12:04:02.325Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -40,6 +40,8 @@
 | T0192 | CMO | Implement Startup Percentile/Positioning Model | minor | ⬜ pending |
 | T0193 | CFO | Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator | minor | ⬜ pending |
 | T0194 | CRO | Implement Funding Readiness Scoring (CAPITAL framework) | minor | ⬜ pending |
+| T0198 | CFO | Integrate AU R&D Tax Incentive & ESIC logic into Valuation Engine | minor | ⬜ pending |
+| T0199 | RND | Add GPT-4o to AI provider chain for founder narrative generation | minor | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0180` **CFO** — Implement Cap Table Dilution & Round Sizing Simulator (`a4aa14f01`)
