@@ -262,6 +262,10 @@ export async function POST(request: Request) {
         // Fetch startup context once for all dimensions
         const ctx = await fetchStartupContext(user.id, projectId);
 
+        // Surface the founder's industry + stage to the client so the done
+        // panel can render a cohort comparison ("your SVI vs SaaS median").
+        send({ type: "context", industry: ctx.industry, stage: ctx.stage });
+
         const dims = dimsFilter ?? Object.keys(DIM_META);
         let completed = 0;
         const total = dims.length;

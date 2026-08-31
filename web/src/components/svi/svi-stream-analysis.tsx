@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   Users,
   Target,
@@ -44,6 +44,7 @@ interface DimState {
 }
 
 type SSEEvent =
+  | { type: "context"; industry: string; stage: string }
   | { type: "dimension_start"; dimension: string; label: string }
   | {
       type: "dimension_complete";
@@ -58,6 +59,59 @@ type SSEEvent =
   | { type: "done"; totalMs: number }
   | { type: "error"; dimension: string; message: string }
   | { type: "fatal_error"; message: string };
+
+// ── Persistence helpers ───────────────────────────────────────────────────────
+// A completed SVI stream costs the founder minutes + provider quota — reload
+// mid-flight or right after must not wipe results. Snapshot per-project state
+// to localStorage on every dimension_complete + restore on mount if fresh.
+
+const STORAGE_PREFIX = "svi-stream:";
+const STORAGE_MAX_AGE_MS = 30 * 60_000; // 30 min
+
+interface PersistedState {
+  savedAt: number;
+  dimStates: Record<string, DimState>;
+  completed: number;
+  total: number;
+  totalMs: number | null;
+  done: boolean;
+  industry: string | null;
+}
+
+function storageKey(projectId: string): string {
+  return `${STORAGE_PREFIX}${projectId || "default"}`;
+}
+
+function loadPersisted(projectId: string): PersistedState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(storageKey(projectId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedState;
+    if (Date.now() - parsed.savedAt > STORAGE_MAX_AGE_MS) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function savePersisted(projectId: string, state: PersistedState): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(storageKey(projectId), JSON.stringify(state));
+  } catch {
+    // quota exceeded / disabled — silent
+  }
+}
+
+function clearPersisted(projectId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(storageKey(projectId));
+  } catch {
+    /* no-op */
+  }
+}
 
 // ── Score colour helpers ──────────────────────────────────────────────────────
 
@@ -290,6 +344,97 @@ function DimCard({
   );
 }
 
+// ── Sector cohort widget ──────────────────────────────────────────────────────
+// Fetches the anonymised sector aggregate published at /api/index/svi and
+// tells the founder where they sit — "your SVI 63 vs SaaS median 58, top 42%".
+// Anchor validation that costs zero extra AI budget.
+
+interface SectorRow {
+  sector: string;
+  count: number;
+  medianSvi: number;
+  p25?: number;
+  p50?: number;
+  p75?: number;
+}
+
+// Linear-interpolate the founder's percentile given the sector's p25/p50/p75.
+// Returns null when we don't have enough shape to place them meaningfully.
+function computeTopPercent(x: number, row: SectorRow): number | null {
+  const p25 = row.p25 ?? null;
+  const p50 = row.p50 ?? row.medianSvi ?? null;
+  const p75 = row.p75 ?? null;
+  if (p50 == null) return null;
+  // If the p25/p75 spread is zero (small sample all identical), fall back
+  // to "top 50%" if above the median and "bottom 50%" otherwise — coarse
+  // but honest.
+  if (p25 == null || p75 == null || p25 === p75) {
+    return x >= p50 ? 50 : null;
+  }
+  let percentile: number;
+  if (x <= p25) percentile = (x / Math.max(p25, 1)) * 25;
+  else if (x <= p50) percentile = 25 + ((x - p25) / (p50 - p25)) * 25;
+  else if (x <= p75) percentile = 50 + ((x - p50) / (p75 - p50)) * 25;
+  else percentile = Math.min(95, 75 + ((x - p75) / Math.max(p75 * 0.3, 1)) * 25);
+  const top = Math.round((100 - percentile) / 5) * 5;
+  return Math.max(5, Math.min(95, top));
+}
+
+function SectorCohortWidget({ userTotal, industry }: { userTotal: number; industry: string | null }) {
+  const [row, setRow] = useState<SectorRow | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!industry) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/index/svi?bucket=sector&format=json");
+        if (!res.ok) throw new Error(`http ${res.status}`);
+        const body = await res.json() as { data?: SectorRow[]; sectors?: SectorRow[] };
+        const arr = body.data ?? body.sectors ?? [];
+        const key = industry.toLowerCase().trim();
+        const match = arr.find((r) => r.sector?.toLowerCase() === key);
+        if (!cancelled) setRow(match ?? null);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [industry]);
+
+  if (!industry || failed) return null;
+  if (!row) return null;
+
+  const median = row.medianSvi ?? row.p50 ?? null;
+  if (median == null) return null;
+  const sectorLabel = row.sector.charAt(0).toUpperCase() + row.sector.slice(1);
+
+  if (row.count < 5) {
+    return (
+      <p className="text-xs text-ink-500 dark:text-ink-500 border-t border-brand-200/50 dark:border-brand-800/50 pt-3">
+        {sectorLabel} sample too small to compare (n={row.count}).
+      </p>
+    );
+  }
+
+  const topPct = computeTopPercent(userTotal, row);
+  return (
+    <p className="text-xs text-brand-700 dark:text-brand-300 border-t border-brand-200/50 dark:border-brand-800/50 pt-3">
+      Your SVI <strong className="font-semibold tabular-nums">{userTotal}</strong>{" "}
+      vs {sectorLabel} median{" "}
+      <strong className="font-semibold tabular-nums">{Math.round(median)}</strong>
+      {topPct !== null && (
+        <>
+          {" "}— top{" "}
+          <strong className="font-semibold tabular-nums">{topPct}%</strong>
+        </>
+      )}{" "}
+      of {row.count} peers
+    </p>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface SviStreamAnalysisProps {
@@ -320,7 +465,39 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
   const [done, setDone] = useState(false);
   const [totalMs, setTotalMs] = useState<number | null>(null);
   const [fatalError, setFatalError] = useState<string | null>(null);
+  const [industry, setIndustry] = useState<string | null>(null);
+  const [restoredFromCache, setRestoredFromCache] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Restore a recent (< 30 min) run on mount so a page refresh mid-analysis
+  // or immediately after done doesn't discard the founder's results.
+  useEffect(() => {
+    const saved = loadPersisted(projectId ?? "");
+    if (!saved) return;
+    setDimStates(saved.dimStates);
+    setCompleted(saved.completed);
+    setTotal(saved.total);
+    setTotalMs(saved.totalMs);
+    setDone(saved.done);
+    setIndustry(saved.industry);
+    setRestoredFromCache(true);
+  }, [projectId]);
+
+  // Snapshot to localStorage whenever a scored dimension lands or we hit done,
+  // so the restore-on-mount above has something to hydrate from.
+  useEffect(() => {
+    const anyComplete = Object.values(dimStates).some((d) => d.status === "complete");
+    if (!anyComplete && !done) return;
+    savePersisted(projectId ?? "", {
+      savedAt: Date.now(),
+      dimStates,
+      completed,
+      total,
+      totalMs,
+      done,
+      industry,
+    });
+  }, [dimStates, completed, total, totalMs, done, industry, projectId]);
 
   const updateDim = useCallback(
     (key: string, patch: Partial<DimState>) => {
@@ -361,7 +538,10 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
     setDone(false);
     setTotalMs(null);
     setFatalError(null);
-  }, []);
+    setIndustry(null);
+    setRestoredFromCache(false);
+    clearPersisted(projectId ?? "");
+  }, [projectId]);
 
   const startAnalysis = useCallback(async (dimsFilter?: string[]) => {
     // Full-run: clear all cards. Retry: only touch the cards being re-run so
@@ -448,6 +628,10 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
           }
 
           switch (event.type) {
+            case "context":
+              setIndustry(event.industry || null);
+              break;
+
             case "dimension_start":
               updateDim(event.dimension, { status: "loading" });
               break;
@@ -566,6 +750,23 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
       {fatalError && (
         <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">
           <strong>Error:</strong> {fatalError}
+        </div>
+      )}
+
+      {/* Restored from cache — lets the founder know these numbers are from
+          an earlier run and give them one click to start fresh instead. */}
+      {restoredFromCache && !running && (
+        <div className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-950/20 px-4 py-2.5 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-300">
+          <span className="text-brand-700 dark:text-brand-300">
+            Showing your most recent analysis. Re-analyse to refresh.
+          </span>
+          <button
+            type="button"
+            onClick={() => { reset(); }}
+            className="inline-flex items-center justify-center min-h-[32px] rounded-md px-3 text-xs font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+          >
+            Discard
+          </button>
         </div>
       )}
 
@@ -710,6 +911,7 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
                 </ul>
               </div>
             )}
+            <SectorCohortWidget userTotal={totalSvi} industry={industry} />
           </div>
         );
       })()}
