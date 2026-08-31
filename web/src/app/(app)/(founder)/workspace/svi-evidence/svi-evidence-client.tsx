@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Circle, Plus, TrendingUp, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,8 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const targetDim = searchParams.get("dim");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -74,6 +77,29 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  // Wire the `?dim=xxx` deep-link shipped by the SVI stream analysis
+  // fastest-lift CTA: after the heatmap has rendered, scroll the matching
+  // dimension card into view and rely on CSS :target for the highlight ring.
+  // Falls back gracefully when the param is absent or the card hasn't mounted.
+  useEffect(() => {
+    if (!targetDim || loading || !data) return;
+    // Give the heatmap one frame to mount its cards after fetchData resolves.
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(`svi-dim-${targetDim}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Nudge the URL hash so :target activates the highlight ring — replaceState
+      // avoids adding a history entry that would break the browser back button.
+      if (window.location.hash !== `#svi-dim-${targetDim}`) {
+        const url = new URL(window.location.href);
+        url.hash = `svi-dim-${targetDim}`;
+        window.history.replaceState(null, "", url.toString());
+      }
+      el.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [targetDim, loading, data]);
 
   async function addEvidence(dimension: string, evidenceType: string, evidenceLabel: string, confidenceLevel: string) {
     const key = `${dimension}:${evidenceType}`;
