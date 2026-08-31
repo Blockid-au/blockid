@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.8.1  ·  **Updated:** 2026-08-31T12:04:02.326Z  ·  **Decided by:** ceo (2026-08-31T12:04:02.325Z)
+**Version:** v3.9.0  ·  **Updated:** 2026-08-31T14:00:01.953Z  ·  **Decided by:** ceo (2026-08-31T12:04:02.325Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -24,7 +24,6 @@
 | T0174 | RND | Integrate new AI tools and capabilities for founder narrative generation and startup ecosystem analysis | minor | ⬜ pending |
 | T0176 | CRO | Implement Pricing Psychology Engine for subscription tier optimization | minor | ⬜ pending |
 | T0177 | RND | Deploy Founder Pain‑Point Insight Service (API) | minor | ⬜ pending |
-| T0178 | CFO | Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator | minor | ⬜ pending |
 | T0179 | CFO | Build Financial Projection Norms Library (Rule of 40, LTV/CAC) | minor | ⬜ pending |
 | T0181 | CFO | Implement Financial Projection Norms Library (Rule of 40, LTV/CAC) | minor | ⬜ pending |
 | T0182 | CRO | Develop Next-Best-Action/DIRECTION engine for SCN layer sequencing | major | ⬜ pending |
@@ -38,13 +37,14 @@
 | T0190 | CLO | Integrate Privacy Act and ASIC Guidance Compliance Module | minor | ⬜ pending |
 | T0191 | CFO | Build Multi-Method Valuation Engine with AU-Specific Logic | minor | ⬜ pending |
 | T0192 | CMO | Implement Startup Percentile/Positioning Model | minor | ⬜ pending |
-| T0193 | CFO | Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator | minor | ⬜ pending |
 | T0194 | CRO | Implement Funding Readiness Scoring (CAPITAL framework) | minor | ⬜ pending |
 | T0198 | CFO | Integrate AU R&D Tax Incentive & ESIC logic into Valuation Engine | minor | ⬜ pending |
 | T0199 | RND | Add GPT-4o to AI provider chain for founder narrative generation | minor | ⬜ pending |
 
 ## Recently shipped
+- ✅ `T0193` **CFO** — Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator (`557222041`)
 - ✅ `T0180` **CFO** — Implement Cap Table Dilution & Round Sizing Simulator (`a4aa14f01`)
+- ✅ `T0178` **CFO** — Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator (`557222041`)
 - ✅ `T0175` **CMO** — Create Competitor Feature Release Tracker module (`cdfc4bf3a`)
 - ✅ `T0167` **CFO** — Sector-Specific Revenue Multiple Library (`abb12f4c6`)
 - ✅ `T0236` **RND** — T0111 AI Idea Lab — sector-aware angle generator
@@ -52,10 +52,9 @@
 - ✅ `T0234` **CPO** — Fix first-principles secondaryFeatures — always returns 2+ items
 - ✅ `T0233` **OPS** — Wire cron for svi-index-populate + email-drip + hygiene
 - ✅ `T0232` **CPO** — Wire hero to live analyzer + per-project SVI page
-- ✅ `T0231` **CTO** — Perf audit + top 3 wins — image caching, /insights payload, version.json cache
-- ✅ `T0230` **PRODUCT** — Simplify external funnel + plan-based workspace unlocks
 
 ## Milestones
+- **M020** v3.9.0 — CFO: Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator; CFO: Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator (2026-08-31, 2 tasks)
 - **M019** v3.8.1 — CFO: Sector-Specific Revenue Multiple Library (2026-08-30, 1 tasks)
 - **M018** v3.8.0 — CFO: Implement Cap Table Dilution & Round Sizing Simulator (2026-08-29, 1 tasks)
 - **M017** v3.7.0 — CMO: Create Competitor Feature Release Tracker module (2026-08-28, 1 tasks)
@@ -67,4 +66,3 @@
 - **M019** v2.1.0 — T0094–T0101 ESOP + SVI + Data Room + Knowledge Base — investor-ready documents, ESOP Manager UI live (2026-06-14, 8 tasks)
 - **M018** v2.0.0 — Feature Batch 8 (T0086–T0090): Financial Projection Norms calculator, Term Sheet AI v2 persistence, Fundraising Report v2, Google Analytics evidence connector, SVI Cohort Benchmark page (2026-06-13, 6 tasks)
 - **M017** v1.9.0 — T0084 — C-Level blended valuation engine + BlockID self-analysis financial model (2026-06-13, 1 tasks)
-- **M016** v1.8.0 — T0075–T0083 — Onboarding flow, score confidence, SAFE calculator, investor email, GitHub evidence, /tools hub, SVI history, SEO content, AU comparables (2026-06-13, 9 tasks)
