@@ -1,21 +1,21 @@
 {
-  "updatedAt": "2026-08-30T05:00:06.299Z",
+  "updatedAt": "2026-08-31T12:04:10.271Z",
   "openrouter": [
-    "poolside/laguna-s-2.1:free",
-    "liquid/lfm-2.5-2.6b:free",
-    "google/lyria-3-pro-preview",
-    "nvidia/nemotron-3.5-lightning:free",
-    "dots-studio/dots-3-note-preview:free",
-    "inclusionai/ling-3.0-flash-fin:free",
-    "google/gemma-4-26b-a4b-it:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "thinkingmachines/inkling:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
     "z-ai/glm-5.2:free",
     "google/gemma-4-31b-it:free",
     "nvidia/nemotron-3-ultra-550b-a55b:free",
     "minimax/minimax-m3:free",
-    "minimax/minimax-m2.7:free"
+    "minimax/minimax-m2.7:free",
+    "google/lyria-3-clip-preview",
+    "thinkingmachines/inkling-small:free",
+    "poolside/laguna-xs-2.1:free",
+    "poolside/laguna-s-2.1:free",
+    "liquid/lfm-2.5-2.6b:free",
+    "google/lyria-3-pro-preview",
+    "nvidia/nemotron-3.5-lightning:free",
+    "dots-studio/dots-3-note-preview:free",
+    "inclusionai/ling-3.0-flash-fin:free"
   ],
   "groq": [
     "qwen/qwen3.8-27b",

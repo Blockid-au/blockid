@@ -204,3 +204,5 @@
 {"stage":"deploy","ok":false,"message":"Deploy failed: ════════════════════════════════════════════\n  DEPLOY ABORTED (4/5 gates passed)\n  Old build is still running. No damage.\n  Fix the issue and try again.\n════════════════════════════════════════════","aiCalls":0,"durationMs":283900,"timestamp":"2026-08-15T14:07:01.133Z"}
 {"stage":"update_artifacts","ok":true,"message":"36 task(s) still in flight","aiCalls":0,"durationMs":618,"timestamp":"2026-08-15T16:00:02.482Z"}
 {"stage":"git_push","ok":true,"message":"Pushed 1 commits to GitHub origin/master","aiCalls":0,"durationMs":2791,"timestamp":"2026-08-15T16:00:05.273Z"}
+{"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240003,"timestamp":"2026-08-31T12:04:01.376Z"}
+{"stage":"plan","ok":true,"message":"CEO implementing plan updated — 2 new task(s), 35 pending","aiCalls":1,"durationMs":952,"timestamp":"2026-08-31T12:04:02.328Z"}

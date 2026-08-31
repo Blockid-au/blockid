@@ -1,6 +1,6 @@
 {
   "version": "3.8.1",
-  "updatedAt": "2026-08-30T12:05:10.173Z",
+  "updatedAt": "2026-08-31T12:04:02.326Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-29T12:05:10.444Z",
@@ -36,7 +36,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-08-13T12:04:02.832Z",
+    "decidedAt": "2026-08-31T12:04:02.325Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1439,6 +1439,24 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-08-13T12:04:02.832Z"
+      },
+      {
+        "id": "T0198",
+        "agent": "cfo",
+        "title": "Integrate AU R&D Tax Incentive & ESIC logic into Valuation Engine",
+        "rationale": "CFO research specifically flagged R&D Tax Incentive and ESIC data. Existing open tasks ask for the full Multi-Method engine, but isolating the AU-specific tax/incentive logic is a high-leverage, discrete patch that adds immediate credibility and utility for Australian founders without waiting for th",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-31T12:04:02.325Z"
+      },
+      {
+        "id": "T0199",
+        "agent": "rnd",
+        "title": "Add GPT-4o to AI provider chain for founder narrative generation",
+        "rationale": "RND research identified new AI tools. While 'Deploy Founder Pain-Point Insight Service' is open, adding a robust, modern LLM provider (GPT-4o) to the existing chain is a shippable capability upgrade that improves the quality of narrative generation and ecosystem analysis without architectural risk.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-08-31T12:04:02.325Z"
       }
     ]
   },
