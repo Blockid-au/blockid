@@ -33,9 +33,9 @@ const DIMENSION_LABELS: Record<string, string> = {
 function colorClasses(pct: number): { cell: string; bar: string; text: string } {
   if (pct >= 70) {
     return {
-      cell: "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40",
-      bar: "bg-green-500",
-      text: "text-green-700 dark:text-green-400",
+      cell: "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40",
+      bar: "bg-emerald-500",
+      text: "text-emerald-700 dark:text-emerald-400",
     };
   }
   if (pct >= 40) {
@@ -75,6 +75,18 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
       return data.dimensions.find((d) => d.dimension === prev.dimension) ?? null;
     });
   }, [data]);
+
+  // Dismiss the modal on Escape — expected keyboard behaviour for any
+  // role=dialog surface, and required for AT-only users who can't click
+  // the backdrop.
+  useEffect(() => {
+    if (!selectedDim) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedDim(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedDim]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -145,7 +157,7 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
               type="button"
               onClick={() => setSelectedDim(dim)}
               className={cn(
-                "rounded-lg border p-3 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-500",
+                "min-h-[44px] rounded-lg border p-3 text-left transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-950",
                 "target:ring-2 target:ring-brand-500 target:ring-offset-2 target:ring-offset-white dark:target:ring-offset-ink-950",
                 colors.cell
               )}
@@ -178,6 +190,9 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
       {/* Drill-in modal */}
       {selectedDim && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="svi-heatmap-modal-title"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={() => setSelectedDim(null)}
         >
@@ -190,19 +205,18 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
                 <span className="text-xs font-bold tracking-widest text-ink-400 dark:text-ink-500">
                   {DIMENSION_SHORT[selectedDim.dimension] ?? selectedDim.dimension.toUpperCase()}
                 </span>
-                <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-100 leading-tight">
+                <h3 id="svi-heatmap-modal-title" className="text-sm font-semibold text-ink-800 dark:text-ink-100 leading-tight">
                   {DIMENSION_LABELS[selectedDim.dimension] ?? selectedDim.dimension} — {selectedDim.completenessPercent}% complete
                 </h3>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 shrink-0"
+              <button
+                type="button"
+                aria-label="Close dimension details"
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors shrink-0"
                 onClick={() => setSelectedDim(null)}
               >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </Button>
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
 
             <div className="space-y-1 max-h-80 overflow-y-auto pr-1">

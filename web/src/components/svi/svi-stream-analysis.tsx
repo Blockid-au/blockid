@@ -140,7 +140,7 @@ function priorityBadge(priority: string | null): string {
 function Spinner() {
   return (
     <svg
-      className="h-4 w-4 animate-spin text-brand-500"
+      className="h-4 w-4 motion-safe:animate-spin text-brand-500"
       viewBox="0 0 24 24"
       fill="none"
     >
@@ -324,7 +324,7 @@ function DimCard({
 
       {/* Insights (always visible when complete) */}
       {state.status === "complete" && state.insights.length > 0 && (
-        <div className="px-4 pb-2 space-y-1 animate-in fade-in duration-300">
+        <div className="px-4 pb-2 space-y-1 motion-safe:animate-in motion-safe:fade-in duration-300">
           {state.insights.slice(0, 2).map((insight, i) => (
             <div key={i} className="flex items-start gap-2">
               <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand-400 shrink-0" />
@@ -336,7 +336,7 @@ function DimCard({
 
       {/* Full markdown (expandable) */}
       {state.status === "complete" && state.expanded && state.markdown && (
-        <div className="border-t border-ink-100 dark:border-ink-800 px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="border-t border-ink-100 dark:border-ink-800 px-4 py-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 duration-200">
           <SimpleMarkdown text={state.markdown} />
         </div>
       )}
@@ -756,14 +756,19 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
       {/* Restored from cache — lets the founder know these numbers are from
           an earlier run and give them one click to start fresh instead. */}
       {restoredFromCache && !running && (
-        <div className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-950/20 px-4 py-2.5 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-300">
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-950/20 px-4 py-2.5 flex items-center justify-between gap-3 text-xs motion-safe:animate-in motion-safe:fade-in duration-300"
+        >
           <span className="text-brand-700 dark:text-brand-300">
             Showing your most recent analysis. Re-analyse to refresh.
           </span>
           <button
             type="button"
             onClick={() => { reset(); }}
-            className="inline-flex items-center justify-center min-h-[32px] rounded-md px-3 text-xs font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+            aria-label="Discard cached analysis and start fresh"
+            className="inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-xs font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
           >
             Discard
           </button>
@@ -772,7 +777,7 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
 
       {/* Progress bar (visible once started) */}
       {(running || done) && !fatalError && (
-        <div className="space-y-1.5 animate-in fade-in duration-300">
+        <div className="space-y-1.5 motion-safe:animate-in motion-safe:fade-in duration-300">
           <div className="flex justify-between text-xs text-ink-500 dark:text-ink-400">
             <span>{completed}/{total} dimensions complete</span>
             <span>{progressPct}%</span>
@@ -834,7 +839,7 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
           .sort((a, b) => (a.score - b.score) || (b.weight - a.weight))
           .slice(0, 2);
         return (
-          <div className="rounded-xl border border-brand-200 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-800 px-5 py-4 space-y-3 animate-in fade-in duration-300">
+          <div className="rounded-xl border border-brand-200 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-800 px-5 py-4 space-y-3 motion-safe:animate-in motion-safe:fade-in duration-300">
             <div className="flex items-baseline gap-3 flex-wrap">
               <span className="text-xs uppercase tracking-[0.14em] text-brand-700 dark:text-brand-300 font-semibold">
                 Current SVI
