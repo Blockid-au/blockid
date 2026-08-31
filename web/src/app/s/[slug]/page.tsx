@@ -191,7 +191,13 @@ async function recordView(slug: string, notify?: {
     referer: h.get("referer")?.slice(0, 512) ?? null,
   });
   if (error) {
-    console.error("[blockid:s] view insert failed", error);
+    // 23503 = FK violation. Crawlers routinely hit /s/<stale-or-fake-slug>
+    // where no matching scores row exists — silently drop these to keep the
+    // production log signal-to-noise up. Anything else is a real problem.
+    const code = (error as { code?: string }).code;
+    if (code !== "23503") {
+      console.error("[blockid:s] view insert failed", error);
+    }
   }
 
   // Fire-and-forget owner notification (respects email_preferences.svi_alerts).
