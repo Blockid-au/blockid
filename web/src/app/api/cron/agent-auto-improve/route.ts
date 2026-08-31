@@ -48,6 +48,12 @@ const AGENT_DOMAIN_FILES: Record<string, string> = {
   cdo: "src/lib/agents/cdo-data-quality.ts",
 };
 
+// Agents whose domain module has a test suite that pins the exact shape of
+// exported symbols. Auto-generation is risky here: a truncated LLM response
+// or a shape drift silently ships broken code that only surfaces at Gate 5.
+// Skip these until the auto-improve pipeline gains full shape validation.
+const FROZEN_AGENTS = new Set<string>(["cro"]);
+
 async function getRecentResearch(supabase: ReturnType<typeof getSupabaseAdmin>, agent: string) {
   if (!supabase) return [];
   const { data } = await supabase
@@ -108,10 +114,27 @@ Rules:
   const fenceMatch = code.match(/```(?:typescript|ts)?\s*\n([\s\S]*?)```/);
   if (fenceMatch) code = fenceMatch[1];
 
-  // Validate it looks like TypeScript
+  // Defensive strip: some AI responses come back as a leading fence without a
+  // closing fence when the response was cut short by max_tokens. Without this
+  // the raw ` ```typescript ` line survived into the file and broke Gate 3
+  // (TypeScript compilation) — happened 4+ times to cro-conversion.ts.
+  code = code.replace(/^\s*```(?:typescript|ts)?\s*\n/, "").replace(/\n```\s*$/, "");
+
+  // Validate it looks like TypeScript. The line-count + exports floor catches
+  // truncated responses that would otherwise land as a broken file.
   if (!code.includes("export") || code.length < 100) return null;
+  const lineCount = code.split("\n").length;
+  const exportCount = (code.match(/^export /gm) ?? []).length;
+  if (lineCount < 40 || exportCount < 2) return null;
+  // No unterminated template literals — count backticks; odd count means an
+  // opened literal was never closed and tsc will fail.
+  if ((code.match(/`/g) ?? []).length % 2 !== 0) return null;
 
   const filePath = AGENT_DOMAIN_FILES[agent] ?? `src/lib/agents/${agent}-domain.ts`;
+
+  // Belt-and-suspenders: even if the caller forgot to filter, refuse to
+  // ship an auto-generated payload for a frozen agent.
+  if (FROZEN_AGENTS.has(agent)) return null;
 
   return {
     description: `Update ${agent.toUpperCase()} domain module with latest research findings`,

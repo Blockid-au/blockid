@@ -302,6 +302,35 @@ fi
 pass "Database connectivity verified"
 
 # ══════════════════════════════════════════════════════════════════════
+# GATE 2.5: Auto-generated agent module self-heal
+# ══════════════════════════════════════════════════════════════════════
+# cro-conversion.ts is periodically rewritten by the agent-auto-improve
+# cron. When the LLM response is truncated the file lands with a markdown
+# fence or unterminated template literal → Gate 3 aborts.
+# The root cause fix (FROZEN_AGENTS in agent-auto-improve/route.ts) stops
+# future writes, but if the working tree is already broken from a prior
+# incident, self-heal from HEAD before tsc runs. Skip when SKIP_CRO_GUARD=1.
+if [ "${SKIP_CRO_GUARD:-0}" != "1" ]; then
+  GUARD_FILE="src/lib/agents/cro-conversion.ts"
+  if [ -f "$GUARD_FILE" ]; then
+    GUARD_BROKEN=0
+    head -1 "$GUARD_FILE" | grep -q '^```' && GUARD_BROKEN=1
+    [ "$(wc -l < "$GUARD_FILE")" -lt 150 ] && GUARD_BROKEN=1
+    [ "$(grep -c '^export ' "$GUARD_FILE" 2>/dev/null || echo 0)" -lt 10 ] && GUARD_BROKEN=1
+    # Odd number of backticks = unterminated template literal.
+    BT_COUNT=$(grep -o '`' "$GUARD_FILE" | wc -l)
+    [ $((BT_COUNT % 2)) -ne 0 ] && GUARD_BROKEN=1
+    if [ "$GUARD_BROKEN" = 1 ] && ! git diff --quiet HEAD -- "$GUARD_FILE"; then
+      echo "  ⚠ $GUARD_FILE looks broken — restoring from HEAD before Gate 3"
+      git checkout HEAD -- "$GUARD_FILE"
+      echo "{\"ts\":\"$(date -u +%FT%TZ)\",\"event\":\"guard_restore\",\"file\":\"$GUARD_FILE\",\"note\":\"pre-Gate-3 self-heal\"}" \
+        >> content/reports/deploy-log.jsonl
+      pass "Guard: cro-conversion.ts restored from HEAD"
+    fi
+  fi
+fi
+
+# ══════════════════════════════════════════════════════════════════════
 # GATE 3: TypeScript Compilation
 # ══════════════════════════════════════════════════════════════════════
 if [ "${1:-}" != "--skip-build" ] && [ "${1:-}" != "--quick" ]; then
