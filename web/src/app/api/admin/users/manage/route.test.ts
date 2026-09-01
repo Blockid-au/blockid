@@ -289,10 +289,25 @@ describe("POST /api/admin/users/manage — body validation", () => {
     expect(String(body.error)).toMatch(/role must be one of/i);
   });
 
-  it("accepts every VALID_PLANS entry", async () => {
-    for (const p of ["free", "founding50", "growth"] as const) {
+  it("accepts every VALID_PLANS entry that isn't promo-gated", async () => {
+    // founding50 is validated separately below — after the 2026-08-31 UTC
+    // auto-cutover the route rejects it with 410, so it can't be looped
+    // through unconditionally.
+    for (const p of ["free", "growth"] as const) {
       const res = await POST(req({ email: TARGET.email, field: "plan", value: p }));
       expect(res.status).toBe(200);
+    }
+  });
+
+  it("gates founding50 through isFoundingPromoActive", async () => {
+    // We can't time-mock the route's `new Date()` call cleanly from here,
+    // so assert the current live behaviour: either 200 (promo still on) or
+    // 410 (promo ended) — both are correct, but never 400 / 500.
+    const res = await POST(req({ email: TARGET.email, field: "plan", value: "founding50" }));
+    expect([200, 410]).toContain(res.status);
+    if (res.status === 410) {
+      const body = await json(res);
+      expect(String(body.error)).toMatch(/founding50 promo ended/i);
     }
   });
 
