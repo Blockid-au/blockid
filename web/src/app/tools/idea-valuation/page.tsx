@@ -9,6 +9,31 @@ const TITLE = "Idea Valuation — Free Startup Calculator | BlockID";
 const DESCRIPTION =
   "Estimate your Australian startup's pre-money valuation at the idea stage. Berkus + Scorecard methods, AUD-native, completely free. Built for AU founders.";
 
+const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
+  {
+    title: "How is the number calculated?",
+    body: "Five Berkus pillars — sound idea, prototype, team, strategic relationships, product rollout — each capped at AUD $500k. We then apply a 0.5x – 1.5x Scorecard multiplier from market size, moat and competition density.",
+  },
+  {
+    title: "Why so wide a band?",
+    body: "Idea-stage valuations aren't calculated, they're negotiated. The ±35% band is honest: until you have paying customers and a first lead investor, your number is a story, not a spreadsheet.",
+  },
+  {
+    title: "How does my valuation compare?",
+    body: "See how AU peers are valued at the same stage. Our free Benchmarks page shows MRR, ARR, burn rate and SVI score percentiles for 2,700+ Australian startups by stage.",
+  },
+];
+
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((f) => ({
+    "@type": "Question",
+    name: f.title,
+    acceptedAnswer: { "@type": "Answer", text: f.body },
+  })),
+};
+
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
@@ -40,6 +65,10 @@ export const metadata: Metadata = {
 export default function IdeaValuationPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <PageTracker page="tools/idea-valuation" tool="idea-valuation" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
@@ -63,20 +92,7 @@ export default function IdeaValuationPage() {
             </Suspense>
           </div>
           <section className="mt-16 grid md:grid-cols-3 gap-6">
-            {[
-              {
-                title: "How is the number calculated?",
-                body: "Five Berkus pillars — sound idea, prototype, team, strategic relationships, product rollout — each capped at AUD $500k. We then apply a 0.5x – 1.5x Scorecard multiplier from market size, moat and competition density.",
-              },
-              {
-                title: "Why so wide a band?",
-                body: "Idea-stage valuations aren't calculated, they're negotiated. The ±35% band is honest: until you have paying customers and a first lead investor, your number is a story, not a spreadsheet.",
-              },
-              {
-                title: "How does my valuation compare?",
-                body: "See how AU peers are valued at the same stage. Our free Benchmarks page shows MRR, ARR, burn rate and SVI score percentiles for 2,700+ Australian startups by stage.",
-              },
-            ].map((b) => (
+            {FAQ_ITEMS.map((b) => (
               <article
                 key={b.title}
                 className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm"

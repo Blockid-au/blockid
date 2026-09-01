@@ -8,6 +8,31 @@ const TITLE = "Funding Plan — Free Startup Capital Planner for AU Founders";
 const DESCRIPTION =
   "Plan how much capital you need, how much each founder puts in, and how much to raise externally. AU pre-seed friendly. Free for Australian startups.";
 
+const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
+  {
+    title: "What goes in the burn?",
+    body: "Cofounder living wages, tools/SaaS, marketing experiments, and a one-off legal/accounting line for incorporation, shareholders agreement and tax setup. We add a buffer (default 20%) on the variable spend.",
+  },
+  {
+    title: "How is the raise sized?",
+    body: "Total need minus what founders can pool in cash. We then split the post-money cap table between founders, the ESOP pool you set, and the new investor — at the pre-money you choose.",
+  },
+  {
+    title: "Why the SAFE suggestion?",
+    body: "Friends-and-family rounds in AU usually price as SAFEs with a 20% discount and a cap ~1.5× the agreed pre-money. Tweak as your lead investor demands.",
+  },
+];
+
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((f) => ({
+    "@type": "Question",
+    name: f.title,
+    acceptedAnswer: { "@type": "Answer", text: f.body },
+  })),
+};
+
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
@@ -39,6 +64,10 @@ export const metadata: Metadata = {
 export default function FundingPlanPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <PageTracker page="tools/funding-plan" tool="funding-plan" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
@@ -61,20 +90,7 @@ export default function FundingPlanPage() {
             <FundingPlanTool />
           </div>
           <section className="mt-16 grid md:grid-cols-3 gap-6">
-            {[
-              {
-                title: "What goes in the burn?",
-                body: "Cofounder living wages, tools/SaaS, marketing experiments, and a one-off legal/accounting line for incorporation, shareholders agreement and tax setup. We add a buffer (default 20%) on the variable spend.",
-              },
-              {
-                title: "How is the raise sized?",
-                body: "Total need minus what founders can pool in cash. We then split the post-money cap table between founders, the ESOP pool you set, and the new investor — at the pre-money you choose.",
-              },
-              {
-                title: "Why the SAFE suggestion?",
-                body: "Friends-and-family rounds in AU usually price as SAFEs with a 20% discount and a cap ~1.5× the agreed pre-money. Tweak as your lead investor demands.",
-              },
-            ].map((b) => (
+            {FAQ_ITEMS.map((b) => (
               <article
                 key={b.title}
                 className="rounded-2xl border border-surface-200 bg-white p-6"
