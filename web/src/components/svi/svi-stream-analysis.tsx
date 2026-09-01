@@ -382,20 +382,56 @@ function computeTopPercent(x: number, row: SectorRow): number | null {
 
 function SectorCohortWidget({ userTotal, industry }: { userTotal: number; industry: string | null }) {
   const [row, setRow] = useState<SectorRow | null>(null);
+  const [isOverallFallback, setIsOverallFallback] = useState(false);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (!industry) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/index/svi?bucket=sector&format=json");
-        if (!res.ok) throw new Error(`http ${res.status}`);
-        const body = await res.json() as { data?: SectorRow[]; sectors?: SectorRow[] };
-        const arr = body.data ?? body.sectors ?? [];
-        const key = industry.toLowerCase().trim();
-        const match = arr.find((r) => r.sector?.toLowerCase() === key);
-        if (!cancelled) setRow(match ?? null);
+        // If we know the founder's industry, prefer sector-scoped bucket.
+        // Otherwise fall back to the platform-wide overall aggregate so the
+        // widget always renders something useful instead of silently hiding.
+        if (industry) {
+          const res = await fetch("/api/index/svi?bucket=sector&format=json");
+          if (res.ok) {
+            const body = await res.json() as { data?: SectorRow[]; sectors?: SectorRow[] };
+            const arr = body.data ?? body.sectors ?? [];
+            const key = industry.toLowerCase().trim();
+            const match = arr.find((r) => r.sector?.toLowerCase() === key);
+            if (match) {
+              if (!cancelled) setRow(match);
+              return;
+            }
+          }
+        }
+        // Fallback path — hit the overall bucket. Same shape (single-row summary).
+        const overRes = await fetch("/api/index/svi?bucket=overall&format=json");
+        if (!overRes.ok) throw new Error(`http ${overRes.status}`);
+        const overBody = await overRes.json() as {
+          data?: {
+            count: number;
+            medianSvi: number;
+            p10?: number;
+            p25?: number;
+            p50?: number;
+            p75?: number;
+            p90?: number;
+          };
+        };
+        const o = overBody.data;
+        if (!o) throw new Error("no overall");
+        if (!cancelled) {
+          setRow({
+            sector: "overall",
+            count: o.count,
+            medianSvi: o.medianSvi,
+            p25: o.p25,
+            p50: o.p50 ?? o.medianSvi,
+            p75: o.p75,
+          });
+          setIsOverallFallback(true);
+        }
       } catch {
         if (!cancelled) setFailed(true);
       }
@@ -403,12 +439,14 @@ function SectorCohortWidget({ userTotal, industry }: { userTotal: number; indust
     return () => { cancelled = true; };
   }, [industry]);
 
-  if (!industry || failed) return null;
+  if (failed) return null;
   if (!row) return null;
 
   const median = row.medianSvi ?? row.p50 ?? null;
   if (median == null) return null;
-  const sectorLabel = row.sector.charAt(0).toUpperCase() + row.sector.slice(1);
+  const sectorLabel = isOverallFallback
+    ? "Platform"
+    : row.sector.charAt(0).toUpperCase() + row.sector.slice(1);
 
   if (row.count < 5) {
     return (
