@@ -69,8 +69,15 @@ describe("NEW_SIGNUP_TIER_IDS", () => {
 // ---------------------------------------------------------------------------
 
 describe("tiersForNewSignup()", () => {
+  // Pin `now` to a date inside the Founding 100 promo window so these
+  // filter-behaviour tests keep asserting all three tiers survive.
+  // After 2026-08-31 UTC the auto-cutover drops founding50; that
+  // behaviour is covered by its own test below.
+  const DURING_PROMO = new Date("2026-08-15T00:00:00Z");
+  const AFTER_PROMO = new Date("2026-09-01T00:00:00Z");
+
   it("filters the default PRICING_TIERS down to the 3-id allow-list", () => {
-    const kept = tiersForNewSignup(PRICING_TIERS);
+    const kept = tiersForNewSignup(PRICING_TIERS, DURING_PROMO);
     expect(kept.map((t) => t.id)).toEqual([
       "founding50",
       "growth",
@@ -79,18 +86,23 @@ describe("tiersForNewSignup()", () => {
   });
 
   it("drops the free tier (hidden from new signups)", () => {
-    const kept = tiersForNewSignup(PRICING_TIERS);
+    const kept = tiersForNewSignup(PRICING_TIERS, DURING_PROMO);
     expect(kept.some((t) => t.id === "free")).toBe(false);
   });
 
   it("preserves input order (does not re-sort)", () => {
     const reversed = [...PRICING_TIERS].reverse();
-    const kept = tiersForNewSignup(reversed);
+    const kept = tiersForNewSignup(reversed, DURING_PROMO);
     expect(kept.map((t) => t.id)).toEqual([
       "growth_annual",
       "growth",
       "founding50",
     ]);
+  });
+
+  it("drops founding50 after the auto-cutover (post-2026-08-31)", () => {
+    const kept = tiersForNewSignup(PRICING_TIERS, AFTER_PROMO);
+    expect(kept.map((t) => t.id)).toEqual(["growth", "growth_annual"]);
   });
 
   it("returns [] on empty input", () => {
