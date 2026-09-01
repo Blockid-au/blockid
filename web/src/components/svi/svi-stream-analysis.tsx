@@ -509,6 +509,10 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [industry, setIndustry] = useState<string | null>(null);
   const [restoredFromCache, setRestoredFromCache] = useState(false);
+  // Score-delta from the previous stored snapshot — lets the founder see
+  // "your SVI is up 6 pts since last week" once they run the analysis.
+  const [previousSvi, setPreviousSvi] = useState<number | null>(null);
+  const [weekDelta, setWeekDelta] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   // Restore a recent (< 30 min) run on mount so a page refresh mid-analysis
@@ -523,6 +527,30 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
     setDone(saved.done);
     setIndustry(saved.industry);
     setRestoredFromCache(true);
+  }, [projectId]);
+
+  // Score-delta: fetch the last-persisted SVI snapshot on mount so the
+  // done-state (and pre-analysis header) can compare "your last SVI was 57
+  // — beat it this time?". Silent on error so the widget just doesn't render.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/svi/history", { credentials: "same-origin" });
+        if (!res.ok) return;
+        const body = await res.json() as {
+          ok?: boolean;
+          currentSVI?: number;
+          weekDelta?: number;
+        };
+        if (!body.ok || cancelled) return;
+        if (typeof body.currentSVI === "number") setPreviousSvi(body.currentSVI);
+        if (typeof body.weekDelta === "number") setWeekDelta(body.weekDelta);
+      } catch {
+        /* silent */
+      }
+    })();
+    return () => { cancelled = true; };
   }, [projectId]);
 
   // Snapshot to localStorage whenever a scored dimension lands or we hit done,
@@ -795,6 +823,28 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
         </div>
       )}
 
+      {/* Previous-score reminder — only when we have a stored snapshot AND
+          we haven't just displayed the done-state (which has its own delta).
+          Nudges the founder to run analysis + shows progress-over-time. */}
+      {previousSvi !== null && !done && !running && (
+        <div className="rounded-lg border border-ink-200 dark:border-ink-800 bg-ink-50/60 dark:bg-ink-950/40 px-4 py-2.5 flex items-center justify-between gap-3 text-xs">
+          <span className="text-ink-700 dark:text-ink-300">
+            Last SVI: <strong className="font-semibold tabular-nums text-ink-900 dark:text-ink-100">{previousSvi}/100</strong>
+            {weekDelta !== null && weekDelta !== 0 && (
+              <span className={cn(
+                "ml-1.5 tabular-nums",
+                weekDelta > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400",
+              )}>
+                ({weekDelta > 0 ? "+" : ""}{weekDelta} last week)
+              </span>
+            )}
+          </span>
+          <span className="text-ink-500 dark:text-ink-400 hidden sm:inline">
+            Re-run to see the delta ↓
+          </span>
+        </div>
+      )}
+
       {/* Restored from cache — lets the founder know these numbers are from
           an earlier run and give them one click to start fresh instead. */}
       {restoredFromCache && !running && (
@@ -959,6 +1009,32 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
               </div>
             )}
             <SectorCohortWidget userTotal={totalSvi} industry={industry} />
+            {/* Score-delta versus the last stored snapshot — validates
+                improvement over time and gives founders something to beat. */}
+            {previousSvi !== null && previousSvi !== totalSvi && (
+              <p className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3 text-xs text-brand-700 dark:text-brand-300">
+                {totalSvi > previousSvi ? (
+                  <>
+                    Up{" "}
+                    <strong className="font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                      +{totalSvi - previousSvi}
+                    </strong>
+                    {" "}from your last stored SVI of{" "}
+                    <strong className="font-semibold tabular-nums">{previousSvi}</strong>.
+                  </>
+                ) : (
+                  <>
+                    Down{" "}
+                    <strong className="font-semibold tabular-nums text-red-700 dark:text-red-400">
+                      {totalSvi - previousSvi}
+                    </strong>
+                    {" "}from your last stored SVI of{" "}
+                    <strong className="font-semibold tabular-nums">{previousSvi}</strong>.
+                    Add evidence to lift the score.
+                  </>
+                )}
+              </p>
+            )}
           </div>
         );
       })()}
