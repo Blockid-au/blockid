@@ -52,7 +52,18 @@ const AGENT_DOMAIN_FILES: Record<string, string> = {
 // exported symbols. Auto-generation is risky here: a truncated LLM response
 // or a shape drift silently ships broken code that only surfaces at Gate 5.
 // Skip these until the auto-improve pipeline gains full shape validation.
-const FROZEN_AGENTS = new Set<string>(["cro"]);
+// (cro-conversion + ciso-security both bit us this week; freezing the rest
+// pre-emptively — the tests + Gate 2.5 self-heal handle recovery.)
+const FROZEN_AGENTS = new Set<string>([
+  "cro",
+  "ciso",
+  "cfo",
+  "cmo",
+  "cto",
+  "clo",
+  "chro",
+  "cdo",
+]);
 
 async function getRecentResearch(supabase: ReturnType<typeof getSupabaseAdmin>, agent: string) {
   if (!supabase) return [];
