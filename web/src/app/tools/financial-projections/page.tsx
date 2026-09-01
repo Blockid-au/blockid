@@ -10,6 +10,31 @@ const DESCRIPTION =
   "Generate investor-grade 36-month financial projections for your Australian startup. Sector-tuned growth, EBITDA-first structure, R&D tax offsets, CSV export. Deterministic — same inputs, same output.";
 const CANONICAL = "https://blockid.au/tools/financial-projections";
 
+const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
+  {
+    title: "Where do the sector norms come from?",
+    body: "AU-tuned benchmarks — Bessemer Cloud Index, SaaS Capital, AVCAL and Cut Through Venture — the same VC_BENCHMARKS used across BlockID's CFO tooling. Growth is company-level (not market CAGR) and decays via an S-curve toward a 2% floor.",
+  },
+  {
+    title: "How do tax incentives affect cash flow?",
+    body: "Turn on the R&D Tax Incentive toggle and we apply the 18.5% refundable premium above the corporate tax rate to your sector-typical R&D share of opex (deeptech 40%, healthtech / AI 30%, SaaS / fintech 20%, others 10-15%).",
+  },
+  {
+    title: "Is the output the same every time?",
+    body: "Yes — the engine is deterministic. Same inputs always produce the same 36 rows and YoY summary. Safe to include in investor decks and cap-table workbooks. General information only, not financial advice.",
+  },
+];
+
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((f) => ({
+    "@type": "Question",
+    name: f.title,
+    acceptedAnswer: { "@type": "Answer", text: f.body },
+  })),
+};
+
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
@@ -42,6 +67,10 @@ export const metadata: Metadata = {
 export default function FinancialProjectionsPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <PageTracker page="tools/financial-projections" tool="financial-projections" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
@@ -67,20 +96,7 @@ export default function FinancialProjectionsPage() {
             <ProjectionsTool />
           </div>
           <section className="mt-16 grid md:grid-cols-3 gap-6">
-            {[
-              {
-                title: "Where do the sector norms come from?",
-                body: "AU-tuned benchmarks — Bessemer Cloud Index, SaaS Capital, AVCAL and Cut Through Venture — the same VC_BENCHMARKS used across BlockID's CFO tooling. Growth is company-level (not market CAGR) and decays via an S-curve toward a 2% floor.",
-              },
-              {
-                title: "How do tax incentives affect cash flow?",
-                body: "Turn on the R&D Tax Incentive toggle and we apply the 18.5% refundable premium above the corporate tax rate to your sector-typical R&D share of opex (deeptech 40%, healthtech / AI 30%, SaaS / fintech 20%, others 10-15%).",
-              },
-              {
-                title: "Is the output the same every time?",
-                body: "Yes — the engine is deterministic. Same inputs always produce the same 36 rows and YoY summary. Safe to include in investor decks and cap-table workbooks. General information only, not financial advice.",
-              },
-            ].map((b) => (
+            {FAQ_ITEMS.map((b) => (
               <article
                 key={b.title}
                 className="rounded-2xl border border-surface-200 bg-white p-6"
