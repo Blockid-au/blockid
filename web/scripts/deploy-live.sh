@@ -304,19 +304,31 @@ pass "Database connectivity verified"
 # ══════════════════════════════════════════════════════════════════════
 # GATE 2.5: Auto-generated agent module self-heal
 # ══════════════════════════════════════════════════════════════════════
-# cro-conversion.ts is periodically rewritten by the agent-auto-improve
-# cron. When the LLM response is truncated the file lands with a markdown
-# fence or unterminated template literal → Gate 3 aborts.
+# Files under web/src/lib/agents/*-{conversion,security,...}.ts are
+# periodically rewritten by agent-auto-improve. When the LLM response is
+# truncated the file lands with a markdown fence or shape drift → Gate 3
+# or Gate 5 aborts.
 # The root cause fix (FROZEN_AGENTS in agent-auto-improve/route.ts) stops
-# future writes, but if the working tree is already broken from a prior
-# incident, self-heal from HEAD before tsc runs. Skip when SKIP_CRO_GUARD=1.
-if [ "${SKIP_CRO_GUARD:-0}" != "1" ]; then
-  GUARD_FILE="src/lib/agents/cro-conversion.ts"
-  if [ -f "$GUARD_FILE" ]; then
+# future writes for listed domains, but if the working tree is already
+# broken from a prior incident, self-heal from HEAD before tsc runs.
+# Skip entirely when SKIP_AGENT_GUARD=1 (or the legacy SKIP_CRO_GUARD=1).
+if [ "${SKIP_AGENT_GUARD:-${SKIP_CRO_GUARD:-0}}" != "1" ]; then
+  GUARD_FILES=(
+    "src/lib/agents/cro-conversion.ts"
+    "src/lib/agents/ciso-security.ts"
+    "src/lib/agents/cfo-valuation.ts"
+    "src/lib/agents/cmo-market-research.ts"
+    "src/lib/agents/cto-cost-modeling.ts"
+    "src/lib/agents/clo-compliance.ts"
+    "src/lib/agents/chro-team.ts"
+    "src/lib/agents/cdo-data-quality.ts"
+  )
+  for GUARD_FILE in "${GUARD_FILES[@]}"; do
+    [ -f "$GUARD_FILE" ] || continue
     GUARD_BROKEN=0
     head -1 "$GUARD_FILE" | grep -q '^```' && GUARD_BROKEN=1
-    [ "$(wc -l < "$GUARD_FILE")" -lt 150 ] && GUARD_BROKEN=1
-    [ "$(grep -c '^export ' "$GUARD_FILE" 2>/dev/null || echo 0)" -lt 10 ] && GUARD_BROKEN=1
+    [ "$(wc -l < "$GUARD_FILE")" -lt 40 ] && GUARD_BROKEN=1
+    [ "$(grep -c '^export ' "$GUARD_FILE" 2>/dev/null || echo 0)" -lt 2 ] && GUARD_BROKEN=1
     # Odd number of backticks = unterminated template literal.
     BT_COUNT=$(grep -o '`' "$GUARD_FILE" | wc -l)
     [ $((BT_COUNT % 2)) -ne 0 ] && GUARD_BROKEN=1
@@ -325,9 +337,9 @@ if [ "${SKIP_CRO_GUARD:-0}" != "1" ]; then
       git checkout HEAD -- "$GUARD_FILE"
       echo "{\"ts\":\"$(date -u +%FT%TZ)\",\"event\":\"guard_restore\",\"file\":\"$GUARD_FILE\",\"note\":\"pre-Gate-3 self-heal\"}" \
         >> content/reports/deploy-log.jsonl
-      pass "Guard: cro-conversion.ts restored from HEAD"
+      pass "Guard: $(basename "$GUARD_FILE") restored from HEAD"
     fi
-  fi
+  done
 fi
 
 # ══════════════════════════════════════════════════════════════════════
