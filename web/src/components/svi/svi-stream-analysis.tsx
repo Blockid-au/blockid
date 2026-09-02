@@ -488,6 +488,13 @@ interface SviStreamAnalysisProps {
   initialDeckText?: string;
   /** If true, kick off startAnalysis on mount with the initialDims filter. */
   autoStart?: boolean;
+  /** Fired once the streaming `done` event lands, with the client-side
+   * weighted total + per-dim results. Callers (e.g. the pitchdeck flow)
+   * use this to persist a snapshot, log analytics, etc. */
+  onDone?: (result: {
+    totalSVI: number;
+    dimResults: Record<string, { score: number; priority: "high" | "medium" | "low" | null }>;
+  }) => void;
 }
 
 export function SviStreamAnalysis({
@@ -495,6 +502,7 @@ export function SviStreamAnalysis({
   initialDims,
   initialDeckText,
   autoStart,
+  onDone,
 }: SviStreamAnalysisProps) {
   const [dimStates, setDimStates] = useState<Record<string, DimState>>(() =>
     Object.fromEntries(
@@ -769,6 +777,36 @@ export function SviStreamAnalysis({
     // Only fire once on mount, hence the disabled deps warning.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fire onDone once after the streaming `done` event lands, with the
+  // client-computed weighted total. Runs in an effect (not inline in the
+  // SSE handler) so state updates from prior dimension_complete events
+  // have committed and dimStates reflects the final scores.
+  const [doneFired, setDoneFired] = useState(false);
+  useEffect(() => {
+    if (!done || doneFired || !onDone) return;
+    const scored = DIM_KEYS
+      .map((k) => ({
+        key: k,
+        score: dimStates[k].score,
+        priority: dimStates[k].priority,
+        weight: DIMS[k].weight,
+      }))
+      .filter((d): d is { key: string; score: number; priority: DimState["priority"]; weight: number } =>
+        d.score !== null,
+      );
+    if (scored.length === 0) return;
+    const totalWeight = scored.reduce((acc, d) => acc + d.weight, 0);
+    const totalSVI = Math.round(
+      scored.reduce((acc, d) => acc + (d.score * d.weight) / totalWeight, 0),
+    );
+    const dimResults: Record<string, { score: number; priority: "high" | "medium" | "low" | null }> = {};
+    for (const d of scored) {
+      dimResults[d.key] = { score: d.score, priority: d.priority };
+    }
+    onDone({ totalSVI, dimResults });
+    setDoneFired(true);
+  }, [done, doneFired, dimStates, onDone]);
 
   const stopAnalysis = useCallback(() => {
     abortRef.current?.abort();

@@ -42,6 +42,56 @@ interface CreditsInfo {
   plan: string;
 }
 
+// Three-dot breadcrumb showing the founder how far they are in the flow.
+// Small, non-clickable — just orientation. Rendered below the header row.
+function StepBreadcrumb({ current }: { current: Step }) {
+  const steps: Array<{ key: Step; label: string }> = [
+    { key: "upload", label: "Upload deck" },
+    { key: "coverage", label: "Pick dimensions" },
+    { key: "analyze", label: "Analyse & score" },
+  ];
+  const idx = steps.findIndex((s) => s.key === current);
+  return (
+    <ol
+      className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-500 dark:text-ink-400"
+      aria-label={`Step ${idx + 1} of ${steps.length}`}
+    >
+      {steps.map((s, i) => {
+        const active = i === idx;
+        const done = i < idx;
+        return (
+          <li key={s.key} className="flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
+                active && "bg-brand-600 text-white",
+                done && "bg-emerald-600 text-white",
+                !active && !done && "bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-400",
+              )}
+              aria-hidden="true"
+            >
+              {done ? "✓" : i + 1}
+            </span>
+            <span
+              className={cn(
+                active && "text-brand-700 dark:text-brand-300",
+                done && "text-emerald-700 dark:text-emerald-400",
+              )}
+            >
+              {s.label}
+            </span>
+            {i < steps.length - 1 && (
+              <span className="text-ink-300 dark:text-ink-700" aria-hidden="true">
+                →
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 // Kept in sync with FEATURE_COSTS in /web/src/lib/credits.ts. Rendered on
 // the coverage grid so the founder sees the price before opting in.
 const SPECULATIVE_COST: Record<string, number> = {
@@ -54,6 +104,33 @@ const SPECULATIVE_COST: Record<string, number> = {
   lco: 0.5,
   svm: 0.75,
 };
+
+// Match the DIMS weights in svi-stream-analysis + sample-svi-card so the
+// baseline preview matches what the real analyzer will compute.
+const DIM_WEIGHTS: Record<string, number> = {
+  ftv: 15, mpc: 18, ptd: 12, tre: 20, cgh: 12, iri: 10, lco: 8, svm: 5,
+};
+
+// Lower-bound SVI estimate for the "baseline free tier" preview. Assume a
+// strong-covered dim scores ~68 (developing-band), partial ~50, missing
+// contribute nothing (their weight is left out of the denominator, so we
+// don't punish the founder for gaps they haven't paid to analyse).
+function estimateBaselineSvi(coverage: Record<string, { level: string }>): number | null {
+  const bins = Object.entries(coverage).map(([k, v]) => ({
+    key: k,
+    level: v.level,
+    weight: DIM_WEIGHTS[k] ?? 0,
+  }));
+  const scored = bins.filter((b) => b.level !== "missing");
+  if (scored.length === 0) return null;
+  const weightSum = scored.reduce((a, b) => a + b.weight, 0);
+  if (weightSum === 0) return null;
+  const weighted = scored.reduce((a, b) => {
+    const assumed = b.level === "strong" ? 68 : 50;
+    return a + (assumed * b.weight) / weightSum;
+  }, 0);
+  return Math.round(weighted);
+}
 
 type Step = "upload" | "coverage" | "analyze";
 
@@ -92,6 +169,8 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Kept for the streaming analyzer once step === "analyze".
   const [analyzeDims, setAnalyzeDims] = useState<string[] | null>(null);
+  const [deckText, setDeckText] = useState<string | null>(null);
+  const [savedSvi, setSavedSvi] = useState<number | null>(null);
   const [credits, setCredits] = useState<CreditsInfo | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -131,6 +210,22 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
     }
     return Math.round(total * 100) / 100;
   }, [selected, coverage]);
+
+  // Coverage summary counts + baseline SVI estimate — used by the summary
+  // panel on step 2 to give the founder a preview of value before they pay.
+  const coverageStats = useMemo(() => {
+    let strong = 0;
+    let partial = 0;
+    let missing = 0;
+    for (const v of Object.values(coverage)) {
+      if (v.level === "strong") strong += 1;
+      else if (v.level === "partial") partial += 1;
+      else missing += 1;
+    }
+    return { strong, partial, missing };
+  }, [coverage]);
+
+  const baselineSvi = useMemo(() => estimateBaselineSvi(coverage), [coverage]);
 
   const toggleDim = useCallback((dim: string) => {
     setSelected((prev) => {
@@ -216,6 +311,8 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
       }
       setInsufficient(null);
       setAnalyzeDims(body.dims);
+      setDeckText(body.deckText ?? null);
+      setSavedSvi(null);
       setStep("analyze");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -251,6 +348,8 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
           </Link>
         )}
       </header>
+
+      <StepBreadcrumb current={step} />
 
       {/* Step 1 — Upload */}
       {step === "upload" && (
@@ -358,6 +457,44 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
       {/* Step 2 — Coverage & selection */}
       {step === "coverage" && (
         <div className="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-6 space-y-5">
+          {/* Post-classify value teaser — turns the raw heatmap into a
+              narrative + gives the founder a baseline number to react to
+              before they see the credit-cost cell chips. */}
+          <div className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 p-4 space-y-2">
+            <p className="text-xs uppercase tracking-[0.14em] font-semibold text-brand-700 dark:text-brand-300">
+              What we found in your deck
+            </p>
+            <p className="text-sm text-ink-800 dark:text-ink-100 leading-relaxed">
+              <strong className="tabular-nums text-emerald-700 dark:text-emerald-400">{coverageStats.strong}</strong> strong ·{" "}
+              <strong className="tabular-nums text-amber-700 dark:text-amber-400">{coverageStats.partial}</strong> partial ·{" "}
+              <strong className="tabular-nums text-red-700 dark:text-red-400">{coverageStats.missing}</strong> missing dimensions.
+              {baselineSvi !== null && (
+                <>
+                  {" "}Baseline SVI on the free dims alone ≈{" "}
+                  <strong
+                    className={cn(
+                      "tabular-nums text-base",
+                      baselineSvi >= 70
+                        ? "text-emerald-700 dark:text-emerald-300"
+                        : baselineSvi >= 40
+                          ? "text-amber-700 dark:text-amber-300"
+                          : "text-red-700 dark:text-red-300",
+                    )}
+                  >
+                    {baselineSvi}/100
+                  </strong>
+                  {baselineSvi < 70 && (
+                    <span className="text-ink-600 dark:text-ink-400">
+                      {" "}— add missing dims to close the gap to 70+ (investor-ready).
+                    </span>
+                  )}
+                </>
+              )}
+            </p>
+            <p className="text-[11px] text-ink-500 dark:text-ink-400">
+              The real analysis (below) will refine each score with deck excerpts + AU sector benchmarks.
+            </p>
+          </div>
           <div className="flex items-center justify-end gap-2 flex-wrap">
             <button
               type="button"
@@ -477,19 +614,37 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             Credits reserved. Streaming analysis for {analyzeDims.length} dimension{analyzeDims.length === 1 ? "" : "s"} below —
             each result appears as the model finishes.
           </div>
+          {savedSvi !== null && (
+            <div className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-4 py-2.5 text-xs text-brand-800 dark:text-brand-300 flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              Saved as SVI snapshot ({savedSvi}/100). Score-delta on your next visit will compare from here.
+            </div>
+          )}
           {/*
-            SviStreamAnalysis already handles the per-dim card grid,
-            progress bar, retry, cohort compare, done-state, and
-            score-delta. We reuse it verbatim — projectId keeps the
-            snapshot linkage intact, dims filter narrows the SSE run to
-            what the founder picked in step 2, and deckText hands the
-            extracted pitch to each dim's prompt as context.
+            SviStreamAnalysis handles the per-dim grid, progress bar,
+            retry, cohort compare, done-state, and score-delta. On done,
+            it fires onDone with the weighted total + per-dim payload,
+            which we POST to /api/pitchdeck/save-snapshot so the score
+            lands in svi_snapshots (drives score-delta next visit).
           */}
           <SviStreamAnalysis
             projectId={projectId}
             initialDims={analyzeDims}
-            initialDeckText={undefined}
+            initialDeckText={deckText ?? undefined}
             autoStart
+            onDone={async ({ totalSVI, dimResults }) => {
+              try {
+                const res = await fetch("/api/pitchdeck/save-snapshot", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ pitchdeckId, totalSVI, dimResults }),
+                });
+                const body = (await res.json()) as { ok?: boolean; totalSVI?: number };
+                if (body.ok && typeof body.totalSVI === "number") setSavedSvi(body.totalSVI);
+              } catch {
+                /* silent — the analysis on-screen is already the primary source of truth */
+              }
+            }}
           />
         </div>
       )}
