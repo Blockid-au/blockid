@@ -481,9 +481,21 @@ function SectorCohortWidget({ userTotal, industry }: { userTotal: number; indust
 
 interface SviStreamAnalysisProps {
   projectId?: string;
+  /** Restrict the run to a subset of the 8 SVI dimensions. Undefined = all. */
+  initialDims?: string[];
+  /** Extra context text (e.g. extracted pitchdeck) forwarded as `deckText`
+   * on every stream request. Overrides the default snapshot snippet. */
+  initialDeckText?: string;
+  /** If true, kick off startAnalysis on mount with the initialDims filter. */
+  autoStart?: boolean;
 }
 
-export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
+export function SviStreamAnalysis({
+  projectId,
+  initialDims,
+  initialDeckText,
+  autoStart,
+}: SviStreamAnalysisProps) {
   const [dimStates, setDimStates] = useState<Record<string, DimState>>(() =>
     Object.fromEntries(
       DIM_KEYS.map((k) => [
@@ -653,6 +665,7 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
         body: JSON.stringify({
           projectId,
           ...(dimsFilter && dimsFilter.length > 0 ? { dims: dimsFilter } : {}),
+          ...(initialDeckText ? { deckText: initialDeckText } : {}),
         }),
         signal: ctrl.signal,
       });
@@ -746,7 +759,16 @@ export function SviStreamAnalysis({ projectId }: SviStreamAnalysisProps) {
     } finally {
       setRunning(false);
     }
-  }, [projectId, reset, updateDim]);
+  }, [projectId, reset, updateDim, initialDeckText]);
+
+  // Auto-start when the parent (e.g. pitchdeck flow) asks for it — kicks
+  // off the run with the initialDims filter as soon as the component mounts.
+  useEffect(() => {
+    if (!autoStart || !initialDims || initialDims.length === 0) return;
+    void startAnalysis(initialDims);
+    // Only fire once on mount, hence the disabled deps warning.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const stopAnalysis = useCallback(() => {
     abortRef.current?.abort();
