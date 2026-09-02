@@ -232,14 +232,25 @@ export async function POST(request: Request) {
 
   let projectId: string | null = null;
   let dimsFilter: string[] | null = null;
+  let deckText: string | null = null;
   try {
-    const body = (await request.json()) as { projectId?: string; dims?: string[] };
+    const body = (await request.json()) as {
+      projectId?: string;
+      dims?: string[];
+      deckText?: string;
+    };
     projectId = body.projectId ?? null;
     // Optional per-dimension retry: only run the dims the client asks for.
     // Unknown keys are dropped silently — the UI passes valid keys.
     if (Array.isArray(body.dims)) {
       const valid = body.dims.filter((k) => typeof k === "string" && k in DIM_META);
       dimsFilter = valid.length > 0 ? valid : null;
+    }
+    // Pitchdeck flow (Wave 11): caller supplies the extracted deck text as
+    // the primary context source. Capped at 8 KiB to stay in the fast tier's
+    // context window on top of the per-dim prompt template.
+    if (typeof body.deckText === "string" && body.deckText.trim().length > 0) {
+      deckText = body.deckText.slice(0, 8_000);
     }
   } catch {
     // body is optional
@@ -261,6 +272,13 @@ export async function POST(request: Request) {
       try {
         // Fetch startup context once for all dimensions
         const ctx = await fetchStartupContext(user.id, projectId);
+
+        // If a pitchdeck text was supplied, prefer it over the snapshot
+        // snippet — this is a fresh-deck analysis, not a re-score of the
+        // last stored analysis.
+        if (deckText) {
+          ctx.analysisSnippet = deckText;
+        }
 
         // Surface the founder's industry + stage to the client so the done
         // panel can render a cohort comparison ("your SVI vs SaaS median").

@@ -138,7 +138,13 @@ async function extractDocxText(filepath: string): Promise<string> {
   return "";
 }
 
-async function extractFileText(
+/**
+ * Extract plain text from a PDF or DOCX file on disk.
+ *
+ * Reused by the pitchdeck coverage-gated analyzer (`/api/pitchdeck/*`).
+ * Falls back to a lossy byte-scan if the parser lib isn't available.
+ */
+export async function extractFileText(
   filepath: string,
   filename: string | null,
 ): Promise<string> {
