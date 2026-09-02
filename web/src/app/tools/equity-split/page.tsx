@@ -8,6 +8,31 @@ const TITLE = "Equity Split — Free Cofounder Equity Calculator for AU Startups
 const DESCRIPTION =
   "Fairly split startup equity between cofounders before you incorporate. Role, time, cash, sweat and IP weighted. Free and AU-native for Australian founders.";
 
+const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
+  {
+    title: "Why not just split equally?",
+    body: "Equal splits feel kind on day one. They become resentment by month six when one founder is full-time and the other is moonlighting. The weighted-points model translates real contribution into a defensible split — and gives you a paper trail.",
+  },
+  {
+    title: "How are points calculated?",
+    body: "Role + time commitment + idea origination + cash invested + sweat months + IP brought + risk taken. Each input has a cap so no single factor dominates. Your % = your points ÷ total points × (100 − reserves).",
+  },
+  {
+    title: "What happens when I incorporate?",
+    body: "Take the recommended split, the vesting schedule and the founder-agreement seeds to your lawyer. When you sign up to BlockID, this becomes your Cap Table v0 — investors can see it on your verified profile from day one.",
+  },
+];
+
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((f) => ({
+    "@type": "Question",
+    name: f.title,
+    acceptedAnswer: { "@type": "Answer", text: f.body },
+  })),
+};
+
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
@@ -41,6 +66,10 @@ export const metadata: Metadata = {
 export default function EquitySplitPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <PageTracker page="tools/equity-split" tool="equity-split" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
@@ -63,20 +92,7 @@ export default function EquitySplitPage() {
             <EquitySplitTool />
           </div>
           <section className="mt-16 grid md:grid-cols-3 gap-6">
-            {[
-              {
-                title: "Why not just split equally?",
-                body: "Equal splits feel kind on day one. They become resentment by month six when one founder is full-time and the other is moonlighting. The weighted-points model translates real contribution into a defensible split — and gives you a paper trail.",
-              },
-              {
-                title: "How are points calculated?",
-                body: "Role + time commitment + idea origination + cash invested + sweat months + IP brought + risk taken. Each input has a cap so no single factor dominates. Your % = your points ÷ total points × (100 − reserves).",
-              },
-              {
-                title: "What happens when I incorporate?",
-                body: "Take the recommended split, the vesting schedule and the founder-agreement seeds to your lawyer. When you sign up to BlockID, this becomes your Cap Table v0 — investors can see it on your verified profile from day one.",
-              },
-            ].map((b) => (
+            {FAQ_ITEMS.map((b) => (
               <article
                 key={b.title}
                 className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm"

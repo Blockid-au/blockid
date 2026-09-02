@@ -9,6 +9,31 @@ const TITLE =
 const DESCRIPTION =
   "Model SAFE conversion at the next priced round — cap, discount, interest, shares issued and effective dilution. Tuned for Australian SAFE templates and MFN clauses.";
 
+const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
+  {
+    title: "How does a SAFE convert?",
+    body: "A SAFE converts at the lower of (a) the valuation cap divided by current shares and (b) the priced-round price discounted by the SAFE discount rate. Whichever produces fewer dollars-per-share wins for the investor.",
+  },
+  {
+    title: "Why does this calculator assume pre-money cap?",
+    body: "Most Australian SAFE templates still use a pre-money cap. The 2018 Y Combinator post-money SAFE pushes more dilution onto founders — if your term sheet says 'post-money cap', model dilution separately.",
+  },
+  {
+    title: "What about MFN?",
+    body: "The Most Favoured Nation clause means a later SAFE on better terms can be back-applied. Be deliberate about issuing multiple SAFE tranches — assume the best terms will propagate.",
+  },
+];
+
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((f) => ({
+    "@type": "Question",
+    name: f.title,
+    acceptedAnswer: { "@type": "Answer", text: f.body },
+  })),
+};
+
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
@@ -41,6 +66,10 @@ export const metadata: Metadata = {
 export default function SAFECalculatorPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <PageTracker page="tools/safe-calculator" tool="safe-calculator" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
@@ -65,20 +94,7 @@ export default function SAFECalculatorPage() {
             <SAFECalculator />
           </div>
           <section className="mt-16 grid md:grid-cols-3 gap-6">
-            {[
-              {
-                title: "How does a SAFE convert?",
-                body: "A SAFE converts at the lower of (a) the valuation cap divided by current shares and (b) the priced-round price discounted by the SAFE discount rate. Whichever produces fewer dollars-per-share wins for the investor.",
-              },
-              {
-                title: "Why does this calculator assume pre-money cap?",
-                body: "Most Australian SAFE templates still use a pre-money cap. The 2018 Y Combinator post-money SAFE pushes more dilution onto founders — if your term sheet says 'post-money cap', model dilution separately.",
-              },
-              {
-                title: "What about MFN?",
-                body: "The Most Favoured Nation clause means a later SAFE on better terms can be back-applied. Be deliberate about issuing multiple SAFE tranches — assume the best terms will propagate.",
-              },
-            ].map((b) => (
+            {FAQ_ITEMS.map((b) => (
               <article
                 key={b.title}
                 className="rounded-2xl border border-surface-200 bg-white p-6"
