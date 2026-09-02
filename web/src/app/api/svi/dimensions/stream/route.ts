@@ -156,17 +156,31 @@ async function analyzeOneDimension(
 ): Promise<DimensionResult> {
   const meta = DIM_META[dim];
 
-  const system = `You are a startup investment analyst specialising in the BlockID Startup Value Index (SVI).
-Analyse a single SVI dimension concisely and return ONLY valid JSON — no markdown fences, no extra text.
+  const system = `You are a strict, evidence-first startup investment analyst for the BlockID Startup Value Index (SVI).
+
+HARD RULES (violating any = score becomes untrustworthy):
+1. Base your score ONLY on what the deck excerpt below actually says. If the deck is silent on this dimension, default toward the low end (30-45) and say so.
+2. Every strength/gap must quote a fragment of the deck (≤15 words per quote) or explicitly note "not stated in deck".
+3. Never invent numbers — TAM, revenue, growth, hires, funding — that aren't in the deck. If they're missing, mark them as gaps.
+4. Reference AU market context where relevant (PitchBook AU 2024-2026 seed medians, ACS AU salary bands, ABS sector data) but never fabricate specific figures.
+5. Score honestly: a great-looking deck with unverifiable claims = ~50, not 80.
+
+Return ONLY valid JSON — no markdown fences, no prose outside the JSON.
 
 JSON schema (strict):
 {
   "dimension": string,       // e.g. "ftv"
-  "label": string,           // full name
-  "score": number,           // 0-100
-  "markdown": string,        // ≤300 words: **Strengths:**\\n...\\n\\n**Gaps:**\\n...\\n\\n**Next Step:**\\n...
-  "insights": string[],      // exactly 2 key insights, each ≤15 words
-  "priority": "high"|"medium"|"low"  // improvement urgency
+  "label": string,
+  "score": number,           // 0-100, evidence-anchored
+  "markdown": string,        // ≤300 words. Structure EXACTLY:
+                             // **Strengths (with deck evidence):**
+                             // - "quoted fragment" → why it matters
+                             // **Gaps (what's missing or unverifiable):**
+                             // - Specific missing signal → what to add
+                             // **Next Step (concrete, this-week action):**
+                             // - Do X to lift this dim by ~Y points
+  "insights": string[],      // exactly 2, each ≤15 words, each cites deck or explicitly says "not in deck"
+  "priority": "high"|"medium"|"low"
 }`;
 
   // Attach the specific investor criteria that map to this SVI dimension
@@ -180,17 +194,20 @@ JSON schema (strict):
         .join("\n")}`
     : "";
 
+  const deckSection = ctx.analysisSnippet
+    ? `\n\nDECK EXCERPT (this is your only source of truth for this startup — do NOT invent facts beyond it):\n"""\n${ctx.analysisSnippet.slice(0, 4000)}\n"""`
+    : `\n\nDECK EXCERPT: (none supplied — score should reflect the absence of evidence, likely 30-45).`;
+
   const user = `Startup: ${ctx.startupName}
 Industry: ${ctx.industry}
 Stage: ${ctx.stage}
 Overall SVI score: ${ctx.currentSvi}/100
-Prior analysis context: ${ctx.analysisSnippet || "No prior analysis available"}
 
 Dimension to analyse: ${dim.toUpperCase()} — ${meta.label}
 Weight: ${meta.weight}% of total SVI
-Focus: ${meta.description}${criteriaSection}
+Focus: ${meta.description}${criteriaSection}${deckSection}
 
-Score this dimension (0-100), identify 2 key insights, and write a concise markdown section (Strengths / Gaps / Next Step).
+Score this dimension (0-100) grounded in the deck excerpt. Quote fragments as evidence.
 Respond with ONLY the JSON object.`;
 
   const result = await callAI({ system, user, maxTokens: 500, timeoutMs: 45_000 });
