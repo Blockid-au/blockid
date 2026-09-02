@@ -8,6 +8,31 @@ const TITLE = "Dilution Calculator — Free Founder Dilution Modelling for AU St
 const DESCRIPTION =
   "Model pre-money valuation, raise size and ESOP top-up to see founder dilution before signing the term sheet. Free for Australian startup founders.";
 
+const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
+  {
+    title: "How is dilution calculated?",
+    body: "New shares for the investor are sized at the pre-money share price (pre-money ÷ current shares). The ESOP top-up is sized so the pool equals your target percentage of the fully-diluted post-money cap table.",
+  },
+  {
+    title: "Why is the AU pre-money different?",
+    body: "AU seed-to-Series A pre-money in 2026 typically lands at $4M–$12M depending on sector heat, ARR and ESIC eligibility. Compare against your sector with the BlockID Benchmarks.",
+  },
+  {
+    title: "Want it baked into your raise?",
+    body: "Generate an Investor-Ready Score with your live cap table — investors see the dilution scenario, sector comps and ESIC eligibility on one page.",
+  },
+];
+
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((f) => ({
+    "@type": "Question",
+    name: f.title,
+    acceptedAnswer: { "@type": "Answer", text: f.body },
+  })),
+};
+
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
@@ -38,6 +63,10 @@ export const metadata: Metadata = {
 export default function DilutionPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <PageTracker page="tools/dilution" tool="dilution" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">
@@ -61,20 +90,7 @@ export default function DilutionPage() {
             <DilutionCalculator />
           </div>
           <section className="mt-16 grid md:grid-cols-3 gap-6">
-            {[
-              {
-                title: "How is dilution calculated?",
-                body: "New shares for the investor are sized at the pre-money share price (pre-money ÷ current shares). The ESOP top-up is sized so the pool equals your target percentage of the fully-diluted post-money cap table.",
-              },
-              {
-                title: "Why is the AU pre-money different?",
-                body: "AU seed-to-Series A pre-money in 2026 typically lands at $4M–$12M depending on sector heat, ARR and ESIC eligibility. Compare against your sector with the BlockID Benchmarks.",
-              },
-              {
-                title: "Want it baked into your raise?",
-                body: "Generate an Investor-Ready Score with your live cap table — investors see the dilution scenario, sector comps and ESIC eligibility on one page.",
-              },
-            ].map((b) => (
+            {FAQ_ITEMS.map((b) => (
               <article
                 key={b.title}
                 className="rounded-2xl border border-surface-200 bg-white p-6"
