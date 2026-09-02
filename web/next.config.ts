@@ -59,16 +59,18 @@ const nextConfig: NextConfig = {
         destination: "/solutions/accelerator",
         statusCode: 301,
       },
-      // B1 Task 5 — consolidate 4 SVI landing routes onto a single canonical
+      // B1 Task 5 — consolidate SVI landing routes onto a single canonical
       // `/index` URL. `/index` is served via the /startup-index rewrite (see
       // rewrites() above) because Next 16 webpack cannot compile an
-      // `app/index/page.tsx` route. `/score` remains a functional search
-      // entrypoint so we keep it as a 301 target too.
-      {
-        source: "/score",
-        destination: "/index",
-        statusCode: 301,
-      },
+      // `app/index/page.tsx` route.
+      //
+      // NOTE: `/score` is intentionally NOT redirected here — it hosts the
+      // real Investor-Ready Score form (`app/score/page.tsx` +
+      // `score-form.tsx`) that founders reach from every "Get your real
+      // SVI" CTA on the estate. A prior version of this config redirected
+      // /score → /index which silently shadowed the form and dumped users
+      // on the marketing exchange page instead of the analyzer. Do not
+      // add the redirect back.
       {
         source: "/svi",
         destination: "/index",
