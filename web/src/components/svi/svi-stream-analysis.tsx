@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
 import {
   Users,
   Target,
@@ -477,6 +478,87 @@ function SectorCohortWidget({ userTotal, industry }: { userTotal: number; indust
   );
 }
 
+// ── Three-case valuation cards ───────────────────────────────────────────────
+// Renders worst / average / best case ranges (AUD) computed from the SVI
+// total + stage + industry. Deterministic — same inputs → same output.
+
+function ThreeCaseValuationCards({
+  svi,
+  stage,
+  industry,
+}: {
+  svi: number;
+  stage: string | null;
+  industry: string | null;
+}) {
+  const v = computeThreeCaseValuation(svi, stage, industry);
+  const cards: Array<{
+    key: "worst" | "average" | "best";
+    label: string;
+    range: { low: number; mid: number; high: number };
+    tone: string;
+    swatch: string;
+  }> = [
+    {
+      key: "worst",
+      label: "Worst case",
+      range: v.worst,
+      tone: "border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20",
+      swatch: "text-red-700 dark:text-red-300",
+    },
+    {
+      key: "average",
+      label: "Average case",
+      range: v.average,
+      tone: "border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30",
+      swatch: "text-brand-700 dark:text-brand-300",
+    },
+    {
+      key: "best",
+      label: "Best case",
+      range: v.best,
+      tone: "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20",
+      swatch: "text-emerald-700 dark:text-emerald-300",
+    },
+  ];
+  return (
+    <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3 space-y-2">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <p className="text-xs uppercase tracking-[0.14em] text-ink-600 dark:text-ink-400 font-semibold">
+          Directional pre-money valuation ({v.stage.replace("_", " ")} · {v.sector})
+        </p>
+        <span className="text-[10px] text-ink-500 dark:text-ink-500">
+          {v.currency} · rounded
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {cards.map((c) => (
+          <div
+            key={c.key}
+            className={cn(
+              "rounded-lg border px-3 py-2.5",
+              c.tone,
+            )}
+          >
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-ink-600 dark:text-ink-400">
+              {c.label}
+            </p>
+            <p className={cn("mt-1 text-lg font-bold tabular-nums leading-tight", c.swatch)}>
+              {formatAud(c.range.mid)}
+            </p>
+            <p className="text-[11px] text-ink-500 dark:text-ink-400 tabular-nums">
+              {formatAud(c.range.low)} – {formatAud(c.range.high)}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] text-ink-500 dark:text-ink-500 leading-snug">
+        {v.disclaimer}
+      </p>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface SviStreamAnalysisProps {
@@ -532,6 +614,7 @@ export function SviStreamAnalysis({
   const [totalMs, setTotalMs] = useState<number | null>(null);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [industry, setIndustry] = useState<string | null>(null);
+  const [stage, setStage] = useState<string | null>(null);
   const [restoredFromCache, setRestoredFromCache] = useState(false);
   // Score-delta from the previous stored snapshot — lets the founder see
   // "your SVI is up 6 pts since last week" once they run the analysis.
@@ -633,6 +716,7 @@ export function SviStreamAnalysis({
     setTotalMs(null);
     setFatalError(null);
     setIndustry(null);
+    setStage(null);
     setRestoredFromCache(false);
     clearPersisted(projectId ?? "");
   }, [projectId]);
@@ -726,6 +810,7 @@ export function SviStreamAnalysis({
           switch (event.type) {
             case "context":
               setIndustry(event.industry || null);
+              setStage(event.stage || null);
               break;
 
             case "dimension_start":
@@ -1074,6 +1159,10 @@ export function SviStreamAnalysis({
               </div>
             )}
             <SectorCohortWidget userTotal={totalSvi} industry={industry} />
+            {/* Directional 3-case valuation cards — worst / average / best.
+                Uses the client-computed SVI total + industry + stage from the
+                context SSE event. Zero server call (all math is deterministic). */}
+            <ThreeCaseValuationCards svi={totalSvi} stage={stage} industry={industry} />
             {/* Score-delta versus the last stored snapshot — validates
                 improvement over time and gives founders something to beat. */}
             {previousSvi !== null && previousSvi !== totalSvi && (
