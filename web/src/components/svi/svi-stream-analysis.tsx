@@ -495,6 +495,9 @@ interface SviStreamAnalysisProps {
     totalSVI: number;
     dimResults: Record<string, { score: number; priority: "high" | "medium" | "low" | null }>;
   }) => void;
+  /** "sequential" runs dims one-at-a-time with a short breather between —
+   * avoids provider rate-limit bursts. Default "parallel" (fastest). */
+  mode?: "parallel" | "sequential";
 }
 
 export function SviStreamAnalysis({
@@ -503,6 +506,7 @@ export function SviStreamAnalysis({
   initialDeckText,
   autoStart,
   onDone,
+  mode,
 }: SviStreamAnalysisProps) {
   const [dimStates, setDimStates] = useState<Record<string, DimState>>(() =>
     Object.fromEntries(
@@ -674,6 +678,7 @@ export function SviStreamAnalysis({
           projectId,
           ...(dimsFilter && dimsFilter.length > 0 ? { dims: dimsFilter } : {}),
           ...(initialDeckText ? { deckText: initialDeckText } : {}),
+          ...(mode ? { mode } : {}),
         }),
         signal: ctrl.signal,
       });
@@ -767,7 +772,7 @@ export function SviStreamAnalysis({
     } finally {
       setRunning(false);
     }
-  }, [projectId, reset, updateDim, initialDeckText]);
+  }, [projectId, reset, updateDim, initialDeckText, mode]);
 
   // Auto-start when the parent (e.g. pitchdeck flow) asks for it — kicks
   // off the run with the initialDims filter as soon as the component mounts.

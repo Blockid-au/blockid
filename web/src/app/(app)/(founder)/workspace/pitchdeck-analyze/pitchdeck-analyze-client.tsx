@@ -632,6 +632,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             initialDims={analyzeDims}
             initialDeckText={deckText ?? undefined}
             autoStart
+            mode="sequential"
             onDone={async ({ totalSVI, dimResults }) => {
               try {
                 const res = await fetch("/api/pitchdeck/save-snapshot", {
