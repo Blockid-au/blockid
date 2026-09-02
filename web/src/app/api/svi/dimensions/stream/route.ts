@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
+import { getCriteriaByDimension } from "@/lib/evaluation-criteria";
 
 export const dynamic = "force-dynamic";
 
@@ -168,6 +169,17 @@ JSON schema (strict):
   "priority": "high"|"medium"|"low"  // improvement urgency
 }`;
 
+  // Attach the specific investor criteria that map to this SVI dimension
+  // (from lib/evaluation-criteria — 13 canonical criteria). Gives the LLM
+  // a focused checklist to grade against instead of a generic dimension
+  // definition, which improves consistency + traceability of scores.
+  const criteria = getCriteriaByDimension(dim);
+  const criteriaSection = criteria.length > 0
+    ? `\n\nGrade against these specific criteria (each maps to this dimension):\n${criteria
+        .map((c) => `- **${c.title}** — ${c.subtitle}. Ask: ${c.guidingQuestions.slice(0, 2).join(" / ")}`)
+        .join("\n")}`
+    : "";
+
   const user = `Startup: ${ctx.startupName}
 Industry: ${ctx.industry}
 Stage: ${ctx.stage}
@@ -176,7 +188,7 @@ Prior analysis context: ${ctx.analysisSnippet || "No prior analysis available"}
 
 Dimension to analyse: ${dim.toUpperCase()} — ${meta.label}
 Weight: ${meta.weight}% of total SVI
-Focus: ${meta.description}
+Focus: ${meta.description}${criteriaSection}
 
 Score this dimension (0-100), identify 2 key insights, and write a concise markdown section (Strengths / Gaps / Next Step).
 Respond with ONLY the JSON object.`;
@@ -233,13 +245,16 @@ export async function POST(request: Request) {
   let projectId: string | null = null;
   let dimsFilter: string[] | null = null;
   let deckText: string | null = null;
+  let mode: "parallel" | "sequential" = "parallel";
   try {
     const body = (await request.json()) as {
       projectId?: string;
       dims?: string[];
       deckText?: string;
+      mode?: "parallel" | "sequential";
     };
     projectId = body.projectId ?? null;
+    if (body.mode === "sequential") mode = "sequential";
     // Optional per-dimension retry: only run the dims the client asks for.
     // Unknown keys are dropped silently — the UI passes valid keys.
     if (Array.isArray(body.dims)) {
@@ -288,40 +303,53 @@ export async function POST(request: Request) {
         let completed = 0;
         const total = dims.length;
 
-        // Run all 8 dimensions in parallel — emit results as each completes
-        await Promise.allSettled(
-          dims.map(async (dim) => {
+        const runOne = async (dim: string) => {
+          send({
+            type: "dimension_start",
+            dimension: dim,
+            label: DIM_META[dim].label,
+          });
+          try {
+            const result = await analyzeOneDimension(dim, ctx);
             send({
-              type: "dimension_start",
-              dimension: dim,
-              label: DIM_META[dim].label,
+              type: "dimension_complete",
+              dimension: result.dimension,
+              label: result.label,
+              score: result.score,
+              markdown: result.markdown,
+              insights: result.insights,
+              priority: result.priority,
             });
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[svi-stream] dimension ${dim} failed: ${msg}`);
+            send({
+              type: "error",
+              dimension: dim,
+              message: msg.includes("rate") ? "Rate limited, skipped" : "Analysis failed",
+            });
+          } finally {
+            completed += 1;
+            send({ type: "progress", completed, total });
+          }
+        };
 
-            try {
-              const result = await analyzeOneDimension(dim, ctx);
-              send({
-                type: "dimension_complete",
-                dimension: result.dimension,
-                label: result.label,
-                score: result.score,
-                markdown: result.markdown,
-                insights: result.insights,
-                priority: result.priority,
-              });
-            } catch (err) {
-              const msg = err instanceof Error ? err.message : String(err);
-              console.warn(`[svi-stream] dimension ${dim} failed: ${msg}`);
-              send({
-                type: "error",
-                dimension: dim,
-                message: msg.includes("rate") ? "Rate limited, skipped" : "Analysis failed",
-              });
-            } finally {
-              completed += 1;
-              send({ type: "progress", completed, total });
+        if (mode === "sequential") {
+          // Sequential mode — one dim at a time with a 300ms breather between
+          // requests. Slower wall-clock but avoids the provider rate-limit
+          // bursts we hit in parallel mode, and lets the founder see steady
+          // progress. Used by the pitchdeck flow by default.
+          for (const dim of dims) {
+            await runOne(dim);
+            if (completed < total) {
+              await new Promise((r) => setTimeout(r, 300));
             }
-          }),
-        );
+          }
+        } else {
+          // Parallel — original behaviour: fan out all dims via allSettled,
+          // fastest total time when the AI providers have headroom.
+          await Promise.allSettled(dims.map((dim) => runOne(dim)));
+        }
 
         send({ type: "done", totalMs: Date.now() - startMs });
       } catch (err) {
