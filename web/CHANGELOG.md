@@ -1,5 +1,21 @@
 # BlockID.au Changelog
 
+## 2026-09-03 — v3.9.4: TBR persistence + public share link + server PDF export (Wave 25A)
+
+### Features
+- **feat(wave25a1 — Supabase persistence)** New migration adds `criterion_results JSONB`, `dim_results JSONB`, and `report_share_token TEXT UNIQUE` columns to `svi_snapshots`. The stream endpoint now UPSERTs full analysis output server-side after criteria synthesis. `/workspace/business-report` fetches from `GET /api/svi/report/[projectId]` as fallback when localStorage is empty — founders no longer lose their 10-page report after the 30-minute localStorage TTL.
+- **feat(wave25a2 — public share link)** New `POST /api/svi/report/share` mints a `nanoid(24)` share token (idempotent) and stores it on the snapshot row. New public page `/tbr/[token]` (no auth, no navbar chrome) renders the same 10-page investor memo sourced from the DB row. Founder gets a copy-able URL: `https://blockid.au/tbr/<token>`. "Share with Investor" button added to the TBR header.
+- **feat(wave25a3 — server-side PDF export)** New `GET /api/svi/report/pdf?token=<t>` route uses Playwright chromium (already installed, versions 1228/1234 on prod) to render `/tbr/<token>?pdf=1` to A4 PDF with 16/14/14/20mm margins. Returns `application/pdf` with `Content-Disposition: attachment; filename="BlockID-Business-Report.pdf"`. Replaces the client-side `window.print()` with a real download. Graceful 503 fallback if chromium missing.
+
+### Refactor
+- `BusinessReportClient` now accepts `initialData`, `shareToken`, `pdfMode` props so it can be reused across the auth'd workspace page and the public `/tbr/[token]` page and PDF snapshot.
+- `svi-stream-analysis.tsx` `onDone` signature extended to forward criterion + dim results into the DB persistence layer.
+
+### Deploy
+- Release includes commit `0105fa198` (Wave 25A). Playwright chromium already on prod; no extra install needed. Migration `20260903_wave25a_tbr_persistence.sql` runs at boot.
+
+---
+
 ## 2026-09-03 — v3.9.3: Full 13-Criteria Analyst Report + 10-page Business Report (Wave 24 A–F)
 
 ### Features
