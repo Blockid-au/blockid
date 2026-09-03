@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Copy,
   Download,
+  FileText,
   Mail,
   Sparkles,
 } from "lucide-react";
@@ -673,44 +674,53 @@ function ResultPanel({
         <h2 className="mt-2 text-2xl md:text-3xl font-semibold text-ink-800">
           {companyName}
         </h2>
-        <p className="mt-2 text-sm text-ink-400">
+        <p className="mt-1 text-sm text-ink-400">
           {result.persisted
             ? "Saved. Anyone with the link below can view this score."
             : "Demo mode — save once Supabase is configured to persist & share."}
         </p>
-        <div className="mt-5 grid sm:grid-cols-2 gap-3">
-          <MiniStat
-            label="Confidence"
-            value={`${result.confidenceScore}/100`}
-            detail={
-              result.missingInputs.length
-                ? `${result.missingInputs.length} missing inputs`
-                : "All core inputs present"
-            }
-          />
-          <MiniStat
-            label="Benchmark"
-            value={result.benchmark.label}
-            detail={`${result.benchmark.band}; median ${result.benchmark.medianScore}`}
-          />
+
+        {/* Score gauge hero */}
+        <div className="mt-5 flex flex-col items-center py-4 rounded-2xl border border-surface-200 bg-gradient-to-b from-white to-surface-50">
+          <ScoreGauge score={result.totalScore} />
+          <div className="mt-1 flex items-center gap-3 flex-wrap justify-center">
+            <MiniStat
+              label="Confidence"
+              value={`${result.confidenceScore}/100`}
+              detail={
+                result.missingInputs.length
+                  ? `${result.missingInputs.length} missing inputs`
+                  : "All inputs present"
+              }
+            />
+            <MiniStat
+              label="Benchmark"
+              value={result.benchmark.label}
+              detail={`${result.benchmark.band}; median ${result.benchmark.medianScore}`}
+            />
+          </div>
         </div>
-        <div className="mt-6">
-          <ScoreCard
-            score={result.totalScore}
-            subScores={result.breakdown.subs.map((s) => ({
-              label: s.label,
-              value: Math.round(s.value),
-            }))}
-            caption={`${new Date().toISOString().slice(0, 10)} · BlockID`}
-          />
+
+        {/* Sub-score gradient bars */}
+        <div className="mt-5 space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.16em] font-semibold text-ink-500">
+            Five sub-scores
+          </p>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {result.breakdown.subs.map((s) => (
+              <SubScoreBar key={s.label} label={s.label} value={Math.round(s.value)} />
+            ))}
+          </div>
         </div>
-        <ul className="mt-6 space-y-2 text-xs text-ink-400">
+
+        {/* Rationale detail list */}
+        <ul className="mt-4 space-y-2 text-xs text-ink-400">
           {result.breakdown.subs.map((s) => (
             <li key={s.label} className="flex gap-2">
               <span className="font-mono tabular-nums text-brand-600">
                 {Math.round(s.value)}
               </span>
-              <span className="font-medium text-ink-500 w-44 shrink-0">
+              <span className="font-medium text-ink-500 w-40 shrink-0">
                 {s.label}
               </span>
               <span className="text-ink-400">{s.rationale}</span>
@@ -926,12 +936,35 @@ function ResultPanel({
               <Button variant="secondary">View activity</Button>
             </a>
           </div>
+          {/* Full Analyst Report CTA — prominent action card */}
+          <a
+            href="/workspace/business-report"
+            className="mt-5 group flex items-start justify-between gap-3 rounded-2xl border-2 border-brand-600 bg-gradient-to-br from-brand-50 to-brand-100/60 px-5 py-5 hover:from-brand-100 hover:to-brand-200/60 hover:shadow-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex-none h-11 w-11 rounded-xl bg-brand-600 flex items-center justify-center shadow-sm group-hover:bg-brand-700 transition-colors">
+                <FileText strokeWidth={1.5} className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-brand-600 mb-0.5">
+                  Premium · AI Analyst Report
+                </p>
+                <p className="text-base font-bold text-brand-800 leading-snug">
+                  Full 10-Page Investor Memo
+                </p>
+                <p className="mt-1 text-xs text-ink-600 leading-relaxed">
+                  13-criteria deep dive · directional valuation · risk register · cohort benchmarks · methodology
+                </p>
+              </div>
+            </div>
+            <ArrowRight strokeWidth={2} className="h-5 w-5 text-brand-600 shrink-0 mt-1 group-hover:translate-x-0.5 transition-transform" />
+          </a>
           {result.persisted && (
             <a
               href={`/reports/${result.slug}`}
               target="_blank"
               rel="noopener"
-              className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-brand-500/30 bg-brand-500/5 px-4 py-3 hover:bg-brand-500/10 transition"
+              className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-brand-500/30 bg-brand-500/5 px-4 py-3 hover:bg-brand-500/10 transition"
             >
               <div>
                 <p className="text-xs uppercase tracking-[0.16em] text-brand-600 font-semibold">
@@ -1094,6 +1127,98 @@ function MiniStat({
       </p>
       <p className="mt-1 text-sm font-medium text-ink-700">{value}</p>
       <p className="mt-1 text-xs text-ink-800">{detail}</p>
+    </div>
+  );
+}
+
+// ── SVG Score Gauge ───────────────────────────────────────────────────────────
+function ScoreGauge({ score }: { score: number }) {
+  const clampedScore = Math.max(0, Math.min(100, score));
+  // Arc parameters — 270° sweep (135° to 405°, i.e. bottom-left to bottom-right)
+  const cx = 80;
+  const cy = 80;
+  const r = 62;
+  const startAngle = 135;
+  const sweepAngle = 270;
+  const endAngle = startAngle + (sweepAngle * clampedScore) / 100;
+
+  function polarToXY(angleDeg: number) {
+    const rad = ((angleDeg - 90) * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  const startPt = polarToXY(startAngle);
+  const endPt = polarToXY(endAngle);
+  const largeArc = sweepAngle * clampedScore / 100 > 180 ? 1 : 0;
+
+  // Track arc (grey)
+  const trackEnd = polarToXY(startAngle + sweepAngle);
+  const trackD = `M ${startPt.x} ${startPt.y} A ${r} ${r} 0 1 1 ${trackEnd.x} ${trackEnd.y}`;
+
+  // Score arc (brand color)
+  const scoreD = clampedScore === 0
+    ? ""
+    : `M ${startPt.x} ${startPt.y} A ${r} ${r} 0 ${largeArc} 1 ${endPt.x} ${endPt.y}`;
+
+  const bandColor =
+    clampedScore >= 70 ? "#10b981" : clampedScore >= 40 ? "#f59e0b" : "#ef4444";
+
+  return (
+    <div className="flex flex-col items-center" role="img" aria-label={`Score: ${score} out of 100`}>
+      <svg width="160" height="140" viewBox="0 0 160 140" fill="none" aria-hidden="true">
+        {/* Track */}
+        <path d={trackD} stroke="#e5e7eb" strokeWidth="12" strokeLinecap="round" fill="none" />
+        {/* Score arc */}
+        {scoreD && (
+          <path
+            d={scoreD}
+            stroke={bandColor}
+            strokeWidth="12"
+            strokeLinecap="round"
+            fill="none"
+            style={{ filter: `drop-shadow(0 0 6px ${bandColor}55)` }}
+          />
+        )}
+        {/* Score number */}
+        <text x={cx} y={cy - 4} textAnchor="middle" className="tabular-nums" fontSize="36" fontWeight="700" fill={bandColor} fontFamily="inherit">
+          {clampedScore}
+        </text>
+        <text x={cx} y={cy + 20} textAnchor="middle" fontSize="13" fill="#9ca3af" fontFamily="inherit">
+          / 100
+        </text>
+        <text x={cx} y={cy + 38} textAnchor="middle" fontSize="10" fill="#6b7280" fontFamily="inherit" letterSpacing="0.08em">
+          {clampedScore >= 70 ? "INVESTOR-READY" : clampedScore >= 40 ? "DEVELOPING" : "EARLY-STAGE"}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+// ── Sub-score gradient bar card ────────────────────────────────────────────────
+function SubScoreBar({ label, value }: { label: string; value: number }) {
+  const pct = Math.max(0, Math.min(100, value));
+  const color =
+    pct >= 70 ? "from-emerald-400 to-emerald-600" :
+    pct >= 40 ? "from-amber-400 to-amber-600" :
+    "from-red-400 to-red-600";
+  const textColor =
+    pct >= 70 ? "text-emerald-700" : pct >= 40 ? "text-amber-700" : "text-red-700";
+  return (
+    <div className="rounded-xl border border-surface-200 bg-white px-4 py-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-ink-600 leading-snug flex-1">{label}</span>
+        <span className={`text-sm font-bold tabular-nums ${textColor}`}>{value}</span>
+      </div>
+      <div className="h-2 rounded-full bg-surface-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-700`}
+          style={{ width: `${pct}%` }}
+          role="progressbar"
+          aria-valuenow={value}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        />
+      </div>
     </div>
   );
 }

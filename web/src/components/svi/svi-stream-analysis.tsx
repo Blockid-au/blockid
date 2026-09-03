@@ -18,6 +18,7 @@ import {
   Scale,
   Sparkles,
   Bot,
+  CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -163,9 +164,8 @@ function priorityBadge(priority: string | null): string {
 }
 
 // ── Analyst persona banner ────────────────────────────────────────────────────
-// Gives the streaming analysis a professional feel — "BlockID Analyst is
-// reviewing Dimension 3 of 8" rather than a plain spinner. Only shown
-// while running; fades out when done.
+// Gives the streaming analysis a professional feel — looks like a real
+// analyst desk badge. Only shown while running; fades out when done.
 
 const ANALYST_CAPTIONS = [
   "Reviewing evidence in your pitch…",
@@ -183,44 +183,74 @@ function AnalystPersonaBanner({
   completed,
   total,
   currentDim,
+  startedAt,
 }: {
   running: boolean;
   completed: number;
   total: number;
   currentDim: string | null;
+  startedAt: number | null;
 }) {
   const [captionIdx, setCaptionIdx] = useState(0);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => {
       setCaptionIdx((i) => (i + 1) % ANALYST_CAPTIONS.length);
+      setTick((t) => t + 1);
     }, 3500);
     return () => clearInterval(id);
   }, [running]);
 
   if (!running) return null;
+
+  const elapsed = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
+  const estRemaining = startedAt && completed > 0
+    ? Math.max(3, Math.round(((Date.now() - startedAt) / completed) * (total - completed) / 1000))
+    : null;
+
+  // Suppress tick lint warning — it forces re-render for elapsed time
+  void tick;
+
   return (
     <div
-      className="flex items-center gap-3 rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-4 py-3 motion-safe:animate-in motion-safe:fade-in duration-300"
+      className="relative overflow-hidden flex items-center gap-4 rounded-xl border border-brand-300 dark:border-brand-700 bg-gradient-to-r from-brand-50 to-white dark:from-brand-950/50 dark:to-ink-900 px-5 py-4 shadow-sm motion-safe:animate-in motion-safe:fade-in duration-300"
       role="status"
       aria-live="polite"
     >
-      <div className="flex-none h-9 w-9 rounded-full bg-brand-600 dark:bg-brand-700 flex items-center justify-center shadow-sm">
-        <Bot className="h-5 w-5 text-white" aria-hidden="true" />
+      {/* Animated accent line at top */}
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-400 via-brand-600 to-brand-400 animate-pulse" aria-hidden="true" />
+      {/* Analyst badge */}
+      <div className="relative flex-none">
+        <div className="h-11 w-11 rounded-full bg-brand-600 dark:bg-brand-700 flex items-center justify-center shadow-md ring-4 ring-brand-200 dark:ring-brand-800">
+          <Bot className="h-5 w-5 text-white" aria-hidden="true" />
+        </div>
+        {/* Pulsing outer ring */}
+        <div className="absolute -inset-1 rounded-full border-2 border-brand-400/60 dark:border-brand-500/40 animate-pulse" aria-hidden="true" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] uppercase tracking-[0.14em] font-semibold text-brand-700 dark:text-brand-300">
-          BlockID Analyst
-        </p>
-        <p className="text-sm text-brand-800 dark:text-brand-200 truncate">
+      {/* Badge content */}
+      <div className="flex-1 min-w-0 space-y-0.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-[11px] uppercase tracking-[0.16em] font-bold text-brand-700 dark:text-brand-300">
+            BlockID Analyst Desk
+          </p>
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+            Live
+          </span>
+        </div>
+        <p className="text-sm text-brand-800 dark:text-brand-200 truncate font-medium">
           {currentDim ? `Reviewing ${DIMS[currentDim]?.label ?? currentDim}…` : ANALYST_CAPTIONS[captionIdx]}
         </p>
       </div>
-      <div className="flex-none text-right">
-        <p className="text-xs tabular-nums text-brand-700 dark:text-brand-400 font-semibold">
+      {/* Time counter */}
+      <div className="flex-none text-right space-y-0.5">
+        <p className="text-sm tabular-nums font-bold text-brand-700 dark:text-brand-300">
           {completed}/{total}
         </p>
-        <p className="text-[10px] text-brand-600 dark:text-brand-500">dims done</p>
+        <p className="text-[10px] text-ink-500 dark:text-ink-400 tabular-nums">
+          {estRemaining !== null ? `~${estRemaining}s left` : `${elapsed}s elapsed`}
+        </p>
       </div>
     </div>
   );
@@ -431,17 +461,23 @@ function DimCard({
           )}
         </div>
 
-        {/* Expand toggle (complete state only) */}
+        {/* Complete status check + expand toggle */}
         {state.status === "complete" && (
-          <button
-            type="button"
-            onClick={() => onToggle(dimKey)}
-            aria-expanded={state.expanded}
-            aria-label={state.expanded ? `Collapse ${meta.label} details` : `View full ${meta.label} details`}
-            className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-medium text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
-          >
-            {state.expanded ? "Collapse" : "View full"}
-          </button>
+          <div className="shrink-0 flex items-center gap-1">
+            <CheckCircle2
+              className="h-4 w-4 text-emerald-500 shrink-0 motion-safe:animate-in motion-safe:zoom-in duration-300"
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              onClick={() => onToggle(dimKey)}
+              aria-expanded={state.expanded}
+              aria-label={state.expanded ? `Collapse ${meta.label} details` : `View full ${meta.label} details`}
+              className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-medium text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+            >
+              {state.expanded ? "Collapse" : "View full"}
+            </button>
+          </div>
         )}
         {/* Retry (error state only) — retries just this dimension without
             wiping the other 7 completed scores or burning full API quota. */}
@@ -1421,6 +1457,7 @@ export function SviStreamAnalysis({
           completed={completed}
           total={total}
           currentDim={currentDim}
+          startedAt={startedAt}
         />
       )}
 
@@ -1436,10 +1473,13 @@ export function SviStreamAnalysis({
 
       {/* Progress bar (visible once started) */}
       {(running || done) && !fatalError && (
-        <div className="space-y-1.5 motion-safe:animate-in motion-safe:fade-in duration-300">
-          <div className="flex justify-between text-xs text-ink-500 dark:text-ink-400">
-            <span>{completed}/{total} dimensions complete</span>
-            <span>{progressPct}%</span>
+        <div className="space-y-2 motion-safe:animate-in motion-safe:fade-in duration-300">
+          <div className="flex justify-between items-center text-xs text-ink-500 dark:text-ink-400">
+            <span className="font-medium text-ink-700 dark:text-ink-300">
+              {completed}/{total} dimensions
+              {done && <span className="ml-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">Complete</span>}
+            </span>
+            <span className="tabular-nums font-bold text-brand-700 dark:text-brand-400">{progressPct}%</span>
           </div>
           <div
             role="progressbar"
@@ -1447,12 +1487,33 @@ export function SviStreamAnalysis({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label={`SVI analysis progress: ${completed} of ${total} dimensions`}
-            className="h-2 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden"
+            className="h-3 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden shadow-inner"
           >
             <div
-              className="h-full rounded-full bg-brand-500 transition-all duration-500"
+              className={cn(
+                "h-full rounded-full transition-all duration-700 ease-out",
+                done
+                  ? "bg-gradient-to-r from-emerald-400 to-emerald-600"
+                  : "bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600",
+              )}
               style={{ width: `${progressPct}%` }}
             />
+          </div>
+          {/* Dimension pip track */}
+          <div className="flex gap-1 mt-1" aria-hidden="true">
+            {Array.from({ length: total }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "flex-1 h-1 rounded-full transition-all duration-500",
+                  i < completed
+                    ? done ? "bg-emerald-400" : "bg-brand-400"
+                    : i === completed && running
+                    ? "bg-brand-300 animate-pulse"
+                    : "bg-ink-200 dark:bg-ink-700",
+                )}
+              />
+            ))}
           </div>
         </div>
       )}
