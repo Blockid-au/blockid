@@ -148,6 +148,20 @@ type ShippedItem = {
 
 const RECENTLY_LANDED: ShippedItem[] = [
   {
+    id: "pitchdeck-analyzer-wave-11-18",
+    title: "Pitchdeck valuation flow — upload → coverage → analysis → dashboard (Waves 11-18)",
+    detail:
+      "New founder route /workspace/pitchdeck-analyze: drag-drop PDF/DOCX (or paste text) → AI classifies coverage across the 8 SVI dimensions (strong/partial/missing) → per-cell selection with credit gating (strong+partial free, missing = 0.50-1.00 cr each) → sequential SSE stream (no rate-limit bursts) with 13 investor-criteria prompts (idea, market, team, product, revenue…) → evidence-grounded per-dim scoring that quotes deck fragments and refuses to fabricate numbers → done state with weighted SVI total + 5-band legend, sector cohort compare (top X% of N peers), fastest-lift CTAs, save-as-snapshot (score-delta on next visit), and 3-case pre-money valuation cards (worst/average/best AUD anchored to PitchBook AU + sector adjust + SVI curve). Progressive UX: 3-step breadcrumb, baseline SVI estimate before purchase, live ETA countdown, browser-notification opt-in for walk-away. All commerce-ready with credit balance chip + insufficient-credits Billing CTA. 8 new API routes, one new pitchdeck_analyses table, ~2 500 LOC added, deploys 11/11 gates through the deploy-live pipeline.",
+    ticket: "Waves 11-18",
+  },
+  {
+    id: "score-analyser-restore",
+    title: "Bugfix — /score analyser form no longer 301→/index",
+    detail:
+      "A prior consolidation redirect shadowed the real ScoreForm page. Every 'Get your real SVI' CTA landed founders on the marketing exchange page instead of the analyser. Redirect removed; /score now serves the form directly.",
+    ticket: "Bugfix",
+  },
+  {
     id: "startup-package-ship1",
     title: "Startup Package — guided founder journey (Ship 1)",
     detail:
