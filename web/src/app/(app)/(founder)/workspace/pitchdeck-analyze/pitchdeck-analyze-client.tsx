@@ -634,12 +634,23 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             initialDeckText={deckText ?? undefined}
             autoStart
             mode="sequential"
-            onDone={async ({ totalSVI, dimResults }) => {
+            onDone={async ({ totalSVI, dimResults, criterionStates, dimStates, industry, stage, totalMs }) => {
               try {
                 const res = await fetch("/api/pitchdeck/save-snapshot", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ pitchdeckId, totalSVI, dimResults }),
+                  body: JSON.stringify({
+                    pitchdeckId,
+                    totalSVI,
+                    dimResults,
+                    // Wave 25A — full state so the TBR (business report)
+                    // survives beyond localStorage and can be shared/PDF'd.
+                    criterionResults: criterionStates,
+                    dimResultsFull: dimStates,
+                    industry,
+                    stage,
+                    totalMs,
+                  }),
                 });
                 const body = (await res.json()) as { ok?: boolean; totalSVI?: number };
                 if (body.ok && typeof body.totalSVI === "number") setSavedSvi(body.totalSVI);

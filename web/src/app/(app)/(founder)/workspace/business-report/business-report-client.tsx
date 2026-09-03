@@ -329,16 +329,63 @@ function CriterionRing({ score, size = 56 }: { score: number; size?: number }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function BusinessReportClient({ projectId }: { projectId: string }) {
-  const [data, setData] = useState<PersistedState | null>(null);
+export interface BusinessReportClientProps {
+  projectId: string;
+  /** When set, render this state directly and skip both localStorage and the
+   * API fallback. Used by the public /tbr/[token] page which passes DB rows
+   * fetched server-side. */
+  initialData?: PersistedState;
+  /** Public share token — when set the "Share with Investor" button is
+   * hidden (it only makes sense in the authenticated founder context) and
+   * the "Download PDF" button hits /api/svi/report/pdf?token=<shareToken>. */
+  shareToken?: string;
+  /** Called from /tbr/[token]?pdf=1 to hide all interactive chrome so the
+   * headless-chromium PDF export doesn't capture buttons/TOC. */
+  pdfMode?: boolean;
+}
+
+export function BusinessReportClient({
+  projectId,
+  initialData,
+  shareToken,
+  pdfMode,
+}: BusinessReportClientProps) {
+  const [data, setData] = useState<PersistedState | null>(initialData ?? null);
   const [activeId, setActiveId] = useState("tbr-executive");
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
-  // Load from localStorage on mount
+  // Load from localStorage first (fast path), then fall back to Supabase
+  // (/api/svi/report/[projectId]) so the report survives beyond the 30-min
+  // localStorage TTL. When `initialData` is supplied (public /tbr/<token>
+  // page), skip both — the parent already provided the DB row.
   useEffect(() => {
+    if (initialData) return;
     const saved = loadPersisted(projectId);
-    setData(saved);
-  }, [projectId]);
+    if (saved) {
+      setData(saved);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/svi/report/${encodeURIComponent(projectId)}`, {
+          credentials: "same-origin",
+        });
+        if (!res.ok) return;
+        const body = (await res.json()) as { ok?: boolean; persisted?: PersistedState };
+        if (!cancelled && body.ok && body.persisted) setData(body.persisted);
+      } catch {
+        /* silent — the "no analysis" state will render */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, initialData]);
 
   // Intersection observer for active TOC item
   useEffect(() => {
@@ -477,13 +524,97 @@ export function BusinessReportClient({ projectId }: { projectId: string }) {
           <span className="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-800 px-2.5 py-0.5 text-xs font-semibold text-brand-700 dark:text-brand-300">
             BlockID SVI™
           </span>
-          <button
-            onClick={() => typeof window !== "undefined" && window.print()}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors print:hidden"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-            Print / Save PDF
-          </button>
+          {!pdfMode && (
+            <div className="ml-auto flex items-center gap-2 print:hidden">
+              {/* Share with Investor — only when running under the authed
+                  /workspace/business-report route (not on the public /tbr). */}
+              {!initialData && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setShareBusy(true);
+                    setShareError(null);
+                    setCopied(false);
+                    try {
+                      const res = await fetch("/api/svi/report/share", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "same-origin",
+                        body: JSON.stringify({ projectId }),
+                      });
+                      const body = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+                      if (body.ok && body.url) {
+                        setShareUrl(body.url);
+                      } else {
+                        setShareError(body.error ?? "Share failed");
+                      }
+                    } catch (err) {
+                      setShareError(err instanceof Error ? err.message : "Share failed");
+                    } finally {
+                      setShareBusy(false);
+                    }
+                  }}
+                  disabled={shareBusy}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950/40 px-3 py-1.5 text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors disabled:opacity-60"
+                >
+                  {shareBusy ? "Sharing…" : "Share with Investor"}
+                </button>
+              )}
+              {/* Download PDF — server-generated via Playwright. Requires a
+                  share token (mint one first if we're on the authed page). */}
+              <a
+                href={
+                  shareToken
+                    ? `/api/svi/report/pdf?token=${encodeURIComponent(shareToken)}`
+                    : shareUrl
+                    ? `/api/svi/report/pdf?token=${encodeURIComponent(new URL(shareUrl).pathname.split("/").pop() ?? "")}`
+                    : undefined
+                }
+                onClick={(e) => {
+                  if (!shareToken && !shareUrl) {
+                    e.preventDefault();
+                    setShareError("Click ‘Share with Investor’ first to enable PDF download.");
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+              >
+                Download PDF
+              </a>
+              <button
+                type="button"
+                onClick={() => typeof window !== "undefined" && window.print()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                Print
+              </button>
+            </div>
+          )}
+        {/* Share URL feedback strip */}
+        {!pdfMode && shareUrl && (
+          <div className="mt-2 flex items-center gap-2 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-3 py-2 text-xs print:hidden">
+            <span className="font-semibold text-brand-700 dark:text-brand-300">Share URL:</span>
+            <code className="flex-1 truncate text-ink-700 dark:text-ink-300">{shareUrl}</code>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(shareUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch {
+                  /* clipboard blocked */
+                }
+              }}
+              className="rounded border border-brand-300 dark:border-brand-700 bg-white dark:bg-ink-900 px-2 py-0.5 font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40"
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        )}
+        {!pdfMode && shareError && (
+          <p className="mt-2 text-xs text-red-600 dark:text-red-400 print:hidden">{shareError}</p>
+        )}
         </div>
         <p className="text-sm text-ink-500 dark:text-ink-400">
           {scored.length} of 8 dimensions · {done ? `completed in ${((totalMs ?? 0) / 1000).toFixed(1)}s` : "partial analysis"}
@@ -492,8 +623,9 @@ export function BusinessReportClient({ projectId }: { projectId: string }) {
       </div>
 
       <div className="flex gap-8 items-start">
-        {/* Sticky TOC */}
-        <TocNav activeId={activeId} />
+        {/* Sticky TOC — hidden in PDF-render mode so the printed doc isn't
+            a wall of nav links. */}
+        {!pdfMode && <TocNav activeId={activeId} />}
 
         {/* Report body */}
         <div className="flex-1 min-w-0 space-y-12">

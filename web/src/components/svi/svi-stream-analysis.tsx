@@ -909,6 +909,13 @@ interface SviStreamAnalysisProps {
   onDone?: (result: {
     totalSVI: number;
     dimResults: Record<string, { score: number; priority: "high" | "medium" | "low" | null }>;
+    // Wave 25A — full serialised state for Supabase persistence so the TBR
+    // page can rehydrate after localStorage expires (30-min TTL).
+    criterionStates: CriterionState[];
+    dimStates: Record<string, DimState>;
+    industry: string | null;
+    stage: string | null;
+    totalMs: number | null;
   }) => void;
   /** "sequential" runs dims one-at-a-time with a short breather between —
    * avoids provider rate-limit bursts. Default "parallel" (fastest). */
@@ -1286,9 +1293,17 @@ export function SviStreamAnalysis({
     for (const d of scored) {
       dimResults[d.key] = { score: d.score, priority: d.priority };
     }
-    onDone({ totalSVI, dimResults });
+    onDone({
+      totalSVI,
+      dimResults,
+      criterionStates,
+      dimStates,
+      industry,
+      stage,
+      totalMs,
+    });
     setDoneFired(true);
-  }, [done, doneFired, dimStates, onDone]);
+  }, [done, doneFired, dimStates, onDone, criterionStates, industry, stage, totalMs]);
 
   const stopAnalysis = useCallback(() => {
     abortRef.current?.abort();

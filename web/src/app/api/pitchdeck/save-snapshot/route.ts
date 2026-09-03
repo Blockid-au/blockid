@@ -49,6 +49,13 @@ export async function POST(request: Request): Promise<Response> {
     pitchdeckId?: string;
     totalSVI?: number;
     dimResults?: Record<string, DimResult>;
+    // Wave 25A — full serialised state so the TBR (business report) can be
+    // rehydrated from Supabase after localStorage expires.
+    criterionResults?: unknown[];
+    dimResultsFull?: Record<string, unknown>;
+    industry?: string | null;
+    stage?: string | null;
+    totalMs?: number | null;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -146,6 +153,14 @@ export async function POST(request: Request): Promise<Response> {
   // account yet — new signup) we still mark the pitchdeck row `done`.
   let snapshotInserted = false;
   if (accountId) {
+    const criterionResults = Array.isArray(body.criterionResults)
+      ? body.criterionResults
+      : null;
+    const dimResultsFull =
+      body.dimResultsFull && typeof body.dimResultsFull === "object"
+        ? body.dimResultsFull
+        : null;
+
     const { error: insertErr } = await supabase.from("svi_snapshots").insert({
       account_id: accountId,
       project_id: resolvedProjectId,
@@ -156,9 +171,16 @@ export async function POST(request: Request): Promise<Response> {
         pitchdeck_id: pitchdeckId,
         filename: deck.filename,
         dimResults,
+        industry: body.industry ?? null,
+        stageLabel: body.stage ?? null,
+        totalMs: typeof body.totalMs === "number" ? body.totalMs : null,
       },
       delta,
       dimension_scores: dimResults,
+      // Wave 25A columns (nullable) — powers /workspace/business-report
+      // rehydration + /tbr/<token> public share links + PDF export.
+      criterion_results: criterionResults,
+      dim_results: dimResultsFull,
     });
     if (!insertErr) {
       snapshotInserted = true;
