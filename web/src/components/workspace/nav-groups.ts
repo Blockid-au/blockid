@@ -265,6 +265,7 @@ const VALIDATE_SUBGROUPS: NavSubgroup[] = [
       // v3 metadata — full annotation deferred to journey-sidebar migration PR
       { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 1, persona: "founder", journeyGroup: "analysis" },
       { href: "/workspace/svi-evidence", label: "Evidence Completeness", icon: ClipboardCheck, minPlan: "starter", minTier: "starter", growthPhase: 2 },
+      { href: "/workspace/business-report", label: "Business Report (TBR)", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 2 },
     ],
   },
   {
