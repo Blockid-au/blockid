@@ -559,10 +559,125 @@ function ThreeCaseValuationCards({
   );
 }
 
+// ── Email report + deeper-CTA panel (Wave 21) ────────────────────────────────
+// Two founder actions after the done-state renders:
+//  1. "Email me this report" — captures address + POSTs to
+//     /api/pitchdeck/email-report so the founder can walk away and pick
+//     it up in their inbox alongside the browser Notification (Wave 18).
+//  2. "Detailed breakdown by 13 investor criteria" — links to the
+//     evidence workspace where the 13-criteria coverage heatmap lives.
+
+function EmailReportPanel({
+  totalSVI,
+  dimResults,
+  pitchdeckId,
+}: {
+  totalSVI: number;
+  dimResults: Record<string, { score: number; priority: "high" | "medium" | "low" }>;
+  pitchdeckId?: string;
+}) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "err">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const submit = async () => {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setStatus("err");
+      setErrorMsg("Enter a valid email address.");
+      return;
+    }
+    if (!pitchdeckId) {
+      setStatus("err");
+      setErrorMsg("Email available only for pitchdeck runs — try the /workspace/pitchdeck-analyze flow.");
+      return;
+    }
+    setStatus("sending");
+    setErrorMsg(null);
+    try {
+      const res = await fetch("/api/pitchdeck/email-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pitchdeckId,
+          email: email.trim(),
+          totalSVI,
+          dimResults,
+        }),
+      });
+      const body = (await res.json()) as { ok?: boolean; sent?: boolean; error?: string };
+      if (!res.ok || !body.ok) {
+        setStatus("err");
+        setErrorMsg(body.error ?? `failed_${res.status}`);
+        return;
+      }
+      setStatus(body.sent ? "sent" : "idle");
+      if (!body.sent) setErrorMsg("Mailer unavailable — try again later.");
+    } catch (err) {
+      setStatus("err");
+      setErrorMsg(err instanceof Error ? err.message : "Network error");
+    }
+  };
+  return (
+    <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3 space-y-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-xs uppercase tracking-[0.14em] text-ink-600 dark:text-ink-400 font-semibold">
+          Take this with you
+        </p>
+        <a
+          href="/workspace/svi-evidence"
+          className="text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+        >
+          Detailed breakdown by 13 investor criteria →
+        </a>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <label htmlFor="email-report-input" className="sr-only">Email address</label>
+        <input
+          id="email-report-input"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          disabled={status === "sending" || status === "sent"}
+          className="flex-1 min-w-[200px] min-h-[44px] rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-950 px-3 py-2 text-sm text-ink-800 dark:text-ink-100 placeholder:text-ink-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={status === "sending" || status === "sent"}
+          className={cn(
+            "inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-sm font-semibold text-white transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900",
+            status === "sent"
+              ? "bg-emerald-600 cursor-default"
+              : status === "sending"
+                ? "bg-brand-300 cursor-not-allowed opacity-70"
+                : "bg-brand-600 hover:bg-brand-700",
+          )}
+        >
+          {status === "sent" ? "Sent ✓" : status === "sending" ? "Sending…" : "Email me the report"}
+        </button>
+      </div>
+      {errorMsg && (
+        <p className="text-[11px] text-red-700 dark:text-red-400" role="alert">
+          {errorMsg}
+        </p>
+      )}
+      {status === "sent" && (
+        <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
+          Sent — check your inbox in a minute (spam folder if it doesn&rsquo;t land).
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface SviStreamAnalysisProps {
   projectId?: string;
+  /** Pitchdeck id returned by /api/pitchdeck/classify — enables the
+   * "Email me this report" panel in the done state. */
+  pitchdeckId?: string;
   /** Restrict the run to a subset of the 8 SVI dimensions. Undefined = all. */
   initialDims?: string[];
   /** Extra context text (e.g. extracted pitchdeck) forwarded as `deckText`
@@ -584,6 +699,7 @@ interface SviStreamAnalysisProps {
 
 export function SviStreamAnalysis({
   projectId,
+  pitchdeckId,
   initialDims,
   initialDeckText,
   autoStart,
@@ -1222,6 +1338,20 @@ export function SviStreamAnalysis({
                 Uses the client-computed SVI total + industry + stage from the
                 context SSE event. Zero server call (all math is deterministic). */}
             <ThreeCaseValuationCards svi={totalSvi} stage={stage} industry={industry} />
+            {/* Email-me-this-report opt-in + deeper 13-criteria CTA (Wave 21).
+                The CTA anchors the founder in "we already ran the 13 canonical
+                investor criteria per dim" (Wave 15) but presents an obvious
+                path to deeper drill-down via the evidence workspace. */}
+            <EmailReportPanel
+              totalSVI={totalSvi}
+              pitchdeckId={pitchdeckId}
+              dimResults={Object.fromEntries(
+                scored.map((d) => [
+                  d.key,
+                  { score: d.score, priority: (dimStates[d.key].priority ?? "medium") as "high" | "medium" | "low" },
+                ]),
+              )}
+            />
             {/* Score-delta versus the last stored snapshot — validates
                 improvement over time and gives founders something to beat. */}
             {previousSvi !== null && previousSvi !== totalSvi && (
