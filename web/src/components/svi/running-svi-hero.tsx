@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
+import {
+  selectValuationMethod,
+  inferTractionFromTreScore,
+} from "@/lib/svi/valuation-method-selector";
 import { cn } from "@/lib/utils";
 
 // Running SVI hero — Wave 23 Phase A.
@@ -182,10 +186,31 @@ export function RunningSviHero({ dims, stage, industry, totalCount, running, don
 
       {showValuation && (() => {
         const v = computeThreeCaseValuation(rawTotal, stage, industry);
+        const treDim = dims.find((d) => d.key === "tre");
+        const traction = inferTractionFromTreScore(treDim?.score ?? null);
+        const normStage = (s: string | null | undefined): "idea" | "pre_seed" | "seed" | "series_a" | "series_b" | "growth" => {
+          if (!s) return "seed";
+          const l = s.toLowerCase().replace(/[-\s]/g, "_");
+          if (l.startsWith("idea") || l === "pre_launch") return "idea";
+          if (l.startsWith("pre_seed") || l === "preseed") return "pre_seed";
+          if (l.startsWith("seed")) return "seed";
+          if (l === "a" || l.includes("series_a")) return "series_a";
+          if (l === "b" || l.includes("series_b")) return "series_b";
+          return "growth";
+        };
+        const methodSel = selectValuationMethod(normStage(stage), rawTotal, traction);
         return (
           <div className="mt-4 border-t border-ink-200/60 dark:border-ink-800/60 pt-3">
-            <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-ink-600 dark:text-ink-400 mb-2">
-              Directional pre-money valuation ({v.stage.replace("_", " ")} · {v.sector})
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-ink-600 dark:text-ink-400">
+                Directional pre-money valuation
+              </p>
+              <span className="inline-flex items-center rounded-full border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-2 py-0.5 text-[10px] font-semibold text-brand-700 dark:text-brand-300">
+                {methodSel.meta.shortLabel}
+              </span>
+            </div>
+            <p className="text-[10px] text-ink-500 dark:text-ink-500 mb-2">
+              {v.stage.replace("_", " ")} · {v.sector}
             </p>
             <div className="grid grid-cols-3 gap-2">
               <ValCell tone="worst" label="Worst" mid={v.worst.mid} low={v.worst.low} high={v.worst.high} />

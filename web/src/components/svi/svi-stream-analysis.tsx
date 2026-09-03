@@ -2,6 +2,11 @@
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
+import {
+  selectValuationMethod,
+  inferTractionFromTreScore,
+  type MethodMeta,
+} from "@/lib/svi/valuation-method-selector";
 import { RunningSviHero } from "./running-svi-hero";
 import {
   Users,
@@ -483,16 +488,46 @@ function SectorCohortWidget({ userTotal, industry }: { userTotal: number; indust
 // Renders worst / average / best case ranges (AUD) computed from the SVI
 // total + stage + industry. Deterministic — same inputs → same output.
 
+function MethodBadge({ meta }: { meta: MethodMeta }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-2 py-0.5 text-[10px] font-semibold text-brand-700 dark:text-brand-300"
+      title={meta.description}
+    >
+      {meta.shortLabel}
+    </span>
+  );
+}
+
 function ThreeCaseValuationCards({
   svi,
   stage,
   industry,
+  treScore,
 }: {
   svi: number;
   stage: string | null;
   industry: string | null;
+  treScore?: number | null;
 }) {
   const v = computeThreeCaseValuation(svi, stage, industry);
+  const traction = inferTractionFromTreScore(treScore ?? null);
+  const { normaliseStage } = (() => {
+    // Inline stage-normaliser identical to three-case-valuation so we don't
+    // need to export it just for this use.
+    const normStage = (s: string | null | undefined): "idea" | "pre_seed" | "seed" | "series_a" | "series_b" | "growth" => {
+      if (!s) return "seed";
+      const l = s.toLowerCase().replace(/[-\s]/g, "_");
+      if (l.startsWith("idea") || l === "pre_launch") return "idea";
+      if (l.startsWith("pre_seed") || l === "preseed") return "pre_seed";
+      if (l.startsWith("seed")) return "seed";
+      if (l === "a" || l.includes("series_a")) return "series_a";
+      if (l === "b" || l.includes("series_b")) return "series_b";
+      return "growth";
+    };
+    return { normaliseStage: normStage };
+  })();
+  const methodSel = selectValuationMethod(normaliseStage(stage), svi, traction);
   const cards: Array<{
     key: "worst" | "average" | "best";
     label: string;
@@ -524,11 +559,19 @@ function ThreeCaseValuationCards({
   ];
   return (
     <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3 space-y-2">
-      <div className="flex items-baseline justify-between gap-2 flex-wrap">
-        <p className="text-xs uppercase tracking-[0.14em] text-ink-600 dark:text-ink-400 font-semibold">
-          Directional pre-money valuation ({v.stage.replace("_", " ")} · {v.sector})
-        </p>
-        <span className="text-[10px] text-ink-500 dark:text-ink-500">
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xs uppercase tracking-[0.14em] text-ink-600 dark:text-ink-400 font-semibold">
+              Directional pre-money valuation
+            </p>
+            <MethodBadge meta={methodSel.meta} />
+          </div>
+          <p className="text-[10px] text-ink-500 dark:text-ink-500">
+            {v.stage.replace("_", " ")} · {v.sector} · {methodSel.rationale}
+          </p>
+        </div>
+        <span className="text-[10px] text-ink-500 dark:text-ink-500 shrink-0">
           {v.currency} · rounded
         </span>
       </div>
@@ -1358,7 +1401,12 @@ export function SviStreamAnalysis({
             {/* Directional 3-case valuation cards — worst / average / best.
                 Uses the client-computed SVI total + industry + stage from the
                 context SSE event. Zero server call (all math is deterministic). */}
-            <ThreeCaseValuationCards svi={totalSvi} stage={stage} industry={industry} />
+            <ThreeCaseValuationCards
+              svi={totalSvi}
+              stage={stage}
+              industry={industry}
+              treScore={dimStates["tre"]?.score ?? null}
+            />
             {/* Email-me-this-report opt-in + deeper 13-criteria CTA (Wave 21).
                 The CTA anchors the founder in "we already ran the 13 canonical
                 investor criteria per dim" (Wave 15) but presents an obvious
