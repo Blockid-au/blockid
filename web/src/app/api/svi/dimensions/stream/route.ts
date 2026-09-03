@@ -501,6 +501,48 @@ export async function POST(request: Request) {
           try {
             const criteriaResults = await synthesizeCriteria(dimResults, ctx);
             send({ type: "criteria_synthesis", criteria: criteriaResults });
+
+            // Wave 25B — fire-and-forget email of the full report to the
+            // founder. Idempotent via svi_snapshots.report_email_sent_at.
+            // Never blocks SSE close; failure is logged and swallowed.
+            const dimEmailInput: Record<
+              string,
+              { score: number; priority?: "high" | "medium" | "low"; insights?: string[]; label?: string }
+            > = {};
+            for (const d of dimResults) {
+              dimEmailInput[d.dimension] = {
+                score: d.score,
+                priority: d.priority,
+                insights: d.insights,
+                label: d.label,
+              };
+            }
+            const originHint = (() => {
+              try {
+                const u = new URL(request.url);
+                return `${u.protocol}//${u.host}`;
+              } catch {
+                return undefined;
+              }
+            })();
+            void import("@/lib/svi/email-report")
+              .then(({ sendReportEmail }) =>
+                sendReportEmail({
+                  userId: user.id,
+                  projectId,
+                  dimResults: dimEmailInput,
+                  criterionResults: criteriaResults,
+                  industry: ctx.industry,
+                  stage: ctx.stage,
+                  baseUrl: originHint,
+                }),
+              )
+              .then((res) => {
+                if (!res.ok) {
+                  console.warn("[wave25b:email] not delivered:", res.reason);
+                }
+              })
+              .catch((err) => console.warn("[wave25b:email] error", err));
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             console.warn(`[svi-stream] criteria synthesis failed: ${msg}`);

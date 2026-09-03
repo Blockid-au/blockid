@@ -298,10 +298,20 @@ export default async function IndexExchangePage() {
           <p className="text-sm opacity-90 mb-5 max-w-xl mx-auto">
             Get a free SVI analysis in under 60 seconds. AI-powered evaluation against {data.bsiAu.totalCompanies} AU companies + 30 accelerator criteria.
           </p>
-          <Link href="/score" className="inline-flex items-center gap-1.5 bg-white text-brand-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-amber-50 transition-colors">
-            Get my SVI score
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            <Link href="/score" className="inline-flex items-center gap-1.5 bg-white text-brand-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-amber-50 transition-colors">
+              Get my SVI score
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            {/* Wave 25B — sample TBR CTA for visitors who want to preview
+                the deliverable before starting a real analysis. */}
+            <Link
+              href="/sample-business-report"
+              className="inline-flex items-center gap-1.5 border border-white/50 text-white px-5 py-3 rounded-xl font-semibold text-sm hover:bg-white/10 transition-colors"
+            >
+              See a sample report
+            </Link>
+          </div>
         </section>
 
         {/* ── METHODOLOGY + CITATION ───────────────────────────────── */}
