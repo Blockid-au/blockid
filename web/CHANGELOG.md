@@ -1,5 +1,23 @@
 # BlockID.au Changelog
 
+## 2026-09-03 — v3.9.3: Full 13-Criteria Analyst Report + 10-page Business Report (Wave 24 A–F)
+
+### Features
+- **feat(wave24a — criteria synthesis)** After all 8 SVI dimension analyses complete, the stream endpoint now runs a single batched AI call (`synthesizeCriteria()`) that receives all dim results + all 13 criterion definitions and outputs per-criterion assessments: score/100, 2–3 sentence evidence-grounded verdict, 2 strengths (citing deck fragments), 2 gaps (specific missing signals), and 1 concrete next-week action. Falls back to deterministic score derivation if the AI call fails — no report breakage.
+- **feat(wave24b — criteria SSE events)** Two new SSE event types: `criteria_synthesis_start` (signals spinner) and `criteria_synthesis` (delivers the 13-item array). Both are handled in `svi-stream-analysis.tsx`, persisted to localStorage alongside `criterionStates[]` and `stage`, and available to `/workspace/business-report` without a re-run.
+- **feat(wave24c — 13-criteria section in TBR)** `/workspace/business-report` now includes a "Full 13-Criteria Analyst Assessment" section with 13 detailed criterion cards: Idea & Innovation, Market Opportunity, Founder Profile, Code & Git, Website & Digital Presence, Team Composition, Customer Base & Traction, Go-to-Market Strategy, Key Documents, Data Room, Team Structure & Governance, Product Roadmap, Revenue & Unit Economics. Each card shows score/100, verdict, strengths panel (green), gaps panel (red), and next action (brand). Fallback CTA shown when synthesis cache is empty.
+- **feat(wave24d — cohort compare section)** New "Cohort Comparison" table in the report: all 8 SVI dimensions side-by-side against AU seed-stage median + top-quartile benchmarks (BlockID cohort + PitchBook AU 2024–2026). Delta vs median shown per row in green/red. Footer cites data sources and notes industry/stage context.
+- **feat(wave24e — methodology appendix)** New "Methodology & Appendix" section: SVI scoring explanation (0–100, 8 dims, what bands mean), 8 dimension definitions with % weights, 13 criteria overview, valuation method explanations (Berkus/Scorecard/Comparable/DCF), AI chain disclosure (Groq/SambaNova/Cerebras/Claude), report usage notice.
+- **feat(wave24f — full report CTA on /score)** Results panel now shows a prominent "Full 10-Page Analyst Report" CTA (brand-outlined card with FileText icon, links to `/workspace/business-report`) above the existing Public Trust Report card. Visible immediately after score calculation.
+
+### Report structure (≥10 pages)
+`/workspace/business-report` now renders: (1) Executive Summary, (2) SVI Weighted Score Breakdown, (3) Directional Pre-Money Valuation, (4–11) 8 Dimension Analysis, (12) Full 13-Criteria Analyst Assessment, (13) Risk Register, (14) Improvement Roadmap, (15) Cohort Comparison, (16) Methodology & Appendix — totalling **16 named sections across ≥10 pages of investor-grade content**.
+
+### Deploy
+- Commit `655d6930d` + `score-form` CTA follow-up — deployed via `bash web/scripts/deploy-live.sh` (11/11 gates).
+
+---
+
 ## 2026-09-03 — v3.9.2: Analyst-desk streaming + Trusted Business Report (Wave 23 A–E shipped)
 
 ### Features
