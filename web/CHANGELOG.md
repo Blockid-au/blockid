@@ -1,5 +1,36 @@
 # BlockID.au Changelog
 
+## 2026-09-03 — v3.9.1: Pitchdeck valuation flow + evidence-grounded scoring (Waves 11-18 shipped)
+
+### Features
+- **feat(pitchdeck-w11)** New founder route `/workspace/pitchdeck-analyze`: drag-drop PDF/DOCX upload (or paste text) → AI classifies coverage across all 8 SVI dimensions (`strong` / `partial` / `missing`) → per-cell selection with credit gating (strong+partial free, missing = 0.50-1.00 cr each). New DB table `pitchdeck_analyses` + `POST /api/pitchdeck/classify` + `POST /api/pitchdeck/analyze`.
+- **feat(commerce-w12)** Commerce polish on the flow: credit balance chip in header (linked to `/workspace/billing`), drag-drop upload dropzone with drag-over feedback, "Try a sample deck" one-click pastes a canned AU seed pitch, bulk selection controls (select all 8 / free-only / clear), inline speculative-cost tally with balance comparison, dedicated insufficient-credits panel with direct Billing CTA on `HTTP 402`.
+- **feat(snapshot-w13)** `POST /api/pitchdeck/save-snapshot` writes a `svi_snapshots` row when the streaming `done` event lands. Repeat-visit score-delta banner (Wave 10a) reads from here — founders now see "Up +7 from your last stored SVI" on subsequent runs.
+- **feat(ux-w14)** Progressive-value UX: 3-step breadcrumb ("Upload deck → Pick dimensions → Analyse & score"), post-classify value-teaser card ("X strong · Y partial · Z missing. Baseline SVI on the free dims alone ≈ NN/100"), investor-ready gap nudge in done state.
+- **feat(criteria-w15)** Sequential SSE mode (300 ms breather per dim) + prompts now carry the 13 canonical investor criteria from `lib/evaluation-criteria` (idea, market, team, product, revenue, cap table, legal, moat…) bound to each SVI dimension. No more parallel rate-limit bursts on Cerebras/Groq; deeper per-dim reasoning.
+- **feat(valuation-w16)** Three-case pre-money valuation cards (worst / average / best AUD) in the done state. Client-side deterministic formula: stage-anchored base × sector adjust × SVI curve × case spread. Each card renders as a ±20 % band (e.g. "A$3.2 M – A$4.8 M") so it reads like a VC quote.
+- **feat(evidence-w17)** Evidence-grounded per-dim scoring: strict system prompt requires every strength/gap to quote a deck fragment (≤15 words) or explicitly say "not in deck", forbids fabricating numbers, defaults to 30-45 when the deck is silent on a dimension. Deck excerpt embedded in-prompt with triple-quote fence.
+- **feat(eta-w18)** Pre-run ETA ("Estimated total ~72s (~8s per dimension)"), during-run rolling countdown ("~24s remaining · 40s elapsed"), and browser Notification opt-in checkbox — analysis fires a native notification if the tab is not focused when it completes.
+- **feat(sample-svi-card)** `/index` (Startup Index landing) now shows a "Sample SVI report" card between the Stage indices and the gradient CTA — realistic 63/100 developing-band example so first-time founders can preview the whole flow before signing up.
+- **feat(cohort-compare)** Done state adds "Your SVI 63 vs SaaS median 58 — top 42% of 24 peers" using the anonymised `/api/index/svi?bucket=sector` aggregate; falls back to platform-wide comparison when the founder's industry isn't known.
+- **feat(deep-link-fix)** `/workspace/svi-evidence?dim=<key>` deep-link now scrolls + focuses the matching completeness card in the heatmap (previously silently landed at the page top).
+
+### Bugfixes
+- **fix(score-redirect)** `/score` was 301-redirecting to `/index` because of a leftover consolidation entry in `next.config.ts` — this shadowed the real ScoreForm and dropped every "Get your real SVI" CTA on the marketing exchange page. Redirect removed; `/score` now serves the analyser form.
+- **fix(csp-fonts)** `startupvalueindex.com` CSP (nonce-based, promoted from Report-Only) was silently blocking `fonts.googleapis.com` + `fonts.gstatic.com` — site rendered with fallback fonts. Both hosts added to `style-src` + `font-src`. `[csp-report]` violations dropped to zero post-fix.
+- **fix(agent-guard)** Deploy-live `Gate 2.5` self-heal expanded from `cro-conversion.ts` alone to the full 8 C-suite domain modules (cro, ciso, cfo, cmo, cto, clo, chro, cdo) after `ciso-security.ts` was overwritten by the same auto-improve pipeline that hit `cro-conversion.ts` earlier. `FROZEN_AGENTS` set now covers all 8 domains.
+- **fix(status-redaction)** `/api/status` no longer leaks `sha`, `release_id`, `disk_pct`, `mem_pct`, or the full cron catalogue to unauthenticated callers. Full telemetry gated behind `Bearer STATUS_FULL_TOKEN` (or `CRON_SECRET` fallback).
+- **fix(anvil-leak)** Cleaned 138 GB of leaked Anvil state (`/home/dovanlong/.foundry/anvil/tmp/…`) after an old `anvil` PID without `--prune-history` had been running for a month. Root filesystem 71 % → 18 %.
+
+### Security
+- **security(csp-nonce)** `startupvalueindex.com` CSP promoted from Report-Only to enforcing after a 24 h monitor window recorded zero violations. Nonce-based `strict-dynamic`, no more `unsafe-inline` / `unsafe-eval`. New `POST /api/csp-report` endpoint accepts both legacy and Reporting API v1 payloads and journal-logs each violation for future drift telemetry.
+- **security(cookie)** `svi_locale` cookie is now `HttpOnly; Secure; SameSite=lax` (was JS-readable). Client-side `document.cookie` write dropped; middleware re-derives the locale from the URL path on every navigation.
+
+### Deploy
+- Multiple `11/11` gate deploys through `bash web/scripts/deploy-live.sh`. Latest release id shown in `/api/status.last_deploy` (public payload redacts SHA — use `STATUS_FULL_TOKEN` for the full manifest).
+
+---
+
 ## 2026-08-16 — v3.6.3: CRO/CDO/CPO/CTO feature sprint (5 tasks shipped)
 
 ### Features
