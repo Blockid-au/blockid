@@ -1,5 +1,20 @@
 # BlockID.au Changelog
 
+## 2026-09-03 — v3.9.5: Auto-email + public sample TBR + Vietnamese localisation (Wave 25B)
+
+### Features
+- **feat(wave25b1 — auto-email report)** After the SSE stream emits `done` and criteria synthesis succeeds, the endpoint fires a background task that: mints a share token if none exists, fetches the server-generated PDF via loopback `/api/svi/report/pdf?token=<t>`, and sends an HTML email to the founder (subject: "Your BlockID SVI report — <SviScore>/100 <Band>") with the PDF attached. Uses existing `sendEmail()` from `web/src/lib/email.ts` (Nodemailer SMTP priority 1, Resend fallback). New migration adds `svi_snapshots.report_email_sent_at TIMESTAMPTZ` for idempotency — no duplicate emails on repeat runs.
+- **feat(wave25b2 — public sample TBR)** New public page `/sample-business-report` renders a canonical fictional "Corella HR" seed-stage AU SaaS example: SVI 63/100, developing band, full 8-dim + 13-criterion analysis, three-case valuation, cohort compare, methodology. Marketing banner CTA back to `/score`. Added to sitemap (priority 0.9). CTAs added on `/score` and `/startup-index` ("See sample").
+- **feat(wave25b3 — Vietnamese TBR)** New i18n table `web/src/lib/i18n/tbr-strings.ts` (EN + VI). `BusinessReportClient` accepts `locale: "en" | "vi"` prop and swaps all shell copy (section titles, TOC labels, band names, methodology paragraphs). Two new route entries: `/vi/workspace/business-report` (authenticated founder view) and `/vi/tbr/[token]` (public share). Header now has EN/VI toggle button that navigates to the sibling route. AI-generated content (verdict/strengths/gaps/next_action) stays in English — model output not translated.
+
+### Refactor
+- SSE route endpoint dynamically imports `@/lib/svi/email-report` so the email module is lazy-loaded on first send.
+
+### Deploy
+- Commit `9205da11d`. Migration `20260904_wave25b_report_email.sql` runs at boot. Playwright chromium already installed on prod (verified: chromium-1228 + 1234 in `~/.cache/ms-playwright/`).
+
+---
+
 ## 2026-09-03 — v3.9.4: TBR persistence + public share link + server PDF export (Wave 25A)
 
 ### Features
