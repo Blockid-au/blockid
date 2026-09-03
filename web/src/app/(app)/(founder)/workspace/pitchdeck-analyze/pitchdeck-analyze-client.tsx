@@ -629,6 +629,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
           */}
           <SviStreamAnalysis
             projectId={projectId}
+            pitchdeckId={pitchdeckId}
             initialDims={analyzeDims}
             initialDeckText={deckText ?? undefined}
             autoStart
