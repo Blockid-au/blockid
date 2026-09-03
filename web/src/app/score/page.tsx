@@ -78,6 +78,13 @@ export default function ScorePage() {
                 <svg className="h-3.5 w-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 Instant shareable investor link
               </span>
+              {/* Wave 25B — nudge visitors to preview the deliverable first */}
+              <a
+                href="/sample-business-report"
+                className="ml-auto inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-0.5 text-[11px] font-semibold text-brand-700 hover:bg-brand-100"
+              >
+                See sample report →
+              </a>
             </div>
           </header>
           <section className="mt-10 rounded-2xl border border-surface-200 bg-white p-6 md:p-10 shadow-sm">

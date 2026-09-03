@@ -113,6 +113,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    // Wave 25 Phase B — public sample TBR (anonymous preview of the 10-page
+    // business report). High priority: this is a key sign-up funnel entry.
+    {
+      url: `${SITE_URL}/sample-business-report`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
     {
       url: `${SITE_URL}/tools`,
       lastModified,

@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
 import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
 import {
   selectValuationMethod,
@@ -199,42 +201,45 @@ const TOC_SECTIONS = [
 ];
 
 // ── TOC section groups ────────────────────────────────────────────────────────
-const TOC_GROUPS = [
-  {
-    label: "Overview",
-    items: [
-      { id: "tbr-executive", label: "Executive Summary" },
-      { id: "tbr-svi", label: "SVI Score" },
-      { id: "tbr-valuation", label: "Valuation" },
-    ],
-  },
-  {
-    label: "8 Dimensions",
-    items: DIM_ORDER.map((k) => ({ id: `tbr-dim-${k}`, label: DIMS[k].section })),
-  },
-  {
-    label: "Analysis",
-    items: [
-      { id: "tbr-criteria", label: "13-Criteria" },
-      { id: "tbr-risk", label: "Risk Register" },
-      { id: "tbr-roadmap", label: "Roadmap" },
-      { id: "tbr-cohort", label: "Cohort Compare" },
-      { id: "tbr-methodology", label: "Methodology" },
-    ],
-  },
-];
+function buildTocGroups(t: ReturnType<typeof getTbrStrings>) {
+  return [
+    {
+      label: t.tocOverview,
+      items: [
+        { id: "tbr-executive", label: t.secExecutive },
+        { id: "tbr-svi", label: t.thScore },
+        { id: "tbr-valuation", label: t.secValuation },
+      ],
+    },
+    {
+      label: t.tocDimensions,
+      items: DIM_ORDER.map((k) => ({ id: `tbr-dim-${k}`, label: DIMS[k].section })),
+    },
+    {
+      label: t.tocAnalysis,
+      items: [
+        { id: "tbr-criteria", label: t.secCriteria },
+        { id: "tbr-risk", label: t.secRisk },
+        { id: "tbr-roadmap", label: t.secRoadmap },
+        { id: "tbr-cohort", label: t.secCohort },
+        { id: "tbr-methodology", label: t.secMethodology },
+      ],
+    },
+  ];
+}
 
-function TocNav({ activeId }: { activeId: string }) {
+function TocNav({ activeId, t }: { activeId: string; t: ReturnType<typeof getTbrStrings> }) {
+  const groups = buildTocGroups(t);
   return (
     <nav
       aria-label="Report sections"
       className="hidden xl:block sticky top-24 self-start w-56 shrink-0 print:hidden"
     >
       <p className="text-[10px] uppercase tracking-[0.16em] font-semibold text-ink-500 dark:text-ink-400 mb-3">
-        Contents
+        {t.tocContents}
       </p>
       <div className="space-y-4">
-        {TOC_GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.label}>
             <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-ink-400 dark:text-ink-600 px-2 mb-1">
               {group.label}
@@ -342,6 +347,10 @@ export interface BusinessReportClientProps {
   /** Called from /tbr/[token]?pdf=1 to hide all interactive chrome so the
    * headless-chromium PDF export doesn't capture buttons/TOC. */
   pdfMode?: boolean;
+  /** UI locale for shell copy (headings, TOC, methodology). AI-generated
+   *  content is never translated. Wave 25B — powers /vi/workspace/business-
+   *  report and /vi/tbr/[token]. Default "en". */
+  locale?: TbrLocale;
 }
 
 export function BusinessReportClient({
@@ -349,7 +358,10 @@ export function BusinessReportClient({
   initialData,
   shareToken,
   pdfMode,
+  locale = "en",
 }: BusinessReportClientProps) {
+  const t = getTbrStrings(locale);
+  const router = useRouter();
   const [data, setData] = useState<PersistedState | null>(initialData ?? null);
   const [activeId, setActiveId] = useState("tbr-executive");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -410,16 +422,16 @@ export function BusinessReportClient({
         <div className="rounded-xl border border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800 p-6 text-center space-y-3">
           <FileText className="h-10 w-10 mx-auto text-amber-500 dark:text-amber-400" aria-hidden="true" />
           <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-            No recent analysis found
+            {t.noAnalysisTitle}
           </p>
           <p className="text-xs text-amber-700 dark:text-amber-300">
-            Run a full SVI dimension analysis first — results are available for 30 minutes.
+            {t.noAnalysisBody}
           </p>
           <Link
             href="/workspace/pitchdeck-analyze"
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 transition-colors"
           >
-            Analyse my pitchdeck <ChevronRight className="h-4 w-4" />
+            {t.noAnalysisCta} <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
@@ -444,10 +456,10 @@ export function BusinessReportClient({
       <div className="p-6 max-w-5xl mx-auto">
         <div className="rounded-xl border border-ink-200 dark:border-ink-800 p-6 text-center space-y-3">
           <p className="text-sm text-ink-600 dark:text-ink-400">
-            Analysis cached but no scores found. Re-run the dimension analysis.
+            {t.scoresMissingBody}
           </p>
           <Link href="/workspace/pitchdeck-analyze" className="text-brand-600 hover:underline text-sm">
-            Go to Pitchdeck Analyze →
+            {t.scoresMissingCta}
           </Link>
         </div>
       </div>
@@ -497,12 +509,17 @@ export function BusinessReportClient({
     .slice(0, 5);
 
   // Executive summary band description
+  const above70Count = scored.filter((d) => d.state.score >= 70).length;
   const execVerdict =
     overallBand === "strong"
-      ? `This business scores ${totalSvi}/100 on the BlockID Startup Value Index — placing it in investor-ready territory. The analysis identified ${scored.filter((d) => d.state.score >= 70).length} dimensions above the 70-point threshold with strong evidence.`
+      ? t.verdictStrong(totalSvi, above70Count)
       : overallBand === "developing"
-      ? `This business scores ${totalSvi}/100 on the BlockID Startup Value Index — developing, with meaningful gaps to close before Series A or significant angel capital. ${riskItems.length} dimension${riskItems.length !== 1 ? "s" : ""} flagged as high-priority focus areas.`
-      : `This business scores ${totalSvi}/100 on the BlockID Startup Value Index — early-stage, indicating significant evidence gaps that will limit fundraising options at this point. Concrete evidence-building actions are recommended before approaching investors.`;
+      ? t.verdictDeveloping(totalSvi, riskItems.length)
+      : t.verdictEarly(totalSvi);
+  const bandDisplay =
+    overallBand === "strong" ? t.bandStrong
+    : overallBand === "developing" ? t.bandDeveloping
+    : t.bandEarly;
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto print:p-0 print:max-w-none">
@@ -519,11 +536,29 @@ export function BusinessReportClient({
       <div className="mb-6 space-y-1 print:mb-8">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold text-ink-900 dark:text-ink-100 print:text-3xl">
-            Trusted Business Report
+            {t.reportTitle}
           </h1>
           <span className="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-800 px-2.5 py-0.5 text-xs font-semibold text-brand-700 dark:text-brand-300">
-            BlockID SVI™
+            {t.brandBadge}
           </span>
+          {!pdfMode && (
+            <button
+              type="button"
+              onClick={() => {
+                // Toggle between EN <-> VI by swapping the /vi prefix.
+                if (typeof window === "undefined") return;
+                const { pathname, search } = window.location;
+                const nextPath = locale === "vi"
+                  ? pathname.replace(/^\/vi(\/|$)/, "/")
+                  : (pathname.startsWith("/vi/") ? pathname : "/vi" + pathname);
+                router.push(nextPath + search);
+              }}
+              aria-label={t.languageToggleAria}
+              className="inline-flex items-center rounded-full border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-2 py-0.5 text-[10px] font-semibold text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 print:hidden"
+            >
+              {locale === "vi" ? t.switchToEn : t.switchToVi}
+            </button>
+          )}
           {!pdfMode && (
             <div className="ml-auto flex items-center gap-2 print:hidden">
               {/* Share with Investor — only when running under the authed
@@ -557,7 +592,7 @@ export function BusinessReportClient({
                   disabled={shareBusy}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950/40 px-3 py-1.5 text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors disabled:opacity-60"
                 >
-                  {shareBusy ? "Sharing…" : "Share with Investor"}
+                  {shareBusy ? t.sharing : t.shareWithInvestor}
                 </button>
               )}
               {/* Download PDF — server-generated via Playwright. Requires a
@@ -573,12 +608,12 @@ export function BusinessReportClient({
                 onClick={(e) => {
                   if (!shareToken && !shareUrl) {
                     e.preventDefault();
-                    setShareError("Click ‘Share with Investor’ first to enable PDF download.");
+                    setShareError(t.clickShareFirst);
                   }
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
               >
-                Download PDF
+                {t.downloadPdf}
               </a>
               <button
                 type="button"
@@ -586,14 +621,14 @@ export function BusinessReportClient({
                 className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                Print
+                {t.print}
               </button>
             </div>
           )}
         {/* Share URL feedback strip */}
         {!pdfMode && shareUrl && (
           <div className="mt-2 flex items-center gap-2 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-3 py-2 text-xs print:hidden">
-            <span className="font-semibold text-brand-700 dark:text-brand-300">Share URL:</span>
+            <span className="font-semibold text-brand-700 dark:text-brand-300">{t.shareUrlLabel}</span>
             <code className="flex-1 truncate text-ink-700 dark:text-ink-300">{shareUrl}</code>
             <button
               type="button"
@@ -608,7 +643,7 @@ export function BusinessReportClient({
               }}
               className="rounded border border-brand-300 dark:border-brand-700 bg-white dark:bg-ink-900 px-2 py-0.5 font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40"
             >
-              {copied ? "Copied!" : "Copy"}
+              {copied ? t.copied : t.copy}
             </button>
           </div>
         )}
@@ -617,7 +652,7 @@ export function BusinessReportClient({
         )}
         </div>
         <p className="text-sm text-ink-500 dark:text-ink-400">
-          {scored.length} of 8 dimensions · {done ? `completed in ${((totalMs ?? 0) / 1000).toFixed(1)}s` : "partial analysis"}
+          {t.progressXofY(scored.length, 8)} · {done ? t.completedInSeconds(((totalMs ?? 0) / 1000).toFixed(1)) : t.partialAnalysis}
           {industry && ` · ${industry}`}
         </p>
       </div>
@@ -625,13 +660,13 @@ export function BusinessReportClient({
       <div className="flex gap-8 items-start">
         {/* Sticky TOC — hidden in PDF-render mode so the printed doc isn't
             a wall of nav links. */}
-        {!pdfMode && <TocNav activeId={activeId} />}
+        {!pdfMode && <TocNav activeId={activeId} t={t} />}
 
         {/* Report body */}
         <div className="flex-1 min-w-0 space-y-12">
 
           {/* ── Executive Summary ──────────────────────────────────────────── */}
-          <ReportSection id="tbr-executive" title="Executive Summary">
+          <ReportSection id="tbr-executive" title={t.secExecutive}>
             <div className={cn("rounded-2xl border p-6 md:p-8 space-y-5", bandBg(overallBand))}>
               {/* Hero score display */}
               <div className="flex items-center gap-6 flex-wrap">
@@ -649,7 +684,7 @@ export function BusinessReportClient({
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className={cn("inline-flex items-center rounded-full px-3 py-1 text-sm font-bold border", bandBg(overallBand), bandColor(overallBand))}>
-                    {overallBand === "strong" ? "Investor-Ready" : overallBand === "developing" ? "Developing" : "Early-Stage"}
+                    {bandDisplay}
                   </div>
                   <p className="text-sm text-ink-700 dark:text-ink-300 leading-relaxed max-w-lg">{execVerdict}</p>
                 </div>
@@ -670,7 +705,7 @@ export function BusinessReportClient({
           </ReportSection>
 
           {/* ── SVI Score breakdown ────────────────────────────────────────── */}
-          <ReportSection id="tbr-svi" title="Business SVI — Weighted Score Breakdown">
+          <ReportSection id="tbr-svi" title={t.secSvi}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -745,7 +780,7 @@ export function BusinessReportClient({
           </ReportSection>
 
           {/* ── Valuation ─────────────────────────────────────────────────── */}
-          <ReportSection id="tbr-valuation" title="Directional Pre-Money Valuation">
+          <ReportSection id="tbr-valuation" title={t.secValuation}>
             <div className="space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="inline-flex items-center rounded-full border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-2.5 py-0.5 text-xs font-semibold text-brand-700 dark:text-brand-300">
@@ -858,7 +893,7 @@ export function BusinessReportClient({
 
           {/* ── Risk Register ─────────────────────────────────────────────── */}
           {riskItems.length > 0 && (
-            <ReportSection id="tbr-risk" title="Risk Register">
+            <ReportSection id="tbr-risk" title={t.secRisk}>
               <p className="text-sm text-ink-600 dark:text-ink-400">
                 Dimensions that represent the highest investment risk — sorted by impact × gap.
               </p>
@@ -899,7 +934,7 @@ export function BusinessReportClient({
 
           {/* ── Improvement Roadmap ────────────────────────────────────────── */}
           {roadmapItems.length > 0 && (
-            <ReportSection id="tbr-roadmap" title="Improvement Roadmap">
+            <ReportSection id="tbr-roadmap" title={t.secRoadmap}>
               <p className="text-sm text-ink-600 dark:text-ink-400">
                 Top {roadmapItems.length} actions ranked by expected SVI lift (weight × gap to 70-point threshold).
               </p>
@@ -945,7 +980,7 @@ export function BusinessReportClient({
           )}
 
           {/* ── 13 Criteria Analysis ──────────────────────────────────── */}
-          <ReportSection id="tbr-criteria" title="Full 13-Criteria Analyst Assessment">
+          <ReportSection id="tbr-criteria" title={t.secCriteria}>
             {criterionStates && criterionStates.length > 0 ? (
               <div className="space-y-5">
                 <p className="text-sm text-ink-600 dark:text-ink-400">
@@ -1024,7 +1059,7 @@ export function BusinessReportClient({
 
           {/* ── Risk Register ─────────────────────────────────────────────── */}
           {riskItems.length > 0 && (
-            <ReportSection id="tbr-risk" title="Risk Register">
+            <ReportSection id="tbr-risk" title={t.secRisk}>
               <p className="text-sm text-ink-600 dark:text-ink-400">
                 Dimensions that represent the highest investment risk — sorted by impact × gap.
               </p>
@@ -1065,7 +1100,7 @@ export function BusinessReportClient({
 
           {/* ── Improvement Roadmap ────────────────────────────────────────── */}
           {roadmapItems.length > 0 && (
-            <ReportSection id="tbr-roadmap" title="Improvement Roadmap">
+            <ReportSection id="tbr-roadmap" title={t.secRoadmap}>
               <p className="text-sm text-ink-600 dark:text-ink-400">
                 Top {roadmapItems.length} actions ranked by expected SVI lift (weight × gap to 70-point threshold).
               </p>
@@ -1111,7 +1146,7 @@ export function BusinessReportClient({
           )}
 
           {/* ── Cohort Compare ─────────────────────────────────────────────── */}
-          <ReportSection id="tbr-cohort" title="Cohort Comparison — AU Seed Benchmarks">
+          <ReportSection id="tbr-cohort" title={t.secCohort}>
             <p className="text-sm text-ink-600 dark:text-ink-400">
               How this startup compares against Australian seed-stage peers by SVI band, based on anonymised BlockID Index data (PitchBook AU 2024–2026 seed cohort).
             </p>
@@ -1181,14 +1216,14 @@ export function BusinessReportClient({
           </ReportSection>
 
           {/* ── Methodology ────────────────────────────────────────────────── */}
-          <ReportSection id="tbr-methodology" title="Methodology & Appendix">
+          <ReportSection id="tbr-methodology" title={t.secMethodology}>
             <div className="space-y-4 text-sm text-ink-600 dark:text-ink-400">
               <div>
-                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">BlockID Startup Value Index™ (SVI)</p>
-                <p>The SVI is a composite 0–100 score computed across 8 weighted dimensions. It is NOT a valuation — it is a readiness index designed to signal investor-readiness and highlight evidence gaps. Scores above 70 indicate investor-ready evidence across most dimensions; 40–69 indicates a developing startup with clear next steps; below 40 indicates early-stage with significant gaps to fill before fundraising.</p>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">{t.methHeaderSvi}</p>
+                <p>{t.methBodySvi}</p>
               </div>
               <div>
-                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">8 SVI Dimensions (total 100% weight)</p>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">{t.methHeaderDims}</p>
                 <ul className="space-y-1 list-none">
                   {DIM_ORDER.map((k) => (
                     <li key={k} className="flex gap-2">
@@ -1199,34 +1234,31 @@ export function BusinessReportClient({
                 </ul>
               </div>
               <div>
-                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">13 Investor Evaluation Criteria</p>
-                <p>Each criterion maps to one primary SVI dimension and optionally one or more secondary dimensions. The 13 criteria cover: Idea &amp; Innovation, Market Opportunity, Founder Profile, Code &amp; Git Repository, Website &amp; Digital Presence, Team Composition, Customer Base &amp; Traction, Go-to-Market Strategy, Key Documents, Data Room, Team Structure &amp; Governance, Product Roadmap, and Revenue &amp; Unit Economics.</p>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">{t.methHeaderCriteria}</p>
+                <p>{t.methBodyCriteria}</p>
               </div>
               <div>
-                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">Valuation Methods</p>
-                <p>Pre-money valuation is computed using one of four methods selected automatically based on stage and traction: <strong>Berkus Method</strong> (pre-revenue, cap A$2.5M), <strong>Scorecard Method</strong> (angel round median × SVI factor), <strong>Comparable Transactions</strong> (AU seed/Series A comps from PitchBook 2024–2026), or <strong>DCF</strong> (10-year free-cash-flow with terminal value). Three cases (worst/average/best) apply a ±20% band. This is a directional estimate, not a formal valuation.</p>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">{t.methHeaderValuation}</p>
+                <p>{t.methBodyValuation}</p>
               </div>
               <div>
-                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">AI Analysis</p>
-                <p>All analysis is generated by the BlockID Analyst Desk — a chain of specialised AI agents (Groq/SambaNova/Cerebras/Claude) grounded in the pitchdeck text supplied by the founder. Each agent must cite deck fragments as evidence and explicitly acknowledge when information is absent. Scores default to 30–45 when the deck is silent on a dimension. This report is AI-assisted and does not constitute a formal due-diligence audit or investment recommendation.</p>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">{t.methHeaderAi}</p>
+                <p>{t.methBodyAi}</p>
               </div>
               <div className="border-t border-ink-200 dark:border-ink-800 pt-3 text-[11px] text-ink-400 dark:text-ink-500">
-                <p>BlockID.au · Startup Value Index™ · Report generated {new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })} · For internal founder use and investor sharing only. Not for public distribution without founder consent.</p>
+                <p>{t.methFooter(new Date().toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", { day: "numeric", month: "long", year: "numeric" }))}</p>
               </div>
             </div>
           </ReportSection>
 
           {/* Footer */}
           <div className="border-t border-ink-200 dark:border-ink-800 pt-4 pb-8 flex items-center justify-between gap-4 text-xs text-ink-500 dark:text-ink-500">
-            <p>
-              BlockID Startup Value Index™ — AI-assisted analysis.
-              Not a formal valuation or investment advice.
-            </p>
+            <p>{t.footerDisclaimer}</p>
             <Link
               href="/workspace/pitchdeck-analyze"
               className="text-brand-600 dark:text-brand-400 hover:underline shrink-0"
             >
-              Re-analyse →
+              {t.footerReanalyse}
             </Link>
           </div>
         </div>
