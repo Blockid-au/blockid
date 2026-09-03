@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
+import { RunningSviHero } from "./running-svi-hero";
 import {
   Users,
   Target,
@@ -1213,6 +1214,26 @@ export function SviStreamAnalysis({
             />
           </div>
         </div>
+      )}
+
+      {/* Running SVI hero — Wave 23 Phase A. Weighted total climbs as
+          each dim lands so the founder isn't waiting on an inert progress
+          bar; also shows a directional 3-case valuation once ≥3 dims
+          are in. Same math as the final done-state total for consistency. */}
+      {(running || done) && !fatalError && (
+        <RunningSviHero
+          dims={DIM_KEYS.map((k) => ({
+            key: k,
+            score: dimStates[k].score,
+            weight: DIMS[k].weight,
+            label: DIMS[k].label,
+          }))}
+          stage={stage}
+          industry={industry}
+          totalCount={total}
+          running={running}
+          done={done}
+        />
       )}
 
       {/* Dimension cards grid */}
