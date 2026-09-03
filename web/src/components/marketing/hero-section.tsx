@@ -54,13 +54,17 @@ export function HeroSection() {
   }, []);
 
   function handleSearch() {
-    // B1 Task 5 — /score, /svi and /startup-index all 301 to /index (canonical).
-    // Push directly to canonical to avoid the extra 301 hop.
+    // The hero's "Analyse" button must land the founder on the ACTUAL
+    // analyser form (/score), not the marketing exchange page (/index).
+    // A prior consolidation redirect used to bounce /score → /index; that
+    // was removed (see next.config.ts) so /score now serves ScoreForm,
+    // and this hero threads the typed query through as `?q=` for
+    // ScoreForm to prefill the company field on mount.
     const q = query.trim();
     if (q.length > 0) {
-      router.push(`/index?q=${encodeURIComponent(q)}`);
+      router.push(`/score?q=${encodeURIComponent(q)}`);
     } else {
-      router.push("/index");
+      router.push("/score");
     }
   }
 
