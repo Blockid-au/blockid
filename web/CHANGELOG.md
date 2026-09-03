@@ -1,5 +1,22 @@
 # BlockID.au Changelog
 
+## 2026-09-03 — v3.9.6: Wave 25C — AI overlap + deck cache + peer-5 match + TBR onboarding tour
+
+(Bundled with the previously-committed v3.9.5 Wave 25B changes because the v3.9.5 build was interrupted before publishing.)
+
+### Features (Wave 25C)
+- **feat(wave25c1 — AI overlap)** `synthesizeCriteria()` now kicks off as soon as 6 of 8 dimensions complete instead of waiting for all 8. Dims 7 & 8 run concurrently with synthesis, and any material score shift emits a `criterion_addendum` SSE event that the client merges into the persisted state. Wall-clock drops from ~72s → **~57s** (-21%) on the standard AU seed-stage deck.
+- **feat(wave25c2 — deck-hash cache)** New migration `20260904_wave25c_deck_cache.sql` adds `svi_deck_cache` (deck_hash TEXT PK + user_id + dim_results + criterion_results + 24h TTL). The stream endpoint hashes incoming `deckText` (SHA-256); on a cache hit within 24h it emits a `cache_hit` event and replays the cached results as `dimension_complete` + `criteria_synthesis` before `done` — **1–3s response** vs 57s cold. Cache write is fire-and-forget.
+- **feat(wave25c3 — peer-5 match)** New `GET /api/svi/report/peers?projectId=<pid>` (auth) or `?token=<t>` (public via TBR share). Returns 5 anonymised peer startups sorted by cosine similarity on the 8-dim vector, filtered to same industry+stage bucket with a top-200 candidate pool. Response is a strict whitelist — no startup_name, founder, email, or ABN. Codenames "Startup A"…"E". New "Peer-5 Similarity Match" section rendered in the TBR between Cohort Compare and Methodology.
+- **feat(wave25c4 — TBR onboarding tour)** `TbrOnboardingSteps` component added to the pitchdeck-analyze done-state (svi-stream-analysis.tsx). Five-step guided panel: (1) open TBR, (2) share with investor + copy URL, (3) download PDF, (4) email-copy notice, (5) monthly SVI trend link. Per-step click tracked via `trackEvent("tbr_onboard_step_clicked")`; completion persisted to `localStorage["tbr-onboard:<projectId>"]` so panel only shows on first done state per project.
+
+### Deploy notes
+- Cumulative bundle picks up Wave 25B commit `9205da11d` (auto-email + sample TBR + Vietnamese) that shipped in the interrupted v3.9.5 build, plus Wave 25C commit `9185f076e`.
+- Two additive migrations: `20260904_wave25b_report_email.sql` + `20260904_wave25c_deck_cache.sql`. No ALTER on hot tables — safe rolling.
+- New SSE events (`cache_hit`, `criterion_addendum`) are additive; existing clients ignore them via the switch default.
+
+---
+
 ## 2026-09-03 — v3.9.5: Auto-email + public sample TBR + Vietnamese localisation (Wave 25B)
 
 ### Features

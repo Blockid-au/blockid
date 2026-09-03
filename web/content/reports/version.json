@@ -1,20 +1,24 @@
 {
-  "version": "v3.9.5",
-  "updated_at": "2026-09-03T23:40:00Z",
-  "git_sha": "9205da11d",
-  "release_id": "wave25b-email-sample-vietnamese",
+  "version": "v3.9.6",
+  "updated_at": "2026-09-03T23:53:00Z",
+  "git_sha": "9185f076e",
+  "release_id": "wave25bc-full-distribution-optim",
   "shipped_summary": [
-    "v3.9.5 — Wave 25B: auto-email full report on analysis done (HTML memo + PDF attachment via Nodemailer SMTP), public /sample-business-report (canonical fictional AU SaaS 'Corella HR' seed-stage preview), Vietnamese TBR localisation (/vi/workspace/business-report + /vi/tbr/[token] + EN/VI toggle)",
-    "v3.9.4 — Wave 25A: Supabase persistence for TBR (criterion_results + dim_results JSONB), public /tbr/[token] share link, server-side PDF export via Playwright chromium",
+    "v3.9.6 — Wave 25B + 25C: auto-email report, /sample-business-report, Vietnamese TBR, AI overlap optimisation (~72s → ~57s), same-deck cache (24h, <5s cache hit), peer-5 anonymised similarity match, TBR onboarding tour",
+    "v3.9.4 — Wave 25A: Supabase persistence for TBR (criterion_results + dim_results JSONB), public /tbr/[token] share link, server-side PDF export via Playwright",
     "v3.9.3 — Wave 24: full 13-criteria analyst report + UX polish (score gauge, criterion rings, streaming animations, print-ready TBR)",
-    "v3.9.2 — Wave 23: analyst-desk streaming (running SVI hero, valuation-method selector, per-dim AU benchmark, TBR page, analyst persona)",
+    "v3.9.2 — Wave 23: analyst-desk streaming (running SVI hero, valuation-method selector, per-dim AU benchmark, TBR page)",
     "v3.9.1 — Waves 11-18: pitchdeck coverage classifier, 13 investor criteria, 3-case valuation cards, evidence-grounded scoring",
     "v3.9.0 — Wave 10a: repeat-visit score-delta banner + svi_snapshots"
   ],
   "task_ids": [
-    "WAVE_25B1: sendReportEmail() — fire-and-forget HTML memo + PDF attachment after SSE done",
-    "WAVE_25B2: /sample-business-report — public 10-page fictional TBR preview",
-    "WAVE_25B3: Vietnamese localisation — /vi/workspace/business-report + /vi/tbr/[token] + EN/VI toggle"
+    "WAVE_25B1: sendReportEmail() — auto-email full memo with PDF attachment after analysis done",
+    "WAVE_25B2: /sample-business-report — public canonical TBR preview",
+    "WAVE_25B3: /vi/* Vietnamese TBR localisation + EN/VI toggle",
+    "WAVE_25C1: AI overlap — criteria synthesis kicks at dim #6, saves ~15s wall-clock",
+    "WAVE_25C2: svi_deck_cache — same-deck-hash re-runs return in <5s",
+    "WAVE_25C3: /api/svi/report/peers — anonymised peer-5 cosine similarity match",
+    "WAVE_25C4: TbrOnboardingSteps — 5-step tour after first done state"
   ],
-  "notes": "v3.9.5 = Distribution sprint (Wave 25B). Founders now receive the full 10-page memo via email automatically after every analysis (idempotent — one email per snapshot). Visitors browse a public sample TBR to preview the memo before signing up. Vietnamese founders get the entire shell UI in Vietnamese (AI content stays English — that's model output). Migration 20260904 adds report_email_sent_at for idempotency."
+  "notes": "v3.9.6 = Distribution + optimisation sprint (Wave 25B + 25C bundled after v3.9.5 build interruption). Bundle includes: auto-email report on done, public sample TBR, Vietnamese TBR (/vi/*), AI overlap that shrinks wall-clock from ~72s to ~57s, 24h deck-hash cache for instant re-runs, anonymised peer-5 match section in the TBR, and a 5-step onboarding tour after first analysis. Cumulative Wave 25 outcome: TBR is persistent, shareable, downloadable, emailable, bilingual, cached, benchmarked against real peers, and self-guiding."
 }
