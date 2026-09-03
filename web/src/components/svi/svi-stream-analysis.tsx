@@ -17,6 +17,7 @@ import {
   Briefcase,
   Scale,
   Sparkles,
+  Bot,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -142,6 +143,114 @@ function priorityBadge(priority: string | null): string {
   if (priority === "high") return "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300";
   if (priority === "medium") return "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300";
   return "bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-400";
+}
+
+// ── Analyst persona banner ────────────────────────────────────────────────────
+// Gives the streaming analysis a professional feel — "BlockID Analyst is
+// reviewing Dimension 3 of 8" rather than a plain spinner. Only shown
+// while running; fades out when done.
+
+const ANALYST_CAPTIONS = [
+  "Reviewing evidence in your pitch…",
+  "Cross-referencing AU market data…",
+  "Applying 13 investor criteria…",
+  "Grading against PitchBook AU benchmarks…",
+  "Checking traction signals…",
+  "Evaluating team credibility signals…",
+  "Analysing competitive positioning…",
+  "Assessing governance structure…",
+];
+
+function AnalystPersonaBanner({
+  running,
+  completed,
+  total,
+  currentDim,
+}: {
+  running: boolean;
+  completed: number;
+  total: number;
+  currentDim: string | null;
+}) {
+  const [captionIdx, setCaptionIdx] = useState(0);
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      setCaptionIdx((i) => (i + 1) % ANALYST_CAPTIONS.length);
+    }, 3500);
+    return () => clearInterval(id);
+  }, [running]);
+
+  if (!running) return null;
+  return (
+    <div
+      className="flex items-center gap-3 rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-4 py-3 motion-safe:animate-in motion-safe:fade-in duration-300"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex-none h-9 w-9 rounded-full bg-brand-600 dark:bg-brand-700 flex items-center justify-center shadow-sm">
+        <Bot className="h-5 w-5 text-white" aria-hidden="true" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] uppercase tracking-[0.14em] font-semibold text-brand-700 dark:text-brand-300">
+          BlockID Analyst
+        </p>
+        <p className="text-sm text-brand-800 dark:text-brand-200 truncate">
+          {currentDim ? `Reviewing ${DIMS[currentDim]?.label ?? currentDim}…` : ANALYST_CAPTIONS[captionIdx]}
+        </p>
+      </div>
+      <div className="flex-none text-right">
+        <p className="text-xs tabular-nums text-brand-700 dark:text-brand-400 font-semibold">
+          {completed}/{total}
+        </p>
+        <p className="text-[10px] text-brand-600 dark:text-brand-500">dims done</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Decision log ──────────────────────────────────────────────────────────────
+// Appends a short one-liner entry as each dimension completes — gives
+// founders the sense that the analyst is actively working and noting
+// conclusions rather than silently computing.
+
+interface LogEntry {
+  dimKey: string;
+  score: number;
+  insight: string;
+  ts: number;
+}
+
+function DecisionLog({ entries }: { entries: LogEntry[] }) {
+  if (entries.length === 0) return null;
+  return (
+    <div
+      className="space-y-1 max-h-32 overflow-y-auto pr-1 motion-safe:animate-in motion-safe:fade-in duration-300"
+      aria-label="Analyst decision log"
+      role="log"
+    >
+      {[...entries].reverse().map((e) => {
+        const meta = DIMS[e.dimKey];
+        const band: "strong" | "developing" | "early" =
+          e.score >= 70 ? "strong" : e.score >= 40 ? "developing" : "early";
+        return (
+          <div key={e.ts} className="flex items-baseline gap-2 text-[11px] motion-safe:animate-in motion-safe:fade-in">
+            <span className={cn(
+              "tabular-nums font-bold shrink-0 w-7 text-right",
+              band === "strong" && "text-emerald-600 dark:text-emerald-400",
+              band === "developing" && "text-amber-600 dark:text-amber-400",
+              band === "early" && "text-red-600 dark:text-red-400",
+            )}>
+              {e.score}
+            </span>
+            <span className="shrink-0 text-ink-400 dark:text-ink-600">·</span>
+            <span className="font-medium text-ink-700 dark:text-ink-300 shrink-0">{meta?.label ?? e.dimKey}</span>
+            <span className="text-ink-500 dark:text-ink-500 truncate">— {e.insight}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // ── Spinner ───────────────────────────────────────────────────────────────────
@@ -795,6 +904,8 @@ export function SviStreamAnalysis({
   // "your SVI is up 6 pts since last week" once they run the analysis.
   const [previousSvi, setPreviousSvi] = useState<number | null>(null);
   const [weekDelta, setWeekDelta] = useState<number | null>(null);
+  const [currentDim, setCurrentDim] = useState<string | null>(null);
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   // Restore a recent (< 30 min) run on mount so a page refresh mid-analysis
@@ -894,6 +1005,8 @@ export function SviStreamAnalysis({
     setIndustry(null);
     setStage(null);
     setRestoredFromCache(false);
+    setCurrentDim(null);
+    setLogEntries([]);
     clearPersisted(projectId ?? "");
   }, [projectId]);
 
@@ -992,6 +1105,7 @@ export function SviStreamAnalysis({
 
             case "dimension_start":
               updateDim(event.dimension, { status: "loading" });
+              setCurrentDim(event.dimension);
               break;
 
             case "dimension_complete":
@@ -1003,6 +1117,16 @@ export function SviStreamAnalysis({
                 priority: event.priority,
                 marketBenchmark: event.market_benchmark ?? null,
               });
+              setCurrentDim(null);
+              setLogEntries((prev) => [
+                ...prev,
+                {
+                  dimKey: event.dimension,
+                  score: event.score,
+                  insight: event.insights[0] ?? "Analysis complete",
+                  ts: Date.now(),
+                },
+              ]);
               break;
 
             case "error":
@@ -1248,6 +1372,26 @@ export function SviStreamAnalysis({
           >
             Discard
           </button>
+        </div>
+      )}
+
+      {/* Analyst persona banner — visible while streaming */}
+      {running && (
+        <AnalystPersonaBanner
+          running={running}
+          completed={completed}
+          total={total}
+          currentDim={currentDim}
+        />
+      )}
+
+      {/* Decision log — shows as dims complete; hidden once done (summary replaces it) */}
+      {running && logEntries.length > 0 && (
+        <div className="rounded-lg border border-ink-200 dark:border-ink-800 bg-ink-50/40 dark:bg-ink-900/20 px-4 py-3 space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-ink-500 dark:text-ink-400">
+            Analyst Notes
+          </p>
+          <DecisionLog entries={logEntries} />
         </div>
       )}
 
