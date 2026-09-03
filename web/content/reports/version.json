@@ -1,23 +1,23 @@
 {
-  "version": "v3.8.3",
-  "updated_at": "2026-08-21T07:55:00Z",
-  "git_sha": "23fe7ce73",
-  "release_id": "v3.8.3-investor-trust-report",
+  "version": "v3.9.2",
+  "updated_at": "2026-09-03T22:20:00Z",
+  "git_sha": "4eebcd8f",
+  "release_id": "Gzmc35fHoY8FWSrjYcDRx",
   "shipped_summary": [
-    "v3.8.3 — 1-step /score wizard (skip cap-table by default, Advanced collapsible), Trust Reports navbar dropdown, public /reports/[ticker] and /investor landing",
+    "v3.9.2 — Wave 23: streaming Business SVI hero (Phase A), valuation-method selector Berkus/Scorecard/Comparable/DCF (Phase B), per-dimension AU market benchmark in SSE stream (Phase C), Trusted Business Report page + workspace nav (Phase D), analyst persona banner + decision log during streaming (Phase E)",
+    "v3.9.1 — Waves 11-18: pitchdeck coverage classifier (/workspace/pitchdeck-analyze), credit-gated per-dim analysis, 13 canonical investor criteria bound to SVI dims, three-case pre-money valuation cards, evidence-grounded per-dim scoring, ETA + browser notification, sample SVI card on /index, cohort compare in done state, /score redirect fix, CSP fonts fix",
+    "v3.9.0 — Wave 10a: repeat-visit score-delta banner + svi_snapshots snapshot flow",
+    "v3.8.3 — 1-step /score wizard, Trust Reports navbar dropdown, public /reports/[ticker] and /investor landing",
     "v3.8.2 — SVI evidence completeness engine: per-dimension gap scoring, API routes, cap-table integration",
     "v3.8.1 — Investor-pack PDF chapters, cron DB writer, Telegram alerts on cron failure",
-    "v3.8.0 — Investor-pack Chapter 11 (funding journey), SVI IRI/SVM boost, C-Level DCF hub",
-    "v3.7.5 — Competitive Positioning dashboard: matrix, AI positioning generator, SVI lift signals",
-    "v3.7.4 — Per-dimension peer benchmarking with cohort comparison widget",
-    "v3.7.3 — CFO DCF sensitivity grid, unit economics, funding readiness gates",
-    "hotfix — restore cfo-valuation.ts + cro-conversion.ts (orchestrator truncation regressions)"
+    "v3.8.0 — Investor-pack Chapter 11 (funding journey), SVI IRI/SVM boost, C-Level DCF hub"
   ],
   "task_ids": [
-    "UX_SCORE_1STEP: collapse 3-step wizard to 1 required step + Advanced",
-    "UX_INVESTOR_NAV: Trust Reports navbar dropdown",
-    "UX_TRUST_REPORT: public /reports/[ticker] anonymous entry point",
-    "UX_INVESTOR_LANDING: /investor persona landing with SVI grid"
+    "WAVE_23A: streaming Business SVI hero during analysis",
+    "WAVE_23B: valuation method selector (Berkus/Scorecard/Comparable/DCF)",
+    "WAVE_23C: per-dimension AU market benchmark in SSE stream",
+    "WAVE_23D: Trusted Business Report (/workspace/business-report) + nav",
+    "WAVE_23E: analyst persona banner + decision log during streaming"
   ],
-  "notes": "v3.8.3 = investor-first UX sprint. Founders now finish the SVI questionnaire in two fields; investors reach a trust report in one click from the navbar without signing up. Full data-room access remains gated through founder-issued investor-links."
+  "notes": "v3.9.2 = Business Report + valuation-methods sprint. Founders now watch a live 'analyst desk' during the SVI stream — the running Business SVI ticks up per dimension, the chosen valuation method (Berkus/Scorecard/Comparable/DCF) is disclosed and applied, each dim shows an AU cohort benchmark, and the Trusted Business Report gives investors a single-page memo linked from the workspace nav."
 }
