@@ -615,6 +615,8 @@ export function SviStreamAnalysis({
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [industry, setIndustry] = useState<string | null>(null);
   const [stage, setStage] = useState<string | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [notifyOnDone, setNotifyOnDone] = useState(false);
   const [restoredFromCache, setRestoredFromCache] = useState(false);
   // Score-delta from the previous stored snapshot — lets the founder see
   // "your SVI is up 6 pts since last week" once they run the analysis.
@@ -750,6 +752,7 @@ export function SviStreamAnalysis({
       });
     }
     setRunning(true);
+    setStartedAt(Date.now());
 
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -868,6 +871,26 @@ export function SviStreamAnalysis({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fire a browser notification when the analysis finishes IF the founder
+  // opted in AND the tab isn't already focused. Zero-cost when off.
+  useEffect(() => {
+    if (!done || !notifyOnDone) return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (document.visibilityState === "visible") return;
+    if (Notification.permission !== "granted") return;
+    try {
+      const n = new Notification("SVI analysis complete", {
+        body: "Your streaming analysis has finished. Come back to see the score.",
+        icon: "/favicon.ico",
+        tag: "svi-analysis-done",
+      });
+      n.onclick = () => {
+        window.focus();
+        n.close();
+      };
+    } catch { /* silent */ }
+  }, [done, notifyOnDone]);
+
   // Fire onDone once after the streaming `done` event lands, with the
   // client-computed weighted total. Runs in an effect (not inline in the
   // SSE handler) so state updates from prior dimension_complete events
@@ -913,16 +936,52 @@ export function SviStreamAnalysis({
     <div className="space-y-5">
       {/* Action bar */}
       <div className="flex items-center justify-between gap-4">
-        <div aria-live="polite" aria-atomic="true">
+        <div aria-live="polite" aria-atomic="true" className="space-y-1">
           {!running && !done && (
-            <p className="text-sm text-ink-600 dark:text-ink-400">
-              Run instant AI analysis across all 8 SVI dimensions in parallel — free preview.
-            </p>
+            <>
+              <p className="text-sm text-ink-600 dark:text-ink-400">
+                Sequential AI analysis across {initialDims?.length ?? total} SVI dimensions. Estimated total{" "}
+                <strong className="tabular-nums">
+                  ~{Math.max(15, (initialDims?.length ?? total) * 8 + 8)}s
+                </strong>{" "}
+                (~8s per dimension).
+              </p>
+              {typeof window !== "undefined" && "Notification" in window && (
+                <label className="inline-flex items-center gap-2 text-[11px] text-ink-600 dark:text-ink-400 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={notifyOnDone}
+                    onChange={async (e) => {
+                      const on = e.target.checked;
+                      setNotifyOnDone(on);
+                      if (on && Notification.permission === "default") {
+                        try { await Notification.requestPermission(); } catch { /* silent */ }
+                      }
+                    }}
+                    className="h-3.5 w-3.5 rounded border-ink-300 dark:border-ink-700 text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500"
+                  />
+                  Notify me when done (browser)
+                </label>
+              )}
+            </>
           )}
           {running && (
-            <p className="text-sm text-brand-700 dark:text-brand-400">
-              Analysing {completed} of {total} dimensions…
-            </p>
+            <>
+              <p className="text-sm text-brand-700 dark:text-brand-400">
+                Analysing {completed} of {total} dimensions…
+              </p>
+              {startedAt !== null && completed > 0 && completed < total && (
+                <p className="text-[11px] text-ink-500 dark:text-ink-400">
+                  <span className="tabular-nums">~{Math.max(3, Math.round(((Date.now() - startedAt) / completed) * (total - completed) / 1000))}s</span>{" "}
+                  remaining · {Math.round((Date.now() - startedAt) / 1000)}s elapsed
+                </p>
+              )}
+              {startedAt !== null && completed === 0 && (
+                <p className="text-[11px] text-ink-500 dark:text-ink-400">
+                  Warming up the first dimension…
+                </p>
+              )}
+            </>
           )}
           {done && totalMs !== null && (
             <p className="text-sm text-emerald-700 dark:text-emerald-400">
