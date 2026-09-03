@@ -48,6 +48,7 @@ interface DimState {
   priority: "high" | "medium" | "low" | null;
   errorMsg: string | null;
   expanded: boolean;
+  marketBenchmark: string | null;
 }
 
 type SSEEvent =
@@ -61,6 +62,7 @@ type SSEEvent =
       markdown: string;
       insights: string[];
       priority: "high" | "medium" | "low";
+      market_benchmark?: string;
     }
   | { type: "progress"; completed: number; total: number }
   | { type: "done"; totalMs: number }
@@ -338,6 +340,16 @@ function DimCard({
               <p className="text-xs text-ink-600 dark:text-ink-400 leading-snug">{insight}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Market benchmark — AU peer context (Phase C) */}
+      {state.status === "complete" && state.marketBenchmark && (
+        <div className="px-4 pb-2">
+          <p className="flex items-start gap-1.5 text-[11px] text-ink-500 dark:text-ink-500 leading-snug">
+            <span className="mt-0.5 shrink-0 text-brand-400">◈</span>
+            <span><strong className="font-medium text-ink-600 dark:text-ink-400">AU benchmark:</strong> {state.marketBenchmark}</span>
+          </p>
         </div>
       )}
 
@@ -762,6 +774,7 @@ export function SviStreamAnalysis({
           priority: null,
           errorMsg: null,
           expanded: false,
+          marketBenchmark: null,
         },
       ]),
     ),
@@ -868,6 +881,7 @@ export function SviStreamAnalysis({
             priority: null,
             errorMsg: null,
             expanded: false,
+            marketBenchmark: null,
           },
         ]),
       ),
@@ -906,7 +920,7 @@ export function SviStreamAnalysis({
       setDimStates((prev) => {
         const primed: Record<string, DimState> = { ...prev };
         for (const k of DIM_KEYS) {
-          primed[k] = { ...primed[k], status: "loading" };
+          primed[k] = { ...primed[k], status: "loading", marketBenchmark: null };
         }
         return primed;
       });
@@ -987,6 +1001,7 @@ export function SviStreamAnalysis({
                 markdown: event.markdown,
                 insights: event.insights,
                 priority: event.priority,
+                marketBenchmark: event.market_benchmark ?? null,
               });
               break;
 
