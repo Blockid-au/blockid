@@ -77,6 +77,11 @@ interface DimensionResult {
   markdown: string;
   insights: string[];
   priority: "high" | "medium" | "low";
+  /** 1-2 sentence AU/NZ market benchmark for this dimension — e.g.
+   *  "AU seed median TRE score: 42. Top-quartile startups show MoM
+   *  revenue growth ≥15% and ≥10 paying customers." Omitted when the AI
+   *  can't give a reliable benchmark for the sector. */
+  market_benchmark?: string;
 }
 
 // ── Fetch startup context from Supabase ───────────────────────────────────────
@@ -180,7 +185,11 @@ JSON schema (strict):
                              // **Next Step (concrete, this-week action):**
                              // - Do X to lift this dim by ~Y points
   "insights": string[],      // exactly 2, each ≤15 words, each cites deck or explicitly says "not in deck"
-  "priority": "high"|"medium"|"low"
+  "priority": "high"|"medium"|"low",
+  "market_benchmark": string  // 1-2 sentences: AU/NZ median for this dim at this stage/sector.
+                              // Include a specific data point (e.g. "AU seed median TRE: 42").
+                              // Use PitchBook AU 2024-2026, ACS, ABS, KPMG AU VC Survey 2026.
+                              // Omit invented figures — say "benchmark data unavailable" if unsure.
 }`;
 
   // Attach the specific investor criteria that map to this SVI dimension
@@ -210,7 +219,7 @@ Focus: ${meta.description}${criteriaSection}${deckSection}
 Score this dimension (0-100) grounded in the deck excerpt. Quote fragments as evidence.
 Respond with ONLY the JSON object.`;
 
-  const result = await callAI({ system, user, maxTokens: 500, timeoutMs: 45_000 });
+  const result = await callAI({ system, user, maxTokens: 600, timeoutMs: 45_000 });
 
   // Parse — strip any accidental markdown fences
   let raw = result.text.trim();
@@ -242,6 +251,9 @@ Respond with ONLY the JSON object.`;
   }
   if (!["high", "medium", "low"].includes(parsed.priority)) {
     parsed.priority = "medium";
+  }
+  if (typeof parsed.market_benchmark !== "string" || parsed.market_benchmark.trim().length < 5) {
+    parsed.market_benchmark = undefined;
   }
 
   return parsed;
@@ -336,6 +348,9 @@ export async function POST(request: Request) {
               markdown: result.markdown,
               insights: result.insights,
               priority: result.priority,
+              ...(result.market_benchmark
+                ? { market_benchmark: result.market_benchmark }
+                : {}),
             });
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
