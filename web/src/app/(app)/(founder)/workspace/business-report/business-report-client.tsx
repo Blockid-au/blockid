@@ -197,6 +197,7 @@ const TOC_SECTIONS = [
   { id: "tbr-risk", label: "Risk Register" },
   { id: "tbr-roadmap", label: "Improvement Roadmap" },
   { id: "tbr-cohort", label: "Cohort Compare" },
+  { id: "tbr-peers", label: "Peer-5 Similarity Match" },
   { id: "tbr-methodology", label: "Methodology" },
 ];
 
@@ -222,6 +223,7 @@ function buildTocGroups(t: ReturnType<typeof getTbrStrings>) {
         { id: "tbr-risk", label: t.secRisk },
         { id: "tbr-roadmap", label: t.secRoadmap },
         { id: "tbr-cohort", label: t.secCohort },
+        { id: "tbr-peers", label: "Peer-5 Similarity Match" },
         { id: "tbr-methodology", label: t.secMethodology },
       ],
     },
@@ -328,6 +330,156 @@ function CriterionRing({ score, size = 56 }: { score: number; size?: number }) {
           {score}
         </text>
       </svg>
+    </div>
+  );
+}
+
+// ── Wave 25C: Peer-5 Similarity Match ────────────────────────────────────────
+
+interface PeerRow {
+  rank: number;
+  codename: string;
+  industry: string;
+  stage: string;
+  sviScore: number;
+  topStrengthDim: string;
+  topStrengthLabel: string;
+  topStrengthScore: number;
+  primaryGapDim: string;
+  primaryGapLabel: string;
+  primaryGapScore: number;
+  similarityPct: number;
+}
+
+function PeerFiveSection({
+  projectId,
+  shareToken,
+  industry,
+  stage,
+}: {
+  projectId: string;
+  shareToken?: string;
+  industry: string | null;
+  stage: string | null | undefined;
+}) {
+  const [peers, setPeers] = useState<PeerRow[] | null>(null);
+  const [fallback, setFallback] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const qs = shareToken
+          ? `token=${encodeURIComponent(shareToken)}`
+          : `projectId=${encodeURIComponent(projectId)}`;
+        const res = await fetch(`/api/svi/report/peers?${qs}`, {
+          credentials: "same-origin",
+        });
+        if (!res.ok) {
+          if (!cancelled) setError("peer-lookup-unavailable");
+          return;
+        }
+        const body = (await res.json()) as {
+          ok?: boolean;
+          peers?: PeerRow[];
+          fallback?: string;
+        };
+        if (cancelled) return;
+        if (body.ok && Array.isArray(body.peers)) {
+          setPeers(body.peers);
+          setFallback(body.fallback ?? null);
+        } else {
+          setError("no-peers");
+        }
+      } catch {
+        if (!cancelled) setError("network-error");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, shareToken]);
+
+  if (loading) {
+    return (
+      <p className="text-sm text-ink-500 dark:text-ink-400">
+        Loading peer-5 similarity matches…
+      </p>
+    );
+  }
+
+  if (error || !peers || peers.length === 0) {
+    return (
+      <p className="text-sm text-ink-500 dark:text-ink-400">
+        Not enough AU peers in our dataset yet to compute a Peer-5 match. As
+        more founders complete a BlockID SVI analysis, this section will
+        populate with the 5 closest matches on the 8-dim vector.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-ink-600 dark:text-ink-400">
+        5 anonymised startups from the BlockID cohort with the closest
+        8-dimension SVI profile to yours (cosine similarity). Names are
+        withheld — only industry, stage, and aggregate scores are shown.
+      </p>
+      {fallback === "cross_sector" && (
+        <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
+          Not enough AU {stage ?? "seed"}-stage {industry ?? "same-sector"}{" "}
+          peers yet — showing top available cross-sector matches.
+        </p>
+      )}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="border-b border-ink-200 dark:border-ink-700">
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">#</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Peer</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Industry</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Stage</th>
+              <th className="text-center py-2 px-2 text-xs font-semibold text-ink-500 uppercase tracking-wide">SVI</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Top Strength</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Primary Gap</th>
+              <th className="text-right py-2 pl-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Similarity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {peers.map((p) => (
+              <tr key={p.rank} className="border-b border-ink-100 dark:border-ink-800/60">
+                <td className="py-2 pr-3 text-ink-500 tabular-nums">{p.rank}</td>
+                <td className="py-2 pr-3 font-medium text-ink-700 dark:text-ink-200">{p.codename}</td>
+                <td className="py-2 pr-3 text-ink-600 dark:text-ink-400">{p.industry}</td>
+                <td className="py-2 pr-3 text-ink-600 dark:text-ink-400 capitalize">{p.stage}</td>
+                <td className="text-center py-2 px-2">
+                  <span className={cn("font-bold tabular-nums", bandColor(scoreBand(p.sviScore)))}>
+                    {p.sviScore}
+                  </span>
+                </td>
+                <td className="py-2 pr-3 text-emerald-700 dark:text-emerald-400 text-xs">
+                  {p.topStrengthLabel} <span className="tabular-nums">({p.topStrengthScore})</span>
+                </td>
+                <td className="py-2 pr-3 text-red-700 dark:text-red-400 text-xs">
+                  {p.primaryGapLabel} <span className="tabular-nums">({p.primaryGapScore})</span>
+                </td>
+                <td className="text-right py-2 pl-3 tabular-nums font-semibold text-brand-700 dark:text-brand-300">
+                  {p.similarityPct}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[11px] text-ink-500 dark:text-ink-500 leading-snug">
+        Peer identities are strictly anonymised — no startup names, founder
+        details, ABN, or contact info are ever exposed. Similarity is cosine
+        distance on the normalised 8-dim SVI vector, sorted best match first.
+      </p>
     </div>
   );
 }
@@ -1213,6 +1365,16 @@ export function BusinessReportClient({
               Industry: {industry ?? "Technology"} · Stage: {stage ?? "Seed"}.
               This is a directional comparison — individual startup profiles vary significantly.
             </p>
+          </ReportSection>
+
+          {/* ── Peer-5 Similarity Match (Wave 25C) ─────────────────────────── */}
+          <ReportSection id="tbr-peers" title="Peer-5 Similarity Match">
+            <PeerFiveSection
+              projectId={projectId}
+              shareToken={shareToken}
+              industry={industry}
+              stage={stage}
+            />
           </ReportSection>
 
           {/* ── Methodology ────────────────────────────────────────────────── */}

@@ -1,9 +1,24 @@
+import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { getCriteriaByDimension, CRITERIA } from "@/lib/evaluation-criteria";
 
 export const dynamic = "force-dynamic";
+
+// Wave 25C — overlap threshold: kick off criteria synthesis once this many
+// dims have landed instead of waiting for all 8. Empirically the first 6
+// dims give the synthesis prompt enough context; the remaining 2 add
+// marginal signal that we surface as a `criterion_addendum` event if their
+// arrival causes a material shift.
+const CRITERIA_OVERLAP_THRESHOLD = 6;
+
+// Same-deck cache TTL (kept in sync with the read guard in the SQL).
+const DECK_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function hashDeck(deckText: string): string {
+  return createHash("sha256").update(deckText).digest("hex");
+}
 
 // ── Dimension metadata ────────────────────────────────────────────────────────
 
@@ -435,10 +450,90 @@ export async function POST(request: Request) {
         // panel can render a cohort comparison ("your SVI vs SaaS median").
         send({ type: "context", industry: ctx.industry, stage: ctx.stage });
 
+        // ── Wave 25C: same-deck 24h cache ────────────────────────────────
+        // If this deckText was analysed by this user within the last 24h,
+        // replay the cached results as the same SSE wire events and skip
+        // both the 8 dim AI calls and the criteria synthesis. Cache is only
+        // consulted for full runs (no dim filter) with deckText supplied.
+        const supabaseForCache = getSupabaseAdmin();
+        if (!dimsFilter && deckText && supabaseForCache) {
+          try {
+            const deckHash = hashDeck(deckText);
+            const { data: cached } = await supabaseForCache
+              .from("svi_deck_cache")
+              .select("dim_results, criterion_results, created_at, industry, stage")
+              .eq("deck_hash", deckHash)
+              .eq("user_id", user.id)
+              .maybeSingle();
+            if (cached && cached.created_at) {
+              const ageMs = Date.now() - new Date(cached.created_at as string).getTime();
+              if (ageMs < DECK_CACHE_TTL_MS) {
+                const cachedDims = (cached.dim_results as DimensionResult[]) ?? [];
+                const cachedCriteria = (cached.criterion_results as CriterionResult[]) ?? [];
+                if (Array.isArray(cachedDims) && cachedDims.length > 0) {
+                  send({
+                    type: "cache_hit",
+                    ageMs,
+                    dims: cachedDims.length,
+                    criteria: cachedCriteria.length,
+                  });
+                  // Replay dim results in the standard wire format so the
+                  // client renders exactly as if the AI had just returned.
+                  for (const r of cachedDims) {
+                    send({
+                      type: "dimension_complete",
+                      dimension: r.dimension,
+                      label: r.label,
+                      score: r.score,
+                      markdown: r.markdown,
+                      insights: r.insights,
+                      priority: r.priority,
+                      ...(r.market_benchmark ? { market_benchmark: r.market_benchmark } : {}),
+                    });
+                    send({ type: "progress", completed: cachedDims.length, total: cachedDims.length });
+                  }
+                  if (cachedCriteria.length > 0) {
+                    send({ type: "criteria_synthesis_start", total: cachedCriteria.length });
+                    send({ type: "criteria_synthesis", criteria: cachedCriteria });
+                  }
+                  send({ type: "done", totalMs: Date.now() - startMs, fromCache: true });
+                  controller.close();
+                  return;
+                }
+              }
+            }
+          } catch (err) {
+            console.warn("[svi-stream:cache] read failed", err);
+            // Fall through to full analysis
+          }
+        }
+
         const dims = dimsFilter ?? Object.keys(DIM_META);
         let completed = 0;
         const total = dims.length;
         const dimResults: DimensionResult[] = [];
+        // Wave 25C — resolved once criteria synthesis lands so we can compare
+        // with a late-arrival addendum after the last dims complete.
+        let earlyCriteriaResults: CriterionResult[] | null = null;
+        let synthesisPromise: Promise<CriterionResult[]> | null = null;
+        let synthesisKicked = false;
+
+        const maybeKickSynthesis = () => {
+          // Fire once, only for full 8-dim runs, once we have >= threshold dims.
+          if (synthesisKicked) return;
+          if (dimsFilter) return;
+          if (dimResults.length < CRITERIA_OVERLAP_THRESHOLD) return;
+          synthesisKicked = true;
+          send({ type: "criteria_synthesis_start", total: 13 });
+          // Snapshot the dims we have right now so late-arriving results
+          // don't mutate the input mid-flight.
+          const snapshot = dimResults.slice();
+          synthesisPromise = synthesizeCriteria(snapshot, ctx).catch((err) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[svi-stream] criteria synthesis (overlap) failed: ${msg}`);
+            return [] as CriterionResult[];
+          });
+        };
 
         const runOne = async (dim: string) => {
           send({
@@ -472,6 +567,9 @@ export async function POST(request: Request) {
           } finally {
             completed += 1;
             send({ type: "progress", completed, total });
+            // Wave 25C — kick criteria synthesis in the background as soon as
+            // the first 6 dims land so it overlaps with the final 2 dim calls.
+            maybeKickSynthesis();
           }
         };
 
@@ -492,15 +590,63 @@ export async function POST(request: Request) {
           await Promise.allSettled(dims.map((dim) => runOne(dim)));
         }
 
-        // Wave 24: after all 8 dims complete, synthesise 13 per-criterion
-        // assessments in one batched AI call. Only runs when we have a full
-        // 8-dim set (not on partial retry runs) so the synthesis prompt has
-        // enough context to be meaningful.
-        if (!dimsFilter && dimResults.length > 0) {
+        // Wave 24 + 25C overlap: synthesis is normally kicked at 6 dims (see
+        // maybeKickSynthesis). If somehow we never triggered it (edge case:
+        // fewer than 6 dims completed), fall back to the pre-25C behaviour
+        // and run it inline now.
+        if (!dimsFilter && dimResults.length > 0 && !synthesisKicked) {
+          synthesisKicked = true;
           send({ type: "criteria_synthesis_start", total: 13 });
+          synthesisPromise = synthesizeCriteria(dimResults, ctx).catch((err) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[svi-stream] criteria synthesis (late) failed: ${msg}`);
+            return [] as CriterionResult[];
+          });
+        }
+
+        if (!dimsFilter && synthesisPromise) {
           try {
-            const criteriaResults = await synthesizeCriteria(dimResults, ctx);
+            const criteriaResults = await synthesisPromise;
+            earlyCriteriaResults = criteriaResults;
             send({ type: "criteria_synthesis", criteria: criteriaResults });
+
+            // Wave 25C addendum: if the last 2 dims that arrived AFTER the
+            // synthesis snapshot show a material shift (score delta ≥ 15 vs
+            // their primary dim's snapshot value), notify the client so the
+            // UI can flag "late signal" without a second AI round-trip.
+            // Cheap: pure math over already-parsed data.
+            const addendum: Array<{ dimension: string; delta: number; note: string }> = [];
+            const seen = new Set<string>();
+            for (const r of dimResults) {
+              if (seen.has(r.dimension)) continue;
+              seen.add(r.dimension);
+            }
+            // Find dims that are in dimResults but that likely arrived after
+            // synthesis was kicked (we snapshot at exactly the threshold, so
+            // anything beyond that index is "late").
+            const lateResults = dimResults.slice(CRITERIA_OVERLAP_THRESHOLD);
+            for (const late of lateResults) {
+              // Compare against the average criterion score for this primary
+              // dim to detect a material shift.
+              const relevant = criteriaResults.filter(
+                (c) => c.primary_dimension === late.dimension,
+              );
+              if (relevant.length === 0) continue;
+              const avg = relevant.reduce((a, c) => a + c.score, 0) / relevant.length;
+              const delta = Math.round(late.score - avg);
+              if (Math.abs(delta) >= 15) {
+                addendum.push({
+                  dimension: late.dimension,
+                  delta,
+                  note: delta > 0
+                    ? `${late.dimension.toUpperCase()} stronger than early criteria estimate (+${delta})`
+                    : `${late.dimension.toUpperCase()} weaker than early criteria estimate (${delta})`,
+                });
+              }
+            }
+            if (addendum.length > 0) {
+              send({ type: "criterion_addendum", items: addendum });
+            }
 
             // Wave 25B — fire-and-forget email of the full report to the
             // founder. Idempotent via svi_snapshots.report_email_sent_at.
@@ -548,6 +694,32 @@ export async function POST(request: Request) {
             console.warn(`[svi-stream] criteria synthesis failed: ${msg}`);
             // Non-fatal — business report falls back to derived scores
           }
+        }
+
+        // Wave 25C — persist the full deck-analysis to the same-deck cache so
+        // an identical resubmit within 24h can short-circuit the AI calls
+        // entirely. Only cache full 8-dim runs (skips partial retries) that
+        // actually completed at least one dim. Fire-and-forget: cache write
+        // failure must never surface to the founder.
+        if (!dimsFilter && deckText && dimResults.length > 0 && supabaseForCache) {
+          const deckHash = hashDeck(deckText);
+          void supabaseForCache
+            .from("svi_deck_cache")
+            .upsert(
+              {
+                deck_hash: deckHash,
+                user_id: user.id,
+                dim_results: dimResults,
+                criterion_results: earlyCriteriaResults ?? [],
+                industry: ctx.industry,
+                stage: ctx.stage,
+                created_at: new Date().toISOString(),
+              },
+              { onConflict: "deck_hash" },
+            )
+            .then(({ error }) => {
+              if (error) console.warn("[svi-stream:cache] write failed", error.message);
+            });
         }
 
         send({ type: "done", totalMs: Date.now() - startMs });

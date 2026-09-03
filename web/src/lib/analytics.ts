@@ -206,6 +206,9 @@ export interface AnalyticsEventMap {
 
   // ── Pitch Video ──────────────────────────────────────────────────────────
   pitch_video_generated: { startup_id: string };
+
+  // ── Wave 25C — TBR onboarding tour ───────────────────────────────────────
+  tbr_onboard_step_clicked: { step: number };
 }
 
 // ─── Type-safe tracker ──────────────────────────────────────────────────────
