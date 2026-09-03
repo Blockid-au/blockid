@@ -82,7 +82,9 @@ type SSEEvent =
   | { type: "progress"; completed: number; total: number }
   | { type: "criteria_synthesis_start"; total: number }
   | { type: "criteria_synthesis"; criteria: CriterionState[] }
-  | { type: "done"; totalMs: number }
+  | { type: "criterion_addendum"; items: Array<{ dimension: string; delta: number; note: string }> }
+  | { type: "cache_hit"; ageMs: number; dims: number; criteria: number }
+  | { type: "done"; totalMs: number; fromCache?: boolean }
   | { type: "error"; dimension: string; message: string }
   | { type: "fatal_error"; message: string };
 
@@ -889,6 +891,309 @@ function EmailReportPanel({
   );
 }
 
+// ── Wave 25C: TBR onboarding tour ────────────────────────────────────────────
+// After the founder's first successful analysis, guide them through the
+// full report → share → download → email verify → track-monthly journey.
+// Only shown on FIRST completion for a given projectId — a localStorage flag
+// (`tbr-onboard:<pid>`) suppresses the panel on repeat runs.
+
+const TBR_ONBOARD_PREFIX = "tbr-onboard:";
+const TBR_ONBOARD_STEPS = 5;
+
+function loadOnboardProgress(projectId: string): {
+  visible: boolean;
+  completedSteps: Record<number, boolean>;
+} {
+  if (typeof window === "undefined") return { visible: false, completedSteps: {} };
+  try {
+    const raw = window.localStorage.getItem(`${TBR_ONBOARD_PREFIX}${projectId}`);
+    if (!raw) return { visible: true, completedSteps: {} };
+    const parsed = JSON.parse(raw) as {
+      completedSteps?: Record<number, boolean>;
+      dismissed?: boolean;
+    };
+    // Panel shows on first completion only. Presence of the key = already seen,
+    // so we suppress on subsequent runs even if not all steps were clicked.
+    return {
+      visible: !parsed.dismissed,
+      completedSteps: parsed.completedSteps ?? {},
+    };
+  } catch {
+    return { visible: true, completedSteps: {} };
+  }
+}
+
+function saveOnboardProgress(
+  projectId: string,
+  completedSteps: Record<number, boolean>,
+  dismissed = false,
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      `${TBR_ONBOARD_PREFIX}${projectId}`,
+      JSON.stringify({ completedSteps, dismissed, updatedAt: Date.now() }),
+    );
+  } catch {
+    /* quota exceeded — silent */
+  }
+}
+
+function TbrOnboardingSteps({
+  projectId,
+  emailWasSent,
+}: {
+  projectId: string;
+  /** True when the SSE done landed AND the server confirmed the auto-email
+   *  fired for this snapshot. Only step 4 becomes actionable when true. */
+  emailWasSent: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copyDone, setCopyDone] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const { visible: v, completedSteps: c } = loadOnboardProgress(projectId);
+    setVisible(v);
+    setCompletedSteps(c);
+  }, [projectId]);
+
+  const markStep = useCallback(
+    (step: number) => {
+      setCompletedSteps((prev) => {
+        const next = { ...prev, [step]: true };
+        saveOnboardProgress(projectId, next);
+        return next;
+      });
+      // Import lazily so a failed dynamic import can't break the SSE panel.
+      void import("@/lib/analytics").then(({ trackEvent }) =>
+        trackEvent("tbr_onboard_step_clicked", { step }),
+      );
+    },
+    [projectId],
+  );
+
+  const dismiss = useCallback(() => {
+    saveOnboardProgress(projectId, completedSteps, true);
+    setVisible(false);
+  }, [projectId, completedSteps]);
+
+  const mintShareToken = useCallback(async () => {
+    if (shareToken || shareBusy) return;
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const res = await fetch("/api/svi/report/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ projectId: projectId || "default" }),
+      });
+      const body = (await res.json()) as {
+        ok?: boolean;
+        token?: string;
+        url?: string;
+        error?: string;
+      };
+      if (!res.ok || !body.ok || !body.token || !body.url) {
+        setShareError(body.error ?? "share_failed");
+        return;
+      }
+      setShareToken(body.token);
+      setShareUrl(body.url);
+      // Copy URL to clipboard — non-fatal if the browser refuses.
+      try {
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(body.url);
+          setCopyDone(true);
+        }
+      } catch {
+        /* silent — the URL is still shown */
+      }
+      markStep(2);
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setShareBusy(false);
+    }
+  }, [projectId, shareBusy, shareToken, markStep]);
+
+  if (!visible) return null;
+
+  const tbrUrl = `/workspace/business-report?pid=${encodeURIComponent(projectId || "default")}`;
+  const pdfUrl = shareToken
+    ? `/api/svi/report/pdf?token=${encodeURIComponent(shareToken)}`
+    : null;
+
+  const StepRow = ({
+    step,
+    title,
+    hint,
+    action,
+    disabled,
+  }: {
+    step: number;
+    title: string;
+    hint?: string;
+    action: React.ReactNode;
+    disabled?: boolean;
+  }) => {
+    const done = !!completedSteps[step];
+    return (
+      <li className={cn(
+        "flex items-start gap-3 py-2.5 border-b border-brand-200/50 dark:border-brand-800/40 last:border-b-0",
+        disabled && "opacity-60",
+      )}>
+        <span
+          className={cn(
+            "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+            done
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
+              : "bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300",
+          )}
+          aria-hidden="true"
+        >
+          {done ? <CheckCircle2 className="h-4 w-4" /> : step}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-ink-800 dark:text-ink-100">{title}</p>
+          {hint && (
+            <p className="text-[11px] text-ink-500 dark:text-ink-400 mt-0.5">{hint}</p>
+          )}
+        </div>
+        <div className="shrink-0">{action}</div>
+      </li>
+    );
+  };
+
+  return (
+    <div className="rounded-xl border-2 border-brand-300 dark:border-brand-700 bg-white dark:bg-ink-950 shadow-sm p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.14em] text-brand-700 dark:text-brand-300 font-semibold">
+            Next steps
+          </p>
+          <h3 className="text-base font-bold text-ink-900 dark:text-ink-100 mt-0.5">
+            You&apos;ve got a 10-page investor-ready report — here&apos;s what to do
+          </h3>
+        </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="text-[11px] text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200 shrink-0"
+          aria-label="Dismiss onboarding tour"
+        >
+          Hide
+        </button>
+      </div>
+      <ul className="space-y-0">
+        <StepRow
+          step={1}
+          title="Your 10-page report is ready"
+          hint="Executive summary, 8 dimensions, 13 investor criteria, valuation range."
+          action={
+            <a
+              href={tbrUrl}
+              onClick={() => markStep(1)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-md bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 py-1.5"
+            >
+              Open TBR
+            </a>
+          }
+        />
+        <StepRow
+          step={2}
+          title="Share it with an investor"
+          hint={
+            shareUrl
+              ? `Link ${copyDone ? "copied" : "ready"}: ${shareUrl}`
+              : "Mint a private share URL. Read-only, no login required."
+          }
+          action={
+            <button
+              type="button"
+              onClick={() => void mintShareToken()}
+              disabled={shareBusy || !!shareToken}
+              className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 dark:text-brand-300 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 text-xs font-semibold px-3 py-1.5 disabled:opacity-60"
+            >
+              {shareBusy ? "Minting…" : shareToken ? "Link ready" : "Get share link"}
+            </button>
+          }
+        />
+        {shareError && (
+          <li className="text-[11px] text-red-600 dark:text-red-400 py-1">
+            Couldn&apos;t create share link ({shareError}). Try again from the TBR page.
+          </li>
+        )}
+        <StepRow
+          step={3}
+          title="Download the PDF"
+          hint={
+            pdfUrl
+              ? "One-click investor-ready PDF export."
+              : "Mint a share link first (step 2)."
+          }
+          disabled={!pdfUrl}
+          action={
+            pdfUrl ? (
+              <a
+                href={pdfUrl}
+                onClick={() => markStep(3)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 dark:text-brand-300 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 text-xs font-semibold px-3 py-1.5"
+              >
+                Download PDF
+              </a>
+            ) : (
+              <span className="text-[11px] text-ink-400">Waiting on step 2</span>
+            )
+          }
+        />
+        {emailWasSent && (
+          <StepRow
+            step={4}
+            title="Check your email"
+            hint="We sent a copy of this report to your inbox (spam folder if it doesn't land)."
+            action={
+              <button
+                type="button"
+                onClick={() => markStep(4)}
+                className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 dark:text-brand-300 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 text-xs font-semibold px-3 py-1.5"
+              >
+                Got it
+              </button>
+            }
+          />
+        )}
+        <StepRow
+          step={5}
+          title="Come back monthly to track your SVI trend"
+          hint="See how your score moves as you add evidence and hit milestones."
+          action={
+            <a
+              href="/dashboard/svi"
+              onClick={() => markStep(5)}
+              className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 dark:text-brand-300 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 text-xs font-semibold px-3 py-1.5"
+            >
+              View trend
+            </a>
+          }
+        />
+      </ul>
+      <p className="text-[10px] text-ink-500 dark:text-ink-400">
+        {Object.keys(completedSteps).length}/{TBR_ONBOARD_STEPS} steps completed
+      </p>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface SviStreamAnalysisProps {
@@ -968,6 +1273,11 @@ export function SviStreamAnalysis({
   const [weekDelta, setWeekDelta] = useState<number | null>(null);
   const [currentDim, setCurrentDim] = useState<string | null>(null);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+  // Wave 25C — same-deck cache + late-arrival addendum state.
+  const [cacheHitAgeMs, setCacheHitAgeMs] = useState<number | null>(null);
+  const [criterionAddendum, setCriterionAddendum] = useState<
+    Array<{ dimension: string; delta: number; note: string }>
+  >([]);
   const abortRef = useRef<AbortController | null>(null);
 
   // Restore a recent (< 30 min) run on mount so a page refresh mid-analysis
@@ -1075,6 +1385,8 @@ export function SviStreamAnalysis({
     setRestoredFromCache(false);
     setCurrentDim(null);
     setLogEntries([]);
+    setCacheHitAgeMs(null);
+    setCriterionAddendum([]);
     clearPersisted(projectId ?? "");
   }, [projectId]);
 
@@ -1216,6 +1528,18 @@ export function SviStreamAnalysis({
             case "criteria_synthesis":
               setCriterionStates(event.criteria ?? []);
               setCriterionSynthesising(false);
+              break;
+
+            case "cache_hit":
+              // Wave 25C — same-deck 24h cache short-circuited the AI stack.
+              // Record the age so the done panel can flag "restored from cache".
+              setCacheHitAgeMs(event.ageMs);
+              break;
+
+            case "criterion_addendum":
+              // Wave 25C — late-arriving dims (7 & 8) show material shift vs
+              // the early criteria snapshot. Non-fatal note for the UI.
+              setCriterionAddendum(event.items ?? []);
               break;
 
             case "done":
@@ -1695,6 +2019,30 @@ export function SviStreamAnalysis({
                 ]),
               )}
             />
+            {/* Wave 25C — cache-hit + late addendum notices. Non-blocking. */}
+            {cacheHitAgeMs !== null && (
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-md px-3 py-1.5">
+                Restored from same-deck 24h cache (age {Math.round(cacheHitAgeMs / 60000)}m).
+                No AI credits spent.
+              </p>
+            )}
+            {criterionAddendum.length > 0 && (
+              <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-1.5 space-y-0.5">
+                <p className="font-semibold">Late-signal addendum</p>
+                {criterionAddendum.map((a) => (
+                  <p key={a.dimension}>{a.note}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Wave 25C — TBR onboarding tour. Only shown on the first done
+                state for this projectId; a localStorage flag suppresses the
+                panel on subsequent runs. */}
+            <TbrOnboardingSteps
+              projectId={projectId ?? "default"}
+              emailWasSent={cacheHitAgeMs === null}
+            />
+
             {/* Full Business Report CTA — links to the TBR page which reads
                 the localStorage-cached dim results and renders a comprehensive
                 analyst-style document with TOC + risk register + roadmap. */}
