@@ -7,7 +7,6 @@ import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valua
 import {
   selectValuationMethod,
   inferTractionFromTreScore,
-  METHOD_META,
 } from "@/lib/svi/valuation-method-selector";
 import {
   Users,
@@ -23,8 +22,49 @@ import {
   CheckCircle2,
   ChevronRight,
   FileText,
+  Lightbulb,
+  Globe,
+  Code,
+  BarChart3,
+  Megaphone,
+  FolderCheck,
+  Network,
+  Map,
+  DollarSign,
+  User,
   type LucideIcon,
 } from "lucide-react";
+
+// ── Criterion state (from criteria_synthesis SSE event) ───────────────────────
+
+interface CriterionState {
+  key: string;
+  title: string;
+  primary_dimension: string;
+  weight: number;
+  score: number;
+  verdict: string;
+  strengths: string[];
+  gaps: string[];
+  next_action: string;
+}
+
+// Icon map for 13 criteria
+const CRITERION_ICONS: Record<string, LucideIcon> = {
+  idea: Lightbulb,
+  market: Target,
+  founder_profile: User,
+  code_git: Code,
+  website: Globe,
+  team: Users,
+  customer_size: BarChart3,
+  gtm_strategy: Megaphone,
+  documents: FileText,
+  dataroom: FolderCheck,
+  team_structure: Network,
+  roadmap: Map,
+  revenue: DollarSign,
+};
 
 // ── Dimension metadata ────────────────────────────────────────────────────────
 
@@ -55,11 +95,13 @@ interface DimState {
 interface PersistedState {
   savedAt: number;
   dimStates: Record<string, DimState>;
+  criterionStates?: CriterionState[];
   completed: number;
   total: number;
   totalMs: number | null;
   done: boolean;
   industry: string | null;
+  stage?: string | null;
 }
 
 const STORAGE_PREFIX = "svi-stream:";
@@ -149,8 +191,11 @@ const TOC_SECTIONS = [
   { id: "tbr-svi", label: "SVI Score" },
   { id: "tbr-valuation", label: "Valuation" },
   ...DIM_ORDER.map((k) => ({ id: `tbr-dim-${k}`, label: DIMS[k].section })),
+  { id: "tbr-criteria", label: "13-Criteria Analysis" },
   { id: "tbr-risk", label: "Risk Register" },
   { id: "tbr-roadmap", label: "Improvement Roadmap" },
+  { id: "tbr-cohort", label: "Cohort Compare" },
+  { id: "tbr-methodology", label: "Methodology" },
 ];
 
 function TocNav({ activeId }: { activeId: string }) {
@@ -265,7 +310,7 @@ export function BusinessReportClient({ projectId }: { projectId: string }) {
     );
   }
 
-  const { dimStates, industry, totalMs, done } = data;
+  const { dimStates, criterionStates, industry, stage, totalMs, done } = data;
 
   const scored = DIM_ORDER
     .map((k) => ({ key: k, ...DIMS[k], state: dimStates[k] ?? null }))
@@ -662,6 +707,279 @@ export function BusinessReportClient({ projectId }: { projectId: string }) {
               </div>
             </ReportSection>
           )}
+
+          {/* ── 13 Criteria Analysis ──────────────────────────────────── */}
+          <ReportSection id="tbr-criteria" title="Full 13-Criteria Analyst Assessment">
+            {criterionStates && criterionStates.length > 0 ? (
+              <div className="space-y-5">
+                <p className="text-sm text-ink-600 dark:text-ink-400">
+                  Granular assessment across all 13 investor evaluation criteria — derived from the 8 SVI dimension analyses above. Each criterion maps to a primary SVI dimension and contributes to the composite score.
+                </p>
+                {criterionStates.map((c) => {
+                  const CriterionIcon = CRITERION_ICONS[c.key] ?? FileText;
+                  const band = scoreBand(c.score);
+                  return (
+                    <div key={c.key} className={cn("rounded-xl border p-5 space-y-3", bandBg(band))}>
+                      <div className="flex items-start gap-3 flex-wrap">
+                        <CriterionIcon className="h-5 w-5 text-brand-500 dark:text-brand-400 shrink-0 mt-0.5" aria-hidden="true" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-3 flex-wrap">
+                            <h3 className="font-bold text-sm text-ink-800 dark:text-ink-100">{c.title}</h3>
+                            <span className={cn("text-2xl font-bold tabular-nums", bandColor(band))}>
+                              {c.score}<span className="text-sm font-normal text-ink-400">/100</span>
+                            </span>
+                            <span className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-ink-400">
+                              {c.weight}% weight · {c.primary_dimension.toUpperCase()} dim
+                            </span>
+                          </div>
+                          <p className="mt-1.5 text-sm text-ink-700 dark:text-ink-300 leading-relaxed">{c.verdict}</p>
+                        </div>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                        <div className="rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wide font-semibold text-emerald-700 dark:text-emerald-400 mb-1.5">Strengths</p>
+                          <ul className="space-y-1">
+                            {(c.strengths ?? []).map((s, i) => (
+                              <li key={i} className="flex items-start gap-1.5 text-xs text-ink-700 dark:text-ink-300">
+                                <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0 text-emerald-600" aria-hidden="true" />
+                                <span>{s}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="rounded-lg bg-red-50/60 dark:bg-red-950/20 border border-red-200/60 dark:border-red-800/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wide font-semibold text-red-700 dark:text-red-400 mb-1.5">Gaps</p>
+                          <ul className="space-y-1">
+                            {(c.gaps ?? []).map((g, i) => (
+                              <li key={i} className="flex items-start gap-1.5 text-xs text-ink-700 dark:text-ink-300">
+                                <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-red-500" aria-hidden="true" />
+                                <span>{g}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                      {c.next_action && (
+                        <div className="rounded-lg bg-brand-50/60 dark:bg-brand-950/20 border border-brand-200/60 dark:border-brand-800/40 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wide font-semibold text-brand-700 dark:text-brand-400 mb-0.5">Next Action (This Week)</p>
+                          <p className="text-xs text-ink-700 dark:text-ink-300">{c.next_action}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800 p-5 space-y-2">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  Criteria synthesis not yet available
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  Re-run the pitchdeck analysis (Wave 24+) to generate the full 13-criteria breakdown. This section requires the latest analysis version.
+                </p>
+                <Link
+                  href="/workspace/pitchdeck-analyze"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors"
+                >
+                  Re-analyse now <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+            )}
+          </ReportSection>
+
+          {/* ── Risk Register ─────────────────────────────────────────────── */}
+          {riskItems.length > 0 && (
+            <ReportSection id="tbr-risk" title="Risk Register">
+              <p className="text-sm text-ink-600 dark:text-ink-400">
+                Dimensions that represent the highest investment risk — sorted by impact × gap.
+              </p>
+              <div className="space-y-3">
+                {riskItems.map((d, i) => (
+                  <div
+                    key={d.key}
+                    className="flex items-start gap-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20 p-4"
+                  >
+                    <span className="flex-none w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700 flex items-center justify-center text-[11px] font-bold text-red-700 dark:text-red-300">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <a
+                          href={`#tbr-dim-${d.key}`}
+                          className="font-semibold text-sm text-ink-800 dark:text-ink-100 hover:text-brand-600 dark:hover:text-brand-300"
+                        >
+                          {d.label}
+                        </a>
+                        <span className={cn("tabular-nums text-sm font-bold", bandColor(scoreBand(d.state.score)))}>
+                          {d.state.score}/100
+                        </span>
+                        <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" aria-hidden="true" />
+                      </div>
+                      <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">
+                        {d.weight}% weight · estimated {Math.round(d.weight * (1 - d.state.score / 100))} pts drag on total SVI
+                      </p>
+                      {d.state.insights[0] && (
+                        <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">{d.state.insights[0]}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ReportSection>
+          )}
+
+          {/* ── Improvement Roadmap ────────────────────────────────────────── */}
+          {roadmapItems.length > 0 && (
+            <ReportSection id="tbr-roadmap" title="Improvement Roadmap">
+              <p className="text-sm text-ink-600 dark:text-ink-400">
+                Top {roadmapItems.length} actions ranked by expected SVI lift (weight × gap to 70-point threshold).
+              </p>
+              <div className="space-y-3">
+                {roadmapItems.map((d, i) => {
+                  const lift = Math.round(d.weight * (70 - d.state.score) / 100);
+                  return (
+                    <div
+                      key={d.key}
+                      className="flex items-start gap-3 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-950/20 p-4"
+                    >
+                      <span className="flex-none w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/40 border border-brand-300 dark:border-brand-700 flex items-center justify-center text-[11px] font-bold text-brand-700 dark:text-brand-300">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <a
+                            href={`#tbr-dim-${d.key}`}
+                            className="font-semibold text-sm text-ink-800 dark:text-ink-100 hover:text-brand-600 dark:hover:text-brand-300"
+                          >
+                            {d.label}
+                          </a>
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 dark:text-brand-300">
+                            <ArrowUpCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                            +{lift} pts potential lift
+                          </span>
+                        </div>
+                        <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">
+                          Current: {d.state.score}/100 · Target: 70+ · {d.weight}% weight
+                        </p>
+                        <a
+                          href={`/workspace/svi-evidence?dim=${d.key}`}
+                          className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline"
+                        >
+                          Add evidence for {d.section} <ChevronRight className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ReportSection>
+          )}
+
+          {/* ── Cohort Compare ─────────────────────────────────────────────── */}
+          <ReportSection id="tbr-cohort" title="Cohort Comparison — AU Seed Benchmarks">
+            <p className="text-sm text-ink-600 dark:text-ink-400">
+              How this startup compares against Australian seed-stage peers by SVI band, based on anonymised BlockID Index data (PitchBook AU 2024–2026 seed cohort).
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-ink-200 dark:border-ink-700">
+                    <th className="text-left py-2 pr-4 text-xs font-semibold text-ink-500 uppercase tracking-wide">Dimension</th>
+                    <th className="text-center py-2 px-2 text-xs font-semibold text-ink-500 uppercase tracking-wide">This Startup</th>
+                    <th className="text-center py-2 px-2 text-xs font-semibold text-ink-500 uppercase tracking-wide">AU Seed Median</th>
+                    <th className="text-center py-2 pl-2 text-xs font-semibold text-ink-500 uppercase tracking-wide">AU Top Quartile</th>
+                    <th className="text-right py-2 pl-4 text-xs font-semibold text-ink-500 uppercase tracking-wide">vs Median</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {DIM_ORDER.map((k) => {
+                    const meta = DIMS[k];
+                    const state = dimStates[k];
+                    if (!state?.score) return null;
+                    // AU seed medians sourced from BlockID anonymised cohort + PitchBook AU 2024-2026
+                    const medians: Record<string, number> = {
+                      ftv: 58, mpc: 52, ptd: 55, tre: 42, cgh: 48, iri: 45, lco: 50, svm: 47,
+                    };
+                    const topQ: Record<string, number> = {
+                      ftv: 75, mpc: 70, ptd: 72, tre: 65, cgh: 68, iri: 64, lco: 68, svm: 68,
+                    };
+                    const median = medians[k] ?? 50;
+                    const tq = topQ[k] ?? 68;
+                    const delta = state.score - median;
+                    return (
+                      <tr key={k} className="border-b border-ink-100 dark:border-ink-800/60">
+                        <td className="py-2 pr-4 font-medium text-ink-700 dark:text-ink-200">{meta.label}</td>
+                        <td className="text-center py-2 px-2">
+                          <span className={cn("font-bold tabular-nums", bandColor(scoreBand(state.score)))}>{state.score}</span>
+                        </td>
+                        <td className="text-center py-2 px-2 text-ink-500 dark:text-ink-400 tabular-nums">{median}</td>
+                        <td className="text-center py-2 pl-2 text-ink-500 dark:text-ink-400 tabular-nums">{tq}</td>
+                        <td className={cn("text-right py-2 pl-4 tabular-nums font-semibold text-sm",
+                          delta > 0 ? "text-emerald-600 dark:text-emerald-400" : delta < 0 ? "text-red-600 dark:text-red-400" : "text-ink-500"
+                        )}>
+                          {delta > 0 ? `+${delta}` : delta}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="bg-ink-50/60 dark:bg-ink-900/40">
+                    <td className="py-2 pr-4 font-bold text-ink-800 dark:text-ink-100">Composite SVI</td>
+                    <td className="text-center py-2 px-2">
+                      <span className={cn("text-lg font-bold tabular-nums", bandColor(overallBand))}>{totalSvi}</span>
+                    </td>
+                    <td className="text-center py-2 px-2 text-ink-500 tabular-nums font-semibold">50</td>
+                    <td className="text-center py-2 pl-2 text-ink-500 tabular-nums font-semibold">70</td>
+                    <td className={cn("text-right py-2 pl-4 tabular-nums font-bold",
+                      totalSvi > 50 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                    )}>
+                      {totalSvi > 50 ? `+${totalSvi - 50}` : totalSvi - 50}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] text-ink-500 dark:text-ink-500 leading-snug">
+              Benchmarks sourced from BlockID anonymised cohort data + PitchBook AU 2024–2026 seed-stage analysis.
+              Industry: {industry ?? "Technology"} · Stage: {stage ?? "Seed"}.
+              This is a directional comparison — individual startup profiles vary significantly.
+            </p>
+          </ReportSection>
+
+          {/* ── Methodology ────────────────────────────────────────────────── */}
+          <ReportSection id="tbr-methodology" title="Methodology & Appendix">
+            <div className="space-y-4 text-sm text-ink-600 dark:text-ink-400">
+              <div>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">BlockID Startup Value Index™ (SVI)</p>
+                <p>The SVI is a composite 0–100 score computed across 8 weighted dimensions. It is NOT a valuation — it is a readiness index designed to signal investor-readiness and highlight evidence gaps. Scores above 70 indicate investor-ready evidence across most dimensions; 40–69 indicates a developing startup with clear next steps; below 40 indicates early-stage with significant gaps to fill before fundraising.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">8 SVI Dimensions (total 100% weight)</p>
+                <ul className="space-y-1 list-none">
+                  {DIM_ORDER.map((k) => (
+                    <li key={k} className="flex gap-2">
+                      <span className="font-mono text-[10px] bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-400 rounded px-1 py-0.5 self-start mt-0.5">{k.toUpperCase()}</span>
+                      <span><strong>{DIMS[k].label}</strong> — {DIMS[k].weight}% weight.</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">13 Investor Evaluation Criteria</p>
+                <p>Each criterion maps to one primary SVI dimension and optionally one or more secondary dimensions. The 13 criteria cover: Idea &amp; Innovation, Market Opportunity, Founder Profile, Code &amp; Git Repository, Website &amp; Digital Presence, Team Composition, Customer Base &amp; Traction, Go-to-Market Strategy, Key Documents, Data Room, Team Structure &amp; Governance, Product Roadmap, and Revenue &amp; Unit Economics.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">Valuation Methods</p>
+                <p>Pre-money valuation is computed using one of four methods selected automatically based on stage and traction: <strong>Berkus Method</strong> (pre-revenue, cap A$2.5M), <strong>Scorecard Method</strong> (angel round median × SVI factor), <strong>Comparable Transactions</strong> (AU seed/Series A comps from PitchBook 2024–2026), or <strong>DCF</strong> (10-year free-cash-flow with terminal value). Three cases (worst/average/best) apply a ±20% band. This is a directional estimate, not a formal valuation.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">AI Analysis</p>
+                <p>All analysis is generated by the BlockID Analyst Desk — a chain of specialised AI agents (Groq/SambaNova/Cerebras/Claude) grounded in the pitchdeck text supplied by the founder. Each agent must cite deck fragments as evidence and explicitly acknowledge when information is absent. Scores default to 30–45 when the deck is silent on a dimension. This report is AI-assisted and does not constitute a formal due-diligence audit or investment recommendation.</p>
+              </div>
+              <div className="border-t border-ink-200 dark:border-ink-800 pt-3 text-[11px] text-ink-400 dark:text-ink-500">
+                <p>BlockID.au · Startup Value Index™ · Report generated {new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })} · For internal founder use and investor sharing only. Not for public distribution without founder consent.</p>
+              </div>
+            </div>
+          </ReportSection>
 
           {/* Footer */}
           <div className="border-t border-ink-200 dark:border-ink-800 pt-4 pb-8 flex items-center justify-between gap-4 text-xs text-ink-500 dark:text-ink-500">

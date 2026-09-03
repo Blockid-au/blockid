@@ -52,6 +52,19 @@ interface DimState {
   marketBenchmark: string | null;
 }
 
+// Per-criterion assessment — synthesised from dim results after all 8 dims.
+interface CriterionState {
+  key: string;
+  title: string;
+  primary_dimension: string;
+  weight: number;
+  score: number;
+  verdict: string;
+  strengths: string[];
+  gaps: string[];
+  next_action: string;
+}
+
 type SSEEvent =
   | { type: "context"; industry: string; stage: string }
   | { type: "dimension_start"; dimension: string; label: string }
@@ -66,6 +79,8 @@ type SSEEvent =
       market_benchmark?: string;
     }
   | { type: "progress"; completed: number; total: number }
+  | { type: "criteria_synthesis_start"; total: number }
+  | { type: "criteria_synthesis"; criteria: CriterionState[] }
   | { type: "done"; totalMs: number }
   | { type: "error"; dimension: string; message: string }
   | { type: "fatal_error"; message: string };
@@ -81,11 +96,13 @@ const STORAGE_MAX_AGE_MS = 30 * 60_000; // 30 min
 interface PersistedState {
   savedAt: number;
   dimStates: Record<string, DimState>;
+  criterionStates: CriterionState[];
   completed: number;
   total: number;
   totalMs: number | null;
   done: boolean;
   industry: string | null;
+  stage: string | null;
 }
 
 function storageKey(projectId: string): string {
@@ -897,6 +914,8 @@ export function SviStreamAnalysis({
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [industry, setIndustry] = useState<string | null>(null);
   const [stage, setStage] = useState<string | null>(null);
+  const [criterionStates, setCriterionStates] = useState<CriterionState[]>([]);
+  const [criterionSynthesising, setCriterionSynthesising] = useState(false);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [notifyOnDone, setNotifyOnDone] = useState(false);
   const [restoredFromCache, setRestoredFromCache] = useState(false);
@@ -914,11 +933,13 @@ export function SviStreamAnalysis({
     const saved = loadPersisted(projectId ?? "");
     if (!saved) return;
     setDimStates(saved.dimStates);
+    if (saved.criterionStates?.length > 0) setCriterionStates(saved.criterionStates);
     setCompleted(saved.completed);
     setTotal(saved.total);
     setTotalMs(saved.totalMs);
     setDone(saved.done);
     setIndustry(saved.industry);
+    if (saved.stage) setStage(saved.stage);
     setRestoredFromCache(true);
   }, [projectId]);
 
@@ -954,13 +975,15 @@ export function SviStreamAnalysis({
     savePersisted(projectId ?? "", {
       savedAt: Date.now(),
       dimStates,
+      criterionStates,
       completed,
       total,
       totalMs,
       done,
       industry,
+      stage,
     });
-  }, [dimStates, completed, total, totalMs, done, industry, projectId]);
+  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId]);
 
   const updateDim = useCallback(
     (key: string, patch: Partial<DimState>) => {
@@ -1004,6 +1027,8 @@ export function SviStreamAnalysis({
     setFatalError(null);
     setIndustry(null);
     setStage(null);
+    setCriterionStates([]);
+    setCriterionSynthesising(false);
     setRestoredFromCache(false);
     setCurrentDim(null);
     setLogEntries([]);
@@ -1139,6 +1164,15 @@ export function SviStreamAnalysis({
             case "progress":
               setCompleted(event.completed);
               setTotal(event.total);
+              break;
+
+            case "criteria_synthesis_start":
+              setCriterionSynthesising(true);
+              break;
+
+            case "criteria_synthesis":
+              setCriterionStates(event.criteria ?? []);
+              setCriterionSynthesising(false);
               break;
 
             case "done":
@@ -1282,9 +1316,14 @@ export function SviStreamAnalysis({
               )}
             </>
           )}
+          {criterionSynthesising && (
+            <p className="text-sm text-brand-700 dark:text-brand-400 animate-pulse">
+              Synthesising 13-criteria analyst report…
+            </p>
+          )}
           {done && totalMs !== null && (
             <p className="text-sm text-emerald-700 dark:text-emerald-400">
-              All {total} dimensions analysed in {(totalMs / 1000).toFixed(1)}s
+              All {total} dimensions + 13 criteria analysed in {(totalMs / 1000).toFixed(1)}s
             </p>
           )}
         </div>
