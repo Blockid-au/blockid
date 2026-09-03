@@ -1,5 +1,20 @@
 # BlockID.au Changelog
 
+## 2026-09-03 — v3.9.2: Analyst-desk streaming + Trusted Business Report (Wave 23 A–E shipped)
+
+### Features
+- **feat(wave23a — running SVI hero)** During the `/workspace/pitchdeck-analyze` SSE stream, a "Business SVI" hero above the fold now counts up dimension-by-dimension as each score lands. Weighted running total (uses the same 8-dim weights as the final composite) with a smooth animated count-up + pulse on each tick — founders see the score materialise instead of a blank spinner.
+- **feat(wave23b — valuation method selector)** New method selector directly in the streaming panel: **Berkus** (pre-revenue $0–2.5M cap), **Scorecard** (angel median × factor), **Comparable** (AU seed/A comps), **DCF** (10-yr FCF + terminal). Chosen method + its rationale is disclosed and applied to the three-case pre-money cards in the done state — no more black-box formula.
+- **feat(wave23c — AU market benchmark per dim)** Each SSE `dim_done` event now carries an AU cohort benchmark (median + top-quartile) sourced from the anonymised `/api/index/svi?bucket=sector` aggregate. Founders see e.g. "Team 68 vs SaaS median 61 (top 34%)" inline, per dimension, as it streams.
+- **feat(wave23d — Trusted Business Report)** New page `/workspace/business-report` and workspace nav entry ("Business Report (TBR)"). Single-page investor memo composed from the latest SVI snapshot + evidence completeness + valuation cards + cohort compare — one link founders can send investors instead of shipping a raw dashboard.
+- **feat(wave23e — analyst persona + decision log)** During the stream, a persona banner ("Reviewed by BlockID Analyst Desk — AU seed-stage panel") plus a live decision log ("Applied Berkus cap because pre-revenue signal detected", "Down-weighted Team on missing-founder-bio evidence") is rendered under the hero. Turns the SSE from a progress bar into an audit trail investors can cite.
+
+### Deploy
+- **release** Gzmc35fHoY8FWSrjYcDRx (sha 4eebcd8f) — 11/11 gates via `bash web/scripts/deploy-live.sh`. Post-deploy hydrated Playwright smoke: 11/11. Cloudflare + nginx caches purged.
+- **404-sweep** Post-deploy full crawl of 282 blockid.au routes + 22 startupvalueindex.com routes: **0 404s, 0 5xx, 0 auth-redirect chain failures**. All routes return 200 (via `curl -L`).
+
+---
+
 ## 2026-09-03 — v3.9.1: Pitchdeck valuation flow + evidence-grounded scoring (Waves 11-18 shipped)
 
 ### Features
