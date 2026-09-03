@@ -198,32 +198,67 @@ const TOC_SECTIONS = [
   { id: "tbr-methodology", label: "Methodology" },
 ];
 
+// ── TOC section groups ────────────────────────────────────────────────────────
+const TOC_GROUPS = [
+  {
+    label: "Overview",
+    items: [
+      { id: "tbr-executive", label: "Executive Summary" },
+      { id: "tbr-svi", label: "SVI Score" },
+      { id: "tbr-valuation", label: "Valuation" },
+    ],
+  },
+  {
+    label: "8 Dimensions",
+    items: DIM_ORDER.map((k) => ({ id: `tbr-dim-${k}`, label: DIMS[k].section })),
+  },
+  {
+    label: "Analysis",
+    items: [
+      { id: "tbr-criteria", label: "13-Criteria" },
+      { id: "tbr-risk", label: "Risk Register" },
+      { id: "tbr-roadmap", label: "Roadmap" },
+      { id: "tbr-cohort", label: "Cohort Compare" },
+      { id: "tbr-methodology", label: "Methodology" },
+    ],
+  },
+];
+
 function TocNav({ activeId }: { activeId: string }) {
   return (
     <nav
       aria-label="Report sections"
-      className="hidden xl:block sticky top-24 self-start w-56 shrink-0"
+      className="hidden xl:block sticky top-24 self-start w-56 shrink-0 print:hidden"
     >
-      <p className="text-[10px] uppercase tracking-[0.16em] font-semibold text-ink-500 dark:text-ink-400 mb-2">
+      <p className="text-[10px] uppercase tracking-[0.16em] font-semibold text-ink-500 dark:text-ink-400 mb-3">
         Contents
       </p>
-      <ul className="space-y-0.5">
-        {TOC_SECTIONS.map((s) => (
-          <li key={s.id}>
-            <a
-              href={`#${s.id}`}
-              className={cn(
-                "block rounded px-2 py-1 text-[12px] transition-colors leading-snug",
-                activeId === s.id
-                  ? "bg-brand-100 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-semibold"
-                  : "text-ink-600 dark:text-ink-400 hover:text-ink-900 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800",
-              )}
-            >
-              {s.label}
-            </a>
-          </li>
+      <div className="space-y-4">
+        {TOC_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-ink-400 dark:text-ink-600 px-2 mb-1">
+              {group.label}
+            </p>
+            <ul className="space-y-0.5">
+              {group.items.map((s) => (
+                <li key={s.id}>
+                  <a
+                    href={`#${s.id}`}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition-all leading-snug",
+                      activeId === s.id
+                        ? "bg-brand-100 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-semibold border-l-2 border-brand-500 dark:border-brand-400 pl-1.5"
+                        : "text-ink-600 dark:text-ink-400 hover:text-ink-900 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800",
+                    )}
+                  >
+                    {s.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         ))}
-      </ul>
+      </div>
     </nav>
   );
 }
@@ -244,17 +279,51 @@ function ReportSection({
   return (
     <section
       id={id}
-      className={cn("scroll-mt-24 space-y-4", className)}
+      className={cn("scroll-mt-24 space-y-4 print:break-inside-avoid print:pt-6", className)}
       aria-labelledby={`${id}-heading`}
     >
-      <h2
-        id={`${id}-heading`}
-        className="text-lg font-bold text-ink-800 dark:text-ink-100 border-b border-ink-200 dark:border-ink-800 pb-2"
-      >
-        {title}
-      </h2>
+      <div className="flex items-center gap-3 pb-3 border-b-2 border-ink-100 dark:border-ink-800 print:border-ink-300">
+        <div className="h-5 w-1 rounded-full bg-brand-500 shrink-0 print:bg-brand-600" aria-hidden="true" />
+        <h2
+          id={`${id}-heading`}
+          className="text-lg font-bold text-ink-800 dark:text-ink-100 tracking-tight"
+        >
+          {title}
+        </h2>
+      </div>
       {children}
     </section>
+  );
+}
+
+// ── Criterion score ring (SVG) ─────────────────────────────────────────────────
+function CriterionRing({ score, size = 56 }: { score: number; size?: number }) {
+  const r = (size - 10) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circ = 2 * Math.PI * r;
+  const dashOffset = circ - (circ * Math.max(0, Math.min(100, score))) / 100;
+  const color =
+    score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#ef4444";
+  return (
+    <div className="shrink-0" role="img" aria-label={`Score ${score}/100`}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" aria-hidden="true">
+        <circle cx={cx} cy={cy} r={r} stroke="#e5e7eb" strokeWidth="5" className="dark:stroke-ink-700" />
+        <circle
+          cx={cx} cy={cy} r={r}
+          stroke={color}
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={dashOffset}
+          transform={`rotate(-90 ${cx} ${cy})`}
+          style={{ transition: "stroke-dashoffset 0.6s ease" }}
+        />
+        <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize={size > 48 ? "13" : "11"} fontWeight="700" fill={color} fontFamily="inherit">
+          {score}
+        </text>
+      </svg>
+    </div>
   );
 }
 
@@ -389,16 +458,32 @@ export function BusinessReportClient({ projectId }: { projectId: string }) {
       : `This business scores ${totalSvi}/100 on the BlockID Startup Value Index — early-stage, indicating significant evidence gaps that will limit fundraising options at this point. Concrete evidence-building actions are recommended before approaching investors.`;
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto print:p-0 print:max-w-none">
+      {/* Print styles injected as a style tag */}
+      <style>{`
+        @media print {
+          .print\\:hidden { display: none !important; }
+          @page { margin: 1.5cm 2cm; size: A4; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="mb-6 space-y-1">
+      <div className="mb-6 space-y-1 print:mb-8">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold text-ink-900 dark:text-ink-100">
+          <h1 className="text-2xl font-bold text-ink-900 dark:text-ink-100 print:text-3xl">
             Trusted Business Report
           </h1>
           <span className="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-800 px-2.5 py-0.5 text-xs font-semibold text-brand-700 dark:text-brand-300">
             BlockID SVI™
           </span>
+          <button
+            onClick={() => typeof window !== "undefined" && window.print()}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors print:hidden"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+            Print / Save PDF
+          </button>
         </div>
         <p className="text-sm text-ink-500 dark:text-ink-400">
           {scored.length} of 8 dimensions · {done ? `completed in ${((totalMs ?? 0) / 1000).toFixed(1)}s` : "partial analysis"}
@@ -411,27 +496,40 @@ export function BusinessReportClient({ projectId }: { projectId: string }) {
         <TocNav activeId={activeId} />
 
         {/* Report body */}
-        <div className="flex-1 min-w-0 space-y-10">
+        <div className="flex-1 min-w-0 space-y-12">
 
           {/* ── Executive Summary ──────────────────────────────────────────── */}
           <ReportSection id="tbr-executive" title="Executive Summary">
-            <div className={cn("rounded-xl border p-5 space-y-3", bandBg(overallBand))}>
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className={cn("text-4xl font-bold tabular-nums", bandColor(overallBand))}>
-                  {totalSvi}
-                  <span className="text-xl text-ink-400 dark:text-ink-500 font-normal">/100</span>
-                </span>
-                <span className={cn("text-sm font-semibold", bandColor(overallBand))}>
-                  {overallBand === "strong" ? "Investor-Ready" : overallBand === "developing" ? "Developing" : "Early-Stage"}
-                </span>
+            <div className={cn("rounded-2xl border p-6 md:p-8 space-y-5", bandBg(overallBand))}>
+              {/* Hero score display */}
+              <div className="flex items-center gap-6 flex-wrap">
+                <div className="flex flex-col items-center">
+                  <span
+                    className={cn(
+                      "text-7xl md:text-8xl font-black tabular-nums leading-none tracking-tighter",
+                      bandColor(overallBand),
+                    )}
+                    aria-label={`SVI Score: ${totalSvi} out of 100`}
+                  >
+                    {totalSvi}
+                  </span>
+                  <span className="text-base text-ink-400 dark:text-ink-500 font-normal mt-1">/ 100</span>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className={cn("inline-flex items-center rounded-full px-3 py-1 text-sm font-bold border", bandBg(overallBand), bandColor(overallBand))}>
+                    {overallBand === "strong" ? "Investor-Ready" : overallBand === "developing" ? "Developing" : "Early-Stage"}
+                  </div>
+                  <p className="text-sm text-ink-700 dark:text-ink-300 leading-relaxed max-w-lg">{execVerdict}</p>
+                </div>
               </div>
-              <p className="text-sm text-ink-700 dark:text-ink-300 leading-relaxed">{execVerdict}</p>
+              {/* Mini dimension scorecard */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                 {scored.slice(0, 4).map((d) => (
-                  <div key={d.key} className="rounded-lg bg-white/60 dark:bg-ink-900/40 border border-ink-200/60 dark:border-ink-800/60 p-2.5">
-                    <p className="text-[10px] text-ink-500 dark:text-ink-400 uppercase tracking-wide">{d.section}</p>
-                    <p className={cn("text-lg font-bold tabular-nums mt-0.5", bandColor(scoreBand(d.state.score)))}>
-                      {d.state.score}/100
+                  <div key={d.key} className="rounded-xl bg-white/70 dark:bg-ink-900/50 border border-ink-200/60 dark:border-ink-800/60 p-3 space-y-1">
+                    <p className="text-[10px] text-ink-500 dark:text-ink-400 uppercase tracking-wide leading-snug">{d.section}</p>
+                    <p className={cn("text-xl font-black tabular-nums", bandColor(scoreBand(d.state.score)))}>
+                      {d.state.score}
+                      <span className="text-xs font-normal text-ink-400">/100</span>
                     </p>
                   </div>
                 ))}
@@ -569,24 +667,30 @@ export function BusinessReportClient({ projectId }: { projectId: string }) {
                 id={`tbr-dim-${k}`}
                 title={`${meta.section} (${meta.label})`}
               >
-                <div className={cn("rounded-xl border p-5 space-y-4", bandBg(band))}>
-                  {/* Score row */}
-                  <div className="flex items-baseline gap-3 flex-wrap">
-                    <meta.Icon className="h-5 w-5 text-brand-500 dark:text-brand-400" aria-hidden="true" />
-                    <span className={cn("text-3xl font-bold tabular-nums", bandColor(band))}>
-                      {state.score}/100
-                    </span>
-                    <span className="text-xs text-ink-500 dark:text-ink-400">{meta.weight}% of total SVI</span>
-                    {state.priority && (
-                      <span className={cn(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                        state.priority === "high" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800",
-                        state.priority === "medium" && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
-                        state.priority === "low" && "bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-400 border border-ink-200 dark:border-ink-700",
-                      )}>
-                        {state.priority} priority
-                      </span>
-                    )}
+                <div className={cn("rounded-xl border p-5 space-y-4 print:break-inside-avoid", bandBg(band))}>
+                  {/* Score row with ring */}
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <CriterionRing score={state.score} size={72} />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <meta.Icon className="h-5 w-5 text-brand-500 dark:text-brand-400" aria-hidden="true" />
+                        <span className="text-xs text-ink-500 dark:text-ink-400">{meta.weight}% of total SVI</span>
+                        {state.priority && (
+                          <span className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                            state.priority === "high" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800",
+                            state.priority === "medium" && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
+                            state.priority === "low" && "bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-400 border border-ink-200 dark:border-ink-700",
+                          )}>
+                            {state.priority} priority
+                          </span>
+                        )}
+                      </div>
+                      <div className={cn("text-3xl font-black tabular-nums tracking-tight", bandColor(band))}>
+                        {state.score}
+                        <span className="text-base font-normal text-ink-400 dark:text-ink-500">/100</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Insights */}
@@ -719,17 +823,16 @@ export function BusinessReportClient({ projectId }: { projectId: string }) {
                   const CriterionIcon = CRITERION_ICONS[c.key] ?? FileText;
                   const band = scoreBand(c.score);
                   return (
-                    <div key={c.key} className={cn("rounded-xl border p-5 space-y-3", bandBg(band))}>
-                      <div className="flex items-start gap-3 flex-wrap">
-                        <CriterionIcon className="h-5 w-5 text-brand-500 dark:text-brand-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <div key={c.key} className={cn("rounded-xl border p-5 space-y-3 print:break-inside-avoid", bandBg(band))}>
+                      <div className="flex items-start gap-4">
+                        {/* Score ring on the left */}
+                        <CriterionRing score={c.score} size={60} />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-3 flex-wrap">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <CriterionIcon className="h-4 w-4 text-brand-500 dark:text-brand-400 shrink-0" aria-hidden="true" />
                             <h3 className="font-bold text-sm text-ink-800 dark:text-ink-100">{c.title}</h3>
-                            <span className={cn("text-2xl font-bold tabular-nums", bandColor(band))}>
-                              {c.score}<span className="text-sm font-normal text-ink-400">/100</span>
-                            </span>
-                            <span className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-ink-400">
-                              {c.weight}% weight · {c.primary_dimension.toUpperCase()} dim
+                            <span className="text-[10px] uppercase tracking-wide text-ink-500 dark:text-ink-400 ml-auto">
+                              {c.weight}% weight · {c.primary_dimension.toUpperCase()}
                             </span>
                           </div>
                           <p className="mt-1.5 text-sm text-ink-700 dark:text-ink-300 leading-relaxed">{c.verdict}</p>
