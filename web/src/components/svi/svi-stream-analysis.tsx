@@ -1436,6 +1436,23 @@ export function SviStreamAnalysis({
                 ]),
               )}
             />
+            {/* Full Business Report CTA — links to the TBR page which reads
+                the localStorage-cached dim results and renders a comprehensive
+                analyst-style document with TOC + risk register + roadmap. */}
+            <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3">
+              <a
+                href={`/workspace/business-report?pid=${encodeURIComponent(projectId ?? "default")}`}
+                className="inline-flex items-center gap-2 w-full justify-center rounded-lg border-2 border-brand-600 dark:border-brand-400 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-950/30 text-sm font-semibold px-4 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                View Full Business Report
+              </a>
+            </div>
+
             {/* Score-delta versus the last stored snapshot — validates
                 improvement over time and gives founders something to beat. */}
             {previousSvi !== null && previousSvi !== totalSvi && (
