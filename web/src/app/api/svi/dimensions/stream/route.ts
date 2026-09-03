@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
-import { getCriteriaByDimension } from "@/lib/evaluation-criteria";
+import { getCriteriaByDimension, CRITERIA } from "@/lib/evaluation-criteria";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +66,20 @@ interface StartupContext {
   stage: string;
   currentSvi: number;
   analysisSnippet: string;
+}
+
+// ── Criterion synthesis result ────────────────────────────────────────────────
+
+export interface CriterionResult {
+  key: string;
+  title: string;
+  primary_dimension: string;
+  weight: number;
+  score: number;          // 0-100, derived from dimension scores
+  verdict: string;        // 2-3 sentences with evidence grounding
+  strengths: string[];    // 2 items ≤20 words each
+  gaps: string[];         // 2 items ≤20 words each
+  next_action: string;    // 1 concrete this-week action ≤20 words
 }
 
 // ── Dimension result type ─────────────────────────────────────────────────────
@@ -259,6 +273,99 @@ Respond with ONLY the JSON object.`;
   return parsed;
 }
 
+// ── Criteria synthesis: one AI call → 13 criterion assessments ───────────────
+
+async function synthesizeCriteria(
+  dimResults: DimensionResult[],
+  ctx: StartupContext,
+): Promise<CriterionResult[]> {
+  const dimSummary = dimResults
+    .map((r) => `${r.dimension.toUpperCase()} (${r.label}): score=${r.score}, priority=${r.priority}. Insights: ${r.insights.join(" / ")}`)
+    .join("\n");
+
+  const criteriaList = CRITERIA.map((c) =>
+    `- key="${c.key}" title="${c.title}" primaryDim="${c.primaryDimension}" weight=${c.weight} subtitle="${c.subtitle}"`
+  ).join("\n");
+
+  const system = `You are a startup investment analyst synthesising dimension-level SVI scores into granular criterion assessments.
+
+You will receive:
+1. 8 SVI dimension scores + insights for a startup
+2. 13 evaluation criteria definitions (each maps to a primary SVI dimension)
+
+Your job: output a JSON array of exactly 13 CriterionResult objects — one per criterion key, in the SAME ORDER as the input list.
+
+JSON schema per item (strict — no extra fields):
+{
+  "key": string,           // exact criterion key from input
+  "title": string,         // exact title from input
+  "primary_dimension": string,  // exact primaryDim from input
+  "weight": number,        // exact weight from input
+  "score": number,         // 0-100. Derive from the primary dimension score ±15 based on how well this specific criterion fits the dimension evidence. Do NOT invent numbers.
+  "verdict": string,       // 2-3 sentences. Ground in dimension insights. Be specific — no generic filler.
+  "strengths": string[],   // exactly 2 items, each ≤20 words, cite dimension evidence
+  "gaps": string[],        // exactly 2 items, each ≤20 words, specific missing signal
+  "next_action": string    // 1 concrete this-week action ≤20 words
+}
+
+Return ONLY the JSON array. No markdown fences, no prose outside the JSON.`;
+
+  const user = `Startup: ${ctx.startupName} | Industry: ${ctx.industry} | Stage: ${ctx.stage}
+
+DIMENSION RESULTS:
+${dimSummary}
+
+CRITERIA TO ASSESS (13 total):
+${criteriaList}
+
+Output the JSON array of 13 CriterionResult objects now.`;
+
+  const result = await callAI({ system, user, maxTokens: 3000, timeoutMs: 60_000 });
+
+  let raw = result.text.trim();
+  if (raw.startsWith("```")) {
+    raw = raw.replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "").trim();
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as CriterionResult[];
+    if (!Array.isArray(parsed)) throw new Error("not array");
+    return parsed.map((item, idx) => {
+      const def = CRITERIA[idx] ?? CRITERIA[0];
+      return {
+        key: String(item.key ?? def.key),
+        title: String(item.title ?? def.title),
+        primary_dimension: String(item.primary_dimension ?? def.primaryDimension),
+        weight: Number.isFinite(Number(item.weight)) ? Number(item.weight) : def.weight,
+        score: Math.max(0, Math.min(100, Number(item.score) || 50)),
+        verdict: String(item.verdict ?? ""),
+        strengths: Array.isArray(item.strengths) ? item.strengths.slice(0, 2) : [],
+        gaps: Array.isArray(item.gaps) ? item.gaps.slice(0, 2) : [],
+        next_action: String(item.next_action ?? ""),
+      };
+    });
+  } catch {
+    // Fallback: derive scores deterministically from dim results, no AI text
+    const dimScoreMap: Record<string, number> = {};
+    for (const r of dimResults) dimScoreMap[r.dimension] = r.score;
+    return CRITERIA.map((c) => ({
+      key: c.key,
+      title: c.title,
+      primary_dimension: c.primaryDimension,
+      weight: c.weight,
+      score: Math.round(
+        (dimScoreMap[c.primaryDimension] ?? 50) * 0.7 +
+        c.secondaryDimensions.reduce((acc, d) => acc + (dimScoreMap[d] ?? 50), 0) /
+          Math.max(1, c.secondaryDimensions.length) * 0.3,
+      ),
+      verdict: `Derived from ${c.primaryDimension.toUpperCase()} dimension analysis.`,
+      strengths: ["Refer to dimension analysis for strengths"],
+      gaps: ["Evidence collection needed for this criterion"],
+      next_action: `Gather ${c.minEvidence}+ evidence items for ${c.title}`,
+    }));
+  }
+}
+
 // ── POST handler ──────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
@@ -331,6 +438,7 @@ export async function POST(request: Request) {
         const dims = dimsFilter ?? Object.keys(DIM_META);
         let completed = 0;
         const total = dims.length;
+        const dimResults: DimensionResult[] = [];
 
         const runOne = async (dim: string) => {
           send({
@@ -340,6 +448,7 @@ export async function POST(request: Request) {
           });
           try {
             const result = await analyzeOneDimension(dim, ctx);
+            dimResults.push(result);
             send({
               type: "dimension_complete",
               dimension: result.dimension,
@@ -381,6 +490,22 @@ export async function POST(request: Request) {
           // Parallel — original behaviour: fan out all dims via allSettled,
           // fastest total time when the AI providers have headroom.
           await Promise.allSettled(dims.map((dim) => runOne(dim)));
+        }
+
+        // Wave 24: after all 8 dims complete, synthesise 13 per-criterion
+        // assessments in one batched AI call. Only runs when we have a full
+        // 8-dim set (not on partial retry runs) so the synthesis prompt has
+        // enough context to be meaningful.
+        if (!dimsFilter && dimResults.length > 0) {
+          send({ type: "criteria_synthesis_start", total: 13 });
+          try {
+            const criteriaResults = await synthesizeCriteria(dimResults, ctx);
+            send({ type: "criteria_synthesis", criteria: criteriaResults });
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[svi-stream] criteria synthesis failed: ${msg}`);
+            // Non-fatal — business report falls back to derived scores
+          }
         }
 
         send({ type: "done", totalMs: Date.now() - startMs });
