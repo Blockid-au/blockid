@@ -797,22 +797,46 @@ export function BusinessReportClient({
             {t.brandBadge}
           </span>
           {!pdfMode && (
-            <button
-              type="button"
-              onClick={() => {
-                // Toggle between EN <-> VI by swapping the /vi prefix.
-                if (typeof window === "undefined") return;
-                const { pathname, search } = window.location;
-                const nextPath = locale === "vi"
-                  ? pathname.replace(/^\/vi(\/|$)/, "/")
-                  : (pathname.startsWith("/vi/") ? pathname : "/vi" + pathname);
-                router.push(nextPath + search);
-              }}
+            // Wave 31D — 4-way locale selector (EN | VI | ES | JA). Each button
+            // swaps the /vi, /es, /ja prefix on the current path so the user
+            // stays on the same report but with translated shell copy.
+            <div
+              role="group"
               aria-label={t.languageToggleAria}
-              className="inline-flex items-center rounded-full border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-2 py-0.5 text-[10px] font-semibold text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 print:hidden"
+              className="inline-flex items-center rounded-full border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 p-0.5 text-[10px] font-semibold text-ink-600 dark:text-ink-300 print:hidden"
             >
-              {locale === "vi" ? t.switchToEn : t.switchToVi}
-            </button>
+              {(["en", "vi", "es", "ja"] as const).map((code) => {
+                const isActive = (locale ?? "en") === code;
+                const label =
+                  code === "en" ? t.switchToEn :
+                  code === "vi" ? t.switchToVi :
+                  code === "es" ? t.switchToEs :
+                  t.switchToJa;
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    aria-pressed={isActive}
+                    onClick={() => {
+                      if (typeof window === "undefined") return;
+                      const { pathname, search } = window.location;
+                      // Strip any existing /vi, /es, /ja prefix first.
+                      const stripped = pathname.replace(/^\/(vi|es|ja)(\/|$)/, "/");
+                      const nextPath = code === "en" ? stripped : `/${code}${stripped}`;
+                      router.push(nextPath + search);
+                    }}
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2 py-0.5 transition-colors",
+                      isActive
+                        ? "bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-200"
+                        : "hover:bg-ink-50 dark:hover:bg-ink-800",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           )}
           {!pdfMode && (
             <div className="ml-auto flex items-center gap-2 print:hidden">
