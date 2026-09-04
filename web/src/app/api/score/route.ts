@@ -203,6 +203,127 @@ function buildCriterionCommentary(key: string, score: number, inputs: ScoreInput
         : "Adding 1–2 independent directors with relevant domain expertise (sector or finance) elevates the governance structure to the standard expected at Series A.";
       return `${structCtx} ${action}`;
     },
+    customer_concentration: () => {
+      const mktCtx = inputs.sector === "saas" || inputs.sector === "fintech"
+        ? `In ${inputs.sector.toUpperCase()}, revenue of A$${Math.round(mrr).toLocaleString()}/month ${mrr > 50000 ? "across multiple subscription accounts suggests manageable concentration risk" : "at early scale carries higher concentration risk if anchored to a small number of accounts"}.`
+        : `In the ${inputs.sector.toUpperCase()} sector, revenue of A$${Math.round(mrr).toLocaleString()}/month ${mrr > 50000 ? "at scale suggests some diversification, though concentration metrics should be documented" : "at early scale often concentrates in 1–2 anchor accounts — a risk that investors will probe during due diligence"}.`;
+      const investorImpact = "Customer concentration is a key due-diligence focus — investors want to see that no single customer represents more than 20–30% of ARR, as departure of one anchor customer can materially damage the business.";
+      const action = score < 55
+        ? "Actively diversifying the customer base by targeting 3–5 additional ICP accounts in the next 90 days will reduce concentration exposure and strengthen the revenue quality narrative."
+        : "Documenting customer concentration metrics (top-5 customer share of ARR, churn by cohort) in the data room will give investors the evidence they need to assess revenue quality.";
+      return `${mktCtx} ${investorImpact} ${action}`;
+    },
+    growth_trajectory: () => {
+      const growthCtx = mrr > 50000
+        ? `Revenue of A$${Math.round(mrr / 1000)}k/month after ${inputs.yearsTrading} year${inputs.yearsTrading === 1 ? "" : "s"} of trading implies a growth trajectory that institutional investors can model — the focus shifts to growth rate documentation.`
+        : mrr > 10000
+          ? `Revenue of A$${Math.round(mrr / 1000)}k/month over ${inputs.yearsTrading} year${inputs.yearsTrading === 1 ? "" : "s"} suggests early traction, but the trajectory needs to be evidenced with month-on-month data to support a growth narrative.`
+          : `Early-stage revenue of A$${Math.round(mrr).toLocaleString()}/month over ${inputs.yearsTrading} year${inputs.yearsTrading === 1 ? "" : "s"} means the growth trajectory is not yet established — this is the most important signal to build over the next quarter.`;
+      const investorImpact = "Growth trajectory is the single most powerful signal for institutional investors at the seed and Series A stages — a clear month-on-month growth chart with annotated inflection points transforms the investor conversation.";
+      const action = score < 55
+        ? "Building a simple monthly revenue tracker and identifying the top 3 levers that drove each growth spike will establish the trajectory narrative needed for investor pitches."
+        : "Presenting MoM growth rate alongside net revenue retention and payback period in a single traction slide creates a complete investor-grade growth story.";
+      return `${growthCtx} ${investorImpact} ${action}`;
+    },
+    vesting_schedule: () => {
+      const esopCtx = inputs.esopAllocated >= 8 && inputs.esopAllocated <= 15
+        ? `An ESOP pool of ${inputs.esopAllocated}% is within the 8–15% range expected by AU investors — this signals that equity is available to attract key hires without requiring a pool top-up at closing.`
+        : inputs.esopAllocated > 15
+          ? `An ESOP pool of ${inputs.esopAllocated}% is above the typical 8–15% range — investors will scrutinise whether the pool is appropriately structured and may require a reset before closing.`
+          : inputs.esopAllocated > 0
+            ? `An ESOP pool of ${inputs.esopAllocated}% exists but is below the 8% minimum expected by most AU institutional investors — a top-up condition is likely in any term sheet.`
+            : "No ESOP pool is a structural gap for institutional investors — it signals the company is not yet prepared to incentivise and retain key hires with equity.";
+      const investorImpact = "Documented 4-year vesting with a 1-year cliff for all founders and key hires is the AU market standard — undocumented or non-standard vesting creates negotiation risk and due-diligence friction.";
+      const action = score < 55
+        ? "Formalising a vesting schedule for all founders in the shareholders agreement and topping the ESOP pool to 10% can both be achieved within 30 days with an AU startup lawyer."
+        : "Ensuring all option grants are documented in a signed deed of grant with vesting terms, and maintaining a live option register, will satisfy institutional due-diligence requirements.";
+      return `${esopCtx} ${investorImpact} ${action}`;
+    },
+    investor_rights: () => {
+      const shaCtx = inputs.hasShareholdersAgreement
+        ? `A shareholders agreement is in place at the ${stage} stage — this is a prerequisite for institutional investment and typically defines drag-along rights, information rights, and anti-dilution provisions.`
+        : `Without a shareholders agreement at the ${stage} stage, investor rights are undefined — this creates uncertainty around information rights, voting thresholds, and protective provisions that institutional investors require.`;
+      const investorImpact = "Investor rights provisions — including information rights, pre-emptive rights, drag-along, and tag-along — are non-negotiable for institutional investors and must be documented before any serious term-sheet conversation.";
+      const action = score < 55
+        ? "Engaging an AU startup lawyer to draft an SHA with standard investor rights provisions should be the immediate priority — typically A$2-5k and can be completed in 2–3 weeks."
+        : "Reviewing the SHA to ensure it includes pro-rata rights, ROFR, and a drag-along threshold appropriate for your cap table will prepare you for institutional round negotiations.";
+      return `${shaCtx} ${investorImpact} ${action}`;
+    },
+    data_room_readiness: () => {
+      const drCtx = inputs.hasFinancialAudit && inputs.hasShareholdersAgreement
+        ? "Both audited financials and a shareholders agreement are in place — these two documents anchor the data room and resolve the most common blocking issues in institutional due diligence."
+        : inputs.hasFinancialAudit
+          ? "Audited financials are in place, providing a strong financial evidence base, but the absence of a shareholders agreement will create friction in the legal section of due diligence."
+          : inputs.hasShareholdersAgreement
+            ? "A shareholders agreement is in place, but unaudited financials mean investors will need to rely on management accounts — this increases scrutiny and may slow closing."
+            : "Neither audited financials nor a shareholders agreement are confirmed — these are the two highest-priority documents to establish before approaching institutional investors.";
+      const investorImpact = "A structured, permissioned data room with clearly named folders and up-to-date documents signals operational maturity — investors who cannot find key documents quickly tend to deprioritise the deal.";
+      const action = score < 55
+        ? "Organising a 5-folder data room (Legal, Financial, Product, Team, Traction) with at least one document in each folder takes 4–6 hours and immediately signals institutional readiness."
+        : "Adding granular access tracking (per-document views, time spent) and refreshing the data room monthly will create leverage in negotiations and demonstrate ongoing operational discipline.";
+      return `${drCtx} ${investorImpact} ${action}`;
+    },
+    due_diligence_score: () => {
+      const ddCtx = inputs.yearsTrading >= 3
+        ? `With ${inputs.yearsTrading} years of trading history, ASIC filings, tax records, and operational documentation should be substantive and available for inspection — this is a positive signal for due-diligence completeness.`
+        : inputs.yearsTrading >= 1
+          ? `With ${inputs.yearsTrading} year${inputs.yearsTrading === 1 ? "" : "s"} of trading history, some operational records exist, but the evidence base is still building — investors will be more forgiving but will probe for consistency.`
+          : "A pre-trading company has minimal operational history — investors will focus entirely on founder credentials, documentation quality, and the strength of the business plan.";
+      const boardCtx = inputs.hasBoardMeetings
+        ? " Regular board meetings create a documented decision trail that technical due-diligence reviewers can verify — this materially accelerates the DD process."
+        : " The absence of board meeting minutes means investors cannot verify governance decisions independently — a recurring yellow flag in institutional due diligence.";
+      const investorImpact = "Due-diligence completeness directly affects deal velocity — well-prepared companies with complete records typically close 40–60% faster than those with documentation gaps, reducing the risk of deal fatigue.";
+      const action = score < 55
+        ? "Creating a DD readiness checklist across legal, financial, product, and HR domains — and completing 80% of items before any investor conversation — will dramatically reduce closing friction."
+        : "Running a mock due-diligence exercise with a trusted advisor will surface gaps that are invisible from inside the founding team and prepare you for the institutional process.";
+      return `${ddCtx}${boardCtx} ${investorImpact} ${action}`;
+    },
+    employment_contracts: () => {
+      const empCtx = inputs.founders >= 3
+        ? `With ${inputs.founders} founders and ${inputs.yearsTrading} year${inputs.yearsTrading === 1 ? "" : "s"} of trading history, employment contract documentation becomes an increasing priority — undocumented team arrangements create legal and IP risk.`
+        : inputs.yearsTrading >= 2
+          ? `After ${inputs.yearsTrading} years of trading, employment contracts and contractor agreements should be formalised — investors will probe the legal basis of each team member's engagement during due diligence.`
+          : `At ${inputs.yearsTrading} year${inputs.yearsTrading === 1 ? "" : "s"} of trading, employment documentation may still be informal — this is acceptable at early stages but should be formalised before any institutional conversation.`;
+      const investorImpact = "Employment contracts, IP assignment clauses, and contractor agreements are reviewed in every institutional due diligence — undocumented arrangements create contingent liabilities that can delay or block closing.";
+      const action = score < 55
+        ? "Ensuring all team members (employees and contractors) have signed agreements that include IP assignment, confidentiality, and non-compete clauses should be the immediate legal priority — typically A$1-2k per set of templates."
+        : "Conducting an annual employment law review with an AU employment lawyer to update contracts for legislative changes will maintain institutional-grade HR documentation.";
+      return `${empCtx} ${investorImpact} ${action}`;
+    },
+    privacy_compliance: () => {
+      const sectorCtx = inputs.sector === "fintech" || (inputs.sector as string) === "healthtech"
+        ? `Operating in ${inputs.sector.toUpperCase()} places the company within a heavily regulated privacy environment — ${inputs.sector === "fintech" ? "AUSTRAC AML/CTF obligations, AFSL requirements, and the Privacy Act APP-3 provisions" : "the My Health Records Act, Notifiable Data Breaches scheme, and APP obligations"} apply and must be evidenced.`
+        : `In the ${inputs.sector.toUpperCase()} sector, the primary privacy obligations are the Australian Privacy Principles under the Privacy Act 1988 — applicable once annual turnover exceeds A$3M or sensitive data is handled.`;
+      const investorImpact = "Privacy compliance gaps are increasingly deal-critical — institutional investors and their legal advisors routinely flag Privacy Act non-compliance as a material risk in AU due diligence, particularly post-2024 reforms.";
+      const action = score < 55
+        ? "Publishing a Privacy Policy, completing an AU-compliant privacy impact assessment, and registering a privacy officer role within the business are the three immediate actions that resolve most privacy due-diligence flags."
+        : "Ensuring the Privacy Policy covers the 13 APPs, implementing a data breach response plan, and completing the OAIC's privacy governance self-assessment will maintain institutional-grade compliance posture.";
+      return `${sectorCtx} ${investorImpact} ${action}`;
+    },
+    competitive_moat: () => {
+      const moatCtx = inputs.sector === "saas" || inputs.sector === "fintech"
+        ? `In ${inputs.sector.toUpperCase()}, the most durable moats derive from data network effects, workflow embedding, and switching costs — ${inputs.hasShareholdersAgreement ? "with governance structures in place, the company is positioned to protect and build on early moat signals" : "formalising governance structures will help protect and document emerging competitive advantages"}.`
+        : inputs.sector === "devtools"
+          ? `In DevTools, competitive moats typically derive from developer workflow integration, community adoption, and platform ecosystem lock-in — documenting these dynamics is critical for investor conversations.`
+          : `The competitive moat in ${inputs.sector.toUpperCase()} typically derives from brand trust, distribution relationships, or regulatory positioning — these must be explicitly articulated and evidenced for institutional investors.`;
+      const investorImpact = "A clearly defined and defensible competitive moat is one of the top 3 due-diligence questions from institutional investors — without it, premium valuation multiples cannot be justified.";
+      const action = score < 55
+        ? "Writing a 1-page competitive moat analysis that identifies the specific mechanism (data, switching costs, network effects, or regulatory barrier) and explains why it compounds over time is the highest-leverage strategic action."
+        : "Documenting the moat evidence with supporting data (customer retention rates, integration depth, data asset inventory) will make the competitive positioning defensible in due diligence.";
+      return `${moatCtx} ${investorImpact} ${action}`;
+    },
+    exit_optionality: () => {
+      const exitCtx = stage === "series-a" || stage === "growth"
+        ? `At the ${stage} stage with A$${Math.round(mrr / 1000)}k/month MRR, the business is entering the zone where strategic acquirers and PE buyers begin active monitoring — exit optionality is high if the revenue trajectory is sustained.`
+        : mrr > 50000
+          ? `With A$${Math.round(mrr / 1000)}k/month MRR at the ${stage} stage, early exit signals are emerging — maintaining growth and governance discipline now will maximise option value at the eventual liquidity event.`
+          : `At the ${stage} stage with pre-scale revenue, exit optionality is primarily a strategic consideration — building the right foundations now determines which exit paths will be available in 3–5 years.`;
+      const investorImpact = "Investors at every stage are underwriting a specific exit thesis — trade sale, PE-backed buyout, or IPO. A startup that can articulate 2–3 credible exit paths and name relevant acquirer categories is a more compelling investment than one that cannot.";
+      const action = score < 55
+        ? "Researching the last 10 M&A transactions in your sector globally and identifying 3–5 strategic acquirer categories gives investors the exit context they need to underwrite their return model."
+        : "Maintaining a live competitive landscape map and tracking acquirer activity in the sector signals strategic awareness and positions the company as a knowledgeable participant in the M&A market.";
+      return `${exitCtx} ${investorImpact} ${action}`;
+    },
   };
   return commentaries[key]?.()
     ?? `This criterion scores ${score}/100, indicating ${score >= 70 ? "strong evidence" : score >= 45 ? "a developing evidence base" : "a significant gap"} that needs attention before investor conversations.`;
@@ -259,6 +380,18 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
       make("revenue", "Revenue & Unit Economics", "MRR/ARR, margins, growth trajectory",
         mrr === 0 ? 20 : mrr <= 5000 ? 45 : mrr <= 20000 ? 62 : mrr <= 100000 ? 78 : 92
       ),
+      make("customer_concentration", "Customer Concentration Risk", "Revenue diversification, anchor account exposure",
+        inputs.sector === "saas" || inputs.sector === "fintech"
+          ? (mrr > 50000 ? 75 : mrr > 10000 ? 55 : 35)
+          : (mrr > 50000 ? 65 : mrr > 10000 ? 48 : 30)
+      ),
+      make("growth_trajectory", "Growth Trajectory", "Month-on-month revenue trend, growth rate signal",
+        mrr === 0 ? 15
+          : mrr <= 5000 ? (inputs.yearsTrading <= 1 ? 45 : 35)
+          : mrr <= 20000 ? (inputs.yearsTrading <= 2 ? 60 : 50)
+          : mrr <= 100000 ? (stage === "seed" ? 72 : stage === "series-a" || stage === "growth" ? 82 : 65)
+          : 88
+      ),
     ];
     case "cgh": return [
       make("team_structure", "Team Structure & Governance", "Vesting schedules, board consent thresholds",
@@ -266,6 +399,20 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
       ),
       make("documents", "Key Documents", "Pitch deck, SHA, financial projections",
         (inputs.hasShareholdersAgreement ? 45 : 10) + (inputs.hasFinancialAudit ? 30 : 5) + (stage === "series-a" || stage === "growth" ? 10 : 5)
+      ),
+      make("vesting_schedule", "Vesting Schedule", "Founder and key-hire vesting terms, ESOP structure",
+        inputs.esopAllocated >= 8 && inputs.esopAllocated <= 15
+          ? (inputs.hasShareholdersAgreement ? 80 : 60)
+          : inputs.esopAllocated > 15
+            ? (inputs.hasShareholdersAgreement ? 65 : 45)
+            : inputs.esopAllocated > 0
+              ? (inputs.hasShareholdersAgreement ? 55 : 35)
+              : 20
+      ),
+      make("investor_rights", "Investor Rights Provisions", "Information rights, pre-emptive rights, drag-along",
+        inputs.hasShareholdersAgreement
+          ? (stage === "series-a" || stage === "growth" ? 82 : stage === "seed" ? 70 : 58)
+          : (stage === "series-a" || stage === "growth" ? 25 : stage === "seed" ? 30 : 40)
       ),
     ];
     case "iri": return [
@@ -275,16 +422,30 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
       make("documents", "Key Documents", "Pitch deck, business plan, financial projections",
         (inputs.hasShareholdersAgreement ? 40 : 10) + (inputs.hasFinancialAudit ? 30 : 8) + (inputs.esopAllocated > 0 ? 10 : 0)
       ),
+      make("data_room_readiness", "Data Room Readiness", "Financial and legal documents, folder structure",
+        (inputs.hasFinancialAudit ? 45 : 15) + (inputs.hasShareholdersAgreement ? 25 : 0) + (stage === "series-a" || stage === "growth" ? 15 : stage === "seed" ? 8 : 3)
+      ),
+      make("due_diligence_score", "Due Diligence Completeness", "Operating history, board records, DD readiness",
+        (inputs.yearsTrading >= 3 ? 45 : inputs.yearsTrading >= 1 ? 30 : 15)
+          + (inputs.hasBoardMeetings ? 25 : 5)
+          + (inputs.hasShareholdersAgreement ? 15 : 0)
+          + (inputs.hasFinancialAudit ? 10 : 0)
+      ),
     ];
     case "lco": {
-      // Wave 31b — LCO must always return EXACTLY 2 criteria for consistent
-      // rendering on the /score results page (regulatory_compliance +
-      // ip_protection). Regulated sectors (fintech/healthtech) carry a
-      // stricter compliance burden and get a small penalty.
+      // Wave 32a — LCO expanded to 4 criteria for full Wave 32a coverage.
+      // Regulated sectors (fintech/healthtech) carry a stricter compliance burden.
       const registered = (inputs as ScoreInput & { companyRegistered?: boolean }).companyRegistered ?? true;
       const sectorPenalty = inputs.sector === "fintech" || (inputs.sector as string) === "healthtech" ? -10 : 0;
       const regScore = (registered ? 80 : 40) + sectorPenalty;
       const ipScore = 55 + (inputs.hasShareholdersAgreement ? 10 : 0);
+      const empScore = (inputs.yearsTrading >= 2 ? 45 : 25)
+        + (inputs.founders >= 2 ? 20 : 0)
+        + (inputs.hasShareholdersAgreement ? 20 : 0);
+      const privacyScore = (registered ? 50 : 25)
+        + (inputs.sector === "fintech" || (inputs.sector as string) === "healthtech" ? -15 : 0)
+        + (inputs.yearsTrading >= 2 ? 15 : 5)
+        + (inputs.hasFinancialAudit ? 10 : 0);
       return [
         make(
           "regulatory_compliance",
@@ -298,6 +459,18 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
           "Trademarks, copyright, IP assignment deeds, contributor agreements",
           ipScore,
         ),
+        make(
+          "employment_contracts",
+          "Employment Contracts",
+          "Team agreements, IP assignment clauses, contractor deeds",
+          empScore,
+        ),
+        make(
+          "privacy_compliance",
+          "Privacy Compliance",
+          "Privacy Act APPs, data breach plan, privacy impact assessment",
+          privacyScore,
+        ),
       ];
     }
     case "svm": return [
@@ -306,6 +479,17 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
       ),
       make("gtm_strategy", "Go-to-Market Strategy", "Distribution moat, competitive positioning",
         (stage === "series-a" || stage === "growth" ? 68 : stage === "seed" ? 56 : 42) + (mrr > 50000 ? 12 : mrr > 10000 ? 6 : 0)
+      ),
+      make("competitive_moat", "Competitive Moat", "Defensibility, network effects, switching costs",
+        inputs.sector === "saas" || inputs.sector === "fintech"
+          ? (stage === "series-a" || stage === "growth" ? 72 : stage === "seed" ? 58 : 42)
+            + (inputs.hasShareholdersAgreement ? 8 : 0)
+          : (stage === "series-a" || stage === "growth" ? 62 : stage === "seed" ? 48 : 35)
+      ),
+      make("exit_optionality", "Exit Optionality", "Exit paths, acquirer landscape, liquidity options",
+        (stage === "series-a" || stage === "growth" ? 72 : stage === "seed" ? 55 : 38)
+          + (mrr > 50000 ? 12 : mrr > 10000 ? 6 : 0)
+          + (inputs.yearsTrading >= 3 ? 8 : inputs.yearsTrading >= 1 ? 4 : 0)
       ),
     ];
     default: return [];
@@ -399,6 +583,56 @@ function computeRiskRegister(dims: SviDimAnalysis[]): RiskItem[] {
       title: "Digital presence underdeveloped",
       impact: "A weak website undermines the credibility of the product narrative before a single conversation.",
       fix: "Invest in a clear value proposition, 3 social proof elements, and a conversion-optimised CTA.",
+    },
+    customer_concentration: {
+      title: "Customer concentration risk elevated",
+      impact: "High revenue concentration in a small number of accounts creates material churn risk that investors will flag in due diligence.",
+      fix: "Target 3–5 additional ICP accounts in the next 90 days to diversify the revenue base and reduce single-account dependency.",
+    },
+    growth_trajectory: {
+      title: "Growth trajectory not evidenced",
+      impact: "Without a documented month-on-month growth rate, investors cannot underwrite a return model or validate the revenue scale thesis.",
+      fix: "Build a monthly revenue tracker and document the top 3 levers driving each growth period for the pitch narrative.",
+    },
+    vesting_schedule: {
+      title: "Vesting schedule undocumented or non-standard",
+      impact: "Undocumented vesting creates uncertainty around founder commitment and key-hire retention — a common blocker in AU term-sheet negotiations.",
+      fix: "Formalise a 4-year vesting schedule with a 1-year cliff for all founders in the SHA, and top up the ESOP pool to 8–15%.",
+    },
+    investor_rights: {
+      title: "Investor rights provisions undefined",
+      impact: "Without documented investor rights (information rights, pre-emptive rights, drag-along), institutional investors cannot close a round.",
+      fix: "Engage an AU startup lawyer to draft an SHA with standard investor rights provisions — typically A$2-5k and achievable in 2–3 weeks.",
+    },
+    data_room_readiness: {
+      title: "Data room not structured for due diligence",
+      impact: "An unstructured data room slows due diligence significantly and signals operational immaturity to institutional investors.",
+      fix: "Organise a 5-folder data room (Legal, Financial, Product, Team, Traction) with at least one document per folder within 1 week.",
+    },
+    due_diligence_score: {
+      title: "Due diligence preparation incomplete",
+      impact: "Incomplete DD readiness extends closing timelines by 40–60% and increases the risk of deal fatigue causing investor withdrawal.",
+      fix: "Complete a DD readiness checklist across legal, financial, product, and HR domains before any institutional investor conversation.",
+    },
+    employment_contracts: {
+      title: "Employment contracts not formalised",
+      impact: "Undocumented employment arrangements create IP ownership uncertainty and contingent liabilities that can block closing.",
+      fix: "Ensure all team members have signed agreements with IP assignment, confidentiality, and applicable non-compete clauses.",
+    },
+    privacy_compliance: {
+      title: "Privacy compliance posture inadequate",
+      impact: "Privacy Act non-compliance is increasingly flagged as material risk in AU due diligence, particularly post-2024 legislative reforms.",
+      fix: "Publish an APPs-compliant Privacy Policy, appoint a privacy officer, and complete an OAIC privacy governance self-assessment.",
+    },
+    competitive_moat: {
+      title: "Competitive moat not articulated",
+      impact: "Without a defined moat mechanism, investors cannot justify a premium valuation multiple or model defensibility of market position.",
+      fix: "Write a 1-page moat analysis identifying the specific mechanism (data, switching costs, network effects) and how it compounds over time.",
+    },
+    exit_optionality: {
+      title: "Exit optionality not evidenced",
+      impact: "Investors underwrite a specific exit thesis — a startup that cannot name 2–3 credible exit paths is harder to model and value.",
+      fix: "Research the last 10 M&A transactions in your sector and identify 3–5 strategic acquirer categories for the investor pitch.",
     },
   };
 
