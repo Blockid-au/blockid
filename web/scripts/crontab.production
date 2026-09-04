@@ -67,6 +67,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 15 16 * * * bash $RUN vesting
 # Lead nurture D1/D4/D9 — at most 1 email/user/day, opt-out aware, dedup via svi_notifications.
 20 16 * * * bash $RUN lead-nurture
+# Wave 27B — refresh sector-specific SVI benchmarks nightly from cohort medians.
+# Skips sectors with <5 samples to avoid noisy medians; seeded defaults serve until then.
+30 17 * * * bash $RUN refresh-sector-benchmarks --timeout 120
 
 # ── Phase 2: Health & Metrics (3:00am AEST / 17:00 UTC) ──────
 0 17 * * * bash $RUN agent-upgrade --timeout 120
