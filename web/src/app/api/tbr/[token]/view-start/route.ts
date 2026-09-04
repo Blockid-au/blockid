@@ -12,6 +12,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { insertNotification, ownerFromShareToken } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -96,6 +97,25 @@ export async function POST(
   if (error) {
     return NextResponse.json({ ok: true, viewId: null });
   }
+
+  // Wave 27C — feed the founder's notification hub. Throttled to 1/hour per
+  // token to avoid nagging on reloads. Fire-and-forget; never block.
+  void (async () => {
+    const owner = await ownerFromShareToken(token);
+    if (!owner) return;
+    await insertNotification({
+      userId: owner.userId,
+      projectId: owner.projectId,
+      kind: "tbr_view",
+      dedupeKey: `token:${token}`,
+      throttleMs: 60 * 60_000,
+      payload: {
+        country: country ?? null,
+        device: deviceClass(ua),
+        referrer,
+      },
+    });
+  })();
 
   return NextResponse.json({ ok: true, viewId: (inserted as { id: number }).id });
 }

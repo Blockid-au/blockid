@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { getCriteriaByDimension, CRITERIA } from "@/lib/evaluation-criteria";
+import { insertNotification } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -497,6 +498,13 @@ export async function POST(request: Request) {
                     send({ type: "criteria_synthesis", criteria: cachedCriteria });
                   }
                   send({ type: "done", totalMs: Date.now() - startMs, fromCache: true });
+                  // Wave 27C — notify founder that analysis completed (cached path).
+                  void insertNotification({
+                    userId: user.id,
+                    projectId: projectId,
+                    kind: "analysis_done",
+                    payload: { fromCache: true, dims: cachedDims.length },
+                  });
                   controller.close();
                   return;
                 }
@@ -723,6 +731,17 @@ export async function POST(request: Request) {
         }
 
         send({ type: "done", totalMs: Date.now() - startMs });
+        // Wave 27C — notify founder that analysis completed.
+        void insertNotification({
+          userId: user.id,
+          projectId: projectId,
+          kind: "analysis_done",
+          payload: {
+            fromCache: false,
+            dims: dimResults.length,
+            totalMs: Date.now() - startMs,
+          },
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         send({ type: "fatal_error", message: msg });

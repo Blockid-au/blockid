@@ -14,6 +14,7 @@ import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/business-report/business-report-client";
 import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
+import { TbrLeadModal } from "@/components/tbr/tbr-lead-modal";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -171,6 +172,8 @@ export default async function TbrSharePage({
       />
       {/* Wave 26A — anonymous open-tracking beacon. Never runs in PDF export. */}
       {!pdfMode && <TbrViewBeacon token={token} />}
+      {/* Wave 27A — investor lead-capture modal. Anon only, never in PDF. */}
+      {!pdfMode && <TbrLeadModal token={token} />}
       {!pdfMode && (
         <footer className="text-center text-[10px] text-ink-400 dark:text-ink-500 pb-6 px-4 print:hidden">
           This report is being viewed. The founder can see aggregate view counts (no PII).
