@@ -1,5 +1,21 @@
 # BlockID.au Changelog
 
+## 2026-09-04 — v3.9.7: Investor engagement + founder retention (Wave 26 A–C)
+
+### Features
+- **feat(wave26a — TBR view analytics)** New table `tbr_views (share_token, viewer_ip, viewer_country, viewer_ua, viewer_device, referrer, viewed_at, read_ms, ended_at)`. Two anon beacon endpoints: `POST /api/tbr/[token]/view-start` (called on mount, extracts IP from `x-forwarded-for` + country from Cloudflare `cf-ipcountry` header) and `POST /api/tbr/[token]/view-end` (called on unload/blur with read duration). Founder-side `GET /api/svi/report/views?projectId=<pid>` returns aggregate stats (total views, unique countries, total read time) plus recent 20 anonymised views (country flag + device class only — never raw IP). New "Investor Views" section rendered in the TBR only when `shareToken && !pdfMode && authenticated`.
+- **feat(wave26b — AI Q&A chat)** New `POST /api/svi/report/qa`: reader submits a question, server fetches snapshot, constructs a system prompt binding the LLM to only cite dim scores + criterion assessments + valuation + cohort data from that specific report. Rate-limited via in-memory Map (5 per token/hour anon; 20 per user/hour auth) — Redis fallback transparent. Floating chat widget `<TbrQaChat>` mounted on both `/workspace/business-report` and `/tbr/[token]`. Opens a compact panel with 3 suggested questions ("What are my biggest risks?" / "Is this valuation realistic?" / "What should I do this week?"). Hidden in `pdfMode` for print-safety.
+- **feat(wave26c — SVI trend dashboard)** New page `/workspace/svi-trend` fetches last 12 snapshots via `GET /api/svi/history/full?projectId=<pid>` and renders: (1) hero with current SVI + 30-day delta pill, (2) full-width SVG line chart of overall SVI over time with area fill, (3) 4-column grid of 8 dim sparklines, (4) delta table (rows=dates, columns=8 dims + overall, cells show score + arrow), (5) "Run new analysis" CTA (enabled if last snapshot > 7 days). Empty state guides first-time users to run analysis. Nav entry "SVI Trend" added to `nav-groups.ts`.
+
+### Privacy
+- Founder never sees raw IP addresses of TBR viewers — only country + device class.
+- Public `/tbr/[token]` footer discloses view tracking with anonymisation.
+
+### Deploy
+- Commit `89c052cb8` (14 files, +1750 lines). Migration `20260904_wave26a_tbr_views.sql` is additive (new table + index). tsc --noEmit: 0 errors.
+
+---
+
 ## 2026-09-03 — v3.9.6: Wave 25C — AI overlap + deck cache + peer-5 match + TBR onboarding tour
 
 (Bundled with the previously-committed v3.9.5 Wave 25B changes because the v3.9.5 build was interrupted before publishing.)
