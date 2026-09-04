@@ -10,6 +10,7 @@ validate / validate.evaluate	Evaluation (13)	/workspace/evaluation
 validate / validate.evaluate	Evidence Vault	/workspace/evidence
 validate / validate.evaluate	Evidence Completeness	/workspace/svi-evidence
 validate / validate.evaluate	Business Report (TBR)	/workspace/business-report
+validate / validate.evaluate	SVI Trend	/workspace/svi-trend
 validate / validate.track	Weekly Reports	/workspace/reports
 validate	Market Size	/dashboard/market-size
 validate	Knowledge Base	/workspace/knowledge-base
@@ -17,6 +18,7 @@ validate	Evaluation (13)	/workspace/evaluation
 validate	Evidence Vault	/workspace/evidence
 validate	Evidence Completeness	/workspace/svi-evidence
 validate	Business Report (TBR)	/workspace/business-report
+validate	SVI Trend	/workspace/svi-trend
 validate	Weekly Reports	/workspace/reports
 build / build.equity-setup	Equity Setup	/workspace/equity-setup
 build / build.equity-setup	Equity Split	/workspace/equity
