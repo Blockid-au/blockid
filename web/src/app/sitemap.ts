@@ -454,6 +454,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    // Wave 33b — explicit /score entry (in addition to canonical /index).
+    // Both URLs are indexable landing surfaces for the free investor-readiness
+    // funnel; /score is the historical shareable link format still used in
+    // outbound campaigns and OG previews.
+    {
+      url: `${SITE_URL}/score`,
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    // Wave 33b — /live public activity ticker (crawl daily for freshness).
+    {
+      url: `${SITE_URL}/live`,
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.6,
+    },
+    // Wave 33b — /company profile hub.
+    {
+      url: `${SITE_URL}/company`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    // Wave 33b — public API pricing surface.
+    {
+      url: `${SITE_URL}/api-pricing`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
     // Static pages
     {
       url: `${SITE_URL}/about`,
