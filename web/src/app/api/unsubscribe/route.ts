@@ -84,11 +84,14 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Missing preferences" }, { status: 400 });
   }
 
-  // Filter to only valid keys
+  // Filter to only valid keys. `digest_weekly` (wave 28A) is a
+  // preference flag on `email_preferences` but not an `EmailCategory` —
+  // it toggles the founder weekly digest, gated separately from
+  // weekly_reports in the digest cron.
   const updates: Record<string, boolean> = {};
   for (const [key, val] of Object.entries(preferences)) {
     if (
-      (isValidCategory(key) || key === "unsubscribed_all") &&
+      (isValidCategory(key) || key === "unsubscribed_all" || key === "digest_weekly") &&
       typeof val === "boolean"
     ) {
       updates[key] = val;

@@ -8,6 +8,7 @@ interface Prefs {
   promotions: boolean;
   svi_alerts: boolean;
   payment_receipts: boolean;
+  digest_weekly: boolean;
   unsubscribed_all: boolean;
 }
 
@@ -15,6 +16,11 @@ const CATEGORY_META: Record<string, { label: string; description: string }> = {
   weekly_reports: {
     label: "Weekly Reports",
     description: "Your weekly SVI progress summary and score changes",
+  },
+  digest_weekly: {
+    label: "Weekly digest email",
+    description:
+      "Every Monday: report views, new investor leads, SVI movement, and one action to improve your weakest dimension.",
   },
   product_updates: {
     label: "Product Updates",
@@ -76,6 +82,7 @@ export function NotificationsClient({
       product_updates: true,
       promotions: true,
       svi_alerts: true,
+      digest_weekly: true,
       unsubscribed_all: false,
     });
   }
@@ -160,6 +167,27 @@ export function NotificationsClient({
           },
         )}
       </div>
+
+      {/* Weekly digest preview */}
+      {!prefs.unsubscribed_all && prefs.digest_weekly && (
+        <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
+          <p className="text-sm font-medium text-ink-800">
+            Want to see what next Monday's digest will look like?
+          </p>
+          <p className="text-xs text-ink-500 mt-1 mb-3">
+            Preview aggregates the last 7 days of views, leads, and SVI movement
+            using the same builder the cron uses.
+          </p>
+          <a
+            href="/api/digest/preview"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block bg-brand-600 text-white font-semibold text-sm px-5 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+          >
+            Preview my next digest
+          </a>
+        </div>
+      )}
 
       {/* Unsubscribe all */}
       {!prefs.unsubscribed_all && (

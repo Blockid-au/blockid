@@ -1,5 +1,18 @@
 # BlockID.au Changelog
 
+## 2026-09-04 — v3.9.9: Wave 28A — Founder Weekly Digest
+
+### Features
+- **feat(wave28a — founder weekly digest)** New table `founder_digest_sends (user_id, project_id, period_start, period_end, payload JSONB, sent_at, opened_at)` with `UNIQUE (user_id, period_start)` for send idempotency. New column `email_preferences.digest_weekly BOOLEAN DEFAULT TRUE` extends the existing preferences hub. New `POST /api/cron/founder-digest-weekly` (CRON_SECRET-gated, POST-only) enumerates opted-in founders, aggregates 7-day windows of `tbr_views` (count + top country), `tbr_leads` (count + firm/interest_level list), `svi_snapshots` (current + delta vs period-start), and picks the weakest dim from `dim_results` for a top action recommendation. Skips silent weeks (no views + no leads + no SVI movement). New `GET /api/digest/preview` runs the same aggregator for the authenticated user and returns the rendered subject + HTML.
+- **feat(wave28a — preferences UI)** `/workspace/notifications/preferences` gains a "Weekly digest email" toggle alongside the existing categories plus a "Preview my next digest" button linking to `/api/digest/preview`. `POST /api/unsubscribe` now accepts `digest_weekly` as a settable key; `updateEmailPreferences()` type widened accordingly.
+- **feat(wave28a — email template)** New pure renderer `lib/digest/email-template.ts` emits inline-CSS HTML + text mirror. Subject: `📊 Your BlockID week — <views> views, <leads> new leads`. Sections: header greeting, views count + top country, leads list with interest chips, SVI card with signed delta, "How to improve your SVI" action block (weakest dim + one CTA), share-link footer, notifications-inbox link, AFSL disclaimer.
+
+### Ops
+- **crontab.production**: appended `0 23 * * 0 curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/founder-digest-weekly` (23:00 UTC Sunday = 09:00-10:00 Australia/Sydney depending on DST).
+- Migration `20260904_wave28a_founder_digest.sql` is fully additive (new table + `ADD COLUMN IF NOT EXISTS`).
+
+---
+
 ## 2026-09-04 — v3.9.8: Investor lead capture + sector benchmarks + notification hub (Wave 27 A–C)
 
 ### Features

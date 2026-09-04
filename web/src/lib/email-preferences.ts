@@ -15,6 +15,13 @@ export interface EmailPreferences {
   promotions: boolean;
   svi_alerts: boolean;
   payment_receipts: boolean;
+  /**
+   * Wave 28A — Founder Weekly Digest opt-in. Defaults TRUE at the DB layer
+   * (see migration 20260904_wave28a_founder_digest.sql). Older rows without
+   * the column read back as `undefined` — treat undefined as TRUE at the
+   * call site until every row has been backfilled.
+   */
+  digest_weekly?: boolean;
   unsubscribed_all: boolean;
   unsubscribe_token: string;
 }
@@ -30,7 +37,7 @@ export async function getEmailPreferences(
   const { data, error } = await sb
     .from("email_preferences")
     .select(
-      "email, weekly_reports, product_updates, promotions, svi_alerts, payment_receipts, unsubscribed_all, unsubscribe_token",
+      "email, weekly_reports, product_updates, promotions, svi_alerts, payment_receipts, digest_weekly, unsubscribed_all, unsubscribe_token",
     )
     .eq("email", email.toLowerCase().trim())
     .maybeSingle();
@@ -114,7 +121,9 @@ export async function canSendEmail(
 
 export async function updateEmailPreferences(
   email: string,
-  updates: Partial<Record<EmailCategory | "unsubscribed_all", boolean>>,
+  updates: Partial<
+    Record<EmailCategory | "unsubscribed_all" | "digest_weekly", boolean>
+  >,
 ): Promise<void> {
   const sb = getSupabaseAdmin();
   if (!sb) return;
@@ -200,7 +209,7 @@ export async function getPreferencesByToken(
   const { data, error } = await sb
     .from("email_preferences")
     .select(
-      "email, weekly_reports, product_updates, promotions, svi_alerts, payment_receipts, unsubscribed_all, unsubscribe_token",
+      "email, weekly_reports, product_updates, promotions, svi_alerts, payment_receipts, digest_weekly, unsubscribed_all, unsubscribe_token",
     )
     .eq("unsubscribe_token", token)
     .maybeSingle();

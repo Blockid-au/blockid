@@ -415,3 +415,10 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 #   - health JSONL to web/content/reports/uptime-guardian.jsonl
 # Non-destructive. Never touches git.
 */2 * * * * bash /home/dovanlong/blockid.au/scripts/cron/uptime-24x7-guardian.sh >> /tmp/blockid-uptime-guardian.log 2>&1
+
+# Wave 28A — Founder Weekly Digest.
+# Every Monday 09:00 Australia/Sydney == 23:00 UTC Sunday (AEDT UTC+10, DST-safe
+# window since Sydney sits between UTC+10 and UTC+11 — target the 23:00 UTC
+# slot so the email lands between 09:00 AEST and 10:00 AEDT). POST-only,
+# CRON_SECRET-guarded. Skips silent weeks (no views + no leads + no SVI move).
+0 23 * * 0 curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/founder-digest-weekly >> /var/log/blockid/founder-digest.log 2>&1
