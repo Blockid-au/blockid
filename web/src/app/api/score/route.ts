@@ -259,6 +259,12 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
       make("documents", "Legal & Compliance Documents", "SHA, ASIC filings, ESIC eligibility, audit",
         (inputs.hasShareholdersAgreement ? 35 : 5) + (inputs.hasFinancialAudit ? 35 : 8) + (inputs.esopAllocated > 0 ? 15 : 5) + Math.min(10, inputs.yearsTrading * 2)
       ),
+      make("dataroom", "Compliance Data Room", "Due-diligence-ready legal and financial document set",
+        (inputs.hasFinancialAudit ? 40 : 12) + (inputs.hasShareholdersAgreement ? 30 : 8) + Math.min(15, inputs.yearsTrading * 3)
+      ),
+      make("team_structure", "Governance & Board Structure", "Board cadence, director consents, governance trail",
+        (inputs.hasBoardMeetings ? 50 : 15) + (inputs.hasShareholdersAgreement ? 25 : 0) + (founders >= 2 ? 10 : 0)
+      ),
     ];
     case "svm": return [
       make("roadmap", "Product Roadmap", "Strategic milestones, 3-year vision",
@@ -485,10 +491,23 @@ function computeSviDimAnalysis(
   const developing = dims.filter((d) => d.status === "developing").sort((a, b) => a.score - b.score);
   const weakest = [...gaps, ...developing].slice(0, 3);
 
-  const topThreePriorities = weakest.map((d) => {
+  const topThreePriorities: string[] = weakest.map((d) => {
     const prefix = d.status === "gap" ? "Urgently strengthen" : "Improve";
     return `${prefix} ${d.label} (currently ${d.score}/100) — ${getPriorityAction(d.dim, inputs)}`;
   });
+
+  // BUG 1 fix: always pad to exactly 3 priorities for high-scoring startups
+  if (topThreePriorities.length < 3) {
+    // Use dims sorted by weight × (100 - score) descending, excluding already included dims
+    const includedDims = new Set(weakest.map((d) => d.dim));
+    const paddingCandidates = [...dims]
+      .filter((d) => !includedDims.has(d.dim))
+      .sort((a, b) => (b.weight * (100 - b.score)) - (a.weight * (100 - a.score)));
+    for (const d of paddingCandidates) {
+      if (topThreePriorities.length >= 3) break;
+      topThreePriorities.push(`Strengthen ${d.label} (currently ${d.score}/100) — ${getPriorityAction(d.dim, inputs)}`);
+    }
+  }
 
   const executiveSummary = buildExecutiveSummary(total, dims, inputs);
   const riskRegister = computeRiskRegister(dims);
