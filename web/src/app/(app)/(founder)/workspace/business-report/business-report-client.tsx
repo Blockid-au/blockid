@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
+import { TbrInvestorViews } from "@/components/tbr/tbr-investor-views";
+import { TbrQaChat } from "@/components/tbr/tbr-qa-chat";
 import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
 import {
   selectValuationMethod,
@@ -196,6 +198,7 @@ const TOC_SECTIONS = [
   { id: "tbr-criteria", label: "13-Criteria Analysis" },
   { id: "tbr-risk", label: "Risk Register" },
   { id: "tbr-roadmap", label: "Improvement Roadmap" },
+  { id: "tbr-investor-views", label: "Investor Views" },
   { id: "tbr-cohort", label: "Cohort Compare" },
   { id: "tbr-peers", label: "Peer-5 Similarity Match" },
   { id: "tbr-methodology", label: "Methodology" },
@@ -1297,6 +1300,16 @@ export function BusinessReportClient({
             </ReportSection>
           )}
 
+          {/* ── Investor Views (Wave 26A) ──────────────────────────────────
+              Only rendered in the authenticated workspace context, once the
+              founder has minted a share token. Never on the public /tbr page
+              (initialData is passed) and never in PDF export. */}
+          {!pdfMode && !initialData && shareToken && (
+            <ReportSection id="tbr-investor-views" title="Investor Views">
+              <TbrInvestorViews projectId={projectId} />
+            </ReportSection>
+          )}
+
           {/* ── Cohort Compare ─────────────────────────────────────────────── */}
           <ReportSection id="tbr-cohort" title={t.secCohort}>
             <p className="text-sm text-ink-600 dark:text-ink-400">
@@ -1425,6 +1438,15 @@ export function BusinessReportClient({
           </div>
         </div>
       </div>
+
+      {/* Wave 26B — floating "Ask about this report" chat widget.
+          Hidden in pdfMode (Playwright PDF export must not capture chat chrome). */}
+      {!pdfMode && (
+        <TbrQaChat
+          projectId={initialData ? undefined : projectId}
+          token={shareToken}
+        />
+      )}
     </div>
   );
 }
