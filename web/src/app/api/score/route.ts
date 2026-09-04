@@ -173,6 +173,27 @@ function buildCriterionCommentary(key: string, score: number, inputs: ScoreInput
         : "Keeping the data room updated monthly and enabling granular access tracking (per-document views, time spent) creates leverage in negotiations with multiple investors.";
       return `${drCtx} ${action}`;
     },
+    regulatory_compliance: () => {
+      const registered = (inputs as ScoreInput & { companyRegistered?: boolean }).companyRegistered ?? true;
+      const sectorCtx = inputs.sector === "fintech" || (inputs.sector as string) === "healthtech"
+        ? `${inputs.sector.toUpperCase()} carries a heavier compliance burden in AU — AFSL/AUSTRAC or TGA/APP-3 obligations extend well beyond baseline ASIC filings.`
+        : `Operating in ${inputs.sector.toUpperCase()} keeps the compliance surface closer to standard ASIC and ATO obligations, without the sector-specific licensing overhead that regulated verticals carry.`;
+      const action = registered
+        ? score < 65
+          ? "Documenting an ASIC filings register, director consents, and a sector-specific compliance checklist would materially strengthen investor confidence in this criterion."
+          : "The company is registered with ASIC and baseline compliance posture is in place — sustaining this with an annual compliance health check will preserve investor-grade evidence."
+        : "Company registration is the foundational compliance step — completing ASIC incorporation and constitution filings should precede any investor conversation.";
+      return `${sectorCtx} ${action}`;
+    },
+    ip_protection: () => {
+      const shaCtx = inputs.hasShareholdersAgreement
+        ? "A shareholders agreement is in place, which typically bundles IP assignment clauses that transfer founder and contributor IP to the company — the single most important IP posture signal for investors."
+        : `Without a shareholders agreement, IP assignment from founders and early contributors is likely undocumented — a hard blocker for institutional due diligence in ${inputs.sector.toUpperCase()}.`;
+      const action = score < 65
+        ? "Filing at least one trademark for the brand name and executing IP assignment deeds with all founders and contractors would meaningfully lift this criterion within 30 days."
+        : "Maintaining a live IP register (trademarks, copyright, IP deeds, contributor agreements) and refreshing it quarterly will preserve institutional-grade IP evidence.";
+      return `${shaCtx} ${action}`;
+    },
     team_structure: () => {
       const structCtx = inputs.hasBoardMeetings
         ? "Regular board meetings signal governance maturity and create a documented decision trail that institutional investors expect to see during due diligence."
@@ -255,17 +276,30 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
         (inputs.hasShareholdersAgreement ? 40 : 10) + (inputs.hasFinancialAudit ? 30 : 8) + (inputs.esopAllocated > 0 ? 10 : 0)
       ),
     ];
-    case "lco": return [
-      make("documents", "Legal & Compliance Documents", "SHA, ASIC filings, ESIC eligibility, audit",
-        (inputs.hasShareholdersAgreement ? 35 : 5) + (inputs.hasFinancialAudit ? 35 : 8) + (inputs.esopAllocated > 0 ? 15 : 5) + Math.min(10, inputs.yearsTrading * 2)
-      ),
-      make("dataroom", "Compliance Data Room", "Due-diligence-ready legal and financial document set",
-        (inputs.hasFinancialAudit ? 40 : 12) + (inputs.hasShareholdersAgreement ? 30 : 8) + Math.min(15, inputs.yearsTrading * 3)
-      ),
-      make("team_structure", "Governance & Board Structure", "Board cadence, director consents, governance trail",
-        (inputs.hasBoardMeetings ? 50 : 15) + (inputs.hasShareholdersAgreement ? 25 : 0) + (founders >= 2 ? 10 : 0)
-      ),
-    ];
+    case "lco": {
+      // Wave 31b — LCO must always return EXACTLY 2 criteria for consistent
+      // rendering on the /score results page (regulatory_compliance +
+      // ip_protection). Regulated sectors (fintech/healthtech) carry a
+      // stricter compliance burden and get a small penalty.
+      const registered = (inputs as ScoreInput & { companyRegistered?: boolean }).companyRegistered ?? true;
+      const sectorPenalty = inputs.sector === "fintech" || (inputs.sector as string) === "healthtech" ? -10 : 0;
+      const regScore = (registered ? 80 : 40) + sectorPenalty;
+      const ipScore = 55 + (inputs.hasShareholdersAgreement ? 10 : 0);
+      return [
+        make(
+          "regulatory_compliance",
+          "Regulatory Compliance",
+          "ASIC registration, sector licences, jurisdiction posture",
+          regScore,
+        ),
+        make(
+          "ip_protection",
+          "IP Protection",
+          "Trademarks, copyright, IP assignment deeds, contributor agreements",
+          ipScore,
+        ),
+      ];
+    }
     case "svm": return [
       make("roadmap", "Product Roadmap", "Strategic milestones, 3-year vision",
         (stage === "series-a" || stage === "growth" ? 72 : stage === "seed" ? 60 : 48) + (inputs.runwayMonths >= 18 ? 8 : inputs.runwayMonths >= 12 ? 4 : 0)
