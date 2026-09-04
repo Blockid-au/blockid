@@ -438,3 +438,10 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # slot so the email lands between 09:00 AEST and 10:00 AEDT). POST-only,
 # CRON_SECRET-guarded. Skips silent weeks (no views + no leads + no SVI move).
 0 23 * * 0 curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/founder-digest-weekly >> /var/log/blockid/founder-digest.log 2>&1
+
+# Wave 31c — Investor Lead Drip Sequence (Steps 2 + 3).
+# Step 1 fires inline from POST /api/tbr/[token]/lead. This cron advances
+# eligible leads to Step 2 (T+2 days, warm+) and Step 3 (T+7 days, all).
+# 4-hourly cadence keeps drift < 4h from the target send window without
+# hammering SMTP or Supabase.
+0 */4 * * * curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/tbr-lead-drip >> /var/log/blockid/tbr-lead-drip.log 2>&1
