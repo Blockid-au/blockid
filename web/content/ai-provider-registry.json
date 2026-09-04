@@ -1,0 +1,473 @@
+{
+  "updated_at": "2026-09-04T12:31:03.143Z",
+  "primary_chain": [
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "priority": 1,
+      "healthy": true,
+      "latency_ms": 138,
+      "last_checked": "2026-09-04T12:30:56.580Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "poolside/laguna-xs-2.1:free",
+      "priority": 2,
+      "healthy": true,
+      "latency_ms": 142,
+      "last_checked": "2026-09-04T12:30:58.914Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "priority": 3,
+      "healthy": true,
+      "latency_ms": 195,
+      "last_checked": "2026-09-04T12:30:56.582Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "groq/compound-mini",
+      "priority": 4,
+      "healthy": true,
+      "latency_ms": 235,
+      "last_checked": "2026-09-04T12:30:56.786Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "allam-2-7b",
+      "priority": 5,
+      "healthy": true,
+      "latency_ms": 315,
+      "last_checked": "2026-09-04T12:30:56.584Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "priority": 6,
+      "healthy": true,
+      "latency_ms": 325,
+      "last_checked": "2026-09-04T12:30:57.969Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "qwen/qwen3.6-27b",
+      "priority": 7,
+      "healthy": true,
+      "latency_ms": 336,
+      "last_checked": "2026-09-04T12:30:56.581Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "priority": 8,
+      "healthy": true,
+      "latency_ms": 337,
+      "last_checked": "2026-09-04T12:30:56.581Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "google/gemma-4-26b-a4b-it:free",
+      "priority": 9,
+      "healthy": true,
+      "latency_ms": 438,
+      "last_checked": "2026-09-04T12:30:57.528Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "dots-studio/dots-3-note-preview:free",
+      "priority": 10,
+      "healthy": true,
+      "latency_ms": 450,
+      "last_checked": "2026-09-04T12:30:58.144Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "inclusionai/ling-3.0-flash-fin:free",
+      "priority": 11,
+      "healthy": true,
+      "latency_ms": 901,
+      "last_checked": "2026-09-04T12:30:58.337Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "minimax/minimax-m3:free",
+      "priority": 12,
+      "healthy": true,
+      "latency_ms": 980,
+      "last_checked": "2026-09-04T12:30:57.094Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "minimax/minimax-m2.7:free",
+      "priority": 13,
+      "healthy": true,
+      "latency_ms": 1404,
+      "last_checked": "2026-09-04T12:30:57.135Z",
+      "http_status": 200
+    },
+    {
+      "provider": "groq",
+      "model": "groq/compound",
+      "priority": 14,
+      "healthy": true,
+      "latency_ms": 1561,
+      "last_checked": "2026-09-04T12:30:56.582Z",
+      "http_status": 200
+    },
+    {
+      "provider": "openrouter",
+      "model": "thinkingmachines/inkling:free",
+      "priority": 15,
+      "healthy": false,
+      "latency_ms": 32,
+      "last_checked": "2026-09-04T12:30:58.107Z",
+      "http_status": 403
+    },
+    {
+      "provider": "openrouter",
+      "model": "thinkingmachines/inkling-small:free",
+      "priority": 16,
+      "healthy": false,
+      "latency_ms": 54,
+      "last_checked": "2026-09-04T12:30:58.859Z",
+      "http_status": 403
+    },
+    {
+      "provider": "groq",
+      "model": "canopylabs/orpheus-arabic-saudi",
+      "priority": 17,
+      "healthy": false,
+      "latency_ms": 67,
+      "last_checked": "2026-09-04T12:30:56.719Z",
+      "http_status": 400
+    },
+    {
+      "provider": "groq",
+      "model": "canopylabs/orpheus-v1-english",
+      "priority": 18,
+      "healthy": false,
+      "latency_ms": 82,
+      "last_checked": "2026-09-04T12:30:56.780Z",
+      "http_status": 400
+    },
+    {
+      "provider": "cerebras",
+      "model": "gemma-4-31b",
+      "priority": 19,
+      "healthy": false,
+      "latency_ms": 82,
+      "last_checked": "2026-09-04T12:30:56.900Z",
+      "http_status": 402
+    },
+    {
+      "provider": "sambanova",
+      "model": "gemma-4-31B-it",
+      "priority": 20,
+      "healthy": false,
+      "latency_ms": 89,
+      "last_checked": "2026-09-04T12:30:57.045Z",
+      "http_status": 402
+    },
+    {
+      "provider": "cerebras",
+      "model": "gpt-oss-120b",
+      "priority": 21,
+      "healthy": false,
+      "latency_ms": 90,
+      "last_checked": "2026-09-04T12:30:56.862Z",
+      "http_status": 402
+    },
+    {
+      "provider": "sambanova",
+      "model": "DeepSeek-V3.2",
+      "priority": 22,
+      "healthy": false,
+      "latency_ms": 94,
+      "last_checked": "2026-09-04T12:30:56.953Z",
+      "http_status": 402
+    },
+    {
+      "provider": "sambanova",
+      "model": "Meta-Llama-3.3-70B-Instruct",
+      "priority": 23,
+      "healthy": false,
+      "latency_ms": 96,
+      "last_checked": "2026-09-04T12:30:57.031Z",
+      "http_status": 402
+    },
+    {
+      "provider": "sambanova",
+      "model": "DeepSeek-V3.1",
+      "priority": 24,
+      "healthy": false,
+      "latency_ms": 99,
+      "last_checked": "2026-09-04T12:30:56.923Z",
+      "http_status": 402
+    },
+    {
+      "provider": "sambanova",
+      "model": "MiniMax-M3",
+      "priority": 25,
+      "healthy": false,
+      "latency_ms": 100,
+      "last_checked": "2026-09-04T12:30:56.983Z",
+      "http_status": 402
+    },
+    {
+      "provider": "sambanova",
+      "model": "gpt-oss-120b",
+      "priority": 26,
+      "healthy": false,
+      "latency_ms": 103,
+      "last_checked": "2026-09-04T12:30:57.024Z",
+      "http_status": 402
+    },
+    {
+      "provider": "cerebras",
+      "model": "qwen-3.8-27b",
+      "priority": 27,
+      "healthy": false,
+      "latency_ms": 124,
+      "last_checked": "2026-09-04T12:30:56.921Z",
+      "http_status": 402
+    },
+    {
+      "provider": "openrouter",
+      "model": "google/gemma-4-31b-it:free",
+      "priority": 28,
+      "healthy": false,
+      "latency_ms": 141,
+      "last_checked": "2026-09-04T12:30:57.386Z",
+      "http_status": 429
+    },
+    {
+      "provider": "openrouter",
+      "model": "z-ai/glm-5.2:free",
+      "priority": 29,
+      "healthy": false,
+      "latency_ms": 243,
+      "last_checked": "2026-09-04T12:30:57.143Z",
+      "http_status": 429
+    },
+    {
+      "provider": "openrouter",
+      "model": "google/lyria-3-clip-preview",
+      "priority": 30,
+      "healthy": false,
+      "latency_ms": 900,
+      "last_checked": "2026-09-04T12:30:58.547Z",
+      "http_status": 502
+    },
+    {
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "priority": 31,
+      "healthy": false,
+      "latency_ms": 5001,
+      "last_checked": "2026-09-04T12:30:57.058Z",
+      "http_status": 0
+    },
+    {
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3.5-lightning:free",
+      "priority": 32,
+      "healthy": false,
+      "latency_ms": 5001,
+      "last_checked": "2026-09-04T12:30:58.140Z",
+      "http_status": 0
+    },
+    {
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "priority": 33,
+      "healthy": false,
+      "latency_ms": 5002,
+      "last_checked": "2026-09-04T12:30:57.138Z",
+      "http_status": 0
+    }
+  ],
+  "fallback_pool": [
+    {
+      "provider": "groq",
+      "model": "llama-3.3-70b-versatile",
+      "priority": 1,
+      "healthy": false,
+      "latency_ms": 49,
+      "last_checked": "2026-09-04T12:30:59.075Z",
+      "http_status": 404
+    },
+    {
+      "provider": "groq",
+      "model": "llama-3.1-8b-instant",
+      "priority": 2,
+      "healthy": false,
+      "latency_ms": 50,
+      "last_checked": "2026-09-04T12:30:59.125Z",
+      "http_status": 404
+    },
+    {
+      "provider": "groq",
+      "model": "mixtral-8x7b-32768",
+      "priority": 3,
+      "healthy": false,
+      "latency_ms": 49,
+      "last_checked": "2026-09-04T12:30:59.176Z",
+      "http_status": 400
+    },
+    {
+      "provider": "groq",
+      "model": "gemma2-9b-it",
+      "priority": 4,
+      "healthy": false,
+      "latency_ms": 83,
+      "last_checked": "2026-09-04T12:30:59.226Z",
+      "http_status": 400
+    },
+    {
+      "provider": "sambanova",
+      "model": "Meta-Llama-3.1-405B-Instruct",
+      "priority": 5,
+      "healthy": false,
+      "latency_ms": 93,
+      "last_checked": "2026-09-04T12:30:59.259Z",
+      "http_status": 402
+    },
+    {
+      "provider": "sambanova",
+      "model": "DeepSeek-R1",
+      "priority": 6,
+      "healthy": false,
+      "latency_ms": 91,
+      "last_checked": "2026-09-04T12:30:59.310Z",
+      "http_status": 402
+    },
+    {
+      "provider": "cerebras",
+      "model": "llama-3.3-70b",
+      "priority": 7,
+      "healthy": false,
+      "latency_ms": 54,
+      "last_checked": "2026-09-04T12:30:59.362Z",
+      "http_status": 404
+    },
+    {
+      "provider": "cerebras",
+      "model": "llama3.1-8b",
+      "priority": 8,
+      "healthy": false,
+      "latency_ms": 61,
+      "last_checked": "2026-09-04T12:30:59.411Z",
+      "http_status": 404
+    },
+    {
+      "provider": "cerebras",
+      "model": "qwen-3-32b",
+      "priority": 9,
+      "healthy": false,
+      "latency_ms": 71,
+      "last_checked": "2026-09-04T12:30:59.418Z",
+      "http_status": 404
+    },
+    {
+      "provider": "openrouter",
+      "model": "meta-llama/llama-3.3-70b-instruct:free",
+      "priority": 10,
+      "healthy": false,
+      "latency_ms": 35,
+      "last_checked": "2026-09-04T12:30:59.447Z",
+      "http_status": 404
+    },
+    {
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-r1:free",
+      "priority": 11,
+      "healthy": false,
+      "latency_ms": 34,
+      "last_checked": "2026-09-04T12:30:59.473Z",
+      "http_status": 404
+    },
+    {
+      "provider": "openrouter",
+      "model": "qwen/qwen-2.5-72b-instruct:free",
+      "priority": 12,
+      "healthy": false,
+      "latency_ms": 33,
+      "last_checked": "2026-09-04T12:30:59.483Z",
+      "http_status": 404
+    },
+    {
+      "provider": "openrouter",
+      "model": "google/gemma-2-9b-it:free",
+      "priority": 13,
+      "healthy": false,
+      "latency_ms": 40,
+      "last_checked": "2026-09-04T12:30:59.490Z",
+      "http_status": 404
+    },
+    {
+      "provider": "openrouter",
+      "model": "mistralai/mistral-7b-instruct:free",
+      "priority": 14,
+      "healthy": false,
+      "latency_ms": 31,
+      "last_checked": "2026-09-04T12:30:59.507Z",
+      "http_status": 404
+    }
+  ],
+  "degraded": [
+    {
+      "provider": "cerebras",
+      "model": "gpt-oss-120b",
+      "degraded_until": "2026-09-04T14:31:03.143Z",
+      "reason": "{\"message\":\"Payment required to access this resource. Visit your billing tab.\",\"type\":\"payment_required_error\",\"param\":\"quota\",\"code\":\"payment_required\"}",
+      "backoff_ms": 7200000,
+      "first_degraded_at": "2026-09-04T12:30:53.484Z"
+    },
+    {
+      "provider": "cerebras",
+      "model": "gemma-4-31b",
+      "degraded_until": "2026-09-04T14:31:03.143Z",
+      "reason": "{\"message\":\"Payment required to access this resource. Visit your billing tab.\",\"type\":\"payment_required_error\",\"param\":\"quota\",\"code\":\"payment_required\"}",
+      "backoff_ms": 7200000,
+      "first_degraded_at": "2026-09-04T12:30:53.484Z"
+    },
+    {
+      "provider": "cerebras",
+      "model": "qwen-3.8-27b",
+      "degraded_until": "2026-09-04T14:31:03.143Z",
+      "reason": "{\"message\":\"Payment required to access this resource. Visit your billing tab.\",\"type\":\"payment_required_error\",\"param\":\"quota\",\"code\":\"payment_required\"}",
+      "backoff_ms": 7200000,
+      "first_degraded_at": "2026-09-04T12:30:53.484Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "z-ai/glm-5.2:free",
+      "degraded_until": "2026-09-04T14:31:03.143Z",
+      "reason": "{\"error\":{\"message\":\"Provider returned error\",\"code\":429,\"metadata\":{\"raw\":\"z-ai/glm-5.2:free is temporarily rate-limited upstream. Please retry shortly, or add",
+      "backoff_ms": 7200000,
+      "first_degraded_at": "2026-09-04T12:30:53.484Z"
+    },
+    {
+      "provider": "openrouter",
+      "model": "google/gemma-4-31b-it:free",
+      "degraded_until": "2026-09-04T14:31:03.143Z",
+      "reason": "{\"error\":{\"message\":\"Provider returned error\",\"code\":429,\"metadata\":{\"raw\":\"google/gemma-4-31b-it:free is temporarily rate-limited upstream. Please retry shortl",
+      "backoff_ms": 7200000,
+      "first_degraded_at": "2026-09-04T12:30:53.484Z"
+    }
+  ],
+  "candidates_discovered": []
+}
