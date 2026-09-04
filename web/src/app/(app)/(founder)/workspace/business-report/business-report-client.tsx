@@ -524,6 +524,34 @@ export function BusinessReportClient({
   const [shareError, setShareError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  // Wave 27B — per-sector cohort benchmarks (fetched from
+  // /api/svi/benchmarks/[sector]). Falls back to hardcoded numbers below
+  // while loading and on error.
+  const [benchmark, setBenchmark] = useState<{
+    sector: string;
+    dim_medians: Record<string, number>;
+    dim_top_quartile: Record<string, number>;
+    sample_size: number;
+    updated_at: string;
+  } | null>(null);
+  // Wave 27A — investor leads captured against this project's share token.
+  interface InvestorLead {
+    id: number;
+    investor_name: string | null;
+    investor_email: string;
+    investor_firm: string | null;
+    investor_role: string | null;
+    interest_level: "exploring" | "warm" | "ready_to_talk";
+    message: string | null;
+    viewer_country: string | null;
+    created_at: string;
+  }
+  const [leads, setLeads] = useState<InvestorLead[] | null>(null);
+  const [leadsByInterest, setLeadsByInterest] = useState<Record<string, number>>({
+    exploring: 0,
+    warm: 0,
+    ready_to_talk: 0,
+  });
 
   // Load from localStorage first (fast path), then fall back to Supabase
   // (/api/svi/report/[projectId]) so the report survives beyond the 30-min
@@ -570,6 +598,67 @@ export function BusinessReportClient({
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
   }, [data]);
+
+  // Wave 27B — fetch sector benchmarks once we know the industry.
+  const industryForFetch = data?.industry ?? null;
+  useEffect(() => {
+    let cancelled = false;
+    const sector = (industryForFetch ?? "default").trim() || "default";
+    (async () => {
+      try {
+        const res = await fetch(`/api/svi/benchmarks/${encodeURIComponent(sector)}`, {
+          credentials: "same-origin",
+        });
+        if (!res.ok) return;
+        const body = (await res.json()) as {
+          ok?: boolean;
+          benchmark?: {
+            sector: string;
+            dim_medians: Record<string, number>;
+            dim_top_quartile: Record<string, number>;
+            sample_size: number;
+            updated_at: string;
+          };
+        };
+        if (!cancelled && body.ok && body.benchmark) setBenchmark(body.benchmark);
+      } catch {
+        /* silent — fallback numbers used below */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [industryForFetch]);
+
+  // Wave 27A — fetch investor leads (auth workspace only, never on the
+  // public /tbr page and never in PDF export).
+  useEffect(() => {
+    if (initialData || pdfMode || !shareToken) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/svi/report/leads?projectId=${encodeURIComponent(projectId)}`,
+          { credentials: "same-origin" },
+        );
+        if (!res.ok) return;
+        const body = (await res.json()) as {
+          ok?: boolean;
+          leads?: InvestorLead[];
+          leads_by_interest?: Record<string, number>;
+        };
+        if (cancelled || !body.ok) return;
+        setLeads(body.leads ?? []);
+        if (body.leads_by_interest) setLeadsByInterest(body.leads_by_interest);
+      } catch {
+        /* silent — leads panel just stays hidden */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, initialData, pdfMode, shareToken]);
 
   if (!data) {
     return (
@@ -1300,6 +1389,87 @@ export function BusinessReportClient({
             </ReportSection>
           )}
 
+          {/* ── Investor Leads (Wave 27A) ──────────────────────────────────
+              Founder-only, only when leads exist. Shown above Investor Views
+              so the highest-value activity lands first. */}
+          {!pdfMode && !initialData && shareToken && leads && leads.length > 0 && (
+            <ReportSection id="tbr-investor-leads" title="Investor Leads">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-ink-600 dark:text-ink-400">
+                <span className="font-semibold text-ink-800 dark:text-ink-100">{leads.length} total</span>
+                {leadsByInterest.ready_to_talk > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 font-medium">
+                    {leadsByInterest.ready_to_talk} ready to talk
+                  </span>
+                )}
+                {leadsByInterest.warm > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 px-2 py-0.5 font-medium">
+                    {leadsByInterest.warm} warm
+                  </span>
+                )}
+                {leadsByInterest.exploring > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/40 text-sky-800 dark:text-sky-200 px-2 py-0.5 font-medium">
+                    {leadsByInterest.exploring} exploring
+                  </span>
+                )}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {leads.map((lead) => {
+                  const badge =
+                    lead.interest_level === "ready_to_talk"
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                      : lead.interest_level === "warm"
+                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+                      : "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200";
+                  const label =
+                    lead.interest_level === "ready_to_talk"
+                      ? "Ready to talk"
+                      : lead.interest_level === "warm"
+                      ? "Warm"
+                      : "Exploring";
+                  const who = [lead.investor_name, lead.investor_firm].filter(Boolean).join(" · ") || "Anonymous investor";
+                  const subline = [lead.investor_role, lead.viewer_country].filter(Boolean).join(" · ");
+                  return (
+                    <div
+                      key={lead.id}
+                      className="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 flex flex-col gap-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-ink-800 dark:text-ink-100 truncate">{who}</p>
+                          {subline && (
+                            <p className="text-[11px] text-ink-500 dark:text-ink-400 truncate">{subline}</p>
+                          )}
+                        </div>
+                        <span className={cn("shrink-0 text-[11px] font-semibold rounded-full px-2 py-0.5", badge)}>
+                          {label}
+                        </span>
+                      </div>
+                      {lead.message && (
+                        <p className="text-xs text-ink-600 dark:text-ink-300 leading-snug bg-ink-50 dark:bg-ink-900/80 border border-ink-100 dark:border-ink-800 rounded-md px-2.5 py-2">
+                          {lead.message}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <span className="text-[10px] text-ink-400 dark:text-ink-500 tabular-nums">
+                          {new Date(lead.created_at).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </span>
+                        <a
+                          href={`mailto:${lead.investor_email}?subject=${encodeURIComponent("Following up on your interest in our startup")}`}
+                          className="text-xs font-semibold text-brand-700 dark:text-brand-300 hover:underline"
+                        >
+                          Reply via email →
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ReportSection>
+          )}
+
           {/* ── Investor Views (Wave 26A) ──────────────────────────────────
               Only rendered in the authenticated workspace context, once the
               founder has minted a share token. Never on the public /tbr page
@@ -1331,15 +1501,19 @@ export function BusinessReportClient({
                     const meta = DIMS[k];
                     const state = dimStates[k];
                     if (!state?.score) return null;
-                    // AU seed medians sourced from BlockID anonymised cohort + PitchBook AU 2024-2026
-                    const medians: Record<string, number> = {
+                    // Wave 27B — prefer server-fetched per-sector benchmarks;
+                    // fall back to the pre-27 hardcoded numbers while loading
+                    // or when the API is unavailable.
+                    const FALLBACK_MEDIANS: Record<string, number> = {
                       ftv: 58, mpc: 52, ptd: 55, tre: 42, cgh: 48, iri: 45, lco: 50, svm: 47,
                     };
-                    const topQ: Record<string, number> = {
+                    const FALLBACK_TOPQ: Record<string, number> = {
                       ftv: 75, mpc: 70, ptd: 72, tre: 65, cgh: 68, iri: 64, lco: 68, svm: 68,
                     };
-                    const median = medians[k] ?? 50;
-                    const tq = topQ[k] ?? 68;
+                    const medians = benchmark?.dim_medians ?? FALLBACK_MEDIANS;
+                    const topQ = benchmark?.dim_top_quartile ?? FALLBACK_TOPQ;
+                    const median = medians[k] ?? FALLBACK_MEDIANS[k] ?? 50;
+                    const tq = topQ[k] ?? FALLBACK_TOPQ[k] ?? 68;
                     const delta = state.score - median;
                     return (
                       <tr key={k} className="border-b border-ink-100 dark:border-ink-800/60">
@@ -1374,8 +1548,17 @@ export function BusinessReportClient({
               </table>
             </div>
             <p className="text-[11px] text-ink-500 dark:text-ink-500 leading-snug">
-              Benchmarks sourced from BlockID anonymised cohort data + PitchBook AU 2024–2026 seed-stage analysis.
-              Industry: {industry ?? "Technology"} · Stage: {stage ?? "Seed"}.
+              {benchmark && benchmark.sample_size > 0 ? (
+                <>
+                  Benchmarks sourced from BlockID cohort ({benchmark.sample_size} startups, sector: {benchmark.sector}).
+                  Last updated {new Date(benchmark.updated_at).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", { day: "numeric", month: "short", year: "numeric" })}.
+                </>
+              ) : (
+                <>
+                  Benchmarks sourced from BlockID anonymised cohort data + PitchBook AU 2024–2026 seed-stage analysis.
+                </>
+              )}
+              {" "}Industry: {industry ?? "Technology"} · Stage: {stage ?? "Seed"}.
               This is a directional comparison — individual startup profiles vary significantly.
             </p>
           </ReportSection>

@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { insertNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -103,6 +104,17 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  // Wave 27C — record first-mint in the founder notification hub.
+  void insertNotification({
+    userId: user.id,
+    projectId: projectId !== "default" ? projectId : null,
+    kind: "report_shared",
+    payload: {
+      token,
+      url: `${baseUrl(request)}/tbr/${token}`,
+    },
+  });
 
   return NextResponse.json({
     ok: true,

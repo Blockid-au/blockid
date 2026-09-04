@@ -18,6 +18,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { insertNotification, ownerFromShareToken } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -246,6 +247,26 @@ Answer per the rules above. Cite the dimension or criterion you're drawing from.
     });
     const answer = (result.text ?? "").trim() || "I couldn't produce an answer just now — please try again.";
     void userIdForLimit; // reserved for future audit logging
+
+    // Wave 27C — record Q&A activity in the founder's notification hub.
+    // Only when the question came in via a share token (anon reader); self-
+    // authored questions from the workspace UI aren't noteworthy.
+    if (token) {
+      void (async () => {
+        const owner = await ownerFromShareToken(token);
+        if (!owner) return;
+        await insertNotification({
+          userId: owner.userId,
+          projectId: owner.projectId,
+          kind: "tbr_qa_asked",
+          payload: {
+            question: question.slice(0, 500),
+            answerPreview: answer.slice(0, 240),
+          },
+        });
+      })();
+    }
+
     return NextResponse.json({ ok: true, answer, provider: result.provider });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "ai_error";
