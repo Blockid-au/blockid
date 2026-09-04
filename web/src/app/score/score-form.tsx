@@ -636,6 +636,18 @@ interface InvestorLinkRecord {
   fundName: string | null;
 }
 
+const PRINT_STYLES = `
+@media print {
+  body > *:not(#score-print-region) { display: none !important; }
+  #score-print-region { display: block !important; }
+  .print\\:hidden { display: none !important; }
+  .accordion-content { display: block !important; max-height: none !important; }
+  @page { size: A4; margin: 20mm; }
+  h2, h3 { page-break-after: avoid; }
+  .dim-card { page-break-inside: avoid; }
+}
+`;
+
 function ResultPanel({
   result,
   companyName,
@@ -653,6 +665,15 @@ function ResultPanel({
     ? `${window.location.origin}/score?slug=${result.slug}&company=${encodeURIComponent(companyName)}&score=${result.totalScore}&stage=${stage}`
     : `https://blockid.au/score?slug=${result.slug}`;
   const pdfUrl = `/s/${result.slug}/pdf`;
+  const [isPrinting, setIsPrinting] = React.useState(false);
+
+  const onExportPdf = React.useCallback(() => {
+    setIsPrinting(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 300);
+  }, []);
 
   // Social share URLs
   const twitterText = `I scored ${result.totalScore}/100 on the BlockID Startup Value Index™ — free investor-readiness analysis for AU founders`;
@@ -765,6 +786,14 @@ function ResultPanel({
 
   return (
     <>
+    {/* eslint-disable-next-line react/no-danger */}
+    <style dangerouslySetInnerHTML={{ __html: PRINT_STYLES }} />
+    <div id="score-print-region">
+    {/* Print-only header — hidden on screen */}
+    <div className="hidden print:block mb-8 border-b pb-4">
+      <p className="text-2xl font-bold">Startup Value Index Report</p>
+      <p className="text-sm text-gray-500">{companyName} · {new Date().toLocaleDateString("en-AU")}</p>
+    </div>
     <div className="grid lg:grid-cols-2 gap-8 items-start">
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
@@ -1045,6 +1074,16 @@ function ResultPanel({
                 Download PDF
               </Button>
             </a>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onExportPdf}
+              disabled={isPrinting}
+              className="print:hidden"
+            >
+              <FileText strokeWidth={1.75} className="h-5 w-5" />
+              {isPrinting ? "Preparing…" : "Export PDF"}
+            </Button>
             <a
               href={shareUrl}
               target="_blank"
@@ -1242,6 +1281,7 @@ function ResultPanel({
     </div>
     {/* Wave 28C — Personalised 30-Day Action Plan (renders nothing when sviRunId is null). */}
     <ActionPlan sviRunId={sviRunId} />
+    </div>{/* end #score-print-region */}
     </>
   );
 }
