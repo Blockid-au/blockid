@@ -346,6 +346,15 @@ function actionsFor(pillar: PillarScore, input: FundingReadinessInput): FundingR
           impactPoints: 2,
         });
       }
+      if (!input.hasWarmIntros) {
+        out.push({
+          priority: 2,
+          pillar: "investor_materials",
+          action: "Log at least one warm investor intro (LinkedIn, portfolio-founder referral, or accelerator alum) in the CRM",
+          effort: "low",
+          impactPoints: 2,
+        });
+      }
       break;
     case "data_room":
       out.push({

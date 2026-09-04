@@ -104,6 +104,24 @@ describe("cro-funding-readiness — CAPITAL scoring", () => {
     expect(r.overall).toBeLessThanOrEqual(100);
   });
 
+  it("surfaces a warm-intros action when investor_materials is a top gap and intros are missing", () => {
+    // Strong elsewhere, thin on investor materials — makes investor_materials the top gap.
+    const materialsGapSeed: FundingReadinessInput = {
+      ...investorReadySeed,
+      hasPitchDeck: true,
+      hasFinancialModel: false,
+      hasUseOfFunds: false,
+      hasWarmIntros: false,
+    };
+    const r = scoreFundingReadiness(materialsGapSeed);
+    expect(r.topGaps.some((p) => p.key === "investor_materials")).toBe(true);
+    expect(
+      r.actions.some(
+        (a) => a.pillar === "investor_materials" && /warm.*intro/i.test(a.action),
+      ),
+    ).toBe(true);
+  });
+
   it("each stage's pillar weights sum to ~1.0", () => {
     for (const stage of ["pre-seed", "seed", "series-a", "series-b"] as const) {
       const r = scoreFundingReadiness({ ...earlyPreSeed, stage });
