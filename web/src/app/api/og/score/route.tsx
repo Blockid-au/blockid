@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         </div>
 
         {/* Company name */}
-        <div style={{ color: "#f1f5f9", fontSize: company.length > 25 ? 44 : 52, fontWeight: 800, lineHeight: 1.1, marginBottom: 40 }}>
+        <div style={{ display: "flex", color: "#f1f5f9", fontSize: company.length > 25 ? 44 : 52, fontWeight: 800, lineHeight: 1.1, marginBottom: 40 }}>
           {company}
         </div>
 
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         </div>
 
         {/* Footer */}
-        <div style={{ marginTop: "auto", color: "#475569", fontSize: 15 }}>
+        <div style={{ display: "flex", marginTop: "auto", color: "#475569", fontSize: 15 }}>
           blockid.au/score — Free investor-readiness analysis for Australian founders
         </div>
       </div>

@@ -350,6 +350,11 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
       make("team_structure", "Team Structure & Governance", "Org chart, roles, advisory board",
         (inputs.hasBoardMeetings ? 55 : 25) + (inputs.hasShareholdersAgreement ? 20 : 0) + (founders >= 2 ? 10 : 0)
       ),
+      make("founder_market_fit", "Founder–Market Fit", "Domain expertise depth, prior sector experience",
+        (inputs.sector === "saas" || inputs.sector === "fintech" || inputs.sector === "devtools" ? 55 : 40)
+        + (stage === "series-a" || stage === "growth" ? 20 : stage === "seed" ? 10 : 0)
+        + (inputs.yearsTrading >= 3 ? 15 : inputs.yearsTrading >= 1 ? 8 : 0)
+      ),
     ];
     case "mpc": return [
       make("market", "Market Opportunity", "TAM/SAM/SOM, timing, competitive landscape",
@@ -361,6 +366,11 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
       make("gtm_strategy", "Go-to-Market Strategy", "Distribution channels, pricing, acquisition strategy",
         (stage === "series-a" || stage === "growth" ? 70 : stage === "seed" ? 58 : 45) + (mrr > 20000 ? 10 : mrr > 0 ? 5 : 0)
       ),
+      make("competitive_positioning", "Competitive Positioning", "Differentiation, moat clarity, competitor mapping",
+        (inputs.sector === "saas" || inputs.sector === "fintech" ? 60 : 48)
+        + (mrr > 20000 ? 15 : mrr > 5000 ? 8 : 0)
+        + (stage === "series-a" || stage === "growth" ? 12 : 0)
+      ),
     ];
     case "ptd": return [
       make("idea", "Idea & Innovation", "Product stage, technical complexity",
@@ -371,6 +381,11 @@ function computeCriteriaForDim(dim: string, inputs: ScoreInput): CriterionResult
       ),
       make("roadmap", "Product Roadmap", "Milestones, timeline, execution plan",
         (stage === "series-a" || stage === "growth" ? 70 : stage === "seed" ? 55 : 38) + (founders >= 2 ? 8 : 0)
+      ),
+      make("technical_moat", "Technical Moat & IP", "Proprietary tech, architecture depth, defensibility",
+        (inputs.sector === "devtools" ? 55 : inputs.sector === "saas" || inputs.sector === "fintech" ? 45 : 30)
+        + (inputs.yearsTrading >= 3 ? 25 : inputs.yearsTrading >= 1 ? 15 : 5)
+        + (stage === "series-a" || stage === "growth" ? 15 : stage === "seed" ? 8 : 0)
       ),
     ];
     case "tre": return [
