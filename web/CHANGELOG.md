@@ -1,5 +1,36 @@
 # BlockID.au Changelog
 
+## 2026-09-04 — v3.9.12: AI Model Registry + Auto-Fallback (Wave AI-Registry)
+
+### Features
+- **feat(ai-registry)** Centralised `ai-provider-registry.json` published at `GET /api/ai/registry`. Both blockid.au and startupvalueindex.com read from this unified registry.
+- **feat(health-check cron)** `POST /api/cron/ai-health-check` (every 30 min): pings all 47 configured models with 5s timeout, records latency + quota status. On quota-exceeded: marks model degraded (exponential backoff 1h→24h), auto-injects up to 3 backup models from curated free-pool, fires Telegram alert.
+- **feat(discovery cron)** `POST /api/cron/ai-model-discovery` (Sunday 04:00 UTC): crawls OpenRouter `/api/v1/models` (filter free-tier), Groq model list, SambaNova, Cerebras. Ranks by context window + known-good family (llama-3.3, qwen-2.5, deepseek-r1, mixtral, gemma-2) + prior latency. Auto-injects top 3 into fallback chain. Writes candidates to `content/ai-model-candidates.json`.
+- **feat(admin UI)** `/admin/ai-health` — live table of model health (provider/model/latency/status/last-check) + "Run health check now" + "Discover models now" manual trigger buttons.
+- **feat(curated free-pool)** `web/src/lib/ai/known-good-pool.ts` — 17 pre-vetted free models across Groq (4), SambaNova (3), Cerebras (3), OpenRouter (5), Chutes (1), Cloudflare (1).
+- **Initial registry state**: 47 checked, 14 healthy, 5 quota-exceeded (3× Cerebras, 2× OpenRouter degraded until 14:31 UTC).
+
+---
+
+## 2026-09-04 — v3.9.11: 13-Criteria Sub-breakdown + Risk Register (Wave 30)
+
+### Features
+- **feat(wave30 — 13-criteria sub-scores)** Each SVI dimension accordion on the public `/score` results page now expands to show 1-3 W23-mapped criteria (18 mapped positions across 13 unique criteria). Each criterion shows: key, title, subtitle, score/100 badge, status chip (strong/developing/gap), 2-sentence data-driven commentary.
+- **feat(wave30 — risk register)** New `riskRegister` section below the accordion — top 5 weakest criteria sorted by score, each with severity (critical/major/moderate), 1-sentence impact statement, 1-sentence specific remediation action.
+- **feat(wave30 — commentary quality)** `buildDimCommentary()` expanded from 3 sentences to 5 sentences per dimension, referencing actual input values (MRR, team size, runway, sector).
+- **feat(wave30 — lco sub-criteria)** Legal & Compliance dimension now surfaces 1-2 governance sub-criteria (documents, team_structure).
+
+---
+
+## 2026-09-04 — v3.9.10: Full Score Analysis + 30-Day Action Plan (Wave 28C + 29)
+
+### Features
+- **feat(wave29 — score full analysis)** Public `/score` results page now shows investor-grade breakdown without login: executive assessment (5-sentence AI verdict), top-3 priorities (90-day actions), 8-dimension collapsible accordion with score bars, status badges, 3-sentence per-dim commentary. All deterministic — no AI call required.
+- **feat(wave28c — 30-day action plan)** `ActionPlan` component renders below TBR at `/workspace/business-report` + `/tbr/[token]` when `sviRunId` is available. POST `/api/svi/action-plan/generate` — checks cache, calls Groq/fallback AI, returns 5 personalised tasks ranked by `target_delta_points`. POST `/api/svi/action-plan/[id]/toggle` — ownership-checked completion toggle with optional `evidence_url`. Tables: `svi_action_plans` (UNIQUE on `svi_run_id`) + `svi_action_tasks` (5 per plan).
+- **feat(wave28c — platform-config prompt)** `AIPromptsConfig.actionPlan` in `platform-config.ts` — ops-editable AI prompt with compliance constraints (no real company names, strict JSON output, 5-task limit).
+
+---
+
 ## 2026-09-04 — v3.9.9: Wave 28A — Founder Weekly Digest
 
 ### Features
