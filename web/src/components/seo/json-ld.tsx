@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import {
   buildItemListJsonLd,
   buildWebPageJsonLd,
@@ -5,7 +6,24 @@ import {
   type WebPageJsonLdInput,
 } from "@/lib/seo/structured-data";
 
-export function OrganizationJsonLd() {
+/**
+ * Read the per-request CSP nonce (set by `web/src/proxy.ts` and echoed on
+ * the `x-nonce` request header). All JSON-LD `<script>` tags below must
+ * emit this nonce so they satisfy the strict `script-src 'nonce-...'`
+ * directive (no 'unsafe-inline'). Returns undefined outside a request
+ * scope so unit tests do not throw.
+ */
+async function readNonce(): Promise<string | undefined> {
+  try {
+    const h = await headers();
+    return h.get("x-nonce") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function OrganizationJsonLd() {
+  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -27,12 +45,14 @@ export function OrganizationJsonLd() {
   return (
     <script
       type="application/ld+json"
+      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
-export function SoftwareApplicationJsonLd() {
+export async function SoftwareApplicationJsonLd() {
+  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -52,36 +72,42 @@ export function SoftwareApplicationJsonLd() {
   return (
     <script
       type="application/ld+json"
+      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
-export function WebPageJsonLd(input: WebPageJsonLdInput) {
+export async function WebPageJsonLd(input: WebPageJsonLdInput) {
+  const nonce = await readNonce();
   const data = buildWebPageJsonLd(input);
   return (
     <script
       type="application/ld+json"
+      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
-export function ItemListJsonLd(input: ItemListJsonLdInput) {
+export async function ItemListJsonLd(input: ItemListJsonLdInput) {
+  const nonce = await readNonce();
   const data = buildItemListJsonLd(input);
   return (
     <script
       type="application/ld+json"
+      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
-export function FAQJsonLd({
+export async function FAQJsonLd({
   items,
 }: {
   items: { question: string; answer: string }[];
 }) {
+  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -94,12 +120,13 @@ export function FAQJsonLd({
   return (
     <script
       type="application/ld+json"
+      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }
 
-export function ArticleJsonLd({
+export async function ArticleJsonLd({
   title,
   description,
   url,
@@ -114,6 +141,7 @@ export function ArticleJsonLd({
   updatedAt?: string;
   authorName?: string;
 }) {
+  const nonce = await readNonce();
   const data = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -139,6 +167,7 @@ export function ArticleJsonLd({
   return (
     <script
       type="application/ld+json"
+      nonce={nonce}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
