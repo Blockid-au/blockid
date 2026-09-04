@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
 import { TbrInvestorViews } from "@/components/tbr/tbr-investor-views";
 import { TbrQaChat } from "@/components/tbr/tbr-qa-chat";
+import { ActionPlan } from "@/components/score/ActionPlan";
 import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
 import {
   selectValuationMethod,
@@ -552,6 +553,9 @@ export function BusinessReportClient({
     warm: 0,
     ready_to_talk: 0,
   });
+  // Wave 28C — canonical svi_run_id from the latest snapshot, used by the
+  // Personalised 30-Day Action Plan mount. Null until the report API returns.
+  const [snapshotId, setSnapshotId] = useState<string | null>(null);
 
   // Load from localStorage first (fast path), then fall back to Supabase
   // (/api/svi/report/[projectId]) so the report survives beyond the 30-min
@@ -571,8 +575,15 @@ export function BusinessReportClient({
           credentials: "same-origin",
         });
         if (!res.ok) return;
-        const body = (await res.json()) as { ok?: boolean; persisted?: PersistedState };
-        if (!cancelled && body.ok && body.persisted) setData(body.persisted);
+        const body = (await res.json()) as {
+          ok?: boolean;
+          persisted?: PersistedState;
+          snapshotId?: string;
+        };
+        if (!cancelled && body.ok && body.persisted) {
+          setData(body.persisted);
+          if (typeof body.snapshotId === "string") setSnapshotId(body.snapshotId);
+        }
       } catch {
         /* silent — the "no analysis" state will render */
       }
@@ -1300,6 +1311,11 @@ export function BusinessReportClient({
               </div>
             )}
           </ReportSection>
+
+          {/* ── Wave 28C: Personalised 30-Day Action Plan ─────────────────── */}
+          {!pdfMode && snapshotId && (
+            <ActionPlan sviRunId={snapshotId} />
+          )}
 
           {/* ── Risk Register ─────────────────────────────────────────────── */}
           {riskItems.length > 0 && (

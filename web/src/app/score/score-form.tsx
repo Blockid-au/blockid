@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScoreCard } from "@/components/score/score-card";
+import { ActionPlan } from "@/components/score/ActionPlan";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import type { ScoreInput } from "@/lib/score";
 import { trackEvent } from "@/lib/analytics";
@@ -38,6 +39,21 @@ const defaultInput: ScoreInput = {
   hasBoardMeetings: true,
   hasFinancialAudit: false,
 };
+
+interface SviDimAnalysis {
+  dim: string;
+  label: string;
+  score: number;
+  status: "strong" | "developing" | "gap";
+  commentary: string;
+  weight: number;
+}
+
+interface SviFullAnalysis {
+  dims: SviDimAnalysis[];
+  executiveSummary: string;
+  topThreePriorities: string[];
+}
 
 interface ScoreApiResponse {
   ok: boolean;
@@ -83,6 +99,7 @@ interface ScoreApiResponse {
     seriesA: { pass: boolean; missing: string[] };
   } | null;
   evidenceGaps?: string[] | null;
+  sviAnalysis?: SviFullAnalysis | null;
   persisted: boolean;
   attribution?: {
     firstTouch: AttributionEcho | null;
@@ -665,7 +682,15 @@ function ResultPanel({
     }
   };
 
+  // Wave 28C — action plan requires a real `svi_snapshots.id` (svi_run_id).
+  // The /api/score deterministic-preview endpoint uses `slug` only; a
+  // downstream card in this panel is where founders trigger a persisted
+  // analysis. Until that flow returns a snapshot id, gate the component on
+  // null so it stays a no-op here.
+  const sviRunId: string | null = null;
+
   return (
+    <>
     <div className="grid lg:grid-cols-2 gap-8 items-start">
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
@@ -857,6 +882,11 @@ function ResultPanel({
             ))}
           </ul>
         </div>
+        {/* Wave 29 — Full 8-dimension SVI breakdown */}
+        {result.sviAnalysis && (
+          <SviFullAnalysisPanel analysis={result.sviAnalysis} />
+        )}
+
         <div className="mt-6">
           <NotFinancialAdvice kind="not_financial_advice" compact />
         </div>
@@ -1106,6 +1136,161 @@ function ResultPanel({
             </div>
           )}
         </form>
+      </div>
+    </div>
+    {/* Wave 28C — Personalised 30-Day Action Plan (renders nothing when sviRunId is null). */}
+    <ActionPlan sviRunId={sviRunId} />
+    </>
+  );
+}
+
+// ── Wave 29 — Full 8-Dimension SVI Analysis Panel ────────────────────────────
+
+const DIM_BADGE_COLORS: Record<string, string> = {
+  ftv: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  mpc: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  ptd: "bg-sky-50 text-sky-700 border-sky-200",
+  tre: "bg-amber-50 text-amber-700 border-amber-200",
+  cgh: "bg-violet-50 text-violet-700 border-violet-200",
+  iri: "bg-rose-50 text-rose-700 border-rose-200",
+  lco: "bg-slate-100 text-slate-700 border-slate-200",
+  svm: "bg-teal-50 text-teal-700 border-teal-200",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  strong: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  developing: "text-amber-700 bg-amber-50 border-amber-200",
+  gap: "text-red-700 bg-red-50 border-red-200",
+};
+
+const STATUS_BAR_COLORS: Record<string, string> = {
+  strong: "bg-emerald-500",
+  developing: "bg-amber-400",
+  gap: "bg-red-500",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  strong: "Strong",
+  developing: "Developing",
+  gap: "Gap",
+};
+
+function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
+  const [expanded, setExpanded] = React.useState<string | null>(null);
+
+  return (
+    <div className="mt-8 space-y-5">
+      {/* Executive Summary */}
+      <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 to-brand-100/40 p-5">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-brand-600 font-semibold mb-1">
+          Executive Assessment
+        </p>
+        <p className="text-sm leading-relaxed text-ink-700">{analysis.executiveSummary}</p>
+      </div>
+
+      {/* Top 3 Priorities */}
+      {analysis.topThreePriorities.length > 0 && (
+        <div className="rounded-2xl border border-surface-200 bg-white p-5">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gold-600 font-semibold mb-3">
+            Top priorities for next 90 days
+          </p>
+          <ol className="space-y-2.5">
+            {analysis.topThreePriorities.map((p, i) => (
+              <li key={i} className="flex gap-3 items-start">
+                <span className="flex-none w-6 h-6 rounded-full bg-brand-100 border border-brand-300 flex items-center justify-center text-[11px] font-bold text-brand-700">
+                  {i + 1}
+                </span>
+                <p className="text-sm text-ink-600 leading-relaxed">{p}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {/* 8-dimension breakdown */}
+      <div className="rounded-2xl border border-surface-200 bg-white p-5">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-ink-500 font-semibold mb-4">
+          8-Dimension SVI breakdown
+        </p>
+        <div className="space-y-2">
+          {analysis.dims.map((dim) => {
+            const isOpen = expanded === dim.dim;
+            const badgeCls = DIM_BADGE_COLORS[dim.dim] ?? "bg-surface-100 text-ink-700 border-surface-200";
+            const statusCls = STATUS_COLORS[dim.status] ?? "";
+            const barCls = STATUS_BAR_COLORS[dim.status] ?? "bg-surface-300";
+            return (
+              <div
+                key={dim.dim}
+                className="rounded-xl border border-surface-200 overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpanded(isOpen ? null : dim.dim)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-50/50 transition-colors"
+                  aria-expanded={isOpen}
+                >
+                  <span
+                    className={cn(
+                      "flex-none inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest",
+                      badgeCls,
+                    )}
+                  >
+                    {dim.dim.toUpperCase()}
+                  </span>
+                  <span className="flex-1 text-sm font-medium text-ink-700 truncate">
+                    {dim.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "flex-none text-xs font-semibold tabular-nums",
+                      dim.status === "strong" ? "text-emerald-600" : dim.status === "gap" ? "text-red-600" : "text-amber-600",
+                    )}
+                  >
+                    {dim.score}/100
+                  </span>
+                  <span
+                    className={cn(
+                      "flex-none hidden sm:inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+                      statusCls,
+                    )}
+                  >
+                    {STATUS_LABEL[dim.status]}
+                  </span>
+                  <svg
+                    className={cn("flex-none h-4 w-4 text-ink-400 transition-transform duration-200", isOpen && "rotate-180")}
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {/* Score bar */}
+                <div className="px-4 pb-2">
+                  <div className="h-1.5 w-full rounded-full bg-surface-100 overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-500", barCls)}
+                      style={{ width: `${dim.score}%` }}
+                    />
+                  </div>
+                </div>
+                {/* Expanded commentary */}
+                {isOpen && (
+                  <div className="px-4 pt-1 pb-4 border-t border-surface-100">
+                    <p className="text-xs text-ink-500 leading-relaxed mt-2">
+                      {dim.commentary}
+                    </p>
+                    <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-ink-400">
+                      Weight: <span className="font-semibold text-ink-500">{dim.weight}%</span> of total SVI score
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-4 text-[11px] text-ink-400 italic leading-relaxed">
+          Dimension scores are deterministic estimates based on your inputs. For AI-powered analysis with evidence streaming, run the full investor report in your workspace.
+        </p>
       </div>
     </div>
   );
