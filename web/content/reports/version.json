@@ -1,20 +1,20 @@
 {
-  "version": "v3.9.7",
-  "updated_at": "2026-09-04T00:20:00Z",
-  "git_sha": "89c052cb8",
-  "release_id": "wave26-investor-engagement",
+  "version": "v3.9.8",
+  "updated_at": "2026-09-04T01:07:00Z",
+  "git_sha": "caa43a24a",
+  "release_id": "wave27-lead-capture-sector-notifications",
   "shipped_summary": [
-    "v3.9.7 — Wave 26: TBR view analytics (DocSend-style, /api/svi/report/views + tbr_views table, country/device only — no PII), AI Q&A chat widget on TBR (floating, /api/svi/report/qa, rate-limited 5/hr anon 20/hr auth, grounded in criterion+dim data), historical SVI trend dashboard (/workspace/svi-trend, line chart + 8 sparklines + delta table over last 12 snapshots)",
-    "v3.9.6 — Wave 25B+25C: auto-email report, /sample-business-report, Vietnamese TBR, AI overlap (~72s→~57s), deck cache (24h <5s), peer-5 anonymised match, TBR onboarding tour",
-    "v3.9.4 — Wave 25A: Supabase persistence for TBR, /tbr/[token] public share, server PDF via Playwright",
-    "v3.9.3 — Wave 24: full 13-criteria analyst report + UX polish",
-    "v3.9.2 — Wave 23: analyst-desk streaming",
-    "v3.9.1 — Waves 11-18: pitchdeck coverage classifier + 13 investor criteria"
+    "v3.9.8 — Wave 27: investor lead capture on /tbr (slide-in modal after 30s, POST /api/tbr/[token]/lead → Telegram + email to founder, Investor Leads section in TBR), sector-specific benchmarks (svi_sector_benchmarks table + nightly cron refresh from cohort medians, /api/svi/benchmarks/[sector], replaces hardcoded medians in Cohort Compare), notification hub (/workspace/notifications feed with filter chips, /api/founder-notifications, writers on view/qa/lead/share/analysis_done)",
+    "v3.9.7 — Wave 26: TBR view analytics (DocSend-style), AI Q&A chat widget, historical SVI trend dashboard",
+    "v3.9.6 — Wave 25B+25C: auto-email, /sample, Vietnamese, AI overlap, deck cache, peer-5, onboarding tour",
+    "v3.9.4 — Wave 25A: TBR persistence + /tbr/[token] share + server PDF via Playwright",
+    "v3.9.3 — Wave 24: 13-criteria analyst report + UX polish (score gauge, criterion rings)",
+    "v3.9.2 — Wave 23: analyst-desk streaming"
   ],
   "task_ids": [
-    "WAVE_26A: TBR view analytics — tbr_views table, view-start/view-end beacons, Investor Views section",
-    "WAVE_26B: AI Q&A chat — /api/svi/report/qa with rate limit, floating widget on TBR (auth + public)",
-    "WAVE_26C: SVI trend dashboard — /workspace/svi-trend with SVG line chart + 8 sparklines + delta table"
+    "WAVE_27A: Investor lead capture — tbr_leads table, /api/tbr/[token]/lead, TbrLeadModal (30s dwell), founder Telegram+email notify, Investor Leads TBR section",
+    "WAVE_27B: Sector benchmarks — svi_sector_benchmarks table, nightly cron /api/cron/refresh-sector-benchmarks, /api/svi/benchmarks/[sector], Cohort Compare now uses real cohort data",
+    "WAVE_27C: Notification hub — founder_notifications table, /workspace/notifications feed, /api/founder-notifications + /read, writers on 5 hot paths"
   ],
-  "notes": "v3.9.7 = Investor engagement + founder retention sprint (Wave 26). Founders now see DocSend-style investor view analytics on their shared /tbr/[token] links. Any viewer can chat with the report — AI answers grounded in that snapshot's data with dim/criterion citations, rate-limited to prevent abuse. Founders returning for monthly re-scores see a rich trend dashboard with line chart, 8 dim sparklines, and delta table across their last 12 snapshots. Migration 20260904_wave26a adds tbr_views table (additive, no ALTER)."
+  "notes": "v3.9.8 = Conversion + credibility + engagement sprint (Wave 27). TBR viewers can now reach out to founders directly via a soft slide-in lead modal — founders get instant Telegram + email + inbox notifications. Cohort Compare no longer uses hardcoded medians — it fetches per-sector medians computed nightly from the anonymised BlockID cohort. And /workspace/notifications is now a proper inbox aggregating every event across a founder's reports (views, Q&A, leads, shares, analysis-done). Three additive migrations. Crontab entry for nightly refresh needs a manual add — seeded defaults serve until then."
 }

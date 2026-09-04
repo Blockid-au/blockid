@@ -1,5 +1,24 @@
 # BlockID.au Changelog
 
+## 2026-09-04 — v3.9.8: Investor lead capture + sector benchmarks + notification hub (Wave 27 A–C)
+
+### Features
+- **feat(wave27a — investor lead capture)** New table `tbr_leads` (share_token, project_id, investor_name/email/firm/role, interest_level [exploring/warm/ready_to_talk], message, viewer_country). New `POST /api/tbr/[token]/lead` — anon, rate-limited 3/IP/24h, resolves founder from share_token → inserts lead → fire-and-forget Telegram + email notify (subject: "🎯 New investor lead on your BlockID report") via reused `sendTelegram()` in `web/src/lib/telegram.ts` + `sendEmail()`. New client `<TbrLeadModal>` slide-in modal that appears after 30s dwell on `/tbr/[token]` (skipped when `document.hidden`, dismissal persists to `localStorage`). Founder-side `GET /api/svi/report/leads?projectId=<pid>` returns leads list. "Investor Leads" section rendered in TBR only when `shareToken && !pdfMode && authenticated && total_leads > 0`.
+- **feat(wave27b — sector benchmarks)** New table `svi_sector_benchmarks` (sector PK, dim_medians/top_quartile/bottom_quartile JSONB, sample_size, updated_at) seeded with 9 sectors (saas/marketplace/fintech/healthtech/climatetech/hardware/consumer/deeptech/default). New sector mapper `web/src/lib/svi/sector-map.ts` normalises free-form industry strings. New cron route `POST /api/cron/refresh-sector-benchmarks` (CRON_SECRET-gated) queries anonymised `svi_snapshots` grouped by sector, computes 25/50/75 percentiles per dim from `dim_results` JSONB, UPSERTs with `sample_size` (skips sectors with <5 samples to avoid noisy medians). New anon `GET /api/svi/benchmarks/[sector]` (cached s-maxage=3600). Cohort Compare in `business-report-client.tsx` now fetches per-sector benchmarks on mount, falls back to seeded defaults on error.
+- **feat(wave27c — notification hub)** New table `founder_notifications` (user_id, project_id, kind, payload JSONB, read_at). Notification writers plumbed into 5 hot paths: view-start (throttled 1/token/hour), qa, share, dimensions/stream done, lead. New APIs `GET /api/founder-notifications` (paginated feed + `unread_only` count mode) + `POST /api/founder-notifications/read` (mark by ids OR all). New page `/workspace/notifications` — full inbox with filter chips (all/unread/kind), row action links, mark-all-read. Email preferences moved to `/workspace/notifications/preferences` (linked from header).
+
+### Reused / infrastructure
+- Telegram notifier: existing `web/src/lib/telegram.ts` (`sendTelegram()` + `mdEscape()`).
+- Email: existing `sendEmail()` (Nodemailer SMTP → Resend fallback).
+- Nav catalogue unchanged — tier-nav golden snapshots pass unchanged.
+
+### Deploy notes
+- Commit `caa43a24a` (22 files, +1997/-49). Three additive migrations run at boot. `tsc --noEmit`: 0 errors. tier-nav-integration.test.ts: 20/20 pass.
+- **Manual step**: add crontab entry for `POST /api/cron/refresh-sector-benchmarks` at ~03:30 UTC. Until then the seeded default rows serve.
+- Route `/workspace/notifications` is now the activity feed (was: email prefs). Old-URL bookmarks land on new UI with prominent link to `/workspace/notifications/preferences`.
+
+---
+
 ## 2026-09-04 — v3.9.7: Investor engagement + founder retention (Wave 26 A–C)
 
 ### Features
