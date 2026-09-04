@@ -5,39 +5,49 @@ import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ScoreForm } from "./score-form";
 
-const TITLE = "Get your Investor-Ready Score — Free";
-const DESCRIPTION =
-  "Generate your Investor-Ready Score in 5 minutes. Free for every Australian founder. One number, five sub-scores, one shareable link for investors.";
+const BASE_TITLE = "Get your Investor-Ready Score — Free";
+const BASE_DESC = "Generate your Investor-Ready Score in 5 minutes. Free for every Australian founder. One number, five sub-scores, one shareable link for investors.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  keywords: [
-    "startup investor ready score",
-    "startup valuation australia free",
-    "SVI score startup",
-    "investor readiness score australia",
-    "startup valuation tool australia",
-    "free startup score australia",
-    "startup value index",
-  ],
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-    type: "website",
-    url: "https://blockid.au/score",
-    siteName: "BlockID",
-    locale: "en_AU",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: TITLE,
-    description: DESCRIPTION,
-  },
-  alternates: {
-    canonical: "https://blockid.au/score",
-  },
-};
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ slug?: string; company?: string; score?: string; stage?: string }>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const { slug, company, score: scoreStr, stage } = params;
+  const scoreNum = scoreStr ? parseInt(scoreStr, 10) : null;
+
+  if (!slug || !company || scoreNum === null || isNaN(scoreNum)) {
+    return {
+      title: BASE_TITLE,
+      description: BASE_DESC,
+      keywords: ["startup investor ready score", "startup valuation australia free", "SVI score startup", "investor readiness score australia"],
+      openGraph: { title: BASE_TITLE, description: BASE_DESC, type: "website", url: "https://blockid.au/score", siteName: "BlockID", locale: "en_AU" },
+      twitter: { card: "summary_large_image", title: BASE_TITLE, description: BASE_DESC },
+      alternates: { canonical: "https://blockid.au/score" },
+    };
+  }
+
+  const title = `${company} — SVI Score ${scoreNum}/100`;
+  const description = `${company} scored ${scoreNum}/100 on the BlockID Startup Value Index. Free investor-readiness analysis for Australian founders.`;
+  const ogImage = `https://blockid.au/api/og/score?company=${encodeURIComponent(company)}&score=${scoreNum}&stage=${stage ?? "seed"}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: `https://blockid.au/score?slug=${slug}`,
+      siteName: "BlockID",
+      locale: "en_AU",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: `${company} SVI Score ${scoreNum}/100` }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [ogImage] },
+    alternates: { canonical: `https://blockid.au/score?slug=${slug}` },
+  };
+}
 
 export default function ScorePage() {
   return (
