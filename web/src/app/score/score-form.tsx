@@ -171,6 +171,21 @@ export function ScoreForm() {
   >("idle");
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
 
+  // Loading skeleton message cycling
+  const [loadingMessage, setLoadingMessage] = React.useState("Calculating your SVI score...");
+  const loadingMessages = ["Calculating your SVI score...", "Running 8-dimension analysis...", "Building investor-ready report..."];
+  const msgIdxRef = React.useRef(0);
+
+  React.useEffect(() => {
+    if (submitState !== "submitting") return;
+    const interval = setInterval(() => {
+      msgIdxRef.current = (msgIdxRef.current + 1) % loadingMessages.length;
+      setLoadingMessage(loadingMessages[msgIdxRef.current]);
+    }, 2500);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitState]);
+
   // Prefill company name from hero search query, if provided. Only runs
   // when the query changes so we don't clobber a user's typed edit.
   React.useEffect(() => {
@@ -241,6 +256,7 @@ export function ScoreForm() {
       <ResultPanel
         result={result}
         companyName={input.companyName || "Your company"}
+        stage={input.stage ?? "seed"}
         founderEmail={email}
         onReset={() => {
           setResult(null);
@@ -540,6 +556,21 @@ export function ScoreForm() {
           and try again.
         </p>
       )}
+
+      {submitState === "submitting" && (
+        <div className="space-y-4 mt-8">
+          <p className="text-sm text-brand-600 font-medium animate-pulse text-center">{loadingMessage}</p>
+          <div className="animate-pulse space-y-4">
+            <div className="h-32 rounded-2xl bg-surface-200" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-20 rounded-xl bg-surface-200" />
+              <div className="h-20 rounded-xl bg-surface-200" />
+              <div className="h-20 rounded-xl bg-surface-200" />
+              <div className="h-20 rounded-xl bg-surface-200" />
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
@@ -608,16 +639,25 @@ interface InvestorLinkRecord {
 function ResultPanel({
   result,
   companyName,
+  stage,
   founderEmail,
   onReset,
 }: {
   result: ScoreApiResponse;
   companyName: string;
+  stage: string;
   founderEmail: string;
   onReset: () => void;
 }) {
-  const shareUrl = `${siteUrl()}/s/${result.slug}`;
+  const shareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/score?slug=${result.slug}&company=${encodeURIComponent(companyName)}&score=${result.totalScore}&stage=${stage}`
+    : `https://blockid.au/score?slug=${result.slug}`;
   const pdfUrl = `/s/${result.slug}/pdf`;
+
+  // Social share URLs
+  const twitterText = `I scored ${result.totalScore}/100 on the BlockID Startup Value Index™ — free investor-readiness analysis for AU founders`;
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(twitterText)}&url=${encodeURIComponent(shareUrl)}`;
+  const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
 
   // Fire score_result_viewed once per rendered result. Guarded so a re-render
   // (state change on the panel) does not re-fire for the same slug.
@@ -968,6 +1008,31 @@ function ResultPanel({
               )}
             </Button>
           </div>
+          {/* Social share buttons */}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <a
+              href={twitterUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-2 text-xs font-medium text-ink-700 hover:bg-surface-50 transition-colors"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.258 5.63 5.906-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              Share
+            </a>
+            <a
+              href={linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-2 text-xs font-medium text-ink-700 hover:bg-surface-50 transition-colors"
+            >
+              <svg className="h-3.5 w-3.5 text-[#0A66C2]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+              Share
+            </a>
+          </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <a
               href={pdfUrl}
@@ -1232,7 +1297,7 @@ function SviFullAnalysisPanel({ analysis, shareUrl }: { analysis: SviFullAnalysi
         <p className="text-[10px] uppercase tracking-[0.2em] text-brand-600 font-semibold mb-2">
           Executive Assessment
         </p>
-        <p className="text-sm leading-relaxed text-ink-700 border-l-4 border-brand-500 pl-4">
+        <p className="text-sm sm:text-base leading-relaxed text-ink-700 border-l-4 border-brand-500 pl-4 break-words">
           {analysis.executiveSummary}
         </p>
       </div>
@@ -1249,7 +1314,7 @@ function SviFullAnalysisPanel({ analysis, shareUrl }: { analysis: SviFullAnalysi
                 <span className="flex-none w-6 h-6 rounded-full bg-brand-100 border border-brand-300 flex items-center justify-center text-[11px] font-bold text-brand-700">
                   {i + 1}
                 </span>
-                <p className="text-sm text-ink-600 leading-relaxed">{p}</p>
+                <p className="text-sm text-ink-600 leading-relaxed break-words">{p}</p>
               </li>
             ))}
           </ol>
@@ -1301,10 +1366,10 @@ function SviFullAnalysisPanel({ analysis, shareUrl }: { analysis: SviFullAnalysi
                     </span>
                     <span className="text-sm font-semibold text-ink-700 leading-snug">{risk.title}</span>
                   </div>
-                  <p className="text-[11px] text-ink-500 leading-relaxed mb-1">
+                  <p className="text-[11px] text-ink-500 leading-relaxed mb-1 break-words">
                     <span className="font-semibold text-ink-600">Impact: </span>{risk.impact}
                   </p>
-                  <p className="text-[11px] text-ink-500 leading-relaxed">
+                  <p className="text-[11px] text-ink-500 leading-relaxed break-words">
                     <span className="font-semibold text-emerald-700">Fix: </span>{risk.fix}
                   </p>
                 </div>
@@ -1334,7 +1399,7 @@ function SviFullAnalysisPanel({ analysis, shareUrl }: { analysis: SviFullAnalysi
                 <button
                   type="button"
                   onClick={() => toggleDim(dim.dim)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-50/50 transition-colors"
+                  className="w-full flex flex-wrap items-center gap-3 px-4 py-3 text-left hover:bg-surface-50/50 transition-colors"
                   aria-expanded={isOpen}
                 >
                   <span
@@ -1345,7 +1410,7 @@ function SviFullAnalysisPanel({ analysis, shareUrl }: { analysis: SviFullAnalysi
                   >
                     {dim.dim.toUpperCase()}
                   </span>
-                  <span className="flex-1 text-sm font-medium text-ink-700 truncate">
+                  <span className="flex-1 text-sm font-medium text-ink-700 break-words min-w-0">
                     {dim.label}
                   </span>
                   <span
@@ -1430,8 +1495,8 @@ function SviFullAnalysisPanel({ analysis, shareUrl }: { analysis: SviFullAnalysi
                                   style={{ width: `${crit.score}%` }}
                                 />
                               </div>
-                              <p className="text-[10px] text-ink-400 leading-relaxed">{crit.subtitle}</p>
-                              <p className="mt-1 text-[11px] text-ink-500 leading-relaxed">{crit.commentary}</p>
+                              <p className="text-[10px] text-ink-400 leading-relaxed break-words">{crit.subtitle}</p>
+                              <p className="mt-1 text-[11px] text-ink-500 leading-relaxed break-words">{crit.commentary}</p>
                             </div>
                           );
                         })}
