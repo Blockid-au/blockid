@@ -29,9 +29,9 @@ export async function GET(request: NextRequest) {
       >
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 48 }}>
-          <div style={{ color: "#f59e0b", fontSize: 26, fontWeight: 700 }}>BlockID.au</div>
-          <div style={{ color: "#475569", fontSize: 16 }}>|</div>
-          <div style={{ color: "#64748b", fontSize: 18 }}>Startup Value Index™</div>
+          <div style={{ display: "flex", color: "#f59e0b", fontSize: 26, fontWeight: 700 }}>BlockID.au</div>
+          <div style={{ display: "flex", color: "#475569", fontSize: 16 }}>|</div>
+          <div style={{ display: "flex", color: "#64748b", fontSize: 18 }}>Startup Value Index™</div>
         </div>
 
         {/* Company name */}
@@ -41,16 +41,16 @@ export async function GET(request: NextRequest) {
 
         {/* Score display */}
         <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
-          <div style={{ color, fontSize: 130, fontWeight: 900, lineHeight: 1 }}>{score}</div>
+          <div style={{ display: "flex", color, fontSize: 130, fontWeight: 900, lineHeight: 1 }}>{score}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ color, fontSize: 30, fontWeight: 700 }}>{label}</div>
-            <div style={{ color: "#94a3b8", fontSize: 20 }}>out of 100</div>
+            <div style={{ display: "flex", color, fontSize: 30, fontWeight: 700 }}>{label}</div>
+            <div style={{ display: "flex", color: "#94a3b8", fontSize: 20 }}>out of 100</div>
             <div style={{
               display: "flex", alignItems: "center", marginTop: 8,
               background: "#1e293b", border: "1px solid #334155",
               borderRadius: 8, padding: "6px 14px",
             }}>
-              <div style={{ color: "#94a3b8", fontSize: 16 }}>{stageLabel} Stage</div>
+              <div style={{ display: "flex", color: "#94a3b8", fontSize: 16 }}>{`${stageLabel} Stage`}</div>
             </div>
           </div>
         </div>
