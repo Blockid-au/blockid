@@ -9,7 +9,7 @@
 // Dimension + criterion titles pull their Vietnamese labels from
 // `evaluation-criteria.ts` (`titleVi`) — not duplicated here.
 
-export type TbrLocale = "en" | "vi";
+export type TbrLocale = "en" | "vi" | "es" | "ja";
 
 export interface TbrStrings {
   reportTitle: string;
@@ -31,6 +31,8 @@ export interface TbrStrings {
   languageToggleAria: string;
   switchToVi: string;
   switchToEn: string;
+  switchToEs: string;
+  switchToJa: string;
 
   // Bands
   bandStrong: string;
@@ -149,6 +151,8 @@ const en: TbrStrings = {
   languageToggleAria: "Switch report language",
   switchToVi: "VI",
   switchToEn: "EN",
+  switchToEs: "ES",
+  switchToJa: "JA",
 
   bandStrong: "Investor-Ready",
   bandDeveloping: "Developing",
@@ -270,6 +274,8 @@ const vi: TbrStrings = {
   languageToggleAria: "Chuyen ngon ngu bao cao",
   switchToVi: "VI",
   switchToEn: "EN",
+  switchToEs: "ES",
+  switchToJa: "JA",
 
   bandStrong: "San sang cho Nha dau tu",
   bandDeveloping: "Dang phat trien",
@@ -372,8 +378,265 @@ const vi: TbrStrings = {
   execHeroPer100: "/ 100",
 };
 
-export const TBR_STRINGS: Record<TbrLocale, TbrStrings> = { en, vi };
+// ── Spanish (ES) ─────────────────────────────────────────────────────────────
+// Investor-facing register, formal Spanish (usted). Technical terms like SVI,
+// TBR, seed, Series A, Berkus, DCF stay in English as they are the lingua
+// franca of the venture-capital community across LATAM and Spain.
+
+const es: TbrStrings = {
+  reportTitle: "Informe de Negocio de Confianza",
+  brandBadge: "BlockID SVI™",
+  progressXofY: (s, t) => `${s} de ${t} dimensiones`,
+  completedInSeconds: (sec) => `completado en ${sec}s`,
+  partialAnalysis: "análisis parcial",
+
+  shareWithInvestor: "Compartir con el Inversor",
+  sharing: "Compartiendo…",
+  downloadPdf: "Descargar PDF",
+  print: "Imprimir",
+  shareUrlLabel: "Enlace para compartir:",
+  copy: "Copiar",
+  copied: "¡Copiado!",
+  clickShareFirst: "Pulse ‘Compartir con el Inversor’ primero para habilitar la descarga del PDF.",
+  shareFailed: "Error al compartir",
+  languageToggleAria: "Cambiar el idioma del informe",
+  switchToVi: "VI",
+  switchToEn: "EN",
+  switchToEs: "ES",
+  switchToJa: "JA",
+
+  bandStrong: "Listo para Inversores",
+  bandDeveloping: "En Desarrollo",
+  bandEarly: "Etapa Temprana",
+
+  verdictStrong: (svi, above70) =>
+    `Este negocio obtiene ${svi}/100 en el BlockID Startup Value Index — situándose en territorio listo para inversores. El análisis identificó ${above70} dimensiones por encima del umbral de 70 puntos con evidencia sólida.`,
+  verdictDeveloping: (svi, riskCount) =>
+    `Este negocio obtiene ${svi}/100 en el BlockID Startup Value Index — en desarrollo, con brechas relevantes que cerrar antes de una Series A o de una ronda angel significativa. ${riskCount} dimensión${riskCount !== 1 ? "es" : ""} marcada${riskCount !== 1 ? "s" : ""} como foco de alta prioridad.`,
+  verdictEarly: (svi) =>
+    `Este negocio obtiene ${svi}/100 en el BlockID Startup Value Index — etapa temprana, con brechas de evidencia significativas que limitarán las opciones de captación de capital en este momento. Se recomiendan acciones concretas de construcción de evidencia antes de acercarse a los inversores.`,
+
+  secExecutive: "Resumen Ejecutivo",
+  secSvi: "SVI del Negocio — Desglose Ponderado",
+  secValuation: "Valoración Pre-Money Orientativa",
+  secCriteria: "Evaluación Completa de 13 Criterios del Analista",
+  secRisk: "Registro de Riesgos",
+  secRoadmap: "Hoja de Ruta de Mejora",
+  secCohort: "Comparación de Cohorte — Benchmarks Seed AU",
+  secMethodology: "Metodología y Anexo",
+
+  tocOverview: "Visión General",
+  tocDimensions: "8 Dimensiones",
+  tocAnalysis: "Análisis",
+  tocContents: "Índice",
+
+  thDimension: "Dimensión",
+  thWeight: "Peso",
+  thScore: "Puntuación",
+  thPriority: "Prioridad",
+  thContribution: "Contribución",
+  thThisStartup: "Esta Startup",
+  thAuSeedMedian: "Mediana Seed AU",
+  thAuTopQuartile: "Cuartil Superior AU",
+  thVsMedian: "vs Mediana",
+  rowTotalSvi: "SVI Total",
+  rowCompositeSvi: "SVI Compuesto",
+
+  chipWeightOfSvi: (w) => `${w}% del SVI total`,
+  chipHighPriority: "prioridad alta",
+  chipMediumPriority: "prioridad media",
+  chipLowPriority: "prioridad baja",
+  chipAuBenchmark: "Benchmark del Mercado AU",
+
+  criteriaIntro:
+    "Evaluación detallada sobre los 13 criterios de análisis de inversores — derivada del análisis de las 8 dimensiones SVI anteriores. Cada criterio se asigna a una dimensión SVI primaria y aporta a la puntuación compuesta.",
+  criteriaStrengths: "Fortalezas",
+  criteriaGaps: "Brechas",
+  criteriaNextAction: "Próxima Acción (Esta Semana)",
+  criteriaMissingTitle: "Síntesis de criterios aún no disponible",
+  criteriaMissingBody:
+    "Vuelva a ejecutar el análisis del pitchdeck (Wave 24+) para generar el desglose completo de 13 criterios. Esta sección requiere la versión más reciente del análisis.",
+  criteriaReanalyse: "Reanalizar ahora",
+  chipWeightAndDim: (w, dim) => `${w}% de peso · ${dim.toUpperCase()}`,
+
+  riskIntro:
+    "Dimensiones que representan el mayor riesgo de inversión — ordenadas por impacto × brecha.",
+  riskDrag: (w, drag) => `${w}% de peso · lastre estimado de ${drag} pts sobre el SVI total`,
+
+  roadmapIntro: (n) =>
+    `Las ${n} acciones principales ordenadas por incremento esperado del SVI (peso × brecha hasta el umbral de 70 puntos).`,
+  roadmapLift: (pts) => `+${pts} pts de mejora potencial`,
+  roadmapMeta: (score, weight) =>
+    `Actual: ${score}/100 · Objetivo: 70+ · ${weight}% de peso`,
+  roadmapAddEvidence: (section) => `Añadir evidencia para ${section}`,
+
+  cohortIntro:
+    "Cómo se compara esta startup con sus pares seed australianos por banda SVI, basado en datos anonimizados de BlockID Index (cohorte seed PitchBook AU 2024–2026).",
+  cohortFootnote: (industry, stage) =>
+    `Benchmarks obtenidos de datos anonimizados de la cohorte BlockID + análisis seed PitchBook AU 2024–2026. Sector: ${industry} · Etapa: ${stage}. Se trata de una comparación orientativa — los perfiles individuales de cada startup varían significativamente.`,
+
+  methHeaderSvi: "BlockID Startup Value Index™ (SVI)",
+  methBodySvi:
+    "El SVI es una puntuación compuesta de 0 a 100 calculada sobre 8 dimensiones ponderadas. NO es una valoración — es un índice de preparación diseñado para señalizar la disposición ante inversores y resaltar brechas de evidencia. Puntuaciones por encima de 70 indican evidencia lista para inversores en la mayoría de dimensiones; de 40 a 69 indica una startup en desarrollo con próximos pasos claros; por debajo de 40 indica etapa temprana con brechas significativas que cerrar antes de captar capital.",
+  methHeaderDims: "8 Dimensiones SVI (100% de peso total)",
+  methHeaderCriteria: "13 Criterios de Evaluación de Inversores",
+  methBodyCriteria:
+    "Cada criterio se asigna a una dimensión SVI primaria y opcionalmente a una o más dimensiones secundarias. Los 13 criterios abarcan: Idea e Innovación, Oportunidad de Mercado, Perfil del Fundador, Código y Repositorio Git, Sitio Web y Presencia Digital, Composición del Equipo, Base de Clientes y Tracción, Estrategia Go-to-Market, Documentos Clave, Data Room, Estructura del Equipo y Gobernanza, Roadmap de Producto, e Ingresos y Unit Economics.",
+  methHeaderValuation: "Métodos de Valoración",
+  methBodyValuation:
+    "La valoración pre-money se calcula mediante uno de cuatro métodos seleccionados automáticamente según la etapa y la tracción: Método Berkus (pre-ingresos, tope A$2,5M), Método Scorecard (mediana de ronda angel × factor SVI), Transacciones Comparables (comps seed/Series A de AU tomados de PitchBook 2024–2026) o DCF (flujo de caja libre a 10 años con valor terminal). Tres escenarios (peor/promedio/mejor) aplican una banda de ±20%. Es una estimación orientativa, no una valoración formal.",
+  methHeaderAi: "Análisis de IA",
+  methBodyAi:
+    "Todo el análisis se genera desde el BlockID Analyst Desk — una cadena de agentes de IA especializados (Groq/SambaNova/Cerebras/Claude) apoyados en el texto del pitchdeck aportado por el fundador. Cada agente debe citar fragmentos del deck como evidencia y reconocer explícitamente cuando la información está ausente. Las puntuaciones se ajustan a 30–45 por defecto cuando el deck no menciona una dimensión. Este informe está asistido por IA y no constituye una auditoría de due diligence formal ni una recomendación de inversión.",
+  methFooter: (dateStr) =>
+    `BlockID.au · Startup Value Index™ · Informe generado el ${dateStr} · Uso interno del fundador y para compartir con inversores únicamente. No se autoriza su distribución pública sin el consentimiento del fundador.`,
+
+  noAnalysisTitle: "No se ha encontrado un análisis reciente",
+  noAnalysisBody:
+    "Ejecute primero un análisis completo de las 8 dimensiones SVI — los resultados están disponibles durante 30 minutos.",
+  noAnalysisCta: "Analizar mi pitchdeck",
+  scoresMissingBody:
+    "Análisis cacheado pero sin puntuaciones. Vuelva a ejecutar el análisis de dimensiones.",
+  scoresMissingCta: "Ir al Análisis del Pitchdeck →",
+
+  footerDisclaimer:
+    "BlockID Startup Value Index™ — Análisis asistido por IA. No constituye una valoración formal ni asesoramiento de inversión.",
+  footerReanalyse: "Reanalizar →",
+
+  execHeroPer100: "/ 100",
+};
+
+// ── Japanese (JA) ────────────────────────────────────────────────────────────
+// Business register with keigo (敬語) when addressing the investor. Loanwords
+// (startup, SVI, TBR, pitchdeck, seed, Series A, Berkus, DCF, cohort, etc.)
+// stay in katakana or their English form as is standard in the JP VC scene.
+
+const ja: TbrStrings = {
+  reportTitle: "信頼できる事業レポート",
+  brandBadge: "BlockID SVI™",
+  progressXofY: (s, t) => `${t}項目中 ${s} 項目`,
+  completedInSeconds: (sec) => `${sec}秒で完了`,
+  partialAnalysis: "部分的な分析",
+
+  shareWithInvestor: "投資家と共有",
+  sharing: "共有中…",
+  downloadPdf: "PDFをダウンロード",
+  print: "印刷",
+  shareUrlLabel: "共有URL:",
+  copy: "コピー",
+  copied: "コピーしました!",
+  clickShareFirst: "PDFのダウンロードを有効にするには、まず「投資家と共有」を押してください。",
+  shareFailed: "共有に失敗しました",
+  languageToggleAria: "レポートの言語を切り替える",
+  switchToVi: "VI",
+  switchToEn: "EN",
+  switchToEs: "ES",
+  switchToJa: "JA",
+
+  bandStrong: "投資家対応レベル",
+  bandDeveloping: "成長段階",
+  bandEarly: "アーリーステージ",
+
+  verdictStrong: (svi, above70) =>
+    `本事業は BlockID Startup Value Index で ${svi}/100 を獲得し、投資家対応レベルに位置しております。分析では、確かな根拠に基づき ${above70} 項目が70点の基準値を上回りました。`,
+  verdictDeveloping: (svi, riskCount) =>
+    `本事業は BlockID Startup Value Index で ${svi}/100 を獲得し、成長段階にあります。Series A や本格的なエンジェルラウンドに進む前に埋めるべき重要なギャップが存在します。${riskCount} 項目が優先度の高い注力領域として特定されました。`,
+  verdictEarly: (svi) =>
+    `本事業は BlockID Startup Value Index で ${svi}/100 を獲得し、アーリーステージにあります。現時点での資金調達の選択肢を制約する重大な根拠不足が見られます。投資家にアプローチする前に、具体的なエビデンス構築の取り組みを推奨いたします。`,
+
+  secExecutive: "エグゼクティブサマリー",
+  secSvi: "事業SVI — 加重スコアの内訳",
+  secValuation: "参考プレマネー・バリュエーション",
+  secCriteria: "13項目 完全アナリスト評価",
+  secRisk: "リスク一覧",
+  secRoadmap: "改善ロードマップ",
+  secCohort: "コホート比較 — AU シード ベンチマーク",
+  secMethodology: "方法論と付録",
+
+  tocOverview: "概要",
+  tocDimensions: "8つの評価項目",
+  tocAnalysis: "分析",
+  tocContents: "目次",
+
+  thDimension: "評価項目",
+  thWeight: "ウェイト",
+  thScore: "スコア",
+  thPriority: "優先度",
+  thContribution: "寄与度",
+  thThisStartup: "本スタートアップ",
+  thAuSeedMedian: "AU シード中央値",
+  thAuTopQuartile: "AU 上位四分位",
+  thVsMedian: "中央値との差",
+  rowTotalSvi: "SVI合計",
+  rowCompositeSvi: "SVI総合",
+
+  chipWeightOfSvi: (w) => `SVI全体の${w}%`,
+  chipHighPriority: "高優先度",
+  chipMediumPriority: "中優先度",
+  chipLowPriority: "低優先度",
+  chipAuBenchmark: "AU市場ベンチマーク",
+
+  criteriaIntro:
+    "上記8つのSVI評価項目の分析から導出された、13項目の投資家評価基準にわたる詳細評価です。各基準は主となるSVI項目に紐付き、総合スコアに寄与します。",
+  criteriaStrengths: "強み",
+  criteriaGaps: "ギャップ",
+  criteriaNextAction: "次のアクション(今週)",
+  criteriaMissingTitle: "評価基準の統合はまだご利用いただけません",
+  criteriaMissingBody:
+    "13項目の完全な内訳を生成するには、pitchdeck 分析 (Wave 24+) を再度実行してください。本セクションには最新版の分析が必要です。",
+  criteriaReanalyse: "今すぐ再分析",
+  chipWeightAndDim: (w, dim) => `ウェイト ${w}% · ${dim.toUpperCase()}`,
+
+  riskIntro:
+    "投資リスクが最も高い評価項目 — インパクト × ギャップの順に並び替えています。",
+  riskDrag: (w, drag) => `ウェイト ${w}% · SVI合計への影響は推定 ${drag} pt の押し下げ`,
+
+  roadmapIntro: (n) =>
+    `期待されるSVI改善幅(ウェイト × 70点基準値までのギャップ)で並べた上位 ${n} 件のアクションです。`,
+  roadmapLift: (pts) => `+${pts} pt の改善余地`,
+  roadmapMeta: (score, weight) =>
+    `現在: ${score}/100 · 目標: 70+ · ウェイト ${weight}%`,
+  roadmapAddEvidence: (section) => `${section} の根拠を追加`,
+
+  cohortIntro:
+    "本スタートアップがオーストラリアのシード期の同業他社と、SVIバンド別にどう比較されるかを、匿名化された BlockID Index データ (PitchBook AU 2024–2026 シードコホート) に基づいてご確認いただけます。",
+  cohortFootnote: (industry, stage) =>
+    `ベンチマークは、匿名化された BlockID コホートデータおよび PitchBook AU 2024–2026 シード分析を出典としております。業種: ${industry} · ステージ: ${stage}。これは方向性を示す比較であり、個々のスタートアップのプロフィールは大きく異なる可能性がございます。`,
+
+  methHeaderSvi: "BlockID Startup Value Index™ (SVI)",
+  methBodySvi:
+    "SVIは8つの加重評価項目にわたって算出される0〜100の総合スコアです。これはバリュエーションではなく、投資家対応の準備度を示し、根拠(エビデンス)のギャップを可視化するための準備度指数として設計されております。70点超は多くの項目で投資家対応レベルの根拠が揃っていることを、40〜69点は次のステップが明確な成長段階を、40点未満は資金調達前に埋めるべき重大なギャップを有するアーリーステージを示します。",
+  methHeaderDims: "8つのSVI評価項目 (ウェイト合計 100%)",
+  methHeaderCriteria: "13項目の投資家評価基準",
+  methBodyCriteria:
+    "各基準は1つの主たるSVI評価項目と、任意で1つ以上の副次的な評価項目に紐付きます。13項目は次のとおりです: アイデア&イノベーション、市場機会、ファウンダー・プロファイル、コード&Git リポジトリ、Web サイト&デジタルプレゼンス、チーム構成、顧客基盤&トラクション、Go-to-Market 戦略、主要文書、Data Room、チーム体制&ガバナンス、プロダクト・ロードマップ、および売上&Unit Economics。",
+  methHeaderValuation: "バリュエーション手法",
+  methBodyValuation:
+    "プレマネー・バリュエーションは、ステージとトラクションに応じて自動選択される4つの手法のいずれかで算出いたします: Berkus 法 (プレレベニュー、上限 A$2.5M)、Scorecard 法 (エンジェルラウンド中央値 × SVI 係数)、比較取引法 (PitchBook 2024–2026 の AU シード/Series A コンパラブル)、または DCF (10年間のフリーキャッシュフローと継続価値)。3ケース (下位/平均/上位) に ±20% のバンドを適用します。これは方向性を示す推計であり、正式なバリュエーションではございません。",
+  methHeaderAi: "AI 分析",
+  methBodyAi:
+    "すべての分析は、ファウンダーからご提供いただいた pitchdeck のテキストに基づく専門化された AI エージェントのチェーン (Groq/SambaNova/Cerebras/Claude) — BlockID Analyst Desk により生成されます。各エージェントは根拠として pitchdeck の該当箇所を引用し、情報が欠落している場合は明示的にその旨をお示しする必要があります。デックに言及がない項目のスコアは既定で30〜45となります。本レポートは AI 支援によるものであり、正式なデューデリジェンス監査や投資推奨を構成するものではございません。",
+  methFooter: (dateStr) =>
+    `BlockID.au · Startup Value Index™ · レポート生成日 ${dateStr} · ファウンダー内部および投資家との共有のみを目的としております。ファウンダーの同意なしに公開配布することはご遠慮ください。`,
+
+  noAnalysisTitle: "最近の分析が見つかりません",
+  noAnalysisBody:
+    "まずSVIの8項目分析を実行してください — 結果は30分間ご利用いただけます。",
+  noAnalysisCta: "自分の pitchdeck を分析する",
+  scoresMissingBody:
+    "分析はキャッシュされていますが、スコアが見つかりません。項目分析を再実行してください。",
+  scoresMissingCta: "Pitchdeck 分析へ移動 →",
+
+  footerDisclaimer:
+    "BlockID Startup Value Index™ — AI 支援による分析です。正式なバリュエーションや投資助言ではございません。",
+  footerReanalyse: "再分析 →",
+
+  execHeroPer100: "/ 100",
+};
+
+export const TBR_STRINGS: Record<TbrLocale, TbrStrings> = { en, vi, es, ja };
 
 export function getTbrStrings(locale: TbrLocale | undefined): TbrStrings {
-  return TBR_STRINGS[locale === "vi" ? "vi" : "en"];
+  if (locale === "vi" || locale === "es" || locale === "ja") return TBR_STRINGS[locale];
+  return TBR_STRINGS.en;
 }
