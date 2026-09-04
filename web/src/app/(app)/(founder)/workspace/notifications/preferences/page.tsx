@@ -49,6 +49,7 @@ export default async function NotificationsPage() {
                   promotions: prefs.promotions,
                   svi_alerts: prefs.svi_alerts,
                   payment_receipts: prefs.payment_receipts,
+                  digest_weekly: prefs.digest_weekly !== false, // wave 28A: undefined → TRUE
                   unsubscribed_all: prefs.unsubscribed_all,
                 }
               : {
@@ -57,6 +58,7 @@ export default async function NotificationsPage() {
                   promotions: true,
                   svi_alerts: true,
                   payment_receipts: true,
+                  digest_weekly: true,
                   unsubscribed_all: false,
                 }
           }

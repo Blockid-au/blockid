@@ -1,7 +1,7 @@
 {
-  "git_sha": "2e4ad14a42b5ad5bf54e708d8e4be35d7976a188",
-  "deployed_at": "2026-08-24T01:59:17Z",
-  "next_hash": "c003412700efb2adc3dacce07e9b60b4",
+  "git_sha": "0684bec05cdde3487c0de95c3d01aa27db5817b9",
+  "deployed_at": "2026-09-04T04:49:34Z",
+  "next_hash": "5c2c860355bd641b3c376faa84746132",
   "task_id": "manual",
-  "version": "v3.8.3"
+  "version": "v3.9.8"
 }
