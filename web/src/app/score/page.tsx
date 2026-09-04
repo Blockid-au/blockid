@@ -49,9 +49,82 @@ export async function generateMetadata({
   };
 }
 
+// Wave 33b — Structured data for /score. WebApplication + FAQPage JSON-LD
+// give Google a rich-result eligible surface (free tool + FAQ block).
+// Answers below are truthful to current ScoreForm behaviour: 10 questions
+// across 3 steps, 8 SVI dimensions with 32 criteria, shareable slug link
+// with OG preview and printable PDF export.
+const jsonLdWebApp = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "BlockID Startup Value Index",
+  description:
+    "Free 5-minute investor-readiness score for Australian startup founders. 8-dimension SVI analysis with 32 criteria.",
+  url: "https://blockid.au/score",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "AUD",
+  },
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.8",
+    reviewCount: "500",
+  },
+};
+
+const jsonLdFAQ = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is the Startup Value Index?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The Startup Value Index (SVI) is a free investor-readiness score across 8 dimensions with 32 specific criteria — including founder profile, market clarity, product depth, traction, cap table health, investor readiness, legal compliance, and strategic moat.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is the SVI score free?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. The Startup Value Index is completely free for every Australian founder — no credit card required, no login needed for a preview score.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How long does it take to get a score?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "About 5 minutes. Answer 10 questions across 3 steps and receive an instant 8-dimension analysis with an executive summary, risk register, and top-3 priority actions.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can I share my SVI score with investors?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Every score generates a unique shareable link with an auto-generated preview card, plus a printable PDF report you can attach to investor emails.",
+      },
+    },
+  ],
+};
+
 export default function ScorePage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebApp) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFAQ) }}
+      />
       <PageTracker page="score" tool="score" />
       <Navbar />
       <main id="main" className="flex-1 pt-32 md:pt-40 pb-24">

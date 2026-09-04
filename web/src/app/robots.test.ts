@@ -16,10 +16,27 @@ import robots from "./robots";
 
 const SITE_URL = "https://blockid.au";
 
-const ALLOW_EXPECTED = ["/", "/solutions/", "/business-id", "/id/"];
+const ALLOW_EXPECTED = [
+  "/",
+  "/score",
+  "/index",
+  "/solutions/",
+  "/business-id",
+  "/id/",
+  "/insights",
+  "/insights/",
+  "/sample-business-report",
+];
 const DISALLOW_EXPECTED = [
   "/api/",
   "/workspace/",
+  "/tbr/",
+  "/vi/tbr/",
+  "/es/tbr/",
+  "/ja/tbr/",
+  "/vi/workspace/",
+  "/es/workspace/",
+  "/ja/workspace/",
   "/dashboard",
   "/dashboard/",
   "/checkout",
