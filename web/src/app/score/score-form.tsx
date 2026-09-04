@@ -41,6 +41,15 @@ const defaultInput: ScoreInput = {
   hasFinancialAudit: false,
 };
 
+interface CriterionResult {
+  key: string;
+  title: string;
+  subtitle: string;
+  score: number;
+  status: "strong" | "developing" | "gap";
+  commentary: string;
+}
+
 interface SviDimAnalysis {
   dim: string;
   label: string;
@@ -48,12 +57,22 @@ interface SviDimAnalysis {
   status: "strong" | "developing" | "gap";
   commentary: string;
   weight: number;
+  criteria: CriterionResult[];
+}
+
+interface RiskItem {
+  criterion: string;
+  title: string;
+  severity: "critical" | "major" | "moderate";
+  impact: string;
+  fix: string;
 }
 
 interface SviFullAnalysis {
   dims: SviDimAnalysis[];
   executiveSummary: string;
   topThreePriorities: string[];
+  riskRegister: RiskItem[];
 }
 
 interface ScoreApiResponse {
@@ -1274,7 +1293,7 @@ function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
                     />
                   </div>
                 </div>
-                {/* Expanded commentary */}
+                {/* Expanded commentary + criteria sub-breakdown */}
                 {isOpen && (
                   <div className="px-4 pt-1 pb-4 border-t border-surface-100">
                     <p className="text-xs text-ink-500 leading-relaxed mt-2">
@@ -1283,6 +1302,45 @@ function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
                     <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-ink-400">
                       Weight: <span className="font-semibold text-ink-500">{dim.weight}%</span> of total SVI score
                     </p>
+                    {/* Wave 30 — criteria sub-breakdown */}
+                    {dim.criteria && dim.criteria.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-ink-400 font-semibold">
+                          Criteria breakdown
+                        </p>
+                        {dim.criteria.map((crit) => {
+                          const critBarCls = STATUS_BAR_COLORS[crit.status] ?? "bg-surface-300";
+                          const critStatusCls = STATUS_COLORS[crit.status] ?? "";
+                          return (
+                            <div key={crit.key} className="rounded-lg border border-surface-100 bg-surface-50/60 p-3">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="flex-1 text-xs font-semibold text-ink-700 leading-snug">{crit.title}</span>
+                                <span className={cn(
+                                  "flex-none text-[10px] font-bold tabular-nums",
+                                  crit.status === "strong" ? "text-emerald-600" : crit.status === "gap" ? "text-red-600" : "text-amber-600",
+                                )}>
+                                  {crit.score}/100
+                                </span>
+                                <span className={cn(
+                                  "flex-none hidden sm:inline-flex items-center rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide",
+                                  critStatusCls,
+                                )}>
+                                  {STATUS_LABEL[crit.status]}
+                                </span>
+                              </div>
+                              <div className="h-1 w-full rounded-full bg-surface-200 overflow-hidden mb-2">
+                                <div
+                                  className={cn("h-full rounded-full transition-all duration-500", critBarCls)}
+                                  style={{ width: `${crit.score}%` }}
+                                />
+                              </div>
+                              <p className="text-[10px] text-ink-400 leading-relaxed">{crit.subtitle}</p>
+                              <p className="mt-1 text-[11px] text-ink-500 leading-relaxed">{crit.commentary}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1293,6 +1351,47 @@ function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
           Dimension scores are deterministic estimates based on your inputs. For AI-powered analysis with evidence streaming, run the full investor report in your workspace.
         </p>
       </div>
+
+      {/* Wave 30 — Risk Register */}
+      {analysis.riskRegister && analysis.riskRegister.length > 0 && (
+        <div className="rounded-2xl border border-red-100 bg-white p-5">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-red-600 font-semibold mb-1">
+            Key Risks to Address
+          </p>
+          <p className="text-[11px] text-ink-400 mb-4 leading-relaxed">
+            These criteria scored below 55/100 — address them before approaching investors.
+          </p>
+          <div className="space-y-3">
+            {analysis.riskRegister.map((risk, i) => {
+              const severityBadge =
+                risk.severity === "critical"
+                  ? "bg-red-100 text-red-700 border-red-200"
+                  : risk.severity === "major"
+                    ? "bg-amber-100 text-amber-700 border-amber-200"
+                    : "bg-yellow-50 text-yellow-700 border-yellow-200";
+              return (
+                <div key={`${risk.criterion}-${i}`} className="rounded-xl border border-surface-100 bg-surface-50/40 p-4">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className={cn(
+                      "flex-none inline-flex items-center rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest mt-0.5",
+                      severityBadge,
+                    )}>
+                      {risk.severity}
+                    </span>
+                    <span className="text-sm font-semibold text-ink-700 leading-snug">{risk.title}</span>
+                  </div>
+                  <p className="text-[11px] text-ink-500 leading-relaxed mb-1">
+                    <span className="font-semibold text-ink-600">Impact: </span>{risk.impact}
+                  </p>
+                  <p className="text-[11px] text-ink-500 leading-relaxed">
+                    <span className="font-semibold text-emerald-700">Fix: </span>{risk.fix}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
