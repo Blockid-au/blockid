@@ -86,6 +86,22 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # list keeps drifting forward even without rate-limit pressure (the ai-client
 # fires this on-demand too when ≥2 models hit 429 in a 5-min window).
 0 4 * * 0 bash $RUN discover-models
+
+# ── AI Model Health Monitor + Auto-Refresh (v3.9.12) ──────────
+# Every 30 min: ping every active + known-good pool model with a tiny prompt,
+# record latency/status → content/ai-model-health.{jsonl,json}, publish unified
+# registry to content/ai-provider-registry.json, auto-inject up to 3 backup
+# models from the curated pool when active models hit quota_exceeded (429 or
+# quota-match error text), Telegram alert on new degradations.
+# Both blockid.au (in-process) and startupvalueindex.com (via /api/ai/registry)
+# consume the registry.
+*/30 * * * * curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/ai-health-check >> /var/log/blockid/ai-health-check.log 2>&1
+
+# Weekly Sunday 04:00 UTC: crawl OpenRouter/Groq/SambaNova/Cerebras catalogues,
+# rank by (context length, known-good family, prior-check latency), write top-10
+# candidates to content/ai-model-candidates.json, auto-inject top-3 into the
+# active chain. Falls back to prior candidates on OpenRouter 500.
+0 4 * * 0 curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/ai-model-discovery >> /var/log/blockid/ai-model-discovery.log 2>&1
 30 21 * * * bash $RUN publish-insight --timeout 120
 
 # ── Phase 5: QA + Security + Performance (8:00am AEST) ────────
