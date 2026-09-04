@@ -37,6 +37,17 @@ export interface FounderFeaturesCopy {
   team_suggested_advisors: number;
 }
 
+// AI prompt templates. Kept in platform-config so ops can tune tone / length
+// / guardrails from the admin panel without a redeploy. Each key holds a
+// system prompt string; the caller substitutes `{{placeholders}}` at call-time.
+export interface AIPromptsConfig {
+  // Wave 28C — Personalised 30-Day Action Plan generator. Placeholders:
+  //   {{weakestDimsSummary}} — bullet list of the 2 weakest dims (name, score, benchmark_p75)
+  //   {{weakestCriteriaSummary}} — bullet list of weakest criteria under those dims
+  //   {{sector}} — canonical benchmark sector (saas, fintech, …, default)
+  actionPlan: string;
+}
+
 export interface PlatformConfig {
   // ── Founding plan ──────────────────────────────────────────────────────────
   founding_plan_name: string;       // e.g. "Founding 100"
@@ -91,6 +102,9 @@ export interface PlatformConfig {
 
   // ── Founder core features (Phase 1 workspace pages) ─────────────────────────
   founder_features_copy: FounderFeaturesCopy;
+
+  // ── AI prompt templates (Wave 28C onwards) ──────────────────────────────────
+  prompts: AIPromptsConfig;
 }
 
 export const CONFIG_DEFAULTS: PlatformConfig = {
@@ -164,6 +178,37 @@ export const CONFIG_DEFAULTS: PlatformConfig = {
     team_intro:
       "Roster your team and plan next hires. Track founders, hires, advisors, contractors — with equity, salary, and status.",
     team_suggested_advisors: 3,
+  },
+
+  prompts: {
+    actionPlan: [
+      "You are an Australian startup coach writing a personalised 30-day action plan for a founder.",
+      "The founder has just scored on the BlockID Startup Value Index (SVI). You will be given their two weakest SVI dimensions (score < 60), the weakest underlying criteria within those dimensions, and the sector's 75th-percentile benchmark for each of those dimensions.",
+      "Return exactly 5 tasks as a JSON array (no markdown, no prose, no code fence). Each task must be:",
+      "  - concrete, imperative, achievable in ≤ 30 days by a 1–5 person team",
+      "  - grounded in the weakest dimension(s) and criterion(a) provided — do not stray to other dimensions",
+      "  - realistic in `target_delta_points`: the total across all 5 tasks should move each weak dim no more than 60% of the way to its sector 75th-percentile benchmark",
+      "",
+      "Each task object must have exactly these keys:",
+      "  title              — string, ≤ 80 characters, imperative voice (\"Publish…\", \"Book…\", \"Ship…\")",
+      "  detail             — string, exactly 2 sentences explaining what to do and why it moves the score",
+      "  criterion          — string, the W23 criterion key it addresses (e.g. \"founder_profile\", \"market\", \"traction\")",
+      "  dim                — string, one of: ftv, mpc, ptd, tre, cgh, iri, lco, svm",
+      "  target_delta_points — number, between 0.5 and 4.0 inclusive (points added to the overall SVI when completed)",
+      "",
+      "STRICT CONSTRAINTS — violating any of these means the response will be rejected:",
+      "  1. NEVER mention any real company name (no Canva, Atlassian, Stripe, Airbnb, Uber, OpenAI, Anthropic, etc.). Use generic phrases like \"a leading AU SaaS\" or \"a comparable seed-stage fintech\" if you must reference a pattern.",
+      "  2. NEVER mention BlockID, the SVI methodology, competitors, or third-party tools by brand name.",
+      "  3. Output MUST be a valid JSON array of exactly 5 objects — no wrapping object, no trailing commentary.",
+      "  4. Do not repeat task titles or duplicate the same criterion more than twice across the 5 tasks.",
+      "",
+      "Founder context:",
+      "  Sector: {{sector}}",
+      "  Weakest dimensions:",
+      "{{weakestDimsSummary}}",
+      "  Weakest criteria under those dimensions:",
+      "{{weakestCriteriaSummary}}",
+    ].join("\n"),
   },
 };
 
