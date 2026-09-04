@@ -280,6 +280,7 @@ export function ScoreForm() {
           <Field label="Company name" htmlFor="company">
             <Input
               id="company"
+              name="company"
               required
               value={input.companyName}
               onChange={(e) => update("companyName", e.target.value)}
@@ -291,6 +292,7 @@ export function ScoreForm() {
           <Field label="Work email (report is sent here)" htmlFor="email">
             <Input
               id="email"
+              name="email"
               type="email"
               required
               autoComplete="email"
@@ -318,6 +320,7 @@ export function ScoreForm() {
             <Field label="ABN (optional)" htmlFor="abn">
               <Input
                 id="abn"
+                name="abn"
                 inputMode="numeric"
                 value={input.abn}
                 onChange={(e) => update("abn", e.target.value)}
@@ -328,6 +331,7 @@ export function ScoreForm() {
             <Field label="Sector" htmlFor="sector">
               <select
                 id="sector"
+                name="sector"
                 value={input.sector}
                 onChange={(e) =>
                   update("sector", e.target.value as ScoreInput["sector"])
@@ -344,6 +348,7 @@ export function ScoreForm() {
             <Field label="Funding stage" htmlFor="stage">
               <select
                 id="stage"
+                name="stage"
                 value={input.stage}
                 onChange={(e) =>
                   update("stage", e.target.value as ScoreInput["stage"])
@@ -360,6 +365,7 @@ export function ScoreForm() {
             <Field label="Years trading" htmlFor="years">
               <Input
                 id="years"
+                name="years"
                 type="number"
                 min={0}
                 step={1}
@@ -373,6 +379,7 @@ export function ScoreForm() {
             <Field label="Monthly revenue (AUD)" htmlFor="rev">
               <Input
                 id="rev"
+                name="rev"
                 type="number"
                 min={0}
                 step={1000}
@@ -386,6 +393,7 @@ export function ScoreForm() {
             <Field label="Monthly burn (AUD)" htmlFor="burn">
               <Input
                 id="burn"
+                name="burn"
                 type="number"
                 min={0}
                 step={1000}
@@ -399,6 +407,7 @@ export function ScoreForm() {
             <Field label="Runway (months)" htmlFor="runway">
               <Input
                 id="runway"
+                name="runway"
                 type="number"
                 min={0}
                 step={1}
@@ -412,6 +421,7 @@ export function ScoreForm() {
             <Field label="ARR band" htmlFor="arr-band">
               <select
                 id="arr-band"
+                name="arr-band"
                 value={input.arrBand}
                 onChange={(e) =>
                   update("arrBand", e.target.value as ScoreInput["arrBand"])
@@ -428,6 +438,7 @@ export function ScoreForm() {
             <Field label="Target raise (AUD)" htmlFor="target-raise">
               <Input
                 id="target-raise"
+                name="target-raise"
                 type="number"
                 min={0}
                 step={50000}
@@ -441,6 +452,7 @@ export function ScoreForm() {
             <Field label="Valuation / cap (AUD)" htmlFor="valuation-cap">
               <Input
                 id="valuation-cap"
+                name="valuation-cap"
                 type="number"
                 min={0}
                 step={100000}
@@ -454,6 +466,7 @@ export function ScoreForm() {
             <Field label="Founders" htmlFor="founders">
               <Input
                 id="founders"
+                name="founders"
                 type="number"
                 min={1}
                 step={1}
@@ -467,6 +480,7 @@ export function ScoreForm() {
             <Field label="ESOP allocated (%)" htmlFor="esop">
               <Input
                 id="esop"
+                name="esop"
                 type="number"
                 min={0}
                 max={50}
@@ -904,7 +918,7 @@ function ResultPanel({
         </div>
         {/* Wave 29 — Full 8-dimension SVI breakdown */}
         {result.sviAnalysis && (
-          <SviFullAnalysisPanel analysis={result.sviAnalysis} />
+          <SviFullAnalysisPanel analysis={result.sviAnalysis} shareUrl={shareUrl} />
         )}
 
         <div className="mt-6">
@@ -1045,6 +1059,7 @@ function ResultPanel({
           <div className="mt-5 grid sm:grid-cols-2 gap-3">
             <Input
               id="investor-email"
+              name="investor-email"
               type="email"
               required
               value={investorEmail}
@@ -1054,6 +1069,7 @@ function ResultPanel({
             />
             <Input
               id="investor-name"
+              name="investor-name"
               value={investorName}
               onChange={(e) => setInvestorName(e.target.value)}
               placeholder="Investor name (optional)"
@@ -1061,6 +1077,7 @@ function ResultPanel({
             />
             <Input
               id="fund-name"
+              name="fund-name"
               value={fundName}
               onChange={(e) => setFundName(e.target.value)}
               placeholder="Fund (optional, e.g. Blackbird)"
@@ -1195,17 +1212,29 @@ const STATUS_LABEL: Record<string, string> = {
   gap: "Gap",
 };
 
-function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
-  const [expanded, setExpanded] = React.useState<string | null>(null);
+function SviFullAnalysisPanel({ analysis, shareUrl }: { analysis: SviFullAnalysis; shareUrl?: string }) {
+  // UX-2: allow multiple dimensions open simultaneously
+  const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
+
+  const toggleDim = (dim: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(dim)) next.delete(dim);
+      else next.add(dim);
+      return next;
+    });
+  };
 
   return (
     <div className="mt-8 space-y-5">
-      {/* Executive Summary */}
+      {/* UX-4: Executive Summary with brand left-border */}
       <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 to-brand-100/40 p-5">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-brand-600 font-semibold mb-1">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-brand-600 font-semibold mb-2">
           Executive Assessment
         </p>
-        <p className="text-sm leading-relaxed text-ink-700">{analysis.executiveSummary}</p>
+        <p className="text-sm leading-relaxed text-ink-700 border-l-4 border-brand-500 pl-4">
+          {analysis.executiveSummary}
+        </p>
       </div>
 
       {/* Top 3 Priorities */}
@@ -1227,6 +1256,64 @@ function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
         </div>
       )}
 
+      {/* UX-1: Risk Register moved ABOVE the accordion */}
+      {analysis.riskRegister && analysis.riskRegister.length > 0 && (
+        <div className="rounded-2xl border border-red-100 bg-white p-5">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-red-600 font-semibold mb-1">
+            Key Risks to Address
+          </p>
+          <p className="text-[11px] text-ink-400 mb-4 leading-relaxed">
+            These criteria scored below 55/100 — address them before approaching investors.
+          </p>
+          <div className="space-y-3">
+            {analysis.riskRegister.map((risk, i) => {
+              const severityBadge =
+                risk.severity === "critical"
+                  ? "bg-red-100 text-red-700 border-red-200"
+                  : risk.severity === "major"
+                    ? "bg-amber-100 text-amber-700 border-amber-200"
+                    : "bg-yellow-50 text-yellow-700 border-yellow-200";
+              // UX-6: inline SVG icons for severity
+              const SeverityIcon =
+                risk.severity === "critical" ? (
+                  <svg className="flex-none h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <circle cx="10" cy="10" r="9" className="opacity-20" />
+                    <path fillRule="evenodd" clipRule="evenodd" d="M10 1a9 9 0 100 18A9 9 0 0010 1zm0 4a1 1 0 011 1v4a1 1 0 11-2 0V6a1 1 0 011-1zm0 8a1 1 0 100 2 1 1 0 000-2z" />
+                  </svg>
+                ) : risk.severity === "major" ? (
+                  <svg className="flex-none h-4 w-4 text-amber-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-5a1 1 0 00-1 1v2a1 1 0 102 0V9a1 1 0 00-1-1z" />
+                  </svg>
+                ) : (
+                  <svg className="flex-none h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 9a1 1 0 01-1-1v-4a1 1 0 112 0v4a1 1 0 01-1 1z" />
+                  </svg>
+                );
+              return (
+                <div key={`${risk.criterion}-${i}`} className="rounded-xl border border-surface-100 bg-surface-50/40 p-4">
+                  <div className="flex items-start gap-2 mb-2">
+                    {SeverityIcon}
+                    <span className={cn(
+                      "flex-none inline-flex items-center rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest",
+                      severityBadge,
+                    )}>
+                      {risk.severity}
+                    </span>
+                    <span className="text-sm font-semibold text-ink-700 leading-snug">{risk.title}</span>
+                  </div>
+                  <p className="text-[11px] text-ink-500 leading-relaxed mb-1">
+                    <span className="font-semibold text-ink-600">Impact: </span>{risk.impact}
+                  </p>
+                  <p className="text-[11px] text-ink-500 leading-relaxed">
+                    <span className="font-semibold text-emerald-700">Fix: </span>{risk.fix}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 8-dimension breakdown */}
       <div className="rounded-2xl border border-surface-200 bg-white p-5">
         <p className="text-[10px] uppercase tracking-[0.2em] text-ink-500 font-semibold mb-4">
@@ -1234,7 +1321,8 @@ function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
         </p>
         <div className="space-y-2">
           {analysis.dims.map((dim) => {
-            const isOpen = expanded === dim.dim;
+            // UX-2: multi-open accordion
+            const isOpen = expanded.has(dim.dim);
             const badgeCls = DIM_BADGE_COLORS[dim.dim] ?? "bg-surface-100 text-ink-700 border-surface-200";
             const statusCls = STATUS_COLORS[dim.status] ?? "";
             const barCls = STATUS_BAR_COLORS[dim.status] ?? "bg-surface-300";
@@ -1245,7 +1333,7 @@ function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
               >
                 <button
                   type="button"
-                  onClick={() => setExpanded(isOpen ? null : dim.dim)}
+                  onClick={() => toggleDim(dim.dim)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-50/50 transition-colors"
                   aria-expanded={isOpen}
                 >
@@ -1311,13 +1399,21 @@ function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
                         {dim.criteria.map((crit) => {
                           const critBarCls = STATUS_BAR_COLORS[crit.status] ?? "bg-surface-300";
                           const critStatusCls = STATUS_COLORS[crit.status] ?? "";
+                          // UX-5: color-coded score badge
+                          const critScoreColor =
+                            crit.score >= 70
+                              ? "text-emerald-700 bg-emerald-50 border-emerald-300"
+                              : crit.score >= 45
+                                ? "text-amber-700 bg-amber-50 border-amber-300"
+                                : "text-red-700 bg-red-50 border-red-300";
                           return (
                             <div key={crit.key} className="rounded-lg border border-surface-100 bg-surface-50/60 p-3">
                               <div className="flex items-center gap-2 mb-1.5">
                                 <span className="flex-1 text-xs font-semibold text-ink-700 leading-snug">{crit.title}</span>
+                                {/* UX-5: color-coded score badge */}
                                 <span className={cn(
-                                  "flex-none text-[10px] font-bold tabular-nums",
-                                  crit.status === "strong" ? "text-emerald-600" : crit.status === "gap" ? "text-red-600" : "text-amber-600",
+                                  "flex-none inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums",
+                                  critScoreColor,
                                 )}>
                                   {crit.score}/100
                                 </span>
@@ -1352,44 +1448,18 @@ function SviFullAnalysisPanel({ analysis }: { analysis: SviFullAnalysis }) {
         </p>
       </div>
 
-      {/* Wave 30 — Risk Register */}
-      {analysis.riskRegister && analysis.riskRegister.length > 0 && (
-        <div className="rounded-2xl border border-red-100 bg-white p-5">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-red-600 font-semibold mb-1">
-            Key Risks to Address
-          </p>
-          <p className="text-[11px] text-ink-400 mb-4 leading-relaxed">
-            These criteria scored below 55/100 — address them before approaching investors.
-          </p>
-          <div className="space-y-3">
-            {analysis.riskRegister.map((risk, i) => {
-              const severityBadge =
-                risk.severity === "critical"
-                  ? "bg-red-100 text-red-700 border-red-200"
-                  : risk.severity === "major"
-                    ? "bg-amber-100 text-amber-700 border-amber-200"
-                    : "bg-yellow-50 text-yellow-700 border-yellow-200";
-              return (
-                <div key={`${risk.criterion}-${i}`} className="rounded-xl border border-surface-100 bg-surface-50/40 p-4">
-                  <div className="flex items-start gap-2 mb-2">
-                    <span className={cn(
-                      "flex-none inline-flex items-center rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest mt-0.5",
-                      severityBadge,
-                    )}>
-                      {risk.severity}
-                    </span>
-                    <span className="text-sm font-semibold text-ink-700 leading-snug">{risk.title}</span>
-                  </div>
-                  <p className="text-[11px] text-ink-500 leading-relaxed mb-1">
-                    <span className="font-semibold text-ink-600">Impact: </span>{risk.impact}
-                  </p>
-                  <p className="text-[11px] text-ink-500 leading-relaxed">
-                    <span className="font-semibold text-emerald-700">Fix: </span>{risk.fix}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+      {/* UX-3: Download as PDF ghost button — shown only when shareUrl is available */}
+      {shareUrl && (
+        <div className="flex justify-end">
+          <a
+            href={`${shareUrl}/pdf`}
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center gap-2 rounded-xl border border-surface-300 bg-transparent px-4 py-2.5 text-sm font-medium text-ink-600 hover:border-brand-400 hover:text-brand-700 hover:bg-brand-50/40 transition-colors"
+          >
+            <Download strokeWidth={1.75} className="h-4 w-4" />
+            Download full analysis as PDF
+          </a>
         </div>
       )}
     </div>
