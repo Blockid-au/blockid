@@ -17,6 +17,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { sendEmail } from "@/lib/email";
 import { insertNotification, ownerFromShareToken } from "@/lib/notifications";
+import { sendStep1 } from "@/lib/investor-drips/send";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -135,6 +136,19 @@ export async function POST(
     ownerUserId: owner.userId,
     ownerProjectId: owner.projectId,
     lead: { id: leadId, name, email, firm, role, interest, message, country },
+  });
+
+  // Wave 31c — investor-facing drip Step 1 (T+0 acknowledgement).
+  // Fire-and-forget; sendStep1 is fail-soft and gates on investor_unsubscribes.
+  void sendStep1({
+    leadId,
+    investorEmail: email,
+    investorName: name,
+    shareToken: token,
+    projectId: owner.projectId,
+    baseUrl: siteBaseUrl(request),
+  }).catch((err) => {
+    console.warn("[tbr-lead] investor drip step1 failed:", err);
   });
 
   return NextResponse.json({
