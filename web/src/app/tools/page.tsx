@@ -5,7 +5,7 @@ import { Footer } from "@/components/site/footer";
 
 const TITLE = "Free Startup Tools | BlockID — Valuation, Cap Table & More";
 const DESCRIPTION =
-  "12 free tools for Australian startup founders: equity split calculator, dilution modeller, cap table, SAFE note calculator, ESIC checker, R&D tax calculator, and more. No login required.";
+  "16 free tools for Australian startup founders: idea clarifier, sector-aware idea lab, equity split calculator, dilution modeller, cap table, SAFE note calculator, ESIC checker, R&D tax calculator, and more. No login required.";
 const CANONICAL = "https://blockid.au/tools";
 
 export const metadata: Metadata = {
@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   keywords: [
     "free startup tools australia",
+    "startup idea clarifier",
+    "startup idea generator",
+    "sector startup angles",
     "equity split calculator",
     "dilution calculator australia",
     "cap table tool free",
@@ -61,6 +64,26 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
+  {
+    id: "ideation",
+    label: "Ideation & Validation",
+    desc: "Sharpen your idea before you commit time and money",
+    tools: [
+      {
+        slug: "idea-clarify",
+        name: "First-Principles Idea Clarifier",
+        desc: "Answer 5–7 Socratic questions and get routed to the right next step — SVI, cap table, ESIC eligibility, or fundraise prep.",
+        icon: "🧭",
+      },
+      {
+        slug: "idea-lab",
+        name: "AI Idea Lab",
+        desc: "Pick a sector, describe a broad problem, and generate 10 concrete startup angles plus 3 real Australian competitors.",
+        icon: "🧪",
+        tag: "AI Powered",
+      },
+    ],
+  },
   {
     id: "valuation",
     label: "Valuation Tools",
@@ -215,7 +238,6 @@ function ToolCard({ tool }: { tool: ToolDef }) {
 
 export default function ToolsPage() {
   const totalTools = ALL_TOOLS.length;
-
   return (
     <>
       <Navbar />
@@ -231,8 +253,9 @@ export default function ToolsPage() {
               <span className="text-brand-400">Solved free.</span>
             </h1>
             <p className="mt-5 text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              12 AU-native tools covering valuation, equity, compliance,
-              fundraising, and tax. No login. No paywall. Just answers.
+              {totalTools} AU-native tools covering ideation, valuation, equity,
+              compliance, fundraising, and tax. No login. No paywall. Just
+              answers.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3 text-sm text-slate-500">
               {["No credit card", "No login required", "AU-specific data", "Updated for 2026"].map(
