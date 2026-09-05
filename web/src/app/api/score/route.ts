@@ -4,6 +4,7 @@ import { computeScore, type ScoreInput } from "@/lib/score";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
 import { sendScoreReady } from "@/lib/email";
+import { getCurrentUser } from "@/lib/auth";
 import {
   buildVcValuationReport,
   type BuildVcValuationInput,
@@ -1180,6 +1181,36 @@ export async function POST(request: Request) {
     } else {
       persisted = true;
     }
+  }
+
+  // Best-effort: link score to user's startup history if authenticated
+  const currentUser = await getCurrentUser().catch(() => null);
+  if (currentUser && supabase && persisted) {
+    const slugName = (parsed.companyName ?? inputs.companyName ?? "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "unnamed";
+    const startupId = `${currentUser.id}:${slugName}`;
+    void supabase
+      .from("startup_score_history")
+      .insert({
+        user_id: currentUser.id,
+        startup_id: startupId,
+        startup_name: parsed.companyName ?? inputs.companyName ?? "Unnamed Startup",
+        inputs,
+        svi_analysis: sviAnalysis,
+        sub_scores: subScoresMap,
+        total_score: breakdown.total,
+        valuation_low_aud: valuation?.lowAud ?? null,
+        valuation_high_aud: valuation?.highAud ?? null,
+        score_version: breakdown.version,
+        confidence_score: breakdown.confidence,
+        missing_inputs: breakdown.missingInputs,
+        source: "blockid",
+      })
+      .then(({ error }) => {
+        if (error) console.error("[blockid:history] insert failed", error);
+      });
   }
 
   // Fire-and-forget email — always attempt, even in demo mode.

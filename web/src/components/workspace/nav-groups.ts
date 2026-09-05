@@ -30,7 +30,7 @@ import {
   Target, TrendingUp, User, Users, Wand2, Wallet, Zap,
   ClipboardList, Eye, Layers, Settings2, MessageSquare, Send, Building2,
   ClipboardCheck, FileBarChart, Handshake, LayoutDashboard, Tag, Coins, Plug,
-  Inbox, GraduationCap, LayoutGrid, Cpu,
+  Inbox, GraduationCap, LayoutGrid, Cpu, History,
 } from "lucide-react";
 
 import type { PlanTier, Segment } from "@/lib/segments";
@@ -215,6 +215,7 @@ const HOME_ITEMS: NavLeaf[] = [
   { href: "/workspace/projects/archived", label: "Archived", icon: Archive, growthPhase: 0 },
   { href: "/dashboard/portfolio", label: "Portfolio", icon: LayoutDashboard, lifecycle: "beta", growthPhase: 0 },
   { href: "/dashboard/svi", label: "SVI Score", icon: TrendingUp, growthPhase: 0 },
+  { href: "/dashboard/history", label: "Score History", icon: History, growthPhase: 0 },
   { href: "/", label: "New Analysis", icon: Zap, growthPhase: 0 },
   { href: "/workspace/roadmap", label: "Action Plan", icon: Map, growthPhase: 0 },
 ];
