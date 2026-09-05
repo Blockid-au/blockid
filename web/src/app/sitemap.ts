@@ -169,6 +169,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: `${SITE_URL}/tools/idea-clarify`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/tools/idea-lab`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
     // B1 Task 1 & 4 — /one-click-report is the primary A$3 revenue product;
     // Google should crawl it daily and rank it as the highest-priority page.
     {
