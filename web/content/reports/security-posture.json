@@ -1,29 +1,29 @@
 {
-  "date": "2026-08-23",
-  "overall": 24,
+  "date": "2026-09-04",
+  "overall": 23,
   "status": "RED",
   "dimensions": [
     {
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "365/453 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "391/494 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/abr/lookup/route.ts",
         "Ungated: api/abs/lookup/route.ts",
         "Ungated: api/actions/route.ts",
         "Ungated: api/ai/esop/route.ts",
+        "Ungated: api/ai/registry/route.ts",
         "Ungated: api/ai/vesting/route.ts",
-        "Ungated: api/ai/vesting-review/route.ts",
-        "Ungated: api/asic/extract/route.ts"
+        "Ungated: api/ai/vesting-review/route.ts"
       ]
     },
     {
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
-      "score": 1,
-      "detail": "23/453 call checkRateLimit (or @rate-limit-exempt)",
+      "score": 0,
+      "detail": "23/494 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/abr/lookup/route.ts",
@@ -65,10 +65,10 @@
       "key": "deps",
       "label": "Dependency vulnerabilities",
       "score": 0,
-      "detail": "crit 0, high 9, mod 5",
+      "detail": "crit 0, high 10, mod 7",
       "findings": [
-        "9 high CVE(s)",
-        "5 moderate CVE(s)"
+        "10 high CVE(s)",
+        "7 moderate CVE(s)"
       ]
     },
     {
@@ -91,8 +91,8 @@
     }
   ],
   "recommendations": [
+    "Add checkRateLimit() to every /api/* route or tag with @rate-limit-exempt comment",
     "Move leaked secret patterns out of repo; rotate any exposed credentials immediately",
-    "Add missing security headers to src/middleware.ts (CSP, X-Frame, X-Content-Type, Referrer, Permissions)",
-    "Run `npm audit fix` for moderate; manually upgrade high/critical"
+    "Add missing security headers to src/middleware.ts (CSP, X-Frame, X-Content-Type, Referrer, Permissions)"
   ]
 }
