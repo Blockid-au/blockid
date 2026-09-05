@@ -534,9 +534,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
-    // Dynamic insight articles
+    // Dynamic insight articles (deduplicated — manifest.json can have repeated slugs)
     ...insightEntries,
     // Dynamic public Business ID profiles (§11.1 / §14bis D3)
     ...businessIdEntries,
-  ];
+  ].filter(
+    // Deduplicate by URL — manifest can produce the same slug twice
+    ((seen: Set<string>) => (entry: MetadataRoute.Sitemap[number]) => {
+      if (seen.has(entry.url)) return false;
+      seen.add(entry.url);
+      return true;
+    })(new Set<string>()),
+  );
 }
