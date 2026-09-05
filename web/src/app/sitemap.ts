@@ -538,12 +538,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...insightEntries,
     // Dynamic public Business ID profiles (§11.1 / §14bis D3)
     ...businessIdEntries,
-  ].filter(
+  ].reduce<MetadataRoute.Sitemap>((acc, entry) => {
     // Deduplicate by URL — manifest can produce the same slug twice
-    ((seen: Set<string>) => (entry: MetadataRoute.Sitemap[number]) => {
-      if (seen.has(entry.url)) return false;
-      seen.add(entry.url);
-      return true;
-    })(new Set<string>()),
-  );
+    const e = entry as MetadataRoute.Sitemap[number];
+    if (!acc.some((a) => a.url === e.url)) acc.push(e);
+    return acc;
+  }, []);
 }
