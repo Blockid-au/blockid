@@ -192,6 +192,21 @@ const CAC_PAYBACK_BAND: Record<Stage, { worst: number; mid: number; best: number
   "series-b": { worst: 15, mid: 10, best: 6 },
 };
 
+/**
+ * Stage-aware operating-margin fallback used only when the founder has not
+ * supplied one. Sources: SaaS Capital Spending Benchmarks 2024, OpenView
+ * SaaS Benchmarks 2024. Pre-seed startups run heavily negative (revenue is
+ * tiny vs OpEx); Series B firms should be approaching breakeven. A flat
+ * −50% assumption over-penalises pre-seed and over-rewards later-stage
+ * companies in the Rule of 40 calculation.
+ */
+const DEFAULT_OPERATING_MARGIN_PCT: Record<Stage, number> = {
+  "pre-seed": -90,
+  seed: -60,
+  "series-a": -30,
+  "series-b": -10,
+};
+
 function noteFor(metric: string, verdict: Verdict, stage: Stage): string {
   const stageLabel = stage.replace("-", " ");
   const notes: Record<string, Record<Verdict, string>> = {
@@ -323,7 +338,7 @@ export function computeProjectionNorms(input: ProjectionInput): ProjectionNorms 
   // Rule of 40 — annualised growth + operating margin.
   {
     const annualisedGrowth = (Math.pow(1 + input.monthlyGrowthRatePct / 100, 12) - 1) * 100;
-    const operatingMargin = input.operatingMarginPct ?? -50; // assume burning at -50% if unknown
+    const operatingMargin = input.operatingMarginPct ?? DEFAULT_OPERATING_MARGIN_PCT[stage];
     const rule = annualisedGrowth + operatingMargin;
     const band = RULE_OF_40_BAND[stage];
     const score = scoreHigherBetter(rule, band.p25, band.p50, band.p75);
