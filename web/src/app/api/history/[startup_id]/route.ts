@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: Request,
-  { params }: { params: { startup_id: string } }
+  { params }: { params: Promise<{ startup_id: string }> }
 ) {
   const currentUser = await getCurrentUser().catch(() => null);
   if (!currentUser) {
@@ -18,7 +18,8 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
   }
 
-  const startupId = decodeURIComponent(params.startup_id);
+  const { startup_id } = await params;
+  const startupId = decodeURIComponent(startup_id);
 
   const { data, error } = await supabase
     .from("startup_score_history")

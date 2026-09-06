@@ -56,7 +56,7 @@ export async function POST(req: Request) {
       startup_name: body.startup_name,
       inputs: body.inputs,
       svi_analysis: body.svi_analysis,
-      sub_scores: body.sub_scores ?? null,
+      sub_scores: body.sub_scores ?? {},
       total_score: body.total_score,
       valuation_low_aud: body.valuation_low_aud ?? null,
       valuation_high_aud: body.valuation_high_aud ?? null,
