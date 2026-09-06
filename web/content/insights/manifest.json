@@ -1,6 +1,21 @@
 {
   "articles": [
     {
+      "slug": "...",
+      "title": "...",
+      "description": "Maximize your startup valuation with BlockID SVI Score. In this SEO blog post, we explore the impact on pre-seed funding and provide valuable insights for ",
+      "keywords": [
+        "..."
+      ],
+      "category": "...",
+      "publishedAt": "2026-09-06",
+      "readingTime": 5,
+      "cta": {
+        "label": "...",
+        "href": "..."
+      }
+    },
+    {
       "slug": "startup-valuation-for-tax-purposes-australia",
       "title": "Startup Tax Valuation Australia: ATO Compliance Guide",
       "description": "Ensure your startup tax valuation in Australia is defensible. Avoid ATO penalties and manage ESOP or share transfer taxes with expert valuation methods.",
