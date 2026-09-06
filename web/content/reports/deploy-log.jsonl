@@ -9116,3 +9116,9 @@
 {"ts":"2026-09-04T18:45:00.422Z","event":"github-push-master","detail":"Blockid-au: feat(auto): surface warm-intros gap in CRO funding-readiness actions (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-05T01:12:28Z","status":"success","gates":"11/11","pid":"997823","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-09-05T03:25:42Z","status":"success","gates":"11/11","pid":"1405473","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-05T16:00:06.201Z","event":"github-push-master","detail":"Blockid-au: feat(orchestrator): platform auto-upgrade 2026-09-05 (4 commits)","source":"github-webhook"}
+{"ts":"2026-09-05T18:47:00Z","status":"success","gates":"11/11","pid":"4082317","note":"Auto-upgrade (Claude subscription): feat(auto): surface idea-clarify + idea-lab on /tools hub and in sitemap"}
+{"ts":"2026-09-05T18:47:03.226Z","event":"github-push-master","detail":"Blockid-au: feat(auto): surface idea-clarify + idea-lab on /tools hub and in sitemap (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-06T17:16:56Z","status":"success","gates":"11/11","pid":"3789860","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-06T18:46:20Z","status":"success","gates":"11/11","pid":"4068122","note":"Auto-upgrade (Claude subscription): fix(auto): stage-aware Rule of 40 opMargin fallback in projection norms"}
+{"ts":"2026-09-06T18:46:23.701Z","event":"github-push-master","detail":"Blockid-au: fix(auto): stage-aware Rule of 40 opMargin fallback in projection norms (2 commits)","source":"github-webhook"}

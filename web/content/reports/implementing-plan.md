@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.9.0  ·  **Updated:** 2026-09-05T12:04:03.149Z  ·  **Decided by:** ceo (2026-09-05T12:04:03.149Z)
+**Version:** v3.9.0  ·  **Updated:** 2026-09-06T16:00:02.569Z  ·  **Decided by:** ceo (2026-09-06T12:04:01.845Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 

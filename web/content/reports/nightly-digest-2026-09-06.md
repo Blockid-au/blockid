@@ -1,6 +1,6 @@
-# Nightly Digest — 2026-09-05
+# Nightly Digest — 2026-09-06
 
-- **Generated:** 2026-09-05T22:00:07.285Z
+- **Generated:** 2026-09-06T22:00:06.696Z
 - **Version:** v3.9.8
 - **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed)
 
