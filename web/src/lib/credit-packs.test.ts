@@ -21,9 +21,11 @@ import { describe, expect, it } from "vitest";
 import { CREDIT_PACKS, type CreditPack } from "./credit-packs";
 
 // ── ladder pin ────────────────────────────────────────────────────────────
-// The exact 5-tier ladder as of 2026-08. Any change here must be a
-// deliberate marketing decision — bump this constant AND the Stripe prices
-// referenced by STRIPE_PRICE_CREDITS_5/10/25/50/100 in the same PR.
+// The exact 5-tier MONOTONIC ladder as of 2026-09-07 (Workstream B8).
+// Total price and per-credit rate are both monotonic now — the launch-offer
+// dip on the 50-pack was retired. Any change here must be a deliberate
+// marketing decision — bump this constant AND the Stripe prices referenced
+// by STRIPE_PRICE_CREDITS_5/10/25/50/100 in the same PR.
 const EXPECTED_LADDER: ReadonlyArray<{
   credits: number;
   priceAudCents: number;
@@ -32,8 +34,8 @@ const EXPECTED_LADDER: ReadonlyArray<{
   { credits: 5,   priceAudCents: 500,  savings: null       },
   { credits: 10,  priceAudCents: 900,  savings: "Save 10%" },
   { credits: 25,  priceAudCents: 2000, savings: "Save 20%" },
-  { credits: 50,  priceAudCents: 1500, savings: "Save 70%" },
-  { credits: 100, priceAudCents: 2500, savings: "Save 75%" },
+  { credits: 50,  priceAudCents: 3500, savings: "Save 30%" },
+  { credits: 100, priceAudCents: 6000, savings: "Save 40%" },
 ];
 
 const EXPECTED_HREF = "/workspace/billing#credits";
@@ -104,6 +106,17 @@ describe("CREDIT_PACKS — exact ladder values", () => {
     },
   );
 
+  it("savings badges are strictly increasing on percentage after the 2026-09-07 monotonic normalisation", () => {
+    // Ladder now reads honestly: bigger bundle = larger savings badge.
+    expect(EXPECTED_LADDER.map((p) => p.savings)).toEqual([
+      null,
+      "Save 10%",
+      "Save 20%",
+      "Save 30%",
+      "Save 40%",
+    ]);
+  });
+
   it("only the smallest pack (5) has a null savings badge", () => {
     const nullBadges = CREDIT_PACKS.filter((p) => p.savings === null);
     expect(nullBadges).toHaveLength(1);
@@ -153,10 +166,10 @@ describe("CREDIT_PACKS — price derivation", () => {
     expect(pack.price).toBe(5);
   });
 
-  it("A$25 pack: 2500 cents ↔ 25 dollars (largest tier)", () => {
+  it("A$60 pack: 6000 cents ↔ 60 dollars (largest tier — 100 credits, post-monotonic normalise)", () => {
     const pack = CREDIT_PACKS.find((p) => p.credits === 100)!;
-    expect(pack.priceAudCents).toBe(2500);
-    expect(pack.price).toBe(25);
+    expect(pack.priceAudCents).toBe(6000);
+    expect(pack.price).toBe(60);
   });
 });
 
@@ -211,37 +224,23 @@ describe("CREDIT_PACKS — href contract", () => {
 });
 
 describe("CREDIT_PACKS — business rules", () => {
-  it("total price is monotonically increasing with credit count", () => {
-    // A larger bundle must never be cheaper in total dollars — even the
-    // 50-credit launch offer is A$15 vs the 25-credit pack's A$20 …
-    // wait: that violates monotonicity. Pin the *actual* current behaviour:
-    // the 50-credit tier is DELIBERATELY cheaper than the 25-credit tier.
-    // See the comment in the module: "A$15 pack: A$0.30/credit — launch
-    // offer (non-monotonic)". The next test pins that intentional dip.
-    // Here we assert the weaker property: monotonic within 5→10→25 and
-    // 50→100 sub-ladders, which is what pricing UX actually depends on.
-    expect(CREDIT_PACKS[0].priceAudCents).toBeLessThan(CREDIT_PACKS[1].priceAudCents);
-    expect(CREDIT_PACKS[1].priceAudCents).toBeLessThan(CREDIT_PACKS[2].priceAudCents);
-    expect(CREDIT_PACKS[3].priceAudCents).toBeLessThan(CREDIT_PACKS[4].priceAudCents);
+  it("total price is strictly monotonically increasing across the whole ladder", () => {
+    // Post 2026-09-07 (Workstream B8) the ladder is fully monotonic —
+    // the prior launch-offer 50-pack A$15 dip is retired.
+    for (let i = 1; i < CREDIT_PACKS.length; i += 1) {
+      expect(CREDIT_PACKS[i].priceAudCents).toBeGreaterThan(
+        CREDIT_PACKS[i - 1].priceAudCents,
+      );
+    }
   });
 
-  it("the 50-credit pack is INTENTIONALLY cheaper than the 25-credit pack (launch promo)", () => {
-    // If this ever needs to change, either archive the credits_50 Stripe
-    // price OR raise A$15 → A$40. Do not silently normalise here.
-    const twentyFive = CREDIT_PACKS.find((p) => p.credits === 25)!;
-    const fifty = CREDIT_PACKS.find((p) => p.credits === 50)!;
-    expect(fifty.priceAudCents).toBeLessThan(twentyFive.priceAudCents);
-  });
-
-  it("per-credit rate is non-monotonic: pins the intentional 50-credit dip", () => {
+  it("per-credit rate is monotonically non-increasing across the whole ladder", () => {
+    // A bigger bundle is never more expensive per credit — the honest
+    // marketing message the /workspace/billing#credits UI depends on.
     const perCreditCents = CREDIT_PACKS.map((p) => p.priceAudCents / p.credits);
-    // 5→10→25 should be monotonically cheaper per credit:
-    expect(perCreditCents[0]).toBeGreaterThan(perCreditCents[1]);
-    expect(perCreditCents[1]).toBeGreaterThan(perCreditCents[2]);
-    // 25→50 is the promo DIP — cheaper per credit than the 100-tier:
-    expect(perCreditCents[3]).toBeLessThan(perCreditCents[2]);
-    // 50→100 normalises upward slightly (100-tier is still 5c/credit):
-    expect(perCreditCents[4]).toBeLessThan(perCreditCents[3]);
+    for (let i = 1; i < perCreditCents.length; i += 1) {
+      expect(perCreditCents[i]).toBeLessThanOrEqual(perCreditCents[i - 1]);
+    }
   });
 
   it("smallest pack sits at A$1/credit (integer rate — the baseline for the 'Save NN%' badges)", () => {
@@ -288,10 +287,10 @@ describe("CREDIT_PACKS — immutability & isomorphism", () => {
     expect(credits).toEqual([5, 10, 25, 50, 100]);
   });
 
-  it("priceAudCents values match the shipped Stripe price ladder", () => {
+  it("priceAudCents values match the shipped Stripe price ladder (2026-09-07 monotonic normalise)", () => {
     // Mirror of the ladder pin above, but expressed as a single deep-equal
     // so a diff on any tier is obvious in test output.
     const prices = CREDIT_PACKS.map((p) => p.priceAudCents);
-    expect(prices).toEqual([500, 900, 2000, 1500, 2500]);
+    expect(prices).toEqual([500, 900, 2000, 3500, 6000]);
   });
 });

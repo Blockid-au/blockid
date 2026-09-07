@@ -3,7 +3,6 @@ import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { Building2, Check, Flame } from "lucide-react";
 import Link from "next/link";
 import { FAQV2 } from "@/components/landing/faq-v2";
-import { SegmentTabs } from "@/components/landing/segment-tabs";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
@@ -112,7 +111,9 @@ interface PricingPageProps {
 
 export default async function PricingPage({ searchParams }: PricingPageProps) {
   const sp = await searchParams;
-  const initialSegment = resolveSegmentFromTier(sp?.tier);
+  // Kept for the SSR contract; the retired persona segment tabs used to
+  // consume this. See resolveSegmentFromTier() docstring.
+  void resolveSegmentFromTier(sp?.tier);
   // P1 audit 2026-08-23 — the banner used to hard-code "Promo ends 31 Aug
   // 2026". Now it is driven by getFoundingPromoState(); when the promo is
   // over the entire block returns null and the founding-50 card is hidden
@@ -222,18 +223,24 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         </div>
       </section>
 
-      {/* Segment tabs + pricing matrix — client interactivity kept intact.
+      {/* Universal 3-rung pricing matrix (Free / Growth / Pro).
           `id="pricing-matrix"` is the anchor target for the hero's
-          secondary text link. */}
+          secondary text link. Persona segment tabs retired 2026-09-07 —
+          persona pages now deep-link to a specific card via
+          `/pricing#tier-growth` / `#tier-pro` fragments. */}
       <section
         id="pricing-matrix"
         aria-label="Pricing matrix"
         className="mx-auto max-w-7xl px-6 py-8 sm:py-12 scroll-mt-24"
       >
-        <SegmentTabs defaultSegment={initialSegment}>
-          <PricingMatrix />
-        </SegmentTabs>
+        <PricingMatrix />
       </section>
+
+      {/* Contact-sales row for the tiers that don't fit the self-serve
+          Universal 3-rung ladder — Accelerator cohort, Investor VC, and
+          Enterprise. Each tile prefills /contact with `?plan=<slug>` so
+          the sales team can pick the intent up in one glance. */}
+      <ContactSalesRow />
 
       {/* FAQ */}
       <section
@@ -282,5 +289,87 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           surface only. */}
       <StickyCta variant="pricing" phase="validation" location="pricing" />
     </MarketingShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Contact-sales row
+// ---------------------------------------------------------------------------
+//
+// The public /pricing ladder is deliberately three rungs (Free / Growth /
+// Pro) — every tier that needs a conversation (cohort seats, fund
+// deal-flow, multi-entity enterprise) surfaces below the grid in this
+// row. Each tile links to /contact with `?plan=<slug>` +
+// `?contact_reason=<slug>` prefill so the sales team knows which SKU
+// prompted the enquiry without asking again.
+interface ContactSalesTier {
+  slug: string;
+  label: string;
+  price: string;
+  blurb: string;
+}
+
+const CONTACT_SALES_TIERS: ReadonlyArray<ContactSalesTier> = [
+  {
+    slug: "accelerator",
+    label: "Accelerator",
+    price: "from A$500/mo",
+    blurb: "Cohort seats, batched SVI reports, mentor pool, alumni tracking.",
+  },
+  {
+    slug: "investor_vc",
+    label: "Investor VC",
+    price: "from A$349/mo",
+    blurb: "Curated deal flow, portfolio tracking, LP export, team seats.",
+  },
+  {
+    slug: "enterprise",
+    label: "Enterprise",
+    price: "custom",
+    blurb: "Multi-entity groups, SSO/SAML, dedicated CSM, custom SLA.",
+  },
+];
+
+function ContactSalesRow() {
+  return (
+    <section
+      aria-label="Contact-sales pricing row"
+      className="mx-auto max-w-7xl px-6 py-8"
+    >
+      <div className="mb-6 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+          Cohorts, funds, and multi-entity groups
+        </p>
+        <h2 className="mt-2 font-display text-2xl font-semibold text-[var(--fintech-ink)]">
+          Talk to sales for a bespoke fit
+        </h2>
+        <p className="mt-2 text-sm text-[var(--fintech-ink-muted)]">
+          14-day pilot on request. Every tier below includes a demo call
+          with our founder team.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {CONTACT_SALES_TIERS.map((tier) => (
+          <Link
+            key={tier.slug}
+            href={`/contact?plan=${tier.slug}&contact_reason=${tier.slug}`}
+            className="flex flex-col rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-6 transition-colors hover:border-[var(--fintech-accent)]"
+          >
+            <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fintech-accent)]">
+              {tier.label}
+            </p>
+            <p className="mt-2 font-display text-xl font-semibold text-[var(--fintech-ink)]">
+              {tier.price}
+            </p>
+            <p className="mt-3 flex-1 text-sm text-[var(--fintech-ink-muted)]">
+              {tier.blurb}
+            </p>
+            <span className="mt-4 text-sm font-medium text-[var(--fintech-accent)]">
+              Contact sales →
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }

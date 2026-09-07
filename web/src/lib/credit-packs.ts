@@ -43,15 +43,16 @@ function pack(
 }
 
 // NOTE — 5-tier ladder that must match the active Stripe prices referenced by
-// STRIPE_PRICE_CREDITS_5/10/25/50/100 env vars. The 50-credit pack (A$15) is
-// intentionally aggressive: Q3 2026 launch offer to drive founder-tier
-// adoption; it makes the per-credit rate non-monotonic (25c pack costs A$0.80
-// each, 50c pack A$0.30 each). If we ever want to normalise, either archive
-// the Stripe price for `credits_50` OR raise A$15 → A$40 to restore monotonic.
+// STRIPE_PRICE_CREDITS_5/10/25/50/100 env vars. Now MONOTONIC on both total
+// price AND per-credit rate: a larger bundle is always more expensive in
+// dollars and never more expensive per credit. Prior launch-offer 50-pack
+// at A$15 was intentionally cheaper than the 25-pack — retired
+// 2026-09-07 (Workstream B8) so the ladder reads honestly on
+// /workspace/billing#credits.
 export const CREDIT_PACKS: readonly CreditPack[] = [
   pack(5,   500,  null),         // A$5   = A$1.00/credit
   pack(10,  900,  "Save 10%"),   // A$9   = A$0.90/credit
   pack(25,  2000, "Save 20%"),   // A$20  = A$0.80/credit
-  pack(50,  1500, "Save 70%"),   // A$15  = A$0.30/credit — launch offer (non-monotonic)
-  pack(100, 2500, "Save 75%"),   // A$25  = A$0.25/credit
+  pack(50,  3500, "Save 30%"),   // A$35  = A$0.70/credit
+  pack(100, 6000, "Save 40%"),   // A$60  = A$0.60/credit
 ] as const;

@@ -24,10 +24,13 @@ import {
 } from "@/lib/plans-v2";
 import { TRIAL_COPY } from "@/lib/plans/trial-copy";
 
-// pricing-anchor-2026-07 (T0121/T0123). When the "with_anchor" variant is
-// active on the founder segment we synthesise a Founder+ SKU and prepend
-// it to the tier list. Copy/prices are read from the experiment payload
-// so ops can tune them via the admin surface without a redeploy.
+// pricing-anchor-2026-07 (T0121/T0123). Anchor-tier + pricing_anchor_order
+// A/B experiments were retired 2026-09-07 (Workstream B8) to keep the
+// Universal 3-rung ladder promise simple. The wiring stays behind a
+// feature-flag guard so ops can re-enable it later without a redesign;
+// set NEXT_PUBLIC_PRICING_ANCHOR_ENABLED=1 to re-arm both experiments.
+const PRICING_ANCHOR_ENABLED =
+  process.env.NEXT_PUBLIC_PRICING_ANCHOR_ENABLED === "1";
 const PRICING_ANCHOR_EXPERIMENT = "pricing-anchor-2026-07";
 const ANCHOR_PLAN_ID = "founder_plus_anchor";
 
@@ -89,12 +92,12 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
   // still exported for entitlement/back-office code that needs the full list.
   const basePlans = useMemo(() => publicPlansForSegment(segment), [segment]);
 
-  // A/B experiment: pricing_anchor_order.
-  //   anchor_growth → surface the *_growth SKU first (current default).
-  //   anchor_scale  → surface the *_scale SKU first.
-  // Falls back to the base order while the variant is loading or null.
+  // A/B experiment: pricing_anchor_order. Only consulted when the anchor
+  // flag is enabled — otherwise `basePlans` order wins so the ladder reads
+  // in the canonical Free → Growth → Pro order that the copy promises.
   const { variant: anchorVariant } = useExposeExperiment("pricing_anchor_order");
   const orderedPlans = useMemo(() => {
+    if (!PRICING_ANCHOR_ENABLED) return basePlans;
     if (!anchorVariant) return basePlans;
     const anchorId =
       anchorVariant === "anchor_scale"
@@ -110,14 +113,16 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
   }, [basePlans, anchorVariant]);
 
   // pricing-anchor-2026-07: on the founder segment, optionally prepend a
-  // synthetic Founder+ tier above the existing Founder plan. `recordConversion`
-  // is passed to every card so any tier click credits this experiment with
-  // the tier's monthly AUD price as the conversion value.
+  // synthetic Founder+ tier above the existing Founder plan. Retired by
+  // default 2026-09-07 (Workstream B8); guarded by
+  // NEXT_PUBLIC_PRICING_ANCHOR_ENABLED so ops can re-enable the anchor
+  // experiment without another redesign pass.
   const {
     payload: anchorPayload,
     recordConversion: recordAnchorConversion,
   } = usePricingExperiment<PricingAnchorPayload>(PRICING_ANCHOR_EXPERIMENT);
   const plans = useMemo(() => {
+    if (!PRICING_ANCHOR_ENABLED) return orderedPlans;
     if (segment !== "founder") return orderedPlans;
     if (!anchorPayload?.showAnchor) return orderedPlans;
     const monthly = typeof anchorPayload.anchorMonthlyAud === "number" ? anchorPayload.anchorMonthlyAud : 79;
