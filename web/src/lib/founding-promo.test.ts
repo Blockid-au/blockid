@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   FOUNDING_PROMO_END,
+  getFoundingPromoState,
   isFoundingPromoActive,
   standardMonthlyPriceCents,
 } from "./founding-promo";
@@ -35,5 +36,37 @@ describe("isFoundingPromoActive()", () => {
 describe("standardMonthlyPriceCents()", () => {
   it("returns 9900 (A$99/mo — the post-promo Growth headline price)", () => {
     expect(standardMonthlyPriceCents()).toBe(9900);
+  });
+});
+
+describe("getFoundingPromoState()", () => {
+  it("is inactive and returns an empty countdown after the cutover", () => {
+    const t = new Date("2026-09-01T00:00:00Z");
+    const s = getFoundingPromoState(t);
+    expect(s.active).toBe(false);
+    expect(s.countdownLabel).toBe("");
+    expect(s.endsAt.getTime()).toBe(FOUNDING_PROMO_END.getTime());
+  });
+
+  it("is active far before the cutover with a multi-day countdown", () => {
+    // Pin the promo end to fabricate a 10-day window.
+    const t = new Date(FOUNDING_PROMO_END.getTime() - 10 * 24 * 60 * 60 * 1000);
+    const s = getFoundingPromoState(t);
+    expect(s.active).toBe(true);
+    expect(s.countdownLabel).toMatch(/Ends in \d+ days/);
+  });
+
+  it("collapses to 'Ends today' inside the final 24h", () => {
+    const t = new Date(FOUNDING_PROMO_END.getTime() - 60 * 60 * 1000);
+    const s = getFoundingPromoState(t);
+    expect(s.active).toBe(true);
+    expect(s.countdownLabel).toBe("Ends today");
+  });
+
+  it("says 'Ends in 1 day' inside the 24-48h window", () => {
+    const t = new Date(FOUNDING_PROMO_END.getTime() - 36 * 60 * 60 * 1000);
+    const s = getFoundingPromoState(t);
+    expect(s.active).toBe(true);
+    expect(s.countdownLabel).toBe("Ends in 1 day");
   });
 });

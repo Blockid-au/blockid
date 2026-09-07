@@ -14,7 +14,20 @@
 //   TRIAL_COPY in `@/lib/plans/trial-copy`.
 
 import { TRIAL_COPY, TRIAL_DAYS } from "./plans/trial-copy";
-import { isFoundingPromoActive } from "./founding-promo";
+import { FOUNDING_PROMO_END, isFoundingPromoActive } from "./founding-promo";
+
+/**
+ * Formatted deadline used in tier subtitles + urgency copy. Reads from
+ * FOUNDING_PROMO_END so extending the promo via env doesn't leave a
+ * stale "Aug 31, 2026" behind on cards. Formatted in en-AU because the
+ * audience is Australian founders.
+ */
+const PROMO_END_LABEL: string = new Intl.DateTimeFormat("en-AU", {
+  timeZone: "Australia/Sydney",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+}).format(FOUNDING_PROMO_END);
 
 /** Plan IDs offered to *new* signups. Free tier deliberately excluded. */
 export const NEW_SIGNUP_TIER_IDS: readonly string[] = [
@@ -96,7 +109,7 @@ export function buildPricingTiers(cfg: {
         credits: `${cfg.founding_credits} credits (never expires)`,
         cta: { label: `Get ${cfg.founding_plan_name} — ${priceAud}`, href: "/founding-50" },
         urgency: `Only ${cfg.founding_spots_total} spots at this price`,
-        subtitle: `${priceAud} until Aug 31, 2026 · reverts to A$99 · lifetime access`,
+        subtitle: `${priceAud} until ${PROMO_END_LABEL} · reverts to A$99 · lifetime access`,
         features: [
           `${cfg.founding_credits} SVI analyses (lifetime)`,
           "PDF investor-ready report",
@@ -148,7 +161,7 @@ export const PRICING_TIERS: PricingTier[] = [
     price: "A$5",
     numericPrice: 5,
     cadence: "one-off",
-    subtitle: "A$5 until Aug 31, 2026 \u00b7 reverts to A$99 \u00b7 lifetime access",
+    subtitle: `A$5 until ${PROMO_END_LABEL} \u00b7 reverts to A$99 \u00b7 lifetime access`,
     credits: "50 credits (never expires)",
     audience: "Everything from idea to investor-ready — pay once, own it forever",
     features: [
@@ -164,7 +177,7 @@ export const PRICING_TIERS: PricingTier[] = [
     cta: { label: "Get Founding 100 \u2014 A$5", href: "/founding-50" },
     highlight: true,
     badge: "Founders Only",
-    urgency: "A$5 promo until Aug 31, 2026 — then A$99",
+    urgency: `A$5 promo until ${PROMO_END_LABEL} — then A$99`,
     ctaStyle: "primary",
   },
   {
