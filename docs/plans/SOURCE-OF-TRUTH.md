@@ -43,25 +43,30 @@
 
 ### G4 — Feature-upgrade roadmap v2
 - **Source:** [`.claude/goals/feature-upgrade-roadmap-v2.md`](../../.claude/goals/feature-upgrade-roadmap-v2.md)
-- **Status:** Q3 2026 in-flight (partially shipped; 21 sections).
+- **Status:** Q3 2026 in-flight (partially shipped; 21 sections). **v3.9.23 sync — items 1 and 2 shipped as Contact Sales row** (Enterprise custom + Accelerator A$500+ + VC A$349+ landed via B8 `58f34d45d`).
 - **Top-5 open Q3 items:**
-  1. Enterprise tier + team features ($499/mo) — `cro` + `cto`.
-  2. Accelerator partnership pricing ($20K/year per cohort) — `cro` + `cmo`.
+  1. Enterprise tier + team features — **shipped** (Contact Sales row + Pro A$299/mo tier delivered team features via `58f34d45d`).
+  2. Accelerator partnership pricing — **shipped** (Contact Sales row Accelerator from A$500 via `58f34d45d`).
   3. PDF branding customisation for paid plans — **shipped** (feature-gate + settings form `26678366`; renderer wire `880df71c`).
   4. Dashboard personalisation (pin/reorder widgets) — `react-expert`.
   5. ProductHunt launch campaign — `cmo` + `media-studio`.
-- **Next action:** CRO agent to spec Enterprise tier SKU + pricing.csv entry.
+- **Next action:** items 4-5 remain open — G4 continues.
 - **Blocker:** none.
 
-### G5 — Pricing upgrade v2
+### G5 — Pricing upgrade v2 — **✅ CLOSED (v3.9.23, 2026-09-07)**
 - **Source:** [`docs/pricing-upgrade-plan-2026-07-16.md`](../pricing-upgrade-plan-2026-07-16.md)
-- **Status:** Phase-3 (impl) partially shipped; 12-SKU tier matrix defined.
-- **Top-3 open lanes:**
-  1. Investor/Advisor per-seat SKUs (Angel A$79, Advisor A$149, VC Small A$349, VC Enterprise custom) — `cro` + `typescript-pro`.
-  2. Accelerator cohort SKUs (A$500 / A$1,500 / A$3,500 tiers) — `cro` + `nextjs-developer`.
-  3. Equity-for-solution workflow (compliance-gated) — `clo` + `au-compliance` + `blockchain-expert`.
-- **Next action:** ship investor-side per-seat SKUs (largest ARR wedge, no legal gate).
-- **Blocker:** #3 legal-review gate `legal_review_passed=true`.
+- **Status:** **CLOSED** — Universal 3-rung ladder shipped v3.9.23 workstream B (B1..B8). Founding-50 marketing surface purged (Stripe SKU grandfathered only). GST unified (exclusive). Credit packs monotonic. Persona pages deep-link to `#tier-growth`/`#tier-pro`. `share_management` gate resolved for Growth. Trial-days copy reconciled (7-day public / 14-day pilot).
+- **Ship commits (v3.9.23):**
+  1. B1+B2 pricing consolidated to Free / Growth / Pro public ladder + `public:false` flag on hidden SKUs — `5f45f0b63`.
+  2. B3-lite legacy `PRICING_TIERS` array retired — `d68a37eb9`.
+  3. B3-tail Founding-50 legacy marketing surface purged; Stripe SKU kept for grandfathered renewals only — `1ec7f2657`.
+  4. B4 GST-exclusive unified — `1820f99f8` + `20a7541fb` (FAQ JSON-LD + body stragglers).
+  5. B5 persona pages deep-link `#tier-growth`/`#tier-pro` — `da9f36000` + `e6c99cbc3`.
+  6. B6 share_management gate resolved — `1188c130e`.
+  7. B7 trial-days copy reconciled — `2ddc7381d`.
+  8. B8 3-card ladder + ContactSalesRow (Accelerator A$500+ / VC A$349+ / Enterprise custom) + credit-pack monotonic fix — `58f34d45d`.
+- **Residual:** PRC-EQ Equity-for-solution workflow remains `human_blocked` on `legal_review_passed=true` — carries forward under G4 as its own tracked item.
+- **Blocker:** none — goal closed.
 
 ### G6 — Unicorn masterplan
 - **Source:** [`.claude/goals/unicorn-masterplan.md`](../../.claude/goals/unicorn-masterplan.md)
@@ -76,7 +81,7 @@
 
 ### G7 — UX information architecture (startup flow)
 - **Source:** [`docs/plans/ux-ia-startup-flow-goal.md`](./ux-ia-startup-flow-goal.md) · user note [`docs/user/menu-walkthrough.md`](../user/menu-walkthrough.md)
-- **Status:** P0–P7 + P9 all shipped. Only P8 (founder review of Q1–Q4) remains and is `human_blocked` — no code lane is gated on it (all four open questions are `blocking: false`).
+- **Status:** P0–P7 + P9 all shipped. **P8 founder review status (v3.9.23 sync):** still `human_blocked` — no code lane is gated on it. The v3.9.23 Free Tools dropdown grouping (A7, commit `9c247175d`) resolves one of the Q-questions (top-nav grouping strategy) in-flight; other Q's remain founder-review.
 - **Ship commits:**
   1. `43f172f3` — goal doc with audit + IA proposal + phased plan (313 lines).
   2. `27ab1553` — global DEMO menu (NavV2 + legacy site/navbar + WorkspaceLayout topbar + both footers) linking `/showcase/atlassian?step=1`.
@@ -116,6 +121,27 @@
 - **Phased tracks:** P0 audit → P1 tool hero copy → P2 CTA language → P3 landing numbers strip → P4 dashboard metric card.
 - **File boundaries:** `web/src/app/tools/*/page.tsx` (copy only) · `web/src/components/landing/hero-v3.tsx` (numbers strip) · `web/src/app/dashboard/page.tsx` (additive metric card). Do NOT touch `web/src/lib/**`, `nav-v2.tsx` (G7), `/pricing/**` (G5), migrations, or CI.
 - **Blocker:** Q1 (which live metric for dashboard card) is founder-review-blocking for P4. P0–P3 have no blockers.
+
+### G10 — v3.9.23 Unify sprint (message truth + pricing + feature drift)
+- **Source:** approved plan `h-y-review-t-on-b-foamy-pixel` (Agent C audit → workstreams A/B/C/D).
+- **Status:** **✅ SHIPPED (2026-09-07)** — full messaging↔code synchronisation sprint. Release `JctZ0PfqkXowL6mTrcEs3`, git `8ed44c24a`, `web/package.json` `3.9.23`.
+- **Workstreams (all closed):**
+  - **A — message truth on marketing surface (8 items):** A1 score-first hero H1 + quantified subheadline (`a2b5c8971`); A2 quick-tag chips route to real targets (`4b5288699`, chips render as `<a href>` `8ed44c24a`); A3 "50+ AI agents" → "11 C-Level agents" (`f8001541a`); A4+A5 "13 criteria" → "8 SVI dimensions" verbatim PRD labels (`7080aecc8`); A6 CTA subtext scrub — no implicit user-count (`5f853225a`); A7 Nav Free Tools dropdown (17 tools grouped) + demo unify + hide Compare (`9c247175d`); A8 Revenue Tracker card → Trust Report share links (`dccb78487`).
+  - **B — pricing simplification (8 items):** B1+B2 3-rung public ladder + `public:false` on hidden SKUs (`5f45f0b63`); B3-lite legacy `PRICING_TIERS` retired (`d68a37eb9`); B3-tail Founding-50 marketing purged (`1ec7f2657`); B4 GST-exclusive unified (`1820f99f8` + `20a7541fb`); B5 persona deep-links (`da9f36000` + `e6c99cbc3`); B6 share_management Growth gate (`1188c130e`); B7 trial-days (`2ddc7381d`); B8 3-card + ContactSalesRow + credit-pack monotonic (`58f34d45d`).
+  - **C1 — investor pack CLevelChapter render + ToC 9 chapters** (`2dd695b98` + `f50a42be1` + colocated test).
+  - **D — under-promised feature surface:** D1 `/features` page (cohort percentile, per-investor tracked share links, ATO tax invoice, dividend engine, 17 free tools, 12-chapter guide, evidence completeness, LP anonymisation) (`aead3ed1e`); D2 sitemap + nav (`0850f2b25`); D3 `/tbr/demo` hero tertiary link (`947057278`).
+  - **Followups:** homepage title + og:image:alt (`abeca292e`); Playwright post-deploy smoke (`b6d83a852`).
+- **Agent C drift-audit resolutions (unify list §7 P0/P1):**
+  1. ✅ Founding-50 name/price drift — purged from marketing surface (B3-tail).
+  2. ✅ CLevelChapter render — shipped C1.
+  3. ⚠️ Agent count reconciliation — marketing surface aligned to 11 (A3, `/features`, PRD §6). Follow-up: **trend UI `Role` union in `web/src/components/dashboard/AgentTrends.tsx` still limited to 5 roles**; carried forward as G10-followup, low priority.
+  4. ✅ Blockchain stack — current implementation clarified as private EVM (Anvil chainId 420) + Otterscan across README, ARCHITECTURE.md, PRD §17, blueprint §7; Cosmos SDK retagged long-term roadmap.
+  5. ✅ Investor pack ToC bumped to 9 (Evidence Completeness added).
+  6. ✅ Founding-50 route deleted; Stripe SKU grandfathered.
+  7. ✅ Hero H1 aligned to product name and quantified promise.
+  8. ✅ Under-promised capabilities surfaced at `/features`.
+- **Blocker:** none. Sprint closed.
+- **Docs synced (this tick):** README.md (new), ARCHITECTURE.md, GOALS.md, ROADMAP.md, KNOWLEDGE_BASE_INDEX.md, blockid_prd.md, blockid_master_project_blueprint_v1.md, blockid_gtm_sales_first_v1.md, blockid.au.md (deprecated banner), this SOURCE-OF-TRUTH.md, `/version` page + `web/CHANGELOG.md` + `web/package.json` bump to 3.9.23.
 
 ---
 
