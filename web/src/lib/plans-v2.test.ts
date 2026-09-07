@@ -298,8 +298,18 @@ describe("plansForSegment()", () => {
 // ---------------------------------------------------------------------------
 
 describe("PUBLIC_HIDDEN_PLAN_IDS", () => {
-  it("hides exactly `founder_free` (per 2026-07-24 'no indefinite free tier' directive)", () => {
-    expect([...PUBLIC_HIDDEN_PLAN_IDS]).toEqual(["founder_free"]);
+  it("hides the 2026-09-07 Universal 3-rung ladder off-list SKUs (starter/enterprise + all investor + all accelerator)", () => {
+    expect([...PUBLIC_HIDDEN_PLAN_IDS].sort()).toEqual([
+      "accelerator_enterprise",
+      "accelerator_growth",
+      "accelerator_starter",
+      "founder_enterprise",
+      "founder_starter",
+      "investor_advisor",
+      "investor_angel",
+      "investor_vc_ent",
+      "investor_vc_small",
+    ]);
   });
 
   it("every hidden id resolves to a real plan in PLANS_V2", () => {
@@ -308,44 +318,42 @@ describe("PUBLIC_HIDDEN_PLAN_IDS", () => {
       expect(ids.has(id)).toBe(true);
     }
   });
+
+  it("does NOT hide founder_free / founder_growth / founder_scale (the public 3-rung ladder)", () => {
+    for (const id of ["founder_free", "founder_growth", "founder_scale"]) {
+      expect(PUBLIC_HIDDEN_PLAN_IDS).not.toContain(id);
+    }
+  });
 });
 
 describe("publicPlansForSegment()", () => {
-  it("strips founder_free from the founder segment (4 rows instead of 5)", () => {
-    const founder = publicPlansForSegment("founder");
-    expect(founder).toHaveLength(4);
-    for (const p of founder) {
-      expect(PUBLIC_HIDDEN_PLAN_IDS).not.toContain(p.id);
-    }
-  });
-
-  it("investor segment is unchanged by the public filter (nothing hidden)", () => {
-    const raw = plansForSegment("investor");
-    const publicOnly = publicPlansForSegment("investor");
-    expect(publicOnly).toHaveLength(raw.length);
-    expect(publicOnly.map((p) => p.id)).toEqual(raw.map((p) => p.id));
-  });
-
-  it("accelerator segment is unchanged by the public filter", () => {
-    const raw = plansForSegment("accelerator");
-    const publicOnly = publicPlansForSegment("accelerator");
-    expect(publicOnly).toHaveLength(raw.length);
-  });
-
-  it("advisor segment is unchanged by the public filter (founder_free never lived here)", () => {
-    const raw = plansForSegment("advisor");
-    const publicOnly = publicPlansForSegment("advisor");
-    expect(publicOnly).toHaveLength(raw.length);
-    expect(publicOnly.map((p) => p.id)).toEqual(raw.map((p) => p.id));
-  });
-
-  it("founder segment retains order (starter → growth → scale → enterprise)", () => {
+  it("returns exactly the public 3-rung ladder for founder (Free + Growth + Pro)", () => {
     const founder = publicPlansForSegment("founder");
     expect(founder.map((p) => p.id)).toEqual([
-      "founder_starter",
+      "founder_free",
       "founder_growth",
       "founder_scale",
-      "founder_enterprise",
+    ]);
+  });
+
+  it("investor segment collapses to empty (all investor SKUs are contact-sales row)", () => {
+    expect(publicPlansForSegment("investor")).toEqual([]);
+  });
+
+  it("accelerator segment collapses to empty (all accelerator SKUs are contact-sales row)", () => {
+    expect(publicPlansForSegment("accelerator")).toEqual([]);
+  });
+
+  it("advisor segment collapses to empty (advisor tier lives in contact-sales row)", () => {
+    expect(publicPlansForSegment("advisor")).toEqual([]);
+  });
+
+  it("founder segment retains ladder order (free → growth → pro)", () => {
+    const founder = publicPlansForSegment("founder");
+    expect(founder.map((p) => p.id)).toEqual([
+      "founder_free",
+      "founder_growth",
+      "founder_scale",
     ]);
   });
 });

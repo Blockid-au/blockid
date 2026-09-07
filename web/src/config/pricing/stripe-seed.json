@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-23T15:46:25.265Z",
+  "generated_at": "2026-09-07T06:49:08.299Z",
   "plans": [
     {
       "plan_id": "founder_starter",
@@ -25,7 +25,7 @@
     },
     {
       "plan_id": "founder_scale",
-      "product_name": "Scale",
+      "product_name": "Pro",
       "segment": "founder",
       "stripe_env_var": "STRIPE_PRICE_FOUNDER_SCALE",
       "currency": "aud",

@@ -72,7 +72,10 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "cap_table.write",
       "data_room.access",
       "investor_links.premium",
-      "term_sheet_ai"
+      "term_sheet_ai",
+      "share_management",
+      "investor_pack",
+      "per_investor_share_links"
     ],
     "usage_limits": {
       "profiles": 3,
@@ -85,7 +88,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
   {
     "id": "founder_scale",
     "segment": "founder",
-    "name": "Scale",
+    "name": "Pro",
     "price_aud_cents": 29900,
     "annual_price_aud_cents": 299000,
     "interval": "monthly",
@@ -97,10 +100,17 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "data_room.access",
       "investor_links.premium",
       "term_sheet_ai",
+      "share_management",
+      "investor_pack",
+      "per_investor_share_links",
       "esop.manage",
       "blockchain.sync",
       "advisor_portal",
-      "white_label"
+      "white_label",
+      "c_level_agents",
+      "dcf_sensitivity",
+      "dividend_engine",
+      "white_label_pdf"
     ],
     "usage_limits": {
       "profiles": 10,

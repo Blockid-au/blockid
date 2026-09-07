@@ -29,6 +29,14 @@ export interface Plan {
   cta_kind: CtaKind;
   /** Optional short tagline surfaced above the price. */
   tagline?: string;
+  /**
+   * Whether this plan surfaces on the public /pricing ladder. Defaults to
+   * `true` when omitted. `false` = hidden from the ladder but kept in the
+   * catalogue for legacy renewals and contact-sales flows. Set false on
+   * founder_starter (A$29 legacy), founder_enterprise, investor_* and
+   * accelerator_* per the 2026-09-07 Universal 3-rung ladder decision.
+   */
+  public?: boolean;
 }
 
 // ─── Founder ──────────────────────────────────────────────────────────────
@@ -59,6 +67,10 @@ const FOUNDER: Plan[] = [
     trial_days: 7,
     cta_kind: "trial",
     tagline: "Solo founder",
+    // 2026-09-07: A$29 legacy tier removed from public ladder per the
+    // Universal 3-rung ladder decision (Free / Growth / Pro). Kept in the
+    // catalogue for grandfathered renewals; Stripe SKU unchanged.
+    public: false,
     // NOTE: Founder accounts are limited to 1 startup per
     // web/src/lib/plans/startup-limit.ts (`ACCOUNT_TYPES_WITH_MULTI_STARTUP`).
     // The `usage_limits.profiles` on the plans.csv row is a maximum enforced
@@ -96,7 +108,7 @@ const FOUNDER: Plan[] = [
   {
     id: "founder_scale",
     segment: "founder",
-    name: "Scale",
+    name: "Pro",
     monthly_aud: 299,
     annual_aud: 2990,
     trial_days: 7,
@@ -120,6 +132,8 @@ const FOUNDER: Plan[] = [
     trial_days: 7,
     cta_kind: "contact",
     tagline: "Multi-entity groups",
+    // Moved to the contact-sales row below the public 3-rung ladder.
+    public: false,
     features: [
       "SSO / SAML + audit log",
       "Dedicated CSM + SLA 99.9%",
@@ -143,6 +157,7 @@ const INVESTOR: Plan[] = [
     cta_kind: "trial",
     most_popular: true,
     tagline: "Solo angel",
+    public: false,
     features: [
       "Curated deal flow feed",
       "5-startup watchlist",
@@ -160,6 +175,7 @@ const INVESTOR: Plan[] = [
     trial_days: 7,
     cta_kind: "trial",
     tagline: "Angel + syndicate lead",
+    public: false,
     features: [
       "Everything in Angel",
       "10-startup portfolio tracking",
@@ -177,6 +193,7 @@ const INVESTOR: Plan[] = [
     trial_days: 7,
     cta_kind: "trial",
     tagline: "5 seats included",
+    public: false,
     features: [
       "Everything in Advisor",
       "50-startup portfolio",
@@ -195,6 +212,7 @@ const INVESTOR: Plan[] = [
     trial_days: 7,
     cta_kind: "contact",
     tagline: "Fund-grade",
+    public: false,
     features: [
       "Everything in VC Small",
       "LP reporting suite",
@@ -217,6 +235,7 @@ const ACCELERATOR: Plan[] = [
     trial_days: 7,
     cta_kind: "trial",
     tagline: "Up to 10 seats",
+    public: false,
     features: [
       "10 founder seats included",
       "Cohort dashboard + rankings",
@@ -235,6 +254,7 @@ const ACCELERATOR: Plan[] = [
     cta_kind: "trial",
     most_popular: true,
     tagline: "Up to 30 seats",
+    public: false,
     features: [
       "Everything in Cohort Starter",
       "30 founder seats included",
@@ -252,6 +272,7 @@ const ACCELERATOR: Plan[] = [
     trial_days: 7,
     cta_kind: "contact",
     tagline: "100+ seats, white-label",
+    public: false,
     features: [
       "Everything in Cohort Growth",
       "100 founder seats included",
@@ -269,12 +290,10 @@ export const PLANS_V2: Plan[] = [...FOUNDER, ...INVESTOR, ...ACCELERATOR];
  * Advisor tab reuses the investor catalogue with the Advisor SKU highlighted.
  * When the dedicated advisor SKU family lands (post-W1), replace this map.
  *
- * NOTE: This function preserves `founder_free` in the founder-segment list
- * because it's still the source of truth for entitlements resolution and
- * grandfathered legacy users. Public-facing pricing surfaces MUST route
- * through `publicPlansForSegment()` below — which strips `founder_free`
- * per the 2026-07-24 founder directive ("no indefinite free tier for new
- * signups").
+ * NOTE: Full catalogue for entitlements resolution + admin surfaces. Public
+ * marketing pricing surfaces MUST route through `publicPlansForSegment()`
+ * below — which drops every SKU marked `public: false` per the 2026-09-07
+ * Universal 3-rung ladder decision (Free / Growth / Pro).
  */
 export function plansForSegment(segment: Segment): Plan[] {
   if (segment === "advisor") {
@@ -289,23 +308,25 @@ export function plansForSegment(segment: Segment): Plan[] {
 
 /**
  * Plan IDs that must NEVER render on a public / new-signup pricing surface.
- * Kept in sync with `NEW_SIGNUP_TIER_IDS` in `pricing-data.ts` (which does
- * the same job for the legacy `PRICING_TIERS` catalogue).
+ * Derived from `plan.public === false` on the catalogue itself so a new
+ * hidden SKU is a one-line change in the plan definition.
+ *
+ * Post-2026-09-07 Universal 3-rung ladder: the public ladder is
+ * founder_free (Free) + founder_growth (Growth) + founder_scale (Pro).
+ * Everything else is contact-sales / legacy-renewal only.
  */
-export const PUBLIC_HIDDEN_PLAN_IDS: readonly string[] = ["founder_free"];
+export const PUBLIC_HIDDEN_PLAN_IDS: readonly string[] = PLANS_V2
+  .filter((p) => p.public === false)
+  .map((p) => p.id);
 
 /**
  * Public / marketing variant of `plansForSegment()` — filters out any SKU
- * we no longer offer to new signups (currently just `founder_free`, per
- * Round 5.11 "no indefinite free tier" directive). Every marketing pricing
- * surface (landing pricing matrix, /pricing, onboarding tier picker) MUST
- * consume this — hitting the raw `plansForSegment()` will leak the Free
- * tier back onto the pricing page.
+ * marked `public: false`. Every marketing pricing surface (landing pricing
+ * matrix, /pricing, onboarding tier picker) MUST consume this — hitting the
+ * raw `plansForSegment()` will leak hidden SKUs back onto the pricing page.
  */
 export function publicPlansForSegment(segment: Segment): Plan[] {
-  return plansForSegment(segment).filter(
-    (p) => !PUBLIC_HIDDEN_PLAN_IDS.includes(p.id),
-  );
+  return plansForSegment(segment).filter((p) => p.public !== false);
 }
 
 /** Format AUD price. Returns "Custom" for null (contact-sales SKUs). */
