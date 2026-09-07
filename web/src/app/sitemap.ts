@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllArticles, invalidateCache } from "@/lib/insights";
 import { listPublicSlugsForSitemap } from "@/lib/business-id/list-public-slugs";
+import { getPublicListings } from "@/lib/listings/listings-db";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Only rows with public_index=true AND verification_level >= 2 make it
   // in; L1 self-declared is not sufficient for public discovery.
   const publicSlugs = await listPublicSlugsForSitemap();
+
+  // P1 backlog (2026-08-23) — enumerate every graded startup listing so
+  // Google discovers both /reports/{ticker} (public trust-report SEO surface)
+  // and /listings/{ticker} (public directory row) without waiting for
+  // internal links to be crawled.
+  const publicListings = await getPublicListings({ limit: 200 });
+  const listingEntries: MetadataRoute.Sitemap = publicListings.flatMap((l) => {
+    const t = encodeURIComponent(l.ticker);
+    const last = new Date(l.updated_at ?? l.listed_at ?? Date.now());
+    return [
+      {
+        url: `${SITE_URL}/listings/${t}`,
+        lastModified: last,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      },
+      {
+        url: `${SITE_URL}/reports/${t}`,
+        lastModified: last,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      },
+    ];
+  });
   const businessIdEntries: MetadataRoute.Sitemap = publicSlugs.flatMap((entry) => {
     // L2 = 0.6 baseline, +0.1 per level up to L5 = 0.9
     const priority = Math.min(0.9, 0.6 + (entry.verificationLevel - 2) * 0.1);
@@ -546,10 +571,87 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    // P1 backlog (2026-08-23) — routes discovered by the audit that were
+    // reachable via internal links but never advertised. Added here so
+    // Google Search Console reports full coverage.
+    {
+      url: `${SITE_URL}/investor`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/how-it-works`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/idea-lab`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/idea-clarify`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/sample`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/tbr/demo`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/showcase/atlassian`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/showcase/canva`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/showcase/xero`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/showcase/safetyculture`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/showcase/sprocketbay`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/showcase/blockid`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
     // Dynamic insight articles (deduplicated — manifest.json can have repeated slugs)
     ...insightEntries,
     // Dynamic public Business ID profiles (§11.1 / §14bis D3)
     ...businessIdEntries,
+    // Per-ticker listing + trust-report SEO surfaces (P1 backlog 2026-08-23)
+    ...listingEntries,
   ].reduce<MetadataRoute.Sitemap>((acc, entry) => {
     // Deduplicate by URL — manifest can produce the same slug twice
     const e = entry as MetadataRoute.Sitemap[number];

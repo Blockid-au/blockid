@@ -6,6 +6,7 @@ import { FAQV2 } from "@/components/landing/faq-v2";
 import { SegmentTabs } from "@/components/landing/segment-tabs";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
 import { FAQJsonLd } from "@/components/seo/json-ld";
+import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
@@ -113,6 +114,12 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
   return (
     <MarketingShell>
       <FAQJsonLd items={FAQ_JSONLD} />
+      <BreadcrumbListJsonLd
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Pricing", href: "/pricing" },
+        ]}
+      />
       <PageViewTracker event="pricing_viewed" params={{}} />
 
       {/* Founding 50 urgency banner — A$5 promo ends 31 Aug 2026 */}

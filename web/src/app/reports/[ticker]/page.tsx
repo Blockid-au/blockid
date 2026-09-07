@@ -17,6 +17,7 @@ import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { getListingByTicker } from "@/lib/listings/listings-db";
+import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,13 @@ export default async function TrustReportPage({ params }: PageProps) {
 
   return (
     <MarketingShell>
+      <BreadcrumbListJsonLd
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Trust reports", href: "/listings" },
+          { name: listing.name, href: `/reports/${t}` },
+        ]}
+      />
       <MarketingHero
         eyebrow="Trust report"
         title={listing.name}

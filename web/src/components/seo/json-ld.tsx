@@ -51,6 +51,37 @@ export async function OrganizationJsonLd() {
   );
 }
 
+/**
+ * WebSite + SearchAction JSON-LD — powers Google's sitelinks search box on
+ * the SERP. The `target` URL matches the /score search route so a query
+ * typed into the sitelinks box lands directly on the SVI funnel. Added
+ * 2026-09 as part of the P1 SEO backlog closure.
+ */
+export async function WebSiteSearchJsonLd() {
+  const nonce = await readNonce();
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "BlockID.au",
+    url: "https://blockid.au",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: "https://blockid.au/score?q={search_term_string}",
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+  return (
+    <script
+      type="application/ld+json"
+      nonce={nonce}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
 export async function SoftwareApplicationJsonLd() {
   const nonce = await readNonce();
   const data = {

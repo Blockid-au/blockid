@@ -11,6 +11,7 @@ import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { getPublicListings } from "@/lib/listings/listings-db";
+import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,12 @@ export default async function InvestorPage() {
 
   return (
     <MarketingShell>
+      <BreadcrumbListJsonLd
+        items={[
+          { name: "Home", href: "/" },
+          { name: "For investors", href: "/investor" },
+        ]}
+      />
       <MarketingHero
         eyebrow="For investors"
         title="Trust reports without the back-and-forth"

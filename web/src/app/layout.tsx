@@ -6,7 +6,11 @@ import { Inter, IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import { GoogleAnalytics, GTMNoScript } from "@/components/analytics/google-analytics";
 import { ConsentBanner } from "@/components/analytics/consent-banner";
 import { UtmCapture } from "@/components/analytics/utm-capture";
-import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
+import {
+  OrganizationJsonLd,
+  SoftwareApplicationJsonLd,
+  WebSiteSearchJsonLd,
+} from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
 import { AuthSyncClient } from "@/components/auth/AuthSyncClient";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
@@ -210,6 +214,7 @@ export default async function RootLayout({
           </Suspense>
           <OrganizationJsonLd />
           <SoftwareApplicationJsonLd />
+          <WebSiteSearchJsonLd />
           <FeedbackWidget />
         </Providers>
         {/* GA4 consent-mode v2 banner + always-visible revoke pill. Sits
