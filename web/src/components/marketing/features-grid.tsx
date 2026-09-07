@@ -3,13 +3,14 @@
  * Server component.
  */
 
+import Link from "next/link";
 import {
   Telescope,
   MapPin,
   DollarSign,
   PieChart,
   Rocket,
-  TrendingUp,
+  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ComponentType } from "react";
@@ -19,6 +20,8 @@ interface Feature {
   iconColor: string;
   title: string;
   description: string;
+  /** Optional deep link — when set, the card renders as a link. */
+  href?: string;
 }
 
 const FEATURES: Feature[] = [
@@ -58,11 +61,12 @@ const FEATURES: Feature[] = [
       "Instantly surface the AU accelerators, grants and programs you qualify for right now.",
   },
   {
-    icon: TrendingUp,
+    icon: Share2,
     iconColor: "#00D4FF",
-    title: "Revenue Tracker",
+    title: "Trust Report share links",
     description:
-      "Track MRR, churn, LTV and growth rate to benchmark yourself against AU sector peers.",
+      "Per-investor tokens with view + open + read-time tracking. Know exactly which VC opened your pack.",
+    href: "/features#per-investor-tracked-share-links",
   },
 ];
 
@@ -95,17 +99,16 @@ export function FeaturesGrid({ className }: { className?: string }) {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((feat) => {
             const Icon = feat.icon;
-            return (
-              <article
-                key={feat.title}
-                className="group relative rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02]"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
-                }}
-              >
+            const cardClass =
+              "group relative rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02]";
+            const cardStyle: React.CSSProperties = {
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+            };
+            const cardBody = (
+              <>
                 {/* Hover border brightening via overlay */}
                 <div
                   className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
@@ -133,6 +136,24 @@ export function FeaturesGrid({ className }: { className?: string }) {
                     {feat.description}
                   </p>
                 </div>
+              </>
+            );
+            return feat.href ? (
+              <Link
+                key={feat.title}
+                href={feat.href}
+                className={`${cardClass} block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]`}
+                style={cardStyle}
+              >
+                {cardBody}
+              </Link>
+            ) : (
+              <article
+                key={feat.title}
+                className={cardClass}
+                style={cardStyle}
+              >
+                {cardBody}
               </article>
             );
           })}
