@@ -147,9 +147,9 @@ describe("customer-service — response prompt + BLOCKID_KB", () => {
     expect(SOURCE).toMatch(/Startup Value Index \(SVI\)/);
   });
 
-  it("pins the SVI as a 0-100 evidence-backed score across 13 criteria", () => {
+  it("pins the SVI as a 0-100 evidence-backed score across 8 dimensions", () => {
     expect(SOURCE).toMatch(/0-100/);
-    expect(SOURCE).toMatch(/13 criteria/);
+    expect(SOURCE).toMatch(/8 dimensions/);
   });
 
   it("declares the pricing anchor: free SVI + credits for paid reports", () => {
