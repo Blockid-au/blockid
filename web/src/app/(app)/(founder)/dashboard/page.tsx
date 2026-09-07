@@ -41,6 +41,7 @@ import { ValueImpactBanner } from "@/components/dashboard/value-impact-banner";
 import { SviDimensionChart } from "@/components/dashboard/svi-dimension-chart";
 import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
 import { NextUnlockCard } from "@/components/dashboard/next-unlock-card";
+import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
 import { RevenueTrackerTile } from "@/components/founder/revenue-tracker-tile";
 import { HealthScoreWidget } from "@/components/founder/health-score-widget";
@@ -796,6 +797,40 @@ export default async function DashboardPage({
               </p>
             </div>
           </div>
+        )}
+
+        {/* ── First-run: no SVI history yet — swap the wall of "—" for a
+              friendly onboarding panel + three quick-start cards. All other
+              dashboard widgets still render below, but a founder landing
+              here fresh sees a single clear next step first. ────────────── */}
+        {sviScore == null && (
+          <EmptyDashboardState
+            variant="dark"
+            eyebrow="Welcome to BlockID"
+            title="Run your first SVI score"
+            body="You have not run a Startup Value Index analysis yet. It takes under 60 seconds and unlocks a personalised advisor tuned to your stage — free."
+            primaryCta={{ href: "/score", label: "Score my startup" }}
+            cards={[
+              {
+                href: "/guide/svi",
+                icon: Lightbulb,
+                title: "What is the SVI?",
+                body: "How the 8-dimension index is calibrated to Australian pre-seed and seed cohorts.",
+              },
+              {
+                href: "/guide/scoring",
+                icon: Target,
+                title: "How scoring works",
+                body: "The evidence, benchmarks, and confidence signals behind every dimension score.",
+              },
+              {
+                href: "/demo",
+                icon: Sparkles,
+                title: "Book a walkthrough",
+                body: "See how a founder like you turns an SVI score into an investor-ready data room.",
+              },
+            ]}
+          />
         )}
 
         {/* ── Journey Progress Bar ──────────────────────────────────────────── */}

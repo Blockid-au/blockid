@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { FileText, ClipboardList, ArrowUpFromLine } from "lucide-react";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
 import { DataRoomClient } from "./data-room-client";
 import { DATA_ROOM_STRUCTURE } from "@/lib/data-room-templates";
 import { requireTierForPage } from "@/lib/entitlements/require-tier-for-page";
@@ -217,15 +219,55 @@ export default async function DataRoomPage() {
     }
   }
 
+  const hasAnyEvidence = itemStates.length > 0;
+
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <div className="p-6 max-w-4xl mx-auto">
-        <DataRoomClient
-          items={DATA_ROOM_ITEMS}
-          categories={CATEGORIES}
-          initialStates={itemStates}
-          templateStructure={DATA_ROOM_STRUCTURE}
-        />
+      <div className="p-6 max-w-4xl mx-auto space-y-6">
+        {/* First-run: no evidence uploaded yet — nudge the founder toward
+            the three highest-value first uploads instead of dropping them
+            into a 60-item empty checklist. The full DataRoomClient still
+            renders below so they can start whenever they're ready. */}
+        {!hasAnyEvidence && (
+          <EmptyDashboardState
+            eyebrow="Data room"
+            title="Start with three founding documents"
+            body="Investors triage a data room in minutes. These three uploads unlock the biggest verification lift on your SVI and give a fund partner enough to keep reading."
+            primaryCta={{
+              href: "#data-room-checklist",
+              label: "Open the checklist",
+            }}
+            cards={[
+              {
+                href: "#pitch_deck",
+                icon: FileText,
+                title: "Pitch deck",
+                body: "10-15 slides — problem, solution, traction, team, ask. The single most-viewed asset in the room.",
+              },
+              {
+                href: "#cap_table",
+                icon: ClipboardList,
+                title: "Current cap table",
+                body: "Shareholders, share classes, options outstanding. Investors want this before the first call.",
+              },
+              {
+                href: "#unit_economics_model",
+                icon: ArrowUpFromLine,
+                title: "Unit economics model",
+                body: "CAC, LTV, payback and gross margin. A one-tab model beats an unbuilt spreadsheet promise.",
+              },
+            ]}
+          />
+        )}
+
+        <div id="data-room-checklist">
+          <DataRoomClient
+            items={DATA_ROOM_ITEMS}
+            categories={CATEGORIES}
+            initialStates={itemStates}
+            templateStructure={DATA_ROOM_STRUCTURE}
+          />
+        </div>
       </div>
     </WorkspaceLayout>
   );

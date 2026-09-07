@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectIdFromRequest, findOrCreateSVIAccount, getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getBalance } from "@/lib/credits";
+import { Lightbulb, Target, Sparkles } from "lucide-react";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { NextBestActionWidget } from "@/components/dashboard/next-best-action-widget";
@@ -290,33 +291,32 @@ export default async function SVIDashboardPage() {
     return (
       <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox}>
         <div className="max-w-5xl mx-auto px-6 pb-24 pt-10">
-          <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-white to-emerald-50/40 px-8 py-10 text-center shadow-sm">
-            <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-brand-100 border border-brand-200 mb-4">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                className="h-7 w-7 text-brand-600"
-              >
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-ink-800 mb-2">Your AI Advisor is Ready</h1>
-            <p className="text-ink-600 text-sm mb-2 max-w-md mx-auto">
-              Run your first SVI analysis to unlock personalised startup guidance, evidence tracking,
-              and actionable recommendations tailored to your stage.
-            </p>
-            <p className="text-xs text-ink-500 mb-6">
-              It takes less than 60 seconds. No credit card required.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
-            >
-              Get My SVI Score
-            </Link>
-          </div>
+          <EmptyDashboardState
+            eyebrow="Your AI advisor is ready"
+            title="Run your first SVI analysis"
+            body="Unlock personalised startup guidance, evidence tracking, and stage-tuned recommendations. Under 60 seconds — no credit card required."
+            primaryCta={{ href: "/score", label: "Get my SVI score" }}
+            cards={[
+              {
+                href: "/guide/svi",
+                icon: Lightbulb,
+                title: "What is the SVI?",
+                body: "The 8-dimension Startup Value Index, explained in plain English with the AU cohort you're benchmarked against.",
+              },
+              {
+                href: "/guide/scoring",
+                icon: Target,
+                title: "How scoring works",
+                body: "The evidence types, confidence tiers, and phase gates that move your score from Idea to Fundraise-ready.",
+              },
+              {
+                href: "/demo",
+                icon: Sparkles,
+                title: "Book a demo",
+                body: "See a full trust report end-to-end and how founders convert SVI insight into investor conversations.",
+              },
+            ]}
+          />
         </div>
       </WorkspaceLayout>
     );
