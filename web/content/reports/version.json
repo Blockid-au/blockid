@@ -1,34 +1,24 @@
 {
-  "version": "v3.9.21",
-  "updated_at": "2026-09-07T03:00:00Z",
-  "git_sha": "cc19c8c9b",
-  "release_id": "wave33-seo-admin-health-plus-followups",
+  "version": "v3.9.22",
+  "updated_at": "2026-09-07T03:30:00Z",
+  "git_sha": "4d8b6fafb",
+  "release_id": "final-customer-ready-p1-hardening",
   "shipped_summary": [
-    "v3.9.21 — Auto-bump: daily C-Level reports 2026-09-06 published",
-    "v3.9.20 — Sitemap dedup via Set filter, TypeScript type fix",
-    "v3.9.19 — Wave 33A: admin AI-health nav + drip stats dashboard",
-    "v3.9.18 — Wave 33B: SEO — sitemap + robots + WebApp/FAQ structured data on /score; hotfix OG image display:flex + 3 missing criteria (32 total)",
-    "v3.9.17 — Wave 32A: SVI expanded to 4 criteria/dim (32 total) + PDF export button; Wave 32B mobile+skeleton fixes; Wave 32C OG:image + social share buttons",
-    "v3.9.16 — Wave 31C: investor lead drip sequence (T+0/2d/7d); Wave 31D: ES + JA i18n for TBR (EN/VI/ES/JA)",
-    "v3.9.15 — Wave 30 hotfix: lco 2nd criterion + api/version endpoint + CSP nonce; UX polish for top3 padding + risk register",
-    "v3.9.14 — Wave 30: 13-criteria sub-breakdown + risk register on score results",
-    "v3.9.13 — Wave 29 hotfix: missing cn import in score-form",
-    "v3.9.12 — Wave 28C + 29: personalised 30-day action plan + full score results analysis; AI-registry auto-fallback + weekly free-model discovery",
-    "v3.9.10 — Wave 28A: Founder Weekly Digest — Monday 09:00 AEST email",
-    "v3.9.8 — Wave 27: investor lead capture on /tbr + sector-specific benchmarks + notification hub",
-    "v3.9.7 — Wave 26: TBR view analytics + AI Q&A chat widget + historical SVI trend dashboard",
-    "v3.9.6 — Wave 25B+25C: auto-email, /sample, Vietnamese, AI overlap, deck cache, peer-5, onboarding tour",
-    "v3.9.4 — Wave 25A: TBR persistence + /tbr/[token] share + server PDF via Playwright"
+    "v3.9.22 — FINAL customer-ready sprint (P1 backlog closed across security, SEO, business, UX)",
+    "  security: Zod on 5 public POSTs (svi/score/investor-link/lead/stripe-checkout), rate-limit buckets on investor-link/evidence-upload/upload/auth (fail-closed for auth), redactPii on cron logs, session cookie Secure unconditional in prod, gitleaks pre-commit hook + deploy Gate 0.5",
+    "  seo: Twitter card + canonical on /investor + /how-it-works + /reports/[ticker], sitemap +18 routes + per-ticker enumeration, WebSite/SearchAction + BreadcrumbList JSON-LD",
+    "  trust: AU support email + AEST hours + AU-Privacy-Act badge on footer, pricing trust row (Cancel anytime · GST-exclusive · ATO tax invoice · AU-based support)",
+    "  pricing: Founding-50 promo driven by getFoundingPromoState() with FOUNDING_PROMO_ENDS_AT env; no more hardcoded dates",
+    "  demo: 3 seeded sample listings (SAMPLE-01 Corella Health, SAMPLE-02 Reefwatch AI, SAMPLE-03 Ledgerpay) so /listings + /reports/[ticker] have live public data",
+    "  ux: global error boundary at src/app/error.tsx + custom 404 at src/app/not-found.tsx with helpful suggestion cards, EmptyDashboardState on /dashboard + /dashboard/svi + /workspace/data-room",
+    "v3.9.21 — 9 pending migrations applied (Wave 25A/25B/25C/26A/27B/27C/28A/28C/31C), version.json bumped from stale v3.9.8",
+    "v3.9.21 — /idea-lab + /idea-clarify short-URL aliases, /tbr/demo static preview, /sample short-URL hub"
   ],
   "task_ids": [
-    "WAVE_33A: admin AI-health nav + drip stats dashboard",
-    "WAVE_33B: SEO structured data on /score + sitemap dedup",
-    "WAVE_32A: SVI 32-criteria expansion + PDF export",
-    "WAVE_31C+31D: investor drip sequence + ES/JA i18n",
-    "WAVE_30: 13-criteria sub-breakdown + risk register",
-    "WAVE_29: 30-day personalised action plan",
-    "WAVE_28A: Founder Weekly Digest Monday email",
-    "OPS: 9 pending migrations applied 2026-09-07 (Wave 25A/25B/25C/26A/27B/27C/28A/28C/31C) — 8 tables were runtime-broken until applied"
+    "P1_SECURITY: Zod + rate limits + PII redact + Secure cookie + gitleaks (Essential Eight ML1)",
+    "P1_SEO: Twitter cards + sitemap enum + WebSite SearchAction + BreadcrumbList",
+    "P1_TRUST: AU support surface + pricing trust row + Founding-50 date guard",
+    "P1_UX: 3 sample listings + error boundary + 404 + founder empty states"
   ],
-  "notes": "v3.9.21 = auto-bumped by orchestrator; version.json was stale at v3.9.8 while 13 commits landed since 2026-09-04. Applying 9 previously-shipped-but-unmigrated Wave migrations restored real runtime for TBR persistence, deck cache, view analytics, sector benchmarks, notification hub, Monday digest, action plans, and investor drips. /api/healthz now reports the actual shipped release."
+  "notes": "v3.9.22 = customer-ready FINAL. Every P0 sellable-blocker from the 2026-08-23 audit closed + every P1 hardening item from the 3 parallel implementation agents shipped. Self-serve checkout is functional, ATO-compliant, and rate-limited. Public marketing surface has zero fake stats, real AU support signals, and complete SEO metadata. Investors landing anonymously get /reports/SAMPLE-01, /tbr/demo, /investor with actual demo data. Enterprise/regulated buyers still need lawyer sign-off on Terms §8 refund ladder + APP 8 cross-border DPA paperwork + dedicated Privacy Officer (documented in prior deploy)."
 }
