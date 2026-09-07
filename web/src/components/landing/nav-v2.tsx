@@ -85,6 +85,7 @@ const MENU: MenuEntry[] = [
       { label: "Accelerators", href: "/solutions/accelerator" },
     ],
   },
+  { kind: "link", key: "features", label: "Features", href: "/features" },
   { kind: "link", key: "pricing", label: "Pricing", href: "/pricing" },
   { kind: "link", key: "index",   label: "Startup Index", href: "/index" },
   {

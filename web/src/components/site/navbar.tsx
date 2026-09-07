@@ -52,21 +52,44 @@ const navItems: NavEntry[] = [
     label: "Free Tools",
     groups: [
       {
-        heading: "Start with your idea",
+        heading: "Idea",
         items: [
+          { href: "/tools/idea-lab", label: "Idea Lab" },
+          { href: "/tools/idea-clarify", label: "Idea Clarify" },
           { href: "/tools/idea-valuation", label: "Idea Valuation" },
-          { href: "/tools/equity-split", label: "Equity Split" },
-          { href: "/tools/cofounder-match", label: "Co-founder Match" },
-          { href: "/tools/funding-plan", label: "Funding Plan" },
+          { href: "/tools/safe-calculator", label: "SAFE Calculator" },
         ],
       },
       {
-        heading: "When you're raising",
+        heading: "Cap Table",
         items: [
-          { href: "/tools/dilution", label: "Dilution Calculator" },
-          { href: "/tools/cap-table", label: "Cap Table Diff" },
-          { href: "/tools/term-sheet", label: "Term Sheet AI" },
-          { href: "/tools/data-room", label: "Data Room Checklist" },
+          { href: "/tools/cap-table", label: "Cap Table" },
+          { href: "/tools/dilution", label: "Dilution" },
+          { href: "/tools/equity-split", label: "Equity Split" },
+          { href: "/tools/esop-checklist", label: "ESOP Checklist" },
+        ],
+      },
+      {
+        heading: "Fundraise",
+        items: [
+          { href: "/tools/funding-plan", label: "Funding Plan" },
+          { href: "/tools/term-sheet", label: "Term Sheet" },
+          { href: "/tools/cofounder-match", label: "Co-founder Match" },
+        ],
+      },
+      {
+        heading: "AU compliance",
+        items: [
+          { href: "/tools/asic", label: "ASIC" },
+          { href: "/tools/esic", label: "ESIC" },
+          { href: "/tools/rnd-tax", label: "R&D Tax" },
+          { href: "/tools/data-room", label: "Data Room" },
+        ],
+      },
+      {
+        heading: "Reports",
+        items: [
+          { href: "/tools/financial-projections", label: "Financial Projections" },
         ],
       },
     ],
@@ -84,6 +107,8 @@ const navItems: NavEntry[] = [
       {
         heading: "More case studies",
         items: [
+          { href: "/showcase/sprocketbay", label: "Sprocketbay" },
+          { href: "/showcase/blockid", label: "BlockID" },
           { href: "/showcase/canva", label: "Canva" },
           { href: "/showcase/xero", label: "Xero" },
           { href: "/showcase/safetyculture", label: "SafetyCulture" },
@@ -93,6 +118,7 @@ const navItems: NavEntry[] = [
     ],
   },
   { href: "/#product", label: "Product" },
+  { href: "/features", label: "Features" },
   { href: "/#pricing", label: "Pricing" },
   // ux-ia-startup-flow-v1 §C.2 — collapse Benchmarks / Insights / Version
   // under a single Resources dropdown so the top-nav stays at <=7 items
