@@ -58,6 +58,14 @@ const BUCKET_ROUTES: ReadonlyArray<readonly [prefix: string, bucket: RateLimitBu
   ["/api/term-sheet", "term-sheet"],
   ["/api/fundraise/", "fundraise"],
   ["/api/integrations/", "integrations"],
+  // CISO P1 (2026-08-23 audit) — sensitive upload + investor-link buckets.
+  ["/api/investor-link", "investor-link"],
+  ["/api/evidence/upload", "evidence-upload"],
+  ["/api/upload", "upload"],
+  // Auth surfaces — fail-closed (see FAIL_CLOSED_BUCKETS in lib/rate-limit.ts).
+  ["/api/auth/login-password", "auth-login"],
+  ["/api/auth/register", "auth-register"],
+  ["/api/auth/reset-password", "auth-password-reset"],
 ];
 
 function ipCountryFromHeaders(req: NextRequest): string | null {
@@ -243,15 +251,23 @@ export async function proxy(request: NextRequest) {
     const result = await checkRateLimit(bucket, [pathname, clientIdentity(request)]);
     if (!result.allowed) {
       const retryAfterSec = Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000));
+      // CISO P1 (2026-08-23): auth buckets are fail-closed. When the limiter
+      // backing store errors out for one of them we return 503 (not 429) so
+      // callers can distinguish "you hit the ceiling" from "limiter is dead".
+      const status = result.failedClosed ? 503 : 429;
+      const errorMsg = result.failedClosed
+        ? "Rate limiter unavailable — please retry shortly."
+        : "Rate limit exceeded — please slow down.";
       const denied = NextResponse.json(
         {
           ok: false,
-          error: "Rate limit exceeded — please slow down.",
+          error: errorMsg,
           bucket,
           retryInSeconds: retryAfterSec,
+          ...(result.failedClosed ? { failClosed: true } : {}),
         },
         {
-          status: 429,
+          status,
           headers: {
             "Retry-After": String(retryAfterSec),
             "X-RateLimit-Limit": String(result.limit),

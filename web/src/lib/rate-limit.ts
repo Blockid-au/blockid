@@ -332,6 +332,12 @@ export type RateLimitBucket =
   | "term-sheet"
   | "fundraise"
   | "integrations"
+  | "investor-link"
+  | "evidence-upload"
+  | "upload"
+  | "auth-login"
+  | "auth-register"
+  | "auth-password-reset"
   | "default";
 
 export type RateLimitResult = {
@@ -339,6 +345,11 @@ export type RateLimitResult = {
   limit: number;
   remaining: number;
   resetAt: number;
+  // CISO P1 (2026-08-23): when a bucket is configured fail-closed and the
+  // limiter's backing store misbehaves, the caller should refuse the request
+  // (503) instead of the default fail-open. Consumers ignore this flag when
+  // `allowed === true`.
+  failedClosed?: boolean;
 };
 
 const BUCKET_LIMITS_PER_MINUTE: Record<RateLimitBucket, number> = {
@@ -348,8 +359,24 @@ const BUCKET_LIMITS_PER_MINUTE: Record<RateLimitBucket, number> = {
   "term-sheet": 20,
   fundraise: 60,
   integrations: 30,
+  "investor-link": 20,
+  "evidence-upload": 10,
+  upload: 10,
+  "auth-login": 8,
+  "auth-register": 5,
+  "auth-password-reset": 3,
   default: 100,
 };
+
+// Fail-closed buckets — when the backing store errors out for one of these
+// routes, the limiter returns `allowed:false, failedClosed:true` (503) rather
+// than the default fail-open. Reserved for auth-adjacent surfaces where a
+// silent brute-force window on a Redis outage would be worse than an outage.
+const FAIL_CLOSED_BUCKETS: ReadonlySet<RateLimitBucket> = new Set<RateLimitBucket>([
+  "auth-login",
+  "auth-register",
+  "auth-password-reset",
+]);
 
 /**
  * Enforce a per-bucket rate limit. Never throws; on any storage error,
@@ -372,7 +399,18 @@ async function checkBucketInternal(
       resetAt: Date.now() + Math.max(0, result.resetIn),
     };
   } catch {
-    // Fail-open — never break the request path if the limiter is misbehaving.
+    // CISO P1 (2026-08-23): fail-closed for auth-adjacent buckets so a
+    // Redis outage cannot silently open a brute-force window. Everything
+    // else still fails open — a limiter hiccup must never break the site.
+    if (FAIL_CLOSED_BUCKETS.has(bucket)) {
+      return {
+        allowed: false,
+        limit,
+        remaining: 0,
+        resetAt: Date.now() + windowMs,
+        failedClosed: true,
+      };
+    }
     return { allowed: true, limit, remaining: limit, resetAt: Date.now() + windowMs };
   }
 }
