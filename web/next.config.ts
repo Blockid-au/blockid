@@ -59,6 +59,14 @@ const nextConfig: NextConfig = {
         destination: "/solutions/accelerator",
         statusCode: 301,
       },
+      // Workstream A7 — nav now links personas at /solutions/* consistently.
+      // /solutions/advisor doesn't have its own page; alias it back to the
+      // existing /for/advisor route so the unified URL still resolves.
+      {
+        source: "/solutions/advisor",
+        destination: "/for/advisor",
+        statusCode: 301,
+      },
       // B1 Task 5 — consolidate SVI landing routes onto a single canonical
       // `/index` URL. `/index` is served via the /startup-index rewrite (see
       // rewrites() above) because Next 16 webpack cannot compile an

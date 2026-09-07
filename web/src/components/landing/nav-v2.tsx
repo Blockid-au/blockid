@@ -40,12 +40,25 @@ interface MenuItem {
   label: string;
 }
 
+interface MenuGroupSection {
+  heading: string;
+  items: MenuItem[];
+}
+
 interface MenuGroup {
   kind: "group";
   key: string;
   label: string;
-  width: "w-56" | "w-64";
+  width: "w-56" | "w-64" | "w-80";
   items: MenuItem[];
+  /**
+   * Optional sub-heading structure. When present, `items` is ignored for
+   * rendering and each `sections[].items` is rendered under a sub-heading
+   * label. Used by the Free Tools dropdown to group the 16 tools into 5
+   * discoverable buckets (Idea / Cap Table / Fundraise / AU compliance /
+   * Reports) without inflating the primary nav.
+   */
+  sections?: MenuGroupSection[];
 }
 
 interface MenuLink {
@@ -78,11 +91,65 @@ const MENU: MenuEntry[] = [
     label: "For",
     width: "w-56",
     items: [
-      // B1 Task 3 — persona pages migrated to /solutions/*.
+      // B1 Task 3 — persona pages migrated to /solutions/*. Advisor now
+      // uses /solutions/advisor (301 alias to /for/advisor lives in
+      // next.config.ts) so the persona URL surface stays unified.
       { label: "Founders", href: "/solutions/founder" },
       { label: "Investors", href: "/solutions/investor" },
-      { label: "Advisors", href: "/for/advisor" },
+      { label: "Advisors", href: "/solutions/advisor" },
       { label: "Accelerators", href: "/solutions/accelerator" },
+    ],
+  },
+  {
+    // Workstream A7 — surface the 16 /tools/* routes in the primary nav,
+    // grouped by founder journey stage so the dropdown stays scannable.
+    kind: "group",
+    key: "tools",
+    label: "Free Tools",
+    width: "w-80",
+    items: [],
+    sections: [
+      {
+        heading: "Idea",
+        items: [
+          { label: "Idea Lab", href: "/tools/idea-lab" },
+          { label: "Idea Clarify", href: "/tools/idea-clarify" },
+          { label: "Idea Valuation", href: "/tools/idea-valuation" },
+          { label: "SAFE Calculator", href: "/tools/safe-calculator" },
+        ],
+      },
+      {
+        heading: "Cap Table",
+        items: [
+          { label: "Cap Table", href: "/tools/cap-table" },
+          { label: "Dilution", href: "/tools/dilution" },
+          { label: "Equity Split", href: "/tools/equity-split" },
+          { label: "ESOP Checklist", href: "/tools/esop-checklist" },
+        ],
+      },
+      {
+        heading: "Fundraise",
+        items: [
+          { label: "Funding Plan", href: "/tools/funding-plan" },
+          { label: "Term Sheet", href: "/tools/term-sheet" },
+          { label: "Co-founder Match", href: "/tools/cofounder-match" },
+        ],
+      },
+      {
+        heading: "AU compliance",
+        items: [
+          { label: "ASIC", href: "/tools/asic" },
+          { label: "ESIC", href: "/tools/esic" },
+          { label: "R&D Tax", href: "/tools/rnd-tax" },
+          { label: "Data Room", href: "/tools/data-room" },
+        ],
+      },
+      {
+        heading: "Reports",
+        items: [
+          { label: "Financial Projections", href: "/tools/financial-projections" },
+        ],
+      },
     ],
   },
   { kind: "link", key: "features", label: "Features", href: "/features" },
@@ -98,28 +165,18 @@ const MENU: MenuEntry[] = [
     width: "w-64",
     items: [
       { label: "Atlassian journey (live)", href: "/showcase/atlassian?step=1" },
+      { label: "Sprocketbay journey", href: "/showcase/sprocketbay" },
+      { label: "BlockID journey", href: "/showcase/blockid" },
       { label: "Canva journey", href: "/showcase/canva" },
       { label: "Xero journey", href: "/showcase/xero" },
       { label: "SafetyCulture journey", href: "/showcase/safetyculture" },
       { label: "All case studies", href: "/showcase" },
     ],
   },
-  {
-    kind: "group",
-    key: "compare",
-    label: "Compare",
-    width: "w-64",
-    // T-0318: dedicated /vs/<slug> pages are not yet published; funnel the
-    // "compare" intent into pricing with a compare= query so we can still
-    // measure interest and swap in real content later without a nav churn.
-    items: [
-      { label: "vs Cake", href: "/pricing?compare=cake" },
-      { label: "vs Carta", href: "/pricing?compare=carta" },
-      { label: "vs Foundersuite", href: "/pricing?compare=foundersuite" },
-      { label: "vs Visible", href: "/pricing?compare=visible" },
-      { label: "vs AngelList", href: "/pricing?compare=angellist" },
-    ],
-  },
+  // Workstream A7 — Compare dropdown hidden for this iteration. Dedicated
+  // /vs/<slug> pages don't exist yet, and the old entries just funnelled
+  // into /pricing?compare= which measured intent without delivering it.
+  // Restore once real comparison pages ship.
   {
     kind: "group",
     key: "docs",
@@ -254,24 +311,67 @@ function DesktopDropdown({
           onMouseLeave={onClose}
           className={`absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 rounded-xl border border-brand-navy/40 bg-brand-navy p-2 shadow-2xl ${group.width} nav-v2-panel-enter`}
         >
-          <ul className="flex flex-col">
-            {group.items.map((item, i) => (
-              <li key={item.href} role="none">
-                <Link
-                  ref={(el) => {
-                    itemRefs.current[i] = el;
-                  }}
-                  role="menuitem"
-                  href={item.href}
-                  onClick={onLinkActivate}
-                  onKeyDown={(e) => handleItemKeyDown(e, i)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {group.sections ? (
+            // Sectioned rendering (e.g. Free Tools): flatten items so
+            // keyboard arrow-navigation still walks every link in order.
+            (() => {
+              let flatIndex = 0;
+              return (
+                <div className="flex flex-col gap-1">
+                  {group.sections.map((section, sIdx) => (
+                    <div
+                      key={section.heading}
+                      className={sIdx > 0 ? "mt-1 border-t border-white/5 pt-1" : ""}
+                    >
+                      <p className="px-3 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-cyan/80">
+                        {section.heading}
+                      </p>
+                      <ul>
+                        {section.items.map((item) => {
+                          const i = flatIndex++;
+                          return (
+                            <li key={item.href} role="none">
+                              <Link
+                                ref={(el) => {
+                                  itemRefs.current[i] = el;
+                                }}
+                                role="menuitem"
+                                href={item.href}
+                                onClick={onLinkActivate}
+                                onKeyDown={(e) => handleItemKeyDown(e, i)}
+                                className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                              >
+                                {item.label}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
+          ) : (
+            <ul className="flex flex-col">
+              {group.items.map((item, i) => (
+                <li key={item.href} role="none">
+                  <Link
+                    ref={(el) => {
+                      itemRefs.current[i] = el;
+                    }}
+                    role="menuitem"
+                    href={item.href}
+                    onClick={onLinkActivate}
+                    onKeyDown={(e) => handleItemKeyDown(e, i)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </li>
@@ -310,25 +410,56 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
         />
       </button>
       {open && (
-        <ul
-          id={panelId}
-          role="menu"
-          aria-label={group.label}
-          className="mt-1 flex flex-col gap-0.5 pl-3"
-        >
-          {group.items.map((item) => (
-            <li key={item.href} role="none">
-              <Link
-                role="menuitem"
-                href={item.href}
-                onClick={onLinkActivate}
-                className="block rounded-md px-3 py-2 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        group.sections ? (
+          <div
+            id={panelId}
+            role="menu"
+            aria-label={group.label}
+            className="mt-1 flex flex-col gap-1 pl-3"
+          >
+            {group.sections.map((section) => (
+              <div key={section.heading}>
+                <p className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-cyan/80">
+                  {section.heading}
+                </p>
+                <ul className="flex flex-col gap-0.5">
+                  {section.items.map((item) => (
+                    <li key={item.href} role="none">
+                      <Link
+                        role="menuitem"
+                        href={item.href}
+                        onClick={onLinkActivate}
+                        className="block rounded-md px-3 py-1.5 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <ul
+            id={panelId}
+            role="menu"
+            aria-label={group.label}
+            className="mt-1 flex flex-col gap-0.5 pl-3"
+          >
+            {group.items.map((item) => (
+              <li key={item.href} role="none">
+                <Link
+                  role="menuitem"
+                  href={item.href}
+                  onClick={onLinkActivate}
+                  className="block rounded-md px-3 py-2 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )
       )}
     </li>
   );
