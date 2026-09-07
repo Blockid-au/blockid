@@ -286,6 +286,19 @@ export function HeroSection() {
           ))}
         </div>
 
+        {/* Tertiary link — surface /tbr/demo (a real, end-to-end trust
+            report walkthrough) as a low-commitment third choice under the
+            primary "Get my SVI score" CTA and secondary chip row. Workstream
+            D3 of the h-y-review-t-on-b-foamy-pixel plan. */}
+        <Link
+          href="/tbr/demo"
+          className="animate-fade-in-up inline-flex items-center gap-1.5 rounded-md text-sm transition-colors duration-200 hover:text-[#00D4FF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1E]"
+          style={{ color: "#94A3B8", animationDelay: "360ms" }}
+        >
+          See a real trust report
+          <ArrowRight size={14} aria-hidden />
+        </Link>
+
         {/* Stats row */}
         <p
           className="animate-fade-in-up flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm"
