@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan, isGrowthEarlyBird, type LegacyPlan } from "@/lib/plans";
@@ -20,6 +21,21 @@ import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 // Upgrade v2: recurring plans with trial_days > 0 (from DB plans matrix) start
 // a 7/14/30-day CC-required trial. Payment method is always collected up-front,
 // and the subscription is cancelled if no PM is on file when the trial ends.
+
+// Zod ceiling schema — CISO P1 (2026-08-23 audit). Runs AFTER the existing
+// plan/reason checks so their tested strings ("Plan ID is required",
+// "Invalid or free plan", "plan_not_provisioned") stay intact.
+const CheckoutSchema = z
+  .object({
+    plan: z.string().max(64),
+    quantity: z.number().int().positive().max(100).optional(),
+    resellerCode: z.string().max(64).optional(),
+    couponCode: z.string().max(128).optional(),
+    promoCode: z.string().max(64).optional(),
+    origin: z.string().max(64).optional(),
+    projectId: z.string().max(128).optional(),
+  })
+  .strip();
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -122,6 +138,20 @@ export async function POST(request: Request) {
   if (!planId || typeof planId !== "string") {
     return NextResponse.json(
       { ok: false, reason: "Plan ID is required" },
+      { status: 400 },
+    );
+  }
+
+  // Zod ceiling check — runs AFTER the string/type gate above so its
+  // "Plan ID is required" wording is preserved. Only ever fires on
+  // truly abusive payloads (oversized plan/coupon/reseller strings).
+  const zparse = CheckoutSchema.safeParse(body);
+  if (!zparse.success) {
+    console.warn("[blockid:stripe:checkout] zod validation failed", {
+      issues: zparse.error.issues.map((i) => ({ path: i.path, code: i.code })),
+    });
+    return NextResponse.json(
+      { ok: false, error: "invalid_input", issues: zparse.error.issues },
       { status: 400 },
     );
   }

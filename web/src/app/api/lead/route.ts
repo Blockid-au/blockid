@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlan } from "@/lib/plans";
 import { sendPaymentLink } from "@/lib/email";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
+
+// Zod ceiling schema — CISO P1 (2026-08-23 audit). Runs AFTER the existing
+// email/source validators so their tested error strings ("Valid email is
+// required", "source is required") are preserved for backward-compat.
+const LeadSchema = z
+  .object({
+    email: z.string().email().max(320),
+    source: z.string().max(128),
+    payload: z.unknown().optional(),
+  })
+  .strip();
 
 // POST /api/lead
 // Captures a lead from the marketing surfaces. Persists to Supabase if
@@ -62,6 +74,20 @@ export async function POST(request: Request) {
 
   const safePayload =
     payload && typeof payload === "object" ? stripHtml(payload) : {};
+
+  // Zod ceiling check — protects against oversized email/source strings that
+  // slipped past the format regex. Runs post-normalisation so the tested
+  // "Valid email is required" / "source is required" strings remain intact.
+  const zparse = LeadSchema.safeParse({ email, source, payload: safePayload });
+  if (!zparse.success) {
+    console.warn("[blockid:lead] zod validation failed", {
+      issues: zparse.error.issues.map((i) => ({ path: i.path, code: i.code })),
+    });
+    return NextResponse.json(
+      { ok: false, error: "invalid_input", issues: zparse.error.issues },
+      { status: 400 },
+    );
+  }
 
   const supabase = getSupabaseAdmin();
   if (supabase) {

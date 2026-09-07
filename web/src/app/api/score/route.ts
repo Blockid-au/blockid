@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { z } from "zod";
 import { computeScore, type ScoreInput } from "@/lib/score";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
@@ -1042,6 +1043,42 @@ async function readAttributionCookies(): Promise<{
   }
 }
 
+// Zod validation for the ScoreInput shape — CISO P1 (2026-08-23 audit).
+// Mirrors `ScoreInput` from lib/score.ts with sensible max lengths on strings
+// and non-negative + finite guards on monetary fields. Numeric fields default
+// to nonneg to prevent negative-amount DoS games; boolean flags are strict.
+const ScoreInputSchema = z.object({
+  companyName: z.string().max(200).optional(),
+  abn: z.string().max(20).optional(),
+  sector: z
+    .enum(["saas", "fintech", "marketplace", "devtools", "other"])
+    .optional(),
+  stage: z
+    .enum(["pre-seed", "seed", "series-a", "growth", "other"])
+    .optional(),
+  yearsTrading: z.number().nonnegative().finite().max(200).optional(),
+  monthlyRevenue: z.number().nonnegative().finite().optional(),
+  monthlyBurn: z.number().nonnegative().finite().optional(),
+  runwayMonths: z.number().nonnegative().finite().max(1200).optional(),
+  arrBand: z
+    .enum(["pre-revenue", "0-250k", "250k-1m", "1m-3m", "3m-plus"])
+    .optional(),
+  targetRaiseAud: z.number().nonnegative().finite().optional(),
+  valuationCapAud: z.number().nonnegative().finite().optional(),
+  founders: z.number().int().nonnegative().max(1000).optional(),
+  esopAllocated: z.number().nonnegative().finite().max(100).optional(),
+  hasShareholdersAgreement: z.boolean().optional(),
+  hasBoardMeetings: z.boolean().optional(),
+  hasFinancialAudit: z.boolean().optional(),
+  companyRegistered: z.boolean().optional(),
+});
+
+const ScorePostSchema = z.object({
+  email: z.string().email().max(320),
+  companyName: z.string().max(200).optional(),
+  inputs: ScoreInputSchema,
+});
+
 export async function POST(request: Request) {
   let body: unknown = null;
   try {
@@ -1053,14 +1090,30 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = body as {
-    email?: string;
-    companyName?: string;
-    inputs?: Partial<ScoreInput>;
-  } | null;
+  const zparse = ScorePostSchema.safeParse(body);
+  if (!zparse.success) {
+    console.warn("[blockid:score] zod validation failed", {
+      issues: zparse.error.issues.map((i) => ({ path: i.path, code: i.code })),
+    });
+    return NextResponse.json(
+      { ok: false, error: "invalid_input", issues: zparse.error.issues },
+      { status: 400 },
+    );
+  }
 
+  const parsed: {
+    email: string;
+    companyName?: string;
+    inputs: Partial<ScoreInput> & { companyRegistered?: boolean };
+  } = {
+    email: zparse.data.email,
+    companyName: zparse.data.companyName,
+    inputs: { ...zparse.data.inputs } as Partial<ScoreInput> & { companyRegistered?: boolean },
+  };
+
+  // Preserve the "Valid email is required" surface (guarded by Zod above, so
+  // this branch is now unreachable — kept for defence-in-depth).
   if (
-    !parsed ||
     !parsed.email ||
     typeof parsed.email !== "string" ||
     !parsed.email.includes("@")

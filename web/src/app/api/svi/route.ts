@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { extractSignals, computeSVI, computeFundingReadiness, type SVITextInput } from "@/lib/svi-analysis";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { newSlug } from "@/lib/slug";
@@ -23,6 +24,22 @@ import { emitEvent } from "@/lib/analytics/server";
 // Body: { email, input: { rawText, fileName? } }
 // Returns full Startup Value Index analysis.
 
+// Zod input validation — CISO P1 (2026-08-23 audit).
+// Accept-either rawText|url semantics preserved: the schema allows either
+// field, and a URL supplied via `url` is folded into rawText downstream so
+// the existing detectInputType() branch keeps working unchanged.
+const SviInputSchema = z.object({
+  email: z.string().email().max(320),
+  input: z
+    .object({
+      rawText: z.string().max(50000).optional(),
+      url: z.string().url().max(500).optional(),
+      fileName: z.string().max(500).optional(),
+    })
+    .strip(),
+  locale: z.enum(["en", "vi", "es", "ja"]).optional(),
+});
+
 export async function POST(request: Request) {
   let body: unknown = null;
   try {
@@ -31,14 +48,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = body as { email?: string; input?: SVITextInput } | null;
+  const parse = SviInputSchema.safeParse(body);
+  if (!parse.success) {
+    console.warn("[blockid:svi] zod validation failed", {
+      issues: parse.error.issues.map((i) => ({ path: i.path, code: i.code })),
+    });
+    return NextResponse.json(
+      { ok: false, error: "invalid_input", issues: parse.error.issues },
+      { status: 400 },
+    );
+  }
 
-  if (!parsed?.email || !parsed.email.includes("@")) {
-    return NextResponse.json({ ok: false, error: "Valid email is required" }, { status: 400 });
+  // Fold `url` into `rawText` so downstream detectInputType() branch works
+  // regardless of which field the client sent. Preserves accept-either semantics.
+  const rawText =
+    parse.data.input.rawText?.trim() || parse.data.input.url?.trim() || "";
+  if (!rawText) {
+    return NextResponse.json(
+      { ok: false, error: "Input text is required" },
+      { status: 400 },
+    );
   }
-  if (!parsed.input?.rawText?.trim()) {
-    return NextResponse.json({ ok: false, error: "Input text is required" }, { status: 400 });
-  }
+  const parsed: { email: string; input: SVITextInput } = {
+    email: parse.data.email,
+    input: {
+      rawText,
+      fileName: parse.data.input.fileName,
+    },
+  };
 
   const email = parsed.email.toLowerCase().trim();
 

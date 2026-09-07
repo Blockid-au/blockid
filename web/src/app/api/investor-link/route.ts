@@ -1,7 +1,25 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createInvestorLink, listInvestorLinksForFounder, revokeInvestorLink } from "@/lib/investor-links";
 import { getCurrentUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
+
+// Zod input schema — CISO P1 (2026-08-23 audit).
+// Limits are ceiling-only defence against oversized-payload DoS; the existing
+// per-field required/format checks below still fire so their tested error
+// strings are unchanged. `founderEmail` is derived server-side from the auth
+// cookie, so the schema does not require it in the body.
+const InvestorLinkSchema = z
+  .object({
+    scoreId: z.string().max(256),
+    founderEmail: z.string().email().max(320).optional(),
+    investorEmail: z.string().email().max(320),
+    investorName: z.string().max(2000).optional(),
+    fundName: z.string().max(2000).optional(),
+    note: z.string().max(5000).optional(),
+    expiresAt: z.string().max(64).optional(),
+  })
+  .strip();
 
 // POST /api/investor-link
 // Body: {
@@ -103,6 +121,20 @@ export async function POST(request: Request) {
       );
     }
     expiresAt = d;
+  }
+
+  // Zod ceiling-only check — runs AFTER the per-field required/format
+  // validators so their exact error strings are preserved. Fails 400 with
+  // {error:"invalid_input"} only on truly abusive payloads.
+  const zparse = InvestorLinkSchema.safeParse(parsed);
+  if (!zparse.success) {
+    console.warn("[blockid:investor-link] zod validation failed", {
+      issues: zparse.error.issues.map((i) => ({ path: i.path, code: i.code })),
+    });
+    return NextResponse.json(
+      { ok: false, error: "invalid_input", issues: zparse.error.issues },
+      { status: 400 },
+    );
   }
 
   const result = await createInvestorLink({
