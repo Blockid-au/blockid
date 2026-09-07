@@ -7,12 +7,19 @@
 // Buffer suitable for streaming out of a Next.js route handler.
 //
 // Layout (in page order):
-//   1. Cover page          — big startup name + SVI grade badge
-//   2. Executive summary   — 3 paragraphs + opportunity + risk callouts
-//   3. SVI 13-criteria     — table with per-criterion score + delta
-//   4. Cap table snapshot  — shareholder / class / shares / % / value AUD
-//   5. Traction chart      — hand-drawn SVG polyline of MRR history
-//   6. One-page teaser     — condensed 4-quadrant view for LinkedIn share
+//   1. Cover page             — big startup name + SVI grade badge
+//   2. Executive summary      — 3 paragraphs + opportunity + risk callouts
+//   3. SVI 13-criteria        — table with per-criterion score + delta
+//   4. Cap table snapshot     — shareholder / class / shares / % / value AUD
+//   5. Traction chart         — hand-drawn SVG polyline of MRR history
+//   6. Revenue forecast       — optional; renders when data.forecast set
+//   7. Exit strategy thesis   — optional; renders when data.exitStrategy set
+//   8. C-Level advisory       — optional; renders when data.cLevelChapter set
+//   9. Evidence completeness  — optional; renders when data.evidenceCompleteness set
+//  10. One-page teaser        — condensed 4-quadrant view for LinkedIn share
+//
+// The 9-chapter marketing promise is met when the assembler wires
+// `cLevelChapter` from loadCLevelChapter() (see investor-pack-assembler.ts).
 //
 // Every page carries a fixed regulatory footer:
 //   "Not financial advice. …  v<version> · Auschain PTY LTD ACN … ABN …"
@@ -35,6 +42,7 @@ import {
   Rect,
   renderToBuffer,
 } from "@react-pdf/renderer";
+import type { CLevelChapter } from "@/lib/investor-pack/c-level-chapter";
 
 /* ─── Report version — read at module scope from content/reports/version.json.
  *     `require` is used so the JSON is inlined at build time (Node runtime). */
@@ -145,6 +153,14 @@ export interface InvestorPackData {
     disclosure: string;
     asOfDate: string;
   };
+  /**
+   * v3.9.23 — C-Level Financial Advisory chapter (Workstream C1).
+   * Assembled by loadCLevelChapter() in investor-pack-assembler.ts from
+   * CFO DCF report + CEO funding roadmap + CDO compliance summary.
+   * When absent the CLevelPage renders a placeholder rather than being
+   * skipped, so the pack retains its 9-chapter shape.
+   */
+  cLevelChapter?: CLevelChapter | null;
   /**
    * v3.7.1 — Exit Strategy thesis section (from `exit_scenarios`).
    * Populated when the founder pins a scenario with `use_for_investor_pack=true`.
@@ -480,9 +496,10 @@ function CoverPage({ data }: { data: InvestorPackData }) {
           <Text style={{ fontSize: 11, color: C.ink700, marginTop: 4, lineHeight: 1.5 }}>
             The BlockID Startup Viability Index (SVI) grades AU startups against
             13 evaluation criteria — from founder capability to legal posture.
-            The grade shown here is the current composite; the following pages
-            break it down criterion by criterion and place it against the
-            company&apos;s cap table and traction.
+            This 9-chapter pack breaks the grade down criterion by criterion,
+            places it against the company&apos;s cap table and traction, and
+            layers in a C-Level advisory review (CFO valuation, CEO roadmap,
+            CDO compliance).
           </Text>
           {typeof svi.delta30d === "number" && Number.isFinite(svi.delta30d) && (
             <Text style={{ fontSize: 9, color: deltaColor(svi.delta30d), marginTop: 6 }}>
@@ -1502,6 +1519,208 @@ function EvidenceCompletenessPage({ data }: { data: InvestorPackData }) {
   );
 }
 
+/* ─── 9. C-Level Financial Advisory (v3.9.23 / Workstream C1) ────────────
+ *
+ * The assembler loads a CFO DCF report + CEO funding roadmap + CDO
+ * compliance summary and hands us the composed markdown fragment. We
+ * render it as a single `Page` — react-pdf's default `wrap` behaviour
+ * spills long content onto continuation pages, so the chapter grows
+ * naturally as more C-Level agents contribute (currently CFO/CEO/CDO,
+ * up to the full 11 as their nightly cron reports come online).
+ *
+ * The data shape is `CLevelChapter` = { title, markdown, complianceOk,
+ * complianceViolations }. When null (no report generated yet), we still
+ * render a placeholder page so the pack retains its 9-chapter shape.
+ */
+
+const NFA_FOOTER_CLEVEL =
+  "This chapter is not financial advice. For investment decisions consult a licensed financial adviser.";
+
+/** Render a lightweight subset of Markdown ("#", "##", "###", "-", "> ", "_..._",
+ *  paragraph) into react-pdf nodes. Matches the primitive used by
+ *  `components/pdf/investor-pack-pdf.tsx` so both renderers stay visually
+ *  consistent. Bold `**...**` is unwrapped to plain text (react-pdf's inline
+ *  bold requires nested <Text>, kept out of scope for this pass). */
+function renderCLevelMarkdown(markdown: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  const lines = markdown.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trimEnd();
+    if (line.trim() === "") {
+      nodes.push(<View key={`gap-${i}`} style={{ height: 4 }} />);
+      continue;
+    }
+    if (line.startsWith("# ")) {
+      nodes.push(
+        <Text key={i} style={s.h1}>
+          {line.slice(2).replace(/\*\*/g, "").trim()}
+        </Text>,
+      );
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      nodes.push(
+        <Text key={i} style={s.h2}>
+          {line.slice(3).replace(/\*\*/g, "").trim()}
+        </Text>,
+      );
+      continue;
+    }
+    if (line.startsWith("### ")) {
+      nodes.push(
+        <Text
+          key={i}
+          style={{
+            fontSize: 11,
+            fontFamily: "Helvetica-Bold",
+            color: C.ink800,
+            marginTop: 10,
+            marginBottom: 4,
+          }}
+        >
+          {line.slice(4).replace(/\*\*/g, "").trim()}
+        </Text>,
+      );
+      continue;
+    }
+    if (line.startsWith("- ")) {
+      nodes.push(
+        <View key={i} style={{ flexDirection: "row", marginBottom: 2 }}>
+          <Text style={[s.bodyPara, { width: 12, marginBottom: 0 }]}>{"•"}</Text>
+          <Text style={[s.bodyPara, { flex: 1, marginBottom: 0 }]}>
+            {line.slice(2).replace(/\*\*/g, "").trim()}
+          </Text>
+        </View>,
+      );
+      continue;
+    }
+    if (line.startsWith("> ")) {
+      nodes.push(
+        <Text
+          key={i}
+          style={{
+            fontSize: 8.5,
+            color: C.ink500,
+            fontStyle: "italic",
+            borderLeftWidth: 2,
+            borderLeftColor: C.brand600,
+            paddingLeft: 8,
+            marginTop: 6,
+            marginBottom: 4,
+            lineHeight: 1.45,
+          }}
+        >
+          {line.slice(2).trim()}
+        </Text>,
+      );
+      continue;
+    }
+    if (line.startsWith("_") && line.endsWith("_") && line.length > 2) {
+      nodes.push(
+        <Text
+          key={i}
+          style={{
+            fontSize: 8.5,
+            color: C.ink500,
+            fontStyle: "italic",
+            marginBottom: 4,
+            lineHeight: 1.4,
+          }}
+        >
+          {line.slice(1, -1)}
+        </Text>,
+      );
+      continue;
+    }
+    const body = line.replace(/\*\*/g, "").trim();
+    if (body.length > 0) {
+      nodes.push(
+        <Text key={i} style={s.bodyPara}>
+          {body}
+        </Text>,
+      );
+    }
+  }
+  return nodes;
+}
+
+function CLevelPage({ data }: { data: InvestorPackData }) {
+  const chapter = data.cLevelChapter;
+
+  if (!chapter) {
+    return (
+      <Page size="A4" style={s.page}>
+        <HeaderBar />
+        <Text style={s.h1}>C-Level Financial Advisory</Text>
+        <Text style={s.h1Sub}>CFO · CEO · CDO advisory summary</Text>
+        <Placeholder label="C-Level reports not yet generated — the nightly cron will populate CFO/CEO/CDO chapters on the next cycle." />
+        <Text
+          style={{
+            fontSize: 8,
+            color: C.ink400,
+            fontStyle: "italic",
+            marginTop: 8,
+            lineHeight: 1.4,
+          }}
+        >
+          {NFA_FOOTER_CLEVEL}
+        </Text>
+        <RegulatoryFooter />
+      </Page>
+    );
+  }
+
+  return (
+    <Page size="A4" style={s.page}>
+      <HeaderBar />
+      {!chapter.complianceOk && (
+        <View
+          style={{
+            padding: 8,
+            backgroundColor: C.amber100,
+            borderWidth: 0.5,
+            borderColor: C.amber700,
+            borderRadius: 4,
+            marginBottom: 8,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 8,
+              color: C.amber700,
+              fontFamily: "Helvetica-Bold",
+            }}
+          >
+            Compliance notice: chapter blocked — real names detected and
+            redacted.
+          </Text>
+        </View>
+      )}
+      {renderCLevelMarkdown(chapter.markdown)}
+      <View
+        style={{
+          marginTop: 10,
+          paddingTop: 6,
+          borderTopWidth: 0.5,
+          borderTopColor: C.surface200,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 8,
+            color: C.ink400,
+            fontStyle: "italic",
+            lineHeight: 1.4,
+          }}
+        >
+          {NFA_FOOTER_CLEVEL}
+        </Text>
+      </View>
+      <RegulatoryFooter />
+    </Page>
+  );
+}
+
 /* ─── Top-level document ────────────────────────────────────────────────── */
 
 export const InvestorPackPdf: React.FC<{ data: InvestorPackData }> = ({ data }) => (
@@ -1519,6 +1738,7 @@ export const InvestorPackPdf: React.FC<{ data: InvestorPackData }> = ({ data }) 
     <TractionPage data={data} />
     {data.forecast && <ForecastPage data={data} />}
     {data.exitStrategy && <ExitStrategyPage data={data} />}
+    <CLevelPage data={data} />
     {data.evidenceCompleteness && <EvidenceCompletenessPage data={data} />}
     <OnePageTeaserPage data={data} />
   </Document>
