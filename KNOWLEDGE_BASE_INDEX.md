@@ -1,7 +1,13 @@
 # BlockID.au Knowledge Base — Master Index
-**Version:** 1.0  
-**Date:** 2026-06-13  
+**Version:** 1.1 (v3.9.23 sync — 2026-09-07)
+**Date:** 2026-06-13 (rev. 2026-09-07)
 **Purpose:** Centralized repository of BlockID.au startup evaluation, ESOP, valuation, and data room expertise
+
+> **v3.9.23 sync note:** All links below verified after 2026-09-07 Founding-50
+> route deletion sweep. No entry in this index pointed to `/founding-50` (only
+> the doc-level ESOP / valuation / data-room / SVI knowledge modules). Canonical
+> spec is [`blockid_prd.md`](./blockid_prd.md); `blockid.au.md` is deprecated
+> (see banner at top of that file).
 
 ---
 

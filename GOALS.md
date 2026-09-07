@@ -1,5 +1,12 @@
 # BlockID — Startup Value Index (SVI) System Goals
 
+**Sync-status (v3.9.23):** canonical taxonomy is the **12-phase growth model** in
+[`web/src/lib/growth/phase-taxonomy.ts`](./web/src/lib/growth/phase-taxonomy.ts).
+The legacy 8-stage vocabulary below (Stage 0 Raw Idea → Stage 7 Corporation) is
+**deprecated** and preserved for historical reference only — see the taxonomy
+audit finding in [`docs/plans/SOURCE-OF-TRUTH.md`](./docs/plans/SOURCE-OF-TRUTH.md)
+§G8 P0. The 12↔8 bridge lives in `web/src/lib/journey-map.ts`.
+
 ## Vision
 Build the most comprehensive, evidence-backed Startup Value Index system —
 from raw idea to corporation. A founder enters once and the system tracks,
@@ -16,7 +23,17 @@ Design a rigorous, multi-dimensional scoring formula that:
 - Auto-computes weekly delta (+/-) to show progress over time
 - Is transparent, explainable, and gamifiable (founder can see exactly how to raise score)
 
-### Startup Maturity Stages
+### Canonical taxonomy — 12 growth phases (v3.9.23)
+
+Canonical source: `web/src/lib/growth/phase-taxonomy.ts` (string ids are canonical; numeric `PhaseKey` bridges are explicit + test-pinned).
+
+1. `vision` → 2. `problem` → 3. `market` → 4. `product_dev` → 5. `mvp` →
+6. `legal_equity` → 7. `go_to_market` → 8. `early_traction` → 9. `investor_review`
+→ 10. `revenue_scale` → 11. `growth_scale` → 12. `funding`
+
+Each phase surfaces its own guided chapter at `/guide/<n>-<slug>`, an SVI floor gate, and a curated tool set.
+
+### Legacy 8-stage vocabulary (DEPRECATED, retained for archive only)
 
 | Stage | Label | Key signals |
 |-------|-------|-------------|
@@ -29,7 +46,10 @@ Design a rigorous, multi-dimensional scoring formula that:
 | 6 | Scale | $1M+ ARR, investors, audit, data room, legal docs |
 | 7 | Corporation | ASIC registered, audited financials, board, compliance complete |
 
-### SVI Dimensions (8 core, expandable)
+_Do NOT use this table for new code — key off the 12-phase taxonomy. The
+8-stage labels remain only for historical scoring bridges._
+
+### SVI Dimensions (8 core — canonical)
 
 1. **Founder & Team Value (FTV)** — founder experience, team size, domain fit, advisors
 2. **Market & Problem Clarity (MPC)** — TAM/SAM, problem validation, customer proof

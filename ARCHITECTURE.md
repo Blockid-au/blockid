@@ -1,4 +1,53 @@
-# BlockID.au — Microservices Architecture Plan
+# BlockID.au — Architecture
+
+**Current release:** `v3.9.23` · `web/package.json` version `3.9.23` · git `8ed44c24a`
+
+## Surface (as-shipped)
+
+| Metric | Count |
+|---|---|
+| Pages | 339 (`web/src/app/**/page.tsx`) |
+| API routes | 495 (`web/src/app/api/**/route.ts`) |
+| Supabase migrations | 24 (latest `20260907_sample_listings_seed.sql` — 3 sample listings seeded) |
+| Free tools | 17 (`/tools/*`) |
+| Guided journey chapters | 12 (`/guide/01-vision`…`/guide/12-funding`) |
+| C-Level AI agents | 11 (CEO / CTO / CFO / CMO / CPO / CRO / CLO / CHRO / CISO / COO / CDO) |
+| SVI dimensions | 8 (FTV / MPC / PTD / TRE / CGH / IRI / LCO / SVM) |
+| Investor pack chapters | 9 (Cover · Exec Summary · SVI Criteria · Cap Table · Traction · C-Level Financial Advisory · Forecast · Exit Strategy · Evidence Completeness) |
+| Public pricing rungs | 3 (Free / Growth A$99/mo / Pro A$299/mo) + Contact Sales row |
+
+## Runtime topology
+
+```
+                     ┌──────────────────────┐
+                     │   blockid.au (web)   │  bare-metal node @ port 4001
+                     │   Next 16 standalone │  /data/releases/<id>/server.js
+                     │   webpack build      │  systemd watchdog restart */2min
+                     └────────┬─────────────┘
+                              │
+        ┌────────┬────────────┼────────────┬─────────────┐
+        │        │            │            │             │
+  ┌─────▼────┐  ┌▼─────────┐ ┌▼──────────┐ ┌▼───────────┐ ┌▼──────────────┐
+  │ Supabase │  │  Redis   │ │  Anvil    │ │ Otterscan  │ │ AI providers  │
+  │  :8000   │  │  :6379   │ │  :8545    │ │  :5173     │ │ (registry)    │
+  │ 24 mig.  │  │ rate-lim │ │ EVM 420   │ │ explorer   │ │ 47 models     │
+  └──────────┘  └──────────┘ └───────────┘ └────────────┘ └───────────────┘
+```
+
+- **Blockchain (current):** private EVM via **Anvil chainId 420** + **Otterscan** explorer at `:5173` — off-chain-first vesting with optional on-chain sync.
+- **Blockchain (long-term roadmap):** Cosmos SDK / Tendermint chain for jurisdictional data residency — `chain/` scaffolding retained for future testnet. **Not the current implementation.**
+
+## Deploy
+
+- Bare-metal `web/scripts/deploy-live.sh` (12 gates: tsc, unit, e2e smoke, redirect map, hydrated post-deploy smoke, etc.).
+- **No Docker, no GitLab CI, no GitHub Actions in production.** Server IS production.
+- Origin remote is GitHub `Blockid-au/blockid.au`; public reverse proxy = system nginx.
+
+---
+
+## Historical: Microservices strangler-fig plan (not shipped)
+
+_The section below is the original 2026-05 microservices split proposal. It remains as historical context — the shipped platform kept the Next.js monolith at `web/` with the extra services below **not** carved out._
 
 ## Phase 1: Strangler Fig — AI Gateway + Billing Service
 

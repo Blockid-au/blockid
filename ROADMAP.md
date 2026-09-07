@@ -2,7 +2,7 @@
 
 > **This is the single source of truth.** Every roadmap, plan, architecture diagram, or task list lives here or is linked from here. When in doubt, this file wins.
 
-**Current version:** `0.6.0` (web) · queue `v1.4` · release `2026-08-13 v0.6.0` — T0094–T0101 knowledge pack shipped, reseller wholesale flow live, Founding 100 promo sunset on 2026-09-01 (see Phase 3b legacy note below)
+**Current version:** `v3.9.23` (web/package.json) · git `8ed44c24a` · release `JctZ0PfqkXowL6mTrcEs3` — Unify messaging + simplify pricing + close feature drift (2026-09-07). Universal 3-rung pricing ladder (Free / Growth A$99 / Pro A$299) shipped, `/features` under-promised-capability surface live, investor pack now truthfully 9 chapters (CLevelPage renders), homepage names SVI + quantifies the promise.
 **Last updated:** 2026-09-07 UTC
 
 > **[LEGACY — 2026-09-01 sunset, retained for archive]**
@@ -119,6 +119,34 @@ Pulled from [`svi-exchange-tasks.json`](./web/content/reports/svi-exchange-tasks
 ---
 
 ## 5. Changelog
+
+### v3.9.23 (2026-09-07 UTC) — Recently landed
+
+Approved plan `h-y-review-t-on-b-foamy-pixel` — full messaging↔code synchronisation sprint.
+
+- **A workstream — message truth on marketing surface:**
+  - A1 score-first hero H1 "Know your startup's SVI score in 60 seconds." + quantified subheadline + outcome CTA "Get my SVI score" (`a2b5c8971`)
+  - A2 quick-tag chips route to real targets: Competitor → `/score?q=`, Valuation → `/tools/idea-valuation`, GTM → `/tools/funding-plan` (`4b5288699`); chips now render as `<a href>` for SEO (`8ed44c24a`)
+  - A3 how-it-works "50+ AI agents" → "11 C-Level agents" (`f8001541a`)
+  - A4+A5 "13 criteria" → "8 SVI dimensions" verbatim PRD labels across `/how-it-works` + `/for/[segment]` (`7080aecc8`)
+  - A6 CTA subtext scrub — no implicit user-count claim (`5f853225a`)
+  - A7 Nav Free Tools dropdown (17 tools grouped) + Sprocketbay/BlockID demo + unify `/solutions/*`, hide Compare (`9c247175d`)
+  - A8 Revenue Tracker card → Trust Report share links (real capability) (`dccb78487`)
+- **B workstream — pricing simplification:**
+  - B1+B2 pricing consolidated to Free / Growth / Pro public ladder + `public:false` flag on hidden SKUs (`5f45f0b63`)
+  - B3-lite legacy `PRICING_TIERS` array retired (`d68a37eb9`)
+  - B3-tail Founding-50 legacy marketing surface purged; Stripe SKU kept for grandfathered renewals only (`1ec7f2657`)
+  - B4 GST-exclusive copy unified across pricing page + matrix + plans-v2 comments (`1820f99f8`) + FAQ JSON-LD + body copy stragglers (`20a7541fb`)
+  - B5 persona pages deep-link to `#tier-growth`/`#tier-pro` fragment (`da9f36000` + `e6c99cbc3`)
+  - B6 share_management gate resolved — A$99 Growth users no longer 402 on Cap Table (`1188c130e`)
+  - B7 trial-days copy reconciled — 7-day public tiers, 14-day pilot contact-sales (`2ddc7381d`)
+  - B8 3-card public ladder + ContactSalesRow (Accelerator / VC / Enterprise) + credit-pack monotonic fix (`58f34d45d`)
+- **C1 workstream — investor pack CLevelChapter render + ToC bumped to 9 chapters** (`2dd695b98` + `f50a42be1` + colocated test)
+- **D workstream — surface under-promised capability:**
+  - D1 new `/features` page surfacing 8 under-promised capabilities (cohort percentile, per-investor tracked share links, ATO tax invoice, dividend engine, 17 free tools, 12-chapter guide, evidence completeness, LP anonymisation) (`aead3ed1e`)
+  - D2 `/features` surfaced in sitemap + primary nav (`0850f2b25`)
+  - D3 `/tbr/demo` tertiary link surfaced in hero (`947057278`)
+- **Followups:** homepage title + og:image:alt match new score-first hero (`abeca292e`); Playwright post-deploy smoke tests updated for 3-rung ladder (`b6d83a852`).
 
 ### 0.6.0 (2026-08-13 UTC)
 - **Feat:** T0094–T0101 fundraising knowledge pack (ESOP + valuation + data room + SVI self-analysis + master knowledge index). 99 KB of investor-ready documentation.
