@@ -52,9 +52,9 @@ export const INVESTOR_READINESS_CALLOUTS: Record<number, InvestorReadinessCallou
       "2002 — Atlassian builds Jira as its own internal issue tracker; the founders are themselves the target user, which shortcuts the discovery loop.",
     blockid_route: "/svi",
     callout_copy_en:
-      "Score your idea against the 13 SVI criteria. Atlassian validated by being their own user — you validate by capturing 5 discovery interviews plus a landing-page waitlist before Chapter 3.",
+      "Score your idea against the 8 SVI dimensions. Atlassian validated by being their own user — you validate by capturing 5 discovery interviews plus a landing-page waitlist before Chapter 3.",
     callout_copy_vi:
-      "Chấm điểm ý tưởng theo 13 tiêu chí SVI. Atlassian xác thực bằng cách là chính người dùng của mình — bạn xác thực bằng 5 buổi phỏng vấn khám phá và một trang đăng ký chờ trước Chương 3.",
+      "Chấm điểm ý tưởng theo 8 chiều SVI. Atlassian xác thực bằng cách là chính người dùng của mình — bạn xác thực bằng 5 buổi phỏng vấn khám phá và một trang đăng ký chờ trước Chương 3.",
   },
   3: {
     phase: 3,

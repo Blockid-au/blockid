@@ -202,7 +202,7 @@ describe("GET /api/platform-stats — defaults and envelope", () => {
       stage: "Pre-seed",
       website: "https://blockid.au",
       tagline:
-        "The agentic AI valuation platform for business growth from day one",
+        "Know your startup's SVI score in 60 seconds",
     });
   });
 

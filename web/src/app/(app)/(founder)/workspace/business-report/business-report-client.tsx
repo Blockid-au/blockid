@@ -1324,7 +1324,7 @@ export function BusinessReportClient({
                   Criteria synthesis not yet available
                 </p>
                 <p className="text-xs text-amber-700 dark:text-amber-300">
-                  Re-run the pitchdeck analysis (Wave 24+) to generate the full 13-criteria breakdown. This section requires the latest analysis version.
+                  Re-run the pitchdeck analysis (Wave 24+) to generate the full 8-dimension SVI breakdown. This section requires the latest analysis version.
                 </p>
                 <Link
                   href="/workspace/pitchdeck-analyze"

@@ -224,7 +224,7 @@ export const PitchVideo1Min: React.FC = () => {
                 url="blockid.au"
                 imageSrc="video-assets/homepage-hero.png"
                 descriptionLines={[
-                  '[Homepage] "The agentic AI valuation platform"',
+                  '[Homepage] "Know your startup\'s SVI score in 60 seconds."',
                 ]}
                 status="Describe your startup. Get an AI valuation in 60 seconds."
               />

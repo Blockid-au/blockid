@@ -217,7 +217,7 @@ export function EvaluationClient({ user }: EvaluationClientProps) {
             Startup Evaluation
           </h1>
           <p className="text-sm text-ink-500 dark:text-ink-400 mt-0.5">
-            Build your evidence across 13 criteria. The more you provide, the
+            Build your evidence across the 8 SVI dimensions. The more you provide, the
             stronger your AI-powered valuation report.
           </p>
         </div>

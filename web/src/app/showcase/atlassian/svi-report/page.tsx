@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Atlassian SVI report — Step 3 — BlockID Demo",
   description:
-    "BlockID's Startup Valuation Index scores Atlassian across 13 criteria — from Idea & Innovation to Revenue & Unit Economics — with a rationale + source for each.",
+    "BlockID's Startup Valuation Index scores Atlassian across 8 SVI dimensions — from Founder & Team Value to Strategic Vision & Moat — with a rationale + source for each.",
 };
 
 interface EnrichedScore {
@@ -133,16 +133,16 @@ export default function AtlassianSviReportMirrorPage() {
 
           <header className="mb-8">
             <p className="text-sm font-medium uppercase tracking-wide text-brand-700 dark:text-emerald-400">
-              Step 3 — SVI score, 13 criteria
+              Step 3 — SVI score, 8 dimensions
             </p>
             <h1 className="mt-2 text-3xl font-semibold text-ink-900 dark:text-slate-100">
               Atlassian on the BlockID Startup Valuation Index
             </h1>
             <p className="mt-3 max-w-3xl text-base text-ink-700 dark:text-slate-300">
-              We ran Atlassian through the same 13-criteria grader we hand
+              We ran Atlassian through the same 8-dimension SVI grader we hand
               every founder on BlockID.au. Below is the composite, the
-              per-criterion breakdown, and the founder-mentor reasoning
-              behind the three best and three worst scores.
+              per-criterion breakdown (each grounded in one SVI dimension), and
+              the founder-mentor reasoning behind the three best and three worst scores.
             </p>
           </header>
 
@@ -176,7 +176,7 @@ export default function AtlassianSviReportMirrorPage() {
               id="svi-chart"
               className="mb-3 text-xl font-semibold text-ink-900 dark:text-slate-100"
             >
-              13 criteria — ranked
+              SVI signals — ranked
             </h2>
             <div className="overflow-x-auto rounded-lg border border-surface-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
               <svg

@@ -39,7 +39,7 @@ export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
     minTier: "starter",
     bestAtPhase: 2,
     monthlyDeltaAud: 29,
-    discoveryHint: "Unlimited 13-criteria evaluations",
+    discoveryHint: "Unlimited 8-dimension SVI evaluations",
     upgradeCTA: "Upgrade to Starter",
   },
   {

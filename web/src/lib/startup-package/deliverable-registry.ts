@@ -434,7 +434,7 @@ const REGISTRY: DeliverableEntry[] = [
     key: "funding_report",
     phaseId: "funding",
     label: "Fundraising SVI report",
-    blurb: "Full 13-criteria SVI report tailored for the round.",
+    blurb: "Full 8-dimension SVI report tailored for the round.",
     pdfGenerator: "svi-report",
     featureKey: "svi_report",
     dataroomFolder: "funding",

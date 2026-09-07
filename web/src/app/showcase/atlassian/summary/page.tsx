@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 const STEP_TAKEAWAY: Record<number, string> = {
   1: "Self-funded Sydney to NASDAQ, two secondaries, founders kept voting control.",
   2: "A live dashboard is what BlockID would show for your own startup.",
-  3: "The 13 criteria are graded from evidence with citations, not vibes.",
+  3: "The 8 SVI dimensions are graded from evidence with citations, not vibes.",
   4: "12 phases mapped to S0\u2013S5, with what the filings do and don\u0027t show.",
   5: "Seven C-Level agents brief you where their advice matters most.",
   6: "The data room is 65+ documents grouped into 12 categories, AU-first.",
@@ -123,7 +123,7 @@ export default function AtlassianSummaryMirrorPage() {
               <KpiCard
                 label="SVI composite"
                 value={`${sviMean}/100`}
-                hint="mean of 13 criteria"
+                hint="mean of 8 SVI dimensions"
               />
               <KpiCard
                 label="IPO 2015"

@@ -1693,12 +1693,12 @@ export function SviStreamAnalysis({
           )}
           {criterionSynthesising && (
             <p className="text-sm text-brand-700 dark:text-brand-400 animate-pulse">
-              Synthesising 13-criteria analyst report…
+              Synthesising 8-dimension analyst report…
             </p>
           )}
           {done && totalMs !== null && (
             <p className="text-sm text-emerald-700 dark:text-emerald-400">
-              All {total} dimensions + 13 criteria analysed in {(totalMs / 1000).toFixed(1)}s
+              All {total} SVI dimensions analysed in {(totalMs / 1000).toFixed(1)}s
             </p>
           )}
         </div>

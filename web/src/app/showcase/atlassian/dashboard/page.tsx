@@ -149,7 +149,7 @@ export default function AtlassianDashboardMirrorPage() {
               <Tile
                 label="SVI Composite"
                 value={compositeDisplay}
-                caption="13 criteria averaged (score 0–100)"
+                caption="8 SVI dimensions averaged (score 0–100)"
                 sourceLabel="Atlassian FY2025 10-K + walkthrough fixture"
                 sourceUrl={ATLASSIAN_DEMO.sviScores[0] ? undefined : undefined}
                 extra={

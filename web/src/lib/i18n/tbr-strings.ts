@@ -204,7 +204,7 @@ const en: TbrStrings = {
   criteriaNextAction: "Next Action (This Week)",
   criteriaMissingTitle: "Criteria synthesis not yet available",
   criteriaMissingBody:
-    "Re-run the pitchdeck analysis (Wave 24+) to generate the full 13-criteria breakdown. This section requires the latest analysis version.",
+    "Re-run the pitchdeck analysis (Wave 24+) to generate the full 8-dimension SVI breakdown. This section requires the latest analysis version.",
   criteriaReanalyse: "Re-analyse now",
   chipWeightAndDim: (w, dim) => `${w}% weight · ${dim.toUpperCase()}`,
 
@@ -228,9 +228,9 @@ const en: TbrStrings = {
   methBodySvi:
     "The SVI is a composite 0–100 score computed across 8 weighted dimensions. It is NOT a valuation — it is a readiness index designed to signal investor-readiness and highlight evidence gaps. Scores above 70 indicate investor-ready evidence across most dimensions; 40–69 indicates a developing startup with clear next steps; below 40 indicates early-stage with significant gaps to fill before fundraising.",
   methHeaderDims: "8 SVI Dimensions (total 100% weight)",
-  methHeaderCriteria: "13 Investor Evaluation Criteria",
+  methHeaderCriteria: "Investor Evaluation Signals (internal mapping)",
   methBodyCriteria:
-    "Each criterion maps to one primary SVI dimension and optionally one or more secondary dimensions. The 13 criteria cover: Idea & Innovation, Market Opportunity, Founder Profile, Code & Git Repository, Website & Digital Presence, Team Composition, Customer Base & Traction, Go-to-Market Strategy, Key Documents, Data Room, Team Structure & Governance, Product Roadmap, and Revenue & Unit Economics.",
+    "Each signal maps to one primary SVI dimension and optionally one or more secondary dimensions. Internal signals cover: Idea & Innovation, Market Opportunity, Founder Profile, Code & Git Repository, Website & Digital Presence, Team Composition, Customer Base & Traction, Go-to-Market Strategy, Key Documents, Data Room, Team Structure & Governance, Product Roadmap, and Revenue & Unit Economics — the customer-facing score is always the 8-dimension SVI composite.",
   methHeaderValuation: "Valuation Methods",
   methBodyValuation:
     "Pre-money valuation is computed using one of four methods selected automatically based on stage and traction: Berkus Method (pre-revenue, cap A$2.5M), Scorecard Method (angel round median × SVI factor), Comparable Transactions (AU seed/Series A comps from PitchBook 2024–2026), or DCF (10-year free-cash-flow with terminal value). Three cases (worst/average/best) apply a ±20% band. This is a directional estimate, not a formal valuation.",

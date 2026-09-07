@@ -192,7 +192,7 @@ export function ReportPaywallGate({
           Generate this Trust Business Report
         </h2>
         <p className="text-sm leading-relaxed text-[var(--fintech-ink-muted,#94a3b8)]">
-          This report analyses <strong>13 criteria across 4 pillars</strong>{" "}
+          This report analyses <strong>8 SVI dimensions</strong>{" "}
           using <strong>6 C-Level agents</strong>. Estimated{" "}
           <strong className="tabular-nums">
             {quote.estimatedWords.toLocaleString("en-AU")}

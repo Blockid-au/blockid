@@ -28,7 +28,7 @@ export const revalidate = 0;
 export const metadata: Metadata = {
   title: "Startup Value Index — analyse any idea, URL or pitch",
   description:
-    "Paste an idea, website, or pitch — get an investor-ready SVI score across 13 criteria in ~30 seconds. Report emailed automatically.",
+    "Paste an idea, website, or pitch — get an investor-ready SVI score across 8 dimensions in ~30 seconds. Report emailed automatically.",
   alternates: { canonical: `${SITE_URL}/svi` },
   robots: { index: false, follow: false },
 };

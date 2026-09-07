@@ -168,7 +168,7 @@ export const FOUNDER_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$29",
     targetPhaseRange: [1, 2],
     headlineUnlock:
-      "Full SVI 13-criteria score, evidence uploads and shareable investor links",
+      "Full SVI 8-dimension score, evidence uploads and shareable investor links",
     supportingUnlocks: STARTER_FEATURES,
     hiddenFromPublic: false,
   },

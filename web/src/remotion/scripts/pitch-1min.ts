@@ -110,7 +110,7 @@ export const PITCH_1MIN: ScriptLine[] = [
     endTime: 30,
     text: "",
     visual:
-      "LIVE RECORDING: blockid.au homepage. Hero section visible: 'The agentic AI valuation platform'. Cursor moves to search bar with glowing border.",
+      "LIVE RECORDING: blockid.au homepage. Hero section visible: 'Know your startup\\'s SVI score in 60 seconds.'. Cursor moves to search bar with glowing border.",
     emotion: "neutral",
   },
   {

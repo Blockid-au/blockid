@@ -166,23 +166,23 @@ const TOURS: FeatureTour[] = [
     estimatedMinutes: 4,
     name: { en: "SVI — Startup Valuation Index", vi: "SVI — Chỉ số định giá startup" },
     summary: {
-      en: "How the 13-criteria SVI score is computed, what moves it, and how to read the trend.",
-      vi: "Cách tính điểm SVI 13 tiêu chí, yếu tố thay đổi và cách đọc xu hướng.",
+      en: "How the 8-dimension SVI score is computed, what moves it, and how to read the trend.",
+      vi: "Cách tính điểm SVI 8 chiều, yếu tố thay đổi và cách đọc xu hướng.",
     },
     steps: [
       {
         id: "score",
         title: { en: "Your headline score", vi: "Điểm chính" },
         body: {
-          en: "SVI runs from 0 to unlimited (Nikkei-style). The headline is a weighted blend of the 13 criteria — click it to expand each pillar.",
-          vi: "SVI từ 0 đến không giới hạn (kiểu Nikkei). Điểm tổng là trung bình có trọng số của 13 tiêu chí — nhấp để mở từng trụ cột.",
+          en: "SVI runs from 0 to unlimited (Nikkei-style). The headline is a weighted blend of the 8 SVI dimensions — click it to expand each pillar.",
+          vi: "SVI từ 0 đến không giới hạn (kiểu Nikkei). Điểm tổng là trung bình có trọng số của 8 chiều SVI — nhấp để mở từng trụ cột.",
         },
         anchor: "[data-tour=svi-score]",
         media: "svi-score",
       },
       {
         id: "pillars",
-        title: { en: "13 criteria", vi: "13 tiêu chí" },
+        title: { en: "8 SVI dimensions", vi: "8 chiều SVI" },
         body: {
           en: "Team, Product, Market, Traction, Moat, GTM, Financials, Legal, Risk, Compliance, Impact, Momentum, Story. Each has an editable evidence panel.",
           vi: "Đội ngũ, Sản phẩm, Thị trường, Đà, Rào cản, GTM, Tài chính, Pháp lý, Rủi ro, Tuân thủ, Tác động, Đà tăng, Câu chuyện. Mỗi tiêu chí có bảng chứng cứ chỉnh sửa được.",
@@ -444,7 +444,7 @@ const TOURS: FeatureTour[] = [
       },
       {
         id: "evaluation",
-        title: { en: "Score the 13 criteria", vi: "Đánh giá 13 tiêu chí" },
+        title: { en: "Score the 8 SVI dimensions", vi: "Đánh giá 8 chiều SVI" },
         body: {
           en: "Fill in what you know; we auto-fill the rest from public data. Missing evidence is your fastest SVI lift on day one.",
           vi: "Điền những gì bạn biết; phần còn lại chúng tôi tự điền từ dữ liệu công khai. Bổ sung chứng cứ thiếu là cách tăng SVI nhanh nhất trong ngày đầu.",

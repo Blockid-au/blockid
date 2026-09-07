@@ -56,7 +56,7 @@ const SAMPLES: ReadonlyArray<{
     href: "/tbr/demo",
     title: "Trusted Business Report preview",
     body:
-      "Anonymous, no-login preview of the TBR structure: 8 SVI dimensions, 13 criteria, valuation band and next-action roadmap. All numbers are illustrative.",
+      "Anonymous, no-login preview of the TBR structure: 8 SVI dimensions with per-dimension signal detail, valuation band and next-action roadmap. All numbers are illustrative.",
     cta: "Open TBR demo",
   },
   {
@@ -99,9 +99,8 @@ export default function SampleHubPage() {
 
       <MarketingSection kicker="Ready to run your own?" title="Score your startup in under 10 minutes">
         <p className="max-w-2xl text-sm text-[var(--fintech-ink-muted)]">
-          The BlockID Startup Value Index runs 8 dimensions and 13 criteria in
-          parallel from the evidence you paste in. Free preview, no login, and
-          your data stays yours.
+          The BlockID Startup Value Index runs 8 dimensions in parallel from the
+          evidence you paste in. Free preview, no login, and your data stays yours.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link

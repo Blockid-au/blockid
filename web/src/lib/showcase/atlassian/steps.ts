@@ -61,9 +61,9 @@ export const ATLASSIAN_WALKTHROUGH: WalkthroughStep[] = [
   {
     n: 3,
     path: "/showcase/atlassian/svi-report",
-    title: "SVI score — 13 criteria",
+    title: "SVI score — 8 dimensions",
     guideText:
-      "The BlockID SVI grades a startup across 13 criteria. Here's how Atlassian scores today, and where each score came from.",
+      "The BlockID SVI grades a startup across 8 dimensions (FTV, MPC, PTD, TRE, CGH, IRI, LCO, SVM). Here's how Atlassian scores today, and where each score came from.",
     phaseSlug: "11",
   },
   {

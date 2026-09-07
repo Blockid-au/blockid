@@ -186,8 +186,8 @@ const DESTINATIONS: Destination[] = [
     href: "/svi",
     rationaleTemplate: ({ sectorLabel }) =>
       sectorLabel
-        ? `You've clarified the shape of a ${sectorLabel} startup — the SVI report will score all 13 criteria and benchmark you against peers.`
-        : "You've clarified the core shape of the idea — the SVI report will score all 13 criteria and give you a stage-appropriate action plan.",
+        ? `You've clarified the shape of a ${sectorLabel} startup — the SVI report will score all 8 SVI dimensions and benchmark you against peers.`
+        : "You've clarified the core shape of the idea — the SVI report will score all 8 SVI dimensions and give you a stage-appropriate action plan.",
     score: (t) => {
       // Default fallback wins on tie, but real signals push it higher.
       let s = 1;

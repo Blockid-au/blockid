@@ -32,7 +32,7 @@ export async function OrganizationJsonLd() {
     url: "https://blockid.au",
     logo: "https://blockid.au/images/logo-transparent.png",
     description:
-      "The agentic AI valuation platform for business growth from day one. Index valuation, ownership, and execution milestones from idea to scale.",
+      "Know your startup's SVI score in 60 seconds. BlockID.au scores Australian startups on 8 SVI dimensions, guides them through 12 growth phases, and produces a 9-chapter investor-ready pack.",
     email: "admin@blockid.au",
     address: {
       "@type": "PostalAddress",

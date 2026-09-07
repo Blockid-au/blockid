@@ -154,7 +154,7 @@ const SHIPPED_HIGHLIGHTS: RoadmapItem[] = [
   {
     title: "Enhanced SVI + Multi-Agent Reports (Phase 2.5)",
     note:
-      "13-criterion evaluation, 3-phase report generation (Gather → Analyze → Synthesize), 21 sections with agent ownership, DOCX/PDF export with brand styling, 9 AI providers.",
+      "8-dimension SVI evaluation, 3-phase report generation (Gather → Analyze → Synthesize), 21 sections with agent ownership, DOCX/PDF export with brand styling, 9 AI providers.",
   },
   {
     title: "Founding 100 auto-cutover (v3.3.2 — 2026-09-01)",

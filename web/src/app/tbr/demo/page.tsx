@@ -122,7 +122,7 @@ export default function TbrDemoPage() {
           ))}
         </ul>
         <p className="mt-4 text-xs text-ink-500">
-          The interactive report ships all 13 criteria with strengths, gaps and
+          The interactive report ships all 8 SVI dimensions with strengths, gaps and
           a concrete next action per row. Preview them in the {" "}
           <Link className="text-brand-600 underline" href="/showcase/atlassian?step=1">
             Atlassian showcase

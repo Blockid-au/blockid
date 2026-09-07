@@ -79,7 +79,7 @@ const FOUNDER: Plan[] = [
     // multiple startups upgrade to the Accelerator segment
     // (see /pricing?tab=accelerator).
     features: [
-      "Full SVI 13-criteria score",
+      "Full SVI 8-dimension score",
       "1 startup workspace",
       "Unlimited DOCX + PDF export",
       "50 AI credits / month",

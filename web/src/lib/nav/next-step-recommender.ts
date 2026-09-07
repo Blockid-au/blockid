@@ -50,7 +50,7 @@ export interface RecommendNextStepInput {
 // evaluation yet. Points them at the fastest "win" surface.
 const PHASE_0_STEP: RecommendedNextStep = {
   href: "/workspace/evaluation",
-  label: "Run your 13-criteria SVI evaluation",
+  label: "Run your 8-dimension SVI evaluation",
   reason: "Baseline your startup before we can recommend next steps",
   ctaLabel: "Start evaluation",
   icon: "sparkles",

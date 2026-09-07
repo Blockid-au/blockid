@@ -58,7 +58,7 @@ const SCREENSHOTS: Record<string, { src: string; alt: string }> = {
   },
   score: {
     src: "/media/how-it-works/step-score.svg",
-    alt: "Startup Value Index scorecard with 13 criteria",
+    alt: "Startup Value Index scorecard with 8 SVI dimensions",
   },
   build: {
     src: "/media/how-it-works/step-build.svg",

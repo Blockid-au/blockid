@@ -606,8 +606,8 @@ function SviCriteriaPage({ data }: { data: InvestorPackData }) {
   return (
     <Page size="A4" style={s.page}>
       <HeaderBar />
-      <Text style={s.h1}>SVI 13-criteria breakdown</Text>
-      <Text style={s.h1Sub}>Per-criterion score and 30-day delta</Text>
+      <Text style={s.h1}>SVI 8-dimension breakdown</Text>
+      <Text style={s.h1Sub}>Per-dimension score and 30-day delta (with underlying signal detail)</Text>
 
       <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 4 }}>
         <View style={s.tableHeader}>

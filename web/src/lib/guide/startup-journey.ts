@@ -159,22 +159,22 @@ const CHAPTERS: Chapter[] = [
       vi: "Chương 2 — Xác thực ý tưởng",
     },
     summary: {
-      en: "Answer the 13-criteria SVI questionnaire and upload any evidence you already have. This is where a hunch becomes a scored startup — with a numeric SVI and a per-criterion breakdown.",
-      vi: "Trả lời bảng câu hỏi SVI 13 tiêu chí và tải lên bằng chứng bạn đã có. Đây là lúc linh cảm trở thành startup có điểm — với chỉ số SVI và phân tích theo từng tiêu chí.",
+      en: "Answer the 8-dimension SVI questionnaire and upload any evidence you already have. This is where a hunch becomes a scored startup — with a numeric SVI and a per-criterion breakdown.",
+      vi: "Trả lời bảng câu hỏi SVI 8 chiều và tải lên bằng chứng bạn đã có. Đây là lúc linh cảm trở thành startup có điểm — với chỉ số SVI và phân tích theo từng tiêu chí.",
     },
     founderAction: {
-      en: "From the workspace, open Score → Full SVI. Answer all 13 criteria honestly (guessing produces guesswork reports). Upload any evidence you have — landing-page mocks, interview notes, LOIs, market data.",
-      vi: "Từ không gian làm việc, mở Chấm điểm → SVI đầy đủ. Trả lời trung thực cả 13 tiêu chí (đoán mò sẽ ra báo cáo đoán mò). Tải lên bằng chứng nếu có — landing page, phỏng vấn, LOI, dữ liệu thị trường.",
+      en: "From the workspace, open Score → Full SVI. Answer all 8 SVI dimensions honestly (guessing produces guesswork reports). Upload any evidence you have — landing-page mocks, interview notes, LOIs, market data.",
+      vi: "Từ không gian làm việc, mở Chấm điểm → SVI đầy đủ. Trả lời trung thực cả 8 chiều SVI (đoán mò sẽ ra báo cáo đoán mò). Tải lên bằng chứng nếu có — landing page, phỏng vấn, LOI, dữ liệu thị trường.",
     },
     agentsInvoked: {
       en: [
-        "SVI scoring engine — produces the 13-criterion score and roadmap position.",
+        "SVI scoring engine — produces the 8-dimension score and roadmap position.",
         "CMO agent (deep) — competitor scan, TAM / SAM / SOM sizing, initial buyer persona.",
         "CDO agent — data-quality check on evidence you uploaded (are the sources credible?).",
         "Landing-page draft — CMO writes a first landing-page copy block into the DataRoom.",
       ],
       vi: [
-        "Bộ máy chấm SVI — sinh ra điểm 13 tiêu chí và vị trí trên bản đồ tăng trưởng.",
+        "Bộ máy chấm SVI — sinh ra điểm 8 chiều SVI và vị trí trên bản đồ tăng trưởng.",
         "Đại lý CMO (sâu) — quét đối thủ, ước lượng TAM/SAM/SOM, chân dung khách hàng đầu tiên.",
         "Đại lý CDO — kiểm tra chất lượng dữ liệu trên bằng chứng bạn tải lên (nguồn có đáng tin không?).",
         "Bản nháp landing page — CMO viết khối copy landing page đầu tiên vào DataRoom.",
@@ -182,14 +182,14 @@ const CHAPTERS: Chapter[] = [
     },
     expectedOutputs: {
       en: [
-        "svi_analyses.report_pdf_url — the full 13-criterion PDF, downloadable and shareable.",
+        "svi_analyses.report_pdf_url — the full 8-dimension PDF, downloadable and shareable.",
         "competitor-scan.md — three to five nearest competitors with feature diff and pricing.",
         "market-sizing.md — TAM/SAM/SOM with sources; watch for round numbers, they are usually estimates.",
         "landing-page-draft.md — headline, sub-headline, three benefit bullets, call-to-action.",
         "How to read the score: don't fixate on the total. Look at the two lowest criteria — that is your evidence gap, and Chapter 3 is designed to close it.",
       ],
       vi: [
-        "svi_analyses.report_pdf_url — PDF 13 tiêu chí đầy đủ, tải xuống và chia sẻ được.",
+        "svi_analyses.report_pdf_url — PDF 8 chiều SVI đầy đủ, tải xuống và chia sẻ được.",
         "competitor-scan.md — ba đến năm đối thủ gần nhất với so sánh tính năng và giá.",
         "market-sizing.md — TAM/SAM/SOM có nguồn; để ý con số tròn, thường là ước tính.",
         "landing-page-draft.md — tiêu đề, phụ đề, ba lợi ích, lời kêu gọi hành động.",
@@ -209,8 +209,8 @@ const CHAPTERS: Chapter[] = [
       ],
     },
     showcaseExample: {
-      en: "BlockID.au's SVI first scored at Phase 2 — you can see the exact 13-criterion breakdown at /showcase/blockid. The two lowest criteria were 'validated revenue' and 'competitive moat'; watch how Chapters 3 and 5 target those specifically instead of trying to lift the total uniformly.",
-      vi: "SVI của BlockID.au được chấm lần đầu ở Chương 2 — bạn xem chi tiết 13 tiêu chí tại /showcase/blockid. Hai tiêu chí thấp nhất là 'doanh thu đã xác thực' và 'hào cạnh tranh'; xem cách Chương 3 và Chương 5 nhắm chính xác vào đó thay vì nâng đều tổng điểm.",
+      en: "BlockID.au's SVI first scored at Phase 2 — you can see the exact 8-dimension breakdown at /showcase/blockid. The two lowest criteria were 'validated revenue' and 'competitive moat'; watch how Chapters 3 and 5 target those specifically instead of trying to lift the total uniformly.",
+      vi: "SVI của BlockID.au được chấm lần đầu ở Chương 2 — bạn xem chi tiết 8 chiều SVI tại /showcase/blockid. Hai tiêu chí thấp nhất là 'doanh thu đã xác thực' và 'hào cạnh tranh'; xem cách Chương 3 và Chương 5 nhắm chính xác vào đó thay vì nâng đều tổng điểm.",
     },
     cta: {
       en: "Open Score → Full SVI in your workspace. Set aside 20 minutes; upload one credible piece of evidence per criterion where you can.",

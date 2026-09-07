@@ -15,7 +15,7 @@ import { LlmAgent, SequentialAgent, newSession, type ModelCaller } from "@/lib/a
 // Product knowledge the response agent is allowed to ground answers in. Keep
 // this short and factual — it is injected into the prompt, not invented.
 const BLOCKID_KB = `BlockID.au — Australian AI startup valuation platform.
-- Core product: Startup Value Index (SVI), a 0-100 evidence-backed score across 13 criteria.
+- Core product: Startup Value Index (SVI), a 0-100 evidence-backed score across 8 dimensions (FTV, MPC, PTD, TRE, CGH, IRI, LCO, SVM).
 - Outputs: dollar valuation, multi-agent reports (Standard/Premium/Investor Memo), cap table, equity & tokenization tools.
 - Pricing: free SVI score; paid reports cost credits (shown before purchase).
 - Audience: Australian founders, pre-seed to Series A. Context: ASIC, ATO, ESIC, AUD.
