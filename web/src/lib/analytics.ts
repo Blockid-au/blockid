@@ -209,6 +209,13 @@ export interface AnalyticsEventMap {
 
   // ── Wave 25C — TBR onboarding tour ───────────────────────────────────────
   tbr_onboard_step_clicked: { step: number };
+
+  // ── Global error boundary + 404 ──────────────────────────────────────────
+  //   Fired by src/app/error.tsx when the App Router error boundary catches
+  //   an uncaught render/data error. `message` is truncated to 200 chars to
+  //   keep the GA4 payload well under the 100-byte param-value limit ceiling
+  //   for the fields that matter for triage.
+  error_boundary_hit: { message: string; digest?: string };
 }
 
 // ─── Type-safe tracker ──────────────────────────────────────────────────────
