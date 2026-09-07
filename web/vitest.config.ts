@@ -12,6 +12,7 @@ export default defineConfig({
     // with source files.
     include: [
       "src/**/*.test.ts",
+      "src/**/*.test.tsx",
       "tests/chrome/**/*.test.ts",
       "../scripts/**/*.test.mjs",
     ],
