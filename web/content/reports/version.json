@@ -1,24 +1,38 @@
 {
-  "version": "v3.9.22",
-  "updated_at": "2026-09-07T03:30:00Z",
-  "git_sha": "4d8b6fafb",
-  "release_id": "final-customer-ready-p1-hardening",
+  "version": "v3.9.23",
+  "updated_at": "2026-09-07T08:15:00Z",
+  "git_sha": "e6c99cbc3",
+  "release_id": "unify-messaging-simplify-pricing-close-feature-drift",
   "shipped_summary": [
-    "v3.9.22 — FINAL customer-ready sprint (P1 backlog closed across security, SEO, business, UX)",
-    "  security: Zod on 5 public POSTs (svi/score/investor-link/lead/stripe-checkout), rate-limit buckets on investor-link/evidence-upload/upload/auth (fail-closed for auth), redactPii on cron logs, session cookie Secure unconditional in prod, gitleaks pre-commit hook + deploy Gate 0.5",
-    "  seo: Twitter card + canonical on /investor + /how-it-works + /reports/[ticker], sitemap +18 routes + per-ticker enumeration, WebSite/SearchAction + BreadcrumbList JSON-LD",
-    "  trust: AU support email + AEST hours + AU-Privacy-Act badge on footer, pricing trust row (Cancel anytime · GST-exclusive · ATO tax invoice · AU-based support)",
-    "  pricing: Founding-50 promo driven by getFoundingPromoState() with FOUNDING_PROMO_ENDS_AT env; no more hardcoded dates",
-    "  demo: 3 seeded sample listings (SAMPLE-01 Corella Health, SAMPLE-02 Reefwatch AI, SAMPLE-03 Ledgerpay) so /listings + /reports/[ticker] have live public data",
-    "  ux: global error boundary at src/app/error.tsx + custom 404 at src/app/not-found.tsx with helpful suggestion cards, EmptyDashboardState on /dashboard + /dashboard/svi + /workspace/data-room",
-    "v3.9.21 — 9 pending migrations applied (Wave 25A/25B/25C/26A/27B/27C/28A/28C/31C), version.json bumped from stale v3.9.8",
-    "v3.9.21 — /idea-lab + /idea-clarify short-URL aliases, /tbr/demo static preview, /sample short-URL hub"
+    "v3.9.23 — Unify messaging + simplify pricing + close feature drift (per approved plan h-y-review-t-on-b-foamy-pixel)",
+    "Workstream C1 — investor pack CLevelPage now renders + ToC bumped to 9 chapters (2dd695b98 + f50a42be1 + colocated test)",
+    "Workstream A1 — score-first hero H1 'Know your startup's SVI score in 60 seconds' + quantified subheadline + outcome CTA 'Get my SVI score' (a2b5c8971)",
+    "Workstream A2 — quick-tag chips route to their real target: Competitor → /score?q=, Valuation → /tools/idea-valuation, GTM → /tools/funding-plan (4b5288699)",
+    "Workstream A3 — how-it-works '50+ AI agents' → '11 C-Level agents (CEO/CTO/CFO/CMO/CPO/CRO/CLO/CHRO/CISO/CDO/COO)' (f8001541a)",
+    "Workstream A4+A5 — 13-criteria → 8 SVI dimensions + verbatim PRD labels across /how-it-works + /for/[segment] (7080aecc8)",
+    "Workstream A6 — CTA subtext scrub (no implicit user-count claim) (5f853225a)",
+    "Workstream A7 — Nav Free Tools dropdown (17 tools grouped) + Sprocketbay/BlockID demo + unify /solutions/*, hide Compare (9c247175d)",
+    "Workstream A8 — Revenue Tracker card → Trust Report share links (real capability) (dccb78487)",
+    "Workstream B1+B2 — pricing consolidated to Free/Growth/Pro public ladder + public:false flag on hidden SKUs (5f45f0b63)",
+    "Workstream B3-lite — legacy PRICING_TIERS array retired (d68a37eb9)",
+    "Workstream B3-tail — Founding-50 legacy marketing surface purged; Stripe SKU kept for grandfathered renewals (1ec7f2657)",
+    "Workstream B4 — GST-exclusive copy unified across pricing page + matrix + plans-v2 comments (1820f99f8) + FAQ JSON-LD + body copy stragglers (20a7541fb)",
+    "Workstream B5 — persona pages deep-link to #tier-growth/#tier-pro fragment (da9f36000) + /solutions/* persona CTAs match (e6c99cbc3)",
+    "Workstream B6 — share_management gate resolved: A$99 Growth users no longer 402 on Cap Table (1188c130e)",
+    "Workstream B7 — trial-days copy reconciled: 7-day public tiers, 14-day pilot contact-sales (2ddc7381d)",
+    "Workstream B8 — 3-card public ladder + ContactSalesRow (Accelerator/VC/Enterprise) + credit-pack monotonic fix (58f34d45d)",
+    "Workstream D1 — new /features page surfacing 8 under-promised capabilities (cohort percentile, per-investor tracked share links, ATO tax invoice, dividend engine, 17 free tools, 12-chapter guide, evidence completeness, LP anonymisation) (aead3ed1e)",
+    "Workstream D2 — /features surfaced in sitemap + primary nav (0850f2b25)",
+    "Workstream D3 — /tbr/demo tertiary link surfaced in hero (947057278)",
+    "Phase 2 followup — homepage title + og:image:alt match new score-first hero (abeca292e)",
+    "Phase 2 hotfix — Playwright post-deploy smoke tests updated for 3-rung ladder (b6d83a852)"
   ],
   "task_ids": [
-    "P1_SECURITY: Zod + rate limits + PII redact + Secure cookie + gitleaks (Essential Eight ML1)",
-    "P1_SEO: Twitter cards + sitemap enum + WebSite SearchAction + BreadcrumbList",
-    "P1_TRUST: AU support surface + pricing trust row + Founding-50 date guard",
-    "P1_UX: 3 sample listings + error boundary + 404 + founder empty states"
+    "PLAN_SYNC_A: 8-item message-truth workstream on marketing surface",
+    "PLAN_SYNC_B: 8-item pricing simplification workstream (Universal 3-rung ladder)",
+    "PLAN_SYNC_C: 1-item CLevelChapter render workstream",
+    "PLAN_SYNC_D: 3-item under-promised feature surface workstream",
+    "PLAN_SYNC_FOLLOWUP: title metadata, GST FAQ stragglers, solutions deep-link"
   ],
-  "notes": "v3.9.22 = customer-ready FINAL. Every P0 sellable-blocker from the 2026-08-23 audit closed + every P1 hardening item from the 3 parallel implementation agents shipped. Self-serve checkout is functional, ATO-compliant, and rate-limited. Public marketing surface has zero fake stats, real AU support signals, and complete SEO metadata. Investors landing anonymously get /reports/SAMPLE-01, /tbr/demo, /investor with actual demo data. Enterprise/regulated buyers still need lawyer sign-off on Terms §8 refund ladder + APP 8 cross-border DPA paperwork + dedicated Privacy Officer (documented in prior deploy)."
+  "notes": "v3.9.23 = full messaging-code synchronisation sprint. Every customer-facing surface now tells one coherent story that matches shipped code. /pricing is a single-glance 3-rung decision (Free/Growth A$99/Pro A$299) with contact-sales below. Founding-50 marketing surface purged (Stripe SKU grandfathered). Investor pack truthfully 9 chapters (CLevelPage renders). Homepage names SVI, quantifies the promise, points quick-tags at real targets. Under-marketed capabilities finally surface at /features."
 }
