@@ -159,9 +159,9 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
       <MarketingHero
         eyebrow="Pricing v2.0"
         title="Get fundable in 7 days. Then choose your plan."
-        subtitle="Every monthly plan includes a 7-day free trial. Card required at signup, charged only on Day 8. Cancel anytime before with no charge."
+        subtitle="7-day free trial (Growth + Pro). Card required at signup, charged only on Day 8. Cancel anytime before with no charge. Accelerator / VC / Enterprise pilots on request (14-day)."
         primaryCta={{
-          href: "/signup?plan=founder_starter&trial=1",
+          href: "/signup?plan=founder_growth&trial=1",
           label: "Start 7-day free trial",
         }}
       />
@@ -205,7 +205,11 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-[var(--fintech-ink-muted)]">
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
-            7-day free trial on all monthly plans
+            7-day free trial (Growth + Pro)
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            14-day pilot on request (Accelerator / VC / Enterprise)
           </span>
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
