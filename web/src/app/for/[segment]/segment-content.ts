@@ -40,7 +40,7 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
         "Score your startup, keep your cap table clean, and hand investors a diligence-ready pack in a single link.",
     },
     features: [
-      "Investor-ready SVI score with 13 diligence signals",
+      "Investor-ready SVI score with 8 SVI dimensions",
       "Cap table with SAFE, options and conversion modelling",
       "ESOP plan generator with vesting schedules",
       "Data room with granular investor access logs",
@@ -60,7 +60,7 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
     faq: [
       {
         q: "How is SVI different from a pitch deck score?",
-        a: "SVI grades 13 diligence signals — traction, team, market, moat, terms — using the same rubric professional investors use during a first-pass review.",
+        a: "SVI grades 8 SVI dimensions — traction, team, market, moat, terms — using the same rubric professional investors use during a first-pass review.",
       },
       {
         q: "Can I import my existing cap table?",

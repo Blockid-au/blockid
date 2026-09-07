@@ -19,20 +19,20 @@ const SITE_URL = "https://blockid.au";
 export const metadata: Metadata = {
   title: "How BlockID and the Startup Value Index work",
   description:
-    "The 3-step arc from paste-an-idea to investor-ready — how the Startup Value Index scores 13 criteria, benchmarks against real AU cohorts, and drives the guided roadmap.",
+    "The 3-step arc from paste-an-idea to investor-ready — how the Startup Value Index scores 8 SVI dimensions, benchmarks against real AU cohorts, and drives the guided roadmap.",
   alternates: { canonical: `${SITE_URL}/how-it-works` },
   robots: { index: true, follow: true },
   openGraph: {
     title: "How BlockID and the Startup Value Index work",
     description:
-      "The 3-step arc from paste-an-idea to investor-ready — how the SVI scores 13 criteria and drives the guided roadmap.",
+      "The 3-step arc from paste-an-idea to investor-ready — how the SVI scores 8 SVI dimensions and drives the guided roadmap.",
     url: `${SITE_URL}/how-it-works`,
   },
   twitter: {
     card: "summary_large_image",
     title: "How BlockID and the Startup Value Index work",
     description:
-      "The 3-step arc from paste-an-idea to investor-ready — how the SVI scores 13 criteria and drives the guided roadmap.",
+      "The 3-step arc from paste-an-idea to investor-ready — how the SVI scores 8 SVI dimensions and drives the guided roadmap.",
   },
 };
 
@@ -45,43 +45,43 @@ interface Dimension {
 const DIMENSIONS: Dimension[] = [
   {
     code: "FTV",
-    title: "Founder-team velocity",
-    body: "How quickly the founding team ships, iterates, and closes loops. Signals: velocity of decisions, prior startup exits, complementarity of skills.",
+    title: "Founder-Team Value (FTV)",
+    body: "Serial vs experienced vs first-time founder, whether a co-founder team is in place, and whether advisors are identified. Signals the team's ability to execute.",
   },
   {
     code: "MPC",
-    title: "Market pull clarity",
-    body: "Whether the market is actively pulling the product, or the team is pushing rope. Signals: inbound demand, retention, sales cycle length.",
+    title: "Market-Pull Clarity (MPC)",
+    body: "Market clarity and problem validation — is the problem validated with customer evidence, merely clear, or still needing clarification? Weighted by addressable market size.",
   },
   {
     code: "PTD",
-    title: "Product-tech defensibility",
-    body: "The moat around the product — data, technical difficulty, network effects, or unique distribution. Not just IP, but time-to-copy.",
+    title: "Product-Traction Depth (PTD)",
+    body: "Whether a product is built or described, whether a demo or prototype is available, and whether source code is linked for verification.",
   },
   {
     code: "TRE",
-    title: "Traction, revenue, evidence",
-    body: "Hard evidence that the business is working — signed contracts, MRR/ARR, active users, letters of intent.",
+    title: "Technology-Readiness Evidence (TRE)",
+    body: "Revenue band and hard proof of traction — customer proof, analytics in place, and observable engagement instead of self-reported claims.",
   },
   {
     code: "CGH",
-    title: "Capital & growth headroom",
-    body: "How far the current capital gets the team, what the next round needs to look like, and how much runway is left.",
+    title: "Cap-table Governance Health (CGH)",
+    body: "Whether a cap table is present, whether a Shareholders' Agreement is confirmed, and whether founder and employee vesting is in place.",
   },
   {
     code: "IRI",
-    title: "Investor-readiness index",
-    body: "Data-room completeness, cap-table hygiene, compliance posture, and how quickly a diligence request could close.",
+    title: "Investor-Readiness Indicators (IRI)",
+    body: "Pitch deck present, financial model available, and data room prepared — the diligence artefacts an investor asks for on day one.",
   },
   {
     code: "LCO",
-    title: "Legal & compliance overlay",
-    body: "AU-specific overlays — ESIC, R&D Tax, s708, ASIC filings, and the Essential Eight security baseline.",
+    title: "Legal-Compliance Openness (LCO)",
+    body: "ABN/ASIC registered, IP protection in place, and executed contracts referenced — the AU legal baseline plus ESIC/R&D and Essential Eight overlays.",
   },
   {
     code: "SVM",
-    title: "Startup valuation multiple",
-    body: "The weighted output — a valuation range and multiple grounded in real AU comparables at your stage and sector.",
+    title: "Sector-Velocity Momentum (SVM)",
+    body: "Competitive moat identified, network effects present, and data advantage established — the durability of the position over time.",
   },
 ];
 
@@ -91,7 +91,7 @@ export default function HowItWorksPage() {
       <MarketingHero
         eyebrow="How it works"
         title="From paste-an-idea to investor-ready in 3 steps"
-        subtitle="BlockID scores 13 criteria across 8 startup value dimensions, benchmarks you against real AU cohorts, and turns the gap into a guided roadmap."
+        subtitle="BlockID scores 8 SVI dimensions, benchmarks you against real AU cohorts, and turns the gap into a guided roadmap."
       />
 
       <HowItWorksSection />
