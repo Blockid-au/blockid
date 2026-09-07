@@ -191,12 +191,14 @@ function buildSchedule(
       .reduce((acc, r) => acc + (typeof r[key] === "number" ? (r[key] as number) : 0), 0);
   };
 
-  // Runway: months until cash <= 0 at current monthly burn assuming zero
-  // revenue growth. Deterministic sanity check — the schedule can be more
-  // optimistic if revenue is growing, but this bounds the downside.
+  // Runway: months until cash <= 0 at current *net* monthly burn assuming
+  // zero revenue growth. Net burn = gross opex minus gross profit contributed
+  // by starting MRR — this matches how VCs quote runway for revenue-positive
+  // startups. Pre-revenue (startingMrr = 0) collapses back to gross burn.
+  const netMonthlyBurn = Math.max(0, monthlyBurn - startingMrr * gm);
   const runwayMonths =
-    monthlyBurn > 0
-      ? Math.floor(startingCash / monthlyBurn)
+    netMonthlyBurn > 0
+      ? Math.floor(startingCash / netMonthlyBurn)
       : 999;
 
   return {

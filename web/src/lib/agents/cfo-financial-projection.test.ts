@@ -55,7 +55,7 @@ describe("generateFinancialProjection", () => {
     expect(p.totals.revenueY3).toBeGreaterThan(p.totals.revenueY1);
   });
 
-  it("runway equals floor(cash / burn) at t0", async () => {
+  it("runway equals floor(cash / burn) at t0 for pre-revenue startups", async () => {
     mockCallAI.mockResolvedValue({
       text: JSON.stringify({
         assumptions: "a",
@@ -72,6 +72,51 @@ describe("generateFinancialProjection", () => {
       monthlyBurnAud: 30_000,
     });
     expect(p.totals.runwayMonths).toBe(10);
+  });
+
+  it("extends runway by gross profit from starting MRR (net burn, not gross)", async () => {
+    mockCallAI.mockResolvedValue({
+      text: JSON.stringify({
+        assumptions: "a",
+        commentary: "c",
+        investorTakeaway: "t",
+      }),
+      provider: "groq",
+      model: "test",
+    });
+    // MRR 20k * gm 0.60 = 12k gross profit/mo → net burn 50k - 12k = 38k.
+    // Runway = floor(500k / 38k) = 13 (vs 10 on gross burn).
+    const p = await generateFinancialProjection({
+      startupName: "Acme",
+      stage: "seed",
+      mrrAud: 20_000,
+      grossMarginPct: 60,
+      cashAud: 500_000,
+      monthlyBurnAud: 50_000,
+    });
+    expect(p.totals.runwayMonths).toBe(13);
+  });
+
+  it("caps runway at 999 when starting MRR alone covers opex (net burn = 0)", async () => {
+    mockCallAI.mockResolvedValue({
+      text: JSON.stringify({
+        assumptions: "a",
+        commentary: "c",
+        investorTakeaway: "t",
+      }),
+      provider: "groq",
+      model: "test",
+    });
+    // MRR 100k * gm 0.80 = 80k gross profit/mo, opex 40k → net burn = 0.
+    const p = await generateFinancialProjection({
+      startupName: "Acme",
+      stage: "seed",
+      mrrAud: 100_000,
+      grossMarginPct: 80,
+      cashAud: 500_000,
+      monthlyBurnAud: 40_000,
+    });
+    expect(p.totals.runwayMonths).toBe(999);
   });
 
   it("falls back to a deterministic narrative when the LLM throws", async () => {
