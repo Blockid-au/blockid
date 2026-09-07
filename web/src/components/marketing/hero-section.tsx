@@ -130,7 +130,7 @@ export function HeroSection() {
           className="animate-fade-in-up font-mono text-[11px] uppercase tracking-[0.28em]"
           style={{ color: "#94A3B8", animationDelay: "0ms" }}
         >
-          AI-Native · Australian Startup Intelligence
+          Startup Value Index · AU-first
         </p>
 
         {/* Headline */}
@@ -139,7 +139,7 @@ export function HeroSection() {
           className="animate-fade-in-up font-display max-w-3xl text-balance text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl"
           style={{ color: "#F8FAFC", animationDelay: "80ms" }}
         >
-          Australia&apos;s{" "}
+          Know your startup&apos;s{" "}
           <span
             style={{
               background: "linear-gradient(135deg, #00D4FF 0%, #0066FF 50%, #7B2FBE 100%)",
@@ -148,9 +148,9 @@ export function HeroSection() {
               color: "transparent",
             }}
           >
-            Startup Intelligence
+            SVI score
           </span>{" "}
-          Platform
+          in 60 seconds.
         </h1>
 
         {/* Revenue chip — A$3 One-Click Report (primary revenue path).
@@ -175,7 +175,7 @@ export function HeroSection() {
           className="animate-fade-in-up max-w-xl text-balance text-base leading-relaxed sm:text-lg"
           style={{ color: "#94A3B8", animationDelay: "160ms" }}
         >
-          AI-powered analysis. Real benchmarks. Founder-first tools.
+          AU-first evaluation across 8 SVI dimensions with valuation range A$1.5M–A$50M. Send investors a trust report they trust.
         </p>
 
         {/* ── Animated gradient ring search bar ─── */}
@@ -234,7 +234,7 @@ export function HeroSection() {
                   boxShadow: "0 4px 20px -4px rgba(0,212,255,0.5)",
                 }}
               >
-                Analyse
+                Get my SVI score
               </button>
             </div>
           </div>
