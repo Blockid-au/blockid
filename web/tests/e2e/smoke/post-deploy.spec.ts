@@ -26,51 +26,36 @@ const PAGE_TIMEOUT = 15_000;
 test.describe("Post-deploy hydrated smoke", () => {
   test.setTimeout(45_000);
 
-  test("/pricing?tier=accelerator — SSR seeds Accelerator tab (deep link)", async ({
+  test("/pricing — 3-rung ladder renders three tier cards (Free/Growth/Pro)", async ({
     page,
   }) => {
-    // iter-19 flake hardening: the tab-click path (next test) can flake on
-    // cold CDN hydration because Playwright must wait for React to hydrate
-    // before the click registers + the panel swap paints. The `?tier=`
-    // deep-link path renders the Accelerator matrix as the SSR default, so
-    // we can assert on first paint without waiting for hydration at all.
-    // If THIS test fails but the click test passes, the query-param wire
-    // has regressed. If BOTH fail, the surface is genuinely broken.
+    // Post-Workstream B (v3.9.23): /pricing collapsed from 4-tab persona
+    // segmentation to a Universal 3-rung ladder + ContactSalesRow below.
+    // The Accelerator + Investor VC + Enterprise SKUs now surface in the
+    // contact-sales row, no longer as their own tab. Assert the three
+    // canonical tier fragment IDs are present so the deep-link surface
+    // stays regression-safe.
     test.setTimeout(30_000);
-    await page.goto("/pricing?tier=accelerator", {
-      waitUntil: "domcontentloaded",
-    });
-    const acceleratorTab = page.getByRole("tab", { name: /accelerator/i });
-    await expect(acceleratorTab).toHaveAttribute("aria-selected", "true", {
-      timeout: PAGE_TIMEOUT,
-    });
-    await expect(page.getByText(/cohort enterprise/i).first()).toBeVisible({
-      timeout: 30_000,
-    });
+    await page.goto("/pricing", { waitUntil: "domcontentloaded" });
+    for (const id of ["tier-free", "tier-growth", "tier-pro"]) {
+      await expect(page.locator(`#${id}`)).toBeVisible({
+        timeout: PAGE_TIMEOUT,
+      });
+    }
   });
 
-  test("/pricing — Accelerator tab reveals Cohort Enterprise", async ({
+  test("/pricing — ContactSalesRow surfaces Accelerator + Investor VC + Enterprise", async ({
     page,
   }) => {
-    // iter-17 flake safeguard B: cold Next.js hydration on the very
-    // first probe of /pricing after a swap can push the Cohort
-    // Enterprise reveal past the 15s PAGE_TIMEOUT ceiling. Double this
-    // test's overall budget (still under the 45s file-scope cap) so a
-    // slow warm-up doesn't false-fail, while keeping the assertion
-    // itself real — anything past 30s IS a regression.
+    // Accelerator/VC/Enterprise SKUs live in the ContactSalesRow beneath
+    // the public ladder. Copy source: pricing/page.tsx ContactSalesRow.
     test.setTimeout(30_000);
-
     await page.goto("/pricing", { waitUntil: "domcontentloaded" });
-
-    const acceleratorTab = page.getByRole("tab", { name: /accelerator/i });
-    await expect(acceleratorTab).toBeVisible({ timeout: PAGE_TIMEOUT });
-    await acceleratorTab.click();
-
-    // After hydration + tab switch, the accelerator plan matrix renders.
-    // "Cohort Enterprise" is the top accelerator tier (plans-v2.ts).
-    // Flake-prone assertion: bumped to 30s per iter-17 flake analysis.
-    await expect(page.getByText(/cohort enterprise/i).first()).toBeVisible({
-      timeout: 30_000,
+    await expect(page.getByText(/accelerator/i).first()).toBeVisible({
+      timeout: PAGE_TIMEOUT,
+    });
+    await expect(page.getByText(/enterprise/i).first()).toBeVisible({
+      timeout: PAGE_TIMEOUT,
     });
   });
 
