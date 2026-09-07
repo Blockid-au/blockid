@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { redactPii } from "@/lib/log-redact";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -205,7 +206,7 @@ export async function POST(request: Request) {
 
       if (!postRes.ok) {
         const errBody = await postRes.text().catch(() => "");
-        console.warn(`[blockid:cron:linkedin-post] failed for ${account.email}: ${postRes.status} ${errBody}`);
+        console.warn(`[blockid:cron:linkedin-post] failed for ${redactPii(account.email)}: ${postRes.status} ${redactPii(errBody)}`);
         skipped++;
         results.push({ email: account.email, status: "failed", reason: `linkedin_${postRes.status}` });
         continue;

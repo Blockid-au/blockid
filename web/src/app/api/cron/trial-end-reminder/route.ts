@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
 import { sendTelegram } from "@/lib/telegram";
+import { redactPii } from "@/lib/log-redact";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -131,7 +132,7 @@ export async function GET(request: Request) {
 
     if (!result?.ok) {
       // Fallback log so we can retry next hour without appending to history.
-      console.warn("[cron:trial-end-reminder] email not delivered", user.email);
+      console.warn("[cron:trial-end-reminder] email not delivered", redactPii(user.email));
       skipped += 1;
       continue;
     }

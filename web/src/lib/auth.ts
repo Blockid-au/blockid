@@ -347,9 +347,14 @@ export async function setSessionCookie(token: string): Promise<void> {
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
-    // Secure in prod (https) — Next sets it correctly when the request is
-    // served over https; we read NEXT_PUBLIC_SITE_URL as a hint for dev.
-    secure: (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://"),
+    // CISO P1 (2026-08-23): in production the Secure flag is unconditional
+    // — never rely on NEXT_PUBLIC_SITE_URL inference, which would drop
+    // Secure if the env var was misconfigured. In dev, fall back to the URL
+    // hint so `next dev` on plain http still lets you sign in.
+    secure:
+      process.env.NODE_ENV === "production"
+        ? true
+        : (process.env.NEXT_PUBLIC_SITE_URL?.startsWith("https") ?? false),
   });
 }
 

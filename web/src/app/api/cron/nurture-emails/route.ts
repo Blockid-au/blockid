@@ -15,6 +15,7 @@ import {
   getUnsubscribeUrl,
   getPreferencesUrl,
 } from "@/lib/email-preferences";
+import { redactPii } from "@/lib/log-redact";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -299,7 +300,7 @@ export async function GET(request: Request): Promise<Response> {
         // Check email preferences (product_updates category)
         const allowed = await canSendEmail(user.email, "product_updates");
         if (!allowed) {
-          console.log("[nurture-emails] Skipping unsubscribed user", user.email);
+          console.log("[nurture-emails] Skipping unsubscribed user", redactPii(user.email));
           await supabase
             .from("nurture_email_queue")
             .update({ status: "failed", error: "unsubscribed" })
@@ -338,7 +339,7 @@ export async function GET(request: Request): Promise<Response> {
             .update({ status: "sent", sent_at: new Date().toISOString() })
             .eq("id", row.id);
           sent++;
-          console.log(`[nurture-emails] Sent D${day} to ${user.email}`);
+          console.log(`[nurture-emails] Sent D${day} to ${redactPii(user.email)}`);
         } else {
           const reason = "reason" in result ? result.reason : "unknown";
           await supabase
@@ -346,7 +347,7 @@ export async function GET(request: Request): Promise<Response> {
             .update({ status: "failed", error: reason })
             .eq("id", row.id);
           failed++;
-          console.error(`[nurture-emails] Failed D${day} to ${user.email}:`, reason);
+          console.error(`[nurture-emails] Failed D${day} to ${redactPii(user.email)}:`, reason);
         }
       } catch (rowErr) {
         const msg = rowErr instanceof Error ? rowErr.message : String(rowErr);
