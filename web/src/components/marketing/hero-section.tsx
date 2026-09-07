@@ -25,10 +25,30 @@ const PLACEHOLDER_CYCLE = [
   "Try 'SaaS B2B growth strategy'",
 ];
 
-const QUICK_TAGS = [
-  { emoji: "🔍", label: "Competitor Analysis" },
-  { emoji: "📊", label: "Valuation" },
-  { emoji: "🗺", label: "GTM Strategy" },
+type QuickTag = {
+  emoji: string;
+  label: string;
+  /** Resolve chip destination, optionally threading the current query. */
+  href: (query: string) => string;
+};
+
+const QUICK_TAGS: QuickTag[] = [
+  {
+    emoji: "🔍",
+    label: "Competitor Analysis",
+    href: (q) =>
+      `/score?q=${encodeURIComponent(q.trim() || "competitor analysis")}`,
+  },
+  {
+    emoji: "📊",
+    label: "Valuation",
+    href: () => "/tools/idea-valuation",
+  },
+  {
+    emoji: "🗺",
+    label: "GTM Strategy",
+    href: () => "/tools/funding-plan",
+  },
 ];
 
 // Qualitative trust signals only — no fabricated numeric claims until real
@@ -249,7 +269,7 @@ export function HeroSection() {
             <button
               key={tag.label}
               type="button"
-              onClick={() => router.push("/index")}
+              onClick={() => router.push(tag.href(query))}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-all duration-200",
                 "hover:scale-[1.03] hover:border-[rgba(0,212,255,0.5)]",
