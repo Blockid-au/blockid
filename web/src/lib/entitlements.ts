@@ -138,6 +138,11 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "profile.multi",
     "pdf_branding",
     "equity_offer.request",
+    // 2026-09-07 (B6): Growth (A$99) buys the Cap Table + Data Room
+    // package per the Universal 3-rung ladder — the stand-alone
+    // share_management add-on was silently 402'ing A$99 subscribers
+    // when they tried to open /workspace/cap-table.
+    "share_management",
   ],
   founder_scale: [
     "svi.run",
@@ -160,6 +165,10 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "white_label",
     "pdf_branding",
     "equity_offer.request",
+    // Redundant with Growth's grant — kept for belt-and-braces so a
+    // grandfathered Scale (now displayed as Pro) subscriber without the
+    // DB row still resolves share_management.
+    "share_management",
   ],
   founder_enterprise: [
     "svi.run",
@@ -187,6 +196,7 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "multi_entity",
     "sla",
     "equity_offer.request",
+    "share_management",
   ],
   // Why: reseller-admin plan is not in the plans table (0074 or plans.csv);
   // without this bundle, gateRequireFeature("reseller.*") 402s every reseller
