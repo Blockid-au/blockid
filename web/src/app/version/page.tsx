@@ -65,7 +65,7 @@ const GROWTH_PHASES = [
     features: [
       { name: "Free SVI Analysis", desc: "Get your Startup Value Index score instantly — understand where you stand", link: "/score" },
       { name: "Idea Valuation Tool", desc: "Pre-incorporation valuation using Berkus + Scorecard methods", link: "/tools/idea-valuation" },
-      { name: "AI Mentor Report (Free)", desc: "10-page analysis covering 13 evaluation criteria with step-by-step guidance", link: "/score" },
+      { name: "AI Mentor Report (Free)", desc: "10-page analysis covering all 8 SVI dimensions with step-by-step guidance", link: "/score" },
       { name: "Market Size Analysis", desc: "TAM/SAM/SOM estimation and competitive landscape mapping" },
       { name: "Problem Clarity Assessment", desc: "Evaluate problem-solution fit with evidence-based scoring" },
     ],
@@ -136,7 +136,7 @@ const GROWTH_PHASES = [
       { name: "Exit Modeling", desc: "Acquisition and IPO scenario analysis with per-shareholder payouts" },
       { name: "Dividend Distribution", desc: "Calculate and manage dividend payments across cap table" },
       { name: "Blockchain Token Registry", desc: "NASDAQ-style equity tokens on private EVM blockchain" },
-      { name: "Multi-Agent Reports", desc: "10 C-Level AI agents produce comprehensive business intelligence" },
+      { name: "Multi-Agent Reports", desc: "11 C-Level AI agents produce comprehensive business intelligence" },
       { name: "Board Memo Generator", desc: "Professional board reports with financials, metrics, and strategy" },
     ],
     color: "from-amber-500 to-amber-600",
@@ -146,6 +146,27 @@ const GROWTH_PHASES = [
 // ── Version History ────────────────────────────────────────────────────
 
 const VERSION_HISTORY = [
+  {
+    version: "3.9.23",
+    date: "2026-09-07",
+    title: "Unify messaging + simplify pricing + close feature drift",
+    changes: [
+      "[Feat/A1] Score-first hero H1: \"Know your startup's SVI score in 60 seconds.\" + quantified subheadline + outcome CTA \"Get my SVI score\"",
+      "[Feat/A2] Quick-tag chips route to real targets — Competitor → /score?q=, Valuation → /tools/idea-valuation, GTM → /tools/funding-plan; chips now render as <a href> for SEO",
+      "[Fix/A3] How-it-works: '50+ AI agents' → '11 C-Level agents (CEO/CTO/CFO/CMO/CPO/CRO/CLO/CHRO/CISO/CDO/COO)'",
+      "[Fix/A4-A5] '13 criteria' → '8 SVI dimensions' verbatim PRD labels across /how-it-works + /for/[segment] + all customer surfaces (32-file sweep)",
+      "[Fix/A6] CTA subtext scrub — no implicit user-count claim",
+      "[Feat/A7] Nav Free Tools dropdown (17 tools grouped) + Sprocketbay/BlockID demo unify + hide Compare",
+      "[Feat/A8] Revenue Tracker card → Trust Report share links (real capability)",
+      "[Feat/B1-B8] Universal 3-rung pricing ladder — Free / Growth A$99/mo / Pro A$299/mo + Contact Sales row (Accelerator A$500+, VC A$349+, Enterprise custom); legacy PRICING_TIERS array retired; public:false flag on hidden SKUs; GST-exclusive unified; persona pages deep-link to #tier-growth/#tier-pro; share_management gate resolved for A$99 Growth; trial-days copy 7-day public / 14-day pilot; credit-pack monotonic fix",
+      "[Fix/B3-tail] Founding-50 marketing surface purged — /founding-50 route deleted 2026-09-07; Stripe SKU 'founding50' preserved in web/src/lib/plans.ts + stripe.ts for grandfathered renewals only",
+      "[Feat/C1] Investor pack CLevelChapter now renders + ToC bumped to 9 chapters (Cover · Exec Summary · SVI Criteria · Cap Table · Traction · C-Level Financial Advisory · Forecast · Exit Strategy · Evidence Completeness)",
+      "[Feat/D1-D3] New /features page surfacing 8 under-promised capabilities (cohort percentile, per-investor tracked share links, ATO tax invoice, dividend engine, 17 free tools, 12-chapter guide, evidence completeness, LP anonymisation); surfaced in sitemap + primary nav; /tbr/demo tertiary link surfaced in hero",
+      "[Fix] Homepage title + og:image:alt match new score-first hero (was 'Australia's Startup Intelligence Platform')",
+      "[Fix] Playwright post-deploy smoke tests updated for 3-rung ladder",
+      "[Docs] Full v3.9.23 docs sync: README (new), ARCHITECTURE.md, GOALS.md, ROADMAP.md, KNOWLEDGE_BASE_INDEX.md, blockid_prd.md, blockid_master_project_blueprint_v1.md, blockid_gtm_sales_first_v1.md, blockid.au.md (deprecated banner), docs/plans/SOURCE-OF-TRUTH.md (G5 CLOSED, G10 opened+shipped), web/CHANGELOG.md",
+    ],
+  },
   {
     version: "3.4.0",
     date: "2026-08-14",
@@ -475,12 +496,13 @@ export default function VersionPage() {
 
         {/* AI Agent Ecosystem */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">10 C-Level AI Agents</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">11 C-Level AI Agents</h2>
           <p className="text-gray-600 mb-6">
             Your virtual board of directors. Each agent specializes in a domain and works daily to improve both the platform and your startup reports.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
+              { role: "CEO", focus: "Orchestrator & Strategy" },
               { role: "CTO", focus: "Tech & Code" },
               { role: "CFO", focus: "Finance & Revenue" },
               { role: "CPO", focus: "Product & Roadmap" },

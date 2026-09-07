@@ -1,5 +1,41 @@
 # BlockID.au Changelog
 
+## 2026-09-07 — v3.9.23: Unify messaging + simplify pricing + close feature drift
+
+Release id `JctZ0PfqkXowL6mTrcEs3` · git `8ed44c24a` · approved plan `h-y-review-t-on-b-foamy-pixel`.
+
+### Features
+
+- **feat(A1 — hero)** Score-first hero H1 "Know your startup's SVI score in 60 seconds." + quantified subheadline + outcome CTA "Get my SVI score" (`a2b5c8971`).
+- **feat(A2 — quick-tag chips)** Chips route to real targets — Competitor → `/score?q=`, Valuation → `/tools/idea-valuation`, GTM → `/tools/funding-plan` (`4b5288699`); chips now render as `<a href>` for SEO (`8ed44c24a`).
+- **feat(A3 — agent count)** How-it-works "50+ AI agents" → "11 C-Level agents (CEO/CTO/CFO/CMO/CPO/CRO/CLO/CHRO/CISO/CDO/COO)" (`f8001541a`).
+- **feat(A4+A5 — SVI labels)** "13 criteria" → "8 SVI dimensions" verbatim PRD labels across `/how-it-works` + `/for/[segment]` + 32-file customer-surface sweep (`7080aecc8` + this docs-sync commit).
+- **feat(A6 — CTA subtext scrub)** No implicit user-count claim (`5f853225a`).
+- **feat(A7 — nav)** Free Tools dropdown (17 tools grouped) + Sprocketbay/BlockID demo unify + hide Compare (`9c247175d`).
+- **feat(A8 — Trust Report share links)** Revenue Tracker card → Trust Report share links (real capability) (`dccb78487`).
+- **feat(B1+B2 — pricing)** Universal 3-rung ladder Free / Growth A$99/mo / Pro A$299/mo + `public:false` flag on hidden SKUs (`5f45f0b63`); legacy `PRICING_TIERS` retired (`d68a37eb9`).
+- **feat(B3-tail — Founding-50 sunset)** Founding-50 legacy marketing surface purged; Stripe SKU kept for grandfathered renewals only (`1ec7f2657`). `/founding-50` route deleted.
+- **feat(B4 — GST)** GST-exclusive unified across pricing page + matrix + plans-v2 comments (`1820f99f8` + `20a7541fb`).
+- **feat(B5 — persona deep-link)** Persona pages deep-link `#tier-growth`/`#tier-pro` (`da9f36000` + `e6c99cbc3`).
+- **fix(B6 — share_management gate)** A$99 Growth users no longer 402 on Cap Table (`1188c130e`).
+- **feat(B7 — trial days)** 7-day public tiers / 14-day pilot contact-sales (`2ddc7381d`).
+- **feat(B8 — Contact Sales row)** 3-card ladder + ContactSalesRow (Accelerator A$500+ / VC A$349+ / Enterprise custom) + credit-pack monotonic fix (`58f34d45d`).
+- **feat(C1 — investor pack)** CLevelChapter now renders + ToC bumped to 9 chapters (Cover · Exec Summary · SVI Criteria · Cap Table · Traction · C-Level Financial Advisory · Forecast · Exit Strategy · Evidence Completeness) (`2dd695b98` + `f50a42be1` + colocated test).
+- **feat(D1 — /features)** New page surfacing 8 under-promised capabilities: cohort percentile, per-investor tracked share links, ATO tax invoice, dividend engine, 17 free tools, 12-chapter guide, evidence completeness, LP anonymisation (`aead3ed1e`).
+- **feat(D2 — sitemap + nav)** `/features` surfaced in sitemap + primary nav (`0850f2b25`).
+- **feat(D3 — TBR demo hero link)** `/tbr/demo` tertiary link in hero (`947057278`).
+
+### Fixes
+
+- **fix(seo)** Homepage title + og:image:alt match new score-first hero (was 'Australia's Startup Intelligence Platform') (`abeca292e`).
+- **fix(playwright)** Post-deploy smoke tests updated for 3-rung ladder (`b6d83a852`).
+
+### Docs
+
+- **docs** Full v3.9.23 docs sync: root README (new), ARCHITECTURE.md, GOALS.md, ROADMAP.md, KNOWLEDGE_BASE_INDEX.md; PRD (`blockid_prd.md`) §1/§4.1/§6/§7.1/§17; blueprint Module 7 + §7 blockchain; GTM addendum; `blockid.au.md` deprecated banner; `docs/plans/SOURCE-OF-TRUTH.md` — G5 CLOSED, G4 items 1+2 shipped, G7 P8 status refreshed, G10 opened + shipped with all workstream A/B/C/D commit SHAs and drift-audit resolutions.
+
+---
+
 ## 2026-09-04 — v3.9.12: AI Model Registry + Auto-Fallback (Wave AI-Registry)
 
 ### Features
