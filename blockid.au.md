@@ -1,3 +1,5 @@
+> **⚠️ DEPRECATED (2026-09-07 · v3.9.23).** This file is a legacy 2,374-line Vietnamese mirror kept for archival reference only. The **canonical product spec is [`blockid_prd.md`](./blockid_prd.md)**; the canonical strategic blueprint is [`blockid_master_project_blueprint_v1.md`](./blockid_master_project_blueprint_v1.md); the canonical roadmap is [`ROADMAP.md`](./ROADMAP.md); the canonical requirement register is [`docs/plans/SOURCE-OF-TRUTH.md`](./docs/plans/SOURCE-OF-TRUTH.md). This file is **not** kept in sync with shipped reality — content below reflects the 2026-08-13 v0.6.0 snapshot. Do not edit; if you need to change a fact here, change it in the canonical file above and treat this doc as read-only.
+
 # BlockID.au — Yêu Cầu Dự Án Và Kế Hoạch Triển Khai
 
 **Ngày cập nhật:** 2026-08-13

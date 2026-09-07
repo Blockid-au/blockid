@@ -1,7 +1,9 @@
 # BlockID — Sales-First GTM & Winning Features
 ## Addendum v1.1 to Master Blueprint
 
-**Operating principle:** Win the first 30 paying customers before building Layer 3 (blockchain), Module 7 (marketplace), or sovereign chains. Every feature in the next 6 months must map to **a buyer ROI in under 30 days.** If a feature does not directly close a deal or retain one, it is deferred.
+> **v3.9.23 sync note (2026-09-07):** The "Investor-Ready Score" wedge language throughout this addendum is now productised as the **SVI score** (`/score`) — the shipped hero H1 is "Know your startup's SVI score in 60 seconds." Wherever this doc says "Investor-Ready Score™", read it as the customer-facing **SVI score**. Founding-50 promo referenced below SUNSET on 2026-09-01 — Stripe SKU `founding50` is preserved for grandfathered renewals only; no marketing surface still offers the tier. Current pricing ladder: Free / Growth A$99 / Pro A$299 + Contact Sales row (Accelerator A$500+ / VC A$349+ / Enterprise custom).
+
+**Operating principle:** Win the first 30 paying customers before building Layer 3 (blockchain — currently Anvil chainId 420 + Otterscan, Cosmos SDK deferred to long-term roadmap), Module 7 (marketplace), or sovereign chains. Every feature in the next 6 months must map to **a buyer ROI in under 30 days.** If a feature does not directly close a deal or retain one, it is deferred.
 
 This addendum sharpens the GTM, narrows the wedge, defines the sales motion, and lists unique features specifically engineered to **close deals**, not impress engineers.
 

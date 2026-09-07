@@ -101,8 +101,8 @@ AI document analysis (financials, shareholder agreements, contracts, payroll, ta
 ### Module 6 — Governance Infrastructure
 Board management (resolutions, approvals, meetings, voting, shareholder notices). Blockchain governance proofs for approvals, resolutions, voting, ownership changes.
 
-### Module 7 — Marketplace Infrastructure *(NOT phase 1)*
-Launches only after trust infrastructure exists. Private listings, equity showcase (equity, SAFE, convertibles, partnerships), AI investor matching, future secondary marketplace for private share transfers and liquidity.
+### Module 7 — Marketplace Infrastructure *(DEFERRED per GTM addendum guardrail — 30 paying logos)*
+Launches only after (a) trust infrastructure exists AND (b) the GTM addendum guardrail is met: **≥ 30 paying logos on Growth/Pro plans**. Private listings, equity showcase (equity, SAFE, convertibles, partnerships), AI investor matching, future secondary marketplace for private share transfers and liquidity. Explicitly out-of-scope for v3.9.x.
 
 ---
 
@@ -115,7 +115,9 @@ Launches only after trust infrastructure exists. Private listings, equity showca
 - **BlockID Main Trust Network** — stores trust anchors, valuation snapshots, governance proofs, ownership proofs, identity references.
 - **Enterprise Chains (optional per company)** — governance, cap table, operational and ownership records.
 
-**Stack:** Cosmos SDK, Tendermint, permissioned sovereign chains. Reasons: sovereign architecture, modular, interoperable, enterprise governance, permission control, multi-chain scalability.
+**Stack (long-term roadmap):** Cosmos SDK, Tendermint, permissioned sovereign chains. Reasons: sovereign architecture, modular, interoperable, enterprise governance, permission control, multi-chain scalability.
+
+**Current implementation (v3.9.23):** the shipped platform uses a **private EVM chain (Anvil chainId 420) + Otterscan explorer** for near-term auditability and off-chain-first vesting. This is intentional pragmatism — Anvil ships fast, exposes JSON-RPC + Solidity tooling, and the equity-token contracts + `SVToken` factory are already deployed. The Cosmos SDK / Tendermint stack described above is the **long-term jurisdictional-data-residency vision, not the current codebase**. `chain/` retains the Cosmos scaffolding for a future testnet.
 
 ---
 

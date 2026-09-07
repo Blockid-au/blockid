@@ -13,11 +13,26 @@
 
 ## 1. Executive Summary
 
-BlockID.au is an **AI-powered startup valuation and ownership intelligence platform** for Australian founders. The platform helps pre-seed to Series A startups measure, prove, and grow their company value through an 8-dimensional Startup Value Index (SVI), evidence-backed analysis, and investor-ready reporting.
+BlockID.au tells every Australian founder **where they are, what they're worth, and what to do next** — starting from the 8-dimensional **Startup Value Index (SVI)** score delivered in 60 seconds. The platform helps pre-seed to Series A startups measure, prove, and grow their company value through evidence-backed analysis, 11 C-Level AI agents, and a 9-chapter investor-ready pack.
 
-Built in 19 days (May 1-19, 2026), the platform is now a **fully deployed, revenue-capable SaaS product** with 212 TypeScript files, 42 pages, 50 API routes, 22 database tables, and 8 AI agents.
+**Sync note (v3.9.23, 2026-09-07):** the platform is a fully deployed, revenue-capable SaaS product with **339 pages**, **495 API routes**, **24 Supabase migrations**, **17 free tools**, and **11 C-Level AI agents** (CEO/CTO/CFO/CMO/CPO/CRO/CLO/CHRO/CISO/COO/CDO). Earlier figures below reflect the 2026-05 launch snapshot and are retained for archive.
 
-### Key Numbers
+### Key Numbers (v3.9.23)
+
+| Metric | Value |
+|--------|-------|
+| Pages | 339 |
+| API routes | 495 |
+| Database migrations | 24 (latest `20260907_sample_listings_seed.sql`) |
+| Free tools | 17 (grouped in Free Tools nav dropdown) |
+| Guided journey chapters | 12 (`/guide/01-vision`…`/guide/12-funding`) |
+| C-Level AI agents | 11 (CEO/CTO/CFO/CMO/CPO/CRO/CLO/CHRO/CISO/COO/CDO) |
+| SVI dimensions | 8 (FTV/MPC/PTD/TRE/CGH/IRI/LCO/SVM) |
+| Investor pack chapters | 9 |
+| Sample listings | 3 (SAMPLE-01/02/03) |
+| Public pricing rungs | 3 (Free / Growth A$99/mo / Pro A$299/mo) + Contact Sales row |
+
+### Key Numbers (2026-05 launch snapshot, archive)
 
 | Metric | Value |
 |--------|-------|
@@ -28,7 +43,7 @@ Built in 19 days (May 1-19, 2026), the platform is now a **fully deployed, reven
 | Database migrations | 15 |
 | Free tools | 8 |
 | Email templates | 8 |
-| AI agents | 8 (7 active, 1 planned) |
+| AI agents | 8 (7 active, 1 planned) — grew to 11 by v3.9.23 |
 | Unit tests | 62 |
 | Pricing tiers | 5 |
 
@@ -96,7 +111,26 @@ The SVI is an 8-dimensional scoring system (base 100, range 30-300) that measure
 | 7 | LCO | Legal & Compliance | 8% | ABN, IP, contracts, legal docs |
 | 8 | SVM | Strategic Vision & Moat | 5% | Moat, network effect, data advantage, switching costs |
 
-#### Stage Detection (0-7)
+#### Stage Detection — canonical 12-phase taxonomy (v3.9.23)
+
+Canonical source: [`web/src/lib/growth/phase-taxonomy.ts`](./web/src/lib/growth/phase-taxonomy.ts). String ids are canonical; numeric `PhaseKey` bridges are explicit and test-pinned. Legacy 8-stage vocabulary below the divider is **deprecated** and retained for the 12↔8 bridge (`web/src/lib/journey-map.ts`).
+
+| # | Phase id | Guided chapter |
+|---|---|---|
+| 1 | `vision` | `/guide/01-vision` |
+| 2 | `problem` | `/guide/02-problem` |
+| 3 | `market` | `/guide/03-market` |
+| 4 | `product_dev` | `/guide/04-product-dev` |
+| 5 | `mvp` | `/guide/05-mvp` |
+| 6 | `legal_equity` | `/guide/06-legal-equity` |
+| 7 | `go_to_market` | `/guide/07-gtm` |
+| 8 | `early_traction` | `/guide/08-early-traction` |
+| 9 | `investor_review` | `/guide/09-investor-review` |
+| 10 | `revenue_scale` | `/guide/10-revenue-scale` |
+| 11 | `growth_scale` | `/guide/11-growth-scale` |
+| 12 | `funding` | `/guide/12-funding` |
+
+#### Legacy 8-stage detection (DEPRECATED — retained for archive)
 
 | Stage | Name | Criteria |
 |-------|------|----------|
@@ -197,7 +231,9 @@ AI-generated guided report with page navigation:
 
 ## 6. AI Agent Ecosystem
 
-### 6.1 Agent Overview
+**v3.9.23 sync:** the agent lineup below reflects the **8 core product agents + Cron Scheduler** shipped by 2026-05. Since then, the C-Level fleet has expanded to **11 total** C-Level agents (CEO / CTO / CFO / CMO / CPO / CRO / CLO / CHRO / CISO / COO / CDO), each running on cron and powering both platform self-upgrade and customer report generation. Canonical roster: `web/content/team-roster.json`.
+
+### 6.1 Agent Overview (8 core product agents — 2026-05 launch)
 
 | # | Agent | Model | Cost/Request | Status | Department |
 |---|-------|-------|-------------|--------|------------|
@@ -209,6 +245,26 @@ AI-generated guided report with page navigation:
 | 6 | R&D Research | Claude Haiku 4.5 | ~$0.01 | Active | Growth |
 | 7 | Email Notification | Gmail SMTP | ~$0.001 | Active | Operations |
 | 8 | Cron Scheduler | N/A | $0 | Active | Operations |
+
+### 6.1b C-Level agent fleet (v3.9.23 — 11 total)
+
+Each C-Level agent runs on cron, produces a daily/nightly report under
+`web/content/reports/<role>-*.md`, and contributes to both the platform's
+self-upgrade loop and customer-facing multi-agent SVI reports.
+
+| Role | Focus |
+|---|---|
+| CEO | Orchestrator, strategy, next-best-action |
+| CTO | Technical architecture, code quality, tech debt |
+| CFO | Revenue, unit economics, projections, valuation |
+| CMO | Marketing, SEO, positioning, GTM |
+| CPO | Product roadmap, feature prioritisation, UX |
+| CRO | Conversion, retention, churn, funnel A/B |
+| CLO | Legal, compliance, IP, ASIC/ESIC/R&D |
+| CHRO | Team, ESOP, culture, hiring |
+| CISO | Security posture, incident response, Essential Eight |
+| COO | Operations, sprint plan, release management |
+| CDO | Data quality, analytics governance, AI bias |
 
 ### 6.2 AI Agent Workflow (Continuous Improvement Cycle)
 
@@ -240,7 +296,21 @@ R&D Research Agent ← (loop continues)
 
 ## 7. Revenue Model
 
-### 7.1 Pricing Tiers
+### 7.1 Pricing Tiers (v3.9.23 — Universal 3-rung ladder + Contact Sales row)
+
+| Tier | Price (AUD, GST-exclusive) | Credits / Highlights | Billing | Target |
+|------|---------------------------|---------------------|---------|--------|
+| **Free** | A$0 | Free SVI score + 10-page mentor report + starter tools | N/A | Trial users |
+| **Growth** | **A$99/mo** | Investor pack, cap table, cohort percentile, evidence vault | Monthly | Founders raising |
+| **Pro** | **A$299/mo** | Everything in Growth + white-label PDF, dividend engine, share management | Monthly | Scale-ups |
+| Accelerator | From A$500 | Cohort-wide dashboard, white-label | Contact Sales | Accelerators |
+| VC | From A$349 | Portfolio-wide monitoring, LP anonymisation | Contact Sales | VCs / Angels |
+| Enterprise | Custom | Custom SLA + SSO + on-prem exports | Contact Sales | Corp / Gov |
+| _One-off_ founder_package | A$149 (grandfathered) | 25 credits + founder starter pack | One-off | Legacy |
+| _One-off_ One-Click Report | A$3 | Single SVI report render | One-off | Casual |
+| _Legacy_ Founding-50 | A$49 → **SUNSET 2026-09-01** | 50 credits — Stripe SKU grandfathered only | One-off | Retired |
+
+### 7.1b Legacy pricing table (2026-05 launch snapshot, retained for archive)
 
 | Tier | Price (AUD) | Credits | Billing | Target |
 |------|------------|---------|---------|--------|
@@ -574,21 +644,21 @@ For detailed technical documentation, see:
 
 ### Logo & Slogan
 
-**Logo:** Full lockup at `/images/logo-official.png` -- Octagon + 4-pointed sparkle star + "BlockID.au" + tagline  
-**Slogan:** *Valuation. Ownership. Growth.*  
-**Extended:** *The agentic AI valuation platform for business growth from day one.*
+**Logo:** Full lockup at `/images/logo-official.png` -- Octagon + 4-pointed sparkle star + "BlockID.au" + tagline
+**Slogan:** *Valuation. Ownership. Growth.*
+**Extended (v3.9.23):** *Know your startup's SVI score in 60 seconds — then 12 phases, 11 C-Level agents, and a 9-chapter investor pack to prove it.*
 
 ### Headlines (Conversion-Optimized)
 
-**Hero Headlines (Homepage):**
+**Hero Headlines (Homepage) — v3.9.23 shipped hero:**
 
 | Variant | Headline |
 |---------|----------|
-| Primary | **The agentic AI valuation platform for business growth from day one.** |
-| Founder-focused | **Know your startup's real value before investors ask.** |
-| Action-driven | **Turn your idea into a valuable, investable business.** |
-| Data-driven | **8 dimensions. Evidence-backed. Investor-ready in 60 seconds.** |
-| Emotional | **Stop guessing your startup's worth. Start proving it.** |
+| **Primary (shipped)** | **Know your startup's SVI score in 60 seconds.** |
+| Founder-focused | Know your startup's real value before investors ask. |
+| Action-driven | Turn your idea into a valuable, investable business. |
+| Data-driven | 8 dimensions. Evidence-backed. Investor-ready in 60 seconds. |
+| Emotional | Stop guessing your startup's worth. Start proving it. |
 
 **Sub-headlines:**
 
@@ -603,11 +673,12 @@ For detailed technical documentation, see:
 
 | Placement | CTA Text |
 |-----------|----------|
-| Hero primary | Start Your Journey |
+| Hero primary (v3.9.23) | **Get my SVI score** |
 | Hero secondary | Explore Platform |
 | SVI search | Get My SVI |
-| Pricing (free) | Try Free -- Then A$1/report |
-| Pricing (paid) | Claim Your Founding 50 Spot |
+| Pricing (free) | Try Free -- Then A$3/One-Click Report |
+| Pricing (paid) | Start Growth — A$99/mo |
+| Pricing (legacy) | ~~Claim Your Founding 50 Spot~~ (SUNSET 2026-09-01) |
 | Post-analysis | View Full Report |
 | Email | Sign in to Dashboard |
 | Insufficient credits | Buy Credits |
