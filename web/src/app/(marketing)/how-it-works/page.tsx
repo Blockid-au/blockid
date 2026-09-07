@@ -22,6 +22,18 @@ export const metadata: Metadata = {
     "The 3-step arc from paste-an-idea to investor-ready — how the Startup Value Index scores 13 criteria, benchmarks against real AU cohorts, and drives the guided roadmap.",
   alternates: { canonical: `${SITE_URL}/how-it-works` },
   robots: { index: true, follow: true },
+  openGraph: {
+    title: "How BlockID and the Startup Value Index work",
+    description:
+      "The 3-step arc from paste-an-idea to investor-ready — how the SVI scores 13 criteria and drives the guided roadmap.",
+    url: `${SITE_URL}/how-it-works`,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "How BlockID and the Startup Value Index work",
+    description:
+      "The 3-step arc from paste-an-idea to investor-ready — how the SVI scores 13 criteria and drives the guided roadmap.",
+  },
 };
 
 interface Dimension {

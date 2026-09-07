@@ -36,13 +36,22 @@ function formatAud(cents: number | null | undefined): string {
   return `A$${dollars.toFixed(0)}`;
 }
 
+const SITE_URL = "https://blockid.au";
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { ticker } = await params;
   const t = normaliseTicker(ticker);
   const listing = await getListingByTicker(t);
-  if (!listing) return { title: `Trust report · ${t} · BlockID.au` };
+  const canonicalPath = `/reports/${t}`;
+  const absoluteUrl = `${SITE_URL}${canonicalPath}`;
+  if (!listing) {
+    return {
+      title: `Trust report · ${t} · BlockID.au`,
+      alternates: { canonical: canonicalPath },
+    };
+  }
   const title = `${listing.name} — trust report · BlockID SVI ${listing.svi_grade ?? "unrated"}`;
   const description =
     listing.one_liner ??
@@ -50,7 +59,13 @@ export async function generateMetadata({
   return {
     title,
     description,
-    openGraph: { title, description, url: `/reports/${t}` },
+    alternates: { canonical: canonicalPath },
+    openGraph: { title, description, url: absoluteUrl },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 

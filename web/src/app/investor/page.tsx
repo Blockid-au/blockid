@@ -18,7 +18,15 @@ export const metadata: Metadata = {
   title: "Investor home · BlockID.au trust reports",
   description:
     "Browse Australian startups with a BlockID SVI grade, open a trust report in one click, and request the full data-room pack.",
+  alternates: { canonical: "/investor" },
   openGraph: {
+    title: "Investor home · BlockID.au",
+    description:
+      "Browse graded Australian startups and open their trust reports without signing up.",
+    url: "/investor",
+  },
+  twitter: {
+    card: "summary_large_image",
     title: "Investor home · BlockID.au",
     description:
       "Browse graded Australian startups and open their trust reports without signing up.",
