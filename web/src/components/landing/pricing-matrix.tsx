@@ -308,10 +308,24 @@ function PlanCard({
     onSelect(value);
   };
 
+  // Deep-link fragment id for persona → pricing card jumps. Maps the
+  // public-ladder SKUs to `#tier-free` / `#tier-growth` / `#tier-pro`;
+  // other SKUs fall back to their plan id so hidden cards still get a
+  // deterministic anchor.
+  const anchorId =
+    plan.id === "founder_free"
+      ? "tier-free"
+      : plan.id === "founder_growth"
+        ? "tier-growth"
+        : plan.id === "founder_scale"
+          ? "tier-pro"
+          : `tier-${plan.id}`;
+
   return (
     <article
+      id={anchorId}
       className={[
-        "lux-card relative flex min-h-96 flex-col p-8 transition-all duration-200 ease-out",
+        "lux-card relative flex min-h-96 flex-col p-8 transition-all duration-200 ease-out scroll-mt-24",
         plan.most_popular
           ? "lux-glow-gold border-brand-gold/40 -translate-y-1"
           : "hover:-translate-y-1 hover:border-brand-cyan/25",

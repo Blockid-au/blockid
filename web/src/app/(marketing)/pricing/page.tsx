@@ -21,11 +21,15 @@ import { getFoundingPromoState } from "@/lib/founding-promo";
 // picks the initial tab. ISR would serve stale cutover state at 2026-09-01.
 export const dynamic = "force-dynamic";
 
-// iter-19 Gate 11 flake hardening: allow deep-linking a specific segment via
-// `?tier=<founder|investor|advisor|accelerator>` so Playwright (and marketing
-// campaigns) can hit the Accelerator surface on first render without a
-// client-side tab click. Unknown/missing values fall back to the default
-// "founder" tab, so SSR behavior on the bare `/pricing` URL is unchanged.
+// 2026-09-07 (Workstream B5): the persona segment tabs are gone. /pricing
+// renders the Universal 3-rung ladder (Free / Growth / Pro) + a
+// contact-sales row for Accelerator / VC / Enterprise. Persona pages now
+// deep-link to a specific card via `#tier-growth` / `#tier-pro`
+// fragments defined on <PricingMatrix />.
+//
+// resolveSegmentFromTier() is kept as a no-op returning "founder" so the
+// `?tier=` query param (still linked from legacy campaigns + tests) does
+// not 404. VALID_SEGMENTS stays exported for the SSR type contract.
 const VALID_SEGMENTS: readonly Segment[] = [
   "founder",
   "investor",
@@ -34,14 +38,11 @@ const VALID_SEGMENTS: readonly Segment[] = [
 ] as const;
 
 function resolveSegmentFromTier(
-  tier: string | string[] | undefined,
+  _tier: string | string[] | undefined,
 ): Segment {
-  const raw = Array.isArray(tier) ? tier[0] : tier;
-  if (typeof raw !== "string") return "founder";
-  const normalized = raw.toLowerCase() as Segment;
-  return (VALID_SEGMENTS as readonly string[]).includes(normalized)
-    ? normalized
-    : "founder";
+  void _tier;
+  void VALID_SEGMENTS;
+  return "founder";
 }
 
 export const metadata: Metadata = {

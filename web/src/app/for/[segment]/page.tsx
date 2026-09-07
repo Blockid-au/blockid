@@ -25,6 +25,17 @@ import {
 
 const SITE_URL = "https://blockid.au";
 
+// 2026-09-07: /pricing dropped the persona `?segment=` query param in
+// favour of the Universal 3-rung ladder (Free / Growth / Pro) + a
+// contact-sales row. Persona pages now deep-link to the specific card
+// via `#tier-<slug>` fragments defined by <PricingMatrix />. Founder
+// lands on Growth (the raise-ready card); investor / advisor /
+// accelerator all point at Pro because their upgrade path runs through
+// the full-featured tier before contact-sales.
+function pricingFragmentFor(slug: SegmentSlug): string {
+  return slug === "founder" ? "/pricing#tier-growth" : "/pricing#tier-pro";
+}
+
 export function generateStaticParams(): { segment: SegmentSlug }[] {
   return SEGMENT_SLUGS.map((segment) => ({ segment }));
 }
@@ -76,7 +87,7 @@ export default async function ForSegmentPage({
           label: "Start free trial",
         }}
         secondaryCta={{
-          href: `/pricing?segment=${content.slug}`,
+          href: pricingFragmentFor(content.slug),
           label: "See pricing",
         }}
       />
@@ -130,7 +141,7 @@ export default async function ForSegmentPage({
             before Day 8.
           </p>
           <Link
-            href={`/pricing?segment=${content.slug}#${content.planAnchor.id}`}
+            href={pricingFragmentFor(content.slug)}
             className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--fintech-accent)] px-4 text-sm font-semibold text-[var(--fintech-bg-primary)] transition-colors duration-200 ease-out hover:bg-[var(--fintech-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
           >
             See full pricing matrix
