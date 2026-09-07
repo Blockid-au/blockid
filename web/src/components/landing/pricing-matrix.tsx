@@ -193,9 +193,8 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
       </div>
 
       <p className="mt-10 text-center text-xs text-brand-ink-muted">
-        Prices in Australian dollars, GST-exclusive. GST added at checkout for
-        Australian customers once Auschain PTY LTD (ABN 79 659 615 111) crosses
-        the A$75,000 turnover threshold. {TRIAL_COPY.fine_print}
+        AUD pricing, GST-exclusive. GST added at checkout on ATO tax invoice.
+        {" "}{TRIAL_COPY.fine_print}
       </p>
       <p className="mx-auto mt-4 max-w-2xl border-t border-white/5 pt-4 text-center text-xs text-brand-ink-muted">
         Not financial advice. Plan information is general in nature and does
@@ -348,7 +347,7 @@ function PlanCard({
         <p className="mt-1 text-xs text-brand-ink-muted">
           {isCustom
             ? "Volume pricing on request"
-            : `AUD · GST-inclusive · billed ${interval === "annual" ? "annually" : "monthly"} · ATO tax invoice included`}
+            : `Billed ${interval === "annual" ? "annually" : "monthly"}`}
         </p>
         {interval === "annual" && saving !== null && saving > 0 && (
           <p className="mt-1 text-xs font-medium text-brand-cyan">
