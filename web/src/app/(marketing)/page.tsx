@@ -12,11 +12,15 @@ import {
   SIGNED_IN_LANDING_HREF,
 } from "@/lib/supabase/session-hint";
 
+// Phase 2 hero rework (2026-09) put the SVI score front-and-centre in the
+// H1 ("Know your startup's SVI score in 60 seconds"). The <title> and
+// og:image:alt below intentionally mirror that headline so the browser tab,
+// search snippet, and social card all reinforce the same score-first promise.
 export const metadata = {
   title:
-    "BlockID.au — Australia's Startup Intelligence Platform",
+    "Know your startup's SVI score in 60 seconds · BlockID.au",
   description:
-    "AI-powered startup analysis. Real benchmarks. Founder-first tools. Get your Startup Value Index, AUD valuation range and GTM strategy in under 3 seconds.",
+    "AU-first startup evaluation across 8 SVI dimensions. Real benchmarks, evidence-linked scoring, founder-first tools — get your Startup Value Index, AUD valuation range and GTM strategy in under 3 seconds.",
   alternates: {
     canonical: "https://blockid.au",
   },

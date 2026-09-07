@@ -1,7 +1,9 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "BlockID — Australia's Startup Intelligence Platform";
+// Phase 2 hero rework — og:image:alt mirrors the new score-first H1 so the
+// social card, browser tab, and hero headline all say the same thing.
+export const alt = "Know your startup's SVI score in 60 seconds · BlockID.au";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -71,7 +73,7 @@ export default async function OGImage() {
             maxWidth: 900,
             display: "flex",
           }}>
-            Australia&apos;s Startup Intelligence Platform
+            Know your startup&apos;s SVI score in 60 seconds
           </div>
           <div style={{
             fontSize: 22,
