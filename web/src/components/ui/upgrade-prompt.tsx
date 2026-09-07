@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Sparkles, X, Zap } from "lucide-react";
-import { Founding50Spots } from "@/components/ui/founding50-spots";
 
 const DISMISS_KEY = "blockid_upgrade_prompt_dismissed_v2";
 const DISMISS_HOURS = 48;
@@ -36,27 +35,11 @@ export function UpgradePrompt() {
     setVisible(false);
   };
 
-  const handleUpgrade = async () => {
+  // Founding-100 (A$5 one-off) sunset on 2026-09-01; the prompt now routes
+  // to the pricing page so the visitor lands on the current Growth ladder.
+  const handleUpgrade = () => {
     setLoading(true);
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "founding50" }),
-      });
-      if (res.status === 401) {
-        window.location.href = "/auth/login?plan=founding50";
-        return;
-      }
-      const data = await res.json();
-      if (data.ok && data.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      // silently ignore — user can still dismiss
-    } finally {
-      setLoading(false);
-    }
+    window.location.href = "/pricing#tier-growth";
   };
 
   if (!visible) return null;
@@ -67,11 +50,9 @@ export function UpgradePrompt() {
       <p className="flex-1 text-xs leading-snug">
         <span className="font-semibold">Credits running low.</span>{" "}
         Upgrade to{" "}
-        <span className="font-semibold">Founding 100</span> — A$5 one-time for
-        50 credits, Evidence Vault &amp; cap table tools.{" "}
-        <span className="opacity-75 text-[10px]">Only 100 spots.</span>
+        <span className="font-semibold">Growth</span> — A$99/mo for 100
+        credits, Evidence Vault, cap table tools &amp; investor data room.
       </p>
-      <Founding50Spots className="hidden sm:block w-36 shrink-0 mx-2" />
       <button
         type="button"
         onClick={handleUpgrade}
@@ -83,7 +64,7 @@ export function UpgradePrompt() {
         ) : (
           <>
             <Sparkles strokeWidth={1.75} className="h-3 w-3" />
-            Upgrade A$5
+            See Growth
           </>
         )}
       </button>

@@ -146,8 +146,10 @@ afterEach(() => {
 // ─── CONFIG_DEFAULTS shape ───────────────────────────────────────────
 
 describe("CONFIG_DEFAULTS — canonical fixture", () => {
-  it("pins the Founding plan name/spots/credits (marketing surface)", () => {
-    expect(CONFIG_DEFAULTS.founding_plan_name).toBe("Founding 100");
+  it("pins the Founding plan name/spots/credits (grandfathered legacy — promo sunset 2026-09-01)", () => {
+    expect(CONFIG_DEFAULTS.founding_plan_name).toBe(
+      "Founding 100 (legacy — grandfathered)",
+    );
     expect(CONFIG_DEFAULTS.founding_spots_total).toBe(100);
     expect(CONFIG_DEFAULTS.founding_credits).toBe(50);
   });
@@ -170,9 +172,9 @@ describe("CONFIG_DEFAULTS — canonical fixture", () => {
     expect(CONFIG_DEFAULTS.referral_credits).toBe(2);
   });
 
-  it("pins the LAUNCH100 promo tuple + early-bird deadline", () => {
+  it("pins the LAUNCH100 promo tuple + early-bird deadline (promo_label cleared post 2026-09-01 sunset)", () => {
     expect(CONFIG_DEFAULTS.promo_code).toBe("LAUNCH100");
-    expect(CONFIG_DEFAULTS.promo_label).toBe("instant access to Founding 100");
+    expect(CONFIG_DEFAULTS.promo_label).toBe("");
     expect(CONFIG_DEFAULTS.early_bird_deadline).toBe("2026-08-01");
   });
 
@@ -222,8 +224,8 @@ describe("CONFIG_DEFAULTS — canonical fixture", () => {
     }
   });
 
-  it("pins the three shipped feature flags (founding on, waitlist off, linkedin off)", () => {
-    expect(CONFIG_DEFAULTS.founding_plan_active).toBe(true);
+  it("pins the three shipped feature flags (founding OFF post 2026-09-01 sunset, waitlist off, linkedin off)", () => {
+    expect(CONFIG_DEFAULTS.founding_plan_active).toBe(false);
     expect(CONFIG_DEFAULTS.waitlist_mode).toBe(false);
     expect(CONFIG_DEFAULTS.linkedin_post_enabled).toBe(false);
   });

@@ -108,9 +108,12 @@ export interface PlatformConfig {
 }
 
 export const CONFIG_DEFAULTS: PlatformConfig = {
-  founding_plan_name: "Founding 100",
+  // Founding-100 promo sunset 2026-09-01 (Phase 3b). Fields retained for the
+  // grandfathered Stripe SKU + admin/docs consumers; marketing surfaces + the
+  // /founding-50 route are gone.
+  founding_plan_name: "Founding 100 (legacy — grandfathered)",
   founding_spots_total: 100,
-  founding_price_cents: 500, // A$5 — promo through 2026-08-31; reverts to A$9900 (A$99) after the deadline. Bumped from A$3 (2026-06-21); A$1 was the original launch price (2026-06-17).
+  founding_price_cents: 500, // A$5 — historical promo price, retained for grandfathered renewals only.
   founding_credits: 50,
 
   free_credits_on_signup: 5,
@@ -124,7 +127,9 @@ export const CONFIG_DEFAULTS: PlatformConfig = {
   referral_credits: 2,
 
   promo_code: "LAUNCH100",
-  promo_label: "instant access to Founding 100",
+  // Founding-100 promo sunset 2026-09-01 (Phase 3b) — banner copy left blank
+  // so a stale marketing string cannot re-surface after the cutover.
+  promo_label: "",
   early_bird_deadline: "2026-08-01",
 
   credit_cost_svi_analysis: 0.50,
@@ -155,7 +160,9 @@ export const CONFIG_DEFAULTS: PlatformConfig = {
   // Set ZAPIER_WEBHOOK_URL in web/.env — never hard-code the URL here.
   zapier_webhook_url: "",
 
-  founding_plan_active: true,
+  // Founding-100 promo sunset 2026-09-01 (Phase 3b) — the marketing surface
+  // is retired; leave the flag off so no /pricing or admin toggle re-lights it.
+  founding_plan_active: false,
   waitlist_mode: false,
   linkedin_post_enabled: false,
 

@@ -61,9 +61,8 @@ describe("buildPricingTiers() — stub after retirement", () => {
 });
 
 describe("NEW_SIGNUP_TIER_IDS — legacy allow-list still consumed by register-with-card API", () => {
-  it("pins the exact 3-id allow-list", () => {
+  it("pins the exact 2-id allow-list (Growth monthly + annual)", () => {
     expect(NEW_SIGNUP_TIER_IDS).toEqual([
-      "founding50",
       "growth",
       "growth_annual",
     ]);
@@ -71,6 +70,10 @@ describe("NEW_SIGNUP_TIER_IDS — legacy allow-list still consumed by register-w
 
   it("excludes the legacy free tier", () => {
     expect(NEW_SIGNUP_TIER_IDS).not.toContain("free");
+  });
+
+  it("excludes founding50 after the 2026-09-01 promo sunset (Phase 3b)", () => {
+    expect(NEW_SIGNUP_TIER_IDS).not.toContain("founding50");
   });
 });
 

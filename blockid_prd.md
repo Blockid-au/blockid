@@ -6,6 +6,9 @@
 **Author:** BlockID Product & AI Agent Team  
 **URL:** https://blockid.au
 
+> **[LEGACY — 2026-09-01 sunset, retained for archive]**
+> Every "Founding 50" / "Founding 100" line in this PRD — the $49 offer, the `/founding-50` route, the payment-link email, the tier row in the pricing table, the "Claim Your Founding 50 Spot" CTA — describes a promo that ended on 2026-09-01. The `/founding-50` route was deleted on 2026-09-07 (Phase 3b) and no marketing surface still offers the tier. The Stripe SKU id `founding50` is preserved in `web/src/lib/plans.ts` + `web/src/lib/stripe.ts` so grandfathered subscribers can still renew.
+
 ---
 
 ## 1. Executive Summary

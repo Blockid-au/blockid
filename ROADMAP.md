@@ -2,8 +2,11 @@
 
 > **This is the single source of truth.** Every roadmap, plan, architecture diagram, or task list lives here or is linked from here. When in doubt, this file wins.
 
-**Current version:** `0.6.0` (web) · queue `v1.4` · release `2026-08-13 v0.6.0` — T0094–T0101 knowledge pack shipped, reseller wholesale flow live, Founding 100 stabilised at A$5
-**Last updated:** 2026-08-13 UTC
+**Current version:** `0.6.0` (web) · queue `v1.4` · release `2026-08-13 v0.6.0` — T0094–T0101 knowledge pack shipped, reseller wholesale flow live, Founding 100 promo sunset on 2026-09-01 (see Phase 3b legacy note below)
+**Last updated:** 2026-09-07 UTC
+
+> **[LEGACY — 2026-09-01 sunset, retained for archive]**
+> All Founding-50 / Founding-100 marketing surfaces below (release-note bullets, deploy checklists, price bumps) describe a promo that ended on 2026-09-01. The `/founding-50` route was deleted on 2026-09-07 (Phase 3b) and the marketing surface is retired. The Stripe SKU id `founding50` is preserved in `web/src/lib/plans.ts` + `web/src/lib/stripe.ts` for grandfathered renewals only.
 
 ---
 

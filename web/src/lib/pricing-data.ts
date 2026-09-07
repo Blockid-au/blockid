@@ -14,42 +14,28 @@
 //   TRIAL_COPY in `@/lib/plans/trial-copy`.
 
 import { TRIAL_COPY, TRIAL_DAYS } from "./plans/trial-copy";
-import { FOUNDING_PROMO_END, isFoundingPromoActive } from "./founding-promo";
 
 /**
- * Formatted deadline used in tier subtitles + urgency copy. Reads from
- * FOUNDING_PROMO_END so extending the promo via env doesn't leave a
- * stale "Aug 31, 2026" behind on cards. Formatted in en-AU because the
- * audience is Australian founders.
+ * Plan IDs offered to *new* signups. Free tier deliberately excluded.
+ *
+ * `founding50` was removed on 2026-09-07 (Phase 3b) after the Founding-100
+ * promo window closed on 2026-09-01 (see `founding-promo.ts`). The Stripe
+ * SKU id `founding50` is retained in `plans.ts` + `stripe.ts` so
+ * grandfathered subscribers still renew, but no new signup can select it.
  */
-const PROMO_END_LABEL: string = new Intl.DateTimeFormat("en-AU", {
-  timeZone: "Australia/Sydney",
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-}).format(FOUNDING_PROMO_END);
-
-/** Plan IDs offered to *new* signups. Free tier deliberately excluded. */
 export const NEW_SIGNUP_TIER_IDS: readonly string[] = [
-  "founding50",
   "growth",
   "growth_annual",
 ];
 
 /**
- * Filter PRICING_TIERS down to the plans a new signup may pick.
- * After the Founding 100 promo window closes (2026-09-01 UTC) the
- * founding50 tier is dropped so only Growth (A$99/mo) + Growth annual
- * remain visible. Grandfathered Founding 100 buyers keep their access.
+ * Filter PRICING_TIERS down to the plans a new signup may pick. Post the
+ * 2026-09-01 Founding-100 sunset, this is a plain allow-list filter — the
+ * previous `isFoundingPromoActive()` toggle collapsed once `founding50`
+ * left the allow-list.
  */
-export function tiersForNewSignup(
-  tiers: PricingTier[],
-  now: Date = new Date(),
-): PricingTier[] {
-  const promoActive = isFoundingPromoActive(now);
-  return tiers
-    .filter((t) => NEW_SIGNUP_TIER_IDS.includes(t.id))
-    .filter((t) => promoActive || t.id !== "founding50");
+export function tiersForNewSignup(tiers: PricingTier[]): PricingTier[] {
+  return tiers.filter((t) => NEW_SIGNUP_TIER_IDS.includes(t.id));
 }
 
 // ---------------------------------------------------------------------------
@@ -86,42 +72,24 @@ export interface PricingTier {
 }
 
 // Build pricing tiers from config. Used by server components; falls back to PRICING_TIERS for client components.
+//
+// The `founding_*` cfg fields are retained for backward compatibility with
+// admin panel + docs consumers (the `founding50` Stripe SKU is still live for
+// grandfathered renewals) but the founding50 tier branch was deleted on
+// 2026-09-07 alongside the /founding-50 route (Phase 3b).
 export function buildPricingTiers(cfg: {
-  founding_plan_name: string;
-  founding_spots_total: number;
-  founding_price_cents: number;
-  founding_credits: number;
+  founding_plan_name?: string;
+  founding_spots_total?: number;
+  founding_price_cents?: number;
+  founding_credits?: number;
   free_credits_on_signup: number;
   growth_price_monthly_cents: number;
   growth_price_yearly_cents: number;
 }): PricingTier[] {
-  const priceAud = `A$${(cfg.founding_price_cents / 100).toFixed(cfg.founding_price_cents % 100 === 0 ? 0 : 2)}`;
   const growthMonthly = `A$${(cfg.growth_price_monthly_cents / 100).toFixed(0)}`;
   const growthYearly = `A$${(cfg.growth_price_yearly_cents / 100).toFixed(0)}`;
 
   return PRICING_TIERS.map((tier) => {
-    if (tier.id === "founding50") {
-      return {
-        ...tier,
-        name: cfg.founding_plan_name,
-        price: priceAud,
-        numericPrice: cfg.founding_price_cents / 100,
-        credits: `${cfg.founding_credits} credits (never expires)`,
-        cta: { label: `Get ${cfg.founding_plan_name} — ${priceAud}`, href: "/founding-50" },
-        urgency: `Only ${cfg.founding_spots_total} spots at this price`,
-        subtitle: `${priceAud} until ${PROMO_END_LABEL} · reverts to A$99 · lifetime access`,
-        features: [
-          `${cfg.founding_credits} SVI analyses (lifetime)`,
-          "PDF investor-ready report",
-          "Evidence Vault & document storage",
-          "Cap table & ESOP calculator",
-          "Term Sheet AI analysis",
-          "30-day SVI growth action plan",
-          "Referral credits (earn free analyses)",
-          "Priority support",
-        ],
-      };
-    }
     if (tier.id === "free") {
       return {
         ...tier,
@@ -155,7 +123,8 @@ export function buildPricingTiers(cfg: {
 //   - `src/app/api/auth/register-with-card/route.ts` — imports the
 //     `NEW_SIGNUP_TIER_IDS` allow-list only. Legacy string list still valid.
 //
-// TODO: remove after Phase 3 tail — once /founding-50 is purged and the
+// TODO: remove after Phase 3 tail — the /founding-50 route was deleted on
+// 2026-09-07 (Phase 3b) along with the founding50 tier row, so once the
 // legacy landing/pricing.tsx render is deleted, drop this stub, the
 // `discountablePrices` map, and `buildPricingTiers()` outright.
 export const PRICING_TIERS: PricingTier[] = [];
@@ -304,7 +273,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Can I upgrade later?",
-    a: "Yes. You can upgrade from Free to Founding 100 or Growth at any time. Your existing credits and data carry over. Founding 100 members get priority upgrade pricing.",
+    a: "Yes. You can upgrade from Free to Growth at any time. Your existing credits and data carry over. Grandfathered Founding-100 members (signed up before the 2026-09-01 sunset) keep priority upgrade pricing.",
   },
   {
     q: "Is there a free trial?",
@@ -312,15 +281,15 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How does billing work?",
-    a: "Founding 100 is a one-off A$5 payment for 50 full-page analyses (lifetime access). Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD and processed securely via Stripe.",
+    a: "Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD (GST-exclusive; GST added at checkout when applicable) and processed securely via Stripe.",
   },
   {
     q: "Can I cancel anytime?",
-    a: "Yes. Growth plan subscriptions can be cancelled at any time from your billing page. Your credits remain available until the end of the billing period. Founding 100 has no recurring charges to cancel.",
+    a: "Yes. Growth plan subscriptions can be cancelled at any time from your billing page. Your credits remain available until the end of the billing period.",
   },
   {
     q: "Do you offer refunds?",
-    a: "Growth plan includes a 30-day money-back guarantee. For Founding 100, we assess refund requests on a case-by-case basis within 14 days of purchase. Credit packs are non-refundable once used.",
+    a: "Growth plan includes a 30-day money-back guarantee. Credit packs are non-refundable once used.",
   },
   {
     q: "Do you have a permanent free plan?",
