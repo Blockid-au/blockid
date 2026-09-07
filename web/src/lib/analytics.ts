@@ -159,6 +159,7 @@ export interface AnalyticsEventMap {
   // ── Marketing pages ──
   roadmap_viewed: Record<string, never>;
   changelog_viewed: Record<string, never>;
+  features_viewed: Record<string, never>;
 
   // ── Reseller module (docs/plans/reseller-module-plan.md § U.9 + user
   //   direction: GA4 for user behavior + BlockID.au SEO/dev-progress
