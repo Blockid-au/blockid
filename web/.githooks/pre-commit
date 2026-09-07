@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# CISO P1 (2026-08-23 audit) — gitleaks pre-commit gate.
+#
+# Blocks any staged content that gitleaks flags as a probable secret. Config
+# lives in .gitleaks.toml at the repo root. If gitleaks is not installed on
+# the developer's machine, the hook is a no-op with a warning — CI still
+# catches leaks via `gitleaks detect` in web/scripts/deploy-live.sh Gate 0.5.
+
+set -u
+
+# Locate repo root (this hook may be invoked from any subdirectory).
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+CONFIG="$REPO_ROOT/web/.gitleaks.toml"
+
+# Missing binary → non-blocking warning. CI still fails a leaky commit.
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks not installed on this machine — skipping pre-commit scan (CI still enforces it)."
+  echo "  Install: https://github.com/gitleaks/gitleaks (brew install gitleaks / go install)"
+  exit 0
+fi
+
+CONFIG_ARG=()
+if [ -f "$CONFIG" ]; then
+  CONFIG_ARG=(--config "$CONFIG")
+fi
+
+# `gitleaks protect --staged` scans only what would be committed.
+if ! gitleaks protect --staged --no-banner "${CONFIG_ARG[@]}" 2>/dev/null; then
+  echo ""
+  echo "gitleaks flagged staged content — commit blocked."
+  echo "  Inspect: gitleaks protect --staged --verbose ${CONFIG_ARG[*]}"
+  echo "  Bypass (last resort, e.g. false positive): git commit --no-verify"
+  exit 1
+fi
+
+exit 0

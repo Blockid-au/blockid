@@ -254,6 +254,31 @@ if [ "${1:-}" = "--rollback" ]; then
 fi
 
 # ══════════════════════════════════════════════════════════════════════
+# GATE 0.5: Secret scan (gitleaks)
+# ══════════════════════════════════════════════════════════════════════
+# CISO P1 (2026-08-23 audit) — scan the tracked repo for accidentally
+# committed secrets before we build a release. Non-blocking when the
+# gitleaks binary is missing so a stripped-down deploy host does not
+# strand a release; developers still get pre-commit coverage via
+# web/.githooks/pre-commit (installed by scripts/install-git-hooks.sh).
+gate "Secret scan (gitleaks)"
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "  ⚠ gitleaks not installed — skipping secret scan (pre-commit hook still enforces)"
+  pass "Secret scan skipped (binary missing)"
+else
+  GITLEAKS_CONFIG=""
+  if [ -f "$WEB_DIR/.gitleaks.toml" ]; then
+    GITLEAKS_CONFIG="--config $WEB_DIR/.gitleaks.toml"
+  fi
+  # `detect` scans the whole tracked tree; `--exit-code 1` makes leaks fatal.
+  if ! gitleaks detect --no-banner --exit-code 1 $GITLEAKS_CONFIG 2>&1; then
+    fail "gitleaks flagged committed content — run 'gitleaks detect --verbose' to inspect"
+  fi
+  pass "No secrets detected in tracked repo"
+fi
+
+# ══════════════════════════════════════════════════════════════════════
 # GATE 1: Critical Environment Keys
 # ══════════════════════════════════════════════════════════════════════
 gate "Critical environment keys"

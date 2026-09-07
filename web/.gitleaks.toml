@@ -1,0 +1,41 @@
+# CISO P1 (2026-08-23 audit) — gitleaks configuration for BlockID.au.
+#
+# Extends the built-in default ruleset (which covers AWS keys, GitHub tokens,
+# Stripe live keys, private keys, JWT-shaped tokens, Slack webhooks, and the
+# common cloud-provider secret shapes) and adds project-specific allowlists
+# for known false-positive locations.
+#
+# Reference: https://github.com/gitleaks/gitleaks#configuration
+
+title = "BlockID.au gitleaks config"
+
+# Inherit the default detection ruleset — never redefine rules by hand or the
+# built-in secret-shape catalogue is silently lost.
+[extend]
+useDefault = true
+
+# Global allowlist — applied on top of the default ruleset.
+[allowlist]
+description = "BlockID.au false-positive locations"
+
+# Paths we do not scan: generated reports (contain deliberate secret-shape
+# detection strings for the CISO agent's tests), test fixtures + colocated
+# vitest test files, and the deploy manifest.
+paths = [
+  '''web/content/reports/.*''',
+  '''.*\.test\.ts$''',
+  '''.*\.test\.tsx$''',
+  '''.*\.test\.mjs$''',
+  '''.*/fixtures/.*''',
+  '''.*/__fixtures__/.*''',
+  '''web/\.deploy-manifest\.json$''',
+]
+
+# Regex allowlist — strings that look leaky but are deliberate placeholders,
+# audit detection strings, or synthetic test values. Add sparingly.
+regexes = [
+  # Test/sample stripe keys used in colocated tests and docs
+  '''sk_test_[A-Za-z0-9]{16,}''',
+  # Synthetic uuids in test fixtures
+  '''00000000-0000-0000-0000-[0-9a-f]{12}''',
+]
