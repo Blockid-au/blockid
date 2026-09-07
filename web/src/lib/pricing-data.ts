@@ -138,97 +138,125 @@ export function buildPricingTiers(cfg: {
   });
 }
 
-export const PRICING_TIERS: PricingTier[] = [
-  {
-    id: "free",
-    name: "Free",
-    price: "$0",
-    cadence: "forever",
-    credits: "5 credits",
-    audience: "Get your startup valuation score instantly — no card needed",
-    features: [
-      "Full SVI analysis (instant score)",
-      "Investor-Ready Score + AI valuation (AUD)",
-      "Equity dilution calculator",
-      "Shareable score link",
-    ],
-    cta: { label: "Get My Free Valuation Score", href: "/#svi" },
-    ctaStyle: "secondary",
-  },
-  {
-    id: "founding50",
-    name: "Founding 100",
-    price: "A$5",
-    numericPrice: 5,
-    cadence: "one-off",
-    subtitle: `A$5 until ${PROMO_END_LABEL} \u00b7 reverts to A$99 \u00b7 lifetime access`,
-    credits: "50 credits (never expires)",
-    audience: "Everything from idea to investor-ready — pay once, own it forever",
-    features: [
-      "50 SVI analyses (lifetime)",
-      "PDF investor-ready report",
-      "Evidence Vault & document storage",
-      "Cap table & ESOP calculator",
-      "Term Sheet AI analysis",
-      "30-day SVI growth action plan",
-      "Referral credits (earn free analyses)",
-      "Priority support",
-    ],
-    cta: { label: "Get Founding 100 \u2014 A$5", href: "/founding-50" },
-    highlight: true,
-    badge: "Founders Only",
-    urgency: `A$5 promo until ${PROMO_END_LABEL} — then A$99`,
-    ctaStyle: "primary",
-  },
-  {
-    id: "growth",
-    name: "Growth",
-    price: "A$99",
-    numericPrice: 99,
-    cadence: "/mo (early-bird)",
-    subtitle: "Early-bird \u2014 normally $499/mo",
-    credits: "100 credits/mo",
-    audience: "For active fundraise \u00b7 Seed to Series A",
-    features: [
-      "100 SVI analyses/mo",
-      "Everything in Founding 100",
-      "Multi-entity cap table",
-      "Investor data room",
-      "Term Sheet AI (unlimited)",
-      "Custom branding",
-      "Dedicated account manager",
-      "30-day money back",
-    ],
-    cta: { label: "Start Growth \u2014 A$99/mo", href: "/auth/login?plan=growth" },
-    badge: "Early Bird",
-    urgency: "Early-bird until Dec 31, 2026",
-    ctaStyle: "primary",
-  },
-  {
-    id: "growth_annual",
-    name: "Growth",
-    price: "A$950",
-    numericPrice: 950,
-    cadence: "/year",
-    subtitle: "Save A$238/year (20% off monthly)",
-    credits: "100 credits/mo",
-    audience: "For active fundraise \u00b7 Seed to Series A",
-    features: [
-      "100 SVI analyses/mo",
-      "Everything in Founding 100",
-      "Multi-entity cap table",
-      "Investor data room",
-      "Term Sheet AI (unlimited)",
-      "Custom branding",
-      "Dedicated account manager",
-      "30-day money back",
-    ],
-    cta: { label: "Start Growth \u2014 A$950/yr", href: "/auth/login?plan=growth_annual" },
-    badge: "Save 20%",
-    urgency: "Early-bird until Dec 31, 2026",
-    ctaStyle: "primary",
-  },
-];
+// ---------------------------------------------------------------------------
+// PRICING_TIERS — legacy 4-plan render array. RETIRED 2026-09-07.
+// ---------------------------------------------------------------------------
+//
+// @deprecated Retired as part of the Universal 3-rung ladder consolidation
+// (Workstream B3). The 4-plan legacy render
+// (free / founding50 / growth / growth_annual) is superseded by the
+// DB-backed catalogue in `src/lib/plans-v2.ts` + `src/config/pricing/plans.csv`
+// which the live `<PricingMatrix />` component reads.
+//
+// The remaining consumers of this file are:
+//   - `src/components/landing/pricing.tsx` — dead landing component
+//     already superseded by <PricingMatrix /> on every pricing surface.
+//     Renders an empty grid now; scheduled for deletion in Phase 3 tail.
+//   - `src/app/api/auth/register-with-card/route.ts` — imports the
+//     `NEW_SIGNUP_TIER_IDS` allow-list only. Legacy string list still valid.
+//
+// TODO: remove after Phase 3 tail — once /founding-50 is purged and the
+// legacy landing/pricing.tsx render is deleted, drop this stub, the
+// `discountablePrices` map, and `buildPricingTiers()` outright.
+export const PRICING_TIERS: PricingTier[] = [];
+
+// Prior canonical fixture kept below as commented-out reference so
+// grandfathered flows and one-off restores can be re-hydrated by hand
+// without spelunking git history. Do NOT re-enable without also killing
+// the plans-v2.ts render path first — parallel data paths are the exact
+// drift that this consolidation exists to end.
+//
+// const _LEGACY_PRICING_TIERS: PricingTier[] = [
+//   {
+//     id: "free",
+//     name: "Free",
+//     price: "$0",
+//     cadence: "forever",
+//     credits: "5 credits",
+//     audience: "Get your startup valuation score instantly — no card needed",
+//     features: [
+//       "Full SVI analysis (instant score)",
+//       "Investor-Ready Score + AI valuation (AUD)",
+//       "Equity dilution calculator",
+//       "Shareable score link",
+//     ],
+//     cta: { label: "Get My Free Valuation Score", href: "/#svi" },
+//     ctaStyle: "secondary",
+//   },
+//   {
+//     id: "founding50",
+//     name: "Founding 100",
+//     price: "A$5",
+//     numericPrice: 5,
+//     cadence: "one-off",
+//     subtitle: `A$5 until ${PROMO_END_LABEL} \u00b7 reverts to A$99 \u00b7 lifetime access`,
+//     credits: "50 credits (never expires)",
+//     audience: "Everything from idea to investor-ready — pay once, own it forever",
+//     features: [
+//       "50 SVI analyses (lifetime)",
+//       "PDF investor-ready report",
+//       "Evidence Vault & document storage",
+//       "Cap table & ESOP calculator",
+//       "Term Sheet AI analysis",
+//       "30-day SVI growth action plan",
+//       "Referral credits (earn free analyses)",
+//       "Priority support",
+//     ],
+//     cta: { label: "Get Founding 100 \u2014 A$5", href: "/founding-50" },
+//     highlight: true,
+//     badge: "Founders Only",
+//     urgency: `A$5 promo until ${PROMO_END_LABEL} — then A$99`,
+//     ctaStyle: "primary",
+//   },
+//   {
+//     id: "growth",
+//     name: "Growth",
+//     price: "A$99",
+//     numericPrice: 99,
+//     cadence: "/mo (early-bird)",
+//     subtitle: "Early-bird \u2014 normally $499/mo",
+//     credits: "100 credits/mo",
+//     audience: "For active fundraise \u00b7 Seed to Series A",
+//     features: [
+//       "100 SVI analyses/mo",
+//       "Everything in Founding 100",
+//       "Multi-entity cap table",
+//       "Investor data room",
+//       "Term Sheet AI (unlimited)",
+//       "Custom branding",
+//       "Dedicated account manager",
+//       "30-day money back",
+//     ],
+//     cta: { label: "Start Growth \u2014 A$99/mo", href: "/auth/login?plan=growth" },
+//     badge: "Early Bird",
+//     urgency: "Early-bird until Dec 31, 2026",
+//     ctaStyle: "primary",
+//   },
+//   {
+//     id: "growth_annual",
+//     name: "Growth",
+//     price: "A$950",
+//     numericPrice: 950,
+//     cadence: "/year",
+//     subtitle: "Save A$238/year (20% off monthly)",
+//     credits: "100 credits/mo",
+//     audience: "For active fundraise \u00b7 Seed to Series A",
+//     features: [
+//       "100 SVI analyses/mo",
+//       "Everything in Founding 100",
+//       "Multi-entity cap table",
+//       "Investor data room",
+//       "Term Sheet AI (unlimited)",
+//       "Custom branding",
+//       "Dedicated account manager",
+//       "30-day money back",
+//     ],
+//     cta: { label: "Start Growth \u2014 A$950/yr", href: "/auth/login?plan=growth_annual" },
+//     badge: "Save 20%",
+//     urgency: "Early-bird until Dec 31, 2026",
+//     ctaStyle: "primary",
+//   },
+// ];
 
 // ---------------------------------------------------------------------------
 // Credit packs — re-exported from the isomorphic single source of truth at
