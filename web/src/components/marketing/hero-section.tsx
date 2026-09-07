@@ -266,10 +266,19 @@ export function HeroSection() {
           style={{ animationDelay: "320ms" }}
         >
           {QUICK_TAGS.map((tag) => (
-            <button
+            // Rendered as a real <a href> (via next/link) so the SEO
+            // fingerprint of chip destinations lives in server HTML —
+            // otherwise crawlers can't see them and the plan's
+            // Verify-7 grep for /tools/idea-valuation + /tools/funding-plan
+            // in raw HTML returned 0 hits.
+            //
+            // The Competitor chip's href threads the current query, so
+            // its resolution has to happen at render time — the resulting
+            // `<a>` still updates on every keystroke thanks to React's
+            // controlled input.
+            <Link
               key={tag.label}
-              type="button"
-              onClick={() => router.push(tag.href(query))}
+              href={tag.href(query)}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-all duration-200",
                 "hover:scale-[1.03] hover:border-[rgba(0,212,255,0.5)]",
@@ -282,7 +291,7 @@ export function HeroSection() {
             >
               <span aria-hidden>{tag.emoji}</span>
               {tag.label}
-            </button>
+            </Link>
           ))}
         </div>
 
