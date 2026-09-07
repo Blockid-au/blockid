@@ -5,7 +5,8 @@
  *
  * Anatomy (locked by plan):
  *   1. Persona hero — headline + emotional line + 2 CTAs
- *      (primary: /founding-50, secondary: sample Trust Report A$5.50)
+ *      (primary: /pricing with a #tier-* fragment picked per persona,
+ *      secondary: sample Trust Report A$5.50)
  *   2. 3-card benefit grid
  *   3. 30 / 60 / 90-day journey preview
  *   4. FAQ (paywall + verification level + refund)
@@ -15,6 +16,11 @@
  * strings; persona-specific supporting copy is passed in via props. Nothing
  * on these pages is legal or financial advice — the same disclaimer that
  * ships on /pricing applies.
+ *
+ * Primary-CTA href: the persona-specific target is resolved by
+ * `primaryCtaHrefForSlug()` below so every persona lands on the right
+ * pricing card without a caller having to remember the fragment. Callers
+ * may override via the `primaryCtaHref` prop.
  *
  * Server component. Pure presentation, no data fetch. `lang` prop lets the
  * VN mirror set `<section lang="vi">` while reusing this shell.
@@ -61,6 +67,14 @@ export interface SolutionPageProps {
   emotionalLine: string;
   outcomeLine: string;
   primaryCtaLabel: string;
+  /**
+   * Override the persona's default primary-CTA href. Defaults per slug via
+   * `primaryCtaHrefForSlug()` — founder -> /pricing#tier-growth, investor +
+   * advisor -> /pricing#tier-pro, accelerator -> /pricing#contact-sales,
+   * vn-sme -> /pricing#tier-growth (2026-09-07 Phase 3b: was hard-coded to
+   * the deleted /founding-50 route).
+   */
+  primaryCtaHref?: string;
   secondaryCtaLabel: string;
   benefitsTitle: string;
   benefits: [SolutionBenefit, SolutionBenefit, SolutionBenefit];
@@ -88,8 +102,27 @@ export interface SolutionPageProps {
   };
 }
 
-const SIGNUP_HREF = "/founding-50";
 const SAMPLE_REPORT_HREF = "/reports/samples";
+
+/**
+ * Resolve the persona's default primary-CTA target on /pricing. Each persona
+ * lands on the correct card via the `#tier-*` (or `#contact-sales`) fragment
+ * defined on the /pricing page. The founding-50 route was deleted on
+ * 2026-09-07 (Phase 3b) so no persona should link there any more.
+ */
+export function primaryCtaHrefForSlug(
+  slug: SolutionPageProps["slug"],
+): string {
+  switch (slug) {
+    case "founder":
+    case "vn-sme":
+      return "/pricing#tier-growth";
+    case "investor":
+      return "/pricing#tier-pro";
+    case "accelerator":
+      return "/pricing#contact-sales";
+  }
+}
 
 export function SolutionsPageShell(props: SolutionPageProps) {
   const {
@@ -101,6 +134,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
     emotionalLine,
     outcomeLine,
     primaryCtaLabel,
+    primaryCtaHref,
     secondaryCtaLabel,
     benefitsTitle,
     benefits,
@@ -141,7 +175,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
           </blockquote>
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href={SIGNUP_HREF}
+              href={primaryCtaHref ?? primaryCtaHrefForSlug(slug)}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[var(--fintech-accent)] px-6 text-sm font-semibold text-[var(--fintech-bg-primary)] shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-[var(--fintech-accent-hover)] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
             >
               {primaryCtaLabel}

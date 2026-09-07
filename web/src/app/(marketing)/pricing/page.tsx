@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
-import { Building2, Check, Flame } from "lucide-react";
+import { Building2, Check } from "lucide-react";
 import Link from "next/link";
 import { FAQV2 } from "@/components/landing/faq-v2";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
@@ -13,11 +13,10 @@ import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import type { Segment } from "@/lib/plans-v2";
-import { getFoundingPromoState } from "@/lib/founding-promo";
 
-// Force dynamic — pricing reads platform_config (Supabase) + evaluates the
-// Founding 100 promo window on every request, and searchParams (?tier=…)
-// picks the initial tab. ISR would serve stale cutover state at 2026-09-01.
+// Force dynamic — pricing reads platform_config (Supabase) on every
+// request, and searchParams (?tier=…) picks the initial tab. ISR would
+// serve stale copy while the pricing catalogue evolves.
 export const dynamic = "force-dynamic";
 
 // 2026-09-07 (Workstream B5): the persona segment tabs are gone. /pricing
@@ -114,11 +113,11 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
   // Kept for the SSR contract; the retired persona segment tabs used to
   // consume this. See resolveSegmentFromTier() docstring.
   void resolveSegmentFromTier(sp?.tier);
-  // P1 audit 2026-08-23 — the banner used to hard-code "Promo ends 31 Aug
-  // 2026". Now it is driven by getFoundingPromoState(); when the promo is
-  // over the entire block returns null and the founding-50 card is hidden
-  // by pricing-data.ts's own filter, so no stale copy leaks into the SERP.
-  const promo = getFoundingPromoState();
+  // Founding-50 promo sunset 2026-09-01 (Phase 3b) — the urgency banner
+  // that used to live here linked to the (now deleted) /founding-50 route
+  // and has been removed outright. `getFoundingPromoState()` still exists
+  // for the grandfathered Stripe SKU + admin surfaces but is no longer
+  // consumed by this page.
   return (
     <MarketingShell>
       <FAQJsonLd items={FAQ_JSONLD} />
@@ -129,30 +128,6 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         ]}
       />
       <PageViewTracker event="pricing_viewed" params={{}} />
-
-      {/* Founding 50 urgency banner — rendered only while the promo is
-          active. Countdown label is dynamic ("Ends in N days"). */}
-      {promo.active ? (
-        <div className="mx-auto max-w-5xl px-6 pt-6">
-          <Link
-            href="/founding-50"
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[rgba(0,212,255,0.3)] bg-[rgba(0,212,255,0.08)] px-5 py-3 hover:bg-[rgba(0,212,255,0.12)] transition-colors backdrop-blur-sm"
-          >
-            <div className="flex items-center gap-2">
-              <Flame strokeWidth={1.75} className="h-4 w-4 text-[#00D4FF] shrink-0" />
-              <span className="text-sm font-semibold text-[#F8FAFC]">
-                Founding 50 — A$5 lifetime deal
-              </span>
-              <span className="hidden sm:inline text-sm text-[#94A3B8]">
-                · 50 credits, no recurring fees, Founding Member badge
-              </span>
-            </div>
-            <span className="text-xs font-bold text-[#00D4FF] uppercase tracking-wide">
-              {promo.countdownLabel} →
-            </span>
-          </Link>
-        </div>
-      ) : null}
 
       {/* Above-the-fold hero — ONE primary CTA + text-link secondary, per
           CRO §06. Height reserved with min-h to keep CLS < 0.02 across the
@@ -333,8 +308,9 @@ const CONTACT_SALES_TIERS: ReadonlyArray<ContactSalesTier> = [
 function ContactSalesRow() {
   return (
     <section
+      id="contact-sales"
       aria-label="Contact-sales pricing row"
-      className="mx-auto max-w-7xl px-6 py-8"
+      className="mx-auto max-w-7xl px-6 py-8 scroll-mt-24"
     >
       <div className="mb-6 text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
