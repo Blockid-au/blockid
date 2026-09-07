@@ -11,9 +11,9 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 // cookie, so the schema does not require it in the body.
 const InvestorLinkSchema = z
   .object({
-    scoreId: z.string().max(256),
+    scoreId: z.string().trim().max(256),
     founderEmail: z.string().email().max(320).optional(),
-    investorEmail: z.string().email().max(320),
+    investorEmail: z.string().trim().email().max(320),
     investorName: z.string().max(2000).optional(),
     fundName: z.string().max(2000).optional(),
     note: z.string().max(5000).optional(),
