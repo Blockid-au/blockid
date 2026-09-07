@@ -16,7 +16,7 @@ const STEPS = [
     number: "02",
     title: "Run AI analysis",
     description:
-      "Our 50+ AI agents score your Startup Value Index, benchmark competitors and surface your strengths and gaps.",
+      "Our 11 C-Level AI agents (CEO/CTO/CFO/CMO/CPO/CRO/CLO/CHRO/CISO/CDO/COO) score your Startup Value Index, benchmark competitors and surface your strengths and gaps.",
   },
   {
     number: "03",
