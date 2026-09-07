@@ -170,6 +170,24 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         </div>
       </section>
 
+      {/* P1 audit (2026-08-23) — trust row directly under the primary CTA.
+          Each item stays small text-ink-500 so it never competes with the
+          hero button. `text-ink-500` is the fintech token equivalent. */}
+      <section
+        aria-label="Pricing trust row"
+        className="mx-auto max-w-5xl px-6 pb-3"
+      >
+        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--fintech-ink-muted)]">
+          <li>Cancel any time</li>
+          <li aria-hidden="true">&middot;</li>
+          <li>GST-exclusive</li>
+          <li aria-hidden="true">&middot;</li>
+          <li>ATO tax invoice</li>
+          <li aria-hidden="true">&middot;</li>
+          <li>AU-based support</li>
+        </ul>
+      </section>
+
       <section
         aria-label="Pricing guarantees"
         className="mx-auto max-w-5xl px-6 pb-4"

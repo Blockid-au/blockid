@@ -116,6 +116,28 @@ export function MarketingFooter() {
           <PartnerFooterRow group="accepted" />
         </div>
       </div>
+      {/* AU support surface — P1 audit 2026-08-23 asked for a visible
+          support email, business hours in AEST, and the "AU Privacy Act
+          1988 compliant" badge (now truthful after the Privacy rewrite). */}
+      <div className="border-t border-[var(--fintech-border)]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-5 text-xs text-[var(--fintech-ink-muted)] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <a
+              href="mailto:support@blockid.au"
+              className="rounded-md text-[var(--fintech-accent)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+            >
+              support@blockid.au
+            </a>
+            <span>Mon&ndash;Fri 9:00&ndash;18:00 AEST</span>
+            <span className="inline-flex items-center rounded-full border border-[var(--fintech-border)] px-2 py-0.5 uppercase tracking-[0.14em] text-[10px] text-[var(--fintech-ink-muted)]">
+              AU-based support
+            </span>
+          </p>
+          <p className="text-[var(--fintech-ink-muted)]">
+            AU Privacy Act 1988 compliant &middot; AU data residency
+          </p>
+        </div>
+      </div>
       <div className="border-t border-[var(--fintech-border)]">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[var(--fintech-ink-muted)]">

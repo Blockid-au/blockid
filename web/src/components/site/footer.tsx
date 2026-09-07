@@ -124,6 +124,22 @@ export function Footer() {
           <div className="mt-10 border-t border-ink-800 pt-4 text-slate-400">
             <PartnerFooterRow group="accepted" />
           </div>
+          {/* AU support surface — P1 audit 2026-08-23. */}
+          <div className="mt-6 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-400 md:flex-row md:flex-wrap md:items-center md:justify-between">
+            <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <a
+                href="mailto:support@blockid.au"
+                className="rounded-md text-brand-300 underline-offset-4 hover:text-brand-200 hover:underline"
+              >
+                support@blockid.au
+              </a>
+              <span>Mon&ndash;Fri 9:00&ndash;18:00 AEST</span>
+              <span className="inline-flex items-center rounded-full border border-ink-700 px-2 py-0.5 uppercase tracking-[0.14em] text-[10px]">
+                AU-based support
+              </span>
+              <span>AU Privacy Act 1988 compliant</span>
+            </p>
+          </div>
           <div className="mt-6 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-400 md:flex-row md:items-center md:justify-between">
             <p>
               &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
