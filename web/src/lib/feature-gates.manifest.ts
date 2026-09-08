@@ -43,7 +43,7 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   { route: "api/data-room/engage/route.ts", required_feature: "share_management" },
   { route: "api/data-room/generate/route.ts", required_feature: "share_management" },
   { route: "api/data-room/goals/route.ts", required_feature: "share_management" },
-  { route: "api/data-room/initialize/route.ts", required_feature: "share_management" },
+  { route: "api/data-room/initialize/route.ts", required_feature: "share_management", note: "RETIRED 2026-09-08 — 410s; /api/data-room/generate is the single data-room writer" },
   { route: "api/dataroom/clone/route.ts", required_feature: "share_management", note: "reconcile data-room vs dataroom folder split — P8 CTO call" },
   { route: "api/dataroom/setup/route.ts", required_feature: "share_management", note: "reconcile data-room vs dataroom folder split — P8 CTO call" },
   { route: "api/dataroom/populate-from-template/route.ts", required_feature: "share_management", note: "round 5.4c added rate-limit wiring; keep manifest complete" },

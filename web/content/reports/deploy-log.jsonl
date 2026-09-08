@@ -9341,3 +9341,4 @@
 {"ts":"2026-09-08T13:27:29.121Z","event":"github-push-master","detail":"Blockid-au: fix(home): make the radar legible at 390px, and lead it with the score (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:28:12.050Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): generate now writes real documents, not status flags (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:29:48.547Z","event":"github-push-master","detail":"Blockid-au: refactor(data-room): retire /api/data-room/initialize — generate is the one writer (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:30:50.253Z","event":"github-push-master","detail":"Blockid-au: feat(workspace): wire the data-room UI to the working share contract (1 commits)","source":"github-webhook"}
