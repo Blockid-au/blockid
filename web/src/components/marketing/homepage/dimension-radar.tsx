@@ -201,6 +201,13 @@ export function DimensionTable({ run }: DimensionRadarProps) {
   const bands = cohortBandsForRun(run);
   return (
     <ul role="list" className="divide-y divide-line-subtle">
+      <li className="flex items-baseline justify-between gap-3 pb-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+        <span>Dimension</span>
+        <span className="flex shrink-0 items-baseline gap-3">
+          <span>This run</span>
+          <span className="w-16 text-right">Cohort</span>
+        </span>
+      </li>
       {bands.map((b) => (
         <li
           key={b.key}

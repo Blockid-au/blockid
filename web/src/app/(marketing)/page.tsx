@@ -1,61 +1,83 @@
 import { readFileSync } from "node:fs";
-import Link from "next/link";
 import path from "node:path";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { HeroSection } from "@/components/marketing/hero-section";
-import { OutcomeGrid } from "@/components/marketing/outcome-grid";
-import { SampleOutputs } from "@/components/marketing/sample-outputs";
-import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
-import { GrowthPhaseStrip } from "@/components/marketing/growth-phase-strip";
 import { LogoBand } from "@/components/marketing/logo-band";
 import { FinalCTA } from "@/components/marketing/final-cta";
 import { EquityBand } from "@/components/marketing/equity-band";
 import { AudienceSplit } from "@/components/marketing/audience-split";
 import {
+  DimensionRadar,
+  DimensionTable,
+} from "@/components/marketing/homepage/dimension-radar";
+import { ValuationRanges } from "@/components/marketing/homepage/valuation-ranges";
+import { JourneyPath } from "@/components/marketing/homepage/journey-path";
+import { DataRoomBuild } from "@/components/marketing/homepage/data-room-build";
+import {
+  RunComparison,
+  RunComparisonLegend,
+} from "@/components/marketing/homepage/run-comparison";
+import { runById } from "@/components/marketing/homepage/sample-runs";
+import {
   readSignedInHint,
   SIGNED_IN_LANDING_HREF,
 } from "@/lib/supabase/session-hint";
 
-// Homepage v4 (2026-09-08) — evaluation-led, two audiences, one dark band.
+// Homepage v5 (2026-09-08) — the page now looks like the thing the product
+// makes.
 //
-// WHAT CHANGED AND WHY
+// WHY THE REBUILD
 //
-// v3 told visitors about our own weighting ("AI evaluation, weighted 70%.
-// Blockchain equity on subscription, 30%"). That is a sentence from a
-// strategy deck: true, and useless to a founder deciding whether to paste a
-// deck. v4 keeps the same 70/30 emphasis but expresses it structurally —
-// four evaluation-led bands before equity gets its own smaller one — and
-// spends the words on what the visitor gets instead.
+// v4 described the product in prose: text cards, text headings, bulleted
+// lists. But this product produces numbers and shapes — a score across
+// eight dimensions, a range settled between five valuation methods, a
+// position on a twelve-phase journey, a data room that fills up. A page
+// that looks nothing like its own output does not read as credible, and it
+// asks a visitor to take on trust exactly the thing we could simply show
+// them. v5 shows the output and lets the copy support it.
 //
-// v3 also spoke only to founders. An investor had no line addressed to them
-// and no route in, despite /for/investor and the sample reports existing.
-// AudienceSplit fixes that with one question and one link per side.
+// PATTERN: ui-ux-pro-max "Product Demo + Features" — hero, then the
+// product's own artefact centre stage, then one artefact per section — with
+// the house "Bento Box Grid" style for tile weight inside each band. The
+// usual demo asset for that pattern is a video or a mockup; here the demo
+// asset is the real output, drawn as inline SVG and CSS from the published
+// runs, which is stronger than a screenshot and cannot go stale.
 //
-// PATTERN: bento grid (ui-ux-pro-max "Bento Box Grid") over a proof-first
-// tour. The product is a *set* of artefacts produced from one input, so
-// varying tile weight shows the whole set at a glance the way Stripe and
-// Linear show a multi-artefact product — rather than the skill's default
-// scroll-storytelling pattern, which needs animation-heavy chapters and
-// would fight both the calm reference class and the 390px requirement.
+// CHART FORMS (dataviz): interval chart for a range, radar with emphasis
+// for the eight dimensions, an ordered path with three marks for the
+// journey, meters for the data room, small multiples for stage comparison.
+// One data hue throughout (`action`), context in neutral grey — the
+// emphasis form — so there is no categorical palette anywhere on the page
+// and nothing to fail a CVD check.
+//
+// PROVENANCE: every number routes through
+// `components/marketing/homepage/sample-runs.ts`, which is either the three
+// published anonymised runs or a shipped product module. Its colocated
+// suite pins the figures.
+//
+// THE THREE QUESTIONS are the page's spine — the hero links into them and
+// each owns a section: #worth, #state, #next.
 //
 // LIGHT/DARK RHYTHM — light-dominant, ONE dark punctuation band plus the
-// dark footer edge, held for the whole page:
+// dark footer edge:
 //
-//   1. HeroSection    — LIGHT  (bg.base)    H1 + omnibox + one real result.
-//   2. OutcomeGrid    — LIGHT  (bg.sunken)  bento of what a run returns.
-//   3. SampleOutputs  — LIGHT  (bg.base)    three anonymised runs.
-//   4. HowItWorks     — DARK   punctuation  4 steps …
-//   5.   └ GrowthPhaseStrip — nested INSIDE the same dark band.
-//   6. EquityBand     — LIGHT  (bg.sunken)  the 30%: register, ESOP, payouts.
-//   7. AudienceSplit  — LIGHT  (bg.base)    founders | investors.
-//   8. LogoBand       — LIGHT  (bg.sunken)  where it is built and how it runs.
-//   9. FinalCTA       — LIGHT  (bg.base)    one primary button.
-//  10. Entity strip   — DARK   footer edge  PPL Food PTY LTD.
+//   1. Hero            LIGHT  (bg.base)    H1 + omnibox + a real run.
+//   2. #worth          LIGHT  (bg.sunken)  valuation intervals.
+//   3. #state          LIGHT  (bg.base)    the eight-dimension radar.
+//   4. journey         DARK   punctuation  twelve phases, three marks.
+//   5. #next           LIGHT  (bg.sunken)  the data room filling up.
+//   6. Three runs      LIGHT  (bg.base)    small multiples.
+//   7. EquityBand      LIGHT  (bg.sunken)  issue, not just model.
+//   8. AudienceSplit   LIGHT  (bg.base)    founders | investors.
+//   9. LogoBand        LIGHT  (bg.sunken)  where it is built and how it runs.
+//  10. FinalCTA        LIGHT  (bg.base)    one primary button.
+//  11. Entity strip    DARK   footer edge  PPL Food PTY LTD.
 export const metadata = {
-  title:
-    "Know what your company is worth · BlockID.au",
+  title: "See your company the way an investor will · BlockID.au",
   description:
-    "Give it a pitch deck, a website, or a few sentences. Get a score across eight dimensions, a valuation from four methods, the next moves that lift both, and a data room investors can read. Issue and administer equity when you are ready.",
+    "Give it a pitch deck, a website, or a few sentences. Get a score across eight dimensions, one valuation range settled between five methods, your position on a twelve-phase journey, and a data room an investor can open. Issue and administer equity when you are ready.",
   alternates: {
     canonical: "https://blockid.au",
   },
@@ -97,6 +119,11 @@ export default async function HomePage() {
     .filter((s): s is string => typeof s === "string" && s.length > 0)
     .join(" · ");
 
+  // The radar is drawn for the revenue-stage run: it is the only one of the
+  // three whose readings all sit inside the cohort band, so the shape reads
+  // as a shape rather than as a spike.
+  const radarRun = runById("revenue");
+
   return (
     <div className="min-h-screen bg-surface">
       <a
@@ -113,43 +140,207 @@ export default async function HomePage() {
             through to a running analysis; it is never asked for twice. */}
         <HeroSection />
 
-        {/* 2. What a run returns — bento, evaluation-led. */}
-        <OutcomeGrid />
+        {/* 2. WHAT IS IT WORTH — three real ranges on one shared axis. */}
+        <section
+          id="worth"
+          aria-labelledby="worth-heading"
+          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-14 sm:py-16"
+        >
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-14">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+                  What is it worth
+                </p>
+                <h2
+                  id="worth-heading"
+                  className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
+                >
+                  One range, not one number.
+                </h2>
+                <p className="mt-4 text-sm leading-relaxed text-secondary sm:text-base">
+                  A single figure is a guess with the error bars filed off.
+                  Every run returns a span — the low you can defend and the
+                  high you can argue for — and shows the working behind both,
+                  so you can hold the number in a conversation instead of
+                  quoting it.
+                </p>
+                <Link
+                  href="/one-click-report"
+                  className="mt-6 inline-flex items-center gap-2 rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-primary transition-colors duration-200 hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface-sunken"
+                >
+                  Get the written report, A$3
+                  <ArrowRight size={16} aria-hidden />
+                </Link>
+              </div>
 
-        {/* 3. Proof: three anonymised runs at three different stages. */}
-        <SampleOutputs />
+              <div className="rounded-2xl border border-line-subtle bg-surface p-6 shadow-xs sm:p-8">
+                <ValuationRanges />
+              </div>
+            </div>
+          </div>
+        </section>
 
-        {/* 4 + 5. The page's ONE dark punctuation band: the four steps with
-            the 12-phase journey nested inside it, so the two dark regions
-            that used to sit adjacent read as a single island. The strip
-            links to the real Atlassian walkthrough. */}
-        <HowItWorksSection>
-          <Link
-            href="/showcase/atlassian/growth-phases"
-            className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-inset"
-            aria-label="Where is your startup on the 12-phase growth journey?"
-          >
-            <GrowthPhaseStrip
-              variant="menu"
-              eyebrow="Where's your startup? — 12-phase journey"
-            />
-          </Link>
-        </HowItWorksSection>
+        {/* 3. WHAT STATE AM I IN — the eight-dimension shape. */}
+        <section
+          id="state"
+          aria-labelledby="state-heading"
+          className="scroll-mt-20 border-t border-line-subtle bg-surface py-14 sm:py-16"
+        >
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="max-w-2xl">
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+                What state am I in
+              </p>
+              <h2
+                id="state-heading"
+                className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
+              >
+                Eight dimensions, against Australian companies at your stage.
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-secondary sm:text-base">
+                The score is not one opinion. It is eight readings, each with
+                the evidence behind it and each placed against what companies
+                at the same stage in this market actually score — so a weak
+                dimension is a specific thing to go and fix, not a mood.
+              </p>
+            </div>
 
-        {/* 6. The equity half — deliberately the smaller half. */}
+            <div className="mt-10 grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-14">
+              <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-xs sm:p-6">
+                <DimensionRadar run={radarRun} />
+              </div>
+              <div>
+                <p className="text-sm leading-relaxed text-secondary">
+                  Drawn from the revenue-stage run below: four readings
+                  published, four held back with the company&rsquo;s identity.
+                </p>
+                <div className="mt-4">
+                  <DimensionTable run={radarRun} />
+                </div>
+                <Link
+                  href="/guide/scn"
+                  className="mt-5 inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-action transition-colors duration-200 hover:text-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                >
+                  How each dimension is scored
+                  <ArrowRight size={14} aria-hidden />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4. The page's ONE dark punctuation band: the twelve-phase journey
+            with three real positions marked on it. */}
+        <section
+          aria-labelledby="journey-heading"
+          data-theme="dark"
+          className="border-y border-line-subtle bg-surface py-14 sm:py-16"
+        >
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="max-w-2xl">
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+                And where on the path
+              </p>
+              <h2
+                id="journey-heading"
+                className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
+              >
+                Twelve phases. A run tells you which one you are in.
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-secondary sm:text-base">
+                Building a company is the same twelve pieces of work in
+                roughly the same order. Knowing which one you are actually in
+                is what stops a quarter going into the wrong thing.
+              </p>
+            </div>
+
+            <JourneyPath />
+
+            <Link
+              href="/showcase/atlassian/growth-phases"
+              className="mt-8 inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-action transition-colors duration-200 hover:text-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            >
+              Walk the twelve phases with a company that finished them
+              <ArrowRight size={14} aria-hidden />
+            </Link>
+          </div>
+        </section>
+
+        {/* 5. WHAT DO I DO NEXT — the data room, filling up. */}
+        <section
+          id="next"
+          aria-labelledby="next-heading"
+          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-14 sm:py-16"
+        >
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="max-w-2xl">
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+                What do I do next
+              </p>
+              <h2
+                id="next-heading"
+                className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
+              >
+                The room an investor asks to see.
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-secondary sm:text-base">
+                Diligence is a list, and the list is knowable. A run turns the
+                same eight readings into the documents that are missing, in
+                the order they will be asked for — with a template behind each
+                one so you are not starting from a blank page.
+              </p>
+            </div>
+
+            <div className="mt-10 rounded-2xl border border-line-subtle bg-surface p-6 shadow-xs sm:p-8">
+              <DataRoomBuild />
+            </div>
+          </div>
+        </section>
+
+        {/* 6. Three anonymised runs, so a visitor can locate themselves. */}
+        <section
+          aria-labelledby="runs-heading"
+          className="border-t border-line-subtle bg-surface py-14 sm:py-16"
+        >
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2
+                id="runs-heading"
+                className="font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
+              >
+                Three real runs, anonymised.
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-secondary sm:text-base">
+                Same box, same eight dimensions, three companies at very
+                different points. Nothing here is invented — these are the
+                numbers the analysis returned, with the identifying details
+                removed.
+              </p>
+            </div>
+
+            <div className="mt-10">
+              <RunComparison />
+            </div>
+            <div className="mt-8">
+              <RunComparisonLegend />
+            </div>
+          </div>
+        </section>
+
+        {/* 7. The equity half — deliberately the smaller half. */}
         <EquityBand />
 
-        {/* 7. Founders and investors, one question each. */}
+        {/* 8. Founders and investors, one question each. */}
         <AudienceSplit />
 
-        {/* 8. Where it is built and how it is run. */}
+        {/* 9. Where it is built and how it is run. */}
         <LogoBand />
 
-        {/* 9. Final CTA — one primary button, pricing as a text link. */}
+        {/* 10. Final CTA — one primary button, pricing as a text link. */}
         <FinalCTA />
 
-        {/* Entity footer strip — preserves the PPL Food entity line. */}
-        {/* 8. Entity strip — the page's second and last dark region, at
+        {/* 11. Entity strip — the page's second and last dark region, at
             the footer edge where a colour change reads as a boundary.
             Token-bound inside data-theme="dark" (globals.css rev.4), so
             text-muted resolves to #CBD5E1 on #0B0F1A (11.6:1) instead of

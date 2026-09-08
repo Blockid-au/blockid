@@ -95,7 +95,7 @@ export function compactSvi(
 ): CompactSvi {
   const dimensions: Record<string, number> =
     analysis.dimensionScores ??
-    Object.fromEntries(analysis.subs.map((s) => [s.key, s.score]));
+    Object.fromEntries(analysis.subs.map((s) => [s.key, s.value]));
   return {
     version: analysis.version,
     totalSVI: analysis.totalSVI,
