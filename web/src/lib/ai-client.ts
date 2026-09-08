@@ -997,14 +997,16 @@ async function callDeepInfra(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.DEEPINFRA_API_KEY ?? getDBKey("deepinfra")?.api_key ?? "";
   if (!apiKey) throw new Error("DeepInfra API key not configured");
 
-  // Ranked by quality-per-$ for financial / SVI reasoning (Sep 2026):
-  // DeepSeek V3 leads on numeric tables + legal parsing at $0.32/$0.89;
-  // Llama 3.3 70B is the cheap workhorse at $0.10/$0.32; Qwen 2.5 72B
-  // covers Vietnamese-language tasks better than either.
+  // Ranked by quality-per-$ for financial / SVI reasoning (Sep 2026).
+  // Model IDs VERIFIED live against /v1/openai/models on 2026-09-08:
+  // "meta-llama/Llama-3.3-70B-Instruct-Turbo" is the actual DeepInfra id
+  // (no "Meta-" prefix, "-Turbo" suffix). Prior "Meta-Llama-3.3-70B-Instruct"
+  // returned 404 during smoke test.
   const DEEPINFRA_MODELS = getDynamicModels("deepinfra", [
-    "deepseek-ai/DeepSeek-V3",              // S-tier reasoning, $0.32/$0.89
-    "meta-llama/Meta-Llama-3.3-70B-Instruct", // B-tier workhorse, $0.10/$0.32
-    "Qwen/Qwen2.5-72B-Instruct",             // B-tier, best Vietnamese quality
+    "deepseek-ai/DeepSeek-V3.2",             // S-tier reasoning — latest V3 checkpoint
+    "deepseek-ai/DeepSeek-V3.1",             // S-tier — previous V3 checkpoint (safety net)
+    "meta-llama/Llama-3.3-70B-Instruct-Turbo", // B-tier workhorse — verified ID
+    "Qwen/Qwen2.5-72B-Instruct",             // B-tier — best Vietnamese quality
   ]);
 
   let lastErr: Error | null = null;
