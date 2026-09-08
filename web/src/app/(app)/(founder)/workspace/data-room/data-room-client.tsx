@@ -224,6 +224,8 @@ export function DataRoomClient({
   const [generatedRoom, setGeneratedRoom] = React.useState<GeneratedDataRoom | null>(null);
   const [generating, setGenerating] = React.useState(false);
   const [shareLink, setShareLink] = React.useState<string | null>(null);
+  const [shareToken, setShareToken] = React.useState<string | null>(null);
+  const [revoking, setRevoking] = React.useState(false);
   const [sharingLoading, setSharingLoading] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
@@ -356,7 +358,14 @@ export function DataRoomClient({
       const data = await res.json();
       if (data.ok) {
         setGeneratedRoom(data.dataRoom);
-        showToast("Data room generated successfully");
+        const d = data.documents as
+          | { complete: number; total: number; missing: number }
+          | undefined;
+        showToast(
+          d
+            ? `Data room generated — ${d.complete} of ${d.total} documents written, ${d.missing} still need you.`
+            : "Data room generated successfully",
+        );
       } else {
         showToast(data.error ?? "Failed to generate data room", "error");
       }
@@ -378,9 +387,11 @@ export function DataRoomClient({
       const data = await res.json();
       if (data.ok) {
         setShareLink(data.url);
-        showToast("Shareable link created (expires in 30 days)");
+        setShareToken(data.token ?? null);
+        showToast("Investor link created — read-only, expires in 30 days");
       } else {
-        showToast(data.error ?? "Failed to create share link", "error");
+        // 409 no_data_room carries a human message; the bare error code does not.
+        showToast(data.message ?? data.error ?? "Failed to create share link", "error");
       }
     } catch {
       showToast("Failed to create share link. Please try again.", "error");
@@ -394,6 +405,29 @@ export function DataRoomClient({
       navigator.clipboard.writeText(shareLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  async function handleRevokeLink() {
+    if (!shareToken) return;
+    setRevoking(true);
+    try {
+      const res = await fetch(
+        `/api/investor-data-room?token=${encodeURIComponent(shareToken)}`,
+        { method: "DELETE" },
+      );
+      const data = await res.json();
+      if (data.ok) {
+        setShareLink(null);
+        setShareToken(null);
+        showToast("Investor link revoked — it now 404s for anyone holding it");
+      } else {
+        showToast(data.error ?? "Failed to revoke link", "error");
+      }
+    } catch {
+      showToast("Failed to revoke link. Please try again.", "error");
+    } finally {
+      setRevoking(false);
     }
   }
 
@@ -814,6 +848,22 @@ export function DataRoomClient({
                       <Copy strokeWidth={1.75} className="h-3.5 w-3.5" /> Copy
                     </span>
                   )}
+                </button>
+                <a
+                  href={shareLink}
+                  target="_blank"
+                  rel="noopener"
+                  className="shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700"
+                >
+                  Preview
+                </a>
+                <button
+                  type="button"
+                  onClick={handleRevokeLink}
+                  disabled={revoking || !shareToken}
+                  className="shrink-0 text-xs font-medium text-red-700 hover:text-red-800 disabled:opacity-50 cursor-pointer"
+                >
+                  {revoking ? "Revoking..." : "Revoke"}
                 </button>
               </div>
             )}
