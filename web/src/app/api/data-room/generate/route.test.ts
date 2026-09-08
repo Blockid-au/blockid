@@ -321,8 +321,11 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
     // svi_accounts: null (no data); shareholders: null (empty)
     state.responses = [{ data: null, error: null }, { data: null, error: null }];
     await POST();
-    // Only svi_accounts + shareholders should have been hit.
-    expect(state.fromCalls).toEqual(["svi_accounts", "shareholders"]);
+    // svi_accounts + shareholders for the read path, then data_rooms for the
+    // persist. The route used to charge 3 credits and write nothing, so the
+    // data_rooms write is the fix — if it disappears from this list the
+    // founder is paying for a result that is discarded again.
+    expect(state.fromCalls).toEqual(["svi_accounts", "shareholders", "data_rooms"]);
   });
 
   it("scopes svi_analyses / startup_metrics / svi_snapshots / svi_evidence on .eq('account_id', sviAccount.id) — never user.id", async () => {
@@ -802,7 +805,7 @@ describe("POST /api/data-room/generate — cap table + evidence composition", ()
 });
 
 describe("POST /api/data-room/generate — happy-path response envelope", () => {
-  it("200 { ok:true, dataRoom, creditsUsed:3.0, balance } — echoes composer output + post-charge balance verbatim", async () => {
+  it("200 { ok:true, dataRoomId, dataRoom, creditsUsed:3.0, balance } — echoes composer output, post-charge balance, and the persisted row id", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
     getProjectIdFromRequestMock.mockResolvedValue("proj-1");
@@ -821,6 +824,10 @@ describe("POST /api/data-room/generate — happy-path response envelope", () => 
     const body = await res.json();
     expect(body).toEqual({
       ok: true,
+      // null here because the fake supabase returns no row from the upsert;
+      // the real path returns the persisted data_rooms id so the client can
+      // link straight to the saved room.
+      dataRoomId: null,
       dataRoom: DATA_ROOM_SENTINEL,
       creditsUsed: 3.0,
       balance: 42.75,

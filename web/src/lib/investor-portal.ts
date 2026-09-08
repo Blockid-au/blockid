@@ -188,10 +188,18 @@ export async function getDealFlow(
   const limit = Math.min(filters.limit ?? 50, 200);
   const minScore = filters.minScore ?? prefs.min_svi ?? 0;
 
-  // Base query — scores table. Latest 500 verified rows above minScore.
+  // Base query — scores table. Latest 500 CONSENTED rows above minScore.
+  //
+  // `investor_visible` (migration 0122) defaults to false. Without this filter
+  // every founder who ran the free score on /score was surfaced here as deal
+  // flow — company name and score disclosed to investor and accelerator
+  // accounts without ever being asked. Consent is never assumed: a row must
+  // opt in explicitly. Deal flow reading empty is the correct state until
+  // founders publish, not a bug to route around.
   const { data: scoreRows, error: scoreErr } = await supabase
     .from("scores")
     .select("id, email, company_name, total_score, created_at")
+    .eq("investor_visible", true)
     .gte("total_score", minScore)
     .order("created_at", { ascending: false })
     .limit(500);

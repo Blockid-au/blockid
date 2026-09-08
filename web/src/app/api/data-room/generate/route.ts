@@ -238,8 +238,49 @@ export async function POST() {
     valuation,
   });
 
+  // Persist before returning. This endpoint charged 3 credits and then threw
+  // the result away — the caller got JSON, nothing was written, and a page
+  // refresh meant the founder had paid three credits for something that no
+  // longer existed. Charging for a result we discard is not acceptable, so the
+  // room is now saved and the row id is returned with it.
+  //
+  // Keyed on (user_id, project_id) so regenerating updates the founder's room
+  // rather than accumulating duplicates.
+  let dataRoomId: string | null = null;
+  try {
+    const { data: saved, error: saveErr } = await supabase
+      .from("data_rooms")
+      .upsert(
+        {
+          user_id: user.id,
+          project_id: projectId,
+          name: sviAccount?.startup_name ?? "Data room",
+          sections: dataRoom.sections,
+          completeness_score: dataRoom.overallCompleteness,
+          startup_name: (sviAccount?.startup_name as string | null) ?? null,
+          stage: (sviAccount?.current_stage as number) ?? 0,
+          last_generated_at: dataRoom.generatedAt,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,project_id" },
+      )
+      .select("id")
+      .maybeSingle();
+
+    if (saveErr) {
+      // Do not fail the request — the founder has already been charged and the
+      // room is in the response. Log loudly so the persistence gap is visible.
+      console.error("[blockid:data-room] generate persist failed", saveErr);
+    } else {
+      dataRoomId = (saved?.id as string | null) ?? null;
+    }
+  } catch (err) {
+    console.error("[blockid:data-room] generate persist threw", err);
+  }
+
   return NextResponse.json({
     ok: true,
+    dataRoomId,
     dataRoom,
     creditsUsed: 3.0,
     balance: spend.balance,

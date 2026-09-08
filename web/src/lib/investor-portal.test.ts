@@ -526,6 +526,22 @@ describe("investor-portal — getDealFlow", () => {
     expect(errorSpy.mock.calls[0][0]).toContain("dealflow scores read failed");
   });
 
+  // CONSENT (migration 0122). Deal flow must only ever surface founders who
+  // opted in. Before this filter, every /score run was disclosed to investor
+  // and accelerator accounts — company name and score — without being asked.
+  // If this test fails, non-consented founder data is being exposed again.
+  it("only queries scores the founder opted in to sharing", async () => {
+    state.queue.push({ data: { investor_prefs: null } });
+    state.queue.push({ data: [] });
+    const { getDealFlow } = await import("./investor-portal");
+    await getDealFlow("u-1");
+    const [, scoresCall] = state.calls;
+    expect(
+      scoresCall.eqs,
+      "dealflow must filter on investor_visible = true",
+    ).toContainEqual({ col: "investor_visible", val: true });
+  });
+
   it("caps limit at 200 (defence against huge N)", async () => {
     state.queue.push({ data: { investor_prefs: null } });
     state.queue.push({ data: [] });
