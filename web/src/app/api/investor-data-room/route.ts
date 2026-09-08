@@ -1,37 +1,68 @@
+// /api/investor-data-room — founder-side control plane for investor share links.
+//
+// WHAT CHANGED (2026-09-08). The previous implementation inserted
+// `account_id, email, token, title, is_active, view_count, expires_at` into
+// `data_rooms`. None of those columns exist on that table, so every single
+// "Share with investor" click returned 500 — the feature had never worked once.
+// The GET-by-token path filtered on the same phantom columns.
+//
+// The share record now lives in `data_room_access_tokens`, which already had
+// exactly the shape this needs: a unique `token`, `expires_at`, `is_active`,
+// `access_count`, `first_accessed` / `last_accessed`, and per-investor identity
+// (name / email / firm). `data_rooms.access_token` is a single scalar — one
+// link for every investor, and revoking it kills every share at once — so it is
+// deliberately not used as the credential. `data_rooms.is_public` is not
+// consulted anywhere: consent is the existence of a link the founder minted,
+// nothing else. (Migration 0125 cleared the one stale is_public=true row.)
+//
+//   POST   → mint a share link for the caller's data room
+//   GET    → list the caller's share links with view counts
+//   GET ?token=… → 307 to the public page (kept so old JSON links still land
+//                  somewhere useful; it redirects blind, so it is not an oracle)
+//   DELETE ?token=… → revoke a link the caller owns
+//
+// The investor-facing read is /s/dr/[token] — a rendered page, not JSON.
+
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { computeValuation, type ValuationInput } from "@/lib/valuation";
-import { newSlug } from "@/lib/slug";
-import { createHash } from "crypto";
+import {
+  mintShareToken,
+  resolveExpiry,
+  shareLinkState,
+  type ShareLinkRow,
+} from "@/lib/data-room";
 
 export const dynamic = "force-dynamic";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function siteUrl(): string {
+export function siteUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(
     /\/$/,
     "",
   );
 }
 
-function mapStage(numericStage: number): string {
-  if (numericStage <= 1) return "idea";
-  if (numericStage <= 2) return "validation";
-  if (numericStage <= 4) return "mvp";
-  return "growth";
+export function shareUrl(token: string): string {
+  return `${siteUrl()}/s/dr/${token}`;
 }
 
-function hashIp(ip: string): string {
-  return createHash("sha256").update(ip).digest("hex").slice(0, 16);
+interface ShareBody {
+  dataRoomId?: string;
+  investorName?: string;
+  investorEmail?: string;
+  investorFirm?: string;
+  expiresInDays?: number | null;
+}
+
+function trim(v: unknown, max = 200): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim();
+  return s ? s.slice(0, max) : null;
 }
 
 // ---------------------------------------------------------------------------
-// POST /api/investor-data-room — Generate a one-click shareable data room
+// POST — mint a share link
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
@@ -51,216 +82,112 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { title?: string; expiresInDays?: number } = {};
+  let body: ShareBody = {};
   try {
-    body = await request.json();
+    body = (await request.json()) as ShareBody;
   } catch {
-    // Empty body is fine — use defaults
+    // No body is fine — every field is optional.
   }
 
-  const accountId = user.id;
-  const email = user.email;
-
-  // ---- 1. Fetch SVI account + latest analysis ----
-  const { data: sviAccount } = await supabase
-    .from("svi_accounts")
-    .select("id, current_svi, current_stage, startup_name")
-    .eq("email", email)
+  // ── Resolve the room. Tenancy is enforced by user_id on the select, so a
+  //    caller cannot mint a link against somebody else's room by guessing an
+  //    id. ────────────────────────────────────────────────────────────────
+  let query = supabase
+    .from("data_rooms")
+    .select("id, name, startup_name, completeness_score")
+    .eq("user_id", user.id);
+  if (body.dataRoomId) query = query.eq("id", body.dataRoomId);
+  const { data: room } = await query
+    .order("updated_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  // ---- 2. Fetch latest snapshot for dimension scores ----
-  let dimensions: Record<string, number> | null = null;
-  if (sviAccount) {
-    const { data: snapshot } = await supabase
-      .from("svi_snapshots")
-      .select("dimension_scores")
-      .eq("account_id", sviAccount.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (snapshot?.dimension_scores) {
-      dimensions = snapshot.dimension_scores as Record<string, number>;
-    }
+  if (!room) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "no_data_room",
+        message:
+          "Generate your data room first — there is nothing to share yet.",
+      },
+      { status: 409 },
+    );
   }
 
-  // ---- 3. Compute valuation ----
-  let valuation = null;
-  if (sviAccount) {
-    const sviScore = (sviAccount.current_svi as number) ?? 100;
-    const numericStage = (sviAccount.current_stage as number) ?? 0;
+  const token = mintShareToken();
+  const expiresAt = resolveExpiry(body.expiresInDays);
 
-    // Fetch metrics for revenue data
-    const { data: metrics } = await supabase
-      .from("startup_metrics")
-      .select("mrr_aud, arr_aud, revenue_growth_pct, monthly_churn_pct, burn_rate_aud, runway_months")
-      .eq("account_id", sviAccount.id)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const input: ValuationInput = {
-      sviScore,
-      stage: mapStage(numericStage),
-      mrrAud: metrics?.mrr_aud ?? undefined,
-      arrAud: metrics?.arr_aud ?? undefined,
-      revenueGrowthPct: metrics?.revenue_growth_pct ?? undefined,
-      monthlyChurnPct: metrics?.monthly_churn_pct ?? undefined,
-      burnRateAud: metrics?.burn_rate_aud ?? undefined,
-      runwayMonths: metrics?.runway_months ?? undefined,
-      dimensions: dimensions
-        ? {
-            ftv: dimensions.ftv,
-            mpc: dimensions.mpc,
-            ptd: dimensions.ptd,
-            tre: dimensions.tre,
-            cgh: dimensions.cgh,
-            iri: dimensions.iri,
-            lco: dimensions.lco,
-            svm: dimensions.svm,
-          }
-        : undefined,
-    };
-    valuation = computeValuation(input);
-  }
-
-  // ---- 4. Fetch cap table ----
-  const [classesRes, holdersRes, esopRes] = await Promise.all([
-    supabase
-      .from("share_classes")
-      .select("*")
-      .eq("account_id", accountId)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("shareholders")
-      .select("*")
-      .eq("account_id", accountId)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("esop_pool")
-      .select("*")
-      .eq("account_id", accountId)
-      .maybeSingle(),
-  ]);
-
-  const shareClasses = classesRes.data ?? [];
-  const shareholders = holdersRes.data ?? [];
-  const esopPool = esopRes.data ?? null;
-
-  const totalIssued = shareholders.reduce(
-    (sum: number, s: { shares_held: number }) => sum + Number(s.shares_held),
-    0,
-  );
-  const esopShares = esopPool ? Number(esopPool.total_pool_shares) : 0;
-  const fullyDilutedTotal = totalIssued + esopShares;
-
-  const capTable = {
-    shareClasses,
-    shareholders: shareholders.map(
-      (s: { shares_held: number; [key: string]: unknown }) => ({
-        ...s,
-        ownership_pct:
-          fullyDilutedTotal > 0
-            ? Number(((Number(s.shares_held) / fullyDilutedTotal) * 100).toFixed(2))
-            : 0,
-      }),
-    ),
-    esopPool,
-    summary: {
-      totalIssued,
-      fullyDilutedTotal,
-      esopShares,
-    },
-  };
-
-  // ---- 5. Fetch evidence items ----
-  let evidence: unknown[] = [];
-  if (sviAccount) {
-    const { data: evidenceRows } = await supabase
-      .from("svi_evidence")
-      .select("id, label, dimension, evidence_type, confidence_level, created_at")
-      .eq("account_id", sviAccount.id)
-      .order("created_at", { ascending: false })
-      .limit(100);
-    evidence = evidenceRows ?? [];
-  }
-
-  // ---- 6. Fetch metrics ----
-  let metrics = null;
-  if (sviAccount) {
-    const { data: metricsRow } = await supabase
-      .from("startup_metrics")
-      .select("*")
-      .eq("account_id", sviAccount.id)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    metrics = metricsRow;
-  }
-
-  // ---- 7. Build sections ----
-  const sections = {
-    svi: sviAccount
-      ? {
-          score: sviAccount.current_svi,
-          stage: sviAccount.current_stage,
-          startupName: sviAccount.startup_name,
-          dimensions,
-        }
-      : null,
-    valuation,
-    capTable,
-    evidence,
-    metrics,
-  };
-
-  // ---- 8. Create shareable token and store ----
-  const token = newSlug();
-  const title = body.title || `${sviAccount?.startup_name ?? "BlockID"} Data Room`;
-  const expiresAt = body.expiresInDays
-    ? new Date(Date.now() + body.expiresInDays * 86_400_000).toISOString()
-    : null;
-
-  const { error: insertErr } = await supabase.from("data_rooms").insert({
-    account_id: accountId,
-    email,
-    token,
-    title,
-    sections,
-    is_active: true,
-    view_count: 0,
-    expires_at: expiresAt,
-  });
+  const { data: link, error: insertErr } = await supabase
+    .from("data_room_access_tokens")
+    .insert({
+      data_room_id: room.id,
+      account_id: user.id,
+      token,
+      investor_name: trim(body.investorName),
+      investor_email: trim(body.investorEmail),
+      investor_firm: trim(body.investorFirm),
+      access_level: "view",
+      is_active: true,
+      expires_at: expiresAt,
+    })
+    .select("id, created_at")
+    .maybeSingle();
 
   if (insertErr) {
-    console.error("[investor-data-room] insert failed", insertErr);
+    console.error("[blockid:investor-data-room] share insert failed", insertErr);
     return NextResponse.json(
-      { ok: false, error: "Failed to create data room" },
+      { ok: false, error: "Failed to create share link" },
       { status: 500 },
     );
   }
 
-  const url = `${siteUrl()}/api/investor-data-room?token=${token}`;
+  // Best-effort denormalised counter for the founder dashboard. Never fail the
+  // share on it — the link already exists at this point.
+  try {
+    const { data: active } = await supabase
+      .from("data_room_access_tokens")
+      .select("id")
+      .eq("data_room_id", room.id)
+      .eq("is_active", true);
+    await supabase
+      .from("data_rooms")
+      .update({ investor_count: (active ?? []).length })
+      .eq("id", room.id);
+  } catch (err) {
+    console.error("[blockid:investor-data-room] investor_count bump failed", err);
+  }
 
   return NextResponse.json({
     ok: true,
     token,
-    url,
-    sections: Object.keys(sections),
+    url: shareUrl(token),
+    dataRoomId: room.id,
+    shareId: link?.id ?? null,
+    expiresAt,
+    createdAt: link?.created_at ?? null,
   });
 }
 
 // ---------------------------------------------------------------------------
-// GET /api/investor-data-room?token=xxx — Public investor view (no auth)
+// GET — founder's link list, or a blind redirect for a legacy ?token= link
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const token = searchParams.get("token");
+  const token = new URL(request.url).searchParams.get("token");
 
-  if (!token) {
+  // Legacy share URLs pointed straight at this JSON endpoint. Redirect them to
+  // the rendered page. This runs before any DB read and before auth, so it
+  // reveals nothing about whether the token exists — /s/dr/[token] 404s on a
+  // bad one exactly like it would here.
+  if (token) {
+    return NextResponse.redirect(shareUrl(token), 307);
+  }
+
+  const user = await getCurrentUser();
+  if (!user) {
     return NextResponse.json(
-      { ok: false, error: "token query parameter is required" },
-      { status: 400 },
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
     );
   }
 
@@ -272,49 +199,85 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Fetch data room by token
-  const { data: room, error } = await supabase
-    .from("data_rooms")
-    .select("*")
-    .eq("token", token)
-    .eq("is_active", true)
-    .maybeSingle();
+  const { data: links } = await supabase
+    .from("data_room_access_tokens")
+    .select(
+      "id, token, data_room_id, investor_name, investor_email, investor_firm, access_count, first_accessed, last_accessed, expires_at, is_active, revoked_at, created_at",
+    )
+    .eq("account_id", user.id)
+    .order("created_at", { ascending: false });
 
-  if (error || !room) {
-    return NextResponse.json(
-      { ok: false, error: "Data room not found or inactive" },
-      { status: 404 },
-    );
-  }
-
-  // Check expiry
-  if (room.expires_at && new Date(room.expires_at as string) < new Date()) {
-    return NextResponse.json(
-      { ok: false, error: "This data room link has expired" },
-      { status: 410 },
-    );
-  }
-
-  // Track the view
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const viewerIpHash = hashIp(ip);
-
-  await Promise.all([
-    supabase.from("data_room_views").insert({
-      data_room_id: room.id,
-      viewer_ip_hash: viewerIpHash,
-    }),
-    supabase
-      .from("data_rooms")
-      .update({ view_count: (room.view_count as number) + 1 })
-      .eq("id", room.id),
-  ]);
+  const rows = (links ?? []) as Array<ShareLinkRow & Record<string, unknown>>;
 
   return NextResponse.json({
     ok: true,
-    title: room.title,
-    sections: room.sections,
-    createdAt: room.created_at,
-    viewCount: (room.view_count as number) + 1,
+    links: rows.map((l) => ({
+      id: l.id,
+      dataRoomId: l.data_room_id,
+      url: shareUrl(l.token as string),
+      investorName: l.investor_name ?? null,
+      investorEmail: l.investor_email ?? null,
+      investorFirm: l.investor_firm ?? null,
+      state: shareLinkState(l),
+      views: Number(l.access_count ?? 0),
+      firstAccessed: l.first_accessed ?? null,
+      lastAccessed: l.last_accessed ?? null,
+      expiresAt: l.expires_at ?? null,
+      createdAt: l.created_at ?? null,
+    })),
   });
+}
+
+// ---------------------------------------------------------------------------
+// DELETE ?token=… — revoke
+// ---------------------------------------------------------------------------
+
+export async function DELETE(request: NextRequest) {
+  const token = new URL(request.url).searchParams.get("token");
+  if (!token) {
+    return NextResponse.json(
+      { ok: false, error: "token query parameter is required" },
+      { status: 400 },
+    );
+  }
+
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { ok: false, error: "Database not configured" },
+      { status: 503 },
+    );
+  }
+
+  // Scoped by account_id: revoking somebody else's link and revoking a token
+  // that does not exist are indistinguishable to the caller.
+  const { data: updated, error } = await supabase
+    .from("data_room_access_tokens")
+    .update({ is_active: false, revoked_at: new Date().toISOString() })
+    .eq("token", token)
+    .eq("account_id", user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[blockid:investor-data-room] revoke failed", error);
+    return NextResponse.json(
+      { ok: false, error: "Failed to revoke share link" },
+      { status: 500 },
+    );
+  }
+
+  if (!updated) {
+    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true, revoked: true });
 }

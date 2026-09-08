@@ -28,15 +28,20 @@ import {
   type SampleRun,
 } from "./sample-runs";
 
-// Geometry. A wide viewBox leaves room for two-line axis labels without
-// clipping at 390px, where the SVG renders about 340px across.
-const VB_W = 400;
-const VB_H = 340;
-const CX = 200;
-const CY = 165;
-const R = 95; // radius at a score of 100
-const R_LABEL = 108;
+// Geometry. The viewBox is deliberately tight around the plot: an SVG
+// scales its type with its width, so a roomy viewBox would have rendered
+// eight-point axis labels at 390px. At this size the labels land near 11px
+// on a phone and near 15px on a desktop card capped at 400px — legible at
+// both ends without two copies of the chart.
+const VB_W = 340;
+const VB_H = 312;
+const CX = 170;
+const CY = 152;
+const R = 78; // radius at a score of 100
+const R_LABEL = 84;
 const RINGS = [25, 50, 75, 100];
+const AXIS_FONT = 12.5;
+const VALUE_FONT = 13;
 
 function point(index: number, value: number): [number, number] {
   const angle = ((-90 + index * 45) * Math.PI) / 180;
@@ -89,7 +94,7 @@ export function DimensionRadar({ run }: DimensionRadarProps) {
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         role="img"
         aria-labelledby={`${titleId} ${descId}`}
-        className="block h-auto w-full"
+        className="mx-auto block h-auto w-full max-w-[400px]"
       >
         <title id={titleId}>
           Eight scoring dimensions for a {run.stage.toLowerCase()} run
@@ -126,23 +131,25 @@ export function DimensionRadar({ run }: DimensionRadarProps) {
         {bands.map((b, i) => {
           if (b.measured === null) return null;
           const [x, y] = point(i, b.measured);
-          const layout = labelLayout(i);
-          const dx = layout.anchor === "end" ? -10 : layout.anchor === "start" ? 10 : 0;
+          // The value sits inboard of its dot, along the same axis. Hanging
+          // it outboard collides with the axis label on four of the eight
+          // spokes; the interior is empty, so inboard always has room.
+          const [lx, ly] = point(i, Math.max(0, b.measured - (15 / R) * 100));
           return (
             <g key={b.key}>
               <circle
                 cx={x}
                 cy={y}
-                r={5.5}
+                r={5}
                 className="fill-action stroke-surface"
                 strokeWidth={2}
               />
               <text
-                x={x + dx}
-                y={y - 10}
-                textAnchor={layout.anchor === "middle" ? "middle" : layout.anchor}
+                x={lx}
+                y={ly + VALUE_FONT / 3}
+                textAnchor="middle"
                 className="fill-primary font-semibold"
-                fontSize={12}
+                fontSize={VALUE_FONT}
               >
                 {b.measured}
               </text>
@@ -157,13 +164,13 @@ export function DimensionRadar({ run }: DimensionRadarProps) {
             <text
               key={b.key}
               x={x}
-              y={i === 0 ? y - 12 : y}
+              y={i === 0 ? y - (AXIS_FONT + 1) : y}
               textAnchor={anchor}
               className="fill-muted"
-              fontSize={11}
+              fontSize={AXIS_FONT}
             >
               <tspan x={x}>{b.lines[0]}</tspan>
-              <tspan x={x} dy={12}>
+              <tspan x={x} dy={AXIS_FONT + 1}>
                 {b.lines[1]}
               </tspan>
             </text>

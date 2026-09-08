@@ -9329,3 +9329,7 @@
 {"ts":"2026-09-08T13:12:24.754Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): migration 0125 — share-link revocation, view attribution, honest doc status (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:14:42.644Z","event":"github-push-master","detail":"Blockid-au: feat(home): rebuild the homepage around its own output (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:14:46.816Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): share-link + honest document composition helpers in lib/data-room (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:15:42.925Z","event":"github-push-master","detail":"Blockid-au: test(data-room): pin share-link state machine and honest document composition (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:20:47.087Z","event":"github-push-master","detail":"Blockid-au: feat(analyses): persist every intake run and let an account claim it (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:21:41.019Z","event":"github-push-master","detail":"Blockid-au: test(auth): pin claim-on-signup and claim-on-login into the route suites (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:22:39.194Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the row-size budget and the private-by-default flags (1 commits)","source":"github-webhook"}
