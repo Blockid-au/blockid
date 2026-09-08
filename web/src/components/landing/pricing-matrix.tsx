@@ -203,7 +203,7 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
       </div>
 
       <p className="mt-10 text-center text-xs text-brand-ink-muted">
-        AUD pricing, GST-exclusive. GST added at checkout on ATO tax invoice.
+        AUD pricing, GST-inclusive. Every charge produces an ATO tax invoice.
         {" "}{TRIAL_COPY.fine_print}
       </p>
       <p className="mx-auto mt-4 max-w-2xl border-t border-white/5 pt-4 text-center text-xs text-brand-ink-muted">

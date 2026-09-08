@@ -281,7 +281,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How does billing work?",
-    a: "Growth is available monthly at A$99/mo or annually at A$950/year (save 20%). Credit packs are one-off purchases. All prices are in AUD (GST-exclusive; GST added at checkout when applicable) and processed securely via Stripe.",
+    a: "Growth is available monthly at A$69/mo or annually at A$690/year (save 17%). Credit packs are one-off purchases. All prices are in AUD and GST-inclusive — the price you see is the price you pay, and every charge produces an ATO tax invoice. Payments are processed securely via Stripe.",
   },
   {
     q: "Can I cancel anytime?",
