@@ -71,8 +71,7 @@ export function SampleOutputs() {
   return (
     <section
       aria-labelledby="samples-heading"
-      className="border-t bg-surface py-16"
-      style={{ borderColor: "rgba(255,255,255,0.06)" }}
+      className="border-t border-line-subtle bg-surface py-16 sm:py-20"
     >
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
@@ -90,12 +89,12 @@ export function SampleOutputs() {
 
         <ul
           role="list"
-          className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
         >
           {SAMPLES.map((s) => (
             <li
               key={s.stage}
-              className="flex flex-col rounded-xl border border-line-subtle bg-surface p-5"
+              className="flex flex-col rounded-xl border border-line-subtle bg-surface-raised p-5 shadow-sm"
             >
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
                 {s.stage}
@@ -133,7 +132,7 @@ export function SampleOutputs() {
                           "linear-gradient(180deg, #FF9F0A 0%, rgba(255,159,10,0.55) 100%)",
                       }}
                     />
-                    <span className="font-mono text-[9px] uppercase tracking-wider text-muted">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
                       {b.label}
                     </span>
                   </div>

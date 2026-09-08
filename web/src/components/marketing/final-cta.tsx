@@ -17,10 +17,10 @@ export function FinalCTA({ className }: { className?: string }) {
   return (
     <section
       aria-labelledby="final-cta-heading"
-      className={cn("border-t border-line-subtle bg-surface py-20", className)}
+      className={cn("border-t border-line-subtle bg-surface py-20 sm:py-24", className)}
     >
       <div className="mx-auto max-w-3xl px-6 text-center">
-        <div className="rounded-2xl border border-line-DEFAULT bg-surface-sunken px-8 py-14 sm:px-14">
+        <div className="rounded-2xl border border-line-subtle bg-surface-sunken px-8 py-14 shadow-sm sm:px-14">
           <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-muted">
             Ready when you are
           </p>
@@ -32,8 +32,14 @@ export function FinalCTA({ className }: { className?: string }) {
             No credit card. 30 seconds to your first SVI.
           </h2>
 
+          {/* De-duplicated 2026-09-08: this line previously repeated the H2
+              verbatim ("Ready when you are. No credit card. 30 seconds to
+              your first SVI."), so the heading and body said the same
+              sentence twice. The body now adds what the heading cannot. */}
           <p className="mb-8 text-base leading-relaxed text-secondary">
-            Ready when you are. No credit card. 30 seconds to your first SVI.
+            Paste a deck, a URL, or a sentence about the idea. You get the SVI
+            score, the 4-method valuation range, and the prioritised next
+            actions — then decide whether to tokenize equity.
           </p>
 
           <div className="flex flex-col items-center gap-4">

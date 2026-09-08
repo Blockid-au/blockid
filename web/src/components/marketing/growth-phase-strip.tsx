@@ -57,20 +57,19 @@ export function GrowthPhaseStrip({
       data-testid="growth-phase-strip"
       data-variant={variant}
       className={
-        "border-b border-white/5 bg-[var(--fintech-surface,#0b1223)]/60 " +
-        (className ?? "")
+        "border-t border-line-subtle bg-surface-raised " + (className ?? "")
       }
     >
       <div className="mx-auto max-w-6xl px-4 py-4">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--fintech-ink-muted,#94a3b8)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
             {eyebrow}
           </p>
           {activeOrder != null && (
-            <p className="text-[11px] text-[var(--fintech-ink-muted,#94a3b8)]">
+            <p className="text-xs text-muted">
               Phase {activeOrder} of {phases.length}
               {" — "}
-              <span className="text-[var(--fintech-ink,#e2e8f0)]">
+              <span className="font-medium text-primary">
                 {phases[activeOrder - 1]?.title}
               </span>
             </p>
@@ -78,29 +77,29 @@ export function GrowthPhaseStrip({
         </div>
 
         {variant === "menu" ? (
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          <ul className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {phases.map((phase) => {
               const isActive = activeOrder === phase.order;
               const label = (
                 <span
                   className={
-                    "flex items-center gap-2 rounded px-2 py-1 text-xs " +
+                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs leading-snug transition-colors " +
                     (isActive
-                      ? "bg-white/10 text-[var(--fintech-ink,#e2e8f0)] font-semibold"
-                      : "text-[var(--fintech-ink-muted,#94a3b8)] hover:text-[var(--fintech-ink,#e2e8f0)]")
+                      ? "bg-surface-hover font-semibold text-primary"
+                      : "text-secondary hover:bg-surface-hover hover:text-primary")
                   }
                 >
                   <span
                     aria-hidden="true"
-                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
-                    style={{
-                      backgroundColor: isActive ? phase.color : "rgba(255,255,255,0.08)",
-                      color: isActive ? "white" : "var(--fintech-ink-muted,#94a3b8)",
-                    }}
+                    className={
+                      "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums " +
+                      (isActive ? "text-white" : "bg-surface-hover text-secondary")
+                    }
+                    style={isActive ? { backgroundColor: phase.color } : undefined}
                   >
                     {phase.order}
                   </span>
-                  <span className="truncate">{phase.title}</span>
+                  <span>{phase.title}</span>
                 </span>
               );
               return (
@@ -131,12 +130,12 @@ export function GrowthPhaseStrip({
                   <span
                     title={`Phase ${phase.order}: ${phase.title} — ${phase.subtitle}`}
                     className={
-                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors " +
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors " +
                       (isActive
                         ? "border-transparent text-white shadow-sm"
                         : isPast
                           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-                          : "border-white/10 bg-white/5 text-[var(--fintech-ink-muted,#94a3b8)]")
+                          : "border-line-subtle bg-surface-hover text-secondary")
                     }
                     style={
                       isActive
@@ -144,7 +143,7 @@ export function GrowthPhaseStrip({
                         : undefined
                     }
                   >
-                    <span aria-hidden="true" className="font-mono text-[10px]">
+                    <span aria-hidden="true" className="font-mono text-[11px] tabular-nums">
                       {isPast ? "✓" : phase.order}
                     </span>
                     <span className="hidden sm:inline">{phase.title}</span>
