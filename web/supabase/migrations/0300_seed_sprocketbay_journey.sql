@@ -493,6 +493,28 @@ BEGIN
      'auto', 'pending', 'P0', 'SAMPLE DATA — S5. Started the L5 step: authorising BlockID to re-check the registry, the accounting ledger and the audit opinion on a schedule. Sitting with a reviewer as at the walkthrough date.',
      timestamptz '2026-07-14 00:00:00+00');
 
+  -- Content behind the checklist (see 0126). These rows used to claim
+  -- status='complete' with no file_url and no template_content — a full index
+  -- with nothing behind it, which reads worse to an investor than an honest
+  -- gap list. Turn each row's narrative into an actual readable sample
+  -- document so 'complete' means something here too.
+  UPDATE public.data_room_documents
+     SET template_content =
+           '# ' || document_name || ' — sample' || E'\n\n' ||
+           '**Sprocketbay Demo Co · ' || folder || '**' || E'\n\n' ||
+           'This is illustrative content from the BlockID walkthrough, not a real ' ||
+           'company document. It shows the shape and level of detail an investor ' ||
+           'should expect behind this item in a live data room.' || E'\n\n' ||
+           '## What the founder did' || E'\n\n' ||
+           regexp_replace(notes, '^SAMPLE DATA — S[0-9]+\. ', '') || E'\n\n' ||
+           '## What an investor should check' || E'\n\n' ||
+           '- Is this the current version, and when was it last updated?' || E'\n' ||
+           '- Who prepared or executed it, and is that party independent where it needs to be?' || E'\n' ||
+           '- Does it agree with the cap table, the metrics and the SVI evidence elsewhere in this room?',
+         updated_at = now()
+   WHERE data_room_id = room_id
+     AND notes LIKE 'SAMPLE DATA%';
+
   INSERT INTO public.evaluation_criteria (
     account_id, project_id, criterion_key, files, links,
     text_input, ai_score, ai_summary,
