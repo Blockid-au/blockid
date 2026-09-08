@@ -69,6 +69,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "stripe_env_var": "STRIPE_PRICE_FOUNDER_GROWTH",
     "feature_flags": [
       "profile.multi",
+      "svi.premium",
       "cap_table.write",
       "data_room.access",
       "investor_links.premium",
@@ -96,6 +97,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "stripe_env_var": "STRIPE_PRICE_FOUNDER_SCALE",
     "feature_flags": [
       "profile.multi",
+      "svi.premium",
       "cap_table.write",
       "data_room.access",
       "investor_links.premium",
@@ -131,10 +133,14 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "stripe_env_var": "STRIPE_PRICE_FOUNDER_ENTERPRISE",
     "feature_flags": [
       "profile.multi",
+      "svi.premium",
       "cap_table.write",
       "data_room.access",
       "investor_links.premium",
       "term_sheet_ai",
+      "share_management",
+      "investor_pack",
+      "per_investor_share_links",
       "esop.manage",
       "blockchain.sync",
       "advisor_portal",

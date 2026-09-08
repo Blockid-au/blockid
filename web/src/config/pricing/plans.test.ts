@@ -226,3 +226,41 @@ describe("PRC-ACC — Accelerator per-cohort SKUs", () => {
     expect(p.stripe_env_var).toBe("STRIPE_PRICE_ACCEL_ENTERPRISE");
   });
 });
+
+// ── tier supersetting (regression) ──────────────────────────────────────────
+
+describe("founder ladder — a higher tier never has fewer features", () => {
+  // founder_enterprise was missing share_management, investor_pack and
+  // per_investor_share_links while founder_growth — a cheaper tier — had all
+  // three. A top tier holding fewer features than the one below it is never
+  // intentional, and it meant the one live Enterprise account was 402'd out of
+  // the data room. Paired with migration 0127, which resynced the DB (which is
+  // what getEntitlements actually reads) back to this file.
+  const ladder = ["founder_starter", "founder_growth", "founder_enterprise"] as const;
+
+  function flagsFor(id: string): string[] {
+    const plan = GENERATED_PLANS.find((p) => p.id === id);
+    if (!plan) throw new Error(`plan ${id} missing from GENERATED_PLANS`);
+    return plan.feature_flags as string[];
+  }
+
+  for (let i = 1; i < ladder.length; i += 1) {
+    const lower = ladder[i - 1];
+    const higher = ladder[i];
+    it(`${higher} is a superset of ${lower}`, () => {
+      const lowerFlags = flagsFor(lower);
+      const higherFlags = new Set(flagsFor(higher));
+      const missing = lowerFlags.filter((f) => !higherFlags.has(f));
+      expect(missing, `${higher} is missing ${missing.join(", ")}`).toEqual([]);
+    });
+  }
+
+  it("gates the data room on the tiers that advertise it", () => {
+    // share_management gates POST /api/data-room/generate. If it is absent
+    // from a tier that sells a data room, that tier 402s on its own feature.
+    for (const id of ["founder_growth", "founder_scale", "founder_enterprise"]) {
+      expect(flagsFor(id), `${id} must grant share_management`).toContain("share_management");
+      expect(flagsFor(id), `${id} must grant data_room.access`).toContain("data_room.access");
+    }
+  });
+});
