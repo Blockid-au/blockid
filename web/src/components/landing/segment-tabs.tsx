@@ -108,15 +108,10 @@ export function SegmentTabs({
   return (
     <SegmentContext.Provider value={ctx}>
       <div
-        // Intentional dark island — SegmentTabs is only rendered inside the
-        // lux marketing shell (pricing page, homepage v2). data-theme="dark"
-        // self-scope keeps its legacy brand-navy/brand-gold/brand-ink*
-        // utilities resolving to the dark palette.
-        data-theme="dark"
         className={
           sticky
-            ? "sticky top-16 z-30 -mx-4 border-y border-brand-gold/10 bg-brand-navy/85 px-4 backdrop-blur"
-            : "border-y border-brand-gold/10"
+            ? "sticky top-16 z-30 -mx-4 border-y border-line-subtle bg-surface/85 px-4 backdrop-blur"
+            : "border-y border-line-subtle"
         }
         role="tablist"
         aria-label="Choose your role"
@@ -139,10 +134,10 @@ export function SegmentTabs({
                 onClick={() => setSegment(t.id)}
                 onKeyDown={(e) => onTabKeyDown(e, index)}
                 className={[
-                  "group relative flex min-w-[8rem] flex-1 flex-col items-start rounded-lg px-4 py-2.5 text-left transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy sm:min-w-[10rem]",
+                  "group relative flex min-w-[8rem] flex-1 flex-col items-start rounded-lg px-4 py-2.5 text-left transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:min-w-[10rem]",
                   active
-                    ? "bg-brand-gold text-brand-navy shadow-[0_0_24px_-8px_rgba(201,169,97,0.55)]"
-                    : "border-b-2 border-transparent text-brand-ink-muted hover:-translate-y-[1px] hover:border-brand-cyan hover:text-brand-ink",
+                    ? "bg-action text-on-action shadow-sm"
+                    : "border-b-2 border-transparent text-secondary hover:-translate-y-[1px] hover:border-action hover:text-primary",
                 ].join(" ")}
               >
                 <span
@@ -157,8 +152,8 @@ export function SegmentTabs({
                 <span
                   className={
                     active
-                      ? "text-xs text-brand-navy/75"
-                      : "text-xs text-brand-ink-muted"
+                      ? "text-xs text-on-action/85"
+                      : "text-xs text-tertiary"
                   }
                 >
                   {t.sub}

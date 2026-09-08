@@ -36,12 +36,12 @@ export function LogoCloud({
   return (
     <section
       aria-labelledby="logo-cloud-title"
-      className={`border-y border-surface-200 bg-surface-100 ${className}`.trim()}
+      className={`border-y border-line-subtle bg-surface-sunken ${className}`.trim()}
     >
       <div className={`mx-auto max-w-7xl px-6 ${sectionPadding}`}>
         <p
           id="logo-cloud-title"
-          className="text-center text-xs uppercase tracking-[0.2em] text-ink-600 font-medium"
+          className="text-center text-xs uppercase tracking-[0.2em] text-tertiary font-medium"
         >
           {resolved.label ?? "Working with"}
         </p>
@@ -67,19 +67,18 @@ interface PartnerTileProps {
 
 function PartnerTile({ entry, compact, tone }: PartnerTileProps) {
   const height = compact ? "h-8" : "h-10";
-  // Focus ring / hover contrast pair — light for surface-100 bands, fintech
-  // accent for the lux hero.
+  // Focus ring / hover contrast pair. The "lux" tone name is historical —
+  // both tones now resolve against the light-first semantic ramp.
   const ringToken =
     tone === "lux"
-      ? "focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+      ? "focus-visible:ring-action focus-visible:ring-offset-surface"
       : "focus-visible:ring-brand-500 focus-visible:ring-offset-surface-100";
-  // Legacy `text-brand-ink*` swapped for raw white/alpha so the lux branch
-  // no longer references the deprecated brand-ink Tailwind token. Visually
-  // identical because --color-brand-ink resolves to #F8FAFC ≈ white.
+  // Semantic ink only — the old `text-brand-ink*` pair was a fixed
+  // near-white hex and went invisible once the shell stopped being dark.
   const inkClass =
     tone === "lux"
-      ? "text-white/70 hover:text-white"
-      : "text-ink-600 hover:text-ink-800";
+      ? "text-muted hover:text-primary"
+      : "text-tertiary hover:text-secondary";
   const linkClass = [
     "inline-flex items-center justify-center rounded-md px-3 py-1",
     "opacity-60 transition duration-200 hover:opacity-100",

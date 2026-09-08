@@ -85,11 +85,11 @@ function writeDismiss(key: string): void {
 
 const TONE_CLASS: Record<string, string> = {
   accent:
-    "bg-[var(--fintech-accent,#22d3ee)] text-[var(--fintech-bg-primary,#0b1120)] hover:bg-[var(--fintech-accent-hover,#67e8f9)]",
+    "bg-action text-on-action hover:bg-action",
   amber:
-    "bg-amber-500 text-white hover:bg-amber-600",
+    "bg-amber-500 text-primary hover:bg-amber-600",
   emerald:
-    "bg-emerald-600 text-white hover:bg-emerald-700",
+    "bg-emerald-600 text-primary hover:bg-emerald-700",
 };
 
 export function StickyCta({
@@ -149,7 +149,7 @@ export function StickyCta({
       aria-label="Conversion call to action"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 sm:inset-x-auto sm:right-6 sm:bottom-6"
     >
-      <div className="pointer-events-auto flex items-stretch gap-2 border-t border-white/10 bg-[var(--fintech-bg-elevated,#111827)]/95 p-3 shadow-2xl backdrop-blur sm:rounded-2xl sm:border sm:border-white/10 sm:p-2 sm:pr-3">
+      <div className="pointer-events-auto flex items-stretch gap-2 border-t border-line-subtle bg-surface-sunken/95 p-3 shadow-2xl backdrop-blur sm:rounded-2xl sm:border sm:border-line-subtle sm:p-2 sm:pr-3">
         <Link
           href={href}
           onClick={handleClick}
@@ -170,7 +170,7 @@ export function StickyCta({
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss call to action"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent,#22d3ee)]"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted transition-colors hover:bg-surface-sunken hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           <X aria-hidden="true" className="h-4 w-4" />
         </button>

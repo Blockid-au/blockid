@@ -149,7 +149,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         <div className="min-h-[24px]">
           <a
             href="#pricing-matrix"
-            className="text-sm font-medium text-[var(--fintech-accent)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)] rounded"
+            className="text-sm font-medium text-action underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface rounded"
           >
             See all 12 plans below ↓
           </a>
@@ -157,13 +157,13 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
       </section>
 
       {/* P1 audit (2026-08-23) — trust row directly under the primary CTA.
-          Each item stays small text-ink-500 so it never competes with the
-          hero button. `text-ink-500` is the fintech token equivalent. */}
+          Each item stays small text-tertiary so it never competes with the
+          hero button. `text-tertiary` is the fintech token equivalent. */}
       <section
         aria-label="Pricing trust row"
         className="mx-auto max-w-5xl px-6 pb-3"
       >
-        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--fintech-ink-muted)]">
+        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-secondary">
           <li>Cancel any time</li>
           <li aria-hidden="true">&middot;</li>
           <li>AUD pricing, GST-exclusive</li>
@@ -178,21 +178,21 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         aria-label="Pricing guarantees"
         className="mx-auto max-w-5xl px-6 pb-4"
       >
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-[var(--fintech-ink-muted)]">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-secondary">
           <span className="inline-flex items-center gap-2">
-            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            <Check aria-hidden="true" className="h-4 w-4 text-action" />
             7-day free trial (Growth + Pro)
           </span>
           <span className="inline-flex items-center gap-2">
-            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            <Check aria-hidden="true" className="h-4 w-4 text-action" />
             14-day pilot on request (Accelerator / VC / Enterprise)
           </span>
           <span className="inline-flex items-center gap-2">
-            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            <Check aria-hidden="true" className="h-4 w-4 text-action" />
             No lock-in — cancel any time
           </span>
           <span className="inline-flex items-center gap-2">
-            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            <Check aria-hidden="true" className="h-4 w-4 text-action" />
             AUD pricing, GST-exclusive. GST added at checkout on ATO tax invoice.
           </span>
         </div>
@@ -233,8 +233,8 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         kicker="Enterprise"
       >
         <div className="flex flex-col items-start gap-6 text-center sm:items-center">
-          <Building2 aria-hidden="true" className="h-10 w-10 text-[var(--fintech-accent)]" />
-          <p className="max-w-xl text-[var(--fintech-ink-muted)]">
+          <Building2 aria-hidden="true" className="h-10 w-10 text-action" />
+          <p className="max-w-xl text-secondary">
             Enterprise multi-entity plans with SSO, API access, dedicated
             CSM, or our compliance-gated equity-for-solution arrangement
             (5–10% equity in lieu of cash).
@@ -255,7 +255,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         }}
       />
 
-      <p className="mx-auto mb-16 max-w-5xl px-6 text-center text-xs text-[var(--fintech-ink-muted)]">
+      <p className="mx-auto mb-16 max-w-5xl px-6 text-center text-xs text-secondary">
         Not financial advice. Equity arrangements require independent legal
         and tax review. Auschain PTY LTD · Sydney NSW.
       </p>
@@ -313,13 +313,13 @@ function ContactSalesRow() {
       className="mx-auto max-w-7xl px-6 py-8 scroll-mt-24"
     >
       <div className="mb-6 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-action">
           Cohorts, funds, and multi-entity groups
         </p>
-        <h2 className="mt-2 font-display text-2xl font-semibold text-[var(--fintech-ink)]">
+        <h2 className="mt-2 font-display text-2xl font-semibold text-primary">
           Talk to sales for a bespoke fit
         </h2>
-        <p className="mt-2 text-sm text-[var(--fintech-ink-muted)]">
+        <p className="mt-2 text-sm text-secondary">
           14-day pilot on request. Every tier below includes a demo call
           with our founder team.
         </p>
@@ -329,18 +329,18 @@ function ContactSalesRow() {
           <Link
             key={tier.slug}
             href={`/contact?plan=${tier.slug}&contact_reason=${tier.slug}`}
-            className="flex flex-col rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-6 transition-colors hover:border-[var(--fintech-accent)]"
+            className="flex flex-col rounded-2xl border border-line-subtle bg-surface-raised p-6 transition-colors hover:border-action"
           >
-            <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fintech-accent)]">
+            <p className="text-sm font-semibold uppercase tracking-wide text-action">
               {tier.label}
             </p>
-            <p className="mt-2 font-display text-xl font-semibold text-[var(--fintech-ink)]">
+            <p className="mt-2 font-display text-xl font-semibold text-primary">
               {tier.price}
             </p>
-            <p className="mt-3 flex-1 text-sm text-[var(--fintech-ink-muted)]">
+            <p className="mt-3 flex-1 text-sm text-secondary">
               {tier.blurb}
             </p>
-            <span className="mt-4 text-sm font-medium text-[var(--fintech-accent)]">
+            <span className="mt-4 text-sm font-medium text-action">
               Contact sales →
             </span>
           </Link>

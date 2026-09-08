@@ -155,37 +155,32 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
   return (
     <section
       id="pricing-anchor"
-      // Intentional dark island — PricingMatrix is only rendered inside the
-      // lux marketing shell (pricing page, homepage v2). data-theme="dark"
-      // self-scope keeps its legacy brand-* utilities resolving to the dark
-      // palette regardless of the outer page.
-      data-theme="dark"
       className="mx-auto max-w-7xl scroll-mt-16 px-4 py-16 sm:py-20"
       aria-labelledby="pricing-matrix-heading"
     >
       <div className="mb-10 flex flex-col items-center text-center">
-        <span className="mb-3 inline-flex items-center rounded-full border border-brand-cyan/40 bg-brand-cyan/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-cyan">
+        <span className="mb-3 inline-flex items-center rounded-full border border-action/40 bg-action/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-action">
           Beta pricing
         </span>
         <h2
           id="pricing-matrix-heading"
-          className="lux-heading text-3xl font-semibold sm:text-4xl"
+          className="text-3xl font-semibold text-primary sm:text-4xl"
         >
           {intro.headline}
         </h2>
-        <p className="mt-3 max-w-2xl text-base text-brand-ink-muted">
+        <p className="mt-3 max-w-2xl text-base text-secondary">
           {intro.sub}
         </p>
 
         <IntervalToggle value={interval} onChange={setInterval} />
       </div>
 
-      <p className="mx-auto mb-6 max-w-3xl text-center text-sm text-brand-ink/80">
+      <p className="mx-auto mb-6 max-w-3xl text-center text-sm text-secondary">
         {intro.roleFit}
       </p>
 
       {intro.note && (
-        <p className="mx-auto mb-8 max-w-3xl rounded-lg border border-brand-cyan/20 bg-brand-navy-elev-1/60 px-4 py-3 text-center text-sm text-brand-ink-muted">
+        <p className="mx-auto mb-8 max-w-3xl rounded-lg border border-action/20 bg-action/5 px-4 py-3 text-center text-sm text-secondary">
           {intro.note}
         </p>
       )}
@@ -202,11 +197,11 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
         ))}
       </div>
 
-      <p className="mt-10 text-center text-xs text-brand-ink-muted">
+      <p className="mt-10 text-center text-xs text-tertiary">
         AUD pricing, GST-inclusive. Every charge produces an ATO tax invoice.
         {" "}{TRIAL_COPY.fine_print}
       </p>
-      <p className="mx-auto mt-4 max-w-2xl border-t border-white/5 pt-4 text-center text-xs text-brand-ink-muted">
+      <p className="mx-auto mt-4 max-w-2xl border-t border-line-subtle pt-4 text-center text-xs text-tertiary">
         Not financial advice. Plan information is general in nature and does
         not account for your objectives or financial situation — seek
         independent advice before subscribing.
@@ -228,7 +223,7 @@ function IntervalToggle({
     <div
       role="radiogroup"
       aria-label="Billing interval"
-      className="mt-6 inline-flex items-center rounded-full border border-brand-gold/20 bg-brand-navy-elev-1/60 p-1"
+      className="mt-6 inline-flex items-center rounded-full border border-line-subtle bg-surface-sunken p-1"
     >
       <ToggleButton
         active={value === "monthly"}
@@ -263,10 +258,10 @@ function ToggleButton({
       aria-checked={active}
       onClick={onClick}
       className={[
-        "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy",
+        "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
         active
-          ? "bg-brand-gold text-brand-navy shadow-[0_0_18px_-6px_rgba(201,169,97,0.6)]"
-          : "text-brand-ink-muted hover:text-brand-ink",
+          ? "bg-action text-on-action shadow-sm"
+          : "text-secondary hover:text-primary",
       ].join(" ")}
     >
       {label}
@@ -275,8 +270,8 @@ function ToggleButton({
           className={[
             "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
             active
-              ? "bg-brand-navy/20 text-brand-navy"
-              : "bg-brand-cyan/10 text-brand-cyan",
+              ? "bg-surface text-action"
+              : "bg-action/10 text-action",
           ].join(" ")}
         >
           {badge}
@@ -343,10 +338,10 @@ function PlanCard({
     <article
       id={anchorId}
       className={[
-        "lux-card relative flex min-h-96 flex-col p-8 transition-all duration-200 ease-out scroll-mt-24",
+        "relative flex min-h-96 flex-col rounded-2xl border bg-surface-raised p-8 transition-all duration-200 ease-out scroll-mt-24",
         plan.most_popular
-          ? "lux-glow-gold border-brand-gold/40 -translate-y-1"
-          : "hover:-translate-y-1 hover:border-brand-cyan/25",
+          ? "border-action shadow-md ring-1 ring-action -translate-y-1"
+          : "border-line-subtle shadow-sm hover:-translate-y-1 hover:border-line",
       ].join(" ")}
       aria-label={`${plan.name} plan`}
     >
@@ -354,15 +349,15 @@ function PlanCard({
         <span id={legacyAnchorId} aria-hidden="true" className="sr-only" />
       )}
       {plan.most_popular && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-gold px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-navy shadow-lg">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-action px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-on-action shadow-md">
           Most popular
         </span>
       )}
 
       <header className="mb-6">
-        <h3 className="text-xl font-semibold text-brand-gold">{plan.name}</h3>
+        <h3 className="text-xl font-semibold text-primary">{plan.name}</h3>
         {plan.tagline && (
-          <p className="mt-1 text-xs uppercase tracking-wide text-brand-ink-muted">
+          <p className="mt-1 text-xs uppercase tracking-wide text-tertiary">
             {plan.tagline}
           </p>
         )}
@@ -370,34 +365,34 @@ function PlanCard({
 
       <div className="mb-4">
         <div className="flex items-baseline gap-1">
-          <span className="text-5xl font-semibold text-brand-ink tabular-nums">
+          <span className="text-5xl font-semibold text-primary tabular-nums">
             {priceLabel}
           </span>
           {!isCustom && (
-            <span className="text-sm text-brand-ink-muted">
+            <span className="text-sm text-secondary">
               /{interval === "annual" ? "yr" : "mo"}
             </span>
           )}
         </div>
-        <p className="mt-1 text-xs text-brand-ink-muted">
+        <p className="mt-1 text-xs text-tertiary">
           {isCustom
             ? "Volume pricing on request"
             : `Billed ${interval === "annual" ? "annually" : "monthly"}`}
         </p>
         {interval === "annual" && saving !== null && saving > 0 && (
-          <p className="mt-1 text-xs font-medium text-brand-cyan">
+          <p className="mt-1 text-xs font-medium text-action">
             Save {saving}% vs monthly
           </p>
         )}
       </div>
 
       {plan.trial_days > 0 && (
-        <span className="mb-5 inline-flex w-fit items-center rounded-full border border-brand-gold/30 bg-brand-gold/10 px-2.5 py-0.5 text-[11px] font-medium text-brand-gold">
+        <span className="mb-5 inline-flex w-fit items-center rounded-full border border-action/30 bg-action/10 px-2.5 py-0.5 text-[11px] font-medium text-action">
           {plan.trial_days}-day free trial
         </span>
       )}
 
-      <ul className="mb-8 flex-1 space-y-2.5 text-sm text-brand-ink/90">
+      <ul className="mb-8 flex-1 space-y-2.5 text-sm text-secondary">
         {plan.features.map((f) => (
           <li key={f} className="flex items-start gap-2">
             <CheckIcon />
@@ -410,10 +405,10 @@ function PlanCard({
         href={ctaHref}
         onClick={handleCtaClick}
         className={[
-          "mt-auto inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy",
+          "mt-auto inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
           isContact
-            ? "border border-brand-cyan text-brand-cyan hover:bg-brand-cyan hover:text-brand-navy"
-            : "bg-brand-gold text-brand-navy hover:brightness-110",
+            ? "border border-action text-action hover:bg-action hover:text-on-action"
+            : "bg-action text-on-action hover:bg-action-hover",
         ].join(" ")}
         aria-label={`${ctaLabel} — ${plan.name}`}
       >
@@ -428,7 +423,7 @@ function CheckIcon() {
     <svg
       aria-hidden="true"
       viewBox="0 0 20 20"
-      className="mt-0.5 h-4 w-4 flex-none text-brand-cyan"
+      className="mt-0.5 h-4 w-4 flex-none text-action"
       fill="none"
       stroke="currentColor"
       strokeWidth="2.25"

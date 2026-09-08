@@ -42,16 +42,16 @@ const FAQS: FAQItem[] = [
 
 export const FAQV2: FC = () => {
   return (
-    <section id="faq" className="w-full py-24 px-6 md:px-10 bg-brand-navy">
+    <section id="faq" className="w-full py-24 px-6 md:px-10 bg-surface-sunken">
       <div className="mx-auto max-w-5xl">
         <div className="text-center mb-14">
-          <p className="text-xs uppercase tracking-[0.2em] text-brand-gold mb-3">
+          <p className="text-xs uppercase tracking-[0.2em] text-action mb-3">
             Frequently Asked
           </p>
-          <h2 className="text-3xl md:text-4xl font-semibold text-brand-ink">
+          <h2 className="text-3xl md:text-4xl font-semibold text-primary">
             Questions we hear from founders and investors
           </h2>
-          <p className="mt-4 text-brand-ink-muted max-w-2xl mx-auto">
+          <p className="mt-4 text-secondary max-w-2xl mx-auto">
             Everything you need to know about trials, billing, equity, and compliance.
           </p>
         </div>
@@ -60,27 +60,27 @@ export const FAQV2: FC = () => {
           {FAQS.map((item, i) => (
             <details
               key={i}
-              className="lux-card group p-6 open:border-brand-gold/30 transition-colors"
+              className="group rounded-2xl border border-line-subtle bg-surface-raised p-6 shadow-sm transition-colors open:border-action/40"
             >
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-4 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan">
-                <h3 className="text-base md:text-lg font-medium text-brand-gold pr-2">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-4 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-action">
+                <h3 className="text-base md:text-lg font-medium text-primary pr-2">
                   {item.q}
                 </h3>
                 <span
                   aria-hidden
-                  className="mt-1 flex-shrink-0 h-6 w-6 rounded-full border border-brand-gold/40 text-brand-gold flex items-center justify-center text-sm transition-transform group-open:rotate-45"
+                  className="mt-1 flex-shrink-0 h-6 w-6 rounded-full border border-action/40 text-action flex items-center justify-center text-sm transition-transform group-open:rotate-45"
                 >
                   +
                 </span>
               </summary>
-              <p className="mt-4 text-sm md:text-base text-brand-ink-muted leading-relaxed">
+              <p className="mt-4 text-sm md:text-base text-secondary leading-relaxed">
                 {item.a}
               </p>
             </details>
           ))}
         </div>
 
-        <p className="mt-10 text-center text-xs text-brand-ink-muted max-w-2xl mx-auto">
+        <p className="mt-10 text-center text-xs text-tertiary max-w-2xl mx-auto">
           Information provided on this page is general in nature and does not
           constitute financial, legal, or tax advice. Consult a licensed
           professional before making decisions about securities, equity, or tax
