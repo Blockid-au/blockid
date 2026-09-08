@@ -842,7 +842,14 @@ body {
    was tried first and failed: the child (SmartIntake's card) is an
    opaque bg-surface-raised panel at inset 0 and painted straight
    over the masked border, so the ring never registered. Padding
-   physically insets the child, so the band cannot be covered. */
+   physically insets the child, so the band cannot be covered.
+
+   `.asf-wrap` must NOT declare border-radius here. This rule is
+   unlayered, so it outranks Tailwind's layered `rounded-*`
+   utilities; a `border-radius: inherit` here silently pinned every
+   ring to the *parent's* radius (0) and drew a square band behind a
+   rounded child. The radius now comes from the component's `radius`
+   prop, and ::before inherits it from .asf-wrap. */
 @property --asf-angle {
   syntax: '<angle>';
   initial-value: 0deg;
@@ -853,7 +860,6 @@ body {
 }
 .asf-wrap {
   background: transparent;
-  border-radius: inherit;
   padding: var(--asf-thickness, 3px);
   isolation: isolate;
 }

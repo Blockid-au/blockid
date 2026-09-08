@@ -128,3 +128,24 @@ describe("SmartIntake static render", () => {
     expect(out).toMatch(/upload/i);
   });
 });
+
+describe("SmartIntake pill shell", () => {
+  const out = renderToStaticMarkup(<SmartIntake />);
+
+  // The ring is AnimatedSearchFrame's padding band. If the child does not
+  // carry the same radius the band shows a square shoulder outside a
+  // rounded child — the exact defect the pill redesign fixed.
+  it("frame and field agree on the corner radius", () => {
+    expect(out).toContain("rounded-[1.75rem] sm:rounded-full");
+    expect(out).toContain("rounded-[inherit]");
+  });
+
+  it("keeps the rotating ring wrapper", () => {
+    expect(out).toContain("asf-wrap");
+  });
+
+  it("still exposes the file input and a labelled text input", () => {
+    expect(out).toContain('id="smart-intake-file"');
+    expect(out).toContain('for="smart-intake-input"');
+  });
+});

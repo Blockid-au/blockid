@@ -232,7 +232,7 @@ export function SmartIntake({
     setText("");
   }
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+  function handleDrop(e: React.DragEvent<HTMLElement>) {
     e.preventDefault();
     setDragging(false);
     const dropped = e.dataTransfer?.files?.[0] ?? null;
@@ -259,133 +259,154 @@ export function SmartIntake({
   const disabled = classified.variant === "empty";
 
   return (
-    <AnimatedSearchFrame
-      className={cn("w-full max-w-3xl", className)}
-      radius="rounded-2xl"
-    >
-    <form
-      className={cn(
-        "w-full rounded-2xl border border-line-subtle bg-surface-raised p-4 shadow-sm",
-      )}
-      onSubmit={handleSubmit}
-      data-testid="smart-intake"
-    >
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
-        className={cn(
-          "flex flex-col gap-3 rounded-xl border-2 border-dashed p-3 transition-colors",
-          dragging
-            ? "border-action bg-action/5"
-            : "border-line-subtle bg-surface",
-        )}
+    <div className={cn("w-full max-w-3xl", className)}>
+      {/* The pill. One row on sm+, two on a phone — see the stacking note
+          on the submit button below. `rounded-[inherit]` is load-bearing:
+          the ring is AnimatedSearchFrame's padding band, so any radius the
+          child does not match shows as a square shoulder. */}
+      <AnimatedSearchFrame
+        radius="rounded-[1.75rem] sm:rounded-full"
+        thickness={3}
       >
-        <div className="flex items-center gap-2">
-          <Search className="h-5 w-5 shrink-0 text-tertiary" aria-hidden />
-          <label htmlFor="smart-intake-input" className="sr-only">
-            Paste a URL, drop a deck, or type your startup idea
-          </label>
-          <input
-            id="smart-intake-input"
-            ref={inputRef}
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={placeholderText}
-            className="flex-1 bg-transparent text-sm text-primary placeholder:text-tertiary focus:outline-none sm:text-base"
-            autoComplete="off"
-            data-testid="smart-intake-text"
-          />
-          <input
-            id="smart-intake-file"
-            type="file"
-            accept=".pdf,.docx,.pptx"
-            className="sr-only"
-            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-            data-testid="smart-intake-file"
-          />
-          <label
-            htmlFor="smart-intake-file"
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line-subtle bg-surface-raised px-3 py-1.5 text-xs font-medium text-primary hover:bg-surface-hover"
-          >
-            <Upload className="h-3.5 w-3.5" aria-hidden /> Upload
-          </label>
-        </div>
+        <form
+          className={cn(
+            "w-full rounded-[inherit] border bg-surface-raised shadow-md transition-colors",
+            dragging
+              ? "border-action bg-action/5"
+              : "border-line-subtle",
+          )}
+          onSubmit={handleSubmit}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          data-testid="smart-intake"
+        >
+          <div className="flex flex-col gap-2 p-2 sm:flex-row sm:items-center sm:gap-2 sm:py-2 sm:pl-5 sm:pr-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2 pl-2 sm:gap-3 sm:pl-0">
+              <Search
+                className="h-5 w-5 shrink-0 text-tertiary"
+                aria-hidden
+              />
+              <label htmlFor="smart-intake-input" className="sr-only">
+                Paste a URL, drop a deck, or type your startup idea
+              </label>
+              <input
+                id="smart-intake-input"
+                ref={inputRef}
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={placeholderText}
+                className="h-11 min-w-0 flex-1 bg-transparent text-base text-primary placeholder:text-tertiary focus:outline-none"
+                autoComplete="off"
+                data-testid="smart-intake-text"
+              />
+              <input
+                id="smart-intake-file"
+                type="file"
+                accept=".pdf,.docx,.pptx"
+                className="sr-only"
+                onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+                data-testid="smart-intake-file"
+              />
+              {/* 44x44 minimum tap target. The word "Upload" is visually
+                  hidden on a phone (the pill has no room) but always read
+                  by a screen reader, and the helper line under the pill
+                  spells the affordance out for sighted phone users. */}
+              <label
+                htmlFor="smart-intake-file"
+                title="Upload a pitch deck (PDF, DOCX or PPTX)"
+                className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-primary focus-within:ring-2 focus-within:ring-action sm:border sm:border-line-subtle"
+              >
+                <Upload className="h-4 w-4" aria-hidden />
+                <span className="sr-only sm:not-sr-only">Upload</span>
+              </label>
+            </div>
 
-        {classified.chipLabel && (
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <ClassifierChip result={classified} />
-            {effectiveVariant === "idea" && stageLoading && (
-              <span className="inline-flex items-center gap-1 text-muted">
-                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                Classifying stage…
-              </span>
-            )}
-            {effectiveVariant === "idea" && stageGuess && !stageLoading && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full bg-svi-500/10 px-2 py-0.5 text-svi-500"
-                data-testid="stage-guess-chip"
-              >
-                <Sparkles className="h-3 w-3" aria-hidden />
-                Stage guess: {stageGuess.stageLabel} ·{" "}
-                {Math.round(stageGuess.confidence * 100)}%
-              </span>
-            )}
-            {classified.variant !== "empty" && (
-              <button
-                type="button"
-                onClick={() => {
-                  const next: IntakeVariant =
-                    classified.variant === "url"
-                      ? "idea"
-                      : classified.variant === "deck"
-                        ? "url"
-                        : "url";
-                  setOverrideVariant(next);
-                }}
-                className="ml-auto text-xs font-medium text-action hover:underline"
-              >
-                Not right?
-              </button>
-            )}
+            {/* 390px decision: the CTA drops below the field rather than
+                shrinking inside it. The label morphs up to "Paste a link,
+                drop a deck, or type an idea" — inside a phone-width pill
+                that either truncates or squeezes the input to nothing.
+                Full-width underneath keeps both at a 44px tap target and
+                keeps the label readable. */}
+            <button
+              type="submit"
+              disabled={disabled}
+              className={cn(
+                "inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition-colors sm:w-auto",
+                disabled
+                  ? "cursor-not-allowed bg-surface-sunken text-tertiary"
+                  : "bg-action text-on-action hover:bg-action-hover",
+              )}
+              data-testid="smart-intake-cta"
+            >
+              {classified.variant === "deck" && (
+                <FileText className="h-4 w-4" aria-hidden />
+              )}
+              {classified.variant === "url" && (
+                <Globe className="h-4 w-4" aria-hidden />
+              )}
+              {classified.variant === "idea" && (
+                <Sparkles className="h-4 w-4" aria-hidden />
+              )}
+              <span className="truncate">{classified.ctaLabel}</span>
+            </button>
           </div>
-        )}
-      </div>
+        </form>
+      </AnimatedSearchFrame>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-muted">
-          {classified.reason}
+      {/* Classifier read-out lives under the pill, not inside it — the same
+          place Google puts its suggestions, and the only way the pill stays
+          a pill while the mode chip keeps reporting live. */}
+      <div
+        className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-2 text-xs"
+        aria-live="polite"
+      >
+        {classified.chipLabel && <ClassifierChip result={classified} />}
+        {effectiveVariant === "idea" && stageLoading && (
+          <span className="inline-flex items-center gap-1 text-muted">
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+            Classifying stage…
+          </span>
+        )}
+        {effectiveVariant === "idea" && stageGuess && !stageLoading && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full bg-svi-500/10 px-2 py-0.5 text-on-brand"
+            data-testid="stage-guess-chip"
+          >
+            <Sparkles className="h-3 w-3 text-warn" aria-hidden />
+            Stage guess: {stageGuess.stageLabel} ·{" "}
+            {Math.round(stageGuess.confidence * 100)}%
+          </span>
+        )}
+        <p className="text-muted">
+          {classified.variant === "empty" && !file
+            ? "Drop a PDF, DOCX or PPTX here, paste a link, or just describe the idea."
+            : classified.reason}
           {file ? ` · ${file.name}` : ""}
         </p>
-        <button
-          type="submit"
-          disabled={disabled}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold transition-colors",
-            disabled
-              ? "bg-surface-hover text-tertiary cursor-not-allowed"
-              : "bg-action text-on-action hover:bg-action-hover",
-          )}
-          data-testid="smart-intake-cta"
-        >
-          {classified.variant === "deck" && (
-            <FileText className="h-4 w-4" aria-hidden />
-          )}
-          {classified.variant === "url" && (
-            <Globe className="h-4 w-4" aria-hidden />
-          )}
-          {classified.variant === "idea" && (
-            <Sparkles className="h-4 w-4" aria-hidden />
-          )}
-          {classified.ctaLabel}
-        </button>
+        {classified.variant !== "empty" && (
+          <button
+            type="button"
+            onClick={() => {
+              const next: IntakeVariant =
+                classified.variant === "url"
+                  ? "idea"
+                  : classified.variant === "deck"
+                    ? "url"
+                    : "url";
+              setOverrideVariant(next);
+            }}
+            className="font-medium text-action hover:underline"
+          >
+            Not right?
+          </button>
+        )}
       </div>
-    </form>
-    </AnimatedSearchFrame>
+    </div>
   );
 }
 
@@ -406,7 +427,10 @@ function ClassifierChip({ result }: { result: FastClassifierResult }) {
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
         result.variant === "deck" && "bg-action/10 text-action",
         result.variant === "url" && "bg-bull/10 text-bull",
-        result.variant === "idea" && "bg-svi-500/10 text-svi-500",
+        // svi-500 (#FF9F0A) is 2.33:1 on white — graphic-only per
+        // docs/design-system.md. The chip ground stays brand orange at
+        // 10%; the label uses text.on-brand ink so the pair passes AA.
+        result.variant === "idea" && "bg-svi-500/15 text-on-brand",
         result.variant === "empty" && "bg-surface-hover text-muted",
       )}
       data-testid="classifier-chip"
