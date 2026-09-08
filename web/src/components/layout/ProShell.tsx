@@ -128,7 +128,7 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
       >
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 md:flex-row">
           <p className="text-[12px]">
-            © {new Date().getFullYear()} BlockID · Auschain PTY LTD · ACN
+            © {new Date().getUTCFullYear()} BlockID · Auschain PTY LTD · ACN
             659&nbsp;615&nbsp;111
           </p>
           <div className="flex items-center gap-4 text-[12px]">

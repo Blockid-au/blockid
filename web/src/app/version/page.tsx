@@ -569,7 +569,7 @@ export default function VersionPage() {
 
       {/* Footer */}
       <footer className="border-t border-gray-200 py-8 text-center text-xs text-gray-500">
-        <p>&copy; {new Date().getFullYear()} Auschain PTY LTD (ACN 659 615 111) — BlockID.au</p>
+        <p>&copy; {new Date().getUTCFullYear()} Auschain PTY LTD (ACN 659 615 111) — BlockID.au</p>
       </footer>
     </div>
   );
