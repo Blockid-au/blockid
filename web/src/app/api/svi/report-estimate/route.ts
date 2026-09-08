@@ -19,8 +19,46 @@ import {
   estimateSections,
   getSectionsByTier,
 } from "@/lib/report-sections";
+import {
+  agentsPlannedFor,
+  selectAgentsForContext,
+} from "@/lib/report-pipeline/agent-selector";
+import { FEATURE_COSTS } from "@/lib/credits";
+import type { IntakeContext } from "@/lib/intake/detect-context";
+import type { AgentRole } from "@/lib/report-pipeline/types";
 
 export const dynamic = "force-dynamic";
+
+// Per-agent cost estimate — maps each agent to its representative FEATURE_COSTS
+// entry. Keeps a floor of 0.5 so no agent ever contributes 0 to the total.
+const AGENT_COST_KEY: Record<AgentRole, string> = {
+  ceo: "report_section_executive",
+  cto: "report_section_product",
+  cfo: "report_section_financial",
+  cpo: "report_section_product",
+  cmo: "report_section_market",
+  cro: "report_section_gtm",
+  clo: "report_section_legal",
+  chro: "report_section_founder_team",
+  ciso: "report_section_risk",
+  cdo: "report_section_cap_table",
+  coo: "report_section_gtm",
+};
+
+function costForAgent(agent: AgentRole): number {
+  const key = AGENT_COST_KEY[agent];
+  const cost = key ? FEATURE_COSTS[key] : undefined;
+  return typeof cost === "number" && cost > 0 ? cost : 0.5;
+}
+
+/**
+ * Cost of the "full teardown" — every agent running against every criterion.
+ * Used to compute savings vs the phase-tuned selection.
+ */
+function fullTeardownCost(): number {
+  const allAgents: AgentRole[] = ["ceo", "cto", "cfo", "cpo", "cmo", "cro", "clo", "chro", "ciso", "cdo", "coo"];
+  return allAgents.reduce((sum, a) => sum + costForAgent(a) * 2, 0);
+}
 
 export async function GET(request: Request) {
   // ── 1. Authenticate ──────────────────────────────────────────────────
@@ -141,6 +179,67 @@ export async function GET(request: Request) {
     totalSections: REPORT_SECTIONS.length,
     totalCostAllPaid,
     bundleDiscounted: Math.round(totalCostAllPaid * 0.70 * 100) / 100,
+    balance,
+  });
+}
+
+// ── Context-aware POST estimate ─────────────────────────────────────────────
+//
+// POST /api/svi/report-estimate
+// Body: { context: IntakeContext }
+// Returns: { agentsPlanned, waves, totalCredits, fullTeardownCost,
+//            savingsVsFullTeardown, canAfford, balance }
+
+interface PostBody {
+  context?: IntakeContext;
+}
+
+export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
+    );
+  }
+
+  let body: PostBody;
+  try {
+    body = (await request.json()) as PostBody;
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const ctx = body.context;
+  if (!ctx || typeof ctx !== "object") {
+    return NextResponse.json({ ok: false, error: "context is required" }, { status: 400 });
+  }
+
+  const waves = selectAgentsForContext(ctx);
+  const agentsPlanned = agentsPlannedFor(ctx);
+  const totalCredits = Math.round(
+    agentsPlanned.reduce((sum, a) => sum + costForAgent(a), 0) * 100,
+  ) / 100;
+
+  const fullCost = Math.round(fullTeardownCost() * 100) / 100;
+  const savings = Math.max(0, Math.round((fullCost - totalCredits) * 100) / 100);
+
+  const { getBalance } = await import("@/lib/credits");
+  const balance = await getBalance(user.id);
+
+  return NextResponse.json({
+    ok: true,
+    context: ctx,
+    waves: waves.map((wave, i) => ({
+      wave: i + 1,
+      tasks: wave.map(t => ({ agentRole: t.agentRole, criterion: t.criterion, cost: costForAgent(t.agentRole) })),
+      taskCount: wave.length,
+    })),
+    agentsPlanned,
+    totalCredits,
+    fullTeardownCost: fullCost,
+    savingsVsFullTeardown: savings,
+    canAfford: balance >= totalCredits,
     balance,
   });
 }
