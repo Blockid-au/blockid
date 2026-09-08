@@ -147,7 +147,7 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
               {
                 n: 2,
                 title: "Pay A$3",
-                body: "Secure checkout via Stripe. Price is GST-exclusive; GST is added at checkout when applicable and an ATO tax invoice is emailed automatically.",
+                body: "Secure checkout via Stripe. The price is GST-inclusive, and an ATO tax invoice is emailed automatically.",
               },
               {
                 n: 3,
@@ -361,7 +361,7 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
               Ready to see your report?
             </h2>
             <p className="mt-3 text-center text-sm md:text-base text-ink-600">
-              A$3 GST-exclusive (GST added at checkout on ATO tax invoice). Emailed in ~2 minutes. No signup.
+              A$3 GST-inclusive, with an ATO tax invoice. Emailed in ~2 minutes. No signup.
             </p>
             <div className="mt-8">
               <Suspense fallback={null}>

@@ -166,9 +166,9 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-secondary">
           <li>Cancel any time</li>
           <li aria-hidden="true">&middot;</li>
-          <li>AUD pricing, GST-exclusive</li>
+          <li>AUD pricing, GST-inclusive</li>
           <li aria-hidden="true">&middot;</li>
-          <li>GST added at checkout on ATO tax invoice</li>
+          <li>ATO tax invoice issued for every charge</li>
           <li aria-hidden="true">&middot;</li>
           <li>AU-based support</li>
         </ul>
@@ -193,7 +193,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           </span>
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-action" />
-            AUD pricing, GST-exclusive. GST added at checkout on ATO tax invoice.
+            AUD pricing, GST-inclusive. Every charge produces an ATO tax invoice.
           </span>
         </div>
       </section>

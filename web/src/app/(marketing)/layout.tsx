@@ -64,7 +64,7 @@ const marketingFaqJsonLd = {
       name: "How much does the One-Click Report cost?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "A$3 one-off, GST-exclusive. GST is added at checkout when applicable and every charge produces an ATO tax invoice.",
+        text: "A$3 one-off, GST-inclusive. Every charge produces an ATO tax invoice.",
       },
     },
     {
@@ -72,7 +72,7 @@ const marketingFaqJsonLd = {
       name: "Do you charge GST?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Auschain PTY LTD (ABN 79 659 615 111) is GST-registered. All prices on blockid.au are GST-exclusive; GST is added at checkout when applicable and every charge produces an ATO-compliant tax invoice.",
+        text: "Yes. Auschain PTY LTD (ABN 79 659 615 111) is GST-registered. All prices shown on blockid.au are GST-inclusive — the price you see is the price you pay — and every charge produces an ATO-compliant tax invoice.",
       },
     },
     {

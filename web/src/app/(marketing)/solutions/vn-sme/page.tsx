@@ -127,7 +127,7 @@ export default async function SolutionsVnSmePage() {
           body: t(
             m,
             "solutions.vnSme.benefit3.body",
-            "Revenue and traction charts render in AUD or VND at the reader's choice. GST-exclusive AUD pricing on your side (GST added at checkout on ATO tax invoice), no hidden currency conversion for VN buyers.",
+            "Revenue and traction charts render in AUD or VND at the reader's choice. GST-inclusive AUD pricing on your side, with an ATO tax invoice for every charge, and no hidden currency conversion for VN buyers.",
           ),
         },
       ]}
@@ -178,7 +178,7 @@ export default async function SolutionsVnSmePage() {
             t(
               m,
               "solutions.vnSme.journey.step2.b2",
-              "Unlock the full Trust Report (A$5.50 per business, GST-exclusive; GST added at checkout when applicable).",
+              "Unlock the full Trust Report (A$5.50 per business, GST-inclusive, with an ATO tax invoice).",
             ),
             t(
               m,
