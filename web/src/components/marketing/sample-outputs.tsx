@@ -147,13 +147,20 @@ export function SampleOutputs() {
           ))}
         </ul>
 
-        <div className="mt-10 flex justify-center">
+        <div className="mt-10 flex flex-col items-center gap-3">
           <Link
             href="/analyze"
             className="inline-flex items-center gap-1.5 rounded-md text-sm text-secondary transition-colors duration-200 hover:text-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
             Run yours in the box above
             <ArrowRight size={14} aria-hidden />
+          </Link>
+          <Link
+            href="/reports/samples"
+            className="inline-flex items-center gap-1.5 rounded-md text-xs text-muted transition-colors duration-200 hover:text-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+          >
+            See more sample reports
+            <ArrowRight size={12} aria-hidden />
           </Link>
         </div>
       </div>
