@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
 import { broadcastAuthEvent } from "@/components/auth/auth-sync-logic";
+import { withClaimedParam } from "@/lib/analyses/summary";
 
 /* ---------- Types ---------- */
 type EmailState = "idle" | "sending" | "sent" | "error";
@@ -413,11 +414,17 @@ function ForgotPasswordLink() {
 /*  Email + Password Form (Login / Register)                                   */
 /* ========================================================================== */
 
-function EmailPasswordForm({ nextUrl }: { nextUrl: string | null }) {
+function EmailPasswordForm({
+  nextUrl,
+  initialMode = "login",
+}: {
+  nextUrl: string | null;
+  initialMode?: "login" | "register";
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -447,14 +454,23 @@ function EmailPasswordForm({ nextUrl }: { nextUrl: string | null }) {
 
       trackEvent(mode === "register" ? "register_password_success" : "login_password_success", {});
       broadcastAuthEvent("SIGNED_IN", data.user?.id);
-      // New registrations go to Evidence Vault for guided onboarding
+      // Both auth endpoints now report what they rescued from the pre-signup
+      // browser session. Carry the real number through so the destination can
+      // say what actually happened instead of inventing a reassurance.
+      const claimedCount = Number(data.claimed?.analyses ?? 0);
+      // New registrations go to Evidence Vault for guided onboarding — unless
+      // work was just claimed, in which case the honest landing is the list of
+      // analyses that were claimed.
       const target = mode === "register" && !nextUrl
-        ? "/workspace/evidence?onboarding=true"
+        ? (claimedCount > 0
+            ? "/workspace/analyses"
+            : "/workspace/evidence?onboarding=true")
         : nextUrl ?? "/";
       const sep = target.includes("?") ? "&" : "?";
-      window.location.href = mode === "register" && !nextUrl
+      const withLogged = mode === "register" && !nextUrl
         ? target
         : `${target}${sep}logged_in=true`;
+      window.location.href = withClaimedParam(withLogged, claimedCount);
     } catch {
       setError("Network error. Please try again.");
       setState("error");
@@ -544,6 +560,10 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const plan = searchParams.get("plan");
   const nextUrl = searchParams.get("next");
+  // `?mode=register` — arrived from a "create an account to keep this" prompt,
+  // so open on the register tab rather than making them find it.
+  const initialMode =
+    searchParams.get("mode") === "register" ? "register" : "login";
   const [authMethod, setAuthMethod] = useState<"password" | "magic">("password");
 
   // Client-side auth guard — redirects if already signed in.
@@ -605,7 +625,7 @@ export function LoginForm() {
       </div>
 
       {authMethod === "password" ? (
-        <EmailPasswordForm nextUrl={nextUrl} />
+        <EmailPasswordForm nextUrl={nextUrl} initialMode={initialMode} />
       ) : (
         <MagicLinkForm nextUrl={nextUrl} />
       )}
