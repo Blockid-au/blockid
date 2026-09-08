@@ -205,22 +205,22 @@ function ListingHero({
   techAnalysis: TechAnalysisRow | null;
 }) {
   return (
-    <header className="mb-10 border-b border-white/10 pb-8">
+    <header className="mb-10 border-b border-line-subtle pb-8">
       <div className="flex flex-wrap items-baseline gap-3 text-xs uppercase tracking-[0.16em] text-cyan-300/80">
-        <span className="rounded bg-cyan-500/15 px-2 py-0.5">
+        <span className="rounded bg-action/15 px-2 py-0.5">
           BlockID Startup Package
         </span>
         {listing.hero.industry ? (
-          <span className="rounded bg-white/5 px-2 py-0.5 text-white/70">
+          <span className="rounded bg-surface-sunken px-2 py-0.5 text-muted">
             {listing.hero.industry}
           </span>
         ) : null}
-        <span className="text-white/40">/{slug}</span>
+        <span className="text-tertiary">/{slug}</span>
       </div>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl">
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-primary md:text-5xl">
         {listing.hero.name}
       </h1>
-      <p className="mt-4 max-w-3xl text-base text-white/70 md:text-lg">
+      <p className="mt-4 max-w-3xl text-base text-muted md:text-lg">
         {listing.hero.onelinePitch}
       </p>
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -234,9 +234,9 @@ function ListingHero({
 
 function SviBadge({ svi }: { svi: NonNullable<PublicListingPayload["svi"]> }) {
   const bandColour: Record<typeof svi.band, string> = {
-    seed: "bg-slate-500/20 text-slate-100 ring-slate-400/40",
+    seed: "bg-surface-hover text-secondary ring-line",
     growth: "bg-emerald-500/15 text-emerald-200 ring-emerald-400/40",
-    scale: "bg-cyan-500/15 text-cyan-100 ring-cyan-400/40",
+    scale: "bg-action/15 text-cyan-100 ring-cyan-400/40",
     unicorn: "bg-fuchsia-500/15 text-fuchsia-100 ring-fuchsia-400/40",
   };
   return (
@@ -248,7 +248,7 @@ function SviBadge({ svi }: { svi: NonNullable<PublicListingPayload["svi"]> }) {
     >
       <Sparkles className="h-4 w-4" aria-hidden="true" />
       <span className="font-mono text-lg">{svi.total}</span>
-      <span className="text-white/70">SVI · {svi.label}</span>
+      <span className="text-muted">SVI · {svi.label}</span>
     </div>
   );
 }
@@ -272,7 +272,7 @@ function HealthGradeBadge({ sviTotal }: { sviTotal: number }) {
 
   const colourClass =
     grade === "A"
-      ? "bg-cyan-500/15 text-cyan-200 ring-cyan-400/40"
+      ? "bg-action/15 text-cyan-200 ring-cyan-400/40"
       : grade === "B"
         ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/40"
         : grade === "C"
@@ -290,7 +290,7 @@ function HealthGradeBadge({ sviTotal }: { sviTotal: number }) {
       title="Startup Health Grade"
     >
       <span className="font-mono text-lg leading-none">{grade}</span>
-      <span className="text-white/60 text-xs">Health Grade</span>
+      <span className="text-muted text-xs">Health Grade</span>
     </div>
   );
 }
@@ -302,7 +302,7 @@ function TechScoreBadge({ techAnalysis }: { techAnalysis: TechAnalysisRow }) {
 
   const colourClass =
     score > 75
-      ? "bg-[rgba(0,212,255,0.12)] text-[#00D4FF] border-[rgba(0,212,255,0.3)]"
+      ? "bg-action/10 text-action border-[rgba(0,212,255,0.3)]"
       : score > 60
         ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
         : score >= 40
@@ -328,7 +328,7 @@ function TechScoreBadge({ techAnalysis }: { techAnalysis: TechAnalysisRow }) {
       {techStack.map((tech) => (
         <span
           key={tech}
-          className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-white/60"
+          className="inline-flex items-center rounded-full border border-line-subtle bg-surface-sunken px-2.5 py-1 text-xs font-medium text-muted"
         >
           {tech}
         </span>
@@ -348,12 +348,12 @@ function CardRow({ listing }: { listing: PublicListingPayload }) {
         {listing.cards.map((card) => (
           <article
             key={card.slot}
-            className="rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur"
+            className="rounded-xl border border-line-subtle bg-surface-sunken p-5 backdrop-blur"
           >
             <p className="text-xs font-semibold uppercase tracking-widest text-cyan-300/80">
               {card.title}
             </p>
-            <p className="mt-3 text-sm leading-relaxed text-white/85">
+            <p className="mt-3 text-sm leading-relaxed text-secondary">
               {card.body}
             </p>
           </article>
@@ -377,7 +377,7 @@ function ReservedAllocationStrip({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface-sunken">
             <Coins className="h-5 w-5 text-fuchsia-200" aria-hidden="true" />
           </span>
           <div>
@@ -387,20 +387,20 @@ function ReservedAllocationStrip({
             >
               Reserved allocation
             </h2>
-            <p className="mt-1 text-lg text-white">
+            <p className="mt-1 text-lg text-primary">
               <span className="font-mono">{r.pctReserved}%</span>
-              <span className="mx-2 text-white/40">·</span>
-              <span className="rounded bg-white/10 px-2 py-0.5 font-mono text-sm">
+              <span className="mx-2 text-tertiary">·</span>
+              <span className="rounded bg-surface-sunken px-2 py-0.5 font-mono text-sm">
                 {r.ticker}
               </span>
             </p>
           </div>
         </div>
-        <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/70">
+        <span className="rounded-full border border-line px-3 py-1 text-xs text-muted">
           {r.ctaLabel}
         </span>
       </div>
-      <p className="mt-3 max-w-2xl text-xs text-white/60">
+      <p className="mt-3 max-w-2xl text-xs text-muted">
         DB-first cap-table reservation held by the founder inside their
         BlockID workspace. {r.onChain ? "On-chain token issued." : "Available for on-chain issuance on founder opt-in."}
       </p>
@@ -414,7 +414,7 @@ function PublicReports({ listing }: { listing: PublicListingPayload }) {
     <section aria-labelledby="public-reports" className="mb-12">
       <h2
         id="public-reports"
-        className="mb-4 text-xl font-semibold text-white"
+        className="mb-4 text-xl font-semibold text-primary"
       >
         Public Package reports
       </h2>
@@ -422,14 +422,14 @@ function PublicReports({ listing }: { listing: PublicListingPayload }) {
         {listing.publicReports.map((r) => (
           <li
             key={r.id}
-            className="rounded-lg border border-white/10 bg-white/5 p-4"
+            className="rounded-lg border border-line-subtle bg-surface-sunken p-4"
           >
-            <p className="text-sm font-semibold text-white">{r.title}</p>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="text-sm font-semibold text-primary">{r.title}</p>
+            <p className="mt-1 text-xs text-tertiary">
               Published {r.createdAt.slice(0, 10)}
             </p>
             {r.excerpt ? (
-              <p className="mt-2 text-sm text-white/75">{r.excerpt}</p>
+              <p className="mt-2 text-sm text-muted">{r.excerpt}</p>
             ) : null}
           </li>
         ))}
@@ -444,15 +444,15 @@ function ContactCta({ listing }: { listing: PublicListingPayload }) {
   const Icon = isMailto ? Mail : ArrowRight;
   return (
     <section aria-labelledby="contact-founder" className="mb-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line-subtle bg-surface-sunken p-6">
         <div>
           <h2
             id="contact-founder"
-            className="text-base font-semibold text-white"
+            className="text-base font-semibold text-primary"
           >
             Interested in this startup?
           </h2>
-          <p className="mt-1 text-sm text-white/60">
+          <p className="mt-1 text-sm text-muted">
             {listing.contact.displayName
               ? `${listing.contact.displayName} responds within 3 business days.`
               : "The founding team responds within 3 business days."}
@@ -461,12 +461,12 @@ function ContactCta({ listing }: { listing: PublicListingPayload }) {
         <div className="flex items-center gap-3">
           <Link
             href={listing.contact.href}
-            className="inline-flex items-center gap-2 rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-cyan-400"
+            className="inline-flex items-center gap-2 rounded-md bg-action px-4 py-2 text-sm font-semibold text-on-action shadow-sm transition hover:bg-action-hover"
           >
             <Icon className="h-4 w-4" aria-hidden="true" />
             {label}
           </Link>
-          <span className="inline-flex items-center gap-1 text-xs text-white/40">
+          <span className="inline-flex items-center gap-1 text-xs text-tertiary">
             <ShieldCheck className="h-3 w-3" aria-hidden="true" />
             Verified founder
           </span>

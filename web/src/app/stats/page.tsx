@@ -82,26 +82,26 @@ export default async function StatsPage() {
         className="mx-auto w-full max-w-6xl px-6 pb-12"
       >
         {/* Header strip */}
-        <div className="rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6">
+        <div className="rounded-3xl border border-line-subtle bg-surface-sunken p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-action">
                 Live counters
               </p>
-              <h2 className="font-display text-xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-2xl">
+              <h2 className="font-display text-xl font-semibold tracking-tight text-primary sm:text-2xl">
                 master@{commits.head_short || DASH}
               </h2>
             </div>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-[var(--fintech-ink-muted)] sm:text-right">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-secondary sm:text-right">
               <div>
                 <dt className="inline">Branch:&nbsp;</dt>
-                <dd className="inline font-mono text-[var(--fintech-ink)]">
+                <dd className="inline font-mono text-primary">
                   {commits.branch || DASH}
                 </dd>
               </div>
               <div>
                 <dt className="inline">Updated:&nbsp;</dt>
-                <dd className="inline font-mono text-[var(--fintech-ink)]">
+                <dd className="inline font-mono text-primary">
                   {fmtIso(nowIso)}
                 </dd>
               </div>
@@ -113,7 +113,7 @@ export default async function StatsPage() {
         <div aria-labelledby="stats-commits" className="mt-8">
           <h3
             id="stats-commits"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
           >
             Commit velocity
           </h3>
@@ -140,7 +140,7 @@ export default async function StatsPage() {
         <div aria-labelledby="stats-uptime" className="mt-10">
           <h3
             id="stats-uptime"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
           >
             Uptime and cron health
           </h3>
@@ -188,7 +188,7 @@ export default async function StatsPage() {
         <div aria-labelledby="stats-deploys" className="mt-10">
           <h3
             id="stats-deploys"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
           >
             Deploys and pushes
           </h3>
@@ -226,13 +226,13 @@ export default async function StatsPage() {
         {/* Related links */}
         <nav
           aria-label="Related pages"
-          className="mt-12 rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 text-sm"
+          className="mt-12 rounded-2xl border border-line-subtle bg-surface-sunken p-6 text-sm"
         >
           <ul className="flex flex-wrap gap-x-6 gap-y-2">
             <li>
               <Link
                 href="/status"
-                className="rounded-md text-[var(--fintech-ink)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="rounded-md text-primary underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 Status
               </Link>
@@ -240,7 +240,7 @@ export default async function StatsPage() {
             <li>
               <Link
                 href="/changelog"
-                className="rounded-md text-[var(--fintech-ink)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="rounded-md text-primary underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 Changelog
               </Link>
@@ -248,7 +248,7 @@ export default async function StatsPage() {
             <li>
               <Link
                 href="/roadmap"
-                className="rounded-md text-[var(--fintech-ink)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="rounded-md text-primary underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 Roadmap
               </Link>
@@ -263,11 +263,11 @@ export default async function StatsPage() {
 function StatTile(props: { label: string; value: string; caption?: string }) {
   const { label, value, caption } = props;
   return (
-    <div className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-4">
-      <p className="text-sm font-medium text-[var(--fintech-ink)]">{label}</p>
-      <p className="mt-3 font-mono text-2xl text-[var(--fintech-ink)]">{value}</p>
+    <div className="rounded-xl border border-line-subtle bg-surface-sunken p-4">
+      <p className="text-sm font-medium text-primary">{label}</p>
+      <p className="mt-3 font-mono text-2xl text-primary">{value}</p>
       {caption ? (
-        <p className="text-xs text-[var(--fintech-ink-muted)]">{caption}</p>
+        <p className="text-xs text-secondary">{caption}</p>
       ) : null}
     </div>
   );

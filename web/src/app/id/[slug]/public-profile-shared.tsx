@@ -357,7 +357,7 @@ function PageBody({
       >
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--fintech-ink-muted,#8aa)] opacity-80">
+            <p className="text-xs uppercase tracking-widest text-secondary opacity-80">
               {t(m, chrome.eyebrowKey)}
             </p>
             <h1
@@ -406,7 +406,7 @@ function PageBody({
             )}
           </div>
 
-          <div className="text-[var(--fintech-accent,#4fd1c5)]">
+          <div className="text-action">
             <CapabilityRadar
               scores={profile.capabilityScores}
               legalName={profile.legalName}
@@ -536,7 +536,7 @@ function PageBody({
             {sample ? (
               <Link
                 href={locale === "vi" ? "/vi/business-id" : "/business-id"}
-                className="inline-flex items-center gap-2 rounded-lg bg-[var(--fintech-accent,#4fd1c5)] px-4 py-2 text-sm font-semibold text-[var(--fintech-bg-primary,#0a1622)] focus:outline-none focus:ring-2 focus:ring-[var(--fintech-accent,#4fd1c5)] focus:ring-offset-2 focus:ring-offset-[var(--fintech-bg-primary,#0a1622)]"
+                className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-surface"
               >
                 {t(m, "businessIdPublic.demo.share.cta")}
               </Link>
@@ -544,7 +544,7 @@ function PageBody({
               <>
                 <Link
                   href={`/share/request?business=${encodeURIComponent(profile.slug)}`}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--fintech-accent,#4fd1c5)] px-4 py-2 text-sm font-semibold text-[var(--fintech-bg-primary,#0a1622)] focus:outline-none focus:ring-2 focus:ring-[var(--fintech-accent,#4fd1c5)] focus:ring-offset-2 focus:ring-offset-[var(--fintech-bg-primary,#0a1622)]"
+                  className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-surface"
                 >
                   {t(m, "businessIdPublic.share.cta")}
                 </Link>

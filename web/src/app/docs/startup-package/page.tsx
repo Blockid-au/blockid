@@ -209,13 +209,13 @@ export default function StartupPackageGuidePage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/startup-package"
-              className="inline-flex items-center rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-400 transition-colors"
+              className="inline-flex items-center rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-primary hover:bg-brand-400 transition-colors"
             >
               Open the Startup Package
             </Link>
             <Link
               href="/guide"
-              className="inline-flex items-center rounded-lg border border-white/20 px-5 py-2.5 text-sm font-semibold hover:bg-white/5 transition-colors"
+              className="inline-flex items-center rounded-lg border border-line px-5 py-2.5 text-sm font-semibold hover:bg-surface-sunken transition-colors"
             >
               12-phase journey overview
             </Link>
@@ -260,7 +260,7 @@ export default function StartupPackageGuidePage() {
         {/* Pricing */}
         <section className="mb-14">
           <h2 className="text-2xl font-bold mb-3">Pricing</h2>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+          <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-6">
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 mb-3">
               <p className="text-3xl font-bold">A$149</p>
               <p className="text-sm opacity-70">one-off &mdash; no subscription</p>
@@ -286,9 +286,9 @@ export default function StartupPackageGuidePage() {
             Total expected time: ~{TOTAL_INTERVIEW_MINUTES} minutes. Autosaves
             after every step, so you can walk away and come back.
           </p>
-          <div className="overflow-x-auto rounded-xl border border-white/10">
+          <div className="overflow-x-auto rounded-xl border border-line-subtle">
             <table className="w-full text-sm">
-              <thead className="bg-white/[0.03] text-left">
+              <thead className="bg-surface-sunken text-left">
                 <tr>
                   <th className="px-4 py-3 font-semibold">#</th>
                   <th className="px-4 py-3 font-semibold">Phase</th>
@@ -298,7 +298,7 @@ export default function StartupPackageGuidePage() {
               </thead>
               <tbody>
                 {INTERVIEW_STEPS.map((row) => (
-                  <tr key={row.step} className="border-t border-white/10 align-top">
+                  <tr key={row.step} className="border-t border-line-subtle align-top">
                     <td className="px-4 py-3 font-mono tabular-nums opacity-70">{row.step}</td>
                     <td className="px-4 py-3 font-mono text-xs opacity-80">{row.key}</td>
                     <td className="px-4 py-3 opacity-90">{row.prompt}</td>
@@ -324,7 +324,7 @@ export default function StartupPackageGuidePage() {
           </p>
           <Link
             href="/guide"
-            className="inline-flex items-center rounded-lg border border-white/20 px-4 py-2 text-sm font-medium hover:bg-white/5 transition-colors"
+            className="inline-flex items-center rounded-lg border border-line px-4 py-2 text-sm font-medium hover:bg-surface-sunken transition-colors"
           >
             Read the full 12-phase guide &rarr;
           </Link>
@@ -342,9 +342,9 @@ export default function StartupPackageGuidePage() {
             recommended &mdash; the Package will nudge you toward each one at
             the right phase.
           </p>
-          <div className="overflow-x-auto rounded-xl border border-white/10">
+          <div className="overflow-x-auto rounded-xl border border-line-subtle">
             <table className="w-full text-sm">
-              <thead className="bg-white/[0.03] text-left">
+              <thead className="bg-surface-sunken text-left">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Task</th>
                   <th className="px-4 py-3 font-semibold">Why</th>
@@ -353,7 +353,7 @@ export default function StartupPackageGuidePage() {
               </thead>
               <tbody>
                 {PLAYBOOK.map((task) => (
-                  <tr key={task.id} className="border-t border-white/10 align-top">
+                  <tr key={task.id} className="border-t border-line-subtle align-top">
                     <td className="px-4 py-3 font-semibold whitespace-nowrap">
                       {task.title}
                       <div className="text-[11px] font-mono opacity-50 mt-1">
@@ -416,28 +416,28 @@ export default function StartupPackageGuidePage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <Link
               href="/startup-package"
-              className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:border-brand-500/40 transition-colors"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-brand-500/40 transition-colors"
             >
               <p className="font-semibold mb-1">/startup-package</p>
               <p className="text-xs opacity-70">Open the packaged founder flow.</p>
             </Link>
             <Link
               href="/guide"
-              className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:border-brand-500/40 transition-colors"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-brand-500/40 transition-colors"
             >
               <p className="font-semibold mb-1">/guide</p>
               <p className="text-xs opacity-70">Full 12-phase growth journey.</p>
             </Link>
             <Link
               href="/pricing"
-              className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:border-brand-500/40 transition-colors"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-brand-500/40 transition-colors"
             >
               <p className="font-semibold mb-1">/pricing</p>
               <p className="text-xs opacity-70">All plans, credit packs, add-ons.</p>
             </Link>
             <Link
               href="/docs"
-              className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:border-brand-500/40 transition-colors"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-brand-500/40 transition-colors"
             >
               <p className="font-semibold mb-1">/docs</p>
               <p className="text-xs opacity-70">Platform docs index.</p>

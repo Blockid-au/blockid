@@ -79,7 +79,7 @@ export default function TbrDemoPage() {
       />
 
       <MarketingSection kicker="Section 1" title="8 SVI dimensions with completeness">
-        <p className="max-w-3xl text-sm text-[var(--fintech-ink-muted)]">
+        <p className="max-w-3xl text-sm text-secondary">
           Every real TBR carries a score, priority and a one-line rationale for
           each of the eight Startup Value Index dimensions. The founder can
           drill into any card for the underlying evidence, benchmarks and
@@ -89,21 +89,21 @@ export default function TbrDemoPage() {
           {DEMO_DIMENSIONS.map((d) => (
             <div
               key={d.key}
-              className="rounded-2xl border border-surface-200 bg-white p-4"
+              className="rounded-2xl border border-line-subtle bg-white p-4"
             >
-              <p className="text-[10px] uppercase tracking-[0.14em] text-ink-500">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary">
                 {d.key.toUpperCase()}
               </p>
-              <p className="mt-1 text-sm font-semibold text-ink-800">
+              <p className="mt-1 text-sm font-semibold text-secondary">
                 {d.label}
               </p>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="font-mono text-2xl tabular-nums text-ink-800">
+                <span className="font-mono text-2xl tabular-nums text-secondary">
                   {d.score}
                 </span>
-                <span className="text-[10px] text-ink-500">/ 100</span>
+                <span className="text-[10px] text-tertiary">/ 100</span>
               </div>
-              <p className="mt-3 text-xs text-ink-500">{d.headline}</p>
+              <p className="mt-3 text-xs text-tertiary">{d.headline}</p>
             </div>
           ))}
         </div>
@@ -114,14 +114,14 @@ export default function TbrDemoPage() {
           {CRITERIA_HIGHLIGHTS.map((c) => (
             <li
               key={c.label}
-              className="rounded-xl border border-surface-200 bg-white p-4"
+              className="rounded-xl border border-line-subtle bg-white p-4"
             >
-              <p className="text-sm font-semibold text-ink-800">{c.label}</p>
-              <p className="mt-1 text-xs text-ink-500">{c.verdict}</p>
+              <p className="text-sm font-semibold text-secondary">{c.label}</p>
+              <p className="mt-1 text-xs text-tertiary">{c.verdict}</p>
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-xs text-ink-500">
+        <p className="mt-4 text-xs text-tertiary">
           The interactive report ships all 8 SVI dimensions with strengths, gaps and
           a concrete next action per row. Preview them in the {" "}
           <Link className="text-brand-600 underline" href="/showcase/atlassian?step=1">
@@ -133,23 +133,23 @@ export default function TbrDemoPage() {
 
       <MarketingSection kicker="Section 3" title="Valuation band and improvement roadmap">
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-surface-200 bg-white p-5">
-            <p className="text-xs uppercase tracking-[0.14em] text-ink-500">
+          <div className="rounded-2xl border border-line-subtle bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.14em] text-tertiary">
               Illustrative valuation range
             </p>
-            <p className="mt-2 font-mono text-2xl text-ink-800 tabular-nums">
+            <p className="mt-2 font-mono text-2xl text-secondary tabular-nums">
               A$8.2M – A$12.6M
             </p>
-            <p className="mt-2 text-xs text-ink-500">
+            <p className="mt-2 text-xs text-tertiary">
               Comparable AU seed SaaS, 8–10× ARR blended with DCF and Berkus.
               Real reports show the working, comps used and sensitivity table.
             </p>
           </div>
-          <div className="rounded-2xl border border-surface-200 bg-white p-5">
-            <p className="text-xs uppercase tracking-[0.14em] text-ink-500">
+          <div className="rounded-2xl border border-line-subtle bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.14em] text-tertiary">
               Top 3 next actions
             </p>
-            <ol className="mt-2 space-y-2 text-sm text-ink-700 list-decimal list-inside">
+            <ol className="mt-2 space-y-2 text-sm text-secondary list-decimal list-inside">
               <li>Formalise SOC2-lite evidence pack (+6 IRI points).</li>
               <li>Lock two anchor logos into 12-month contracts (+8 TRE).</li>
               <li>Publish moat/switching-cost analysis for Series A deck (+5 SVM).</li>
@@ -162,34 +162,34 @@ export default function TbrDemoPage() {
         <div className="grid gap-3 sm:grid-cols-3">
           <Link
             href="/showcase/atlassian?step=1"
-            className="group block rounded-2xl border border-surface-200 bg-white p-5 transition-colors hover:border-brand-500/50"
+            className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50"
           >
-            <p className="text-sm font-semibold text-ink-800">
+            <p className="text-sm font-semibold text-secondary">
               Interactive showcase
             </p>
-            <p className="mt-1 text-xs text-ink-500">
+            <p className="mt-1 text-xs text-tertiary">
               Walk through a fully-populated demo report step by step.
             </p>
           </Link>
           <Link
             href="/guide/reports"
-            className="group block rounded-2xl border border-surface-200 bg-white p-5 transition-colors hover:border-brand-500/50"
+            className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50"
           >
-            <p className="text-sm font-semibold text-ink-800">
+            <p className="text-sm font-semibold text-secondary">
               Sample report gallery
             </p>
-            <p className="mt-1 text-xs text-ink-500">
+            <p className="mt-1 text-xs text-tertiary">
               Compare TBR variants across sectors and stages.
             </p>
           </Link>
           <Link
             href="/investor"
-            className="group block rounded-2xl border border-surface-200 bg-white p-5 transition-colors hover:border-brand-500/50"
+            className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50"
           >
-            <p className="text-sm font-semibold text-ink-800">
+            <p className="text-sm font-semibold text-secondary">
               Investor home
             </p>
-            <p className="mt-1 text-xs text-ink-500">
+            <p className="mt-1 text-xs text-tertiary">
               Browse startups with a real SVI grade and request the pack.
             </p>
           </Link>

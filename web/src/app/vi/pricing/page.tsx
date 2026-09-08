@@ -95,17 +95,17 @@ export default async function ViPricingPage() {
         aria-label="Cam kết bảng giá"
         className="mx-auto max-w-5xl px-6 pb-4"
       >
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-[var(--fintech-ink-muted)]">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-secondary">
           <span className="inline-flex items-center gap-2">
-            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            <Check aria-hidden="true" className="h-4 w-4 text-action" />
             {t(m, "pricing.guarantee.trial")}
           </span>
           <span className="inline-flex items-center gap-2">
-            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            <Check aria-hidden="true" className="h-4 w-4 text-action" />
             {t(m, "pricing.guarantee.nolock")}
           </span>
           <span className="inline-flex items-center gap-2">
-            <Check aria-hidden="true" className="h-4 w-4 text-[var(--fintech-accent)]" />
+            <Check aria-hidden="true" className="h-4 w-4 text-action" />
             {t(m, "pricing.guarantee.aud")}
           </span>
         </div>
@@ -135,8 +135,8 @@ export default async function ViPricingPage() {
         kicker={t(m, "pricing.enterprise.kicker")}
       >
         <div className="flex flex-col items-start gap-6 text-center sm:items-center">
-          <Building2 aria-hidden="true" className="h-10 w-10 text-[var(--fintech-accent)]" />
-          <p className="max-w-xl text-[var(--fintech-ink-muted)]">
+          <Building2 aria-hidden="true" className="h-10 w-10 text-action" />
+          <p className="max-w-xl text-secondary">
             {t(m, "pricing.enterprise.body")}
           </p>
         </div>
@@ -151,7 +151,7 @@ export default async function ViPricingPage() {
         }}
       />
 
-      <p className="mx-auto mb-16 max-w-5xl px-6 text-center text-xs text-[var(--fintech-ink-muted)]">
+      <p className="mx-auto mb-16 max-w-5xl px-6 text-center text-xs text-secondary">
         {t(m, "pricing.legal.disclaimer")}
       </p>
     </MarketingShell>

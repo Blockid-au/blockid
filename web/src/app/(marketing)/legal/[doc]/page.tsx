@@ -177,11 +177,11 @@ function renderInline(input: string): string {
     (_, inner: string) =>
       // Encode @ as &#64; so Cloudflare Email Obfuscation doesn't replace
       // email addresses inside <code> with broken /cdn-cgi/l/email-protection links.
-      `<code class="rounded bg-[var(--fintech-surface)] px-1.5 py-0.5 text-[0.85em] text-[var(--fintech-accent)]">${inner.replace(/@/g, "&#64;")}</code>`,
+      `<code class="rounded bg-surface-raised px-1.5 py-0.5 text-[0.85em] text-action">${inner.replace(/@/g, "&#64;")}</code>`,
   );
   s = s.replace(
     /\*\*([^*]+)\*\*/g,
-    '<strong class="font-semibold text-[var(--fintech-ink)]">$1</strong>',
+    '<strong class="font-semibold text-primary">$1</strong>',
   );
   return s;
 }
@@ -201,7 +201,7 @@ function renderMarkdown(md: string): string {
   const flushPara = () => {
     if (paraBuf.length > 0) {
       out.push(
-        `<p class="mt-3 leading-relaxed text-[var(--fintech-ink-muted)]">${renderInline(
+        `<p class="mt-3 leading-relaxed text-secondary">${renderInline(
           paraBuf.join(" "),
         )}</p>`,
       );
@@ -221,7 +221,7 @@ function renderMarkdown(md: string): string {
     if (trimmed === "---") {
       flushPara();
       flushList();
-      out.push('<hr class="my-10 border-[var(--fintech-border)]" />');
+      out.push('<hr class="my-10 border-line-subtle" />');
       continue;
     }
 
@@ -229,7 +229,7 @@ function renderMarkdown(md: string): string {
       flushPara();
       flushList();
       out.push(
-        `<h3 class="mt-8 text-lg font-semibold tracking-tight text-[var(--fintech-ink)]">${renderInline(
+        `<h3 class="mt-8 text-lg font-semibold tracking-tight text-primary">${renderInline(
           trimmed.slice(4),
         )}</h3>`,
       );
@@ -239,7 +239,7 @@ function renderMarkdown(md: string): string {
       flushPara();
       flushList();
       out.push(
-        `<h2 class="mt-12 text-2xl font-bold tracking-tight text-[var(--fintech-ink)] sm:text-3xl">${renderInline(
+        `<h2 class="mt-12 text-2xl font-bold tracking-tight text-primary sm:text-3xl">${renderInline(
           trimmed.slice(3),
         )}</h2>`,
       );
@@ -249,7 +249,7 @@ function renderMarkdown(md: string): string {
       flushPara();
       flushList();
       out.push(
-        `<h1 class="mt-6 text-3xl font-bold tracking-tight text-[var(--fintech-ink)] sm:text-4xl">${renderInline(
+        `<h1 class="mt-6 text-3xl font-bold tracking-tight text-primary sm:text-4xl">${renderInline(
           trimmed.slice(2),
         )}</h1>`,
       );
@@ -259,7 +259,7 @@ function renderMarkdown(md: string): string {
       flushPara();
       if (!inList) {
         out.push(
-          '<ul class="mt-4 space-y-2 list-disc pl-6 text-[var(--fintech-ink-muted)] marker:text-[var(--fintech-accent)]">',
+          '<ul class="mt-4 space-y-2 list-disc pl-6 text-secondary marker:text-action">',
         );
         inList = true;
       }
@@ -307,14 +307,14 @@ export default async function LegalDocPage({
         aria-label={`${meta.heading} body`}
         className="mx-auto max-w-3xl px-6 pb-12"
       >
-        <article className="rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-8 sm:p-10">
+        <article className="rounded-3xl border border-line-subtle bg-surface-sunken p-8 sm:p-10">
           {html ? (
             <div
               className="text-sm sm:text-base"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (
-            <p className="text-sm text-[var(--fintech-ink-muted)]">
+            <p className="text-sm text-secondary">
               Document not yet published for this environment. The next deploy
               will populate this page.
             </p>

@@ -102,24 +102,24 @@ function RuleList({
     <section
       lang={lang}
       aria-labelledby={`aup-${lang}-title`}
-      className="rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-8 sm:p-10"
+      className="rounded-3xl border border-line-subtle bg-surface-sunken p-8 sm:p-10"
     >
       <h2
         id={`aup-${lang}-title`}
-        className="text-2xl font-bold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+        className="text-2xl font-bold tracking-tight text-primary sm:text-3xl"
       >
         {title}
       </h2>
-      <p className="mt-3 text-sm leading-relaxed text-[var(--fintech-ink-muted)] sm:text-base">
+      <p className="mt-3 text-sm leading-relaxed text-secondary sm:text-base">
         {intro}
       </p>
       <ol className="mt-6 space-y-6">
         {rules.map((r) => (
           <li key={r.heading}>
-            <h3 className="text-base font-semibold text-[var(--fintech-ink)] sm:text-lg">
+            <h3 className="text-base font-semibold text-primary sm:text-lg">
               {r.heading}
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+            <p className="mt-2 text-sm leading-relaxed text-secondary">
               {r.body}
             </p>
           </li>

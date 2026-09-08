@@ -67,12 +67,12 @@ export default function LegalIndexPage() {
             <li key={d.href}>
               <Link
                 href={d.href}
-                className="block rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 transition-colors hover:border-[var(--fintech-accent)]"
+                className="block rounded-2xl border border-line-subtle bg-surface-sunken p-6 transition-colors hover:border-action"
               >
-                <h2 className="text-lg font-semibold text-[var(--fintech-ink)]">
+                <h2 className="text-lg font-semibold text-primary">
                   {d.title}
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+                <p className="mt-2 text-sm leading-relaxed text-secondary">
                   {d.body}
                 </p>
               </Link>

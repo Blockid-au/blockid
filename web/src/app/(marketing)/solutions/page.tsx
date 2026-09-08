@@ -75,15 +75,15 @@ export default function SolutionsIndexPage() {
             <li key={c.href}>
               <Link
                 href={c.href}
-                className="block h-full rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 transition-colors hover:border-[var(--fintech-accent)]"
+                className="block h-full rounded-2xl border border-line-subtle bg-surface-sunken p-6 transition-colors hover:border-action"
               >
-                <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.28em] text-[var(--fintech-accent)]">
+                <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.28em] text-action">
                   {c.eyebrow}
                 </p>
-                <h2 className="text-lg font-semibold text-[var(--fintech-ink)]">
+                <h2 className="text-lg font-semibold text-primary">
                   {c.title}
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+                <p className="mt-2 text-sm leading-relaxed text-secondary">
                   {c.body}
                 </p>
               </Link>

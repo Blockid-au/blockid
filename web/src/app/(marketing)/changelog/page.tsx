@@ -53,11 +53,11 @@ function renderInline(input: string): string {
   let s = escapeHtml(input);
   s = s.replace(
     /`([^`]+)`/g,
-    '<code class="rounded bg-[var(--fintech-surface)] px-1.5 py-0.5 text-[0.85em] text-[var(--fintech-accent)]">$1</code>',
+    '<code class="rounded bg-surface-raised px-1.5 py-0.5 text-[0.85em] text-action">$1</code>',
   );
   s = s.replace(
     /\*\*([^*]+)\*\*/g,
-    '<strong class="font-semibold text-[var(--fintech-ink)]">$1</strong>',
+    '<strong class="font-semibold text-primary">$1</strong>',
   );
   return s;
 }
@@ -100,7 +100,7 @@ function renderMarkdown(md: string): {
   const flushPara = () => {
     if (paraBuf.length > 0) {
       out.push(
-        `<p class="mt-3 leading-relaxed text-[var(--fintech-ink-muted)]">${renderInline(
+        `<p class="mt-3 leading-relaxed text-secondary">${renderInline(
           paraBuf.join(" "),
         )}</p>`,
       );
@@ -124,7 +124,7 @@ function renderMarkdown(md: string): {
       flushList();
       const text = trimmed.slice(4);
       out.push(
-        `<h3 class="mt-8 text-lg font-semibold tracking-tight text-[var(--fintech-ink)]">${renderInline(
+        `<h3 class="mt-8 text-lg font-semibold tracking-tight text-primary">${renderInline(
           text,
         )}</h3>`,
       );
@@ -142,7 +142,7 @@ function renderMarkdown(md: string): {
       const id = seen === 0 ? base : `${base}-${seen + 1}`;
       releases.push({ id, label: text });
       out.push(
-        `<h2 id="${id}" class="mt-14 border-t border-[var(--fintech-border)] pt-10 text-2xl font-bold tracking-tight text-[var(--fintech-ink)] sm:text-3xl">${renderInline(
+        `<h2 id="${id}" class="mt-14 border-t border-line-subtle pt-10 text-2xl font-bold tracking-tight text-primary sm:text-3xl">${renderInline(
           text,
         )}</h2>`,
       );
@@ -161,7 +161,7 @@ function renderMarkdown(md: string): {
       flushPara();
       if (!inList) {
         out.push(
-          '<ul class="mt-4 space-y-2 list-disc pl-6 text-[var(--fintech-ink-muted)] marker:text-[var(--fintech-accent)]">',
+          '<ul class="mt-4 space-y-2 list-disc pl-6 text-secondary marker:text-action">',
         );
         inList = true;
       }
@@ -210,14 +210,14 @@ export default function ChangelogPage() {
       >
         <div className="grid gap-10 lg:grid-cols-[1fr_240px]">
           {/* Content */}
-          <article className="min-w-0 rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-8 sm:p-10">
+          <article className="min-w-0 rounded-3xl border border-line-subtle bg-surface-sunken p-8 sm:p-10">
             {raw ? (
               <div
                 className="text-sm sm:text-base"
                 dangerouslySetInnerHTML={{ __html: parsed.html }}
               />
             ) : (
-              <p className="text-sm text-[var(--fintech-ink-muted)]">
+              <p className="text-sm text-secondary">
                 Changelog not yet published for this environment. The next
                 deploy will populate this page.
               </p>
@@ -226,8 +226,8 @@ export default function ChangelogPage() {
 
           {/* Sidebar (desktop only) */}
           <aside aria-label="Jump to release" className="hidden lg:block">
-            <div className="sticky top-24 rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+            <div className="sticky top-24 rounded-2xl border border-line-subtle bg-surface-sunken p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-action">
                 Releases
               </p>
               {parsed.releases.length > 0 ? (
@@ -236,7 +236,7 @@ export default function ChangelogPage() {
                     <li key={r.id}>
                       <a
                         href={`#${r.id}`}
-                        className="block truncate rounded-md px-2 py-1 text-xs text-[var(--fintech-ink-muted)] transition-colors duration-200 ease-out hover:bg-[var(--fintech-surface)] hover:text-[var(--fintech-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                        className="block truncate rounded-md px-2 py-1 text-xs text-secondary transition-colors duration-200 ease-out hover:bg-surface-raised hover:text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                       >
                         {r.label}
                       </a>
@@ -244,7 +244,7 @@ export default function ChangelogPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="mt-4 text-xs text-[var(--fintech-ink-muted)]">
+                <p className="mt-4 text-xs text-secondary">
                   No releases indexed yet.
                 </p>
               )}

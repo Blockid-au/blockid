@@ -66,7 +66,7 @@ export default function InsightsPage() {
         title={
           <>
             Insights &amp;{" "}
-            <span className="bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent">
+            <span className="text-action">
               Guides
             </span>
           </>
@@ -85,15 +85,15 @@ export default function InsightsPage() {
         {/* Empty state (server-rendered fallback) */}
         {articles.length === 0 && (
           <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm px-8 py-16 text-center">
-            <BookOpen strokeWidth={1.75} className="h-10 w-10 text-[#94A3B8] mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-[#F8FAFC] mb-2">Coming Soon</h2>
-            <p className="text-sm text-[#94A3B8] mb-6 max-w-md mx-auto">
+            <BookOpen strokeWidth={1.75} className="h-10 w-10 text-secondary mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-primary mb-2">Coming Soon</h2>
+            <p className="text-sm text-secondary mb-6 max-w-md mx-auto">
               We are preparing expert guides on startup valuation, cap table management,
               and fundraising strategies for Australian founders.
             </p>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0066FF] px-5 py-2.5 text-sm font-semibold text-[#0A0F1E] hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:opacity-90 transition-opacity"
             >
               Get Your Free SVI Score
               <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
@@ -104,15 +104,15 @@ export default function InsightsPage() {
         {/* Benchmarks teaser */}
         <div className="mt-14 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-[#00D4FF] font-semibold mb-1">Free Data</p>
-            <h2 className="text-xl font-semibold text-[#F8FAFC]">AU Startup Benchmarks</h2>
-            <p className="mt-1 text-sm text-[#94A3B8]">
+            <p className="text-xs uppercase tracking-[0.2em] text-action font-semibold mb-1">Free Data</p>
+            <h2 className="text-xl font-semibold text-primary">AU Startup Benchmarks</h2>
+            <p className="mt-1 text-sm text-secondary">
               MRR, ARR, burn rate, churn and SVI scores by stage — compare your startup against 2,700+ AU peers.
             </p>
           </div>
           <Link
             href="/benchmarks"
-            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0066FF] px-6 py-3 text-sm font-semibold text-[#0A0F1E] hover:opacity-90 transition-opacity whitespace-nowrap"
+            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:opacity-90 transition-opacity whitespace-nowrap"
           >
             View Benchmarks <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
           </Link>

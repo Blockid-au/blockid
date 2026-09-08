@@ -59,15 +59,15 @@ export default function NotFound() {
             <Link
               key={s.href}
               href={s.href}
-              className="group rounded-2xl border border-surface-300 bg-white p-6 shadow-sm hover:border-brand-500 hover:shadow-md transition-all"
+              className="group rounded-2xl border border-line-subtle bg-white p-6 shadow-sm hover:border-brand-500 hover:shadow-md transition-all"
             >
               <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-600 mb-2">
                 {s.eyebrow}
               </p>
-              <h2 className="text-lg font-bold text-ink-800 mb-2">
+              <h2 className="text-lg font-bold text-secondary mb-2">
                 {s.title}
               </h2>
-              <p className="text-sm text-ink-600 mb-4">{s.body}</p>
+              <p className="text-sm text-tertiary mb-4">{s.body}</p>
               <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 group-hover:text-brand-700">
                 {s.cta}
                 <span aria-hidden="true">→</span>
@@ -76,7 +76,7 @@ export default function NotFound() {
           ))}
         </div>
 
-        <p className="mt-8 text-center text-xs text-ink-500">
+        <p className="mt-8 text-center text-xs text-tertiary">
           Or return to the{" "}
           <Link href="/" className="text-brand-600 hover:text-brand-700 font-semibold">
             BlockID.au homepage

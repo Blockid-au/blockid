@@ -170,7 +170,7 @@ export default async function TrustReportPage({ params }: PageProps) {
       </MarketingSection>
 
       <MarketingSection>
-        <p className="text-xs text-ink-400">
+        <p className="text-xs text-tertiary">
           Public disclosures composed at read-time from the founder's
           BlockID.au listing. Not investment advice.{" "}
           <Link href={`/listings/${t}`} className="underline">
@@ -193,14 +193,14 @@ function StatCard({
   detail?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-surface-200 bg-white p-5">
-      <p className="text-[10px] uppercase tracking-[0.16em] text-ink-500">
+    <div className="rounded-2xl border border-line-subtle bg-white p-5">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-tertiary">
         {label}
       </p>
-      <p className="mt-1 font-mono text-3xl tabular-nums text-ink-800">
+      <p className="mt-1 font-mono text-3xl tabular-nums text-secondary">
         {value}
       </p>
-      {detail ? <p className="mt-1 text-xs text-ink-400">{detail}</p> : null}
+      {detail ? <p className="mt-1 text-xs text-tertiary">{detail}</p> : null}
     </div>
   );
 }
@@ -213,11 +213,11 @@ function SnapshotRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] px-4 py-3">
-      <dt className="text-xs uppercase tracking-[0.14em] text-[var(--fintech-ink-muted)]">
+    <div className="flex items-baseline justify-between gap-4 rounded-xl border border-line-subtle bg-surface-raised px-4 py-3">
+      <dt className="text-xs uppercase tracking-[0.14em] text-secondary">
         {label}
       </dt>
-      <dd className="text-sm text-[var(--fintech-ink)]">{value}</dd>
+      <dd className="text-sm text-primary">{value}</dd>
     </div>
   );
 }
@@ -236,10 +236,10 @@ function ActionCard({
   return (
     <Link
       href={href}
-      className="group block rounded-2xl border border-surface-200 bg-white p-5 transition-colors hover:border-brand-500/50"
+      className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50"
     >
-      <h3 className="text-lg font-semibold text-ink-800">{title}</h3>
-      <p className="mt-2 text-sm text-ink-500">{body}</p>
+      <h3 className="text-lg font-semibold text-secondary">{title}</h3>
+      <p className="mt-2 text-sm text-tertiary">{body}</p>
       <span className="mt-4 inline-flex text-sm font-medium text-brand-600 group-hover:underline">
         {cta} →
       </span>

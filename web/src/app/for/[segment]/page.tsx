@@ -97,12 +97,12 @@ export default async function ForSegmentPage({
           {content.features.map((f) => (
             <li
               key={f}
-              className="flex items-start gap-3 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+              className="flex items-start gap-3 rounded-xl border border-line-subtle bg-surface-raised p-4"
             >
-              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--fintech-bg-primary)] text-[var(--fintech-accent)]">
+              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface text-action">
                 <Check className="h-4 w-4" aria-hidden="true" />
               </span>
-              <span className="text-sm text-[var(--fintech-ink)]">{f}</span>
+              <span className="text-sm text-primary">{f}</span>
             </li>
           ))}
         </ul>
@@ -113,12 +113,12 @@ export default async function ForSegmentPage({
           {content.steps.map((step, i) => (
             <li
               key={step}
-              className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-5"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-5"
             >
-              <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--fintech-accent)] font-display text-sm font-semibold text-[var(--fintech-bg-primary)]">
+              <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action font-display text-sm font-semibold text-on-action">
                 {i + 1}
               </div>
-              <p className="mt-3 text-sm text-[var(--fintech-ink)]">{step}</p>
+              <p className="mt-3 text-sm text-primary">{step}</p>
             </li>
           ))}
         </ol>
@@ -129,20 +129,20 @@ export default async function ForSegmentPage({
         title={`Right-sized for ${content.label.toLowerCase()}`}
         kicker="Plan"
       >
-        <div className="max-w-2xl rounded-2xl border border-[var(--fintech-border-strong)] bg-[var(--fintech-surface)] p-6 shadow-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+        <div className="max-w-2xl rounded-2xl border border-line bg-surface-raised p-6 shadow-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-action">
             Recommended plan
           </p>
-          <p className="mt-2 font-display text-2xl font-semibold text-[var(--fintech-ink)]">
+          <p className="mt-2 font-display text-2xl font-semibold text-primary">
             {content.planAnchor.label}
           </p>
-          <p className="mt-1 text-sm text-[var(--fintech-ink-muted)]">
+          <p className="mt-1 text-sm text-secondary">
             {content.planAnchor.price} · 7-day free trial · cancel anytime
             before Day 8.
           </p>
           <Link
             href={pricingFragmentFor(content.slug)}
-            className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--fintech-accent)] px-4 text-sm font-semibold text-[var(--fintech-bg-primary)] transition-colors duration-200 ease-out hover:bg-[var(--fintech-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+            className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-action px-4 text-sm font-semibold text-on-action transition-colors duration-200 ease-out hover:bg-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
             See full pricing matrix
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -155,12 +155,12 @@ export default async function ForSegmentPage({
           {content.faq.map((f) => (
             <div
               key={f.q}
-              className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-5"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-5"
             >
-              <dt className="text-base font-semibold text-[var(--fintech-ink)]">
+              <dt className="text-base font-semibold text-primary">
                 {f.q}
               </dt>
-              <dd className="mt-2 text-sm text-[var(--fintech-ink-muted)]">{f.a}</dd>
+              <dd className="mt-2 text-sm text-secondary">{f.a}</dd>
             </div>
           ))}
         </dl>

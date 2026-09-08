@@ -85,10 +85,10 @@ export default function SampleHubPage() {
             <Link
               key={s.href}
               href={s.href}
-              className="group block rounded-2xl border border-surface-200 bg-white p-5 transition-colors hover:border-brand-500/50"
+              className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50"
             >
-              <h3 className="text-lg font-semibold text-ink-800">{s.title}</h3>
-              <p className="mt-2 text-sm text-ink-500">{s.body}</p>
+              <h3 className="text-lg font-semibold text-secondary">{s.title}</h3>
+              <p className="mt-2 text-sm text-tertiary">{s.body}</p>
               <span className="mt-4 inline-flex text-sm font-medium text-brand-600 group-hover:underline">
                 {s.cta} →
               </span>
@@ -98,20 +98,20 @@ export default function SampleHubPage() {
       </MarketingSection>
 
       <MarketingSection kicker="Ready to run your own?" title="Score your startup in under 10 minutes">
-        <p className="max-w-2xl text-sm text-[var(--fintech-ink-muted)]">
+        <p className="max-w-2xl text-sm text-secondary">
           The BlockID Startup Value Index runs 8 dimensions in parallel from the
           evidence you paste in. Free preview, no login, and your data stays yours.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/score"
-            className="inline-flex h-11 items-center justify-center rounded-full bg-[var(--fintech-accent)] px-6 text-sm font-semibold text-[var(--fintech-bg-primary)] transition-colors hover:bg-[var(--fintech-accent-hover)]"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-action px-6 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover"
           >
             Score my startup
           </Link>
           <Link
             href="/tools/idea-clarify"
-            className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--fintech-border-strong)] px-6 text-sm font-semibold text-[var(--fintech-ink)] transition-colors hover:bg-[var(--fintech-bg-elevated)]"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-line px-6 text-sm font-semibold text-primary transition-colors hover:bg-surface-sunken"
           >
             Clarify my idea first
           </Link>

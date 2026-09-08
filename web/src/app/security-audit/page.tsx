@@ -145,9 +145,9 @@ export default function SecurityAuditPage() {
       />
 
       {version ? (
-        <p className="mx-auto max-w-5xl px-6 pb-4 text-xs text-[var(--fintech-ink-muted)]">
+        <p className="mx-auto max-w-5xl px-6 pb-4 text-xs text-secondary">
           Current shipped build:{" "}
-          <span className="font-mono text-[var(--fintech-ink)]">{version}</span>
+          <span className="font-mono text-primary">{version}</span>
         </p>
       ) : null}
 
@@ -156,7 +156,7 @@ export default function SecurityAuditPage() {
         title="Methodology"
         kicker="How the sweeps run"
       >
-        <p className="text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+        <p className="text-sm leading-relaxed text-secondary">
           Each milestone triggers a paired sweep — a security-audit pass
           focused on OWASP-adjacent regressions (auth, cron, headers,
           payment flows) and a code-review pass focused on correctness,
@@ -165,7 +165,7 @@ export default function SecurityAuditPage() {
           milestone tag; Mediums are batched into the next release unless
           they touch a payment or consent surface.
         </p>
-        <p className="mt-3 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+        <p className="mt-3 text-sm leading-relaxed text-secondary">
           Every claim on this page is anchored to a task ID visible in the
           public changelog (Phase 6 audit sweep in v2.0.0-beta.5; Phase 8
           deferred closure in v2.0.0-beta.6). Nothing here is inferred or
@@ -179,7 +179,7 @@ export default function SecurityAuditPage() {
         title="Findings closed"
         kicker="Shipped"
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           The following findings shipped as fixes. Each row cites the
           release tag in which the fix landed.
         </p>
@@ -187,10 +187,10 @@ export default function SecurityAuditPage() {
           {CLOSED_FINDINGS.map((f) => (
             <li
               key={f.id}
-              className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-5"
+              className="rounded-xl border border-line-subtle bg-surface-raised p-5"
             >
               <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center rounded-md bg-[var(--fintech-bg-primary)] px-2 py-0.5 font-mono text-[11px] text-[var(--fintech-accent)]">
+                <span className="inline-flex items-center rounded-md bg-surface px-2 py-0.5 font-mono text-[11px] text-action">
                   {f.id}
                 </span>
                 <span
@@ -202,14 +202,14 @@ export default function SecurityAuditPage() {
                 >
                   {f.severity}
                 </span>
-                <span className="text-xs text-[var(--fintech-ink-muted)]">
+                <span className="text-xs text-secondary">
                   Shipped in {f.shipped_in}
                 </span>
               </div>
-              <p className="mt-2 text-base font-semibold text-[var(--fintech-ink)]">
+              <p className="mt-2 text-base font-semibold text-primary">
                 {f.title}
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+              <p className="mt-2 text-sm leading-relaxed text-secondary">
                 {f.detail}
               </p>
             </li>
@@ -222,7 +222,7 @@ export default function SecurityAuditPage() {
         title="Deferred TODOs"
         kicker="Tracked"
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           These findings are tracked but have not shipped yet. Each row
           cites the audit ID visible in the changelog under Phase 6
           deferred list.
@@ -231,20 +231,20 @@ export default function SecurityAuditPage() {
           {DEFERRED_FINDINGS.map((f) => (
             <li
               key={f.id}
-              className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-5"
+              className="rounded-xl border border-line-subtle bg-surface-raised p-5"
             >
               <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center rounded-md bg-[var(--fintech-bg-primary)] px-2 py-0.5 font-mono text-[11px] text-[var(--fintech-accent)]">
+                <span className="inline-flex items-center rounded-md bg-surface px-2 py-0.5 font-mono text-[11px] text-action">
                   {f.id}
                 </span>
-                <span className="inline-flex items-center rounded-md bg-[var(--fintech-bg-primary)] px-2 py-0.5 text-[11px] font-semibold text-[var(--fintech-ink-muted)]">
+                <span className="inline-flex items-center rounded-md bg-surface px-2 py-0.5 text-[11px] font-semibold text-secondary">
                   Deferred
                 </span>
               </div>
-              <p className="mt-2 text-base font-semibold text-[var(--fintech-ink)]">
+              <p className="mt-2 text-base font-semibold text-primary">
                 {f.title}
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+              <p className="mt-2 text-sm leading-relaxed text-secondary">
                 {f.planned_fix}
               </p>
             </li>
@@ -254,14 +254,14 @@ export default function SecurityAuditPage() {
 
       <MarketingSection tone="elevated" title="Coordinated disclosure" kicker="Contact">
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--fintech-surface)] text-[var(--fintech-accent)]">
+          <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-raised text-action">
             <Lock aria-hidden="true" className="h-4 w-4" />
           </span>
-          <p className="text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+          <p className="text-sm leading-relaxed text-secondary">
             If you have identified a security issue please email{" "}
             <a
               href="mailto:security@blockid.au"
-              className="rounded-md text-[var(--fintech-accent)] underline decoration-[var(--fintech-accent)]/40 underline-offset-4 transition-colors duration-200 ease-out hover:decoration-[var(--fintech-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+              className="rounded-md text-action underline decoration-action/40 underline-offset-4 transition-colors duration-200 ease-out hover:decoration-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               security@blockid.au
             </a>

@@ -68,10 +68,10 @@ export default function DemoPage() {
         <ul className="space-y-3">
           {HIGHLIGHTS.map((h) => (
             <li key={h} className="flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--fintech-surface)] text-[var(--fintech-accent)]">
+              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-raised text-action">
                 <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
               </span>
-              <span className="text-sm leading-relaxed text-[var(--fintech-ink)]">
+              <span className="text-sm leading-relaxed text-primary">
                 {h}
               </span>
             </li>
@@ -84,7 +84,7 @@ export default function DemoPage() {
         title="Who a demo is right for"
         kicker="Fit"
       >
-        <p className="text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+        <p className="text-sm leading-relaxed text-secondary">
           Best for founders who are actively raising in the next 90 days,
           operators pricing a corporate compare bake-off (Cake, Carta,
           Foundersuite, Visible, AngelList), and accelerator / advisor

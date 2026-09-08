@@ -169,12 +169,12 @@ function Card({
   return (
     <section
       aria-label={title}
-      className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)]/60 p-6"
+      className="rounded-2xl border border-line-subtle bg-surface-sunken/60 p-6"
     >
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-secondary">
         {title}
       </h2>
-      <div className="mt-3 text-sm text-[var(--fintech-ink)]">{children}</div>
+      <div className="mt-3 text-sm text-primary">{children}</div>
     </section>
   );
 }
@@ -183,21 +183,21 @@ function SviCard({ listing }: { listing: Listing }) {
   return (
     <Card title="SVI">
       <div className="flex items-baseline gap-3">
-        <span className="font-display text-4xl font-semibold text-[var(--fintech-ink)]">
+        <span className="font-display text-4xl font-semibold text-primary">
           {listing.svi_grade ?? "—"}
         </span>
-        <span className="text-lg text-[var(--fintech-ink-muted)]">
+        <span className="text-lg text-secondary">
           {listing.svi_score != null ? listing.svi_score : "—"}
         </span>
       </div>
-      <p className="mt-3 text-xs text-[var(--fintech-ink-muted)]">
+      <p className="mt-3 text-xs text-secondary">
         Last updated {formatDate(listing.updated_at)}
       </p>
-      <p className="mt-4 text-xs leading-relaxed text-[var(--fintech-ink-muted)]">
+      <p className="mt-4 text-xs leading-relaxed text-secondary">
         SVI is BlockID.au&apos;s 13-criteria composite score for AU startups.{" "}
         <Link
           href="/svi"
-          className="rounded text-[var(--fintech-accent)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)]"
+          className="rounded text-action hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           Methodology
         </Link>
@@ -221,7 +221,7 @@ function SnapshotCard({ listing }: { listing: Listing }) {
                 href={listing.website_url}
                 rel="nofollow noopener noreferrer"
                 target="_blank"
-                className="rounded text-[var(--fintech-accent)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)]"
+                className="rounded text-action hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
               >
                 {listing.website_url.replace(/^https?:\/\//, "")}
               </a>
@@ -242,12 +242,12 @@ function SnapshotRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-[var(--fintech-border)] pb-2 last:border-b-0 last:pb-0">
-      <dt className="text-xs uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+    <div className="flex items-baseline justify-between gap-4 border-b border-line-subtle pb-2 last:border-b-0 last:pb-0">
+      <dt className="text-xs uppercase tracking-wider text-secondary">
         {label}
       </dt>
-      <dd className="text-right text-sm text-[var(--fintech-ink)]">
-        {value ?? <span className="text-[var(--fintech-ink-muted)]">—</span>}
+      <dd className="text-right text-sm text-primary">
+        {value ?? <span className="text-secondary">—</span>}
       </dd>
     </div>
   );
@@ -256,10 +256,10 @@ function SnapshotRow({
 function RaiseCard({ listing }: { listing: Listing }) {
   return (
     <Card title="Latest raise">
-      <p className="font-display text-3xl font-semibold text-[var(--fintech-ink)]">
+      <p className="font-display text-3xl font-semibold text-primary">
         {formatAud(listing.latest_raise_aud_cents)}
       </p>
-      <p className="mt-3 text-xs text-[var(--fintech-ink-muted)]">
+      <p className="mt-3 text-xs text-secondary">
         Sourced from the founder&apos;s workspace declaration. Full raise
         history lands in a later scaffold.
       </p>
@@ -271,39 +271,39 @@ function ComparableSet({ listings }: { listings: Listing[] }) {
   return (
     <section
       aria-labelledby="comparables-heading"
-      className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)]/40 p-6"
+      className="rounded-2xl border border-line-subtle bg-surface-sunken/40 p-6"
     >
       <h2
         id="comparables-heading"
-        className="text-xs font-semibold uppercase tracking-wider text-[var(--fintech-ink-muted)]"
+        className="text-xs font-semibold uppercase tracking-wider text-secondary"
       >
         Comparable set
       </h2>
       {listings.length === 0 ? (
-        <p className="mt-3 text-sm text-[var(--fintech-ink-muted)]">
+        <p className="mt-3 text-sm text-secondary">
           No peers in the same sector and SVI band yet.
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-[var(--fintech-border)]">
+        <ul className="mt-4 divide-y divide-line-subtle">
           {listings.map((row) => (
             <li key={row.ticker} className="flex items-center justify-between gap-4 py-3">
               <div>
                 <Link
                   href={`/listings/${encodeURIComponent(row.ticker)}`}
-                  className="rounded font-medium text-[var(--fintech-ink)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)]"
+                  className="rounded font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 >
                   {row.name}
                 </Link>
-                <p className="text-xs text-[var(--fintech-ink-muted)]">
+                <p className="text-xs text-secondary">
                   {row.ticker}
                   {row.stage ? ` · ${row.stage}` : ""}
                   {row.hq_state ? ` · ${row.hq_state}` : ""}
                 </p>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--fintech-border-strong)] px-3 py-1 text-xs font-semibold text-[var(--fintech-ink)]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1 text-xs font-semibold text-primary">
                 {row.svi_grade ?? "—"}
                 {row.svi_score != null ? (
-                  <span className="text-[var(--fintech-ink-muted)]">{row.svi_score}</span>
+                  <span className="text-secondary">{row.svi_score}</span>
                 ) : null}
               </span>
             </li>

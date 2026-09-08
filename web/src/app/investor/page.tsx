@@ -84,21 +84,21 @@ export default async function InvestorPage() {
               <Link
                 key={l.ticker}
                 href={`/reports/${l.ticker}`}
-                className="group block rounded-xl border border-surface-200 bg-white p-4 transition-colors hover:border-brand-500/50"
+                className="group block rounded-xl border border-line-subtle bg-white p-4 transition-colors hover:border-brand-500/50"
               >
-                <p className="text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-tertiary">
                   {l.sector ?? "—"} · {l.hq_state ?? "AU"}
                 </p>
-                <p className="mt-1 text-sm font-semibold text-ink-800">
+                <p className="mt-1 text-sm font-semibold text-secondary">
                   {l.name}
                 </p>
                 {l.one_liner ? (
-                  <p className="mt-1 line-clamp-2 text-xs text-ink-500">
+                  <p className="mt-1 line-clamp-2 text-xs text-tertiary">
                     {l.one_liner}
                   </p>
                 ) : null}
                 <div className="mt-3 flex items-baseline justify-between">
-                  <span className="font-mono text-lg tabular-nums text-ink-800">
+                  <span className="font-mono text-lg tabular-nums text-secondary">
                     {l.svi_score ?? "—"}
                   </span>
                   <span className="text-xs font-medium text-brand-600 group-hover:underline">
@@ -152,10 +152,10 @@ function PathCard({
   return (
     <Link
       href={href}
-      className="group block rounded-2xl border border-surface-200 bg-white p-5 transition-colors hover:border-brand-500/50"
+      className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50"
     >
-      <h3 className="text-lg font-semibold text-ink-800">{title}</h3>
-      <p className="mt-2 text-sm text-ink-500">{body}</p>
+      <h3 className="text-lg font-semibold text-secondary">{title}</h3>
+      <p className="mt-2 text-sm text-tertiary">{body}</p>
       <span className="mt-4 inline-flex text-sm font-medium text-brand-600 group-hover:underline">
         {cta} →
       </span>
@@ -165,9 +165,9 @@ function PathCard({
 
 function ReasonRow({ title, body }: { title: string; body: string }) {
   return (
-    <li className="rounded-xl border border-surface-200 bg-white p-4">
-      <p className="text-sm font-semibold text-ink-800">{title}</p>
-      <p className="mt-1 text-xs text-ink-500">{body}</p>
+    <li className="rounded-xl border border-line-subtle bg-white p-4">
+      <p className="text-sm font-semibold text-secondary">{title}</p>
+      <p className="mt-1 text-xs text-tertiary">{body}</p>
     </li>
   );
 }

@@ -87,7 +87,7 @@ export default function AboutPage() {
         title={
           <>
             Helping Australian founders build{" "}
-            <span className="bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent">
+            <span className="text-action">
               valuable, investable
             </span>{" "}
             businesses from day one
@@ -99,10 +99,10 @@ export default function AboutPage() {
       <div className="mx-auto max-w-4xl px-6 pb-20 space-y-16">
         {/* Mission */}
         <section>
-          <h2 className="text-2xl font-bold text-[#F8FAFC] mb-4">
+          <h2 className="text-2xl font-bold text-primary mb-4">
             Our Mission
           </h2>
-          <p className="text-lg leading-relaxed text-[#94A3B8]">
+          <p className="text-lg leading-relaxed text-secondary">
             Too many startups lose momentum — and equity — because cap tables
             live in spreadsheets, valuations are guesswork, and fundraising
             readiness is an afterthought. We believe every Australian founder
@@ -113,7 +113,7 @@ export default function AboutPage() {
 
         {/* What We Do */}
         <section>
-          <h2 className="text-2xl font-bold text-[#F8FAFC] mb-4">
+          <h2 className="text-2xl font-bold text-primary mb-4">
             What We Do
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -159,14 +159,14 @@ export default function AboutPage() {
                 key={label}
                 className="flex items-start gap-3 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-4 transition-all duration-300 hover:border-[rgba(0,212,255,0.3)] hover:scale-[1.02]"
               >
-                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[rgba(0,212,255,0.15)] text-[#00D4FF]">
+                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-action/10 text-action">
                   <Icon strokeWidth={1.75} className="h-4.5 w-4.5" />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-[#F8FAFC]">
+                  <p className="text-sm font-semibold text-primary">
                     {label}
                   </p>
-                  <p className="text-xs text-[#94A3B8] mt-0.5 leading-relaxed">
+                  <p className="text-xs text-secondary mt-0.5 leading-relaxed">
                     {detail}
                   </p>
                 </div>
@@ -177,21 +177,21 @@ export default function AboutPage() {
 
         {/* Our Approach */}
         <section>
-          <h2 className="text-2xl font-bold text-[#F8FAFC] mb-6">
+          <h2 className="text-2xl font-bold text-primary mb-6">
             Our Approach
           </h2>
           <div className="grid sm:grid-cols-2 gap-6">
             {APPROACH_ITEMS.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[rgba(0,212,255,0.15)] text-[#00D4FF]">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-action/10 text-action">
                     <Icon strokeWidth={1.75} className="h-5 w-5" />
                   </span>
-                  <h3 className="text-base font-semibold text-[#F8FAFC]">
+                  <h3 className="text-base font-semibold text-primary">
                     {title}
                   </h3>
                 </div>
-                <p className="text-sm leading-relaxed text-[#94A3B8]">{desc}</p>
+                <p className="text-sm leading-relaxed text-secondary">{desc}</p>
               </div>
             ))}
           </div>
@@ -199,8 +199,8 @@ export default function AboutPage() {
 
         {/* The Team */}
         <section>
-          <h2 className="text-2xl font-bold text-[#F8FAFC] mb-4">The Team</h2>
-          <p className="text-base leading-relaxed text-[#94A3B8] mb-4">
+          <h2 className="text-2xl font-bold text-primary mb-4">The Team</h2>
+          <p className="text-base leading-relaxed text-secondary mb-4">
             BlockID was built by an experienced founder who has lived the
             startup journey — raising capital, negotiating term sheets, and
             building cap tables from scratch. Instead of assembling a
@@ -210,7 +210,7 @@ export default function AboutPage() {
             critical domain: valuation, competitive research, R&D eligibility,
             financial modelling, compliance, and more.
           </p>
-          <p className="text-base leading-relaxed text-[#94A3B8]">
+          <p className="text-base leading-relaxed text-secondary">
             The result: a platform that would typically require a team of 20+
             engineers, delivered with the speed and precision of AI-native
             development. The current build — v3.4.0 — spans 340+ TypeScript
@@ -230,16 +230,16 @@ export default function AboutPage() {
         {/* Platform Stats */}
         <section>
           <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm px-6 py-8">
-            <p className="text-center text-xs uppercase tracking-[0.15em] text-[#00D4FF] font-medium mb-6">
+            <p className="text-center text-xs uppercase tracking-[0.15em] text-action font-medium mb-6">
               Platform at a glance
             </p>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
               {STATS.map(({ num, label }) => (
                 <div key={label} className="text-center">
-                  <p className="text-2xl font-extrabold font-mono tabular-nums bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent">
+                  <p className="text-2xl font-extrabold font-mono tabular-nums text-action">
                     {num}
                   </p>
-                  <p className="text-xs text-[#94A3B8] mt-1">{label}</p>
+                  <p className="text-xs text-secondary mt-1">{label}</p>
                 </div>
               ))}
             </div>
@@ -248,7 +248,7 @@ export default function AboutPage() {
 
         {/* Australian-Native */}
         <section>
-          <h2 className="text-2xl font-bold text-[#F8FAFC] mb-4">
+          <h2 className="text-2xl font-bold text-primary mb-4">
             Australian-Native
           </h2>
           <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm p-6">
@@ -262,11 +262,11 @@ export default function AboutPage() {
               ].map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-2.5 text-sm text-[#94A3B8]"
+                  className="flex items-start gap-2.5 text-sm text-secondary"
                 >
                   <CheckCircle2
                     strokeWidth={1.75}
-                    className="h-4 w-4 mt-0.5 shrink-0 text-[#00D4FF]"
+                    className="h-4 w-4 mt-0.5 shrink-0 text-action"
                   />
                   <span>{item}</span>
                 </li>

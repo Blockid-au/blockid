@@ -155,35 +155,35 @@ export function SolutionsPageShell(props: SolutionPageProps) {
           aria-labelledby={`solutions-${slug}-heading`}
           className="mx-auto flex max-w-4xl flex-col items-start gap-8 px-6 pt-16 pb-12 sm:pt-24 sm:pb-16"
         >
-          <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-[var(--fintech-accent)]">
+          <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-action">
             {eyebrow}
           </p>
           <h1
             id={`solutions-${slug}-heading`}
-            className="font-display text-balance text-3xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-4xl md:text-5xl"
+            className="font-display text-balance text-3xl font-semibold tracking-tight text-primary sm:text-4xl md:text-5xl"
           >
             {headline}
           </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-[var(--fintech-ink-muted)]">
+          <p className="max-w-2xl text-lg leading-relaxed text-secondary">
             {personaLine}
           </p>
-          <blockquote className="border-l-2 border-[var(--fintech-accent)] pl-4 text-base italic text-[var(--fintech-ink)]">
+          <blockquote className="border-l-2 border-action pl-4 text-base italic text-primary">
             &ldquo;{emotionalLine}&rdquo;
-            <footer className="mt-2 text-xs not-italic text-[var(--fintech-ink-muted)]">
+            <footer className="mt-2 text-xs not-italic text-secondary">
               {outcomeLine}
             </footer>
           </blockquote>
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href={primaryCtaHref ?? primaryCtaHrefForSlug(slug)}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[var(--fintech-accent)] px-6 text-sm font-semibold text-[var(--fintech-bg-primary)] shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-[var(--fintech-accent-hover)] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-action-hover hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               {primaryCtaLabel}
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Link>
             <Link
               href={SAMPLE_REPORT_HREF}
-              className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--fintech-border-strong)] px-6 text-sm font-medium text-[var(--fintech-ink)] transition-colors duration-200 hover:bg-[var(--fintech-bg-elevated)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+              className="inline-flex h-12 items-center justify-center rounded-xl border border-line px-6 text-sm font-medium text-primary transition-colors duration-200 hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               {secondaryCtaLabel}
             </Link>
@@ -200,17 +200,17 @@ export function SolutionsPageShell(props: SolutionPageProps) {
               {trustBadges.map((badge) => (
                 <li
                   key={badge.label}
-                  className="inline-flex items-start gap-2 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] px-3 py-2"
+                  className="inline-flex items-start gap-2 rounded-xl border border-line-subtle bg-surface-sunken px-3 py-2"
                 >
                   <ShieldCheck
                     aria-hidden="true"
-                    className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fintech-accent)]"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-action"
                   />
                   <span className="flex flex-col leading-tight">
-                    <span className="text-xs font-semibold text-[var(--fintech-ink)]">
+                    <span className="text-xs font-semibold text-primary">
                       {badge.label}
                     </span>
-                    <span className="text-[11px] text-[var(--fintech-ink-muted)]">
+                    <span className="text-[11px] text-secondary">
                       {badge.sub}
                     </span>
                   </span>
@@ -227,7 +227,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
         >
           <h2
             id={`solutions-${slug}-benefits`}
-            className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {benefitsTitle}
           </h2>
@@ -235,15 +235,15 @@ export function SolutionsPageShell(props: SolutionPageProps) {
             {benefits.map((b) => (
               <li
                 key={b.title}
-                className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6"
+                className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
               >
-                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--fintech-accent)]/15 text-[var(--fintech-accent)]">
+                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action/15 text-action">
                   <Check aria-hidden="true" className="h-4 w-4" />
                 </div>
-                <h3 className="mt-4 font-display text-lg font-semibold text-[var(--fintech-ink)]">
+                <h3 className="mt-4 font-display text-lg font-semibold text-primary">
                   {b.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+                <p className="mt-2 text-sm leading-relaxed text-secondary">
                   {b.body}
                 </p>
               </li>
@@ -257,19 +257,19 @@ export function SolutionsPageShell(props: SolutionPageProps) {
             aria-label="Sample investor report preview"
             className="mx-auto max-w-5xl px-6 py-8"
           >
-            <div className="rounded-2xl border border-[var(--fintech-accent)]/40 bg-[var(--fintech-bg-elevated)] p-6 sm:p-8">
-              <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-[var(--fintech-accent)]">
+            <div className="rounded-2xl border border-action/40 bg-surface-sunken p-6 sm:p-8">
+              <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-action">
                 {samplePreview.eyebrow}
               </p>
-              <h2 className="mt-3 font-display text-xl font-semibold text-[var(--fintech-ink)] sm:text-2xl">
+              <h2 className="mt-3 font-display text-xl font-semibold text-primary sm:text-2xl">
                 {samplePreview.title}
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+              <p className="mt-3 text-sm leading-relaxed text-secondary">
                 {samplePreview.body}
               </p>
               <Link
                 href={samplePreview.ctaHref}
-                className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--fintech-accent)] px-5 text-sm font-semibold text-[var(--fintech-accent)] transition-colors duration-200 hover:bg-[var(--fintech-accent)]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl border border-action px-5 text-sm font-semibold text-action transition-colors duration-200 hover:bg-action/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 {samplePreview.ctaLabel}
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -285,7 +285,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
         >
           <h2
             id={`solutions-${slug}-journey`}
-            className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {journeyTitle}
           </h2>
@@ -293,31 +293,31 @@ export function SolutionsPageShell(props: SolutionPageProps) {
             {journey.map((step, i) => (
               <li
                 key={step.window}
-                className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-6"
+                className="rounded-2xl border border-line-subtle bg-surface-raised p-6"
               >
                 <div className="flex items-baseline gap-3">
                   <span
                     aria-hidden="true"
-                    className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--fintech-accent)]"
+                    className="font-mono text-xs uppercase tracking-[0.2em] text-action"
                   >
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fintech-ink-muted)]">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
                     {step.window}
                   </span>
                 </div>
-                <p className="mt-3 font-display text-base font-semibold text-[var(--fintech-ink)]">
+                <p className="mt-3 font-display text-base font-semibold text-primary">
                   {step.headline}
                 </p>
                 <ul className="mt-3 space-y-2">
                   {step.bullets.map((bullet) => (
                     <li
                       key={bullet}
-                      className="flex items-start gap-2 text-sm text-[var(--fintech-ink-muted)]"
+                      className="flex items-start gap-2 text-sm text-secondary"
                     >
                       <span
                         aria-hidden="true"
-                        className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--fintech-accent)]"
+                        className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-action"
                       />
                       <span>{bullet}</span>
                     </li>
@@ -335,7 +335,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
         >
           <h2
             id={`solutions-${slug}-faq`}
-            className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {faqTitle}
           </h2>
@@ -343,12 +343,12 @@ export function SolutionsPageShell(props: SolutionPageProps) {
             {faqs.map((f) => (
               <div
                 key={f.q}
-                className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6"
+                className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
               >
-                <dt className="font-display text-base font-semibold text-[var(--fintech-ink)]">
+                <dt className="font-display text-base font-semibold text-primary">
                   {f.q}
                 </dt>
-                <dd className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+                <dd className="mt-2 text-sm leading-relaxed text-secondary">
                   {f.a}
                 </dd>
               </div>
@@ -361,7 +361,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
           aria-label="Regulatory disclaimer"
           className="mx-auto max-w-4xl px-6 pb-16"
         >
-          <p className="text-xs leading-relaxed text-[var(--fintech-ink-muted)]">
+          <p className="text-xs leading-relaxed text-secondary">
             {disclaimer}
           </p>
         </section>

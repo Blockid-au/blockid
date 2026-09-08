@@ -35,16 +35,16 @@ export const metadata: Metadata = {
 
 function EmptyState(): ReactNode {
   return (
-    <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-8 text-center">
-      <p className="text-lg font-semibold text-[var(--fintech-ink)]">
+    <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-8 text-center">
+      <p className="text-lg font-semibold text-primary">
         Be the first startup in your sector.
       </p>
-      <p className="mt-2 text-sm text-[var(--fintech-ink-muted)]">
+      <p className="mt-2 text-sm text-secondary">
         List yours in under 5 minutes and get an SVI grade on day one.
       </p>
       <Link
         href="/workspace/listings/new"
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--fintech-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--fintech-bg-primary)] hover:opacity-90"
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:opacity-90"
       >
         List your startup
       </Link>
@@ -54,23 +54,23 @@ function EmptyState(): ReactNode {
 
 function Row({ listing }: { listing: Listing }): ReactNode {
   return (
-    <tr className="border-t border-[var(--fintech-border)] hover:bg-[var(--fintech-surface)]/60">
-      <td className="px-4 py-3 font-mono text-sm text-[var(--fintech-accent)]">
+    <tr className="border-t border-line-subtle hover:bg-surface-raised/60">
+      <td className="px-4 py-3 font-mono text-sm text-action">
         <Link href={`/listings/${listing.ticker}`}>{listing.ticker}</Link>
       </td>
-      <td className="px-4 py-3 text-sm text-[var(--fintech-ink)]">
+      <td className="px-4 py-3 text-sm text-primary">
         <Link href={`/listings/${listing.ticker}`} className="hover:underline">
           {listing.name}
         </Link>
       </td>
-      <td className="px-4 py-3 text-sm text-[var(--fintech-ink-muted)]">{listing.sector ?? "—"}</td>
-      <td className="px-4 py-3 text-sm text-[var(--fintech-ink-muted)]">{listing.svi_grade ?? "—"}</td>
-      <td className="px-4 py-3 text-sm text-[var(--fintech-ink-muted)]">
+      <td className="px-4 py-3 text-sm text-secondary">{listing.sector ?? "—"}</td>
+      <td className="px-4 py-3 text-sm text-secondary">{listing.svi_grade ?? "—"}</td>
+      <td className="px-4 py-3 text-sm text-secondary">
         {listing.latest_raise_aud_cents
           ? new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(listing.latest_raise_aud_cents / 100)
           : "—"}
       </td>
-      <td className="px-4 py-3 text-sm text-[var(--fintech-ink-muted)]">{listing.hq_state ?? "—"}</td>
+      <td className="px-4 py-3 text-sm text-secondary">{listing.hq_state ?? "—"}</td>
     </tr>
   );
 }
@@ -91,9 +91,9 @@ export default async function ListingsDirectoryPage() {
         {listings.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-[var(--fintech-border)]">
+          <div className="overflow-x-auto rounded-2xl border border-line-subtle">
             <table className="w-full">
-              <thead className="bg-[var(--fintech-bg-elevated)] text-left text-xs uppercase tracking-wide text-[var(--fintech-ink-muted)]">
+              <thead className="bg-surface-sunken text-left text-xs uppercase tracking-wide text-secondary">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Ticker</th>
                   <th className="px-4 py-3 font-semibold">Name</th>

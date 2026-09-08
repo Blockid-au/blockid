@@ -104,21 +104,21 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
           aria-labelledby="business-id-heading"
           className="mx-auto flex max-w-4xl flex-col items-start gap-6 px-6 pt-16 pb-12 sm:pt-24 sm:pb-16"
         >
-          <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-[var(--fintech-accent)]">
+          <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-action">
             {t(m, "businessId.eyebrow")}
           </p>
           <h1
             id="business-id-heading"
-            className="font-display text-balance text-3xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-4xl md:text-5xl"
+            className="font-display text-balance text-3xl font-semibold tracking-tight text-primary sm:text-4xl md:text-5xl"
           >
             {t(m, "businessId.headline")}
           </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-[var(--fintech-ink-muted)]">
+          <p className="max-w-2xl text-lg leading-relaxed text-secondary">
             {t(m, "businessId.subhead")}
           </p>
           <Link
             href={SIGNUP_HREF}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[var(--fintech-accent)] px-6 text-sm font-semibold text-[var(--fintech-bg-primary)] shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-[var(--fintech-accent-hover)] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-action-hover hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
             {t(m, "hero.v3.cta.primary.signedOut")}
             <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -132,11 +132,11 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
         >
           <h2
             id="business-id-what"
-            className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {t(m, "businessId.what.title")}
           </h2>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--fintech-ink-muted)]">
+          <p className="mt-4 max-w-3xl text-base leading-relaxed text-secondary">
             {t(m, "businessId.what.intro")}
           </p>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -148,15 +148,15 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
             ].map(({ key, icon: Icon }) => (
               <li
                 key={key}
-                className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6"
+                className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
               >
-                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--fintech-accent)]/15 text-[var(--fintech-accent)]">
+                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action/15 text-action">
                   <Icon aria-hidden="true" className="h-4 w-4" />
                 </div>
-                <h3 className="mt-3 font-display text-base font-semibold text-[var(--fintech-ink)]">
+                <h3 className="mt-3 font-display text-base font-semibold text-primary">
                   {t(m, `businessId.what.${key}.title`)}
                 </h3>
-                <p className="mt-2 text-sm text-[var(--fintech-ink-muted)]">
+                <p className="mt-2 text-sm text-secondary">
                   {t(m, `businessId.what.${key}.body`)}
                 </p>
               </li>
@@ -171,31 +171,31 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
         >
           <h2
             id="business-id-levels"
-            className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {t(m, "businessId.levels.title")}
           </h2>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--fintech-ink-muted)]">
+          <p className="mt-4 max-w-3xl text-base leading-relaxed text-secondary">
             {t(m, "businessId.levels.intro")}
           </p>
           <ol className="mt-8 space-y-3">
             {verificationLevels.map((lvl, i) => (
               <li
                 key={lvl.level}
-                className="grid grid-cols-[auto_1fr] items-start gap-4 rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-5"
+                className="grid grid-cols-[auto_1fr] items-start gap-4 rounded-2xl border border-line-subtle bg-surface-raised p-5"
               >
                 <div
                   aria-hidden="true"
-                  className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--fintech-accent)]/15 font-mono text-sm font-semibold text-[var(--fintech-accent)]"
+                  className="flex h-12 w-12 items-center justify-center rounded-xl bg-action/15 font-mono text-sm font-semibold text-action"
                 >
                   {lvl.level}
                 </div>
                 <div>
-                  <p className="font-display text-base font-semibold text-[var(--fintech-ink)]">
+                  <p className="font-display text-base font-semibold text-primary">
                     <span className="sr-only">Verification level {i + 1}: </span>
                     {lvl.title}
                   </p>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+                  <p className="mt-1 text-sm leading-relaxed text-secondary">
                     {lvl.body}
                   </p>
                 </div>
@@ -211,31 +211,31 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
         >
           <h2
             id="business-id-pillars"
-            className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {t(m, "businessId.pillars.title")}
           </h2>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--fintech-ink-muted)]">
+          <p className="mt-4 max-w-3xl text-base leading-relaxed text-secondary">
             {t(m, "businessId.pillars.intro")}
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {pillars.map((pillar) => (
               <div
                 key={pillar.cluster}
-                className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6"
+                className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fintech-accent)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-action">
                   {pillar.cluster}
                 </p>
                 <ul className="mt-4 space-y-2">
                   {pillar.areas.map((area) => (
                     <li
                       key={area}
-                      className="flex items-start gap-2 text-sm text-[var(--fintech-ink)]"
+                      className="flex items-start gap-2 text-sm text-primary"
                     >
                       <Check
                         aria-hidden="true"
-                        className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fintech-accent)]"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-action"
                       />
                       <span>{area}</span>
                     </li>
@@ -253,32 +253,32 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
         >
           <h2
             id="business-id-sharing"
-            className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {t(m, "businessId.sharing.title")}
           </h2>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-6">
-              <h3 className="font-display text-base font-semibold text-[var(--fintech-ink)]">
+            <div className="rounded-2xl border border-line-subtle bg-surface-raised p-6">
+              <h3 className="font-display text-base font-semibold text-primary">
                 {t(m, "businessId.sharing.consent.title")}
               </h3>
-              <p className="mt-2 text-sm text-[var(--fintech-ink-muted)]">
+              <p className="mt-2 text-sm text-secondary">
                 {t(m, "businessId.sharing.consent.body")}
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-6">
-              <h3 className="font-display text-base font-semibold text-[var(--fintech-ink)]">
+            <div className="rounded-2xl border border-line-subtle bg-surface-raised p-6">
+              <h3 className="font-display text-base font-semibold text-primary">
                 {t(m, "businessId.sharing.expiry.title")}
               </h3>
-              <p className="mt-2 text-sm text-[var(--fintech-ink-muted)]">
+              <p className="mt-2 text-sm text-secondary">
                 {t(m, "businessId.sharing.expiry.body")}
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-6">
-              <h3 className="font-display text-base font-semibold text-[var(--fintech-ink)]">
+            <div className="rounded-2xl border border-line-subtle bg-surface-raised p-6">
+              <h3 className="font-display text-base font-semibold text-primary">
                 {t(m, "businessId.sharing.revocation.title")}
               </h3>
-              <p className="mt-2 text-sm text-[var(--fintech-ink-muted)]">
+              <p className="mt-2 text-sm text-secondary">
                 {t(m, "businessId.sharing.revocation.body")}
               </p>
             </div>
@@ -292,11 +292,11 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
         >
           <h2
             id="business-id-badge"
-            className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {t(m, "businessId.badge.title")}
           </h2>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--fintech-ink-muted)]">
+          <p className="mt-4 max-w-3xl text-base leading-relaxed text-secondary">
             {t(m, "businessId.badge.intro")}
           </p>
           <div className="mt-8 flex justify-center">
@@ -325,13 +325,13 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
                 loading="lazy"
                 className="mx-auto h-auto w-full max-w-[300px]"
               />
-              <figcaption className="mt-3 text-center text-xs text-[var(--fintech-ink-muted)]">
+              <figcaption className="mt-3 text-center text-xs text-secondary">
                 {t(m, "businessId.badge.caption")}
               </figcaption>
               <div className="mt-4 text-center">
                 <Link
                   href={demoProfileHref}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--fintech-accent)] underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-action underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                 >
                   {t(m, "businessId.badge.viewDemo")}
                   <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -346,32 +346,32 @@ export function BusinessIdBody({ m, lang = "en" }: BusinessIdBodyProps) {
           aria-labelledby="business-id-cta"
           className="mx-auto max-w-4xl px-6 pb-16"
         >
-          <div className="rounded-3xl border border-[var(--fintech-border-strong)] bg-[var(--fintech-bg-elevated)] p-8 text-center shadow-2xl sm:p-12">
+          <div className="rounded-3xl border border-line bg-surface-sunken p-8 text-center shadow-2xl sm:p-12">
             <h2
               id="business-id-cta"
-              className="font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+              className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
             >
               {t(m, "businessId.cta.title")}
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-sm text-[var(--fintech-ink-muted)]">
+            <p className="mx-auto mt-4 max-w-xl text-sm text-secondary">
               {t(m, "hero.v3.outcome")}
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={SIGNUP_HREF}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[var(--fintech-accent)] px-6 text-sm font-semibold text-[var(--fintech-bg-primary)] transition-colors duration-200 hover:bg-[var(--fintech-accent-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action transition-colors duration-200 hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 {t(m, "hero.v3.cta.primary.signedOut")}
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
               <Link
                 href="/reports/samples"
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--fintech-border-strong)] px-6 text-sm font-medium text-[var(--fintech-ink)] transition-colors duration-200 hover:bg-[var(--fintech-surface)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="inline-flex h-12 items-center justify-center rounded-xl border border-line px-6 text-sm font-medium text-primary transition-colors duration-200 hover:bg-surface-raised focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 {t(m, "hero.v3.cta.secondary")}
               </Link>
             </div>
-            <p className="mt-6 text-xs text-[var(--fintech-ink-muted)]">
+            <p className="mt-6 text-xs text-secondary">
               {t(m, "businessId.disclaimer")}
             </p>
           </div>

@@ -64,10 +64,10 @@ export default function StartupPackagePage() {
         <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-400">
           Founder Package · Ship 1
         </p>
-        <h1 className="mt-4 text-4xl font-semibold leading-tight text-slate-100 sm:text-5xl">
+        <h1 className="mt-4 text-4xl font-semibold leading-tight text-primary sm:text-5xl">
           Start your investor-ready startup in 90 days
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
+        <p className="mx-auto mt-4 max-w-2xl text-lg text-secondary">
           A guided interview, seven C-Level agents, a live Startup Value Index,
           and a Day-0 dataroom — one A$149 unlock and pay-as-you-go from there.
         </p>
@@ -75,7 +75,7 @@ export default function StartupPackagePage() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/startup-package/interview"
-            className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 hover:bg-cyan-400"
+            className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-lg shadow-action/20 hover:bg-action-hover"
           >
             Get your sample analysis (free)
           </Link>
@@ -85,7 +85,7 @@ export default function StartupPackagePage() {
           />
         </div>
 
-        <p className="mt-4 text-xs text-slate-500">
+        <p className="mt-4 text-xs text-tertiary">
           Free sample uses your monthly founder credits — no card required.
         </p>
       </section>
@@ -97,7 +97,7 @@ export default function StartupPackagePage() {
       >
         <h2
           id="how-it-works"
-          className="text-center text-2xl font-semibold text-slate-100"
+          className="text-center text-2xl font-semibold text-primary"
         >
           How the Package works
         </h2>
@@ -105,27 +105,27 @@ export default function StartupPackagePage() {
           {VALUE_STEPS.map((step) => (
             <li
               key={step.n}
-              className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5"
+              className="rounded-2xl border border-line-subtle bg-surface-sunken/60 p-5"
             >
               <span
                 aria-hidden="true"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-semibold text-cyan-300"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action/20 text-sm font-semibold text-cyan-300"
               >
                 {step.n}
               </span>
-              <h3 className="mt-3 text-base font-semibold text-slate-100">
+              <h3 className="mt-3 text-base font-semibold text-primary">
                 {step.title}
               </h3>
-              <p className="mt-1 text-sm text-slate-400">{step.body}</p>
+              <p className="mt-1 text-sm text-muted">{step.body}</p>
             </li>
           ))}
         </ol>
       </section>
 
       {/* ── Under-the-hood credibility ───────────────────────────── */}
-      <section className="mx-auto max-w-4xl px-6 py-10 text-slate-300">
-        <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6 sm:p-8">
-          <h2 className="text-xl font-semibold text-slate-100">
+      <section className="mx-auto max-w-4xl px-6 py-10 text-secondary">
+        <div className="rounded-3xl border border-line-subtle bg-surface-sunken/60 p-6 sm:p-8">
+          <h2 className="text-xl font-semibold text-primary">
             What's inside your A$149 unlock
           </h2>
           <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
@@ -138,7 +138,7 @@ export default function StartupPackagePage() {
             <li>• Live SVI meter as you type</li>
             <li>• Downloadable PDF pack + investor one-pager</li>
           </ul>
-          <p className="mt-6 text-xs text-slate-500">
+          <p className="mt-6 text-xs text-tertiary">
             Every additional agent report or auto-fill deliverable charges from
             your credit balance. You always see the credit cost and target word
             count before we spend anything.
@@ -148,23 +148,23 @@ export default function StartupPackagePage() {
 
       {/* ── Bottom CTA ───────────────────────────────────────────── */}
       <section className="mx-auto max-w-3xl px-6 pb-24 pt-10 text-center">
-        <h2 className="text-2xl font-semibold text-slate-100">
+        <h2 className="text-2xl font-semibold text-primary">
           Ready to see your first score?
         </h2>
-        <p className="mt-2 text-slate-400">
+        <p className="mt-2 text-muted">
           The sample interview takes about 3 minutes and runs one CEO agent
           on your text — no card required.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/startup-package/interview"
-            className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-cyan-400"
+            className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-3 text-sm font-semibold text-on-action hover:bg-action-hover"
           >
             Start the free interview
           </Link>
           <Link
             href="/pricing"
-            className="text-sm text-slate-400 underline hover:text-slate-200"
+            className="text-sm text-muted underline hover:text-secondary"
           >
             Compare plans
           </Link>

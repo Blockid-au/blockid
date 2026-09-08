@@ -521,7 +521,7 @@ function ShipIcon({ status }: { status: QuarterPhase["status"] }) {
     return (
       <CheckCircle2
         aria-label="Shipped"
-        className="h-5 w-5 shrink-0 text-[var(--fintech-accent)]"
+        className="h-5 w-5 shrink-0 text-action"
       />
     );
   }
@@ -529,14 +529,14 @@ function ShipIcon({ status }: { status: QuarterPhase["status"] }) {
     return (
       <Circle
         aria-label="In progress"
-        className="h-5 w-5 shrink-0 text-[var(--fintech-accent-hot)]"
+        className="h-5 w-5 shrink-0 text-svi-500"
       />
     );
   }
   return (
     <Dot
       aria-label="Planned"
-      className="h-5 w-5 shrink-0 text-[var(--fintech-ink-muted)]"
+      className="h-5 w-5 shrink-0 text-secondary"
     />
   );
 }
@@ -564,7 +564,7 @@ export default function RoadmapPage() {
       <MarketingSection tone="elevated" kicker="Current milestone" title="What just shipped">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           {version?.version ? (
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--fintech-border-strong)] bg-[var(--fintech-surface)] px-3 py-1 text-xs font-semibold text-[var(--fintech-accent)]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-raised px-3 py-1 text-xs font-semibold text-action">
               <Sparkles aria-hidden="true" className="h-3 w-3" />
               {version.version}
             </span>
@@ -573,7 +573,7 @@ export default function RoadmapPage() {
 
         {version ? (
           <>
-            <p className="mt-2 text-sm text-[var(--fintech-ink-muted)]">
+            <p className="mt-2 text-sm text-secondary">
               {version.release_id ? `${version.release_id} · ` : ""}
               Updated {formatDate(version.updated_at)}
               {version.git_sha ? ` · git ${version.git_sha}` : ""}
@@ -583,25 +583,25 @@ export default function RoadmapPage() {
                 {topTasks.map((task, idx) => (
                   <li
                     key={idx}
-                    className="flex items-start gap-3 text-sm text-[var(--fintech-ink)]"
+                    className="flex items-start gap-3 text-sm text-primary"
                   >
                     <CheckCircle2
                       aria-hidden="true"
-                      className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fintech-accent)]"
+                      className="mt-0.5 h-4 w-4 shrink-0 text-action"
                     />
                     <span>{task}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-4 text-sm text-[var(--fintech-ink-muted)]">
+              <p className="mt-4 text-sm text-secondary">
                 No task IDs listed in this release manifest.
               </p>
             )}
             <div className="mt-6">
               <Link
                 href="/changelog"
-                className="inline-flex items-center gap-1 rounded-md text-sm font-semibold text-[var(--fintech-accent)] transition-colors duration-200 ease-out hover:text-[var(--fintech-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="inline-flex items-center gap-1 rounded-md text-sm font-semibold text-action transition-colors duration-200 ease-out hover:text-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 Full changelog
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -609,7 +609,7 @@ export default function RoadmapPage() {
             </div>
           </>
         ) : (
-          <p className="mt-4 text-sm text-[var(--fintech-ink-muted)]">
+          <p className="mt-4 text-sm text-secondary">
             Release manifest not yet published for this environment. The next
             deploy will populate this panel.
           </p>
@@ -621,32 +621,32 @@ export default function RoadmapPage() {
         title="Recently landed"
         kicker={`Snapshot ${SNAPSHOT_DATE}`}
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           v3.0 Master Upgrade — Phase 1-6 core landed 2026-07-30 → 2026-07-31.
           Sourced from
-          <code className="mx-1 rounded bg-[var(--fintech-surface)] px-1 py-0.5 text-xs">~/.claude/plans/h-y-k-t-h-p-n-ng-hazy-sutton.md</code>
+          <code className="mx-1 rounded bg-surface-raised px-1 py-0.5 text-xs">~/.claude/plans/h-y-k-t-h-p-n-ng-hazy-sutton.md</code>
           and the git log on master.
         </p>
         <ul className="mt-6 grid gap-3 md:grid-cols-2">
           {RECENTLY_LANDED.map((item) => (
             <li
               key={item.id}
-              className="flex items-start gap-3 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+              className="flex items-start gap-3 rounded-xl border border-line-subtle bg-surface-raised p-4"
             >
               <CheckCircle2
                 aria-hidden="true"
-                className="mt-0.5 h-5 w-5 shrink-0 text-[var(--fintech-accent)]"
+                className="mt-0.5 h-5 w-5 shrink-0 text-action"
               />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[var(--fintech-ink)]">
+                <p className="text-sm font-semibold text-primary">
                   {item.title}
                   {item.ticket ? (
-                    <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+                    <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-secondary">
                       {item.ticket}
                     </span>
                   ) : null}
                 </p>
-                <p className="mt-1 text-sm text-[var(--fintech-ink-muted)]">
+                <p className="mt-1 text-sm text-secondary">
                   {item.detail}
                 </p>
               </div>
@@ -661,7 +661,7 @@ export default function RoadmapPage() {
         title="Next up"
         kicker="In flight"
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           Top active goals mirrored from the plan-delta and reseller module
           plan. Order reflects the earliest exit-criterion still open.
         </p>
@@ -669,27 +669,27 @@ export default function RoadmapPage() {
           {IN_PROGRESS.map((item) => (
             <li
               key={item.id}
-              className="flex items-start gap-3 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+              className="flex items-start gap-3 rounded-xl border border-line-subtle bg-surface-raised p-4"
             >
               {item.status === "in_progress" ? (
                 <Circle
                   aria-hidden="true"
-                  className="mt-0.5 h-5 w-5 shrink-0 text-[var(--fintech-accent-hot)]"
+                  className="mt-0.5 h-5 w-5 shrink-0 text-svi-500"
                 />
               ) : (
                 <Clock
                   aria-hidden="true"
-                  className="mt-0.5 h-5 w-5 shrink-0 text-[var(--fintech-ink-muted)]"
+                  className="mt-0.5 h-5 w-5 shrink-0 text-secondary"
                 />
               )}
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[var(--fintech-ink)]">
+                <p className="text-sm font-semibold text-primary">
                   {item.title}
-                  <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+                  <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-secondary">
                     {item.status === "in_progress" ? "In progress" : "Planned"}
                   </span>
                 </p>
-                <p className="mt-1 text-sm text-[var(--fintech-ink-muted)]">
+                <p className="mt-1 text-sm text-secondary">
                   {item.detail}
                 </p>
               </div>
@@ -703,7 +703,7 @@ export default function RoadmapPage() {
         title="Human-blocked"
         kicker="Waiting on humans"
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           Work with runnable code that cannot ship until a human unblocks a
           real-world credential, contract, or provisioning step.
         </p>
@@ -711,20 +711,20 @@ export default function RoadmapPage() {
           {HUMAN_BLOCKED.map((item) => (
             <li
               key={item.id}
-              className="flex items-start gap-3 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+              className="flex items-start gap-3 rounded-xl border border-line-subtle bg-surface-raised p-4"
             >
               <Hourglass
                 aria-hidden="true"
-                className="mt-0.5 h-5 w-5 shrink-0 text-[var(--fintech-accent-hot)]"
+                className="mt-0.5 h-5 w-5 shrink-0 text-svi-500"
               />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[var(--fintech-ink)]">
+                <p className="text-sm font-semibold text-primary">
                   {item.title}
-                  <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+                  <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-secondary">
                     {item.owner}
                   </span>
                 </p>
-                <p className="mt-1 text-sm text-[var(--fintech-ink-muted)]">
+                <p className="mt-1 text-sm text-secondary">
                   {item.detail}
                 </p>
               </div>
@@ -738,7 +738,7 @@ export default function RoadmapPage() {
         title="The 8-stage startup journey"
         kicker={`Canonical vocabulary v${JOURNEY_VOCAB_VERSION}`}
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           Every SVI report, dashboard, and data-room row now lines up with the
           same 8 stages a VC or accelerator would recognise — Idea, Validation,
           MVP / Early Revenue, Seed, Series A, Series B / C, Late-stage, and
@@ -749,15 +749,15 @@ export default function RoadmapPage() {
           {CANONICAL_STAGES.map((key, idx) => (
             <li
               key={key}
-              className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+              className="rounded-xl border border-line-subtle bg-surface-raised p-4"
             >
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fintech-accent)]">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-action">
                 Stage {idx + 1}
               </span>
-              <p className="mt-2 font-display text-base font-semibold text-[var(--fintech-ink)]">
+              <p className="mt-2 font-display text-base font-semibold text-primary">
                 {CANONICAL_STAGE_LABELS[key].label_en}
               </p>
-              <p className="mt-1 text-xs text-[var(--fintech-ink-muted)]">
+              <p className="mt-1 text-xs text-secondary">
                 VI · {CANONICAL_STAGE_LABELS[key].label_vi}
               </p>
             </li>
@@ -770,7 +770,7 @@ export default function RoadmapPage() {
         title="The 8 platform stages"
         kicker="Journey"
       >
-        <p className="text-[var(--fintech-ink-muted)]">
+        <p className="text-secondary">
           Idea to exit in one register, one audit trail. Every stage feeds the
           next — the SVI evidence you upload on Day 0 flows through to your
           data-room on the day you sell.
@@ -781,23 +781,23 @@ export default function RoadmapPage() {
             return (
               <li
                 key={p.number}
-                className="relative flex flex-col rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6"
+                className="relative flex flex-col rounded-2xl border border-line-subtle bg-surface-sunken p-6"
               >
                 {inProgress ? (
-                  <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full border border-[var(--fintech-border-strong)] bg-[var(--fintech-surface)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--fintech-accent)]">
+                  <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full border border-line bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-action">
                     In progress
                   </span>
                 ) : null}
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fintech-accent)]">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-action">
                   Stage {p.number}
                 </span>
-                <h3 className="mt-2 font-display text-lg font-semibold text-[var(--fintech-ink)]">
+                <h3 className="mt-2 font-display text-lg font-semibold text-primary">
                   {p.name}
                 </h3>
-                <p className="mt-1 text-xs uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+                <p className="mt-1 text-xs uppercase tracking-wider text-secondary">
                   {p.subtitle}
                 </p>
-                <p className="mt-3 text-sm text-[var(--fintech-ink-muted)]">
+                <p className="mt-3 text-sm text-secondary">
                   {p.blurb}
                 </p>
               </li>
@@ -812,7 +812,7 @@ export default function RoadmapPage() {
         title="This quarter's ship list"
         kicker="Delivery"
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           The v2.0 pricing upgrade rolls out in five phases. Status derived
           from the currently deployed build tag.
         </p>
@@ -820,13 +820,13 @@ export default function RoadmapPage() {
           {shipList.map((phase) => (
             <li
               key={phase.id}
-              className="flex items-start gap-3 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-4"
+              className="flex items-start gap-3 rounded-xl border border-line-subtle bg-surface-raised p-4"
             >
               <ShipIcon status={phase.status} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[var(--fintech-ink)]">
+                <p className="text-sm font-semibold text-primary">
                   {phase.label}
-                  <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-[var(--fintech-ink-muted)]">
+                  <span className="ml-2 text-[11px] font-medium uppercase tracking-wider text-secondary">
                     {phase.status === "shipped"
                       ? "Shipped"
                       : phase.status === "in_progress"
@@ -834,7 +834,7 @@ export default function RoadmapPage() {
                         : "Planned"}
                   </span>
                 </p>
-                <p className="mt-1 text-sm text-[var(--fintech-ink-muted)]">
+                <p className="mt-1 text-sm text-secondary">
                   {phase.detail}
                 </p>
               </div>

@@ -281,7 +281,7 @@ export default async function StatusPage() {
         {/* Top strip */}
         <div
           aria-labelledby="status-overall"
-          className="rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6"
+          className="rounded-3xl border border-line-subtle bg-surface-sunken p-6"
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
@@ -295,7 +295,7 @@ export default async function StatusPage() {
                     : "bg-rose-500"
                 }`}
               />
-              <h2 id="status-overall" className="font-display text-xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-2xl">
+              <h2 id="status-overall" className="font-display text-xl font-semibold tracking-tight text-primary sm:text-2xl">
                 {overallLabel}
               </h2>
               <span
@@ -304,14 +304,14 @@ export default async function StatusPage() {
                 {overallLabel}
               </span>
             </div>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-[var(--fintech-ink-muted)] sm:text-right">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-secondary sm:text-right">
               <div>
                 <dt className="inline">Version:&nbsp;</dt>
-                <dd className="inline font-mono text-[var(--fintech-ink)]">{status.version || DASH}</dd>
+                <dd className="inline font-mono text-primary">{status.version || DASH}</dd>
               </div>
               <div>
                 <dt className="inline">Updated:&nbsp;</dt>
-                <dd className="inline font-mono text-[var(--fintech-ink)]">{fmtIso(status.updated_at)}</dd>
+                <dd className="inline font-mono text-primary">{fmtIso(status.updated_at)}</dd>
               </div>
             </dl>
           </div>
@@ -321,7 +321,7 @@ export default async function StatusPage() {
         <div aria-labelledby="status-services" className="mt-8">
           <h3
             id="status-services"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
           >
             Services
           </h3>
@@ -351,7 +351,7 @@ export default async function StatusPage() {
         <div aria-labelledby="status-slo" className="mt-10">
           <h3
             id="status-slo"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
           >
             Service level objectives
           </h3>
@@ -391,17 +391,17 @@ export default async function StatusPage() {
         <div aria-labelledby="status-deploys" className="mt-10">
           <h3
             id="status-deploys"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
           >
             Recent deploys
           </h3>
-          <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--fintech-border)]">
+          <div className="mt-3 overflow-hidden rounded-2xl border border-line-subtle">
             {history.length === 0 ? (
-              <div className="bg-[var(--fintech-bg-elevated)] p-6 text-sm text-[var(--fintech-ink-muted)]">
+              <div className="bg-surface-sunken p-6 text-sm text-secondary">
                 No deploy history available.
               </div>
             ) : (
-              <ul className="divide-y divide-[var(--fintech-border)]">
+              <ul className="divide-y divide-line-subtle">
                 {history.map((d, idx) => {
                   const ratio =
                     d.gates_expected > 0
@@ -418,24 +418,24 @@ export default async function StatusPage() {
                   return (
                     <li
                       key={`${d.ts}-${idx}`}
-                      className="flex flex-col gap-2 bg-[var(--fintech-bg-elevated)] p-4 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-2 bg-surface-sunken p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
-                        <span className="font-mono text-sm text-[var(--fintech-ink)]">{fmtIso(d.ts)}</span>
+                        <span className="font-mono text-sm text-primary">{fmtIso(d.ts)}</span>
                         {d.sha ? (
                           <Link
                             href={`https://github.com/Blockid-au/blockid/commit/${d.sha}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded-md font-mono text-sm text-[var(--fintech-accent)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                            className="rounded-md font-mono text-sm text-action underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                           >
                             {shortSha(d.sha)}
                           </Link>
                         ) : (
-                          <span className="font-mono text-sm text-[var(--fintech-ink-muted)]">{DASH}</span>
+                          <span className="font-mono text-sm text-secondary">{DASH}</span>
                         )}
                         {d.release_id ? (
-                          <span className="font-mono text-xs text-[var(--fintech-ink-muted)]">
+                          <span className="font-mono text-xs text-secondary">
                             rel {d.release_id}
                           </span>
                         ) : null}
@@ -457,23 +457,23 @@ export default async function StatusPage() {
         <div aria-labelledby="status-uptime-guardian" className="mt-10">
           <h3
             id="status-uptime-guardian"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
           >
             Uptime guardian
           </h3>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-4">
-              <p className="text-sm font-medium text-[var(--fintech-ink)]">Current state</p>
-              <p className="mt-3 font-mono text-2xl text-[var(--fintech-ink)]">
+            <div className="rounded-xl border border-line-subtle bg-surface-sunken p-4">
+              <p className="text-sm font-medium text-primary">Current state</p>
+              <p className="mt-3 font-mono text-2xl text-primary">
                 {uptime ? (uptime.last_healthy ? "Healthy" : "Unhealthy") : DASH}
               </p>
-              <p className="text-xs text-[var(--fintech-ink-muted)]">
+              <p className="text-xs text-secondary">
                 {uptime
                   ? `HTTP ${uptime.last_http_local || DASH} • last check ${fmtIso(uptime.last_ts)}`
                   : "no checks recorded"}
               </p>
               {uptime && uptime.window_pct !== null ? (
-                <p className="mt-2 font-mono text-xs text-[var(--fintech-ink-muted)]">
+                <p className="mt-2 font-mono text-xs text-secondary">
                   {`24h ${uptime.window_pct.toFixed(2)}% (${uptime.window_healthy}/${uptime.window_total})`}
                 </p>
               ) : null}
@@ -485,18 +485,18 @@ export default async function StatusPage() {
         <div aria-labelledby="status-crons" className="mt-10">
           <h3
             id="status-crons"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
           >
             Scheduled jobs (24h)
           </h3>
-          <div className="mt-3 overflow-x-auto rounded-2xl border border-[var(--fintech-border)]">
+          <div className="mt-3 overflow-x-auto rounded-2xl border border-line-subtle">
             {status.crons.length === 0 ? (
-              <div className="bg-[var(--fintech-bg-elevated)] p-6 text-sm text-[var(--fintech-ink-muted)]">
+              <div className="bg-surface-sunken p-6 text-sm text-secondary">
                 No cron activity in the window.
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-[var(--fintech-border)] text-sm">
-                <thead className="bg-[var(--fintech-surface)] text-left text-xs uppercase tracking-wide text-[var(--fintech-ink-muted)]">
+              <table className="min-w-full divide-y divide-line-subtle text-sm">
+                <thead className="bg-surface-raised text-left text-xs uppercase tracking-wide text-secondary">
                   <tr>
                     <th scope="col" className="px-4 py-2 font-semibold">
                       Job
@@ -512,7 +512,7 @@ export default async function StatusPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)]">
+                <tbody className="divide-y divide-line-subtle bg-surface-sunken">
                   {status.crons.map((c) => {
                     const okLevel: Level =
                       c.ok_rate_24h_pct >= 99
@@ -522,8 +522,8 @@ export default async function StatusPage() {
                         : "bad";
                     return (
                       <tr key={c.name}>
-                        <td className="px-4 py-2 font-mono text-[var(--fintech-ink)]">{c.name}</td>
-                        <td className="px-4 py-2 font-mono text-[var(--fintech-ink-muted)]">{fmtIso(c.last_run)}</td>
+                        <td className="px-4 py-2 font-mono text-primary">{c.name}</td>
+                        <td className="px-4 py-2 font-mono text-secondary">{fmtIso(c.last_run)}</td>
                         <td className="px-4 py-2">
                           <span
                             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${LEVEL_TILE[okLevel]}`}
@@ -531,7 +531,7 @@ export default async function StatusPage() {
                             {c.ok_rate_24h_pct}%
                           </span>
                         </td>
-                        <td className="px-4 py-2 font-mono text-[var(--fintech-ink-muted)]">{fmtInt(c.avg_duration_ms)} ms</td>
+                        <td className="px-4 py-2 font-mono text-secondary">{fmtInt(c.avg_duration_ms)} ms</td>
                       </tr>
                     );
                   })}
@@ -544,13 +544,13 @@ export default async function StatusPage() {
         {/* Related links */}
         <nav
           aria-label="Related pages"
-          className="mt-12 rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 text-sm"
+          className="mt-12 rounded-2xl border border-line-subtle bg-surface-sunken p-6 text-sm"
         >
           <ul className="flex flex-wrap gap-x-6 gap-y-2">
             <li>
               <Link
                 href="/changelog"
-                className="rounded-md text-[var(--fintech-ink)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="rounded-md text-primary underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 Changelog
               </Link>
@@ -558,7 +558,7 @@ export default async function StatusPage() {
             <li>
               <Link
                 href="/roadmap"
-                className="rounded-md text-[var(--fintech-ink)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="rounded-md text-primary underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 Roadmap
               </Link>
@@ -566,7 +566,7 @@ export default async function StatusPage() {
             <li>
               <Link
                 href="/security-audit"
-                className="rounded-md text-[var(--fintech-ink)] underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                className="rounded-md text-primary underline-offset-2 transition-colors duration-200 ease-out hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 Security audit summary
               </Link>
