@@ -10,9 +10,9 @@
 //   - dropping the `share_management` feature gate on POST so an anonymous /
 //     free-tier caller could mint investor share links against another
 //     founder's data room.
-//   - dropping the .eq("account_id", user.id) filter on the data_rooms lookup
+//   - dropping the .eq("user_id", user.id) filter on the data_rooms lookup
 //     so a founder gets scored / linked into the wrong tenant's room.
-//   - dropping the .order("created_at", { ascending: false }).limit(1).single()
+//   - dropping the .order("updated_at", { ascending: false }).limit(1).maybeSingle()
 //     on the data_rooms fetch so a founder with two rooms shares off the
 //     wrong (older) one.
 //   - dropping the 404 branch when no data room exists so the insert runs
@@ -25,7 +25,7 @@
 //     null-riddled row that fails downstream RLS checks.
 //   - flipping the expiresInDays default off 30 so every new link silently
 //     changes its TTL.
-//   - flipping the shareUrl prefix off `/data-room/investor/` so the copy
+//   - flipping the shareUrl prefix off `/s/dr/` so the copy
 //     button on the /workspace surface hands out a 404.
 //   - dropping the 500 branch on insert error so the founder sees a 200 with
 //     accessToken=null (fires a broken share flow).
@@ -67,8 +67,8 @@ import { GET, POST } from "./route";
 // --- Fake Supabase ---------------------------------------------------------
 //
 // POST hits two tables in sequence:
-//   data_rooms                → .select().eq().order().limit(1).single() → {data}
-//   data_room_access_tokens   → .insert().select().single()              → {data,error}
+//   data_rooms                → .select().eq().order().limit(1).maybeSingle() → {data}
+//   data_room_access_tokens   → .insert().select().maybeSingle()            → {data,error}
 //
 // GET hits one:
 //   data_room_access_tokens   → .select().eq().order()                    → {data}
@@ -160,7 +160,7 @@ function makeFakeSupabase() {
                       limit(n: number) {
                         state.calls.dataRoomsLimit = n;
                         return {
-                          single: () =>
+                          maybeSingle: () =>
                             Promise.resolve({ data: state.room }),
                         };
                       },
@@ -181,7 +181,7 @@ function makeFakeSupabase() {
               select(cols: string) {
                 state.calls.insertSelect = cols;
                 return {
-                  single: () => Promise.resolve(state.insertResult),
+                  maybeSingle: () => Promise.resolve(state.insertResult),
                 };
               },
             };
@@ -296,7 +296,7 @@ describe("POST /api/data-room/access", () => {
     expect(state.calls.insertPayload).toBeNull();
   });
 
-  it("scopes the data_rooms lookup to the caller via account_id + picks most recent", async () => {
+  it("scopes the data_rooms lookup to the caller via user_id + picks most recent", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     state.room = { id: "room-abc" };
     state.insertResult = {
@@ -312,9 +312,11 @@ describe("POST /api/data-room/access", () => {
     };
     await POST(jsonReq({ investorName: "Blackbird" }));
     expect(state.calls.dataRoomsSelect).toBe("id");
-    expect(state.calls.dataRoomsEq).toEqual({ col: "account_id", val: "user-1" });
+    // `account_id` does not exist on data_rooms — filtering on it made this
+    // route 404 on every call. The real tenancy column is `user_id`.
+    expect(state.calls.dataRoomsEq).toEqual({ col: "user_id", val: "user-1" });
     expect(state.calls.dataRoomsOrder).toEqual({
-      col: "created_at",
+      col: "updated_at",
       ascending: false,
     });
     expect(state.calls.dataRoomsLimit).toBe(1);
@@ -408,7 +410,7 @@ describe("POST /api/data-room/access", () => {
     expect(diffDays).toBeLessThan(7.5);
   });
 
-  it("returns the shareUrl on the /data-room/investor/{token} path", async () => {
+  it("returns the shareUrl on the /s/dr/{token} path — the page an investor can actually open", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     state.room = { id: "room-abc" };
     state.insertResult = {
@@ -421,7 +423,7 @@ describe("POST /api/data-room/access", () => {
     };
     const res = await POST(jsonReq({ investorName: "Blackbird" }));
     const body = await res.json();
-    expect(body.shareUrl).toBe("/data-room/investor/raw-token-value");
+    expect(body.shareUrl).toBe("/s/dr/raw-token-value");
   });
 
   it("message prefers investorName when both name + email are set", async () => {
@@ -471,7 +473,7 @@ describe("POST /api/data-room/access", () => {
 
   it("500s when the insert returns null data even without an error object", async () => {
     // Defensive branch — the `error || !accessToken` guard ensures a null row
-    // never renders a broken shareUrl of `/data-room/investor/undefined`.
+    // never renders a broken shareUrl of `/s/dr/undefined`.
     gateMock.mockResolvedValue(gateOk(USER));
     state.room = { id: "room-abc" };
     state.insertResult = { data: null, error: null };

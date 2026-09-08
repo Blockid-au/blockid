@@ -33,14 +33,18 @@ export async function POST(req: NextRequest) {
     expiresInDays = 30,
   } = body;
 
-  // Get user's data room
+  // Get the caller's data room. This used to filter `.eq("account_id", …)`,
+  // a column that does not exist on `data_rooms` (the tenancy column is
+  // `user_id`), so this route always fell through to the 404 below and never
+  // minted a token once. `.single()` also errors on an empty result, which is
+  // why `maybeSingle()` is used now.
   const { data: room } = await supabase
     .from("data_rooms")
     .select("id")
-    .eq("account_id", user.id)
-    .order("created_at", { ascending: false })
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!room) {
     return NextResponse.json({ ok: false, error: "No data room found. Create one first." }, { status: 404 });
@@ -65,7 +69,7 @@ export async function POST(req: NextRequest) {
       is_active: true,
     })
     .select("id, token, investor_name, investor_email, investor_firm, expires_at")
-    .single();
+    .maybeSingle();
 
   if (error || !accessToken) {
     return NextResponse.json({ ok: false, error: error?.message }, { status: 500 });
@@ -74,7 +78,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     accessToken,
-    shareUrl: `/data-room/investor/${accessToken.token}`,
+    // /data-room/investor/<token> was never a real route. The investor-facing
+    // page is /s/dr/[token].
+    shareUrl: `/s/dr/${accessToken.token}`,
     message: `Investor link created for ${investorName ?? investorEmail}`,
   });
 }
@@ -92,7 +98,7 @@ export async function GET() {
 
   const { data: tokens } = await supabase
     .from("data_room_access_tokens")
-    .select("id, token, investor_name, investor_email, investor_firm, investor_type, access_level, access_count, first_accessed, last_accessed, expires_at, is_active, nda_signed_at")
+    .select("id, token, investor_name, investor_email, investor_firm, investor_type, access_level, access_count, first_accessed, last_accessed, expires_at, is_active, revoked_at, nda_signed_at")
     .eq("account_id", user.id)
     .order("created_at", { ascending: false });
 
