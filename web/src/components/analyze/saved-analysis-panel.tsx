@@ -56,20 +56,26 @@ export function savedCopyFor(authenticated: boolean | undefined): SavedCopy {
   };
 }
 
+/** The origin never changes for the life of a document, so nothing to watch. */
+function subscribeToNothing(): () => void {
+  return () => {};
+}
+
 export function SavedAnalysisPanel({
   analysisId,
   authenticated,
   className,
 }: SavedAnalysisPanelProps) {
   const [copied, setCopied] = React.useState(false);
-  // window is unavailable during SSR; the input renders the relative path on
-  // the server pass and upgrades to the absolute URL once mounted, so the
-  // markup never disagrees with itself.
-  const [origin, setOrigin] = React.useState("");
-
-  React.useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  // `window` is unavailable during SSR. useSyncExternalStore is the supported
+  // way to read a browser value with a distinct server snapshot: the server
+  // pass renders the relative path, the client upgrades to the absolute URL on
+  // hydration, and nothing has to setState from an effect to do it.
+  const origin = React.useSyncExternalStore(
+    subscribeToNothing,
+    () => window.location.origin,
+    () => "",
+  );
 
   React.useEffect(() => {
     if (!copied) return;

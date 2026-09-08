@@ -16,8 +16,6 @@ import {
   FileText,
   HardDrive,
   Sparkles,
-  Copy,
-  Share2,
   AlertCircle,
   Target,
   Wand2,
@@ -44,6 +42,12 @@ interface DataRoomItemState {
   fileName: string | null;
   evidenceId: string | null;
 }
+
+import {
+  InvestorSharePanel,
+  type DocumentCounts,
+  type OutstandingDoc,
+} from "./investor-share-panel";
 
 interface GeneratedDataRoom {
   sections: Array<{
@@ -223,11 +227,30 @@ export function DataRoomClient({
   // Generated data room state
   const [generatedRoom, setGeneratedRoom] = React.useState<GeneratedDataRoom | null>(null);
   const [generating, setGenerating] = React.useState(false);
-  const [shareLink, setShareLink] = React.useState<string | null>(null);
-  const [shareToken, setShareToken] = React.useState<string | null>(null);
-  const [revoking, setRevoking] = React.useState(false);
-  const [sharingLoading, setSharingLoading] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
+  // Document counts from POST /api/data-room/generate. Held so the investor
+  // panel can show the founder the same gaps the investor will see.
+  const [documentCounts, setDocumentCounts] =
+    React.useState<DocumentCounts | null>(null);
+  const [generatedRoomId, setGeneratedRoomId] = React.useState<string | null>(null);
+
+  // The gaps an investor will actually hit, flattened out of the generated
+  // room. `complete` items are dropped — a founder needs the list of what is
+  // still open, not a re-run of everything that is done.
+  const outstandingDocs: OutstandingDoc[] = React.useMemo(() => {
+    if (!generatedRoom) return [];
+    const out: OutstandingDoc[] = [];
+    for (const section of generatedRoom.sections) {
+      for (const item of section.items) {
+        if (item.status === "complete") continue;
+        out.push({
+          section: section.title,
+          label: item.label,
+          status: item.status === "partial" ? "partial" : "missing",
+        });
+      }
+    }
+    return out;
+  }, [generatedRoom]);
 
   // Progress calculation
   const totalItems = items.length;
@@ -358,9 +381,11 @@ export function DataRoomClient({
       const data = await res.json();
       if (data.ok) {
         setGeneratedRoom(data.dataRoom);
-        const d = data.documents as
-          | { complete: number; total: number; missing: number }
-          | undefined;
+        setGeneratedRoomId(
+          typeof data.dataRoomId === "string" ? data.dataRoomId : null,
+        );
+        const d = data.documents as DocumentCounts | undefined;
+        setDocumentCounts(d ?? null);
         showToast(
           d
             ? `Data room generated — ${d.complete} of ${d.total} documents written, ${d.missing} still need you.`
@@ -373,61 +398,6 @@ export function DataRoomClient({
       showToast("Failed to generate data room. Please try again.", "error");
     } finally {
       setGenerating(false);
-    }
-  }
-
-  async function handleShareWithInvestor() {
-    setSharingLoading(true);
-    try {
-      const res = await fetch("/api/investor-data-room", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expiresInDays: 30 }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setShareLink(data.url);
-        setShareToken(data.token ?? null);
-        showToast("Investor link created — read-only, expires in 30 days");
-      } else {
-        // 409 no_data_room carries a human message; the bare error code does not.
-        showToast(data.message ?? data.error ?? "Failed to create share link", "error");
-      }
-    } catch {
-      showToast("Failed to create share link. Please try again.", "error");
-    } finally {
-      setSharingLoading(false);
-    }
-  }
-
-  function handleCopyLink() {
-    if (shareLink) {
-      navigator.clipboard.writeText(shareLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }
-
-  async function handleRevokeLink() {
-    if (!shareToken) return;
-    setRevoking(true);
-    try {
-      const res = await fetch(
-        `/api/investor-data-room?token=${encodeURIComponent(shareToken)}`,
-        { method: "DELETE" },
-      );
-      const data = await res.json();
-      if (data.ok) {
-        setShareLink(null);
-        setShareToken(null);
-        showToast("Investor link revoked — it now 404s for anyone holding it");
-      } else {
-        showToast(data.error ?? "Failed to revoke link", "error");
-      }
-    } catch {
-      showToast("Failed to revoke link. Please try again.", "error");
-    } finally {
-      setRevoking(false);
     }
   }
 
@@ -804,72 +774,19 @@ export function DataRoomClient({
                   </>
                 )}
               </button>
-              <button
-                type="button"
-                onClick={handleShareWithInvestor}
-                disabled={sharingLoading}
-                className="inline-flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {sharingLoading ? (
-                  <>
-                    <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />
-                    Creating link...
-                  </>
-                ) : (
-                  <>
-                    <Share2 strokeWidth={1.75} className="h-3.5 w-3.5" />
-                    Share with Investor
-                  </>
-                )}
-              </button>
             </div>
 
-            {/* Share link display */}
-            {shareLink && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg border border-brand-200 bg-white px-3 py-2">
-                <Link2 strokeWidth={1.5} className="h-3.5 w-3.5 text-brand-500 shrink-0" />
-                <input
-                  type="text"
-                  readOnly
-                  value={shareLink}
-                  className="flex-1 text-xs text-ink-700 bg-transparent outline-none truncate"
-                />
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700 cursor-pointer"
-                >
-                  {copied ? (
-                    <span className="flex items-center gap-1">
-                      <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" /> Copied
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1">
-                      <Copy strokeWidth={1.75} className="h-3.5 w-3.5" /> Copy
-                    </span>
-                  )}
-                </button>
-                <a
-                  href={shareLink}
-                  target="_blank"
-                  rel="noopener"
-                  className="shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700"
-                >
-                  Preview
-                </a>
-                <button
-                  type="button"
-                  onClick={handleRevokeLink}
-                  disabled={revoking || !shareToken}
-                  className="shrink-0 text-xs font-medium text-red-700 hover:text-red-800 disabled:opacity-50 cursor-pointer"
-                >
-                  {revoking ? "Revoking..." : "Revoke"}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* ── Investor access — links, who they went to, and who opened them ── */}
+      <InvestorSharePanel
+        dataRoomId={generatedRoomId}
+        documents={documentCounts}
+        outstanding={outstandingDocs}
+        onToast={showToast}
+      />
 
       {/* Generated Data Room Results */}
       {generatedRoom && (
