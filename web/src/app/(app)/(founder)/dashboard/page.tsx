@@ -37,6 +37,8 @@ import { ScnDirectionNavigator, type DirectionStep } from "@/components/dashboar
 import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-action-plan";
 import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
+import { AIEvaluationSummary } from "@/components/dashboard/ai-evaluation-summary";
+import { getAllStartupSummaries } from "@/lib/analysis/aggregate-startup-summary";
 import { ValueImpactBanner } from "@/components/dashboard/value-impact-banner";
 import { SviDimensionChart } from "@/components/dashboard/svi-dimension-chart";
 import { DataRoomReadinessCard } from "@/components/dashboard/data-room-readiness-card";
@@ -742,6 +744,12 @@ export default async function DashboardPage({
   const weakestLayer = weakestLayerLabel(analysis?.subs);
   const directionStageLabel = analysis?.stageLabel ?? phaseName;
   const projectName = activeProject?.name ?? startupName ?? user.startupName ?? null;
+
+  // AI evaluation summary — aggregate every score run + deep-dive from every
+  // AI analysis the user has run. Nullable because a brand-new user has no
+  // startup_score_history rows yet.
+  const aiSummaries = await getAllStartupSummaries(user.id).catch(() => []);
+  const primaryAiSummary = aiSummaries[0] ?? null;
   const ideaSummary = rawInput ? rawInput.slice(0, 200) : analysis?.summary?.slice(0, 200) ?? null;
 
   // For the LivingSVIDashboard
@@ -1071,6 +1079,13 @@ export default async function DashboardPage({
           <div data-widget-id="data-room">
             <DataRoomReadinessCard />
           </div>
+
+          {/* AI evaluation summary — every score run + deep-dive aggregated. */}
+          {primaryAiSummary && (
+            <div data-widget-id="ai-eval-summary">
+              <AIEvaluationSummary summary={primaryAiSummary} />
+            </div>
+          )}
 
           {/* SVI trend-line history (T0081). */}
           {sviHistory.length > 0 && (
