@@ -116,20 +116,22 @@ const nextConfig: NextConfig = {
         statusCode: 301,
       },
       // Block 2 (2026-09-08) — unified `/analyze` entry point supersedes the
-      // three legacy free-text / URL / file surfaces. Preserve SEO on
-      // `/score` and `/one-click-report` by 301-ing them to /analyze with
-      // the correct tier hint so the omnibox lands the right upsell.
+      // legacy free-text / URL surfaces. Preserve SEO on `/score` by
+      // 301-ing it to /analyze with the free tier hint.
       // The earlier "do not redirect /score" note above (2026-08 QA) is
       // superseded by this consolidation — /analyze now hosts the actual
       // analyser form.
+      //
+      // REVENUE GUARD (2026-09-08): `/one-click-report` MUST NOT be
+      // redirected. It is the only page that drives the A$3 guest purchase
+      // (`one-click-form.tsx` → /api/guest-analysis/upload-pitch →
+      // /api/guest-analysis/create-order → Stripe). A 301 to
+      // `/analyze?tier=paid` shipped earlier today and silently killed the
+      // guest revenue path, because /analyze never calls the guest API.
+      // Do not re-add a redirect for this source.
       {
         source: "/score",
         destination: "/analyze?tier=free",
-        statusCode: 301,
-      },
-      {
-        source: "/one-click-report",
-        destination: "/analyze?tier=paid",
         statusCode: 301,
       },
       // Fintech v2 (2026-09-08): consolidate subscription + blockchain
