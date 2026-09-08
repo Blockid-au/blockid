@@ -2,21 +2,33 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { HeroSection } from "@/components/marketing/hero-section";
+import { TwoPillarSplit } from "@/components/marketing/two-pillar-split";
 import { SampleOutputs } from "@/components/marketing/sample-outputs";
+import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
+import { GrowthPhaseStrip } from "@/components/marketing/growth-phase-strip";
+import { LogoBand } from "@/components/marketing/logo-band";
+import { FinalCTA } from "@/components/marketing/final-cta";
 import {
   readSignedInHint,
   SIGNED_IN_LANDING_HREF,
 } from "@/lib/supabase/session-hint";
 
-// Phase 2 hero rework (2026-09) put the SVI score front-and-centre in the
-// H1 ("Know your startup's SVI score in 60 seconds"). The <title> and
-// og:image:alt below intentionally mirror that headline so the browser tab,
-// search snippet, and social card all reinforce the same score-first promise.
+// Fintech v2 (2026-09-08): the homepage tells the 70/30 story — 70%
+// AI-powered evaluation + valuation, 30% blockchain equity on
+// subscription. Section order is deliberate:
+//
+//   1. HeroSection       — H1 leads with the AI valuation promise.
+//   2. TwoPillarSplit    — asymmetric 70/30 pillar cards.
+//   3. SampleOutputs     — analysis-only samples (AI pillar).
+//   4. HowItWorksSection — 4 steps, 3 AI + 1 tokenize.
+//   5. GrowthPhaseStrip  — belongs to the AI pillar (evaluation journey).
+//   6. LogoBand          — trust + compliance strip (dark island).
+//   7. FinalCTA          — primary Analyse button, text link to pricing.
 export const metadata = {
   title:
-    "Know your startup's SVI score in 60 seconds · BlockID.au",
+    "AI-powered startup valuation before you pitch · BlockID.au",
   description:
-    "AU-first startup evaluation across 8 SVI dimensions. Real benchmarks, evidence-linked scoring, founder-first tools — get your Startup Value Index, AUD valuation range and GTM strategy in under 3 seconds.",
+    "Paste your pitch deck, URL, or idea. Get an SVI score, 4-method valuation, and investor-ready data room in 30 seconds. Add blockchain equity on subscription.",
   alternates: {
     canonical: "https://blockid.au",
   },
@@ -70,17 +82,40 @@ export default async function HomePage() {
       <NavV2 />
 
       <main id="main-content">
-        {/* Input-centric hero: H1 promise + SmartIntake omnibox + trust row.
-            Redesigned 2026-09-08 to put the paste-anything box front-and-
-            centre in the first viewport. Everything else — features, how-it-
-            works, partner logos, CTA card — moved to /product and /for/*. */}
+        {/* 1. Hero — input omnibox anchor, H1 leads AI-valuation promise. */}
         <HeroSection />
 
-        {/* One below-the-fold section: three anonymised sample outputs so
-            visitors see what the box produces before they type. */}
+        {/* 2. Two-pillar split — asymmetric 70/30 (AI col-span-8, blockchain
+            col-span-4 on desktop; stacked AI-first on mobile). */}
+        <TwoPillarSplit />
+
+        {/* 3. Sample outputs — analysis-only samples so visitors see what
+            the omnibox produces before they type. */}
         <SampleOutputs />
 
-        {/* Entity footer strip */}
+        {/* 4. How-it-works — 4 steps (3 AI + 1 tokenize). */}
+        <HowItWorksSection />
+
+        {/* 5. Growth phase strip — belongs to the AI pillar. Wraps to
+            /showcase/atlassian so visitors can walk a real journey. */}
+        <a
+          href="/showcase/atlassian/growth-phases"
+          className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]"
+          aria-label="Where is your startup on the 12-phase growth journey?"
+        >
+          <GrowthPhaseStrip
+            variant="menu"
+            eyebrow="Where's your startup?"
+          />
+        </a>
+
+        {/* 6. Trust + compliance strip — dark island. */}
+        <LogoBand />
+
+        {/* 7. Final CTA — primary Analyse button + secondary pricing link. */}
+        <FinalCTA />
+
+        {/* Entity footer strip — preserves the PPL Food entity line. */}
         <section
           id="trust"
           aria-labelledby="trust-heading"
