@@ -9335,3 +9335,5 @@
 {"ts":"2026-09-08T13:22:39.194Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the row-size budget and the private-by-default flags (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:23:33.448Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): real investor share — working POST + rendered /s/dr/[token] page (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:24:31.243Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the store's fail-soft write, strict read, and claim idempotency (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:24:49.909Z","event":"github-push-master","detail":"Blockid-au: test(data-room): rewrite investor-data-room suite against the real schema (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:25:43.151Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the intake write path and the 404-not-403 read rule (1 commits)","source":"github-webhook"}
