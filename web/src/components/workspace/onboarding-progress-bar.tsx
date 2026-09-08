@@ -115,30 +115,30 @@ export function OnboardingProgressBar({
   };
 
   return (
-    <div className="border-b border-[rgba(255,255,255,0.06)] bg-[#0D1220] text-[#F8FAFC]">
+    <div className="border-b border-line-subtle bg-surface-sunken text-primary">
       {/* ── Compact summary row ─────────────────────────────────────────── */}
       <div className="flex items-center gap-3 px-4 py-2">
         {/* Step count + phase label */}
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-2 text-xs text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer shrink-0"
+          className="flex items-center gap-2 text-xs text-muted hover:text-primary transition-colors cursor-pointer shrink-0"
           aria-expanded={expanded}
           aria-controls="onboarding-steps-panel"
         >
-          <span className="font-semibold text-[#F8FAFC]">
+          <span className="font-semibold text-primary">
             Step {currentStepNumber} of {totalSteps}
           </span>
-          <span className="hidden sm:inline text-[#94A3B8]">
+          <span className="hidden sm:inline text-muted">
             &middot; Phase {currentPhase}: {PHASE_LABELS[currentPhase]}
           </span>
-          <span className="hidden sm:inline text-[#94A3B8]">
+          <span className="hidden sm:inline text-muted">
             &middot; {pct}% complete
           </span>
         </button>
 
         {/* Progress bar */}
-        <div className="flex-1 h-1 rounded-full bg-[rgba(255,255,255,0.08)] overflow-hidden">
+        <div className="flex-1 h-1 rounded-full bg-surface-hover overflow-hidden">
           <div
             className="h-1 rounded-full bg-brand-500 transition-all duration-500"
             style={{ width: `${pct}%` }}
@@ -151,7 +151,7 @@ export function OnboardingProgressBar({
         </div>
 
         {/* Mobile step count */}
-        <span className="sm:hidden text-[11px] text-[#94A3B8] shrink-0">
+        <span className="sm:hidden text-[11px] text-muted shrink-0">
           {pct}%
         </span>
 
@@ -160,7 +160,7 @@ export function OnboardingProgressBar({
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="text-[11px] font-medium text-[#94A3B8] hover:text-[#F8FAFC] px-2 py-1 rounded-lg hover:bg-[rgba(255,255,255,0.06)] transition-colors cursor-pointer"
+            className="text-[11px] font-medium text-muted hover:text-primary px-2 py-1 rounded-lg hover:bg-surface-hover transition-colors cursor-pointer"
             aria-label={expanded ? "Collapse onboarding steps" : "Expand onboarding steps"}
           >
             {expanded ? "Hide steps" : "Show steps"}
@@ -169,7 +169,7 @@ export function OnboardingProgressBar({
             type="button"
             onClick={dismiss}
             aria-label="Dismiss onboarding progress bar"
-            className="h-6 w-6 flex items-center justify-center rounded-full text-[#94A3B8] hover:bg-[rgba(255,255,255,0.08)] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+            className="h-6 w-6 flex items-center justify-center rounded-full text-muted hover:bg-surface-hover hover:text-primary transition-colors cursor-pointer"
           >
             <X strokeWidth={1.75} className="h-3.5 w-3.5" />
           </button>
@@ -195,23 +195,23 @@ export function OnboardingProgressBar({
                 className={cn(
                   "flex items-center gap-1.5 text-xs rounded-lg px-2 py-1.5 transition-colors",
                   done
-                    ? "text-emerald-400 hover:text-emerald-300 hover:bg-[rgba(52,211,153,0.08)]"
+                    ? "text-bull hover:text-emerald-300 hover:bg-bull/10"
                     : active || isCurrent
-                    ? "text-[#00D4FF] bg-[rgba(0,212,255,0.08)] hover:bg-[rgba(0,212,255,0.12)]"
-                    : "text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[rgba(255,255,255,0.06)]",
+                    ? "text-action bg-action/10 hover:bg-action/10"
+                    : "text-muted hover:text-primary hover:bg-surface-hover",
                 )}
               >
                 {done ? (
                   <CheckCircle2
                     strokeWidth={1.75}
-                    className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                    className="h-3.5 w-3.5 shrink-0 text-bull"
                   />
                 ) : (
                   <Circle
                     strokeWidth={1.75}
                     className={cn(
                       "h-3.5 w-3.5 shrink-0",
-                      isCurrent ? "text-[#00D4FF]" : "text-[#94A3B8]/50",
+                      isCurrent ? "text-action" : "text-tertiary",
                     )}
                   />
                 )}
