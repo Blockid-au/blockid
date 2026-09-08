@@ -74,12 +74,12 @@ export function HowItWorksSection({
       aria-labelledby="how-heading"
       data-theme="dark"
       className={cn(
-        "border-y border-line-subtle bg-surface pb-4 pt-20 sm:pt-24",
+        "border-y border-line-subtle bg-surface pb-4 pt-16 sm:pt-20",
         className,
       )}
     >
       <div className="mx-auto max-w-5xl px-6">
-        <div className="mb-14 text-center">
+        <div className="mb-12 text-center">
           <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-muted">
             How it works
           </p>
@@ -127,7 +127,7 @@ export function HowItWorksSection({
         </ol>
       </div>
 
-      {children ? <div className="mt-16">{children}</div> : null}
+      {children ? <div className="mt-12">{children}</div> : null}
     </section>
   );
 }

@@ -42,7 +42,7 @@ export function AudienceSplit({ className }: { className?: string }) {
       aria-labelledby="audience-heading"
       data-testid="audience-split"
       className={cn(
-        "border-t border-line-subtle bg-surface py-16 sm:py-20",
+        "border-t border-line-subtle bg-surface py-14 sm:py-16",
         className,
       )}
     >

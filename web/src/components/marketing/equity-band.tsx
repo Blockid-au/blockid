@@ -56,7 +56,7 @@ export function EquityBand({ className }: { className?: string }) {
       aria-labelledby="equity-heading"
       data-testid="equity-band"
       className={cn(
-        "border-t border-line-subtle bg-surface-sunken py-16 sm:py-20",
+        "border-t border-line-subtle bg-surface-sunken py-14 sm:py-16",
         className,
       )}
     >

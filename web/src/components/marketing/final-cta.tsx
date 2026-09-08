@@ -17,10 +17,10 @@ export function FinalCTA({ className }: { className?: string }) {
   return (
     <section
       aria-labelledby="final-cta-heading"
-      className={cn("border-t border-line-subtle bg-surface py-20 sm:py-24", className)}
+      className={cn("border-t border-line-subtle bg-surface py-14 sm:py-18", className)}
     >
       <div className="mx-auto max-w-3xl px-6 text-center">
-        <div className="rounded-2xl border border-line-subtle bg-surface-sunken px-8 py-14 shadow-sm sm:px-14">
+        <div className="rounded-2xl border border-line-subtle bg-surface-sunken px-8 py-12 shadow-sm sm:px-14">
           <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-muted">
             Ready when you are
           </p>

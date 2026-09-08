@@ -71,7 +71,7 @@ export function SampleOutputs() {
   return (
     <section
       aria-labelledby="samples-heading"
-      className="border-t border-line-subtle bg-surface py-16 sm:py-20"
+      className="border-t border-line-subtle bg-surface py-14 sm:py-16"
     >
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">

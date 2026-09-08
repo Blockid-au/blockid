@@ -28,8 +28,8 @@ import { cn } from "@/lib/utils";
 const STATS = [
   { value: "Sydney NSW", label: "Australian-owned HQ" },
   { value: "AU registered", label: "PPL Food PTY LTD" },
-  { value: "Off-chain register", label: "The legal record stays statutory" },
-  { value: "ASIC · ESIC · R&D", label: "Australian rules, not US ones" },
+  { value: "Off-chain register", label: "Legal record stays statutory" },
+  { value: "ASIC · ESIC · R&D", label: "Australian rules, not US" },
 ];
 
 const COMPLIANCE = [
@@ -43,14 +43,14 @@ export function LogoBand({ className }: { className?: string }) {
     <section
       aria-labelledby="trust-strip-heading"
       className={cn(
-        "border-t border-line-subtle bg-surface-sunken py-14 sm:py-16",
+        "border-t border-line-subtle bg-surface-sunken py-12 sm:py-14",
         className,
       )}
     >
       <div className="mx-auto max-w-5xl px-6">
         <h2
           id="trust-strip-heading"
-          className="mb-10 text-center font-mono text-[11px] uppercase tracking-[0.28em] text-muted"
+          className="mb-8 text-center font-mono text-[11px] uppercase tracking-[0.28em] text-muted"
         >
           Where this is built, and how it is run
         </h2>
@@ -70,7 +70,7 @@ export function LogoBand({ className }: { className?: string }) {
 
         <ul
           role="list"
-          className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-t border-line-subtle pt-8"
+          className="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-t border-line-subtle pt-8"
         >
           {COMPLIANCE.map((c) => (
             <li
