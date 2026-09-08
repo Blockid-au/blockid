@@ -32,7 +32,7 @@ const FAQS: FAQItem[] = [
   },
   {
     q: "How do you handle GST?",
-    a: "For Australian customers, 10% GST is added at checkout once we cross the A$75K annual turnover threshold. Tax is calculated and split automatically via Stripe Tax and appears on your itemized invoice.",
+    a: "Every price on this page is GST-inclusive — the amount you see is the amount you pay, with the 10% GST component already inside it. Auschain PTY LTD (ABN 79 659 615 111) is GST-registered, so Stripe splits the GST line automatically and emails you an ATO-compliant tax invoice for every charge.",
   },
   {
     q: "Can I switch segment (e.g., from Founder to Investor)?",
