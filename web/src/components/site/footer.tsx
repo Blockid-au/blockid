@@ -142,7 +142,7 @@ export function Footer() {
           <div className="mt-6 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-400 md:flex-row md:items-center md:justify-between">
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span>
-                &copy; {new Date().getFullYear()} PPL Food PTY LTD.
+                &copy; {new Date().getUTCFullYear()} PPL Food PTY LTD.
               </span>
               <Link
                 href="/changelog"
