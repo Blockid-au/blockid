@@ -18,6 +18,7 @@ import path from "node:path";
 import { detectInputType, scrapeUrl } from "@/lib/rnd-input";
 import { splitDeckToSections, type DeckSections } from "./deck-sections";
 import { extractSignals, type SVIExtractedSignals } from "@/lib/svi-analysis";
+import { detectContext, type IntakeContext } from "./detect-context";
 import { extractFileText } from "@/lib/guest-analysis/runner";
 import { callAI } from "@/lib/ai-client";
 
@@ -54,6 +55,12 @@ export interface IntakeResult {
   rawText: string;                  // canonical text used downstream
   structured: IntakeStructured;
   signals: SVIExtractedSignals;
+  /**
+   * Composite context derived from signals + maturity + growth-phase.
+   * Attached by `analyzeInput` before returning so downstream callers
+   * (agent selector, cost estimator) can pick the right wave.
+   */
+  context?: IntakeContext;
   /** Optional next-step suggestion for the caller. */
   suggestedNext?: string;
   /** Debug / observability. */
@@ -219,6 +226,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
     const deckSections = slides.length > 0 ? await splitDeckToSections(slides) : undefined;
     const combinedText = [rawText, text].filter(Boolean).join("\n\n");
     const signals = extractSignals({ rawText: combinedText, fileName: input.file.filename });
+    const context = detectContext(signals, combinedText);
 
     return {
       inputKind: "pitch_deck",
@@ -226,9 +234,10 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       rawText: combinedText,
       structured: { slides, deckSections },
       signals,
+      context,
       classifierMode: "file",
       suggestedNext: rawText.trim()
-        ? "Run /api/intake next-wave (context detection) then estimate report cost."
+        ? "Run /api/svi/report-estimate with the returned `context` to price the deep dive."
         : "Try /api/pitchdeck/ocr — the PDF appears to be image-only.",
       warnings: warnings.length > 0 ? warnings : undefined,
     };
@@ -250,12 +259,19 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       ? [scraped.title, scraped.description, scraped.text].filter(Boolean).join("\n\n")
       : urlCandidate;
     const signals = extractSignals({ rawText });
+    const context = detectContext(signals, rawText, {
+      url: urlCandidate,
+      scraped: scraped
+        ? { title: scraped.title, description: scraped.description, text: scraped.text }
+        : undefined,
+    });
     return {
       inputKind: "website",
       confidence: scraped ? 0.9 : 0.6,
       rawText,
       structured: scraped ? { pages: [{ url: urlCandidate, text: scraped.text }] } : {},
       signals,
+      context,
       classifierMode: "regex",
       suggestedNext: "Run /api/site-crawl/stream for deeper BFS then request /api/svi/report-estimate.",
       warnings: warnings.length > 0 ? warnings : undefined,
@@ -306,12 +322,14 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
   }
 
   const signals = extractSignals({ rawText: text });
+  const context = detectContext(signals, text);
   return {
     inputKind: kind,
     confidence,
     rawText: text,
     structured: {},
     signals,
+    context,
     classifierMode: mode,
     suggestedNext:
       kind === "idea_text"
