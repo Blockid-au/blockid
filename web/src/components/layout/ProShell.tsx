@@ -31,12 +31,20 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
   const isLanding = variant === "landing";
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0F1E] text-white/90">
+    // Whole ProShell is an intentional dark surface (marketing/pricing/login
+    // pages hosted here always run against the deep-navy ground). Scoping
+    // the entire subtree with data-theme="dark" retunes the design-system
+    // vars so `var(--ds-surface-sunken)` and the raw hex fallbacks below
+    // resolve to the correct dark palette.
+    <div
+      data-theme="dark"
+      className="min-h-screen flex flex-col bg-[color:var(--ds-surface-sunken)] text-white/90"
+    >
       {isLanding ? <ProShellNavLandingTracker /> : null}
 
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#0A0F1E]"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[color:var(--ds-surface-sunken)]"
       >
         Skip to content
       </a>
@@ -45,7 +53,7 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
         className={
           isLanding
             ? "absolute top-0 left-0 right-0 z-40"
-            : "sticky top-0 z-40 border-b border-white/5 bg-[#0A0F1E]/90 backdrop-blur"
+            : "sticky top-0 z-40 border-b border-white/5 bg-[color:var(--ds-surface-sunken)]/90 backdrop-blur"
         }
       >
         <nav
@@ -57,6 +65,9 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
             aria-label="BlockID — home"
             className="group inline-flex items-center gap-2 font-semibold tracking-tight text-white"
           >
+            {/* Decorative brand-gradient tile — keeps the raw hex trio
+                (#00D4FF → #7C5CFF → #FF6BD6) because this IS the brand
+                gradient signature, not a swappable surface token. */}
             <span
               aria-hidden="true"
               className="inline-block h-6 w-6 rounded-md bg-gradient-to-br from-[#00D4FF] via-[#7C5CFF] to-[#FF6BD6] shadow-[0_0_16px_rgba(124,92,255,0.45)]"
@@ -71,14 +82,14 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
               <Link
                 key={l.href}
                 href={l.href}
-                className="rounded-md px-3 py-2 text-[13px] font-medium text-white/70 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]"
+                className="rounded-md px-3 py-2 text-[13px] font-medium text-white/70 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ds-focus-ring)]"
               >
                 {l.label}
               </Link>
             ))}
             <Link
               href="/svi"
-              className="ml-2 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#0A0F1E] transition-colors hover:bg-white/90"
+              className="ml-2 rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[color:var(--ds-surface-sunken)] transition-colors hover:bg-white/90"
             >
               Get SVI score
             </Link>
@@ -94,7 +105,7 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
             </Link>
             <Link
               href="/svi"
-              className="rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#0A0F1E]"
+              className="rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[color:var(--ds-surface-sunken)]"
             >
               SVI
             </Link>
