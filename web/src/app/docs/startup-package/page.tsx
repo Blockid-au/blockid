@@ -193,7 +193,7 @@ export default function StartupPackageGuidePage() {
       <div className="mx-auto max-w-4xl px-6 py-16">
         {/* Hero */}
         <div className="mb-12">
-          <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-medium mb-3">
+          <p className="text-xs uppercase tracking-[0.2em] text-action font-medium mb-3">
             Docs / Startup Package
           </p>
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
@@ -209,7 +209,7 @@ export default function StartupPackageGuidePage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/startup-package"
-              className="inline-flex items-center rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-primary hover:bg-brand-400 transition-colors"
+              className="inline-flex items-center rounded-lg bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
             >
               Open the Startup Package
             </Link>
@@ -416,28 +416,28 @@ export default function StartupPackageGuidePage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <Link
               href="/startup-package"
-              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-brand-500/40 transition-colors"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-action transition-colors"
             >
               <p className="font-semibold mb-1">/startup-package</p>
               <p className="text-xs opacity-70">Open the packaged founder flow.</p>
             </Link>
             <Link
               href="/guide"
-              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-brand-500/40 transition-colors"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-action transition-colors"
             >
               <p className="font-semibold mb-1">/guide</p>
               <p className="text-xs opacity-70">Full 12-phase growth journey.</p>
             </Link>
             <Link
               href="/pricing"
-              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-brand-500/40 transition-colors"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-action transition-colors"
             >
               <p className="font-semibold mb-1">/pricing</p>
               <p className="text-xs opacity-70">All plans, credit packs, add-ons.</p>
             </Link>
             <Link
               href="/docs"
-              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-brand-500/40 transition-colors"
+              className="rounded-xl border border-line-subtle bg-surface-sunken p-4 hover:border-action transition-colors"
             >
               <p className="font-semibold mb-1">/docs</p>
               <p className="text-xs opacity-70">Platform docs index.</p>
