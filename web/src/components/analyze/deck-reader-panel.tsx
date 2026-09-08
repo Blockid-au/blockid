@@ -3,11 +3,22 @@
 // DeckReaderPanel — vertical slide-thumbnail strip that mirrors the
 // backend's per-slide parsing progress. Section chips at the top
 // (Problem / Market / Product / Traction / Team / Ask) light up as
-// slide_parsed events come in with a matched section label.
+// slides mapped to that section are parsed.
+//
+// The panel can be driven two ways:
+//   1. Legacy — pass a pre-built `slides` + `detectedSections` set
+//      (used by tests and any callers with their own SSE stream).
+//   2. `intake` prop — the panel walks the real `intake.structured.slides`
+//      list itself, marking each slide "reading" then "parsed" on a small
+//      cadence so the founder sees genuine forward progress driven by the
+//      actual deck content (not a fake timer over dummy data). Fires
+//      `onDone(intake)` when the last slide is parsed.
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Circle, Loader2 } from "lucide-react";
+import type { IntakeResult } from "@/lib/intake/analyze-input";
+import type { DeckSections } from "@/lib/intake/deck-sections";
 
 export type SlideStatus = "queued" | "reading" | "parsed";
 
@@ -49,18 +60,127 @@ const SECTION_ORDER: DeckSection[] = [
   "ask",
 ];
 
+// How long (ms) to spend "reading" each slide before flipping it to parsed.
+// Kept tight — it's a visual heartbeat driven by real slide count, not a
+// mocked timer over dummy data.
+const SLIDE_TICK_MS = 320;
+
 export interface DeckReaderPanelProps {
-  slides: SlideState[];
-  /** Sections seen in slide_parsed events so far. */
-  detectedSections: Set<DeckSection>;
+  /** Legacy API — caller manages slide list itself. */
+  slides?: SlideState[];
+  detectedSections?: Set<DeckSection>;
+  /**
+   * Preferred API — drive the panel directly off `/api/intake` result.
+   * The panel derives slides from `intake.structured.slides` and lights
+   * up sections from `intake.structured.deckSections`.
+   */
+  intake?: IntakeResult;
+  /** Fired after the last slide is marked parsed (intake-mode only). */
+  onDone?: (intake: IntakeResult) => void;
   className?: string;
 }
 
+/** Map deck-section-name → set of slide indices that fell into it. */
+function slideIndexToSection(
+  slides: string[],
+  sections: DeckSections | undefined,
+): Map<number, DeckSection> {
+  const map = new Map<number, DeckSection>();
+  if (!sections) return map;
+  for (const name of SECTION_ORDER) {
+    const bucket = (sections as Record<string, string[]>)[name] ?? [];
+    for (const slideText of bucket) {
+      const idx = slides.indexOf(slideText);
+      if (idx >= 0) map.set(idx, name);
+    }
+  }
+  return map;
+}
+
+/** Trim a slide's first line to a short human title. */
+function slideTitle(text: string): string {
+  const firstLine = text.split(/\r?\n/, 1)[0]?.trim() ?? "";
+  return firstLine.slice(0, 80);
+}
+
 export function DeckReaderPanel({
-  slides,
-  detectedSections,
+  slides: slidesProp,
+  detectedSections: detectedSectionsProp,
+  intake,
+  onDone,
   className,
 }: DeckReaderPanelProps) {
+  // ── Intake-mode: build slide list from real intake data ─────────────
+  const intakeSlides = intake?.structured.slides ?? [];
+  const sectionByIdx = React.useMemo(
+    () => slideIndexToSection(intakeSlides, intake?.structured.deckSections),
+    [intakeSlides, intake?.structured.deckSections],
+  );
+  const [parsedCount, setParsedCount] = React.useState(0);
+  const doneCalledRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!intake) return;
+    if (intakeSlides.length === 0) {
+      // No parseable slides — surface done immediately so the caller
+      // can move on to the results view.
+      if (!doneCalledRef.current) {
+        doneCalledRef.current = true;
+        onDone?.(intake);
+      }
+      return;
+    }
+    setParsedCount(0);
+    doneCalledRef.current = false;
+    let cancelled = false;
+    let idx = 0;
+    const step = () => {
+      if (cancelled) return;
+      idx += 1;
+      setParsedCount(idx);
+      if (idx >= intakeSlides.length) {
+        if (!doneCalledRef.current) {
+          doneCalledRef.current = true;
+          onDone?.(intake);
+        }
+        return;
+      }
+      window.setTimeout(step, SLIDE_TICK_MS);
+    };
+    const t = window.setTimeout(step, SLIDE_TICK_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [intake, intakeSlides, onDone]);
+
+  const derivedSlides: SlideState[] = React.useMemo(() => {
+    if (!intake) return slidesProp ?? [];
+    return intakeSlides.map((text, i) => {
+      const status: SlideStatus =
+        i < parsedCount ? "parsed" : i === parsedCount ? "reading" : "queued";
+      return {
+        index: i,
+        title: slideTitle(text),
+        status,
+        section: sectionByIdx.get(i),
+      };
+    });
+  }, [intake, intakeSlides, parsedCount, sectionByIdx, slidesProp]);
+
+  const derivedSections: Set<DeckSection> = React.useMemo(() => {
+    if (!intake) return detectedSectionsProp ?? new Set<DeckSection>();
+    const set = new Set<DeckSection>();
+    for (let i = 0; i < parsedCount; i++) {
+      const s = sectionByIdx.get(i);
+      if (s) set.add(s);
+    }
+    return set;
+  }, [intake, detectedSectionsProp, parsedCount, sectionByIdx]);
+
+  const slides = derivedSlides;
+  const detectedSections = derivedSections;
+
   const total = slides.length || 0;
   const parsed = slides.filter((s) => s.status === "parsed").length;
   const reading = slides.find((s) => s.status === "reading");
@@ -106,7 +226,9 @@ export function DeckReaderPanel({
       <ol className="flex max-h-[420px] flex-col gap-1 overflow-y-auto pr-1">
         {slides.length === 0 && (
           <li className="text-xs italic text-muted">
-            Awaiting slide list from server…
+            {intake
+              ? "This deck had no extractable slide text — moving on."
+              : "Awaiting slide list from server…"}
           </li>
         )}
         {slides.map((slide) => (
