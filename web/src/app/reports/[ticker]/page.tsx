@@ -204,11 +204,11 @@ function SnapshotRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 rounded-xl border border-surface-200 bg-white/60 px-4 py-3">
-      <dt className="text-xs uppercase tracking-[0.14em] text-ink-500">
+    <div className="flex items-baseline justify-between gap-4 rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] px-4 py-3">
+      <dt className="text-xs uppercase tracking-[0.14em] text-[var(--fintech-ink-muted)]">
         {label}
       </dt>
-      <dd className="text-sm text-ink-800">{value}</dd>
+      <dd className="text-sm text-[var(--fintech-ink)]">{value}</dd>
     </div>
   );
 }

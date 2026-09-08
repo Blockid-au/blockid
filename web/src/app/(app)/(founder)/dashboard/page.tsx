@@ -333,7 +333,7 @@ function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase:
             </div>
             <p className="text-xs text-[#94A3B8] truncate">{a.desc}</p>
           </div>
-          <ChevronRight className="h-4 w-4 text-[#94A3B8]/40 group-hover:text-[#94A3B8]" />
+          <ChevronRight className="h-4 w-4 text-ink-300 group-hover:text-[#94A3B8]" />
         </Link>
       ))}
 
@@ -341,14 +341,14 @@ function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase:
       {upcomingActions.length > 0 && (
         <>
           <div className="pt-3 pb-1 px-3">
-            <p className="text-[10px] uppercase tracking-widest text-[#94A3B8]/50 font-medium">Coming next in your journey</p>
+            <p className="text-[10px] uppercase tracking-widest text-ink-300 font-medium">Coming next in your journey</p>
           </div>
           {upcomingActions.map((a) => (
             <div
               key={a.href}
               className="flex items-center gap-3 rounded-xl px-3 py-3 opacity-40"
             >
-              <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.04)] text-[#94A3B8]/50 shrink-0">
+              <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.04)] text-ink-300 shrink-0">
                 <a.icon strokeWidth={1.75} className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">

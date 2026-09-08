@@ -16,7 +16,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, BarChart3, Map, Search } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PLACEHOLDER_CYCLE = [
@@ -26,7 +27,7 @@ const PLACEHOLDER_CYCLE = [
 ];
 
 type QuickTag = {
-  emoji: string;
+  Icon: LucideIcon;
   label: string;
   /** Resolve chip destination, optionally threading the current query. */
   href: (query: string) => string;
@@ -34,18 +35,18 @@ type QuickTag = {
 
 const QUICK_TAGS: QuickTag[] = [
   {
-    emoji: "🔍",
+    Icon: Search,
     label: "Competitor Analysis",
     href: (q) =>
       `/score?q=${encodeURIComponent(q.trim() || "competitor analysis")}`,
   },
   {
-    emoji: "📊",
+    Icon: BarChart3,
     label: "Valuation",
     href: () => "/tools/idea-valuation",
   },
   {
-    emoji: "🗺",
+    Icon: Map,
     label: "GTM Strategy",
     href: () => "/tools/funding-plan",
   },
@@ -289,7 +290,7 @@ export function HeroSection() {
                 color: "#94A3B8",
               }}
             >
-              <span aria-hidden>{tag.emoji}</span>
+              <tag.Icon size={16} aria-hidden />
               {tag.label}
             </Link>
           ))}

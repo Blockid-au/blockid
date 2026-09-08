@@ -346,7 +346,7 @@ function PlanCard({
       <header className="mb-6">
         <h3 className="text-xl font-semibold text-brand-gold">{plan.name}</h3>
         {plan.tagline && (
-          <p className="mt-1 text-xs uppercase tracking-wide text-brand-ink-muted/80">
+          <p className="mt-1 text-xs uppercase tracking-wide text-brand-ink-muted">
             {plan.tagline}
           </p>
         )}
