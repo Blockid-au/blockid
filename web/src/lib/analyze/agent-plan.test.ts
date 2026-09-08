@@ -91,3 +91,24 @@ describe("allPlannedAgentRoles", () => {
     }
   });
 });
+
+// ── customer-facing labels (regression) ─────────────────────────────────────
+
+describe("MODEL_TIER_LABEL", () => {
+  // These render in the agent lineup and in the cost modal a founder sees
+  // before being charged. They must describe the depth being bought, not the
+  // vendor model running underneath — "Opus 5" on a purchase screen leaks our
+  // implementation and tells the customer nothing they can act on.
+  it("describes depth, not the underlying model", () => {
+    expect(MODEL_TIER_LABEL.opus).toBe("In depth");
+    expect(MODEL_TIER_LABEL.sonnet).toBe("Standard");
+    expect(MODEL_TIER_LABEL.haiku).toBe("Quick");
+  });
+
+  it("never names a vendor or model family in a customer-visible label", () => {
+    const banned = /opus|sonnet|haiku|claude|anthropic|gpt|openai|gemini|llama/i;
+    for (const [tier, label] of Object.entries(MODEL_TIER_LABEL)) {
+      expect(label, `MODEL_TIER_LABEL.${tier}`).not.toMatch(banned);
+    }
+  });
+});

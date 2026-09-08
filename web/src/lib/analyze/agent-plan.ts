@@ -34,10 +34,16 @@ export interface PlannedAgent {
 }
 
 /** Human-readable label for a model tier badge. */
+// Customer-facing label for the tier. This renders in the agent lineup and in
+// the cost modal a founder sees before being charged, so it describes the
+// DEPTH they are paying for — not which vendor model runs underneath. Naming
+// "Opus 5" there leaked our implementation into a purchase screen and told the
+// customer nothing they could act on. The internal id stays in MODEL_TIER_ID
+// for tooltips, logs, and debugging.
 export const MODEL_TIER_LABEL: Record<ModelTier, string> = {
-  opus: "Opus 5",
-  sonnet: "Sonnet 5",
-  haiku: "Haiku 4.5",
+  opus: "In depth",
+  sonnet: "Standard",
+  haiku: "Quick",
 };
 
 /** Underlying canonical model id for the tier — useful for tooltips. */

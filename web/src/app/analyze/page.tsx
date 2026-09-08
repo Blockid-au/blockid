@@ -14,7 +14,7 @@ import { getCurrentUser } from "@/lib/auth";
 export const metadata: Metadata = {
   title: "Analyze your startup — SVI Score, Valuation, and Next Actions",
   description:
-    "Drop your pitch deck, paste your site URL, or type your idea. The SVI analyzer classifies your stage, runs the right C-Level agents, and returns a score, valuation, and prioritised next actions.",
+    "Drop your pitch deck, paste your site URL, or type your idea. Get a score across eight dimensions, a valuation from four methods, and a ranked list of what to fix first.",
   openGraph: {
     title: "Analyze your startup — Startup Value Index",
     description:
@@ -64,9 +64,9 @@ export default async function AnalyzePage({
             One box. Any input. A real analysis.
           </h1>
           <p className="max-w-2xl text-sm text-secondary sm:text-base">
-            Drop a pitch deck, paste your site URL, or type your idea. We
-            detect your stage, pick the right C-Level agents, and show the
-            price before charging you a single credit.
+            Drop a pitch deck, paste your site URL, or type your idea. We work
+            out what stage the business is at, look at what matters at that
+            stage, and show you the price before anything is charged.
           </p>
           <AnalyzeRoot
             tier={tier as "free" | "paid"}

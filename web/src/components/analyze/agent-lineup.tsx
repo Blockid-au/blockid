@@ -88,7 +88,7 @@ function AgentPill({ planned, status }: AgentPillProps) {
           TIER_STYLE[planned.tier],
         )}
       >
-        {planned.tier}
+        {tierLabel}
       </span>
     </div>
   );
