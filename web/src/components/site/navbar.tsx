@@ -25,8 +25,16 @@ interface NavDropdown {
 
 type NavEntry = NavLink | NavDropdown;
 
+// Fintech v2 (2026-09-08): the top-line primary items now mirror the
+// homepage 70/30 story — Analyse (the AI omnibox), Pricing, Tokenize
+// (blockchain-equity shelf), For Investors, Tools, Docs, Team. Dropdown
+// groups follow. Order is deliberate: analysis-led before ancillary
+// pillars, then tools/docs/team.
 const navItems: NavEntry[] = [
-  { href: "/score", label: "Get SVI Score" },
+  { href: "/analyze", label: "Analyse" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/tokenize", label: "Tokenize" },
+  { href: "/for/investor", label: "For Investors" },
   {
     label: "Trust Reports",
     groups: [
@@ -49,7 +57,7 @@ const navItems: NavEntry[] = [
     ],
   },
   {
-    label: "Free Tools",
+    label: "Tools",
     groups: [
       {
         heading: "Idea",
@@ -117,9 +125,7 @@ const navItems: NavEntry[] = [
       },
     ],
   },
-  { href: "/#product", label: "Product" },
-  { href: "/features", label: "Features" },
-  { href: "/#pricing", label: "Pricing" },
+  { href: "/docs", label: "Docs" },
   // Team page — surfaces the founder card (Long DO + LinkedIn) so the
   // /team route is one click from every page, not only from the footer.
   { href: "/team", label: "Team" },
