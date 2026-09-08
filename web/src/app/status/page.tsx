@@ -197,13 +197,15 @@ function levelForUptime(pct: number | undefined): Level {
   return "ok";
 }
 
-// Tone-mapped tile styles. Cyan = ok, amber = warn, rose = bad — colour never
+// Tone-mapped tile styles. bull = ok, warn = warn, bear = bad — colour never
 // stands alone (icon + label included), meeting WCAG 2.1 AA "not by colour
-// alone" and 4.5:1 contrast against the fintech backdrop.
+// alone". The ink was emerald-100 / amber-100 / rose-100, values chosen for
+// the deep-navy ground; on the light surface those are ~1.2:1 and the tiles
+// rendered as blocks of pale colour with no readable text at all.
 const LEVEL_TILE: Record<Level, string> = {
-  ok: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  warn: "border-amber-500/30 bg-amber-500/10 text-amber-100",
-  bad: "border-rose-500/30 bg-rose-500/10 text-rose-100",
+  ok: "border-bull/30 bg-bull/10 text-bull",
+  warn: "border-warn/30 bg-warn/10 text-warn",
+  bad: "border-bear/30 bg-bear/10 text-bear",
 };
 
 const SERVICE_LEVEL: Record<ServiceStatus, Level> = {
@@ -248,9 +250,9 @@ export default async function StatusPage() {
   }[overallLevel];
 
   const overallPillClass = {
-    ok: "bg-emerald-500 text-emerald-950",
-    warn: "bg-amber-400 text-amber-950",
-    bad: "bg-rose-500 text-rose-50",
+    ok: "bg-bull text-on-action",
+    warn: "bg-warn text-on-action",
+    bad: "bg-bear text-on-action",
   }[overallLevel];
 
   const uptimeLevel = levelForUptime(status.slo.uptime_pct_24h);
@@ -289,10 +291,10 @@ export default async function StatusPage() {
                 aria-hidden="true"
                 className={`inline-flex h-3 w-3 rounded-full ${
                   overallLevel === "ok"
-                    ? "bg-emerald-400"
+                    ? "bg-bull"
                     : overallLevel === "warn"
-                    ? "bg-amber-400"
-                    : "bg-rose-500"
+                    ? "bg-warn"
+                    : "bg-bear"
                 }`}
               />
               <h2 id="status-overall" className="font-display text-xl font-semibold tracking-tight text-primary sm:text-2xl">

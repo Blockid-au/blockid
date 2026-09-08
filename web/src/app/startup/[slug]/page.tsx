@@ -236,7 +236,7 @@ function SviBadge({ svi }: { svi: NonNullable<PublicListingPayload["svi"]> }) {
   const bandColour: Record<typeof svi.band, string> = {
     seed: "bg-surface-hover text-secondary ring-line",
     growth: "bg-bull/10 text-bull ring-bull/40",
-    scale: "bg-action/15 text-cyan-100 ring-cyan-400/40",
+    scale: "bg-action/10 text-action ring-action/40",
     unicorn: "bg-fuchsia-500/15 text-fuchsia-100 ring-fuchsia-400/40",
   };
   return (
@@ -278,7 +278,7 @@ function HealthGradeBadge({ sviTotal }: { sviTotal: number }) {
         : grade === "C"
           ? "bg-warn/10 text-warn ring-warn/40"
           : grade === "D"
-            ? "bg-orange-500/15 text-orange-200 ring-orange-400/40"
+            ? "bg-warn/10 text-warn ring-warn/40"
             : "bg-bear/10 text-bear ring-bear/40";
 
   return (
