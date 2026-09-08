@@ -817,19 +817,19 @@ export default async function DashboardPage({
             eyebrow="Welcome to BlockID"
             title="Run your first SVI score"
             body="You have not run a Startup Value Index analysis yet. It takes under 60 seconds and unlocks a personalised advisor tuned to your stage — free."
-            primaryCta={{ href: "/score", label: "Score my startup" }}
+            primaryCta={{ href: "/analyze", label: "Score my startup" }}
             cards={[
               {
-                href: "/guide/svi",
+                href: "/how-it-works",
                 icon: Lightbulb,
                 title: "What is the SVI?",
                 body: "How the 8-dimension index is calibrated to Australian pre-seed and seed cohorts.",
               },
               {
-                href: "/guide/scoring",
+                href: "/guides/valuation-methods",
                 icon: Target,
-                title: "How scoring works",
-                body: "The evidence, benchmarks, and confidence signals behind every dimension score.",
+                title: "How the valuation works",
+                body: "The four methods behind the dollar range that comes with every score.",
               },
               {
                 href: "/demo",

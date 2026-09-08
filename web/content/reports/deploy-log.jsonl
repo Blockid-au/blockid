@@ -9357,3 +9357,4 @@
 {"ts":"2026-09-08T14:30:12.240Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): saved-run panel with permalink, copy, and honest guest prompt (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T14:30:34.513Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): surface the saved-run permalink after results (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T14:32:36.596Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): /analyze/[id] renders a saved run, 404 stays indistinguishable (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T14:33:53.944Z","event":"github-push-master","detail":"Blockid-au: feat(workspace): Your analyses list with a first-run empty state, not a sign-in wall (1 commits)","source":"github-webhook"}

@@ -262,6 +262,10 @@ const VALIDATE_SUBGROUPS: NavSubgroup[] = [
     id: "validate.evaluate",
     label: "Evaluate",
     items: [
+      // Every saved /analyze run. Free tier on purpose — the runs are saved
+      // for anonymous visitors too, so gating the list behind a paid plan
+      // would hide work the product has already done for them.
+      { href: "/workspace/analyses", label: "Your Analyses", icon: History, minPlan: "free", minTier: "free", growthPhase: 1, persona: "founder", journeyGroup: "analysis" },
       { href: "/workspace/evaluation", label: "Evaluation (13)", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 1 },
       // v3 metadata — full annotation deferred to journey-sidebar migration PR
       { href: "/workspace/evidence", label: "Evidence Vault", icon: FileText, minPlan: "starter", minTier: "starter", growthPhase: 1, persona: "founder", journeyGroup: "analysis" },
