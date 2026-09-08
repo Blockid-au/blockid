@@ -51,6 +51,10 @@ const mocks = vi.hoisted(() => ({
   }>(),
   hashIpMock: vi.fn<(ip: string) => string>(),
   clientIpFromHeadersMock: vi.fn<(h: Headers) => string>(),
+  claimMock: vi.fn<(p: { userId: string; email?: string | null }) => Promise<{
+    analyses: number;
+    guestAnalyses: number;
+  }>>(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -61,6 +65,11 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: (k: string, m: number, w: number) => mocks.checkRateLimitMock(k, m, w),
+}));
+
+vi.mock("@/lib/analyses/claim", () => ({
+  claimForCurrentBrowser: (p: Parameters<typeof mocks.claimMock>[0]) =>
+    mocks.claimMock(p),
 }));
 
 vi.mock("@/lib/iphash", () => ({
@@ -105,6 +114,7 @@ beforeEach(() => {
   mocks.checkRateLimitMock.mockReset().mockReturnValue({ allowed: true, resetIn: 0 });
   mocks.hashIpMock.mockReset().mockReturnValue("hash_x");
   mocks.clientIpFromHeadersMock.mockReset().mockReturnValue("1.1.1.1");
+  mocks.claimMock.mockReset().mockResolvedValue({ analyses: 0, guestAnalyses: 0 });
 });
 
 afterEach(() => {
@@ -412,5 +422,46 @@ describe("POST /api/auth/register — gate precedence", () => {
     const res = await POST(req({ email: "a@b.co" }));
     const body = await json(res);
     expect(body.error).toBe("Password is required");
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Claim-on-signup — the work a founder did before they had an account
+// -----------------------------------------------------------------------------
+
+describe("POST /api/auth/register — claim on signup", () => {
+  it("claims prior anonymous analyses for the new user id + email", async () => {
+    await POST(req({ email: "new@example.com", password: "longenough" }));
+    expect(mocks.claimMock).toHaveBeenCalledTimes(1);
+    expect(mocks.claimMock).toHaveBeenCalledWith({
+      userId: "u1",
+      email: "new@example.com",
+    });
+  });
+
+  it("claims AFTER the session cookie is set, so the claim runs authenticated", async () => {
+    const order: string[] = [];
+    mocks.setSessionCookieMock.mockImplementation(async () => {
+      order.push("cookie");
+    });
+    mocks.claimMock.mockImplementation(async () => {
+      order.push("claim");
+      return { analyses: 0, guestAnalyses: 0 };
+    });
+    await POST(req({ email: "new@example.com", password: "longenough" }));
+    expect(order).toEqual(["cookie", "claim"]);
+  });
+
+  it("reports the claim counts back to the caller", async () => {
+    mocks.claimMock.mockResolvedValue({ analyses: 2, guestAnalyses: 1 });
+    const res = await POST(req({ email: "new@example.com", password: "longenough" }));
+    const body = await json(res);
+    expect(body.claimed).toEqual({ analyses: 2, guestAnalyses: 1 });
+  });
+
+  it("MUST NOT claim when registration failed", async () => {
+    mocks.registerMock.mockResolvedValue({ ok: false, reason: "email_taken" });
+    await POST(req({ email: "taken@example.com", password: "longenough" }));
+    expect(mocks.claimMock).not.toHaveBeenCalled();
   });
 });
