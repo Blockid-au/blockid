@@ -23,6 +23,8 @@ import dynamic from "next/dynamic";
 import { SmartIntake, type SmartIntakeSubmission } from "./smart-intake";
 import { AnalyzeCostModal, type CostRow } from "./analyze-cost-modal";
 import { SavedAnalysisPanel } from "./saved-analysis-panel";
+import { SignupGatePanel } from "./signup-gate-panel";
+import { ArtefactGatePanel } from "./artefact-gate-panel";
 import {
   GuestPaidCheckout,
   type GuestInputType,
@@ -30,9 +32,13 @@ import {
 import { plannedAgentsFor } from "@/lib/analyze/agent-plan";
 import {
   clearPendingIntake,
+  clearSignupIntake,
   submissionFromQuery,
   takePendingIntake,
+  takeSignupIntake,
 } from "@/lib/analyze/pending-intake";
+import { claimedMessage, savedAnalysisPath } from "@/lib/analyses/summary";
+import { SIGNUP_REQUIRED } from "@/lib/analyses/signup-gate";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 import type { IntakeContext } from "@/lib/intake/detect-context";
 import type { AgentRole } from "@/lib/report-pipeline/types";
@@ -55,7 +61,7 @@ const AnalyzeResults = dynamic(
   { ssr: false },
 );
 
-type Phase = "intake" | "confirm" | "live" | "results";
+type Phase = "intake" | "gate" | "confirm" | "live" | "results";
 
 interface AnalyzeRootProps {
   /** ?tier=free|paid — controls whether a paid tier is pre-selected. */
@@ -75,6 +81,18 @@ interface AnalyzeRootProps {
   initialQuery?: string;
   /** `?kind=` — which variant the hero classified before navigating. */
   initialKind?: string;
+  /**
+   * `?resume=signup` — this visitor was shown the account wall, made an
+   * account, and has come straight back. The run they were promised is free,
+   * so it starts immediately rather than routing through a credit
+   * confirmation nobody warned them about.
+   */
+  resumedFromSignup?: boolean;
+  /**
+   * `?claimed=` — how many earlier runs the signup actually attached to the
+   * new account. A real number from the auth endpoint; 0 means say nothing.
+   */
+  claimed?: number;
 }
 
 /**
@@ -89,8 +107,16 @@ interface AnalyzeRootProps {
 export function shouldAutoRun(opts: {
   tier?: "free" | "paid";
   authenticated?: boolean;
+  /**
+   * Returning from the signup gate. This exact run was promised free before
+   * the account existed, so showing a credit confirmation now would be a
+   * bait and switch — and a brand-new account has no credits to satisfy it
+   * with, so the CTA would be disabled and the promise simply broken.
+   */
+  resumedFromSignup?: boolean;
 }): boolean {
   if (opts.tier === "paid") return false;
+  if (opts.resumedFromSignup) return true;
   return opts.authenticated === false;
 }
 
@@ -136,15 +162,22 @@ function placeholderEstimate(context?: IntakeContext): EstimateResult {
 }
 
 /** POST /api/intake with the SmartIntake submission. */
-async function postIntake(sub: SmartIntakeSubmission): Promise<Response> {
+async function postIntake(
+  sub: SmartIntakeSubmission,
+  tier: "free" | "paid" = "free",
+): Promise<Response> {
+  // `tier` rides along so the server-side signup gate can let a guest heading
+  // for the A$3 checkout straight through. It only ever widens the gate — it
+  // never charges anything and never grants credits.
   if (sub.file) {
     const form = new FormData();
     form.set("file", sub.file);
     if (sub.text) form.set("text", sub.text);
     if (sub.url) form.set("url", sub.url);
+    form.set("tier", tier);
     return fetch("/api/intake", { method: "POST", body: form });
   }
-  const body: Record<string, string> = {};
+  const body: Record<string, string> = { tier };
   if (sub.text) body.text = sub.text;
   if (sub.url) body.url = sub.url;
   return fetch("/api/intake", {
@@ -192,6 +225,8 @@ export function AnalyzeRoot({
   authenticated,
   initialQuery,
   initialKind,
+  resumedFromSignup = false,
+  claimed = 0,
 }: AnalyzeRootProps) {
   const [phase, setPhase] = React.useState<Phase>("intake");
   const [submission, setSubmission] =
@@ -209,6 +244,13 @@ export function AnalyzeRoot({
   const [ocrOffered, setOcrOffered] = React.useState(false);
   const [ocrLoading, setOcrLoading] = React.useState(false);
   const [guestCheckoutOpen, setGuestCheckoutOpen] = React.useState(false);
+  // Set when /api/intake declines to run because this browser is past its
+  // free anonymous run. The numbers come from the API so the prompt states
+  // facts rather than invented copy; null means the gate has not fired.
+  const [gateInfo, setGateInfo] = React.useState<{
+    priorRuns?: number;
+    windowDays?: number;
+  } | null>(null);
 
   /** POST /api/svi/report-estimate with the freshly-detected context. */
   const loadEstimate = React.useCallback(
@@ -285,7 +327,7 @@ export function AnalyzeRoot({
     setErrorMsg(null);
     setIntakeLoading(true);
     try {
-      const res = await postIntake(sub);
+      const res = await postIntake(sub, tier);
       if (res.status === 429) {
         setErrorMsg("Slow down — rate limited. Try again in a minute.");
         setIntakeLoading(false);
@@ -300,13 +342,30 @@ export function AnalyzeRoot({
       }
       const data = (await res.json()) as {
         ok?: boolean;
+        reason?: string;
+        priorRuns?: number;
+        windowDays?: number;
         analysisId?: string | null;
       } & IntakeResult;
+      // The account wall. A 200 with `ok: false` and this reason means the
+      // server deliberately declined to run — nothing was analysed and
+      // nothing was spent. It is NOT an error and must never be rendered as
+      // one.
+      if (data.ok === false && data.reason === SIGNUP_REQUIRED) {
+        setGateInfo({
+          priorRuns: data.priorRuns,
+          windowDays: data.windowDays,
+        });
+        setPhase("gate");
+        setIntakeLoading(false);
+        return;
+      }
       if (!data.ok) {
         setErrorMsg("Something went wrong. Try again or contact support.");
         setIntakeLoading(false);
         return;
       }
+      setGateInfo(null);
       setIntake(data);
       setAnalysisId(
         typeof data.analysisId === "string" ? data.analysisId : null,
@@ -353,13 +412,15 @@ export function AnalyzeRoot({
   // render agree — otherwise the visitor sees an empty box flash before the
   // run starts, which is the exact "type it again" moment being removed.
   const [awaitingHandoff, setAwaitingHandoff] = React.useState(
-    () => Boolean(initialQuery) || initialKind === "deck",
+    () => Boolean(initialQuery) || initialKind === "deck" || resumedFromSignup,
   );
 
   React.useEffect(() => {
     if (autoRanRef.current) return;
     autoRanRef.current = true;
-    const parked = takePendingIntake();
+    // Order matters: the in-memory handoff (a hero click, File handle intact)
+    // beats the written-down one, which beats rebuilding from `?q=`.
+    const parked = takePendingIntake() ?? takeSignupIntake();
     const sub = parked ?? submissionFromQuery({ q: initialQuery, kind: initialKind });
     if (!sub) {
       if (initialKind === "deck") setDeckHandoffLost(true);
@@ -367,7 +428,7 @@ export function AnalyzeRoot({
       return;
     }
     void handleSubmit(sub, {
-      autoRun: shouldAutoRun({ tier, authenticated }),
+      autoRun: shouldAutoRun({ tier, authenticated, resumedFromSignup }),
     });
     // Mount-only: the handoff is single-shot by construction.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -430,6 +491,8 @@ export function AnalyzeRoot({
 
   function handleReset() {
     clearPendingIntake();
+    clearSignupIntake();
+    setGateInfo(null);
     setDeckHandoffLost(false);
     setAwaitingHandoff(false);
     setPhase("intake");
@@ -443,6 +506,26 @@ export function AnalyzeRoot({
   }
 
   // ── Render ─────────────────────────────────────────────────────────
+  // A real claim count from the signup that just ran. `claimedMessage`
+  // returns null for 0, so nothing is said when nothing was claimed.
+  const claimedNote = claimedMessage(claimed);
+
+  if (phase === "gate") {
+    // The server declined to run and spent nothing. This is the account wall,
+    // not an error — so it renders in place of the analysis, with the typed
+    // input carried through to signup.
+    return (
+      <div className="flex w-full flex-col items-center gap-3">
+        <SignupGatePanel
+          priorRuns={gateInfo?.priorRuns}
+          windowDays={gateInfo?.windowDays}
+          submission={submission}
+          onEdit={handleReset}
+        />
+      </div>
+    );
+  }
+
   if (phase === "intake") {
     // A handoff is in flight — show that the run is starting rather than an
     // empty box the visitor might start retyping into.
@@ -464,11 +547,25 @@ export function AnalyzeRoot({
           <p className="text-xs text-muted">
             Using what you already entered — no need to type it again.
           </p>
+          {claimedNote && (
+            <p className="text-xs text-secondary" data-testid="analyze-claimed-note">
+              {claimedNote}
+            </p>
+          )}
         </div>
       );
     }
     return (
       <div className="flex w-full flex-col items-center gap-3">
+        {claimedNote && (
+          <div
+            role="status"
+            className="w-full rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3 text-sm text-secondary"
+            data-testid="analyze-claimed-note"
+          >
+            {claimedNote}
+          </div>
+        )}
         {deckHandoffLost && (
           <div
             role="status"
@@ -605,9 +702,22 @@ export function AnalyzeRoot({
         <>
           <AnalyzeResults intake={intake} />
           <div className="mx-auto mt-6 flex max-w-6xl flex-col gap-4 px-4 text-left">
+            {claimedNote && (
+              <div
+                role="status"
+                className="rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3 text-sm text-secondary"
+                data-testid="analyze-claimed-note"
+              >
+                {claimedNote}
+              </div>
+            )}
             <SavedAnalysisPanel
               analysisId={analysisId}
               authenticated={authenticated}
+            />
+            <ArtefactGatePanel
+              authenticated={authenticated}
+              analysisPath={analysisId ? savedAnalysisPath(analysisId) : null}
             />
             <div>
               <button

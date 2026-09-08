@@ -28,6 +28,22 @@ describe("shouldAutoRun", () => {
   it("does not auto-run when the session state is unknown", () => {
     expect(shouldAutoRun({ tier: "free" })).toBe(false);
   });
+
+  // Returning from the signup gate. The run was promised free BEFORE the
+  // account existed, so a credit confirmation here would be a bait and
+  // switch — and a brand-new account has no credits to clear it with, so the
+  // CTA would be disabled and the promise simply broken.
+  it("runs straight away for someone returning from the signup gate", () => {
+    expect(
+      shouldAutoRun({ tier: "free", authenticated: true, resumedFromSignup: true }),
+    ).toBe(true);
+  });
+
+  it("still never skips the paid confirmation, even resuming from signup", () => {
+    expect(
+      shouldAutoRun({ tier: "paid", authenticated: true, resumedFromSignup: true }),
+    ).toBe(false);
+  });
 });
 
 describe("guestInputTypeFor", () => {

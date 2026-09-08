@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AnalyzeRoot } from "@/components/analyze/analyze-root";
 import { getCurrentUser } from "@/lib/auth";
+import { parseClaimedParam } from "@/lib/analyses/summary";
 
 export const metadata: Metadata = {
   title: "Analyze your startup — SVI Score, Valuation, and Next Actions",
@@ -29,6 +30,10 @@ interface SearchParams {
   q?: string;
   /** Which variant the hero classified: "url" | "deck" | "idea". */
   kind?: string;
+  /** `signup` — coming back from the account wall, run already promised free. */
+  resume?: string;
+  /** How many earlier runs the signup/login just attached to the account. */
+  claimed?: string;
 }
 
 export default async function AnalyzePage({
@@ -46,6 +51,12 @@ export default async function AnalyzePage({
   // you don't have". AnalyzeRoot uses this to switch the confirm step over to
   // the guest checkout. getCurrentUser tolerates missing cookies/Supabase and
   // returns null rather than throwing.
+  // Returning from the signup gate: this exact run was promised free before
+  // the account existed, so it starts immediately instead of routing through
+  // a credit confirmation a brand-new (zero-credit) account could not clear.
+  const resumedFromSignup = params.resume === "signup";
+  // Real claim count from the auth endpoint, carried through the redirect.
+  const claimed = parseClaimedParam(params.claimed);
   const user = await getCurrentUser();
   return (
     <main className="min-h-screen bg-surface">
@@ -73,6 +84,8 @@ export default async function AnalyzePage({
             authenticated={Boolean(user)}
             initialQuery={initialQuery}
             initialKind={initialKind}
+            resumedFromSignup={resumedFromSignup}
+            claimed={claimed}
           />
           <p className="text-xs text-muted">
             Prefer a walkthrough?{" "}
