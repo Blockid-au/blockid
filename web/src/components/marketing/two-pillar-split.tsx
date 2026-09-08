@@ -13,10 +13,21 @@
  * pulled to the AI pillar first; the blockchain pillar is a calm
  * secondary badge, not a competing tile.
  *
- * Server component. No client state. Tokens only (`bg-surface`,
- * `bg-surface-sunken`, `border-line-DEFAULT`, `border-line-subtle`,
+ * Server component. No client state. Tokens only (`bg-surface-sunken`,
+ * `bg-surface-raised`, `border-line`, `border-line-subtle`,
  * `text-primary`, `text-secondary`, `text-muted`, `text-action`) so the
  * card retints automatically for both themes without inline colours.
+ *
+ * LANGUAGE (fixed 2026-09-08): both pillar titles were hard-coded in
+ * Vietnamese while every other string on the homepage was English, so a
+ * single viewport showed "Từ input → SVI score + định giá" next to "AI
+ * evaluation, weighted 70%". Source strings are now English — the ONLY
+ * locale-neutral choice, because locale is resolved per-request in
+ * `src/app/layout.tsx` from `LOCALE_HEADER` (falling back to
+ * `DEFAULT_LOCALE`) and handed to `<TranslationProvider>`. Hard-coding a
+ * non-default locale in a component bypasses that pipeline and leaks the
+ * wrong language into every other locale. Vietnamese now comes from the
+ * i18n catalog on `/vi`, like the rest of the page.
  */
 
 import Link from "next/link";
@@ -34,7 +45,7 @@ interface Pillar {
 
 const AI_PILLAR: Pillar = {
   eyebrow: "70% — AI analysis + valuation",
-  title: "Từ input → SVI score + định giá",
+  title: "From any input to an SVI score + valuation",
   bullets: [
     "13 evaluation criteria across 8 SVI dimensions",
     "8-dimension Startup Value Index (no cap, Nikkei-style)",
@@ -52,7 +63,7 @@ const AI_PILLAR: Pillar = {
 
 const BLOCKCHAIN_PILLAR: Pillar = {
   eyebrow: "30% — Blockchain equity",
-  title: "Cổ phần on-chain khi đăng ký",
+  title: "On-chain equity, on a paid plan",
   bullets: [
     "Private EVM (Anvil chainId 420) — off-chain-first, on-chain mirrored",
     "MetaMask-ready wallet, no gas fees for founders",
@@ -81,13 +92,12 @@ function PillarCard({
       data-testid={`two-pillar-${variant}`}
       className={cn(
         "flex flex-col gap-5 rounded-2xl p-6 sm:p-8",
-        isPrimary
-          ? "border border-line-DEFAULT bg-surface"
-          : "border border-line-subtle bg-surface-sunken",
+        "border bg-surface-raised shadow-sm",
+        isPrimary ? "border-line" : "border-line-subtle",
         className,
       )}
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
         {pillar.eyebrow}
       </p>
       <h3
@@ -119,10 +129,10 @@ function PillarCard({
         <Link
           href={pillar.primaryHref}
           className={cn(
-            "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+            "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface-raised",
             isPrimary
               ? "bg-action text-on-action hover:opacity-90"
-              : "border border-line-DEFAULT text-primary hover:bg-surface",
+              : "border border-line text-primary hover:bg-surface-hover",
           )}
         >
           {pillar.primaryLabel}
@@ -135,7 +145,7 @@ function PillarCard({
               <li key={l.href}>
                 <Link
                   href={l.href}
-                  className="text-xs text-muted transition-colors hover:text-action focus:outline-none focus-visible:underline"
+                  className="text-xs font-medium text-muted transition-colors hover:text-action focus:outline-none focus-visible:underline"
                 >
                   {l.label} →
                 </Link>
@@ -153,7 +163,7 @@ export function TwoPillarSplit({ className }: { className?: string }) {
     <section
       aria-labelledby="two-pillar-heading"
       data-testid="two-pillar-split"
-      className={cn("border-t border-line-subtle bg-surface py-16", className)}
+      className={cn("border-t border-line-subtle bg-surface-sunken py-16 sm:py-20", className)}
     >
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto mb-10 max-w-2xl text-center">
