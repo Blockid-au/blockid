@@ -3,7 +3,11 @@ import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
 import { getProjectIdFromRequest } from "@/lib/projects";
-import { generateDataRoom } from "@/lib/data-room";
+import {
+  generateDataRoom,
+  composeRoomDocuments,
+  documentCompleteness,
+} from "@/lib/data-room";
 import { computeValuation, type ValuationInput } from "@/lib/valuation";
 
 export const dynamic = "force-dynamic";
@@ -238,6 +242,35 @@ export async function POST() {
     valuation,
   });
 
+  // ── What "auto" actually produces ────────────────────────────────────
+  //
+  // A generated room used to be a checklist: 34 rows with status='complete',
+  // no file_url and no template_content behind a single one of them. An
+  // investor opening that sees a full checklist and empty files, which is
+  // worse than an honest gap list. So the generator now writes real prose for
+  // the documents BlockID can genuinely produce from data it already holds
+  // (company summary, SVI breakdown, valuation, cap table, traction, evidence
+  // index) and marks everything it cannot produce — signed shareholders
+  // agreement, ASIC extract, accountant-prepared statements, deck, customer
+  // contracts — as missing, with a concrete "what to upload" prompt.
+  const composeParams = {
+    user: { email: user.email, displayName: user.displayName },
+    sviAccount: sviAccount
+      ? {
+          startupName: sviAccount.startup_name as string | null,
+          currentStage: (sviAccount.current_stage as number) ?? 0,
+          currentSvi: (sviAccount.current_svi as number) ?? 0,
+        }
+      : null,
+    latestAnalysis,
+    metrics,
+    capTable,
+    evidence,
+    valuation,
+  };
+  const documents = composeRoomDocuments(composeParams);
+  const documentScore = documentCompleteness(documents);
+
   // Persist before returning. This endpoint charged 3 credits and then threw
   // the result away — the caller got JSON, nothing was written, and a page
   // refresh meant the founder had paid three credits for something that no
@@ -256,7 +289,7 @@ export async function POST() {
           project_id: projectId,
           name: sviAccount?.startup_name ?? "Data room",
           sections: dataRoom.sections,
-          completeness_score: dataRoom.overallCompleteness,
+          completeness_score: documentScore,
           startup_name: (sviAccount?.startup_name as string | null) ?? null,
           stage: (sviAccount?.current_stage as number) ?? 0,
           last_generated_at: dataRoom.generatedAt,
@@ -278,10 +311,48 @@ export async function POST() {
     console.error("[blockid:data-room] generate persist threw", err);
   }
 
+  // Replace only rows this generator owns (origin='generated'). Anything the
+  // founder uploaded or hand-created is origin='manual' and is never touched.
+  if (dataRoomId) {
+    try {
+      await supabase
+        .from("data_room_documents")
+        .delete()
+        .eq("data_room_id", dataRoomId)
+        .eq("origin", "generated");
+
+      await supabase.from("data_room_documents").insert(
+        documents.map((d) => ({
+          data_room_id: dataRoomId,
+          account_id: user.id,
+          section: d.section,
+          folder: d.folder,
+          document_name: d.documentName,
+          document_type: d.documentType,
+          status: d.status,
+          priority: d.priority,
+          template_content: d.templateContent,
+          notes: d.notes,
+          origin: "generated",
+          completed_at: d.status === "complete" ? new Date().toISOString() : null,
+        })),
+      );
+    } catch (err) {
+      console.error("[blockid:data-room] document write failed", err);
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     dataRoomId,
     dataRoom,
+    documents: {
+      total: documents.length,
+      complete: documents.filter((d) => d.status === "complete").length,
+      pending: documents.filter((d) => d.status === "pending").length,
+      missing: documents.filter((d) => d.status === "missing").length,
+      completeness: documentScore,
+    },
     creditsUsed: 3.0,
     balance: spend.balance,
   });

@@ -206,14 +206,23 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="mt-10 grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-14">
+            <div className="mt-10 grid gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:items-center lg:gap-14">
               <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-xs sm:p-6">
                 <DimensionRadar run={radarRun} />
               </div>
               <div>
-                <p className="text-sm leading-relaxed text-secondary">
-                  Drawn from the revenue-stage run below: four readings
-                  published, four held back with the company&rsquo;s identity.
+                <p className="flex items-baseline gap-2">
+                  <span className="font-sans text-5xl font-semibold leading-none text-primary">
+                    {radarRun.sviScore}
+                  </span>
+                  <span className="text-sm font-medium uppercase tracking-wider text-muted">
+                    out of 100
+                  </span>
+                </p>
+                <p className="mt-4 text-sm leading-relaxed text-secondary">
+                  The eight readings behind that score, for the revenue-stage
+                  run below: four published, four held back with the
+                  company&rsquo;s identity.
                 </p>
                 <div className="mt-4">
                   <DimensionTable run={radarRun} />
