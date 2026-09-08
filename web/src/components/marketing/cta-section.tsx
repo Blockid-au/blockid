@@ -67,7 +67,7 @@ export function CTASection({ className }: { className?: string }) {
                   Start Free — removed as part of B1 CTA consolidation. */}
               <Link
                 href="/one-click-report"
-                className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 active:translate-y-0"
+                className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 active:translate-y-0"
                 style={{
                   background:
                     "linear-gradient(135deg, #00D4FF 0%, #0066FF 100%)",

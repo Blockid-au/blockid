@@ -136,7 +136,8 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <meta name="theme-color" content="#0F172A" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0F172A" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         {/* GA/GTM connection warm-up. Lighthouse (mobile, throttled) flagged

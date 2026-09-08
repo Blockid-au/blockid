@@ -141,7 +141,7 @@ export function FeaturesGrid({ className }: { className?: string }) {
               <Link
                 key={feat.title}
                 href={feat.href}
-                className={`${cardClass} block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]`}
+                className={`${cardClass} block focus:outline-none focus-visible:ring-2 focus-visible:ring-action`}
                 style={cardStyle}
               >
                 {cardBody}

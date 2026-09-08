@@ -273,7 +273,7 @@ export function HeroSection() {
             D3 of the h-y-review-t-on-b-foamy-pixel plan. */}
         <Link
           href="/tbr/demo"
-          className="animate-fade-in-up inline-flex items-center gap-1.5 rounded-md text-sm transition-colors duration-200 hover:text-[#00D4FF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1E]"
+          className="animate-fade-in-up inline-flex items-center gap-1.5 rounded-md text-sm transition-colors duration-200 hover:text-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           style={{ color: "#94A3B8", animationDelay: "360ms" }}
         >
           See a real trust report

@@ -9,6 +9,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { AnimatedSearchFrame } from "@/components/ui/animated-search-frame";
 import {
   FileText,
   Globe,
@@ -252,10 +253,13 @@ export function SmartIntake({
   const disabled = classified.variant === "empty";
 
   return (
+    <AnimatedSearchFrame
+      className={cn("w-full max-w-3xl", className)}
+      radius="rounded-2xl"
+    >
     <form
       className={cn(
-        "w-full max-w-3xl rounded-2xl border border-line-subtle bg-surface-raised p-4 shadow-sm",
-        className,
+        "w-full rounded-2xl border border-line-subtle bg-surface-raised p-4 shadow-sm",
       )}
       onSubmit={handleSubmit}
       data-testid="smart-intake"
@@ -375,6 +379,7 @@ export function SmartIntake({
         </button>
       </div>
     </form>
+    </AnimatedSearchFrame>
   );
 }
 
