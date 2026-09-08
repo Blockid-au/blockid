@@ -27,6 +27,11 @@ import {
   type GuestInputType,
 } from "./guest-paid-checkout";
 import { plannedAgentsFor } from "@/lib/analyze/agent-plan";
+import {
+  clearPendingIntake,
+  submissionFromQuery,
+  takePendingIntake,
+} from "@/lib/analyze/pending-intake";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 import type { IntakeContext } from "@/lib/intake/detect-context";
 import type { AgentRole } from "@/lib/report-pipeline/types";
@@ -61,6 +66,31 @@ interface AnalyzeRootProps {
    * the 401 signal from /api/svi/report-estimate.
    */
   authenticated?: boolean;
+  /**
+   * `?q=` from the homepage hero — the text or URL the visitor already typed.
+   * When present the analysis runs against it on mount so nobody is asked to
+   * type the same thing twice.
+   */
+  initialQuery?: string;
+  /** `?kind=` — which variant the hero classified before navigating. */
+  initialKind?: string;
+}
+
+/**
+ * Should the run start without the confirm modal?
+ *
+ * The free path costs nothing, so an extra "yes I meant it" click after the
+ * visitor already pressed the hero button is pure friction — that is the
+ * double-entry this exists to kill. Anything that can spend credits or take
+ * money (a signed-in run, or `?tier=paid`) still goes through the confirm
+ * step, because price must always be shown before it is charged.
+ */
+export function shouldAutoRun(opts: {
+  tier?: "free" | "paid";
+  authenticated?: boolean;
+}): boolean {
+  if (opts.tier === "paid") return false;
+  return opts.authenticated === false;
 }
 
 // Placeholder per-agent credit cost used before the live estimate arrives
@@ -159,6 +189,8 @@ export function guestUrlFor(
 export function AnalyzeRoot({
   tier = "free",
   authenticated,
+  initialQuery,
+  initialKind,
 }: AnalyzeRootProps) {
   const [phase, setPhase] = React.useState<Phase>("intake");
   const [submission, setSubmission] =
@@ -240,7 +272,10 @@ export function AnalyzeRoot({
    * SmartIntake handed us a submission. Fire /api/intake, then move to
    * confirm and kick off the estimate load.
    */
-  async function handleSubmit(sub: SmartIntakeSubmission) {
+  async function handleSubmit(
+    sub: SmartIntakeSubmission,
+    opts?: { autoRun?: boolean },
+  ) {
     setSubmission(sub);
     setErrorMsg(null);
     setIntakeLoading(true);
@@ -271,7 +306,14 @@ export function AnalyzeRoot({
             data.warnings?.some((w) => /pdf.*ocr|image-only/i.test(w)),
           ),
       );
-      setPhase("confirm");
+      if (opts?.autoRun) {
+        // The visitor already committed by pressing the hero button. Nothing
+        // is being charged on this path, so go straight to the live panel.
+        setPhase("live");
+        setRunning(true);
+      } else {
+        setPhase("confirm");
+      }
       // Fire-and-forget — modal shows placeholder rows immediately, then
       // real estimate rewires them when it resolves.
       void loadEstimate(data.context);
@@ -285,6 +327,31 @@ export function AnalyzeRoot({
       setIntakeLoading(false);
     }
   }
+
+  // ── Hero handoff ───────────────────────────────────────────────────
+  // The homepage hero parks its submission in the pending-intake store and
+  // navigates here. Claim it on mount and run — the visitor typed once and
+  // should never be asked to type again. If the store is empty (hard reload,
+  // shared link) `?q=` rebuilds a text/URL submission. A deck that lost its
+  // bytes falls through to the intake box with an explanation.
+  const autoRanRef = React.useRef(false);
+  const [deckHandoffLost, setDeckHandoffLost] = React.useState(false);
+
+  React.useEffect(() => {
+    if (autoRanRef.current) return;
+    autoRanRef.current = true;
+    const parked = takePendingIntake();
+    const sub = parked ?? submissionFromQuery({ q: initialQuery, kind: initialKind });
+    if (!sub) {
+      if (initialKind === "deck") setDeckHandoffLost(true);
+      return;
+    }
+    void handleSubmit(sub, {
+      autoRun: shouldAutoRun({ tier, authenticated }),
+    });
+    // Mount-only: the handoff is single-shot by construction.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Guest A$3 path ─────────────────────────────────────────────────
   // `?tier=paid` on an anonymous visit means "I want the paid report" — the
@@ -342,6 +409,8 @@ export function AnalyzeRoot({
   }
 
   function handleReset() {
+    clearPendingIntake();
+    setDeckHandoffLost(false);
     setPhase("intake");
     setSubmission(null);
     setIntake(null);
@@ -355,7 +424,17 @@ export function AnalyzeRoot({
   if (phase === "intake") {
     return (
       <div className="flex w-full flex-col items-center gap-3">
-        <SmartIntake onSubmit={handleSubmit} />
+        {deckHandoffLost && (
+          <div
+            role="status"
+            className="w-full rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3 text-sm text-secondary"
+            data-testid="analyze-deck-handoff-lost"
+          >
+            Your deck did not make it through the page refresh — files can’t
+            travel in a link. Drop it here once and the analysis starts.
+          </div>
+        )}
+        <SmartIntake onSubmit={(sub) => void handleSubmit(sub)} />
         {intakeLoading && (
           <p className="text-xs text-tertiary">
             Reading your input…

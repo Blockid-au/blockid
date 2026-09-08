@@ -25,6 +25,10 @@ export const metadata: Metadata = {
 
 interface SearchParams {
   tier?: string;
+  /** Text or URL the visitor already typed in the homepage hero. */
+  q?: string;
+  /** Which variant the hero classified: "url" | "deck" | "idea". */
+  kind?: string;
 }
 
 export default async function AnalyzePage({
@@ -34,6 +38,10 @@ export default async function AnalyzePage({
 }) {
   const params = (await searchParams) ?? {};
   const tier = params.tier === "paid" ? "paid" : "free";
+  // The hero already collected the input. Carrying it through here is what
+  // stops /analyze asking for it a second time.
+  const initialQuery = typeof params.q === "string" ? params.q : undefined;
+  const initialKind = typeof params.kind === "string" ? params.kind : undefined;
   // Anonymous + ?tier=paid means "sell me the A$3 report", not "spend credits
   // you don't have". AnalyzeRoot uses this to switch the confirm step over to
   // the guest checkout. getCurrentUser tolerates missing cookies/Supabase and
@@ -63,6 +71,8 @@ export default async function AnalyzePage({
           <AnalyzeRoot
             tier={tier as "free" | "paid"}
             authenticated={Boolean(user)}
+            initialQuery={initialQuery}
+            initialKind={initialKind}
           />
           <p className="text-xs text-muted">
             Prefer a walkthrough?{" "}

@@ -34,6 +34,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ShieldCheck, Wallet, Zap } from "lucide-react";
 import { SmartIntake, type SmartIntakeSubmission } from "@/components/analyze/smart-intake";
+import {
+  pendingIntakeQuery,
+  setPendingIntake,
+} from "@/lib/analyze/pending-intake";
 
 /** Compact proof row shown under the omnibox — a real MVP-stage sample. */
 const PREVIEW_DIMENSIONS = [
@@ -47,13 +51,11 @@ export function HeroSection() {
   const router = useRouter();
 
   function handleSmartSubmit(payload: SmartIntakeSubmission) {
-    // Every successful classification lands on /analyze; the omnibox on
-    // that page picks up ?q= and re-runs the same classifier server-side.
-    const q =
-      payload.text?.trim() ||
-      payload.url?.trim() ||
-      (payload.file ? payload.file.name : "");
-    router.push(q.length > 0 ? `/analyze?q=${encodeURIComponent(q)}` : "/analyze");
+    // Park the whole submission — including a dropped File, which cannot be
+    // encoded in a URL — then navigate. /analyze claims it on mount and starts
+    // the analysis immediately, so nothing is ever typed twice.
+    setPendingIntake(payload);
+    router.push(pendingIntakeQuery(payload));
   }
 
   return (
