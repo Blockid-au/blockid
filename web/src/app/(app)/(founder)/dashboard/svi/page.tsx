@@ -9,6 +9,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
+import { SviScoreRing } from "@/components/svi/svi-score-ring";
 import { NextBestActionWidget } from "@/components/dashboard/next-best-action-widget";
 import { NextStepTile } from "@/components/dashboard/next-step-tile";
 import { InvestorReadinessTile } from "@/components/dashboard/investor-readiness-tile";
@@ -333,6 +334,15 @@ export default async function SVIDashboardPage() {
   return (
     <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox}>
       <div className="max-w-5xl mx-auto px-6 pb-24 pt-6 space-y-6">
+        {/* ── Headline SVI gauge — the "score at a glance" viz called out in
+            the UI audit. Score comes off analysisWithDelta.totalSVI. ── */}
+        <div className="flex justify-center">
+          <SviScoreRing
+            score={analysisWithDelta.totalSVI}
+            label={analysisWithDelta.stageLabel ?? "SVI"}
+          />
+        </div>
+
         {/* ── Next-Step nudge tile (round 5.1) — phase pill, next action,
             missing list, readiness donut. Fetches /api/nudge/next-steps. ── */}
         <NextStepTile />

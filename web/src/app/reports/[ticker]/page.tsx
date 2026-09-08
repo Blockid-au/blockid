@@ -18,6 +18,7 @@ import { MarketingSection } from "@/components/marketing/marketing-section";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { getListingByTicker } from "@/lib/listings/listings-db";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
+import { SviScoreRing } from "@/components/svi/svi-score-ring";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,14 @@ export default async function TrustReportPage({ params }: PageProps) {
           "Investor-ready evaluation composed from the founder's public disclosures and BlockID's Startup Value Index."
         }
       />
+
+      {score != null ? (
+        <MarketingSection>
+          <div className="flex justify-center">
+            <SviScoreRing score={score} label={grade ?? "SVI"} />
+          </div>
+        </MarketingSection>
+      ) : null}
 
       <MarketingSection>
         <div className="grid gap-4 sm:grid-cols-3">
