@@ -322,9 +322,10 @@ export function plansForSegment(segment: Segment): Plan[] {
  * Derived from `plan.public === false` on the catalogue itself so a new
  * hidden SKU is a one-line change in the plan definition.
  *
- * Post-2026-09-07 Universal 3-rung ladder: the public ladder is
- * founder_free (Free) + founder_growth (Growth) + founder_scale (Pro).
- * Everything else is contact-sales / legacy-renewal only.
+ * Post-2026-09-08 ladder: the public ladder is founder_free (Free) +
+ * founder_starter (Founder A$29) + founder_growth (Growth A$69), with the
+ * A$59/mo Equity add-on sold on top of Growth. Everything else is
+ * contact-sales / legacy-renewal only.
  */
 export const PUBLIC_HIDDEN_PLAN_IDS: readonly string[] = PLANS_V2
   .filter((p) => p.public === false)

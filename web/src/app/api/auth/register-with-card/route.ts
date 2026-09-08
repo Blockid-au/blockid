@@ -54,11 +54,13 @@ const BCRYPT_ROUNDS = 12;
 
 // Superset of new-signup tiers + all founder_* SKUs from plans.csv so the
 // endpoint keeps working after tier IDs change without a redeploy.
+// founder_scale (Pro, A$299) retired 2026-09-08 — its Stripe price is archived
+// and plans.csv marks it active=false, so accepting it here would register a
+// card against a subscription that can never be charged.
 const ALLOWED_PLAN_IDS = new Set<string>([
   ...NEW_SIGNUP_TIER_IDS,
   "founder_starter",
   "founder_growth",
-  "founder_scale",
   "founder_enterprise",
 ]);
 
