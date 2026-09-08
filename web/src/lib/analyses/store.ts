@@ -62,6 +62,47 @@ export function checkAnalysisWriteLimit(
   return { allowed: true };
 }
 
+// ── Anonymous run ceiling (defence in depth) ─────────────────────────────
+//
+// The signup gate is the primary control on anonymous model spend, and it is
+// keyed to a cookie. Cookies can be cleared. Without a second control, one
+// person could loop "run #1" indefinitely by clearing site data between runs
+// and the gate would never see them twice.
+//
+// So the ANONYMOUS run path also carries an IP ceiling. It is deliberately
+// generous — a real founder trying three or four ideas in an afternoon, or a
+// small team behind one office NAT, must never notice it exists. It is sized
+// to stop a loop, not to ration honest use. Signed-in callers are exempt
+// entirely; their spend is governed by credits.
+//
+// Two buckets: an hourly one that catches a burst, and a daily one that
+// catches a slow drip the hourly bucket would let through forever.
+
+export const ANON_RUN_LIMIT_PER_IP_HOUR = 12;
+export const ANON_RUN_LIMIT_PER_IP_DAY = 40;
+
+export interface AnonRunLimitResult {
+  allowed: boolean;
+  reason?: "hour" | "day";
+}
+
+export function checkAnonRunLimit(ip: string): AnonRunLimitResult {
+  if (!ip || ip === "unknown") return { allowed: true };
+  const hourly = checkRateLimit(
+    `analysis-run:ip:hour:${ip}`,
+    ANON_RUN_LIMIT_PER_IP_HOUR,
+    60 * 60 * 1000,
+  );
+  if (!hourly.allowed) return { allowed: false, reason: "hour" };
+  const daily = checkRateLimit(
+    `analysis-run:ip:day:${ip}`,
+    ANON_RUN_LIMIT_PER_IP_DAY,
+    24 * 60 * 60 * 1000,
+  );
+  if (!daily.allowed) return { allowed: false, reason: "day" };
+  return { allowed: true };
+}
+
 // ── Signup gate: how many runs has this browser already had? ─────────────
 
 /**

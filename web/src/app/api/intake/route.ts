@@ -49,6 +49,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ensureAnonKey } from "@/lib/analyses/anon-key";
 import {
   checkAnalysisWriteLimit,
+  checkAnonRunLimit,
   countAnonRunsInWindow,
   saveAnalysis,
 } from "@/lib/analyses/store";
@@ -214,6 +215,28 @@ export async function POST(request: Request) {
     }),
   });
   if (!decision.allow) return gatedResponse(decision);
+
+  // Defence in depth. The gate above is keyed to a cookie and cookies can be
+  // cleared, so an IP ceiling sits behind it — otherwise one person could
+  // loop "run #1" indefinitely by clearing site data between runs. Generous
+  // enough that a real founder never meets it, and skipped entirely for a
+  // signed-in caller whose spend is governed by credits.
+  if (!authenticated) {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const runLimit = checkAnonRunLimit(ip);
+    if (!runLimit.allowed) {
+      console.warn(`[intake] anonymous run ceiling hit (${runLimit.reason})`);
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Too many analyses from this network in a short time. Try again shortly, or sign in.",
+        },
+        { status: 429 },
+      );
+    }
+  }
 
   try {
     const result = await analyzeInput({

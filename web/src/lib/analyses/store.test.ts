@@ -87,10 +87,13 @@ vi.mock("@/lib/rate-limit", () => ({
 
 import {
   ANALYSES_TABLE,
+  ANON_RUN_LIMIT_PER_IP_DAY,
+  ANON_RUN_LIMIT_PER_IP_HOUR,
   GUEST_ANALYSES_TABLE,
   WRITE_LIMIT_PER_ANON,
   WRITE_LIMIT_PER_IP,
   checkAnalysisWriteLimit,
+  checkAnonRunLimit,
   claimAnalyses,
   countAnonRunsInWindow,
   getAnalysisForViewer,
@@ -413,5 +416,45 @@ describe("countAnonRunsInWindow", () => {
   it("FAILS OPEN when the client throws", async () => {
     state.throwOnFrom = true;
     expect(await countAnonRunsInWindow("anon1")).toBe(0);
+  });
+});
+
+// ── Anonymous run ceiling ────────────────────────────────────────────────
+//
+// Defence in depth behind the signup gate. The gate is keyed to a cookie, and
+// cookies can be cleared — without this, one person could loop "run #1"
+// forever by clearing site data between runs. Generous on purpose: it must
+// stop a loop without a real founder ever noticing it exists.
+
+describe("checkAnonRunLimit", () => {
+  it("checks an hourly burst bucket and a daily drip bucket", () => {
+    checkAnonRunLimit("1.2.3.4");
+    const keys = rateLimitMock.mock.calls.map((c) => c[0]);
+    expect(keys).toContain("analysis-run:ip:hour:1.2.3.4");
+    expect(keys).toContain("analysis-run:ip:day:1.2.3.4");
+  });
+
+  it("stays generous enough that ordinary use never sees it", () => {
+    expect(ANON_RUN_LIMIT_PER_IP_HOUR).toBeGreaterThanOrEqual(10);
+    expect(ANON_RUN_LIMIT_PER_IP_DAY).toBeGreaterThanOrEqual(ANON_RUN_LIMIT_PER_IP_HOUR);
+    expect(rateLimitMock.mock.calls.length).toBe(0);
+    checkAnonRunLimit("1.2.3.4");
+    expect(rateLimitMock.mock.calls[0][1]).toBe(ANON_RUN_LIMIT_PER_IP_HOUR);
+    expect(rateLimitMock.mock.calls[0][2]).toBe(60 * 60 * 1000);
+    expect(rateLimitMock.mock.calls[1][2]).toBe(24 * 60 * 60 * 1000);
+  });
+
+  it("reports which bucket tripped", () => {
+    rateLimitMock.mockReturnValueOnce({ allowed: false, remaining: 0, resetIn: 1 });
+    expect(checkAnonRunLimit("1.2.3.4")).toEqual({ allowed: false, reason: "hour" });
+    rateLimitMock.mockReturnValueOnce({ allowed: true, remaining: 1, resetIn: 0 });
+    rateLimitMock.mockReturnValueOnce({ allowed: false, remaining: 0, resetIn: 1 });
+    expect(checkAnonRunLimit("1.2.3.4")).toEqual({ allowed: false, reason: "day" });
+  });
+
+  it("never blocks when the client IP is unknown", () => {
+    expect(checkAnonRunLimit("unknown")).toEqual({ allowed: true });
+    expect(checkAnonRunLimit("")).toEqual({ allowed: true });
+    expect(rateLimitMock).not.toHaveBeenCalled();
   });
 });

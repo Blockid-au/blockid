@@ -40,10 +40,14 @@ const checkWriteLimitMock = vi.fn<
   (a: string, ip: string) => { allowed: boolean; reason?: string }
 >();
 const countAnonRunsMock = vi.fn<(a: string) => Promise<number>>();
+const checkAnonRunLimitMock = vi.fn<
+  (ip: string) => { allowed: boolean; reason?: string }
+>();
 vi.mock("@/lib/analyses/store", () => ({
   saveAnalysis: (i: Record<string, unknown>) => saveAnalysisMock(i),
   checkAnalysisWriteLimit: (a: string, ip: string) => checkWriteLimitMock(a, ip),
   countAnonRunsInWindow: (a: string) => countAnonRunsMock(a),
+  checkAnonRunLimit: (ip: string) => checkAnonRunLimitMock(ip),
 }));
 
 const deriveMock = vi.fn<() => unknown>();
@@ -85,6 +89,7 @@ beforeEach(() => {
   saveAnalysisMock.mockReset().mockResolvedValue("row-1");
   checkWriteLimitMock.mockReset().mockReturnValue({ allowed: true });
   countAnonRunsMock.mockReset().mockResolvedValue(0);
+  checkAnonRunLimitMock.mockReset().mockReturnValue({ allowed: true });
   deriveMock.mockReset().mockReturnValue({ totalSVI: 118 });
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -285,5 +290,33 @@ describe("POST /api/intake — signup gate: who is never walled", () => {
     const body = await json(await POST(req({ text: "an idea", tier: "paid" })));
     expect(body.ok).toBe(false);
     expect(analyzeInputMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── Anonymous run ceiling ────────────────────────────────────────────────
+//
+// The gate is keyed to a cookie; cookies can be cleared. Without this ceiling
+// one person could loop "run #1" forever by clearing site data between runs,
+// and every loop would be real model spend.
+
+describe("POST /api/intake — anonymous run ceiling", () => {
+  it("checks the client IP on the anonymous path", async () => {
+    await POST(req({ text: "an idea" }, { ip: "9.9.9.9, 10.0.0.1" }));
+    expect(checkAnonRunLimitMock).toHaveBeenCalledWith("9.9.9.9");
+  });
+
+  it("429s WITHOUT invoking the pipeline once the ceiling is hit", async () => {
+    checkAnonRunLimitMock.mockReturnValue({ allowed: false, reason: "hour" });
+    const res = await POST(req({ text: "an idea" }, { ip: "9.9.9.9" }));
+    expect(res.status).toBe(429);
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+  });
+
+  it("exempts a signed-in caller entirely", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    checkAnonRunLimitMock.mockReturnValue({ allowed: false, reason: "day" });
+    const res = await POST(req({ text: "an idea" }, { ip: "9.9.9.9" }));
+    expect(res.status).toBe(200);
+    expect(checkAnonRunLimitMock).not.toHaveBeenCalled();
   });
 });
