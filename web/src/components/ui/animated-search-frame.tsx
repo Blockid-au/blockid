@@ -1,33 +1,11 @@
 "use client";
 
-/**
- * AnimatedSearchFrame — static color-transition border for hero + /analyze
- * SmartIntake input surfaces.
- *
- * Sep 2026 (user feedback: "khung thay đổi quay vòng" = spinning frame):
- * the previous version painted a rotating conic-gradient via `asf-spin`
- * (360° every 12s). Users read that as noisy/unprofessional rather than
- * as delightful focus affordance. Replaced with a plain color-transition
- * border — idle muted, hover brand cyan, focus-within solid brand cyan
- * with a subtle glow ring — matching the calm focus pattern used
- * everywhere else in the design system.
- *
- * Contract unchanged so every call site keeps working with no edit:
- *   <AnimatedSearchFrame> <YourInput /> </AnimatedSearchFrame>
- *
- * `thickness` still controls border width. `radius` still controls corner
- * radius. `className` still passes through.
- */
-
 import type { CSSProperties, ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
-  /** Extra classes for the outer wrapper (e.g. `w-full max-w-2xl`). */
   className?: string;
-  /** Override the ring corner radius. Defaults to `rounded-xl`. */
   radius?: string;
-  /** Border thickness in px. Defaults to 2. */
   thickness?: number;
 }
 
@@ -46,29 +24,66 @@ export function AnimatedSearchFrame({
       style={wrapperStyle}
     >
       <style>{`
+        @property --asf-angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
+        @keyframes asf-spin {
+          to { --asf-angle: 360deg; }
+        }
         .asf-wrap {
-          border: var(--asf-thickness) solid #cbd5e1;
           background: var(--color-surface, #F7F8FA);
-          transition: border-color 200ms ease, box-shadow 200ms ease;
+          border-radius: inherit;
+          isolation: isolate;
         }
-        .dark .asf-wrap {
-          border-color: rgba(148, 163, 184, 0.32);
+        .asf-wrap::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          padding: var(--asf-thickness);
+          border-radius: inherit;
+          background: conic-gradient(
+            from var(--asf-angle),
+            #FF9F0A 0deg,
+            #1D4ED8 120deg,
+            #047857 240deg,
+            #FF9F0A 360deg
+          );
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          opacity: 0.42;
+          animation: asf-spin 12s linear infinite;
+          transition: opacity 200ms ease;
+          pointer-events: none;
+          z-index: 0;
         }
-        .asf-wrap:hover {
-          border-color: #06b6d4;
+        .asf-wrap:hover::before {
+          opacity: 0.7;
         }
-        .dark .asf-wrap:hover {
-          border-color: #22d3ee;
+        .asf-wrap:focus-within::before {
+          opacity: 1;
         }
         .asf-wrap:focus-within {
-          border-color: #06b6d4;
-          box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.16);
+          box-shadow: 0 0 0 4px rgba(255, 159, 10, 0.16);
         }
-        .dark .asf-wrap:focus-within {
-          border-color: #22d3ee;
-          box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.22);
+        .asf-wrap > * {
+          position: relative;
+          z-index: 1;
+          border-radius: inherit;
         }
-        .asf-wrap > * { border-radius: inherit; }
+        @media (prefers-reduced-motion: reduce) {
+          .asf-wrap::before {
+            animation: none;
+            opacity: 0.6;
+          }
+        }
       `}</style>
       {children}
     </div>
