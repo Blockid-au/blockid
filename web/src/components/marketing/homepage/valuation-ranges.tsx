@@ -18,8 +18,9 @@
  *
  * WHAT IS NOT HERE. The methods behind a range are named in the caption
  * but not plotted. The published runs record one range each, not a value
- * per method, and a four-point convergence chart would have meant making
- * those four numbers up.
+ * per method, so a convergence chart showing five estimates closing on a
+ * range would have meant inventing five numbers. The score rides on each
+ * row instead: it is real, and it is what actually moves the range.
  */
 
 import { SAMPLE_RUNS } from "./sample-runs";
@@ -53,6 +54,11 @@ export function ValuationRanges() {
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-sm font-medium text-primary">
                   {run.stage}
+                  {/* The score rides along so the two artefacts read as one
+                      thing: the range moves because the score moved. */}
+                  <span className="ml-2 font-mono text-xs font-normal text-muted tabular-nums">
+                    {run.sviScore}/100
+                  </span>
                 </span>
                 <span className="font-mono text-sm text-secondary tabular-nums">
                   {run.valuationLowLabel}
@@ -64,7 +70,7 @@ export function ValuationRanges() {
               <div
                 className="relative mt-2 h-3"
                 role="img"
-                aria-label={`${run.stage}: ${run.valuationLowLabel} to ${run.valuationHighLabel}`}
+                aria-label={`${run.stage}, scoring ${run.sviScore} out of 100: ${run.valuationLowLabel} to ${run.valuationHighLabel}`}
               >
                 {/* Track — one step off the surface, hairline, recessive. */}
                 <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-line-subtle" />
