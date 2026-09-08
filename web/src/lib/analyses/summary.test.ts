@@ -17,8 +17,10 @@ import {
   inputKindLabel,
   savedAnalysisPath,
   savedAnalysisUrl,
+  parseClaimedParam,
   stageText,
   tidyUrl,
+  withClaimedParam,
 } from "./summary";
 
 describe("savedAnalysisPath / savedAnalysisUrl", () => {
@@ -159,5 +161,25 @@ describe("claimedMessage", () => {
     expect(claimedMessage(3)).toBe(
       "3 analyses you ran before signing up are now saved to your account.",
     );
+  });
+});
+
+describe("withClaimedParam / parseClaimedParam", () => {
+  it("appends the count with the right separator", () => {
+    expect(withClaimedParam("/analyze/x", 2)).toBe("/analyze/x?claimed=2");
+    expect(withClaimedParam("/analyze/x?a=1", 2)).toBe("/analyze/x?a=1&claimed=2");
+  });
+
+  it("leaves the target alone when nothing was claimed", () => {
+    expect(withClaimedParam("/dashboard", 0)).toBe("/dashboard");
+    expect(withClaimedParam("/dashboard", Number.NaN)).toBe("/dashboard");
+  });
+
+  it("round-trips, and rejects junk", () => {
+    expect(parseClaimedParam("3")).toBe(3);
+    expect(parseClaimedParam("0")).toBe(0);
+    expect(parseClaimedParam("-2")).toBe(0);
+    expect(parseClaimedParam("abc")).toBe(0);
+    expect(parseClaimedParam(null)).toBe(0);
   });
 });

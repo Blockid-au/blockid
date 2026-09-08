@@ -136,3 +136,21 @@ export function claimedMessage(count: number): string | null {
   }
   return `${count} analyses you ran before signing up are now saved to your account.`;
 }
+
+/**
+ * Carry a real claim count through the post-auth redirect so the destination
+ * can say what actually happened instead of guessing. Only ever appended when
+ * something was genuinely claimed.
+ */
+export function withClaimedParam(target: string, claimed: number): string {
+  if (!Number.isFinite(claimed) || claimed < 1) return target;
+  const sep = target.includes("?") ? "&" : "?";
+  return `${target}${sep}claimed=${Math.floor(claimed)}`;
+}
+
+/** Parse `?claimed=` back into a count. Junk and negatives become 0. */
+export function parseClaimedParam(raw: string | null | undefined): number {
+  if (!raw) return 0;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
