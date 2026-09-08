@@ -259,6 +259,64 @@ export default async function DocsPage() {
             </p>
           </div>
 
+          {/* Architecture — context-aware analysis pipeline (v3.10.0) */}
+          <section className="mb-14">
+            <h2 className="text-2xl font-bold text-ink-800 mb-2">
+              Architecture — context-aware analysis pipeline (v3.10.0)
+            </h2>
+            <p className="text-sm text-ink-600 mb-4">
+              As of v3.10.0 the platform accepts a founder&apos;s pitch deck
+              (PDF / DOCX / PPTX + OCR fallback), a live website URL, or a
+              free-text idea from a single input at{" "}
+              <Link href="/analyze" className="text-brand-600 underline">
+                /analyze
+              </Link>
+              . Everything is routed through one HTTP surface —{" "}
+              <code>POST /api/intake</code> — which sits in front of the
+              agent dispatcher.
+            </p>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-ink-700 mb-4">
+              <li>
+                <strong>Extract</strong> — deck parsers (PDF text layer, DOCX,
+                PPTX) or website crawler (BFS depth 1, up to 8 same-host
+                pages, prioritising <code>/about /pricing /team /product</code>)
+                or free-text passthrough. PDFs without a text layer fall
+                through to vision OCR (+2 credits, quoted before commit).
+              </li>
+              <li>
+                <strong>Classify</strong> — Haiku 4.5 tags the input as{" "}
+                <code>pitch_deck</code>, <code>website</code>,{" "}
+                <code>idea_text</code>, or <code>existing_company_text</code>{" "}
+                with a confidence score.
+              </li>
+              <li>
+                <strong>Detect context</strong> — composes existing detectors
+                (<code>detectStage</code>, <code>detectMaturity</code>,{" "}
+                <code>getCurrentPhase</code>) to place the startup on the
+                8-stage journey and score evidence completeness.
+              </li>
+              <li>
+                <strong>Plan agents</strong> — a stage-specific manifest picks
+                the right C-Level agents (idea stage runs the lean 4-agent
+                plan; scale stage runs the full 13) instead of blindly firing
+                every criterion.
+              </li>
+              <li>
+                <strong>Quote &amp; run</strong> — the credit cost of the
+                dynamic plan is shown before commit; the live UI (deck reader,
+                site visitor, or idea lab) streams the agent output as it
+                arrives.
+              </li>
+            </ol>
+            <p className="text-xs text-ink-500">
+              Source: <code>web/src/lib/intake/analyze-input.ts</code>,{" "}
+              <code>web/src/lib/intake/detect-context.ts</code>,{" "}
+              <code>web/src/app/api/intake/route.ts</code>. Legacy{" "}
+              <code>/score</code> and <code>/one-click-report</code> funnels
+              redirect to <code>/analyze</code>.
+            </p>
+          </section>
+
           {/* Company / product overview */}
           <section className="mb-14">
             <h2 className="text-2xl font-bold text-ink-800 mb-2">
