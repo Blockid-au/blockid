@@ -87,6 +87,10 @@ function renderMarkdown(md: string): {
   // every anchor is unique while the first occurrence keeps its clean id.
   const slugCounts = new Map<string, number>();
 
+  let i = 0;
+  let inList = false;
+  let paraBuf: string[] = [];
+
   const flushList = () => {
     if (inList) {
       out.push("</ul>");
