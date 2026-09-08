@@ -129,7 +129,7 @@ function StageJourney({ currentStage }: { currentStage: number }) {
                 <div
                   className={cn(
                     "h-7 w-7 sm:h-8 sm:w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all shrink-0",
-                    isPast ? "border-brand-500 bg-brand-500 text-white" :
+                    isPast ? "border-brand-600 bg-brand-600 text-white" :
                     isCurrent ? "border-brand-600 bg-brand-50 text-brand-600 ring-2 ring-brand-200" :
                     "border-surface-200 bg-surface-100 text-ink-600",
                   )}

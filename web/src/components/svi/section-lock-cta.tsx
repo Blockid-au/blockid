@@ -23,7 +23,7 @@ export function SectionLockCTA({ sectionName, tier, creditCost = 5 }: SectionLoc
       <div className="flex gap-2 justify-center">
         <Link
           href="/workspace/billing"
-          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-svi-500 hover:bg-gold-600 text-on-brand rounded-lg text-sm font-medium transition-colors"
         >
           {isStandard ? `Unlock (${creditCost} credits)` : "Upgrade to Premium"}
         </Link>

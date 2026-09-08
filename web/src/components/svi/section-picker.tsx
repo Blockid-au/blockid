@@ -291,7 +291,7 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
         </div>
 
         {/* ── Footer (cost + confirm) ────────────────────────────────── */}
-        <div className="shrink-0 border-t border-surface-200 bg-ink-950 px-4 sm:px-6 py-3 sm:py-4 safe-pb">
+        <div className="shrink-0 border-t border-line-subtle bg-surface-sunken px-4 sm:px-6 py-3 sm:py-4 safe-pb">
           {/* Bundle recommendation */}
           {cost.bestBundle && (
             <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-emerald-900/40">
@@ -306,12 +306,12 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
             {/* Cost info */}
             <div className="min-w-0">
               <div className="flex items-baseline gap-1.5">
-                <span className="text-lg sm:text-2xl font-bold text-white tabular-nums">
+                <span className="text-lg sm:text-2xl font-bold text-primary tabular-nums">
                   {cost.totalCredits.toFixed(2)}
                 </span>
-                <span className="text-xs sm:text-sm text-slate-400">credits</span>
+                <span className="text-xs sm:text-sm text-muted">credits</span>
               </div>
-              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-500">
+              <div className="flex items-center gap-2 text-xs text-tertiary">
                 <span>~{cost.totalWords.toLocaleString()} words</span>
                 <span>&middot;</span>
                 <span>Balance: {credits.toFixed(1)}</span>
@@ -327,8 +327,8 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
                 "shrink-0 h-10 sm:h-11 px-4 sm:px-6 rounded-xl text-sm font-semibold transition-colors cursor-pointer",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 canAfford && selectedItems.length > 0
-                  ? "bg-brand-600 text-white hover:bg-brand-700"
-                  : "bg-slate-700 text-slate-400",
+                  ? "bg-action text-on-action hover:bg-action-hover"
+                  : "bg-surface-hover text-tertiary",
               )}
             >
               {loading ? (

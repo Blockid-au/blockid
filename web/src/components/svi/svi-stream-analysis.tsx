@@ -876,7 +876,7 @@ function EmailReportPanel({
             status === "sent"
               ? "bg-emerald-600 cursor-default"
               : status === "sending"
-                ? "bg-brand-300 cursor-not-allowed opacity-70"
+                ? "bg-surface-hover !text-tertiary cursor-not-allowed"
                 : "bg-brand-600 hover:bg-brand-700",
           )}
         >
@@ -1740,7 +1740,7 @@ export function SviStreamAnalysis({
             className={cn(
               "inline-flex items-center justify-center min-h-[44px] rounded-lg px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900",
               running
-                ? "bg-brand-300 text-white cursor-not-allowed opacity-70"
+                ? "bg-surface-hover text-tertiary cursor-not-allowed"
                 : "bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow-md active:scale-95",
             )}
           >

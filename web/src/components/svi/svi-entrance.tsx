@@ -1006,7 +1006,7 @@ export function SVIEntrance() {
                     <button
                       type="button"
                       onClick={handleDeepDiveUpgrade}
-                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-amber-500 px-6 text-sm font-semibold text-white hover:bg-amber-600 transition-colors cursor-pointer"
+                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-svi-500 px-6 text-sm font-semibold text-on-brand hover:bg-gold-600 transition-colors cursor-pointer"
                     >
                       <Sparkles className="h-4 w-4" />
                       Deep Dive — 1.50 credits
@@ -1232,7 +1232,7 @@ export function SVIEntrance() {
             <div className="mt-4 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
               <button type="submit" disabled={state === "submitting"}
                 className="h-12 w-full max-w-xs px-8 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed cta-glow sm:w-auto">
-                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" /><span className="truncate max-w-[200px]">{rndStatusEntries.length > 0 ? (rndStatusEntries[rndStatusEntries.length - 1].message.length > 30 ? rndStatusEntries[rndStatusEntries.length - 1].message.slice(0, 30) + "…" : rndStatusEntries[rndStatusEntries.length - 1].message) : SVI_FALLBACK_MESSAGES[sviFallbackIdx]}</span></span> : "Get My SVI — Free"}
+                {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-line border-t-white animate-spin shrink-0" /><span className="truncate max-w-[200px]">{rndStatusEntries.length > 0 ? (rndStatusEntries[rndStatusEntries.length - 1].message.length > 30 ? rndStatusEntries[rndStatusEntries.length - 1].message.slice(0, 30) + "…" : rndStatusEntries[rndStatusEntries.length - 1].message) : SVI_FALLBACK_MESSAGES[sviFallbackIdx]}</span></span> : "Get My SVI — Free"}
               </button>
               <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
                 className="h-10 w-full max-w-xs px-5 rounded-xl border border-surface-300 bg-white text-sm font-medium text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer sm:w-auto">
@@ -2153,19 +2153,26 @@ function TopBar() {
 // ═══════════════════════════════════════════════════════════════════════════════
 function BottomFooter() {
   return (
-    <footer className="bg-ink-900 text-sm text-slate-400 border-t border-ink-700">
+    // Intentionally dark footer. Scoped with data-theme="dark" (the
+    // ProShell / uptime-guardian pattern) so its descendants resolve the
+    // dark token map instead of hard-coded slate: `text-slate-600` on
+    // `bg-ink-900` was 2.4:1 and the copyright line was unreadable.
+    <footer
+      data-theme="dark"
+      className="bg-surface text-sm text-muted border-t border-line-subtle"
+    >
       <div className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            <span className="text-slate-500">Australia</span>
-            <Link href="/about" className="hover:text-slate-200 transition-colors">About</Link>
-            <Link href="/privacy" className="hover:text-slate-200 transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-slate-200 transition-colors">Terms</Link>
-            <Link href="/contact" className="hover:text-slate-200 transition-colors">Contact</Link>
-            <Link href="/insights" className="hover:text-slate-200 transition-colors">Insights</Link>
-            <Link href="/investors" className="hover:text-slate-200 transition-colors">Investors</Link>
+            <span className="text-tertiary">Australia</span>
+            <Link href="/about" className="hover:text-primary transition-colors">About</Link>
+            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
+            <Link href="/contact" className="hover:text-primary transition-colors">Contact</Link>
+            <Link href="/insights" className="hover:text-primary transition-colors">Insights</Link>
+            <Link href="/investors" className="hover:text-primary transition-colors">Investors</Link>
           </div>
-          <p className="text-xs text-slate-600">&copy; {new Date().getFullYear()} Auschain Pty Ltd. Not financial advice.</p>
+          <p className="text-xs text-muted">&copy; {new Date().getFullYear()} Auschain Pty Ltd. Not financial advice.</p>
         </div>
       </div>
     </footer>
