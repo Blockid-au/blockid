@@ -257,6 +257,13 @@ export function SmartIntake({
   const effectiveVariant = overrideVariant ?? classified.variant;
   const placeholderText = placeholder ?? PLACEHOLDERS[placeholderIdx];
   const disabled = classified.variant === "empty";
+  // `classifyInput`'s empty-state ctaLabel is the long invitation ("Paste a
+  // link, drop a deck, or type an idea"). That is the right *copy* and the
+  // wrong *button* — inside a pill it pushed the input down to a third of the
+  // bar at 1440 and truncated the placeholder. The invitation now lives in
+  // the helper line under the pill (and in the placeholder); the disabled
+  // button just names the action. The classifier contract is untouched.
+  const ctaText = disabled ? "Analyse" : classified.ctaLabel;
 
   return (
     <div className={cn("w-full max-w-3xl", className)}>
@@ -336,7 +343,7 @@ export function SmartIntake({
               type="submit"
               disabled={disabled}
               className={cn(
-                "inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition-colors sm:w-auto",
+                "inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition-colors sm:w-auto sm:max-w-[15rem]",
                 disabled
                   ? "cursor-not-allowed bg-surface-sunken text-tertiary"
                   : "bg-action text-on-action hover:bg-action-hover",
@@ -352,7 +359,7 @@ export function SmartIntake({
               {classified.variant === "idea" && (
                 <Sparkles className="h-4 w-4" aria-hidden />
               )}
-              <span className="truncate">{classified.ctaLabel}</span>
+              <span className="truncate">{ctaText}</span>
             </button>
           </div>
         </form>

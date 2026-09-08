@@ -149,3 +149,21 @@ describe("SmartIntake pill shell", () => {
     expect(out).toContain('for="smart-intake-input"');
   });
 });
+
+describe("empty-state CTA copy", () => {
+  // The classifier still reports the long invitation — analyze-root and any
+  // telemetry consumer depend on it. The *button* must not render it: inside
+  // a pill it squeezed the input to a third of the bar at 1440.
+  it("classifyInput keeps the long invitation", () => {
+    expect(classifyInput({ text: "", file: null }).ctaLabel).toMatch(
+      /paste a link, drop a deck, or type an idea/i,
+    );
+  });
+
+  it("the rendered button says Analyse and the invitation moves below", () => {
+    const out = renderToStaticMarkup(<SmartIntake />);
+    expect(out).toContain(">Analyse<");
+    expect(out).toContain("Drop a PDF, DOCX or PPTX here");
+    expect(out).not.toMatch(/>Paste a link, drop a deck, or type an idea</);
+  });
+});
