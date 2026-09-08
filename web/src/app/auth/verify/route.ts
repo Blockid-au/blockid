@@ -13,6 +13,7 @@ import {
   mintFounderPack,
 } from "@/lib/idea-phase/persist";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
+import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { IdeaValuationInput } from "@/lib/idea-valuation";
 import type { FounderInput, EquitySettings } from "@/lib/equity-split";
@@ -124,6 +125,10 @@ export async function GET(request: Request) {
   });
   if (!sessionToken) return errorRedirect("session_failed");
   await setSessionCookie(sessionToken);
+
+  // Magic-link login is a login: claim any pre-signup anonymous analyses and
+  // paid guest reports for this email. Fail-soft + idempotent.
+  await claimForCurrentBrowser({ userId: user.id, email: user.email });
 
   // Check onboarding_completed flag — only show onboarding on first login.
   let needsOnboarding = false;

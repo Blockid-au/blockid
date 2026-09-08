@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 
 // POST /api/auth/google
 // Body: { credential } — the Google ID token from Sign In With Google.
@@ -126,6 +127,13 @@ export async function POST(request: Request) {
 
   // Set HttpOnly session cookie.
   await setSessionCookie(result.sessionToken);
+
+  // Google sign-in is a login: claim any pre-signup anonymous analyses and
+  // paid guest reports for this email. Fail-soft + idempotent.
+  await claimForCurrentBrowser({
+    userId: result.user.id,
+    email: result.user.email,
+  });
 
   const isAdmin =
     normaliseEmail(result.user.email) === "admin@blockid.au";

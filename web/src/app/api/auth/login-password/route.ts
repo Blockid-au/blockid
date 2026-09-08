@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { loginWithPassword, setSessionCookie, isValidEmail } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 
 export const dynamic = "force-dynamic";
@@ -67,8 +68,18 @@ export async function POST(request: Request) {
 
     await setSessionCookie(result.sessionToken!);
 
+    // Same claim as signup — someone who ran an analysis logged out and then
+    // signed in should find it waiting. Idempotent: the update filters on
+    // `user_id is null`, so a repeat login claims nothing and errors on
+    // nothing. See lib/analyses/claim.ts.
+    const claimed = await claimForCurrentBrowser({
+      userId: result.user!.id,
+      email: result.user!.email,
+    });
+
     return NextResponse.json({
       ok: true,
+      claimed,
       user: {
         id: result.user!.id,
         email: result.user!.email,

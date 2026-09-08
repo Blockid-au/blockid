@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { registerWithPassword, setSessionCookie, isValidEmail } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 
 export const dynamic = "force-dynamic";
@@ -66,8 +67,18 @@ export async function POST(request: Request) {
 
     await setSessionCookie(result.sessionToken!);
 
+    // Rescue the work this browser did before it had an account: analyses
+    // written against the blockid_anon cookie, plus any paid guest report
+    // bought with the same email. Fail-soft and idempotent — see
+    // lib/analyses/claim.ts. A failed claim must never fail a signup.
+    const claimed = await claimForCurrentBrowser({
+      userId: result.user!.id,
+      email: result.user!.email,
+    });
+
     return NextResponse.json({
       ok: true,
+      claimed,
       user: {
         id: result.user!.id,
         email: result.user!.email,
