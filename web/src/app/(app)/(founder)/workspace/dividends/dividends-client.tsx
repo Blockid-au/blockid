@@ -587,7 +587,7 @@ export function DividendsClient() {
                       type="button"
                       onClick={() => handleClaim(r.id)}
                       disabled={claiming === r.id}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-bull px-4 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       {claiming === r.id ? (
                         <Loader2

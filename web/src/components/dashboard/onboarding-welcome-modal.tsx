@@ -84,7 +84,7 @@ export function OnboardingWelcomeModal() {
           <Link
             href="/workspace/guide/01-vision"
             onClick={dismiss}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-bull px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
           >
             Start with Chapter 1 →
           </Link>

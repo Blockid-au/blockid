@@ -65,7 +65,7 @@ function StepBreadcrumb({ current }: { current: Step }) {
               className={cn(
                 "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
                 active && "bg-brand-600 text-white",
-                done && "bg-emerald-600 text-white",
+                done && "bg-bull text-white",
                 !active && !done && "bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-400",
               )}
               aria-hidden="true"

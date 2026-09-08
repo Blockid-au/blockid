@@ -147,7 +147,7 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
         {c.ctaHref ? (
           <Link
             href={c.ctaHref}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-bull px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
           >
             {locale === "vi" ? "Thử ngay →" : "Try it now →"}
           </Link>

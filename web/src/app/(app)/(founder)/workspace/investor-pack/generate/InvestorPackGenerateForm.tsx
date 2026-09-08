@@ -140,7 +140,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref }: Pr
             </code>
             <a
               href={result.downloadUrl}
-              className="shrink-0 inline-flex items-center rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors"
+              className="shrink-0 inline-flex items-center rounded-lg bg-bull hover:bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors"
               download
             >
               Download PDF

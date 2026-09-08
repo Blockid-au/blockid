@@ -157,7 +157,7 @@ export function OAuthConnectorCard(props: OAuthConnectorCardProps): React.ReactE
               <button
                 onClick={onSync}
                 disabled={state.status === "syncing"}
-                className="px-3 py-1.5 text-sm rounded-md bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50"
+                className="px-3 py-1.5 text-sm rounded-md bg-bull hover:bg-emerald-800 text-white disabled:opacity-50"
               >
                 {state.status === "syncing" ? "Syncing..." : "Sync now"}
               </button>

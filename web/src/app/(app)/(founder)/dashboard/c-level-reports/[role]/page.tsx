@@ -113,7 +113,7 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
           <form action={`/api/investor-pack/append?role=${typedRole}`} method="post">
             <button
               type="submit"
-              className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+              className="rounded bg-bull px-4 py-2 text-sm font-medium text-white hover:bg-bull"
             >
               Export to investor pack
             </button>

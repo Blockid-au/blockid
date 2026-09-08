@@ -956,7 +956,7 @@ export function SVIEntrance() {
                       This is your 10-page preview. To unlock deeper analysis with competitor profiles, financial projections, and 90-day action plans — select individual sections below or upgrade to the full report.
                     </p>
                     <div className="flex gap-2 mt-3">
-                      <a href="/workspace/evidence" className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">Upload Evidence (+8-20 pts)</a>
+                      <a href="/workspace/evidence" className="inline-flex items-center gap-1 rounded-lg bg-bull px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 transition-colors">Upload Evidence (+8-20 pts)</a>
                       <a href="/auth/login?next=/dashboard" className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors">Save to Dashboard</a>
                     </div>
                   </div>
@@ -1599,7 +1599,7 @@ export function SVIEntrance() {
           <div className="grid md:grid-cols-2 gap-6">
             {/* Card 1: Per-Analysis */}
             <div className="rounded-2xl border border-surface-200 bg-white px-5 sm:px-8 py-8 text-center shadow-sm flex flex-col relative overflow-hidden">
-              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-emerald-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Launch Price</div>
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-bull px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Launch Price</div>
               <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Per-Analysis</p>
               <h3 className="text-xl font-bold text-ink-800 mb-1">SVI Analysis Report</h3>
               <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">A$0.50</p>

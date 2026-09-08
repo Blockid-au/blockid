@@ -121,7 +121,7 @@ function DecisionRow({ row, onDone }: { row: InboxRow; onDone: () => void }) {
         type="button"
         disabled={state === "busy"}
         onClick={() => submit("approve")}
-        className="rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white disabled:bg-surface-300"
+        className="rounded bg-bull px-2 py-1 text-xs font-medium text-white disabled:bg-surface-300"
       >
         Approve
       </button>

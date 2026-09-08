@@ -312,7 +312,7 @@ function renderNavGroup(args: {
               <span className={cn(
                 "text-xs",
                 isFuturePhase
-                  ? "px-1.5 py-0.5 rounded font-semibold bg-warn/10 text-warn ring-1 ring-warn/25"
+                  ? "px-1.5 py-0.5 rounded font-semibold bg-gold-50 text-warn ring-1 ring-warn/25"
                   : "text-tertiary",
               )}>
                 {isFuturePhase ? "Locked" : group.stage}
@@ -329,7 +329,7 @@ function renderNavGroup(args: {
               <span className={cn(
                 "text-xs",
                 isFuturePhase
-                  ? "px-1.5 py-0.5 rounded font-semibold bg-warn/10 text-warn ring-1 ring-warn/25"
+                  ? "px-1.5 py-0.5 rounded font-semibold bg-gold-50 text-warn ring-1 ring-warn/25"
                   : "text-tertiary",
               )}>
                 {isFuturePhase ? "Locked" : group.stage}

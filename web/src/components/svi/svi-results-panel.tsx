@@ -1553,7 +1553,7 @@ function EvidenceUploadPrompt() {
             onClick={() => {
               trackEvent("cta_clicked", { cta_id: "evidence_upload_prompt", location: "svi_results_evidence_gaps" });
             }}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-bull px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 transition-colors"
           >
             Upload Evidence
             <ArrowRight strokeWidth={1.75} className="h-4 w-4" />

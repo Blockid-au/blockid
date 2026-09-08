@@ -28,7 +28,7 @@ export default function VerifyButton({ userId, verified }: { userId: string; ver
       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
         verified
           ? "bg-white border border-rose-300 text-rose-700 hover:bg-rose-50"
-          : "bg-emerald-600 text-white hover:bg-emerald-700"
+          : "bg-bull text-white hover:bg-emerald-800"
       } ${busy ? "opacity-60 cursor-wait" : ""}`}
     >
       {verified ? "Unverify" : "Verify"}
