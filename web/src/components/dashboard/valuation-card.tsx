@@ -121,7 +121,7 @@ export async function DashboardValuationCard({ email }: { email: string }) {
       <div className="flex items-baseline gap-4 justify-center py-4">
         <div className="text-center">
           <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 mb-1">Low</p>
-          <p className="text-sm font-mono text-ink-400">{formatAUD(est.low)}</p>
+          <p className="text-sm font-mono text-muted">{formatAUD(est.low)}</p>
         </div>
         <div className="text-center">
           <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 mb-1">Mid</p>
@@ -129,7 +129,7 @@ export async function DashboardValuationCard({ email }: { email: string }) {
         </div>
         <div className="text-center">
           <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 mb-1">High</p>
-          <p className="text-sm font-mono text-ink-400">{formatAUD(est.high)}</p>
+          <p className="text-sm font-mono text-muted">{formatAUD(est.high)}</p>
         </div>
       </div>
 
@@ -202,7 +202,7 @@ export async function DashboardValuationCard({ email }: { email: string }) {
               {formatAUD(Math.round(vestingSection.vestedValue))}
             </span>
           </div>
-          <p className="mt-1 text-[10px] text-ink-400">
+          <p className="mt-1 text-[10px] text-muted">
             {vestingSection.totalShares.toLocaleString()} total shares across{" "}
             {vestingSection.grantCount}{" "}
             {vestingSection.grantCount === 1 ? "schedule" : "schedules"}
@@ -222,7 +222,7 @@ export async function DashboardValuationCard({ email }: { email: string }) {
         </Link>
       </div>
 
-      <p className="mt-3 text-[10px] text-ink-400 text-center leading-relaxed">
+      <p className="mt-3 text-[10px] text-muted text-center leading-relaxed">
         Indicative estimate only — not a financial valuation. Seek professional
         advice. Based on SVI score, stage, and available metrics.
       </p>

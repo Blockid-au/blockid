@@ -103,7 +103,7 @@ export default function SviApiPage() {
               <button
                 onClick={() => upgrade("team")}
                 disabled={upgrading !== null}
-                className="w-full text-sm bg-sky-600 hover:bg-sky-700 text-white rounded-lg px-3 py-1.5 font-medium disabled:opacity-50"
+                className="w-full text-sm bg-sky-600 hover:bg-sky-700 text-primary rounded-lg px-3 py-1.5 font-medium disabled:opacity-50"
               >
                 {upgrading === "team" ? "Redirecting…" : "Upgrade to Team"}
               </button>

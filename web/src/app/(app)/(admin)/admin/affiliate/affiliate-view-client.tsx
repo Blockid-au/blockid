@@ -197,9 +197,9 @@ export function AffiliateViewClient({
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-600">
                     <span title="Provisioned">P {fmtBucket(r.summary.provisioned)}</span>
-                    <span className="text-ink-300">|</span>
+                    <span className="text-muted">|</span>
                     <span title="Code">C {fmtBucket(r.summary.code)}</span>
-                    <span className="text-ink-300">|</span>
+                    <span className="text-muted">|</span>
                     <span title="Admin manual">A {fmtBucket(r.summary.admin_manual)}</span>
                   </div>
                 </button>

@@ -66,8 +66,8 @@ export function AdvisorGuidance({ sviStage, riskCount }: Props) {
         >
           <span className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium">Pitfalls to avoid</span>
           {showPitfalls
-            ? <ChevronUp strokeWidth={1.75} className="h-3.5 w-3.5 text-ink-400" />
-            : <ChevronDown strokeWidth={1.75} className="h-3.5 w-3.5 text-ink-400" />
+            ? <ChevronUp strokeWidth={1.75} className="h-3.5 w-3.5 text-muted" />
+            : <ChevronDown strokeWidth={1.75} className="h-3.5 w-3.5 text-muted" />
           }
         </button>
         {showPitfalls && (
@@ -84,7 +84,7 @@ export function AdvisorGuidance({ sviStage, riskCount }: Props) {
         {/* Mentor quote */}
         <div className={cn("mt-auto pt-3 border-t border-surface-100")}>
           <div className="flex items-start gap-2">
-            <Quote strokeWidth={1.75} className="h-3.5 w-3.5 text-ink-300 shrink-0 mt-0.5" />
+            <Quote strokeWidth={1.75} className="h-3.5 w-3.5 text-muted shrink-0 mt-0.5" />
             <p className="text-[11px] text-ink-500 italic leading-relaxed">
               &ldquo;{advice.mentorQuote}&rdquo;
             </p>

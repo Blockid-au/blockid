@@ -44,7 +44,7 @@ export function ReportDownloadCell({ month }: Props) {
         type="button"
         onClick={onClick}
         disabled={loading}
-        className="text-xs font-medium text-brand-700 underline disabled:cursor-not-allowed disabled:text-ink-400"
+        className="text-xs font-medium text-brand-700 underline disabled:cursor-not-allowed disabled:text-muted"
       >
         {loading ? "Minting link…" : "Download CSV"}
       </button>

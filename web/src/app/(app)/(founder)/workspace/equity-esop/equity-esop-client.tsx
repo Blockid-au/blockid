@@ -1319,7 +1319,7 @@ function GrantRegisterSection({
               <button
                 type="button"
                 onClick={() => onSelectGrant(null)}
-                className="text-ink-400 hover:text-ink-600"
+                className="text-muted hover:text-ink-600"
               >
                 <X className="size-4" />
               </button>
@@ -1401,7 +1401,7 @@ function AddGrantModal({
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-ink-900">Add ESOP Grant</h3>
-          <button type="button" onClick={onClose} className="text-ink-400 hover:text-ink-600">
+          <button type="button" onClick={onClose} className="text-muted hover:text-ink-600">
             <X className="size-5" />
           </button>
         </div>

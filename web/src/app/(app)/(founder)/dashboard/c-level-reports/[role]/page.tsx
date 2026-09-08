@@ -56,7 +56,7 @@ async function loadTrend(projectId: string, role: Role): Promise<TrendSnapshot[]
 
 function TrendChart({ values }: { values: number[] }) {
   if (values.length < 2) {
-    return <p className="text-sm text-slate-500">Not enough weekly snapshots yet — reports need 2+ weeks to trend.</p>;
+    return <p className="text-sm text-tertiary">Not enough weekly snapshots yet — reports need 2+ weeks to trend.</p>;
   }
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -103,9 +103,9 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
 
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold text-white uppercase">{typedRole} Report</h1>
+            <h1 className="text-3xl font-semibold text-primary uppercase">{typedRole} Report</h1>
             {report && (
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-sm text-muted mt-1">
                 Generated {new Date(report.generated_at as string).toLocaleString("en-AU")} · scenario {report.scenario}
               </p>
             )}
@@ -127,15 +127,15 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
         )}
 
         <section className="mb-10">
-          <h2 className="text-xl font-semibold text-white mb-3">12-week trend</h2>
+          <h2 className="text-xl font-semibold text-primary mb-3">12-week trend</h2>
           <TrendChart values={trend.sparkline} />
-          <div className="mt-2 flex items-center gap-4 text-sm text-slate-400">
-            <span>Direction: <span className="text-white">{trend.direction}</span></span>
+          <div className="mt-2 flex items-center gap-4 text-sm text-muted">
+            <span>Direction: <span className="text-primary">{trend.direction}</span></span>
             {trend.deltaPct !== null && (
-              <span>Δ: <span className="text-white">{trend.deltaPct >= 0 ? "+" : ""}{trend.deltaPct.toFixed(1)}%</span></span>
+              <span>Δ: <span className="text-primary">{trend.deltaPct >= 0 ? "+" : ""}{trend.deltaPct.toFixed(1)}%</span></span>
             )}
             {trend.weekOverWeekPct !== null && (
-              <span>WoW: <span className="text-white">{trend.weekOverWeekPct >= 0 ? "+" : ""}{trend.weekOverWeekPct.toFixed(1)}%</span></span>
+              <span>WoW: <span className="text-primary">{trend.weekOverWeekPct >= 0 ? "+" : ""}{trend.weekOverWeekPct.toFixed(1)}%</span></span>
             )}
           </div>
           {trend.alert && (
@@ -147,12 +147,12 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
 
         {report && (
           <section className="prose prose-invert max-w-none">
-            <h2 className="text-xl font-semibold text-white">{report.title as string}</h2>
+            <h2 className="text-xl font-semibold text-primary">{report.title as string}</h2>
             {report.summary && (
-              <p className="text-slate-300 italic">{report.summary as string}</p>
+              <p className="text-secondary italic">{report.summary as string}</p>
             )}
             {report.body_markdown && (
-              <pre className="whitespace-pre-wrap font-mono text-sm text-slate-200">
+              <pre className="whitespace-pre-wrap font-mono text-sm text-secondary">
                 {report.body_markdown as string}
               </pre>
             )}
@@ -161,24 +161,24 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
 
         {report?.dcf_valuation_base && typedRole === "cfo" && (
           <section className="mt-10">
-            <h2 className="text-xl font-semibold text-white mb-3">DCF Valuation Summary</h2>
+            <h2 className="text-xl font-semibold text-primary mb-3">DCF Valuation Summary</h2>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-slate-400 text-left">
+                <tr className="text-muted text-left">
                   <th className="py-2">Scenario</th>
                   <th className="py-2">Enterprise Value (AUD)</th>
                 </tr>
               </thead>
               <tbody className="font-mono">
-                <tr className="border-t border-slate-800">
+                <tr className="border-t border-line-subtle">
                   <td className="py-2">Bear</td>
                   <td className="py-2">A${Number(report.dcf_valuation_low ?? 0).toLocaleString("en-AU")}</td>
                 </tr>
-                <tr className="border-t border-slate-800">
+                <tr className="border-t border-line-subtle">
                   <td className="py-2">Base</td>
                   <td className="py-2">A${Number(report.dcf_valuation_base ?? 0).toLocaleString("en-AU")}</td>
                 </tr>
-                <tr className="border-t border-slate-800">
+                <tr className="border-t border-line-subtle">
                   <td className="py-2">Bull</td>
                   <td className="py-2">A${Number(report.dcf_valuation_high ?? 0).toLocaleString("en-AU")}</td>
                 </tr>
@@ -187,7 +187,7 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
           </section>
         )}
 
-        <footer className="mt-12 text-xs text-slate-500 border-t border-slate-800 pt-4">
+        <footer className="mt-12 text-xs text-tertiary border-t border-line-subtle pt-4">
           NFA — general information only. Not financial advice under Corporations Act 2001 (Cth).
           Consult a licensed adviser before acting on any figure.
         </footer>

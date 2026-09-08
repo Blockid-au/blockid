@@ -215,7 +215,7 @@ export function NotificationFeedClient() {
             type="button"
             onClick={markAllRead}
             disabled={marking || unread === 0}
-            className="text-xs font-semibold text-brand-700 dark:text-brand-300 hover:underline disabled:text-ink-400 dark:disabled:text-ink-600 disabled:no-underline"
+            className="text-xs font-semibold text-brand-700 dark:text-brand-300 hover:underline disabled:text-muted dark:disabled:text-ink-600 disabled:no-underline"
           >
             Mark all read
           </button>
@@ -233,7 +233,7 @@ export function NotificationFeedClient() {
         </div>
       ) : (items ?? []).length === 0 ? (
         <div className="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-8 text-center">
-          <Bell className="h-8 w-8 mx-auto text-ink-300 dark:text-ink-600 mb-3" />
+          <Bell className="h-8 w-8 mx-auto text-muted dark:text-ink-600 mb-3" />
           <p className="text-sm text-ink-700 dark:text-ink-200 font-medium">No notifications yet</p>
           <p className="text-xs text-ink-500 dark:text-ink-400 mt-1">
             Share your Trusted Business Report to start seeing investor activity here.

@@ -36,7 +36,7 @@ export default async function WeeklyDigestPage() {
             Auto-generated digest of your portfolio's week — advisor-curated highlights sent every Monday.
           </p>
           {/* EN/VI copy */}
-          <p className="mt-1 text-xs text-ink-400">
+          <p className="mt-1 text-xs text-muted">
             Bản tóm tắt hàng tuần — tổng hợp tự động các điểm nổi bật của danh mục, gửi mỗi thứ Hai.
           </p>
         </div>
@@ -48,10 +48,10 @@ export default async function WeeklyDigestPage() {
             you'll see curated highlights — portfolio performance, flagged
             action items, and advisor notes — ready to forward to stakeholders.
           </p>
-          <p className="mt-1 text-xs text-ink-400">
+          <p className="mt-1 text-xs text-muted">
             Tính năng này đang được phát triển. Sẽ sớm ra mắt.
           </p>
-          <p className="mt-4 text-xs text-ink-400">Estimated: Q3 2026</p>
+          <p className="mt-4 text-xs text-muted">Estimated: Q3 2026</p>
         </div>
 
         <div className="mt-6 text-center">

@@ -83,7 +83,7 @@ export function Ga4TrafficReport() {
             GA4 Page Traffic
           </h2>
           {data && (
-            <span className="ml-2 text-xs text-ink-400 dark:text-slate-400">
+            <span className="ml-2 text-xs text-muted dark:text-slate-400">
               {data.rangeLabel}
             </span>
           )}
@@ -111,7 +111,7 @@ export function Ga4TrafficReport() {
 
         {!loading && !error && data && !data.connected && (
           <div className="flex items-start gap-3 rounded-xl border border-surface-200 bg-surface-50 px-4 py-6 text-sm text-ink-500 text-center justify-center">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden="true" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
             <span>
               GA4 not configured. Set{" "}
               <code className="font-mono text-xs">GA4_PROPERTY_ID</code> and{" "}
@@ -122,7 +122,7 @@ export function Ga4TrafficReport() {
         )}
 
         {!loading && !error && data && data.connected && data.rows.length === 0 && (
-          <p className="text-sm text-ink-400 text-center py-6">No data available for this period.</p>
+          <p className="text-sm text-muted text-center py-6">No data available for this period.</p>
         )}
 
         {!loading && !error && data && data.connected && data.rows.length > 0 && (
@@ -163,7 +163,7 @@ export function Ga4TrafficReport() {
         )}
 
         {data && (
-          <p className="mt-3 text-[10px] text-ink-400 dark:text-slate-500 text-right">
+          <p className="mt-3 text-[10px] text-muted dark:text-slate-500 text-right">
             Generated {new Date(data.generatedAt).toLocaleString("en-AU")}
           </p>
         )}

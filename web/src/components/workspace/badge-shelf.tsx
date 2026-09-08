@@ -96,12 +96,12 @@ export function BadgeShelf({ email }: BadgeShelfProps) {
                 "relative flex h-12 w-12 items-center justify-center rounded-xl border transition-all",
                 badge.earned
                   ? "border-brand-200 bg-brand-50 text-brand-600 shadow-sm"
-                  : "border-surface-200 bg-surface-50 text-ink-300",
+                  : "border-surface-200 bg-surface-50 text-muted",
               )}
             >
               <Icon className="h-5 w-5" />
               {!badge.earned && (
-                <Lock className="absolute -bottom-1 -right-1 h-3 w-3 text-ink-300" />
+                <Lock className="absolute -bottom-1 -right-1 h-3 w-3 text-muted" />
               )}
             </div>
           );

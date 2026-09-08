@@ -218,7 +218,7 @@ export function AIConfidenceActionPlan({ subs, initialPlan }: Props) {
                         <Target strokeWidth={2} className="h-2.5 w-2.5" />
                         {a.impact} impact
                       </span>
-                      <span className="text-[11px] text-ink-400">
+                      <span className="text-[11px] text-muted">
                         · {a.dimension}
                       </span>
                     </div>
@@ -241,7 +241,7 @@ export function AIConfidenceActionPlan({ subs, initialPlan }: Props) {
                 </div>
               </div>
             ))}
-            <p className="text-[10px] text-ink-400 text-right">
+            <p className="text-[10px] text-muted text-right">
               Generated{" "}
               {new Date(plan.generatedAt).toLocaleString("en-AU", {
                 day: "numeric",

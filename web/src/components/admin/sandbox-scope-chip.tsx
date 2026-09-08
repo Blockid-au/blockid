@@ -73,7 +73,7 @@ export function SandboxScopeChip({
     : "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100";
   const idleStaticCls = isDark
     ? "bg-gray-800 border border-gray-700 text-gray-500"
-    : "bg-white text-ink-400 ring-1 ring-surface-200";
+    : "bg-white text-muted ring-1 ring-surface-200";
 
   const noteCls = isDark ? "text-amber-400" : "text-amber-700";
 

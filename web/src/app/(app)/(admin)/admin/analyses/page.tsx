@@ -157,8 +157,8 @@ export default async function AdminAnalysesPage({
   return (
     <div className="max-w-7xl mx-auto px-6 pb-24 pt-10 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Analysis Audit Trail</h1>
-        <p className="text-sm text-ink-400 mt-1">
+        <h1 className="text-2xl font-bold text-primary">Analysis Audit Trail</h1>
+        <p className="text-sm text-muted mt-1">
           Every SVI run + AI agent output across all founders. {total.toLocaleString()} record{total !== 1 ? "s" : ""} total.
         </p>
       </div>
@@ -168,18 +168,18 @@ export default async function AdminAnalysesPage({
           name="user"
           defaultValue={sp.user ?? ""}
           placeholder="Email contains…"
-          className="min-w-64 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm text-white placeholder:text-ink-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="min-w-64 rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-ink-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
         />
         <input
           name="startup"
           defaultValue={sp.startup ?? ""}
           placeholder="Startup name contains…"
-          className="min-w-64 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm text-white placeholder:text-ink-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="min-w-64 rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-ink-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
         />
         <select
           name="source"
           defaultValue={sp.source ?? ""}
-          className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-brand-400"
         >
           <option value="">Any source</option>
           <option value="blockid">blockid</option>
@@ -192,15 +192,15 @@ export default async function AdminAnalysesPage({
           Filter
         </button>
         {(sp.user || sp.startup || sp.source) && (
-          <Link href="/admin/analyses" className="rounded-lg border border-[rgba(255,255,255,0.1)] px-4 py-2 text-sm text-ink-300 hover:text-white transition-colors">
+          <Link href="/admin/analyses" className="rounded-lg border border-line-subtle px-4 py-2 text-sm text-muted hover:text-primary transition-colors">
             Clear
           </Link>
         )}
       </form>
 
-      <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] overflow-hidden">
+      <div className="rounded-2xl border border-line-subtle bg-surface-sunken overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-[rgba(255,255,255,0.03)] text-[10px] uppercase tracking-wider text-ink-400">
+          <thead className="bg-surface-sunken text-[10px] uppercase tracking-wider text-muted">
             <tr>
               <th className="text-left px-4 py-3">Timestamp</th>
               <th className="text-left px-4 py-3">User</th>
@@ -212,10 +212,10 @@ export default async function AdminAnalysesPage({
               <th className="text-left px-4 py-3">Source</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[rgba(255,255,255,0.05)]">
+          <tbody className="divide-y divide-line-subtle">
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-ink-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-muted">
                   No analysis runs match this filter.
                 </td>
               </tr>
@@ -231,35 +231,35 @@ export default async function AdminAnalysesPage({
               const src = (r.source ?? "blockid").toLowerCase();
 
               return (
-                <tr key={r.id} className="hover:bg-[rgba(255,255,255,0.02)]">
-                  <td className="px-4 py-3 text-xs text-ink-300 whitespace-nowrap">
+                <tr key={r.id} className="hover:bg-surface-sunken">
+                  <td className="px-4 py-3 text-xs text-muted whitespace-nowrap">
                     {fmtDateTime(r.created_at)}
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    <div className="text-white">{ur?.email ?? r.user_id.slice(0, 8)}</div>
+                    <div className="text-primary">{ur?.email ?? r.user_id.slice(0, 8)}</div>
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    <div className="text-white font-medium">{r.startup_name}</div>
+                    <div className="text-primary font-medium">{r.startup_name}</div>
                     <div className="text-ink-500 text-[10px]">{r.startup_id}</div>
                   </td>
                   <td className={`px-4 py-3 text-right text-lg font-bold tabular-nums ${scoreColor(r.total_score)}`}>
                     {r.total_score}
                   </td>
-                  <td className="px-4 py-3 text-right text-xs text-white whitespace-nowrap">
+                  <td className="px-4 py-3 text-right text-xs text-primary whitespace-nowrap">
                     {val}
                     {r.confidence_score != null && (
                       <div className="text-[10px] text-ink-500">conf {Number(r.confidence_score).toFixed(0)}%</div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-[10px] text-ink-300">
+                  <td className="px-4 py-3 text-[10px] text-muted">
                     {subs.length === 0 ? "—" : subs.map(([k, v]) => `${k}:${v}`).join(" · ")}
                   </td>
-                  <td className="px-4 py-3 text-[10px] text-ink-300">
+                  <td className="px-4 py-3 text-[10px] text-muted">
                     {ais.length === 0 ? (
                       <span className="text-ink-500">none</span>
                     ) : (
                       <div>
-                        <div className="text-white">{ais.length} agent{ais.length !== 1 ? "s" : ""}</div>
+                        <div className="text-primary">{ais.length} agent{ais.length !== 1 ? "s" : ""}</div>
                         <div className="text-ink-500">{totalTokens.toLocaleString()} tokens</div>
                       </div>
                     )}
@@ -268,7 +268,7 @@ export default async function AdminAnalysesPage({
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium border ${
                       src === "svi"
                         ? "bg-purple-400/10 text-purple-400 border-purple-400/20"
-                        : "bg-[rgba(0,212,255,0.08)] text-[#00D4FF] border-[rgba(0,212,255,0.2)]"
+                        : "bg-action/10 text-action border-action/25"
                     }`}>
                       {src}
                     </span>
@@ -281,16 +281,16 @@ export default async function AdminAnalysesPage({
       </div>
 
       {pages > 1 && (
-        <div className="flex items-center justify-between text-sm text-ink-400">
+        <div className="flex items-center justify-between text-sm text-muted">
           <div>Page {page} of {pages}</div>
           <div className="flex gap-2">
             {page > 1 && (
-              <Link href={linkFor(page - 1)} className="rounded-lg border border-[rgba(255,255,255,0.1)] px-3 py-1.5 text-xs hover:text-white transition-colors">
+              <Link href={linkFor(page - 1)} className="rounded-lg border border-line-subtle px-3 py-1.5 text-xs hover:text-primary transition-colors">
                 Previous
               </Link>
             )}
             {page < pages && (
-              <Link href={linkFor(page + 1)} className="rounded-lg border border-[rgba(255,255,255,0.1)] px-3 py-1.5 text-xs hover:text-white transition-colors">
+              <Link href={linkFor(page + 1)} className="rounded-lg border border-line-subtle px-3 py-1.5 text-xs hover:text-primary transition-colors">
                 Next
               </Link>
             )}

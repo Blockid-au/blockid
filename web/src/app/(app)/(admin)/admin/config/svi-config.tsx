@@ -182,7 +182,7 @@ export function SviConfig({ initial }: Props) {
                   onChange={(e) => setCostField(f.key as keyof typeof costs, e.target.value)}
                   className="w-24 text-sm text-right border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono"
                 />
-                <span className="text-xs text-ink-400">cr</span>
+                <span className="text-xs text-muted">cr</span>
               </div>
             </div>
           ))}
@@ -206,7 +206,7 @@ export function SviConfig({ initial }: Props) {
                 onChange={(e) => setCostField("growth_plan_credits_monthly", e.target.value)}
                 className="w-24 text-sm text-right border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono"
               />
-              <span className="text-xs text-ink-400">cr</span>
+              <span className="text-xs text-muted">cr</span>
             </div>
           </div>
           <div className="flex items-center gap-4 px-4 py-3">
@@ -222,7 +222,7 @@ export function SviConfig({ initial }: Props) {
                 onChange={(e) => setCostField("referral_credits", e.target.value)}
                 className="w-24 text-sm text-right border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono"
               />
-              <span className="text-xs text-ink-400">cr</span>
+              <span className="text-xs text-muted">cr</span>
             </div>
           </div>
           <div className="flex items-center gap-4 px-4 py-3">

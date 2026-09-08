@@ -129,7 +129,7 @@ export default async function AdminUsagePage() {
         </div>
 
         {!stats ? (
-          <div className="rounded-xl border border-surface-200 bg-surface-50 px-6 py-12 text-center text-ink-400">
+          <div className="rounded-xl border border-surface-200 bg-surface-50 px-6 py-12 text-center text-muted">
             Supabase not configured.
           </div>
         ) : (
@@ -140,7 +140,7 @@ export default async function AdminUsagePage() {
                 <div key={m.label} className="rounded-xl border border-surface-200 bg-white p-4">
                   <p className="text-xs text-ink-500 font-medium mb-1">{m.label}</p>
                   <p className="text-2xl font-bold text-ink-900">{m.value}</p>
-                  <p className="text-xs text-ink-400 mt-0.5">{m.sub}</p>
+                  <p className="text-xs text-muted mt-0.5">{m.sub}</p>
                 </div>
               ))}
             </div>
@@ -157,7 +157,7 @@ export default async function AdminUsagePage() {
                         className="w-full rounded-t bg-brand-400 group-hover:bg-brand-600 transition-colors"
                         style={{ height: `${Math.max(pct, 2)}%` }}
                       />
-                      <span className="text-[9px] text-ink-400 rotate-45 origin-left whitespace-nowrap">
+                      <span className="text-[9px] text-muted rotate-45 origin-left whitespace-nowrap">
                         {d.date.slice(5)}
                       </span>
                       <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-ink-600 opacity-0 group-hover:opacity-100 bg-white border border-surface-200 rounded px-1">
@@ -197,7 +197,7 @@ export default async function AdminUsagePage() {
                           {(u.plan_id as string) ?? "free"}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-right text-xs text-ink-400 font-mono">
+                      <td className="px-4 py-2.5 text-right text-xs text-muted font-mono">
                         {(u.created_at as string).slice(0, 10)}
                       </td>
                     </tr>

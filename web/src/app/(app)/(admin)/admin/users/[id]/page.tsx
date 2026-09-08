@@ -413,7 +413,7 @@ export default async function AdminUserDetailPage({
               {user.display_name ?? user.email}
             </h1>
             <p className="mt-1 font-mono text-xs text-ink-500">{user.email}</p>
-            <p className="mt-0.5 font-mono text-[10px] text-ink-400">{user.id}</p>
+            <p className="mt-0.5 font-mono text-[10px] text-muted">{user.id}</p>
           </div>
           <div className="flex items-center gap-2">
             <span

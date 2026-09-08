@@ -155,7 +155,7 @@ export function AcceleratorDashboardClient({
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="e.g. Melbourne Spring 2026"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                   />
                 </div>
                 <div>
@@ -167,7 +167,7 @@ export function AcceleratorDashboardClient({
                     value={form.organization}
                     onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
                     placeholder="e.g. StartupVic"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                   />
                 </div>
                 <div>
@@ -180,7 +180,7 @@ export function AcceleratorDashboardClient({
                     value={form.managerEmail}
                     onChange={(e) => setForm((f) => ({ ...f, managerEmail: e.target.value }))}
                     placeholder="manager@accelerator.com"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -271,7 +271,7 @@ export function AcceleratorDashboardClient({
         {/* Cohort Cards Grid */}
         {cohorts.length === 0 ? (
           <div className="rounded-2xl border border-surface-200 bg-white p-12 shadow-sm text-center">
-            <GraduationCap strokeWidth={1.5} className="mx-auto h-10 w-10 text-ink-400 mb-4" />
+            <GraduationCap strokeWidth={1.5} className="mx-auto h-10 w-10 text-muted mb-4" />
             <h2 className="text-lg font-semibold text-ink-800 mb-1">No cohorts yet</h2>
             <p className="text-sm text-ink-600">
               Create your first accelerator cohort to start tracking SVI progress.
@@ -321,7 +321,7 @@ export function AcceleratorDashboardClient({
                               ? "text-amber-400"
                               : cohort.avg_svi > 0
                                 ? "text-red-400"
-                                : "text-ink-400"
+                                : "text-muted"
                       }`}
                     >
                       {cohort.avg_svi > 0 ? cohort.avg_svi : "--"}

@@ -290,7 +290,7 @@ export function WalletClient() {
           <div className="text-center py-8">
             <Wallet
               strokeWidth={1.25}
-              className="mx-auto h-12 w-12 text-ink-300 mb-4"
+              className="mx-auto h-12 w-12 text-muted mb-4"
             />
             <h2 className="text-lg font-bold text-ink-800 mb-2">
               MetaMask Required
@@ -358,7 +358,7 @@ export function WalletClient() {
                   <button
                     type="button"
                     onClick={copyAddress}
-                    className="h-6 w-6 flex items-center justify-center rounded text-ink-400 hover:text-ink-600 transition-colors cursor-pointer"
+                    className="h-6 w-6 flex items-center justify-center rounded text-muted hover:text-ink-600 transition-colors cursor-pointer"
                     title="Copy address"
                   >
                     {copied ? (
@@ -414,7 +414,7 @@ export function WalletClient() {
             {loadingTokens && (
               <Loader2
                 strokeWidth={1.75}
-                className="h-4 w-4 text-ink-400 animate-spin"
+                className="h-4 w-4 text-muted animate-spin"
               />
             )}
           </div>
@@ -423,7 +423,7 @@ export function WalletClient() {
             <div className="px-6 py-12 text-center">
               <AlertCircle
                 strokeWidth={1.25}
-                className="mx-auto h-10 w-10 text-ink-300 mb-3"
+                className="mx-auto h-10 w-10 text-muted mb-3"
               />
               <p className="text-sm text-ink-500">
                 No tokens found. The chain may be offline or you have no token
@@ -464,7 +464,7 @@ export function WalletClient() {
                     <button
                       type="button"
                       onClick={() => handleAddToMetaMask(token)}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-ink-400 hover:text-brand-600 hover:bg-brand-50 transition-colors cursor-pointer"
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-muted hover:text-brand-600 hover:bg-brand-50 transition-colors cursor-pointer"
                       title="Add to MetaMask"
                     >
                       <Plus strokeWidth={1.75} className="h-4 w-4" />
@@ -581,7 +581,7 @@ export function WalletClient() {
             <ArrowRightLeft
               strokeWidth={1.75}
               className={cn(
-                "h-4 w-4 text-ink-400 transition-transform",
+                "h-4 w-4 text-muted transition-transform",
                 transferOpen && "rotate-90",
               )}
             />
@@ -621,7 +621,7 @@ export function WalletClient() {
                   value={transferTo}
                   onChange={(e) => setTransferTo(e.target.value)}
                   placeholder="0x..."
-                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
                 />
               </div>
 
@@ -636,7 +636,7 @@ export function WalletClient() {
                   value={transferAmount}
                   onChange={(e) => setTransferAmount(e.target.value)}
                   placeholder="e.g. 1000"
-                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
                 />
               </div>
 

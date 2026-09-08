@@ -162,14 +162,14 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
           <div className="relative max-w-sm flex-1 min-w-[220px]">
             <Search
               strokeWidth={1.75}
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted"
             />
             <input
               type="text"
               placeholder="Search by email or name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             />
           </div>
           <SandboxScopeChip
@@ -301,7 +301,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
               <button
                 type="button"
                 onClick={closeModal}
-                className="h-7 w-7 flex items-center justify-center rounded-lg text-ink-400 hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer"
+                className="h-7 w-7 flex items-center justify-center rounded-lg text-muted hover:text-ink-800 hover:bg-surface-100 transition-colors cursor-pointer"
               >
                 <X strokeWidth={1.75} className="h-4 w-4" />
               </button>
@@ -332,7 +332,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                   value={modalAmount}
                   onChange={(e) => setModalAmount(e.target.value)}
                   placeholder="e.g. 10"
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                   autoFocus
                 />
               </div>
@@ -350,7 +350,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                   value={modalReason}
                   onChange={(e) => setModalReason(e.target.value)}
                   placeholder="e.g. bonus for early adopter"
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                 />
               </div>
 
@@ -371,7 +371,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                 disabled={submitting}
                 className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                   modalAction === "grant"
-                    ? "bg-green-600 text-white hover:bg-green-700"
+                    ? "bg-green-600 text-primary hover:bg-green-700"
                     : "bg-red-600 text-white hover:bg-red-700"
                 }`}
               >

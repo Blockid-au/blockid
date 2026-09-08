@@ -158,7 +158,7 @@ function AddShareholderModal({
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="e.g. Alice Chen"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
 
@@ -171,7 +171,7 @@ function AddShareholderModal({
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="alice@example.com"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
 
@@ -203,7 +203,7 @@ function AddShareholderModal({
                 setForm({ ...form, evmAddress: e.target.value })
               }
               placeholder="0x..."
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
 
@@ -218,7 +218,7 @@ function AddShareholderModal({
               value={form.shares}
               onChange={(e) => setForm({ ...form, shares: e.target.value })}
               placeholder="e.g. 1000000"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
 
@@ -337,7 +337,7 @@ function TransferModal({
               value={toAddress}
               onChange={(e) => setToAddress(e.target.value)}
               placeholder="0x..."
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
 
@@ -353,7 +353,7 @@ function TransferModal({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="e.g. 100000"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
 
@@ -479,7 +479,7 @@ function ShareCertificate({
             </div>
           )}
 
-          <div className="text-center text-[10px] text-ink-400 pt-2 border-t border-surface-200">
+          <div className="text-center text-[10px] text-muted pt-2 border-t border-surface-200">
             Token Contract: {tokenAddress} | Chain: BlockID.au - Startup Value
             Chain (ID 420)
           </div>
@@ -726,7 +726,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
       <div className="flex items-center justify-center py-20">
         <Loader2
           strokeWidth={1.75}
-          className="h-6 w-6 text-ink-400 animate-spin"
+          className="h-6 w-6 text-muted animate-spin"
         />
       </div>
     );
@@ -822,14 +822,14 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
       <div className="relative">
         <Search
           strokeWidth={1.75}
-          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400"
+          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted"
         />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by name, email, role, or address..."
-          className="w-full h-10 pl-10 pr-4 rounded-xl border border-surface-200 bg-white text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+          className="w-full h-10 pl-10 pr-4 rounded-xl border border-surface-200 bg-white text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
         />
       </div>
 
@@ -849,7 +849,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
           <div className="px-6 py-12 text-center">
             <Users
               strokeWidth={1.25}
-              className="mx-auto h-10 w-10 text-ink-300 mb-3"
+              className="mx-auto h-10 w-10 text-muted mb-3"
             />
             <p className="text-sm text-ink-500">
               {shareholders.length === 0
@@ -895,7 +895,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
                       <div>
                         <p className="font-medium text-ink-800">{s.name}</p>
                         {s.email && (
-                          <p className="text-xs text-ink-400 mt-0.5">
+                          <p className="text-xs text-muted mt-0.5">
                             {s.email}
                           </p>
                         )}
@@ -932,7 +932,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
                           />
                         </a>
                       ) : (
-                        <span className="text-xs text-ink-400">--</span>
+                        <span className="text-xs text-muted">--</span>
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-center">
@@ -942,7 +942,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
                           vestingStatus(s) === "Fully vested"
                             ? "text-emerald-600"
                             : vestingStatus(s) === "--"
-                              ? "text-ink-400"
+                              ? "text-muted"
                               : "text-amber-600",
                         )}
                       >
@@ -982,7 +982,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
                             href={`${EXPLORER_URL}/address/${s.evm_address}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="h-7 w-7 flex items-center justify-center rounded-lg text-ink-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                            className="h-7 w-7 flex items-center justify-center rounded-lg text-muted hover:text-brand-600 hover:bg-brand-50 transition-colors"
                             title="View on explorer"
                           >
                             <ArrowUpRight

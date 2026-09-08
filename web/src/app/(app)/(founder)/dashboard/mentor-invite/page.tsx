@@ -316,7 +316,7 @@ function InviteContent({ req }: { req: GrantRequestSummary }) {
                   ) : (
                     <ShieldCheck
                       aria-hidden="true"
-                      className="h-4 w-4 text-ink-400"
+                      className="h-4 w-4 text-muted"
                     />
                   )}
                 </div>

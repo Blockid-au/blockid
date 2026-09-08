@@ -304,7 +304,7 @@ export function WidgetGrid({ children }: WidgetGridProps) {
                 aria-label={`Drag ${id}`}
                 role="button"
               >
-                <GripVertical className="h-4 w-4 text-ink-400" />
+                <GripVertical className="h-4 w-4 text-muted" />
                 <span className="uppercase tracking-wider text-[10px]">{id}</span>
               </div>
               <button

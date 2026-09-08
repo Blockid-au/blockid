@@ -378,21 +378,21 @@ function MemberModal({
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="e.g. Alice Chen"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
 
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-ink-700 mb-1.5">
-              Email <span className="text-ink-400 text-xs">(optional)</span>
+              Email <span className="text-muted text-xs">(optional)</span>
             </label>
             <input
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="alice@example.com"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
 
@@ -430,13 +430,13 @@ function MemberModal({
                 onChange={(e) => setForm({ ...form, equityPct: e.target.value })}
                 placeholder="e.g. 25"
                 className={cn(
-                  "w-full h-10 rounded-xl border px-3 pr-8 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 transition-colors",
+                  "w-full h-10 rounded-xl border px-3 pr-8 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 transition-colors",
                   overLimit
                     ? "border-rose-300 focus:ring-rose-200 focus:border-rose-400"
                     : "border-surface-200 focus:ring-brand-200 focus:border-brand-400",
                 )}
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">
                 %
               </span>
             </div>
@@ -812,7 +812,7 @@ export function EquityClient({
           <div className="px-6 py-12 text-center">
             <Users
               strokeWidth={1.25}
-              className="mx-auto h-10 w-10 text-ink-300 mb-3"
+              className="mx-auto h-10 w-10 text-muted mb-3"
             />
             <p className="text-sm text-ink-500">
               No team members yet. Add your first member to start building your
@@ -873,7 +873,7 @@ export function EquityClient({
                         <div>
                           <p className="font-medium text-ink-800">{m.name}</p>
                           {m.email && (
-                            <p className="text-xs text-ink-400 mt-0.5">
+                            <p className="text-xs text-muted mt-0.5">
                               {m.email}
                             </p>
                           )}
@@ -905,7 +905,7 @@ export function EquityClient({
                             cliffStatus === "Passed"
                               ? "text-emerald-600"
                               : cliffStatus === "\u2014"
-                                ? "text-ink-400"
+                                ? "text-muted"
                                 : "text-amber-600",
                           )}
                         >
@@ -921,7 +921,7 @@ export function EquityClient({
                               setFormError(null);
                               setModalOpen(true);
                             }}
-                            className="h-7 w-7 flex items-center justify-center rounded-lg text-ink-400 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer"
+                            className="h-7 w-7 flex items-center justify-center rounded-lg text-muted hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer"
                             title="Edit member"
                           >
                             <Edit3 strokeWidth={1.75} className="h-3.5 w-3.5" />
@@ -939,7 +939,7 @@ export function EquityClient({
                             <button
                               type="button"
                               onClick={() => setDeleteConfirm(m.id)}
-                              className="h-7 w-7 flex items-center justify-center rounded-lg text-ink-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              className="h-7 w-7 flex items-center justify-center rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                               title="Remove member"
                             >
                               <Trash2
@@ -1029,7 +1029,7 @@ export function EquityClient({
                 <span className="flex-1 text-sm text-ink-700 truncate">
                   {ev.description ?? `${ev.type} of ${ev.equityPct}%`}
                 </span>
-                <span className="text-xs text-ink-400 shrink-0 tabular-nums">
+                <span className="text-xs text-muted shrink-0 tabular-nums">
                   {ev.date}
                 </span>
               </div>

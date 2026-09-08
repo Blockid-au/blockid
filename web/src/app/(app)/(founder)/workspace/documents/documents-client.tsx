@@ -380,7 +380,7 @@ export function DocumentsClient() {
                   {sourceFoldersEnabled ? (
                     <ToggleRight strokeWidth={1.75} className="h-7 w-7 text-brand-600" />
                   ) : (
-                    <ToggleLeft strokeWidth={1.75} className="h-7 w-7 text-ink-400" />
+                    <ToggleLeft strokeWidth={1.75} className="h-7 w-7 text-muted" />
                   )}
                 </button>
               </div>
@@ -488,7 +488,7 @@ export function DocumentsClient() {
                       {folder.is_active ? (
                         <ToggleRight strokeWidth={1.75} className="h-6 w-6 text-brand-600" />
                       ) : (
-                        <ToggleLeft strokeWidth={1.75} className="h-6 w-6 text-ink-400" />
+                        <ToggleLeft strokeWidth={1.75} className="h-6 w-6 text-muted" />
                       )}
                     </button>
 
@@ -506,7 +506,7 @@ export function DocumentsClient() {
                     <button
                       type="button"
                       onClick={() => handleDeleteFolder(folder)}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-ink-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-muted hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                     >
                       <Trash2 strokeWidth={1.75} className="h-4 w-4" />
                     </button>

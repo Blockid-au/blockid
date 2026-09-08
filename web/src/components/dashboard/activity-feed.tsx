@@ -63,7 +63,7 @@ export function ActivityFeed({ rawActions }: ActivityFeedProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-ink-700 leading-relaxed">{item.text}</p>
-                <p className="text-[10px] text-ink-400 mt-0.5">{item.time}</p>
+                <p className="text-[10px] text-muted mt-0.5">{item.time}</p>
               </div>
             </div>
           );

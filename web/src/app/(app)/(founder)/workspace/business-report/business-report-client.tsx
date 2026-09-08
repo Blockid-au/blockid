@@ -138,7 +138,7 @@ function bandColor(band: "strong" | "developing" | "early" | "pending"): string 
   if (band === "strong") return "text-emerald-700 dark:text-emerald-300";
   if (band === "developing") return "text-amber-700 dark:text-amber-300";
   if (band === "early") return "text-red-700 dark:text-red-300";
-  return "text-ink-400 dark:text-ink-500";
+  return "text-muted dark:text-ink-500";
 }
 
 function bandBg(band: "strong" | "developing" | "early" | "pending"): string {
@@ -247,7 +247,7 @@ function TocNav({ activeId, t }: { activeId: string; t: ReturnType<typeof getTbr
       <div className="space-y-4">
         {groups.map((group) => (
           <div key={group.label}>
-            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-ink-400 dark:text-ink-600 px-2 mb-1">
+            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted dark:text-ink-600 px-2 mb-1">
               {group.label}
             </p>
             <ul className="space-y-0.5">
@@ -959,7 +959,7 @@ export function BusinessReportClient({
                   >
                     {totalSvi}
                   </span>
-                  <span className="text-base text-ink-400 dark:text-ink-500 font-normal mt-1">/ 100</span>
+                  <span className="text-base text-muted dark:text-ink-500 font-normal mt-1">/ 100</span>
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className={cn("inline-flex items-center rounded-full px-3 py-1 text-sm font-bold border", bandBg(overallBand), bandColor(overallBand))}>
@@ -975,7 +975,7 @@ export function BusinessReportClient({
                     <p className="text-[10px] text-ink-500 dark:text-ink-400 uppercase tracking-wide leading-snug">{d.section}</p>
                     <p className={cn("text-xl font-black tabular-nums", bandColor(scoreBand(d.state.score)))}>
                       {d.state.score}
-                      <span className="text-xs font-normal text-ink-400">/100</span>
+                      <span className="text-xs font-normal text-muted">/100</span>
                     </p>
                   </div>
                 ))}
@@ -1023,7 +1023,7 @@ export function BusinessReportClient({
                               {state.score}
                             </span>
                           ) : (
-                            <span className="text-ink-400 dark:text-ink-600">—</span>
+                            <span className="text-muted dark:text-ink-600">—</span>
                           )}
                         </td>
                         <td className="text-center py-2.5 pl-2">
@@ -1134,7 +1134,7 @@ export function BusinessReportClient({
                       </div>
                       <div className={cn("text-3xl font-black tabular-nums tracking-tight", bandColor(band))}>
                         {state.score}
-                        <span className="text-base font-normal text-ink-400 dark:text-ink-500">/100</span>
+                        <span className="text-base font-normal text-muted dark:text-ink-500">/100</span>
                       </div>
                     </div>
                   </div>
@@ -1490,7 +1490,7 @@ export function BusinessReportClient({
                         </p>
                       )}
                       <div className="flex items-center justify-between gap-2 pt-1">
-                        <span className="text-[10px] text-ink-400 dark:text-ink-500 tabular-nums">
+                        <span className="text-[10px] text-muted dark:text-ink-500 tabular-nums">
                           {new Date(lead.created_at).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", {
                             day: "numeric",
                             month: "short",
@@ -1643,7 +1643,7 @@ export function BusinessReportClient({
                 <p className="font-semibold text-ink-800 dark:text-ink-100 mb-1">{t.methHeaderAi}</p>
                 <p>{t.methBodyAi}</p>
               </div>
-              <div className="border-t border-ink-200 dark:border-ink-800 pt-3 text-[11px] text-ink-400 dark:text-ink-500">
+              <div className="border-t border-ink-200 dark:border-ink-800 pt-3 text-[11px] text-muted dark:text-ink-500">
                 <p>{t.methFooter(new Date().toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", { day: "numeric", month: "long", year: "numeric" }))}</p>
               </div>
             </div>

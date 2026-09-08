@@ -103,7 +103,7 @@ function ScenarioBarChart({ scenarios }: { scenarios: ExitResult[] }) {
                   style={{ width: `${Math.max(4, pct)}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[10px] text-ink-400">
+              <div className="flex items-center justify-between text-[10px] text-muted">
                 <span>{formatAUD(s.perShareValue)}/share</span>
                 {s.liquidationPreference > 0 && (
                   <span className="text-amber-600">
@@ -225,7 +225,7 @@ export function ExitClient() {
                     {m.label}
                   </span>
                 </div>
-                <p className="text-[11px] text-ink-400">{m.desc}</p>
+                <p className="text-[11px] text-muted">{m.desc}</p>
               </button>
             );
           })}
@@ -256,7 +256,7 @@ export function ExitClient() {
                 onChange={(e) => setRevenueMultiple(parseFloat(e.target.value))}
                 className="w-full h-2 bg-surface-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
               />
-              <div className="flex justify-between text-[10px] text-ink-400 mt-1">
+              <div className="flex justify-between text-[10px] text-muted mt-1">
                 <span>1x ({formatAUD(annualRevenue)})</span>
                 <span>20x ({formatAUD(annualRevenue * 20)})</span>
                 <span>40x ({formatAUD(annualRevenue * 40)})</span>
@@ -270,7 +270,7 @@ export function ExitClient() {
               Exit Valuation (AUD)
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
               <input
                 type="number"
                 value={valuation}
@@ -290,7 +290,7 @@ export function ExitClient() {
               />
             </div>
             {annualRevenue > 0 && (
-              <p className="text-[10px] text-ink-400 mt-1">
+              <p className="text-[10px] text-muted mt-1">
                 Based on {formatAUD(annualRevenue)} ARR at {revenueMultiple}x multiple
               </p>
             )}
@@ -300,11 +300,11 @@ export function ExitClient() {
           {annualRevenue > 0 && (
             <div className="flex items-center gap-4 p-3 rounded-xl bg-surface-50 border border-surface-200">
               <div>
-                <span className="text-[10px] text-ink-400">Current ARR</span>
+                <span className="text-[10px] text-muted">Current ARR</span>
                 <p className="text-sm font-semibold text-ink-800">{formatAUD(annualRevenue)}</p>
               </div>
               <div>
-                <span className="text-[10px] text-ink-400">At {revenueMultiple}x</span>
+                <span className="text-[10px] text-muted">At {revenueMultiple}x</span>
                 <p className="text-sm font-semibold text-brand-600">
                   {formatAUD(annualRevenue * revenueMultiple)}
                 </p>
@@ -347,21 +347,21 @@ export function ExitClient() {
           <TrendingUp className="h-4 w-4 text-brand-500" />
           Revenue Multiple Scenarios
           {annualRevenue > 0 && (
-            <span className="text-xs font-normal text-ink-400">
+            <span className="text-xs font-normal text-muted">
               (based on {formatAUD(annualRevenue)} ARR)
             </span>
           )}
         </h2>
 
         {scenariosLoading ? (
-          <div className="text-center py-8 text-sm text-ink-400">Loading scenarios...</div>
+          <div className="text-center py-8 text-sm text-muted">Loading scenarios...</div>
         ) : scenarios.length === 0 ? (
           <div className="text-center py-8 space-y-2">
-            <Users className="h-8 w-8 mx-auto text-ink-300" />
+            <Users className="h-8 w-8 mx-auto text-muted" />
             <p className="text-sm text-ink-500">
               Set up your cap table first to see exit scenarios.
             </p>
-            <p className="text-xs text-ink-400">
+            <p className="text-xs text-muted">
               Go to Ownership &amp; Equity to add shareholders and share classes.
             </p>
           </div>
@@ -374,13 +374,13 @@ export function ExitClient() {
                   key={s.scenario.exitMultiple}
                   className="rounded-2xl border border-surface-200 bg-white p-4 text-center space-y-1"
                 >
-                  <div className="text-xs font-medium text-ink-400">
+                  <div className="text-xs font-medium text-muted">
                     {s.scenario.exitMultiple}x Revenue
                   </div>
                   <div className="text-lg font-bold text-ink-800">
                     {formatAUD(s.scenario.exitValuation)}
                   </div>
-                  <div className="text-[10px] text-ink-400">
+                  <div className="text-[10px] text-muted">
                     {formatAUD(s.perShareValue)}/share
                   </div>
                   {s.liquidationPreference > 0 && (
@@ -457,7 +457,7 @@ function ExitResultCard({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-[10px] text-ink-400 uppercase tracking-wider border-b border-surface-100">
+            <tr className="text-left text-[10px] text-muted uppercase tracking-wider border-b border-surface-100">
               <th className="px-5 py-2 font-medium">Shareholder</th>
               <th className="px-3 py-2 font-medium">Role</th>
               {!compact && <th className="px-3 py-2 font-medium text-right">Shares</th>}

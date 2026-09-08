@@ -43,7 +43,7 @@ async function loadTrendForRole(projectId: string, role: Role): Promise<TrendSna
 }
 
 function Sparkline({ values }: { values: number[] }) {
-  if (values.length < 2) return <span className="text-slate-500 text-xs">no data</span>;
+  if (values.length < 2) return <span className="text-tertiary text-xs">no data</span>;
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
@@ -66,8 +66,8 @@ function Sparkline({ values }: { values: number[] }) {
 function TrendArrow({ direction }: { direction: string }) {
   if (direction === "up") return <span className="text-emerald-500" aria-label="trending up">▲</span>;
   if (direction === "down") return <span className="text-rose-500" aria-label="trending down">▼</span>;
-  if (direction === "flat") return <span className="text-slate-500" aria-label="flat">—</span>;
-  return <span className="text-slate-400" aria-label="insufficient data">·</span>;
+  if (direction === "flat") return <span className="text-tertiary" aria-label="flat">—</span>;
+  return <span className="text-muted" aria-label="insufficient data">·</span>;
 }
 
 function formatMetric(role: Role, value: number | null): string {
@@ -99,10 +99,10 @@ export default async function CLevelReportsPage() {
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <main className="mx-auto max-w-6xl px-6 py-10">
         <header className="mb-8">
-          <h1 className="text-3xl font-semibold text-white">C-Level Reports</h1>
-          <p className="mt-2 text-slate-400">
+          <h1 className="text-3xl font-semibold text-primary">C-Level Reports</h1>
+          <p className="mt-2 text-muted">
             Nightly agent-generated reports with 12-week trend tracking.
-            <span className="ml-2 text-xs text-slate-500">
+            <span className="ml-2 text-xs text-tertiary">
               NFA — general information only. Not financial advice under Corporations Act 2001 (Cth).
             </span>
           </p>
@@ -113,25 +113,25 @@ export default async function CLevelReportsPage() {
             <Link
               key={c.role}
               href={`/dashboard/c-level-reports/${c.role}`}
-              className="rounded-lg border border-slate-800 bg-slate-900/60 p-5 hover:border-emerald-700 hover:bg-slate-900 transition"
+              className="rounded-lg border border-line-subtle bg-surface p-5 hover:border-action hover:bg-surface-hover transition"
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">{c.title}</h2>
-                  <p className="text-sm text-slate-400 mt-1">{c.blurb}</p>
+                  <h2 className="text-lg font-semibold text-primary">{c.title}</h2>
+                  <p className="text-sm text-muted mt-1">{c.blurb}</p>
                 </div>
                 <TrendArrow direction={c.trend.direction} />
               </div>
               <div className="mt-4 space-y-2">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs uppercase tracking-wider text-slate-500">{c.metricLabel}</span>
-                  <span className="text-2xl font-mono text-white">{formatMetric(c.role, c.trend.endValue)}</span>
+                  <span className="text-xs uppercase tracking-wider text-tertiary">{c.metricLabel}</span>
+                  <span className="text-2xl font-mono text-primary">{formatMetric(c.role, c.trend.endValue)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="text-slate-500">
+                  <div className="text-tertiary">
                     <Sparkline values={c.trend.sparkline} />
                   </div>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-muted">
                     {c.trend.deltaPct !== null
                       ? `${c.trend.deltaPct >= 0 ? "+" : ""}${c.trend.deltaPct.toFixed(1)}% 12wk`
                       : "no history"}

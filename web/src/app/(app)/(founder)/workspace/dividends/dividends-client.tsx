@@ -335,7 +335,7 @@ export function DividendsClient() {
                 Net Income (AUD)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">
                   $
                 </span>
                 <input
@@ -345,7 +345,7 @@ export function DividendsClient() {
                   value={netIncome}
                   onChange={(e) => setNetIncome(e.target.value)}
                   placeholder="e.g. 100000"
-                  className="w-full h-10 rounded-xl border border-surface-200 pl-7 pr-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-10 rounded-xl border border-surface-200 pl-7 pr-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
                 />
               </div>
             </div>
@@ -365,7 +365,7 @@ export function DividendsClient() {
                 }
                 className="w-full h-2 bg-surface-200 rounded-full appearance-none cursor-pointer accent-brand-600"
               />
-              <div className="flex justify-between mt-1 text-xs text-ink-400">
+              <div className="flex justify-between mt-1 text-xs text-muted">
                 <span>0%</span>
                 <span>50%</span>
                 <span>100%</span>
@@ -437,7 +437,7 @@ export function DividendsClient() {
             {loadingRounds && (
               <Loader2
                 strokeWidth={1.75}
-                className="h-4 w-4 text-ink-400 animate-spin"
+                className="h-4 w-4 text-muted animate-spin"
               />
             )}
           </div>
@@ -446,7 +446,7 @@ export function DividendsClient() {
             <div className="px-6 py-12 text-center">
               <Banknote
                 strokeWidth={1.25}
-                className="mx-auto h-10 w-10 text-ink-300 mb-3"
+                className="mx-auto h-10 w-10 text-muted mb-3"
               />
               <p className="text-sm text-ink-500">
                 No dividend rounds have been declared yet.

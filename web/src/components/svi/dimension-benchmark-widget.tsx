@@ -142,7 +142,7 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
         )}
 
         {!loading && !error && data?.dimensionPercentiles.length === 0 && (
-          <p className="text-sm text-ink-400 dark:text-ink-500 py-4 text-center">
+          <p className="text-sm text-muted dark:text-ink-500 py-4 text-center">
             Complete your SVI analysis to see cohort comparison
           </p>
         )}
@@ -190,7 +190,7 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
                           ? "±0"
                           : `${isPositive ? "+" : ""}${dim.vsMedianPts} pts`}
                       </span>
-                      <span className="text-xs text-ink-400 dark:text-ink-500 hidden sm:inline">
+                      <span className="text-xs text-muted dark:text-ink-500 hidden sm:inline">
                         {bandLabel}
                       </span>
                     </div>
@@ -201,7 +201,7 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
                     p50={dim.cohortP50}
                     p75={dim.cohortP75}
                   />
-                  <div className="flex justify-between text-[10px] text-ink-400 dark:text-ink-500 px-0.5">
+                  <div className="flex justify-between text-[10px] text-muted dark:text-ink-500 px-0.5">
                     <span>P25: {dim.cohortP25}</span>
                     <span>Median: {dim.cohortP50}</span>
                     <span>P75: {dim.cohortP75}</span>
@@ -212,7 +212,7 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
           </div>
         )}
 
-        <p className="mt-6 text-[10px] text-ink-400 dark:text-ink-500 border-t border-surface-200 dark:border-ink-800 pt-3">
+        <p className="mt-6 text-[10px] text-muted dark:text-ink-500 border-t border-surface-200 dark:border-ink-800 pt-3">
           Based on AU cohort benchmarks by stage. Updates as your analysis evolves.
         </p>
       </CardContent>

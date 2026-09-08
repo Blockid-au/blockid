@@ -44,7 +44,7 @@ export default function AppSegmentError({
           </p>
         )}
         {error.digest && (
-          <p className="mb-4 font-mono text-[11px] text-ink-400">
+          <p className="mb-4 font-mono text-[11px] text-muted">
             Error ID: {error.digest}
           </p>
         )}

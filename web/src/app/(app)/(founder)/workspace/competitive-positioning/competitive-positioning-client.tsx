@@ -96,11 +96,11 @@ export function CompetitivePositioningClient() {
       {/* Header */}
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent font-bold text-xl flex items-center gap-2">
-            <Target className="h-5 w-5 text-[#00D4FF]" />
+          <h1 className="text-primary font-bold text-xl flex items-center gap-2">
+            <Target className="h-5 w-5 text-action" />
             Competitive Positioning
           </h1>
-          <p className="text-sm text-[#94A3B8] mt-1">
+          <p className="text-sm text-muted mt-1">
             Build your competitive matrix and generate an AI-powered positioning statement.
           </p>
         </div>
@@ -127,32 +127,32 @@ export function CompetitivePositioningClient() {
       )}
 
       {/* Positioning Statement Card */}
-      <Card className="bg-[#0F1629] border border-[#1E2D4A]">
+      <Card className="bg-surface-sunken border border-line-subtle">
         <CardHeader>
-          <CardTitle className="text-white text-base flex items-center gap-2">
-            <Target className="h-4 w-4 text-[#00D4FF]" />
+          <CardTitle className="text-primary text-base flex items-center gap-2">
+            <Target className="h-4 w-4 text-action" />
             Positioning Statement
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="space-y-2">
-              <Skeleton className="h-6 w-full bg-[#1E2D4A]" />
-              <Skeleton className="h-4 w-3/4 bg-[#1E2D4A]" />
+              <Skeleton className="h-6 w-full bg-surface-sunken" />
+              <Skeleton className="h-4 w-3/4 bg-surface-sunken" />
             </div>
           ) : statement ? (
             <div className="space-y-4">
-              <p className="text-lg text-white font-medium leading-relaxed">
+              <p className="text-lg text-primary font-medium leading-relaxed">
                 {statement.statement}
               </p>
-              <div className="flex flex-wrap gap-2 text-xs text-[#94A3B8]">
+              <div className="flex flex-wrap gap-2 text-xs text-muted">
                 {statement.category && (
-                  <Badge className="bg-[#1E2D4A] text-[#94A3B8] border border-[#2E3D5A]">
+                  <Badge className="bg-surface-sunken text-muted border border-line">
                     {statement.category}
                   </Badge>
                 )}
                 {statement.target_segment && (
-                  <Badge className="bg-[#1E2D4A] text-[#94A3B8] border border-[#2E3D5A]">
+                  <Badge className="bg-surface-sunken text-muted border border-line">
                     {statement.target_segment}
                   </Badge>
                 )}
@@ -165,7 +165,7 @@ export function CompetitivePositioningClient() {
                 size="sm"
                 onClick={() => void handleGenerate()}
                 disabled={generating}
-                className="border-[#1E2D4A] text-[#94A3B8] hover:text-white"
+                className="border-line-subtle text-muted hover:text-primary"
               >
                 <RefreshCw className={`h-3 w-3 mr-2 ${generating ? "animate-spin" : ""}`} />
                 {generating ? "Regenerating…" : "Regenerate"}
@@ -173,14 +173,14 @@ export function CompetitivePositioningClient() {
             </div>
           ) : (
             <div className="text-center py-6 space-y-4">
-              <p className="text-[#94A3B8] text-sm">
+              <p className="text-muted text-sm">
                 No positioning statement yet. Generate one based on your competitive analysis.
               </p>
               {hasCompetitors ? (
                 <Button
                   onClick={() => void handleGenerate()}
                   disabled={generating}
-                  className="bg-gradient-to-r from-[#00D4FF] to-[#0066FF] text-white"
+                  className="bg-action text-white"
                 >
                   {generating ? (
                     <>
@@ -195,7 +195,7 @@ export function CompetitivePositioningClient() {
                   )}
                 </Button>
               ) : (
-                <p className="text-xs text-[#94A3B8]/70">
+                <p className="text-xs text-muted/70">
                   Add competitors first to generate a positioning statement.
                 </p>
               )}
@@ -205,10 +205,10 @@ export function CompetitivePositioningClient() {
       </Card>
 
       {/* Competitive Matrix */}
-      <Card className="bg-[#0F1629] border border-[#1E2D4A]">
+      <Card className="bg-surface-sunken border border-line-subtle">
         <CardHeader>
-          <CardTitle className="text-white text-base flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-[#00D4FF]" />
+          <CardTitle className="text-primary text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-action" />
             Competitive Matrix
           </CardTitle>
         </CardHeader>
@@ -216,17 +216,17 @@ export function CompetitivePositioningClient() {
           {loading ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-full bg-[#1E2D4A]" />
+                <Skeleton key={i} className="h-8 w-full bg-surface-sunken" />
               ))}
             </div>
           ) : !hasCompetitors ? (
             <div className="text-center py-8 space-y-3">
-              <p className="text-[#94A3B8] text-sm">
+              <p className="text-muted text-sm">
                 No competitors added yet. Add competitors first to build your matrix.
               </p>
               <a
                 href="/workspace/competitors"
-                className="inline-flex items-center gap-1 text-sm text-[#00D4FF] hover:underline"
+                className="inline-flex items-center gap-1 text-sm text-action hover:underline"
               >
                 Go to Competitor Review →
               </a>
@@ -328,7 +328,7 @@ function CompetitorMatrix({ projectId: _projectId }: { projectId: string | null 
     return (
       <div className="space-y-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-full bg-[#1E2D4A]" />
+          <Skeleton key={i} className="h-8 w-full bg-surface-sunken" />
         ))}
       </div>
     );
@@ -337,12 +337,12 @@ function CompetitorMatrix({ projectId: _projectId }: { projectId: string | null 
   if (!featureRows.length) {
     return (
       <div className="text-center py-6 space-y-2">
-        <p className="text-[#94A3B8] text-sm">
+        <p className="text-muted text-sm">
           No features extracted yet. Use the Competitor Review page to extract features.
         </p>
         <a
           href="/workspace/competitors"
-          className="inline-flex items-center gap-1 text-sm text-[#00D4FF] hover:underline"
+          className="inline-flex items-center gap-1 text-sm text-action hover:underline"
         >
           Go to Competitor Review →
         </a>
@@ -352,32 +352,32 @@ function CompetitorMatrix({ projectId: _projectId }: { projectId: string | null 
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-3 text-xs text-[#94A3B8] items-center">
+      <div className="flex gap-3 text-xs text-muted items-center">
         <span>{competitors.length} competitors</span>
         <span>·</span>
         <span>{featureRows.length} features</span>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-[#1E2D4A]">
+      <div className="overflow-x-auto rounded-lg border border-line-subtle">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1E2D4A] bg-[#0A0F1E]">
-              <th className="text-left px-3 py-2 text-[#94A3B8] font-medium">Feature</th>
-              <th className="text-left px-3 py-2 text-[#94A3B8] font-medium">Competitor</th>
-              <th className="text-left px-3 py-2 text-[#94A3B8] font-medium">Category</th>
-              <th className="text-center px-3 py-2 text-[#94A3B8] font-medium">You Have It?</th>
+            <tr className="border-b border-line-subtle bg-surface-sunken">
+              <th className="text-left px-3 py-2 text-muted font-medium">Feature</th>
+              <th className="text-left px-3 py-2 text-muted font-medium">Competitor</th>
+              <th className="text-left px-3 py-2 text-muted font-medium">Category</th>
+              <th className="text-center px-3 py-2 text-muted font-medium">You Have It?</th>
             </tr>
           </thead>
           <tbody>
             {featureRows.map((row) => (
               <tr
                 key={row.feature.id}
-                className="border-b border-[#1E2D4A]/50 hover:bg-[#1E2D4A]/20"
+                className="border-b border-line-subtle/50 hover:bg-surface-sunken/20"
               >
-                <td className="px-3 py-2 text-white">{row.feature.feature_name}</td>
-                <td className="px-3 py-2 text-[#94A3B8] text-xs">{row.competitorName}</td>
+                <td className="px-3 py-2 text-primary">{row.feature.feature_name}</td>
+                <td className="px-3 py-2 text-muted text-xs">{row.competitorName}</td>
                 <td className="px-3 py-2">
-                  <Badge className="bg-[#1E2D4A] text-[#94A3B8] border border-[#2E3D5A] text-xs">
+                  <Badge className="bg-surface-sunken text-muted border border-line text-xs">
                     {row.feature.feature_category}
                   </Badge>
                 </td>
@@ -391,17 +391,17 @@ function CompetitorMatrix({ projectId: _projectId }: { projectId: string | null 
                       )
                     }
                     disabled={updatingId === row.feature.id}
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-[#1E2D4A]"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-surface-sunken"
                     title="Click to toggle: ✓ → ✗ → ?"
                   >
                     {updatingId === row.feature.id ? (
-                      <RefreshCw className="h-4 w-4 animate-spin text-[#94A3B8]" />
+                      <RefreshCw className="h-4 w-4 animate-spin text-muted" />
                     ) : row.feature.has_founder_feature === true ? (
                       <CheckCircle2 className="h-5 w-5 text-green-400" />
                     ) : row.feature.has_founder_feature === false ? (
                       <XCircle className="h-5 w-5 text-red-400" />
                     ) : (
-                      <HelpCircle className="h-5 w-5 text-[#94A3B8]" />
+                      <HelpCircle className="h-5 w-5 text-muted" />
                     )}
                   </button>
                 </td>

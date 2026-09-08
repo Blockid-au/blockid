@@ -103,7 +103,7 @@ export default async function InvestorLinksPage() {
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-surface-200 bg-white px-5 py-4 shadow-sm">
-      <p className="text-[11px] uppercase tracking-[0.15em] text-ink-400 font-medium">{label}</p>
+      <p className="text-[11px] uppercase tracking-[0.15em] text-muted font-medium">{label}</p>
       <p className="mt-1.5 text-2xl font-bold tabular-nums text-ink-800">{value}</p>
     </div>
   );

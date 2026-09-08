@@ -49,7 +49,7 @@ export default async function AdminPage() {
         </div>
 
         {entries.length === 0 ? (
-          <div className="rounded-xl border border-surface-200 bg-surface-50 px-6 py-12 text-center text-ink-400">
+          <div className="rounded-xl border border-surface-200 bg-surface-50 px-6 py-12 text-center text-muted">
             No active rate-limit entries.
           </div>
         ) : (
@@ -80,7 +80,7 @@ export default async function AdminPage() {
                       <td className="px-4 py-3 text-right tabular-nums text-ink-500">
                         {fmtMs(e.resetInMs)}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-xs text-ink-400">
+                      <td className="px-4 py-3 text-right font-mono text-xs text-muted">
                         {new Date(e.resetAt).toISOString().substring(11, 19)}
                       </td>
                     </tr>
@@ -91,7 +91,7 @@ export default async function AdminPage() {
           </div>
         )}
 
-        <p className="text-xs text-ink-400">
+        <p className="text-xs text-muted">
           Refresh the page to see latest state. High-count rows (≥10) are highlighted in amber.
           In Redis mode, live data is not available here.
         </p>

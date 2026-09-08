@@ -156,7 +156,7 @@ export function ActionPlanChecklist({ slug, pageId, actions, sviBoost }: ActionP
                 ) : (
                   <Circle
                     strokeWidth={1.75}
-                    className="mt-0.5 h-4 w-4 shrink-0 text-ink-400 group-hover:text-brand-500 transition-colors"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-muted group-hover:text-brand-500 transition-colors"
                   />
                 )}
                 <div className="flex-1 min-w-0">
@@ -164,7 +164,7 @@ export function ActionPlanChecklist({ slug, pageId, actions, sviBoost }: ActionP
                     className={cn(
                       "text-sm font-medium transition-colors",
                       isDone
-                        ? "text-ink-400 line-through"
+                        ? "text-muted line-through"
                         : "text-ink-800 group-hover:text-ink-900",
                     )}
                   >
@@ -173,7 +173,7 @@ export function ActionPlanChecklist({ slug, pageId, actions, sviBoost }: ActionP
                   <p
                     className={cn(
                       "text-xs mt-0.5 transition-colors",
-                      isDone ? "text-ink-300" : "text-ink-500",
+                      isDone ? "text-muted" : "text-ink-500",
                     )}
                   >
                     {action.detail}
@@ -182,7 +182,7 @@ export function ActionPlanChecklist({ slug, pageId, actions, sviBoost }: ActionP
                 <span
                   className={cn(
                     "text-xs font-mono shrink-0 mt-0.5",
-                    isDone ? "text-ink-300" : "text-teal-600",
+                    isDone ? "text-muted" : "text-teal-600",
                   )}
                 >
                   {action.impact}
@@ -271,14 +271,14 @@ export function ActionPlanChecklist({ slug, pageId, actions, sviBoost }: ActionP
                 ) : (
                   <Circle
                     strokeWidth={1.75}
-                    className="mt-0.5 h-4 w-4 shrink-0 text-ink-400 group-hover:text-brand-500 transition-colors"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-muted group-hover:text-brand-500 transition-colors"
                   />
                 )}
                 <span
                   className={cn(
                     "text-sm leading-relaxed transition-colors",
                     isDone
-                      ? "text-ink-400 line-through"
+                      ? "text-muted line-through"
                       : "text-ink-700 group-hover:text-ink-800",
                   )}
                 >

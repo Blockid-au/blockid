@@ -25,7 +25,7 @@ function scoreColor(s: number): string {
 function DeltaChip({ delta }: { delta: number | null }) {
   if (delta === null) return null;
   const Icon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
-  const cls = delta > 0 ? "text-green-400" : delta < 0 ? "text-red-400" : "text-ink-400";
+  const cls = delta > 0 ? "text-green-400" : delta < 0 ? "text-red-400" : "text-muted";
   const sign = delta > 0 ? "+" : "";
   return (
     <span className={`inline-flex items-center gap-1 text-[10px] font-medium tabular-nums ${cls}`}>
@@ -105,7 +105,7 @@ export function AIEvaluationSummary({
       {summary.deepDiveDimensions.length > 0 && (
         <div className="px-5 py-3 border-t border-line-subtle">
           <div className="flex items-center gap-2 mb-2">
-            <Compass className="h-3.5 w-3.5 text-ink-400" />
+            <Compass className="h-3.5 w-3.5 text-muted" />
             <span className="text-xs uppercase tracking-wider text-muted">
               Dimensions you deep-dived
             </span>

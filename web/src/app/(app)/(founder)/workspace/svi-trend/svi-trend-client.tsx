@@ -424,7 +424,7 @@ function Sparkline({
 }) {
   if (values.length < 2) {
     return (
-      <p className="text-[10px] text-ink-400 dark:text-ink-500">Need 2+ snapshots</p>
+      <p className="text-[10px] text-muted dark:text-ink-500">Need 2+ snapshots</p>
     );
   }
   const pad = 2;

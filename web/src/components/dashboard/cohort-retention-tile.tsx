@@ -247,7 +247,7 @@ export function CohortRetentionTile() {
         />
       </div>
 
-      <p className="mt-3 text-xs text-ink-400 leading-relaxed">
+      <p className="mt-3 text-xs text-muted leading-relaxed">
         Cohort convention: Monday 00:00 UTC anchoring, first-signup wins per
         user, weeks not yet elapsed render as blank (not 0). Investor-grade
         threshold: {MIN_COHORT_BUCKETS}+ consecutive cohorts with best W1 ≥

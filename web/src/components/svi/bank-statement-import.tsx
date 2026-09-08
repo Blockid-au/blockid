@@ -111,12 +111,12 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
         {uploading ? (
           <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
         ) : (
-          <Upload className="h-6 w-6 text-ink-400" />
+          <Upload className="h-6 w-6 text-muted" />
         )}
         <p className="text-sm font-medium text-ink-700">
           {uploading ? "Parsing statement…" : "Drop bank statement CSV here"}
         </p>
-        <p className="text-xs text-ink-400 text-center">
+        <p className="text-xs text-muted text-center">
           Supports ANZ · CBA · NAB · Westpac exports · or click to browse
         </p>
         <div className="flex items-center gap-2 mt-1">
@@ -135,7 +135,7 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
         </div>
       )}
 
-      <p className="text-xs text-ink-400 flex items-center gap-1">
+      <p className="text-xs text-muted flex items-center gap-1">
         <FileText className="h-3 w-3" />
         How to export: Internet banking → Transactions → Download CSV
       </p>

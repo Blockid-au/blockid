@@ -516,7 +516,7 @@ export function TaxInvoiceCheckerClient() {
           ) : null}
         </div>
 
-        <p className="text-xs text-ink-400 leading-relaxed">
+        <p className="text-xs text-muted leading-relaxed">
           {result.disclaimer}
         </p>
       </div>

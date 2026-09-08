@@ -119,7 +119,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
                 Previous
               </Link>
             ) : (
-              <span className="px-3 py-1.5 rounded border border-surface-100 text-ink-400 cursor-not-allowed">
+              <span className="px-3 py-1.5 rounded border border-surface-100 text-muted cursor-not-allowed">
                 Previous
               </span>
             )}
@@ -131,7 +131,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
                 Next
               </Link>
             ) : (
-              <span className="px-3 py-1.5 rounded border border-surface-100 text-ink-400 cursor-not-allowed">
+              <span className="px-3 py-1.5 rounded border border-surface-100 text-muted cursor-not-allowed">
                 Next
               </span>
             )}

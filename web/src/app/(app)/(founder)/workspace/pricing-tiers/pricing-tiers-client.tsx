@@ -187,7 +187,7 @@ export function PricingTiersClient({ initial, disabled }: Props) {
                     </p>
                   )}
                   {t.billing_note && (
-                    <p className="text-[11px] text-ink-400 mt-1">{t.billing_note}</p>
+                    <p className="text-[11px] text-muted mt-1">{t.billing_note}</p>
                   )}
                   {t.target_segment && (
                     <p className="text-xs text-ink-600 mt-3 italic">{t.target_segment}</p>

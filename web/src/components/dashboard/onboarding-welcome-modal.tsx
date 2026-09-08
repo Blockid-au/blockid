@@ -58,7 +58,7 @@ export function OnboardingWelcomeModal() {
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-emerald-100 bg-white p-8 shadow-2xl">
         <button
           onClick={dismiss}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-ink-400 transition hover:bg-surface-100 hover:text-ink-700"
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted transition hover:bg-surface-100 hover:text-ink-700"
           aria-label="Dismiss welcome modal"
         >
           <X className="h-4 w-4" />

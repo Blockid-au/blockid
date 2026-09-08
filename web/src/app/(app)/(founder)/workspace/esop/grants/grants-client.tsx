@@ -316,7 +316,7 @@ export function GrantsClient({ initialGrants, disclaimer }: GrantsClientProps) {
                           {g.div83aStatus}
                         </span>
                       ) : (
-                        <span className="text-xs text-ink-400">Not checked</span>
+                        <span className="text-xs text-muted">Not checked</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">

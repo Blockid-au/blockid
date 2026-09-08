@@ -61,7 +61,7 @@ export function CapTableHealthWidget() {
 
   const scoreColor = result
     ? result.score >= 80 ? "text-emerald-600" : result.score >= 50 ? "text-amber-600" : "text-red-600"
-    : "text-ink-400";
+    : "text-muted";
 
   return (
     <div className="rounded-xl border border-surface-200 bg-white overflow-hidden">
@@ -77,7 +77,7 @@ export function CapTableHealthWidget() {
             <p className="text-xs text-ink-500">Diagnose dilution, vesting, option pool &amp; ASIC thresholds</p>
           </div>
         </div>
-        {expanded ? <ChevronUp className="h-4 w-4 text-ink-400" /> : <ChevronDown className="h-4 w-4 text-ink-400" />}
+        {expanded ? <ChevronUp className="h-4 w-4 text-muted" /> : <ChevronDown className="h-4 w-4 text-muted" />}
       </button>
 
       {expanded && (
@@ -166,7 +166,7 @@ export function CapTableHealthWidget() {
               <div className="flex items-center gap-3">
                 <span className="text-3xl font-bold tabular-nums">
                   <span className={scoreColor}>{result.score}</span>
-                  <span className="text-lg text-ink-400">/100</span>
+                  <span className="text-lg text-muted">/100</span>
                 </span>
                 <span className={cn(
                   "rounded-full px-3 py-1 text-xs font-semibold",

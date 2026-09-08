@@ -240,7 +240,7 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
                       const isAdding = adding === key;
                       return (
                         <li key={ev.code} className="flex items-center gap-2 text-xs text-ink-500 dark:text-ink-400">
-                          <Circle className="h-3.5 w-3.5 shrink-0 text-ink-300 dark:text-ink-600" />
+                          <Circle className="h-3.5 w-3.5 shrink-0 text-muted dark:text-ink-600" />
                           <span className="flex-1">{ev.label}</span>
                           <Button
                             variant="ghost"

@@ -110,7 +110,7 @@ export function JourneyBar({ currentPhase, sviScore, className }: JourneyBarProp
       <p className="text-center text-[11px] text-ink-500 mt-3 tracking-wide">
         Phase {clampedPhase + 1} of {PHASES.length}
         {sviScore > 0 && (
-          <span className="ml-1.5 text-ink-400">
+          <span className="ml-1.5 text-muted">
             &middot; SVI {sviScore}
           </span>
         )}
@@ -157,13 +157,13 @@ function PhaseNode({ phase, isCompleted, isCurrent, isFuture }: PhaseNodeProps) 
         )}
       >
         {isCompleted && (
-          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-white" strokeWidth={2.5} />
+          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" strokeWidth={2.5} />
         )}
         {isCurrent && (
           <span className="block h-2.5 w-2.5 rounded-full bg-white" />
         )}
         {isFuture && (
-          <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-ink-400" strokeWidth={2} />
+          <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted" strokeWidth={2} />
         )}
       </div>
 
@@ -173,7 +173,7 @@ function PhaseNode({ phase, isCompleted, isCurrent, isFuture }: PhaseNodeProps) 
           "mt-1.5 text-[10px] sm:text-xs font-medium leading-none text-center select-none",
           isCompleted && "text-emerald-600",
           isCurrent && "text-brand-600",
-          isFuture && "text-ink-400"
+          isFuture && "text-muted"
         )}
       >
         {phase.label}

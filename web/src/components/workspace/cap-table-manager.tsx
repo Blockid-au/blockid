@@ -1122,7 +1122,7 @@ function EsopForm({
 // ---------------------------------------------------------------------------
 
 const INPUT_CLS =
-  "w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors";
+  "w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors";
 
 function Field({
   label,

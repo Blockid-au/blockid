@@ -191,7 +191,7 @@ function QuickAction({
             </p>
             <ArrowRight
               strokeWidth={1.75}
-              className="h-3.5 w-3.5 text-ink-400 group-hover:text-brand-500 transition-colors"
+              className="h-3.5 w-3.5 text-muted group-hover:text-brand-500 transition-colors"
             />
           </div>
           <p className="text-xs text-ink-500 mt-0.5">{description}</p>
@@ -401,7 +401,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
       <div className="flex items-center justify-center py-20">
         <Loader2
           strokeWidth={1.75}
-          className="h-6 w-6 text-ink-400 animate-spin"
+          className="h-6 w-6 text-muted animate-spin"
         />
       </div>
     );
@@ -620,7 +620,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
           {loadingTxs && (
             <Loader2
               strokeWidth={1.75}
-              className="h-4 w-4 text-ink-400 animate-spin"
+              className="h-4 w-4 text-muted animate-spin"
             />
           )}
         </div>
@@ -629,7 +629,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
           <div className="px-6 py-12 text-center">
             <Activity
               strokeWidth={1.25}
-              className="mx-auto h-10 w-10 text-ink-300 mb-3"
+              className="mx-auto h-10 w-10 text-muted mb-3"
             />
             <p className="text-sm text-ink-500">
               No on-chain transactions found. Connect your wallet and ensure the

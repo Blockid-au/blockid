@@ -123,17 +123,17 @@ export function ScnDirectionNavigator({ stageLabel, weakestLayer, steps }: Props
                   <p className="mt-0.5 text-sm font-semibold text-ink-800">{s.label}</p>
                   <p className="mt-0.5 text-xs text-ink-500 line-clamp-2">{s.detail}</p>
                 </div>
-                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-ink-400 group-hover:text-brand-600" />
+                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted group-hover:text-brand-600" />
               </Link>
             </div>
           ))}
         </div>
       )}
 
-      <p className="mt-4 text-[11px] text-ink-400">
+      <p className="mt-4 text-[11px] text-muted">
         Sequenced from your weakest Startup Compass dimension · driver: {stageLabel}
       </p>
-      <p className="mt-1 text-[10px] leading-relaxed text-ink-400">
+      <p className="mt-1 text-[10px] leading-relaxed text-muted">
         Direction sequencing synthesises Christensen JTBD + Amazon working-backwards +
         YC seed-hurdle guidance —{" "}
         <Link

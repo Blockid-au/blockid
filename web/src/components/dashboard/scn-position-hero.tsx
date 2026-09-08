@@ -95,7 +95,7 @@ export function ScnPositionHero({
           <p className="text-xs font-medium uppercase tracking-wider text-ink-500">Startup Index</p>
           <div className="mt-1 flex items-baseline gap-1.5">
             <span className="text-4xl font-bold text-ink-900">{indexDisplay}</span>
-            <span className="text-sm font-medium text-ink-400">/ 200</span>
+            <span className="text-sm font-medium text-muted">/ 200</span>
           </div>
           <p className="mt-1 text-xs text-ink-500">SVI · positioning score vs AU cohort</p>
         </div>
@@ -120,7 +120,7 @@ export function ScnPositionHero({
           </p>
           <div className="mt-1 flex items-baseline gap-1.5">
             {topPct == null ? (
-              <span className="text-2xl font-semibold text-ink-400">—</span>
+              <span className="text-2xl font-semibold text-muted">—</span>
             ) : (
               <>
                 <span className="text-2xl font-bold text-emerald-600">Top {topPct}%</span>
@@ -136,12 +136,12 @@ export function ScnPositionHero({
         <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-brand-100 pt-4 text-xs text-ink-500">
           <span>
             Estimated value: <span className="font-semibold text-ink-700">{valuationLabel}</span>
-            <span className="ml-1 text-ink-400">(an output of your position, not the goal)</span>
+            <span className="ml-1 text-muted">(an output of your position, not the goal)</span>
           </span>
         </div>
       )}
 
-      <p className="mt-4 border-t border-brand-100 pt-3 text-[10px] leading-relaxed text-ink-400">
+      <p className="mt-4 border-t border-brand-100 pt-3 text-[10px] leading-relaxed text-muted">
         Startup Compass is BlockID&apos;s synthesis overlay on Sean Ellis PMF, Porter Five Forces,
         T2D3, JTBD, and Bessemer BVP canonical stages —{" "}
         <Link href="/guide/scn" className="underline decoration-dotted hover:text-brand-600">

@@ -120,13 +120,13 @@ export function ReferralsClient() {
         </h2>
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-ink-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted" />
           </div>
         ) : referrals.length === 0 ? (
           <div className="rounded-2xl border border-surface-200 bg-white p-10 text-center">
             <Users
               strokeWidth={1.5}
-              className="h-10 w-10 text-ink-300 mx-auto mb-3"
+              className="h-10 w-10 text-muted mx-auto mb-3"
             />
             <p className="text-sm text-ink-500">
               No referrals yet — share your link to get started!
@@ -137,16 +137,16 @@ export function ReferralsClient() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-100">
-                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                     Friend
                   </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                     Status
                   </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                     Credits earned
                   </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                     Date
                   </th>
                 </tr>
@@ -166,7 +166,7 @@ export function ReferralsClient() {
                     <td className="px-5 py-3 font-semibold text-brand-600">
                       +{r.credits_awarded}
                     </td>
-                    <td className="px-5 py-3 text-ink-400">
+                    <td className="px-5 py-3 text-muted">
                       {formatDate(r.created_at)}
                     </td>
                   </tr>
@@ -178,7 +178,7 @@ export function ReferralsClient() {
       </div>
 
       {/* Promo note */}
-      <p className="text-xs text-ink-400 text-center">
+      <p className="text-xs text-muted text-center">
         🎉 Softlaunch promo: earn{" "}
         <span className="font-semibold text-brand-600">5 credits</span> per
         referral until 31 July 2026 (normally 2).

@@ -561,7 +561,7 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
                   className={cn(
                     "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
                     isActive
-                      ? "bg-white/20 text-white"
+                      ? "bg-white/20 text-primary"
                       : "bg-surface-200 text-ink-500",
                   )}
                 >
@@ -687,7 +687,7 @@ function JourneyTab({
                       isCurrent &&
                         "bg-brand-50 border-brand-500 text-brand-600 ring-2 ring-brand-200",
                       isFuture &&
-                        "bg-surface-50 dark:bg-surface-100 border-surface-200 text-ink-400",
+                        "bg-surface-50 dark:bg-surface-100 border-surface-200 text-muted",
                     )}
                   >
                     {isComplete ? (
@@ -936,9 +936,9 @@ function FullReportTab({
                 </span>
               </div>
               {isExpanded ? (
-                <ChevronUp className="h-4 w-4 text-ink-400 shrink-0" />
+                <ChevronUp className="h-4 w-4 text-muted shrink-0" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-ink-400 shrink-0" />
+                <ChevronDown className="h-4 w-4 text-muted shrink-0" />
               )}
             </button>
 
@@ -976,7 +976,7 @@ function FullReportTab({
                 Save 30% with the bundle.
               </p>
               <div className="flex items-center gap-3 mt-2">
-                <span className="text-xs text-ink-400 line-through">
+                <span className="text-xs text-muted line-through">
                   {bundle.total.toFixed(2)} cr
                 </span>
                 <span className="text-lg font-bold text-brand-700">
@@ -1155,7 +1155,7 @@ function ReportSectionRow({
           ) : hasSummary ? (
             <Unlock className="h-5 w-5 text-amber-500" />
           ) : (
-            <Lock className="h-5 w-5 text-ink-300" />
+            <Lock className="h-5 w-5 text-muted" />
           )}
         </div>
 
@@ -1202,9 +1202,9 @@ function ReportSectionRow({
                   className="p-1 rounded hover:bg-surface-100 transition-colors cursor-pointer"
                 >
                   {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-ink-400" />
+                    <ChevronUp className="h-4 w-4 text-muted" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-ink-400" />
+                    <ChevronDown className="h-4 w-4 text-muted" />
                   )}
                 </button>
               )}
@@ -1320,7 +1320,7 @@ function HistoryTab({
         <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-surface-100 border border-surface-200 mb-4">
           <History
             strokeWidth={1.75}
-            className="h-6 w-6 text-ink-400"
+            className="h-6 w-6 text-muted"
           />
         </div>
         <h3 className="text-lg font-semibold text-ink-800 mb-2">
@@ -1413,7 +1413,7 @@ function HistoryTab({
                     {formatDate(report.created_at)}
                   </p>
                   {inputSnippet && (
-                    <p className="text-xs text-ink-400 mt-1 truncate max-w-md">
+                    <p className="text-xs text-muted mt-1 truncate max-w-md">
                       {inputSnippet}
                     </p>
                   )}

@@ -79,7 +79,7 @@ const STATUS_BG: Record<string, string> = {
 
 function StageBadge({ label, done }: { label: string; done?: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${done ? "bg-emerald-100 text-emerald-700" : "bg-ink-50 text-ink-400"}`}>
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${done ? "bg-emerald-100 text-emerald-700" : "bg-ink-50 text-muted"}`}>
       {done ? <CheckCircle2 className="h-2.5 w-2.5" /> : <Circle className="h-2.5 w-2.5" />}
       {label}
     </span>

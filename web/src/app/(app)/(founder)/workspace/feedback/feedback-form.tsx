@@ -139,10 +139,10 @@ export function FeedbackForm() {
           maxLength={maxChars}
           rows={6}
           placeholder="Tell us what you think — what's working well, what could be improved, and any specific suggestions..."
-          className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-vertical"
+          className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 resize-vertical"
           required
         />
-        <div className="mt-1 flex justify-between text-xs text-ink-400">
+        <div className="mt-1 flex justify-between text-xs text-muted">
           <span>
             {body.length < minChars
               ? `${minChars - body.length} more characters needed`

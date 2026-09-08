@@ -69,7 +69,7 @@ export async function CapTableWidget({ email }: { email: string }) {
           <h2 className="text-lg font-semibold text-ink-800">Cap Table</h2>
         </div>
         <div className="rounded-xl border border-dashed border-surface-200 px-6 py-8 text-center">
-          <PieChart className="mx-auto h-8 w-8 text-ink-300 mb-3" />
+          <PieChart className="mx-auto h-8 w-8 text-muted mb-3" />
           <p className="text-sm font-semibold text-ink-800">
             No cap table configured yet
           </p>
@@ -195,7 +195,7 @@ export async function CapTableWidget({ email }: { email: string }) {
                   <span className="text-ink-700">{cls.name}</span>
                   <span className="font-mono text-ink-800">
                     {pct.toFixed(1)}%{" "}
-                    <span className="text-[10px] text-ink-400">
+                    <span className="text-[10px] text-muted">
                       ({cls.holders}{" "}
                       {cls.holders === 1 ? "holder" : "holders"})
                     </span>

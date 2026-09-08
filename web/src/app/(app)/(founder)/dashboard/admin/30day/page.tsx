@@ -245,24 +245,24 @@ export default async function ThirtyDayScoreboardPage() {
         <section className="mb-8 grid gap-4 md:grid-cols-4">
           <div className="rounded-2xl border border-ink-200 bg-white p-5">
             <p className="text-xs uppercase tracking-wide text-ink-500">Day</p>
-            <p className="mt-1 text-2xl font-semibold text-ink-800">{daysElapsed} <span className="text-base font-normal text-ink-400">/ 30</span></p>
+            <p className="mt-1 text-2xl font-semibold text-ink-800">{daysElapsed} <span className="text-base font-normal text-muted">/ 30</span></p>
             <div className="mt-3 h-1.5 w-full rounded-full bg-ink-100">
               <div className="h-1.5 rounded-full bg-brand-600" style={{ width: `${(daysElapsed / 30) * 100}%` }} />
             </div>
           </div>
           <div className="rounded-2xl border border-ink-200 bg-white p-5">
             <p className="text-xs uppercase tracking-wide text-ink-500">On track</p>
-            <p className="mt-1 text-2xl font-semibold text-emerald-700">{pace.onTrack}<span className="text-base font-normal text-ink-400"> / {metrics.length}</span></p>
+            <p className="mt-1 text-2xl font-semibold text-emerald-700">{pace.onTrack}<span className="text-base font-normal text-muted"> / {metrics.length}</span></p>
             <p className="mt-2 text-xs text-ink-500">Meeting expected pace for elapsed time.</p>
           </div>
           <div className="rounded-2xl border border-ink-200 bg-white p-5">
             <p className="text-xs uppercase tracking-wide text-ink-500">Behind</p>
-            <p className="mt-1 text-2xl font-semibold text-rose-700">{pace.behind}<span className="text-base font-normal text-ink-400"> / {metrics.length}</span></p>
+            <p className="mt-1 text-2xl font-semibold text-rose-700">{pace.behind}<span className="text-base font-normal text-muted"> / {metrics.length}</span></p>
             <p className="mt-2 text-xs text-ink-500">Need C-Level attention this cycle.</p>
           </div>
           <div className="rounded-2xl border border-ink-200 bg-white p-5">
             <p className="text-xs uppercase tracking-wide text-ink-500">Shipped (30d)</p>
-            <p className="mt-1 text-2xl font-semibold text-ink-800">{shippedTasks30d}<span className="text-base font-normal text-ink-400"> tasks</span></p>
+            <p className="mt-1 text-2xl font-semibold text-ink-800">{shippedTasks30d}<span className="text-base font-normal text-muted"> tasks</span></p>
             <p className="mt-2 text-xs text-ink-500">{milestones30d} milestone{milestones30d === 1 ? "" : "s"} cut.</p>
           </div>
         </section>
@@ -297,7 +297,7 @@ export default async function ThirtyDayScoreboardPage() {
                     <div>
                       <p className="text-xs uppercase tracking-wide text-ink-500">{m.ownerAgent} · {m.label}</p>
                       <p className="mt-1 text-2xl font-semibold text-ink-800">
-                        {m.unit ?? ""}{m.actual.toLocaleString()} <span className="text-base font-normal text-ink-400">/ {m.unit ?? ""}{m.target.toLocaleString()}</span>
+                        {m.unit ?? ""}{m.actual.toLocaleString()} <span className="text-base font-normal text-muted">/ {m.unit ?? ""}{m.target.toLocaleString()}</span>
                       </p>
                     </div>
                     <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_COLOR[s]}`}>{s}</span>
@@ -311,7 +311,7 @@ export default async function ThirtyDayScoreboardPage() {
                       <span className="text-brand-600 font-medium">View {m.actual.toLocaleString()} {m.actual === 1 ? "row" : "rows"} →</span>
                     )}
                   </div>
-                  <p className="mt-3 text-xs text-ink-400">Source: {m.source}</p>
+                  <p className="mt-3 text-xs text-muted">Source: {m.source}</p>
                 </>
               );
               const baseClasses = "rounded-2xl border border-ink-200 bg-white p-5";

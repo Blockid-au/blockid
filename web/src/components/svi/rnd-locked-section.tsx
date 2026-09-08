@@ -103,7 +103,7 @@ export function RndLockedSection({
             Share with co-founder
           </button>
         </div>
-        <p className="mt-3 text-[10px] text-ink-400">
+        <p className="mt-3 text-[10px] text-muted">
           <Link href="/founding-50" className="text-brand-600 hover:text-brand-700 font-medium">Get unlimited reports — A$1 lifetime</Link>
           {" "}or{" "}
           <Link href="/workspace/billing#credits" className="text-brand-600 hover:text-brand-700 font-medium">buy credit packs from A$5</Link>

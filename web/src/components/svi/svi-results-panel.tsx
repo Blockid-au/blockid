@@ -342,16 +342,16 @@ function ValuationRangeCard({ sviScore, stage, analysis }: { sviScore: number; s
     <div className="mt-6 rounded-xl bg-surface-50 border border-surface-200 p-4">
       <p className="text-xs text-ink-500 mb-2">Estimated Valuation Range</p>
       <div className="flex items-baseline gap-3 justify-center">
-        <span className="text-sm text-ink-400">{formatAUD(est.low)}</span>
+        <span className="text-sm text-muted">{formatAUD(est.low)}</span>
         <span className="text-2xl font-bold text-brand-600">{formatAUD(est.mid)}</span>
-        <span className="text-sm text-ink-400">{formatAUD(est.high)}</span>
+        <span className="text-sm text-muted">{formatAUD(est.high)}</span>
       </div>
       <div className="flex gap-1 mt-2">
         <div className="h-1.5 flex-1 rounded-full bg-surface-200" />
         <div className="h-1.5 flex-[2] rounded-full bg-brand-500" />
         <div className="h-1.5 flex-1 rounded-full bg-surface-200" />
       </div>
-      <p className="text-[10px] text-ink-400 mt-2 text-center">
+      <p className="text-[10px] text-muted mt-2 text-center">
         Based on SVI score, stage, and available metrics. Not financial advice.
       </p>
     </div>
@@ -656,9 +656,9 @@ function FullReportViewer({ report }: { report: string }) {
               </span>
               <span className="flex-1 text-sm font-semibold text-ink-900">{section.title}</span>
               {expanded.has(section.id) ? (
-                <ChevronUp strokeWidth={2} className="h-4 w-4 text-ink-400 shrink-0" />
+                <ChevronUp strokeWidth={2} className="h-4 w-4 text-muted shrink-0" />
               ) : (
-                <ChevronDown strokeWidth={2} className="h-4 w-4 text-ink-400 shrink-0" />
+                <ChevronDown strokeWidth={2} className="h-4 w-4 text-muted shrink-0" />
               )}
             </button>
 
@@ -978,7 +978,7 @@ function ProgressiveReport() {
                       : hasContent
                         ? "bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700"
                         : isLocked
-                          ? "bg-surface-100 text-ink-400 hover:bg-surface-200"
+                          ? "bg-surface-100 text-muted hover:bg-surface-200"
                           : "bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700",
                 )}
               >
@@ -1022,7 +1022,7 @@ function ProgressiveReport() {
                   <div className="absolute inset-0 bg-gradient-to-b from-surface-50/0 via-surface-50/60 to-surface-50/90 pointer-events-none" />
                   <div className="relative px-5 py-5">
                     <div className="flex items-center gap-2.5 mb-3">
-                      <Lock strokeWidth={1.75} className="h-4 w-4 text-ink-400" />
+                      <Lock strokeWidth={1.75} className="h-4 w-4 text-muted" />
                       <span className="text-sm font-semibold text-ink-600">{def.title}</span>
                       <span className="rounded-full bg-surface-200 px-2 py-0.5 text-[10px] font-medium text-ink-500 uppercase tracking-wider">
                         Premium
@@ -1103,7 +1103,7 @@ function ProgressiveReport() {
                     ) : def.tier === "free" ? (
                       <FileText strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0" />
                     ) : (
-                      <FileText strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" />
+                      <FileText strokeWidth={1.75} className="h-4 w-4 text-muted shrink-0" />
                     )}
                     <span className="text-sm font-semibold text-ink-900">{def.title}</span>
                     {hasFull && (
@@ -1190,7 +1190,7 @@ function ProgressiveReport() {
                   <div className="flex items-center gap-2.5">
                     <div className="h-4 w-4 rounded-full border-2 border-surface-300 shrink-0" />
                     <span className="text-sm text-ink-500">{def.title}</span>
-                    <span className="text-[10px] text-ink-400">Pending</span>
+                    <span className="text-[10px] text-muted">Pending</span>
                   </div>
                 </div>
               )}
@@ -1207,7 +1207,7 @@ function ProgressiveReport() {
               <p className="text-sm font-semibold text-ink-800 mb-2">Unlock All Remaining Sections</p>
               <p className="text-xs text-ink-600 mb-4">
                 {remainingSections.length} sections &middot; ~{remainingWords.toLocaleString()} words &middot;{" "}
-                <span className="line-through text-ink-400">{remainingCost.toFixed(2)} cr</span>{" "}
+                <span className="line-through text-muted">{remainingCost.toFixed(2)} cr</span>{" "}
                 <span className="font-mono font-semibold text-brand-600">{discountedCost.toFixed(2)} cr</span>{" "}
                 <span className="text-emerald-600 font-medium">(Save {Math.round(BUNDLE_DISCOUNT * 100)}%)</span>
               </p>

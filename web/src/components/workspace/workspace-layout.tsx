@@ -394,14 +394,14 @@ function renderNavGroup(args: {
                   </span>
                 )}
                 {locked && !showAddOnPill && (
-                  <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-ink-400" aria-label="Upgrade required" />
+                  <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-muted" aria-label="Upgrade required" />
                 )}
                 {/* Future-phase lock glyph — visually mirrors the plan-lock
                     icon so users learn one iconography for "not available
                     yet". Kept aria-hidden because the row's `title` already
                     announces "Unlocks after Phase N …" to AT users. */}
                 {!locked && isFuturePhase && (
-                  <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-ink-300" aria-hidden />
+                  <Lock strokeWidth={1.75} className="h-3 w-3 shrink-0 text-muted" aria-hidden />
                 )}
                 {chipKind && (
                   <span className={cn(
@@ -640,7 +640,7 @@ export function WorkspaceLayout({ children, user, startupName, currentPhase = 0,
                   className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted hover:text-primary hover:bg-surface-hover transition-colors"
                 >
                   <span className="flex items-center gap-2">
-                    <Lock strokeWidth={1.75} className="h-3 w-3 text-ink-300" aria-hidden />
+                    <Lock strokeWidth={1.75} className="h-3 w-3 text-muted" aria-hidden />
                     Later phases ({itemCount})
                   </span>
                   <ChevronDown

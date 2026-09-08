@@ -70,15 +70,15 @@ export function RecentAnalyses({ className, projectId }: { className?: string; p
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-ink-800 truncate">{a.inputPreview || "Untitled analysis"}</span>
-                <span className="text-[10px] text-ink-400">{relativeTime(a.createdAt)}</span>
+                <span className="text-[10px] text-muted">{relativeTime(a.createdAt)}</span>
               </div>
               <p className="text-xs text-ink-500 mt-0.5 truncate">{a.summary || `Stage ${a.stage}: ${a.stageLabel}`}</p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <Link href={`/s/${a.slug}`} className="h-7 w-7 rounded-lg flex items-center justify-center text-ink-400 hover:text-brand-600 hover:bg-brand-50 transition-colors opacity-0 group-hover:opacity-100">
+              <Link href={`/s/${a.slug}`} className="h-7 w-7 rounded-lg flex items-center justify-center text-muted hover:text-brand-600 hover:bg-brand-50 transition-colors opacity-0 group-hover:opacity-100">
                 <ExternalLink strokeWidth={1.75} className="h-3.5 w-3.5" />
               </Link>
-              <button type="button" onClick={() => remove(a.slug)} className="h-7 w-7 rounded-lg flex items-center justify-center text-ink-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer">
+              <button type="button" onClick={() => remove(a.slug)} className="h-7 w-7 rounded-lg flex items-center justify-center text-muted hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer">
                 <Trash2 strokeWidth={1.75} className="h-3.5 w-3.5" />
               </button>
             </div>

@@ -469,7 +469,7 @@ export function BillingClient({
                   <p className="text-lg font-bold text-ink-800">
                     {formatPrice(plan.price, plan.cadence)}
                     {plan.id === "growth" && isGrowthEarlyBird() && (
-                      <span className="ml-2 text-sm text-ink-400 line-through font-normal">
+                      <span className="ml-2 text-sm text-muted line-through font-normal">
                         {formatPrice(GROWTH_STANDARD_PRICE, plan.cadence)}
                       </span>
                     )}
@@ -770,7 +770,7 @@ function CreditsPurchaseSection() {
             <ChevronDown
               strokeWidth={1.75}
               className={cn(
-                "h-4 w-4 text-ink-400 transition-transform",
+                "h-4 w-4 text-muted transition-transform",
                 showCosts && "rotate-180",
               )}
             />

@@ -207,7 +207,7 @@ export default function AdminSalesPage() {
   // ---------------------------------------------------------------------------
 
   const summaryCards = [
-    { label: "Total Leads", value: counts.total, color: "text-white" },
+    { label: "Total Leads", value: counts.total, color: "text-primary" },
     { label: "New", value: counts.new, color: "text-gray-300" },
     { label: "Contacted", value: counts.contacted, color: "text-blue-400" },
     { label: "Converted", value: counts.converted, color: "text-green-400" },
@@ -225,7 +225,7 @@ export default function AdminSalesPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Sales Pipeline</h1>
+            <h1 className="text-2xl font-bold text-primary">Sales Pipeline</h1>
             <p className="text-sm text-gray-400 mt-1">
               CRO lead tracking — view, update status, and export.
             </p>

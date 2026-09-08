@@ -389,7 +389,7 @@ export function OpsDashboardClient({
                     color="#059669"
                   />
                 </div>
-                <div className="flex justify-between text-[10px] text-ink-400 font-mono">
+                <div className="flex justify-between text-[10px] text-muted font-mono">
                   {growth.signupsDaily.map((d) => (
                     <span key={d.day}>{d.day.slice(5)}</span>
                   ))}

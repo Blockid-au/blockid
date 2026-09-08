@@ -143,7 +143,7 @@ export default async function FeedbackPage() {
                           &ldquo;{s.ai_summary}&rdquo;
                         </p>
                       )}
-                      <p className="mt-1 text-xs text-ink-400">
+                      <p className="mt-1 text-xs text-muted">
                         {new Date(s.created_at).toLocaleDateString("en-AU", {
                           day: "numeric",
                           month: "short",
@@ -156,7 +156,7 @@ export default async function FeedbackPage() {
                         <div className="text-lg font-bold text-brand-600">
                           +{s.credits_awarded}
                         </div>
-                        <div className="text-xs text-ink-400">credits</div>
+                        <div className="text-xs text-muted">credits</div>
                       </div>
                     )}
                   </div>

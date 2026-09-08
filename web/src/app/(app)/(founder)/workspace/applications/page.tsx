@@ -36,7 +36,7 @@ export default async function ApplicationsPage() {
             Track and review accelerator cohort applications in one centralised inbox.
           </p>
           {/* EN/VI copy */}
-          <p className="mt-1 text-xs text-ink-400">
+          <p className="mt-1 text-xs text-muted">
             Theo dõi và xem xét đơn đăng ký tham gia cohort tăng tốc trong một hộp thư tập trung.
           </p>
         </div>
@@ -48,10 +48,10 @@ export default async function ApplicationsPage() {
             accelerator managers can receive, score, and advance startup
             applications through a structured review pipeline.
           </p>
-          <p className="mt-1 text-xs text-ink-400">
+          <p className="mt-1 text-xs text-muted">
             Tính năng này đang được phát triển. Sẽ sớm ra mắt.
           </p>
-          <p className="mt-4 text-xs text-ink-400">Estimated: Q3 2026</p>
+          <p className="mt-4 text-xs text-muted">Estimated: Q3 2026</p>
         </div>
 
         <div className="mt-6 text-center">

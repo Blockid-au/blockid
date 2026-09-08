@@ -507,7 +507,7 @@ export function EsopClient() {
                   "h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors",
                   step >= s
                     ? "bg-brand-600 text-white"
-                    : "bg-surface-100 text-ink-400",
+                    : "bg-surface-100 text-muted",
                 )}
               >
                 {s}
@@ -543,7 +543,7 @@ export function EsopClient() {
 
           {loading ? (
             <div className="px-6 py-12 text-center">
-              <Loader2 className="h-6 w-6 text-ink-400 animate-spin mx-auto" />
+              <Loader2 className="h-6 w-6 text-muted animate-spin mx-auto" />
             </div>
           ) : (
             <div className="divide-y divide-surface-100">
@@ -569,7 +569,7 @@ export function EsopClient() {
                 </div>
                 <ArrowRight
                   strokeWidth={1.75}
-                  className="h-4 w-4 text-ink-400"
+                  className="h-4 w-4 text-muted"
                 />
               </button>
 
@@ -610,7 +610,7 @@ export function EsopClient() {
                   </span>
                   <ArrowRight
                     strokeWidth={1.75}
-                    className="h-4 w-4 text-ink-400"
+                    className="h-4 w-4 text-muted"
                   />
                 </button>
               ))}
@@ -648,7 +648,7 @@ export function EsopClient() {
                     </div>
                     <ArrowRight
                       strokeWidth={1.75}
-                      className="h-4 w-4 text-ink-400"
+                      className="h-4 w-4 text-muted"
                     />
                   </button>
                 ))}
@@ -698,7 +698,7 @@ export function EsopClient() {
                         setNewEmployee({ ...newEmployee, name: e.target.value })
                       }
                       placeholder="e.g. Jane Smith"
-                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
                     />
                   </div>
                   <div>
@@ -715,7 +715,7 @@ export function EsopClient() {
                         })
                       }
                       placeholder="jane@company.com"
-                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
                     />
                   </div>
                   <div>
@@ -732,7 +732,7 @@ export function EsopClient() {
                         })
                       }
                       placeholder="0x..."
-                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
                     />
                   </div>
                 </div>
@@ -757,7 +757,7 @@ export function EsopClient() {
                   })
                 }
                 placeholder="e.g. 50000"
-                className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
               />
             </div>
 
@@ -957,7 +957,7 @@ export function EsopClient() {
             {loadingGrants && (
               <Loader2
                 strokeWidth={1.75}
-                className="h-4 w-4 text-ink-400 animate-spin"
+                className="h-4 w-4 text-muted animate-spin"
               />
             )}
           </div>
@@ -966,7 +966,7 @@ export function EsopClient() {
             <div className="px-6 py-12 text-center">
               <Users
                 strokeWidth={1.25}
-                className="mx-auto h-10 w-10 text-ink-300 mb-3"
+                className="mx-auto h-10 w-10 text-muted mb-3"
               />
               <p className="text-sm text-ink-500">
                 No active ESOP grants. Click &quot;New ESOP Grant&quot; to create
@@ -1018,7 +1018,7 @@ export function EsopClient() {
                             {grant.shareholder.name}
                           </p>
                           {grant.shareholder.evm_address && (
-                            <p className="text-xs text-ink-400 font-mono mt-0.5">
+                            <p className="text-xs text-muted font-mono mt-0.5">
                               {shortenAddress(grant.shareholder.evm_address)}
                             </p>
                           )}

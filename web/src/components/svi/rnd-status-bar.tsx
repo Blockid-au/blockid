@@ -131,7 +131,7 @@ export function RndStatusBar({ entries, isActive }: RndStatusBarProps) {
                       {entry.message}
                     </p>
                   </div>
-                  <span className="text-[10px] text-ink-400 tabular-nums shrink-0 mt-0.5">
+                  <span className="text-[10px] text-muted tabular-nums shrink-0 mt-0.5">
                     {formatElapsed(entries[0].ts, entry.ts)}
                   </span>
                 </div>

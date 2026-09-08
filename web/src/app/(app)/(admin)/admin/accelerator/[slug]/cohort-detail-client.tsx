@@ -27,7 +27,7 @@ interface CohortDetailClientProps {
 function TrendIcon({ trend }: { trend: "up" | "down" | "flat" }) {
   if (trend === "up") return <ArrowUp strokeWidth={2} className="h-3.5 w-3.5 text-green-500" />;
   if (trend === "down") return <ArrowDown strokeWidth={2} className="h-3.5 w-3.5 text-red-500" />;
-  return <Minus strokeWidth={2} className="h-3.5 w-3.5 text-ink-400" />;
+  return <Minus strokeWidth={2} className="h-3.5 w-3.5 text-muted" />;
 }
 
 function sviColor(svi: number) {
@@ -35,7 +35,7 @@ function sviColor(svi: number) {
   if (svi >= 100) return "text-brand-600";
   if (svi >= 80) return "text-amber-400";
   if (svi > 0) return "text-red-400";
-  return "text-ink-400";
+  return "text-muted";
 }
 
 export function CohortDetailClient({
@@ -382,7 +382,7 @@ export function CohortDetailClient({
                     value={memberForm.email}
                     onChange={(e) => setMemberForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="founder@startup.com"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                   />
                 </div>
                 <div>
@@ -394,7 +394,7 @@ export function CohortDetailClient({
                     value={memberForm.startupName}
                     onChange={(e) => setMemberForm((f) => ({ ...f, startupName: e.target.value }))}
                     placeholder="e.g. Acme Corp"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-2">

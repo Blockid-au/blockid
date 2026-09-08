@@ -55,7 +55,7 @@ export function GrowthRoadmap({ currentPhase }: GrowthRoadmapProps) {
                   "h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all",
                   isComplete && `${colors.bg} ${colors.border} ${colors.text}`,
                   isCurrent && `${colors.bg} ${colors.border} ${colors.text} ring-4 ring-brand-100 animate-pulse`,
-                  isFuture && "bg-surface-100 border-surface-300 text-ink-400",
+                  isFuture && "bg-surface-100 border-surface-300 text-muted",
                 )}
               >
                 {isComplete ? (
@@ -70,13 +70,13 @@ export function GrowthRoadmap({ currentPhase }: GrowthRoadmapProps) {
               {/* Labels */}
               <p className={cn(
                 "text-[11px] font-bold mt-2 text-center",
-                isFuture ? "text-ink-400" : "text-ink-800",
+                isFuture ? "text-muted" : "text-ink-800",
               )}>
                 {phase.label}
               </p>
               <p className={cn(
                 "text-[9px] text-center leading-tight mt-0.5 whitespace-pre-line",
-                isFuture ? "text-ink-300" : "text-ink-500",
+                isFuture ? "text-muted" : "text-ink-500",
               )}>
                 {phase.sub}
               </p>

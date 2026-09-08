@@ -76,7 +76,7 @@ function stageRank(stage: StageKey): number {
 function EmptyState() {
   return (
     <div className="rounded-2xl border-2 border-dashed border-surface-200 bg-white px-6 py-16 text-center">
-      <Briefcase className="mx-auto h-8 w-8 text-ink-300" strokeWidth={1.5} />
+      <Briefcase className="mx-auto h-8 w-8 text-muted" strokeWidth={1.5} />
       <h2 className="mt-4 text-lg font-semibold text-ink-900">
         You haven&apos;t created any startups yet.
       </h2>

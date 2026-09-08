@@ -321,7 +321,7 @@ export function PlatformRoadmap() {
                       <PhaseIcon strokeWidth={1.75} className={cn("h-4.5 w-4.5", phase.color)} />
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Phase {phase.number}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted font-semibold">Phase {phase.number}</p>
                       <p className="text-sm font-bold text-ink-800">{phase.name}</p>
                     </div>
                   </div>

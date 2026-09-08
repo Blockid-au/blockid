@@ -126,7 +126,7 @@ export default async function ResellerReportsPage() {
                   {r.status === "Generated" ? (
                     <ReportDownloadCell month={r.month} />
                   ) : (
-                    <span className="text-xs text-ink-400">—</span>
+                    <span className="text-xs text-muted">—</span>
                   )}
                 </td>
               </tr>

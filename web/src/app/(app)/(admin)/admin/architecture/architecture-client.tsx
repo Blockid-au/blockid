@@ -323,11 +323,11 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
               {/* Row 1: Browser -> Cloudflare -> Next.js -> Supabase */}
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 <DiagramBox icon={Monitor} label="Browser" sub="User" color="bg-blue-50 border-blue-200 text-blue-700" />
-                <ArrowRight className="h-4 w-4 text-ink-400 shrink-0" />
+                <ArrowRight className="h-4 w-4 text-muted shrink-0" />
                 <DiagramBox icon={Cloud} label="Cloudflare CDN" sub="Edge Cache + SSL" color="bg-orange-50 border-orange-200 text-orange-700" />
-                <ArrowRight className="h-4 w-4 text-ink-400 shrink-0" />
+                <ArrowRight className="h-4 w-4 text-muted shrink-0" />
                 <DiagramBox icon={Globe} label="Next.js :4001" sub="Monolith" color="bg-brand-50 border-brand-200 text-brand-700" highlight />
-                <ArrowRight className="h-4 w-4 text-ink-400 shrink-0" />
+                <ArrowRight className="h-4 w-4 text-muted shrink-0" />
                 <DiagramBox icon={Database} label="Supabase DB" sub="PostgreSQL" color="bg-emerald-50 border-emerald-200 text-emerald-700" />
               </div>
 
@@ -407,7 +407,7 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
                   </div>
                   <div>
                     <span className={cn("text-sm font-semibold", group.color)}>{group.domain}</span>
-                    <span className="text-[10px] text-ink-400 ml-2">{group.tables.length} tables</span>
+                    <span className="text-[10px] text-muted ml-2">{group.tables.length} tables</span>
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -439,11 +439,11 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wider text-ink-400 font-medium w-12">Port</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted font-medium w-12">Port</span>
                     <span className="text-[11px] font-mono text-ink-700">{service.port}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wider text-ink-400 font-medium w-12">Stack</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted font-medium w-12">Stack</span>
                     <span className="text-[11px] font-mono text-ink-700">{service.runtime}</span>
                   </div>
                   <p className="text-[11px] text-ink-500 pt-1 border-t border-surface-100">{service.description}</p>
@@ -461,7 +461,7 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {API_ROUTE_GROUPS.map((group) => (
                 <div key={group.domain} className="flex items-center gap-3 rounded-xl border border-surface-100 bg-surface-50 p-3">
-                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-white text-xs font-bold", group.color)}>
+                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-primary text-xs font-bold", group.color)}>
                     {group.count}
                   </div>
                   <div>

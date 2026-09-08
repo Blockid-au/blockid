@@ -109,7 +109,7 @@ function HealthGauge({ score, color }: { score: number; color: string }) {
 /* ─── Runway Bar ─────────────────────────────────────────────────────────── */
 
 function RunwayBar({ months }: { months: number | null }) {
-  if (months === null) return <span className="text-ink-400 text-sm">—</span>;
+  if (months === null) return <span className="text-muted text-sm">—</span>;
   const capped = Math.min(months, 24);
   const pct = (capped / 24) * 100;
   let color = "bg-emerald-500";
@@ -133,7 +133,7 @@ function RunwayBar({ months }: { months: number | null }) {
       <div className="h-2 rounded-full bg-surface-100 overflow-hidden">
         <div className={cn("h-full rounded-full transition-all duration-700", color)} style={{ width: `${pct}%` }} />
       </div>
-      <p className="text-[10px] text-ink-400">Bar shows up to 24 months. Green = &gt;12mo, Yellow = 6-12mo, Red = &lt;6mo</p>
+      <p className="text-[10px] text-muted">Bar shows up to 24 months. Green = &gt;12mo, Yellow = 6-12mo, Red = &lt;6mo</p>
     </div>
   );
 }
@@ -178,7 +178,7 @@ function NumberInput({
     <div className="space-y-1">
       <label className="block text-xs font-medium text-ink-500">{label}</label>
       <div className="flex items-center rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 transition-all">
-        {prefix && <span className="text-sm text-ink-400 mr-1 shrink-0">{prefix}</span>}
+        {prefix && <span className="text-sm text-muted mr-1 shrink-0">{prefix}</span>}
         <input
           type="number"
           min={0}
@@ -189,7 +189,7 @@ function NumberInput({
           className="flex-1 bg-transparent text-sm font-medium text-ink-800 outline-none min-w-0"
         />
       </div>
-      {hint && <p className="text-[10px] text-ink-400">{hint}</p>}
+      {hint && <p className="text-[10px] text-muted">{hint}</p>}
     </div>
   );
 }
@@ -310,7 +310,7 @@ export function CFODashboardClient({
           {noInputsYet ? (
             <div className="flex flex-col items-center justify-center text-center py-6 space-y-2">
               <div className="h-14 w-14 rounded-full border-2 border-dashed border-surface-300 dark:border-white/15 flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-ink-300 dark:text-ink-500" aria-hidden />
+                <BarChart3 className="h-6 w-6 text-muted dark:text-ink-500" aria-hidden />
               </div>
               <p className="text-sm font-medium text-ink-700 dark:text-ink-200">
                 Enter your numbers to see your score
@@ -551,7 +551,7 @@ export function CFODashboardClient({
         <div className="rounded-2xl border border-dashed border-surface-200 bg-white/50 p-8 text-center">
           <Sparkles className="h-8 w-8 mx-auto text-brand-300 mb-3" />
           <p className="text-sm font-medium text-ink-600">AI CFO Commentary will appear here</p>
-          <p className="text-xs text-ink-400 mt-1">
+          <p className="text-xs text-muted mt-1">
             Fill in your financials above and click &ldquo;Generate AI Commentary&rdquo; to get personalised CFO insights.
           </p>
         </div>

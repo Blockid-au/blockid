@@ -71,8 +71,8 @@ export default async function MentorOverviewTab({
           <ul className="space-y-1 text-xs">
             {events.map((e, i) => (
               <li key={i} className="flex gap-2 text-ink-700 dark:text-ink-300">
-                <span className="w-14 text-ink-400">{e.kind}</span>
-                <span className="w-24 text-ink-400">{new Date(e.ts).toISOString().slice(0, 10)}</span>
+                <span className="w-14 text-muted">{e.kind}</span>
+                <span className="w-24 text-muted">{new Date(e.ts).toISOString().slice(0, 10)}</span>
                 <span className="truncate">{e.label}</span>
               </li>
             ))}

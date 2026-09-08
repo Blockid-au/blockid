@@ -599,13 +599,13 @@ function SignalRow({ label, active }: { label: string; active: boolean }) {
     <span
       className={cn(
         "inline-flex items-center gap-1.5 text-xs font-medium",
-        active ? "text-emerald-700" : "text-ink-400",
+        active ? "text-emerald-700" : "text-muted",
       )}
     >
       {active ? (
         <CheckCircle2 strokeWidth={2} className="h-3.5 w-3.5 text-emerald-500" />
       ) : (
-        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-ink-300 text-[8px] text-ink-400">x</span>
+        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-ink-300 text-[8px] text-muted">x</span>
       )}
       {label}
     </span>
@@ -691,7 +691,7 @@ function TechAuditCard({ audit }: { audit: ClientTechAuditResult }) {
         <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-2">Performance</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-center">
-            <p className="text-[10px] text-ink-400 uppercase">TTFB</p>
+            <p className="text-[10px] text-muted uppercase">TTFB</p>
             <p className={cn(
               "text-sm font-bold font-mono",
               audit.performance.ttfbMs < 500 ? "text-emerald-600" :
@@ -701,19 +701,19 @@ function TechAuditCard({ audit }: { audit: ClientTechAuditResult }) {
             </p>
           </div>
           <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-center">
-            <p className="text-[10px] text-ink-400 uppercase">Page Size</p>
+            <p className="text-[10px] text-muted uppercase">Page Size</p>
             <p className="text-sm font-bold font-mono text-ink-800">
               {Math.round(audit.performance.pageSizeBytes / 1024)}KB
             </p>
           </div>
           <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-center">
-            <p className="text-[10px] text-ink-400 uppercase">Compression</p>
+            <p className="text-[10px] text-muted uppercase">Compression</p>
             <p className="text-sm font-bold font-mono text-ink-800">
               {audit.performance.compressionType ?? "None"}
             </p>
           </div>
           <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-center">
-            <p className="text-[10px] text-ink-400 uppercase">SSL</p>
+            <p className="text-[10px] text-muted uppercase">SSL</p>
             <p className={cn(
               "text-sm font-bold font-mono",
               audit.security.ssl.valid ? "text-emerald-600" : "text-red-600",
@@ -765,7 +765,7 @@ function TechAuditCard({ audit }: { audit: ClientTechAuditResult }) {
                 key={key}
                 className={cn(
                   "font-semibold",
-                  val > 0 ? "text-emerald-600" : val < 0 ? "text-red-600" : "text-ink-400",
+                  val > 0 ? "text-emerald-600" : val < 0 ? "text-red-600" : "text-muted",
                 )}
               >
                 {label}: {val > 0 ? "+" : ""}{val}
@@ -979,7 +979,7 @@ export function RndResultsPanel({
                   <button
                     type="button"
                     onClick={() => { setShowShareModal(false); setInvestorEmail(""); setShareSent(false); }}
-                    className="text-ink-400 hover:text-ink-600 cursor-pointer"
+                    className="text-muted hover:text-ink-600 cursor-pointer"
                   >
                     <X strokeWidth={1.75} className="h-4 w-4" />
                   </button>
@@ -993,7 +993,7 @@ export function RndResultsPanel({
                     value={investorEmail}
                     onChange={(e) => setInvestorEmail(e.target.value)}
                     placeholder="investor@example.com"
-                    className="flex-1 rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    className="flex-1 rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                     onKeyDown={(e) => { if (e.key === "Enter") void handleShareWithInvestor(); }}
                   />
                   <button
@@ -1155,7 +1155,7 @@ export function RndResultsPanel({
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {Object.entries(section.dataPoints).map(([k, v]) => (
                   <div key={k} className="rounded-lg bg-white px-3 py-2 border border-amber-100">
-                    <span className="text-[10px] text-ink-400 uppercase">{k}</span>
+                    <span className="text-[10px] text-muted uppercase">{k}</span>
                     <span className="block text-sm font-semibold text-ink-800">{v}</span>
                   </div>
                 ))}

@@ -391,7 +391,7 @@ function PhaseCard({ phase }: { phase: Phase }) {
           className={cn(
             "h-10 w-10 rounded-full flex items-center justify-center border-[3px] text-sm font-bold shrink-0 transition-all",
             phase.status === "Complete"
-              ? "bg-emerald-500 border-emerald-500 text-white"
+              ? "bg-emerald-500 border-emerald-500 text-primary"
               : phase.status === "In Progress"
                 ? "bg-white border-brand-500 text-brand-600 ring-4 ring-brand-100"
                 : "bg-white border-surface-300 text-ink-500",
@@ -421,7 +421,7 @@ function PhaseCard({ phase }: { phase: Phase }) {
           </div>
           <div className="flex items-center gap-3 mt-1">
             <p className="text-[11px] text-ink-500">{phase.timeline}</p>
-            <span className="text-[10px] text-ink-400">
+            <span className="text-[10px] text-muted">
               {doneGoals}/{totalGoals} goals
             </span>
           </div>
@@ -445,7 +445,7 @@ function PhaseCard({ phase }: { phase: Phase }) {
         <ChevronDown
           strokeWidth={1.75}
           className={cn(
-            "h-5 w-5 text-ink-400 shrink-0 transition-transform duration-200",
+            "h-5 w-5 text-muted shrink-0 transition-transform duration-200",
             open && "rotate-180",
           )}
         />
@@ -509,7 +509,7 @@ function PhaseCard({ phase }: { phase: Phase }) {
                     ) : (
                       <Circle
                         strokeWidth={1.5}
-                        className="h-3.5 w-3.5 text-ink-300 shrink-0 mt-0.5"
+                        className="h-3.5 w-3.5 text-muted shrink-0 mt-0.5"
                       />
                     )}
                     <span
@@ -579,7 +579,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
         <div className="text-center py-4">
           <div className="flex justify-center mb-4">
             <div className="h-14 w-14 rounded-2xl gradient-brand flex items-center justify-center shadow-lg">
-              <Map strokeWidth={1.75} className="h-7 w-7 text-white" />
+              <Map strokeWidth={1.75} className="h-7 w-7 text-primary" />
             </div>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-ink-900 tracking-tight">
@@ -588,7 +588,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
           <p className="text-sm md:text-base text-ink-600 mt-3 max-w-2xl mx-auto leading-relaxed">
             8-phase plan — from idea to investable business
           </p>
-          <p className="text-xs text-ink-400 mt-2">{todayStr}</p>
+          <p className="text-xs text-muted mt-2">{todayStr}</p>
           <div className="flex items-center justify-center gap-4 mt-5 text-[11px] text-ink-500">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />

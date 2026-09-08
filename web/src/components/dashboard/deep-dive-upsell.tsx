@@ -39,7 +39,7 @@ export function DeepDiveUpsell() {
         Run Deep Dive
         <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
       </Link>
-      <p className="text-center text-[10px] text-ink-400 mt-2">From 1.00 credit</p>
+      <p className="text-center text-[10px] text-muted mt-2">From 1.00 credit</p>
     </div>
   );
 }

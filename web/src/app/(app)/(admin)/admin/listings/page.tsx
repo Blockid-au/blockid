@@ -30,8 +30,8 @@ const STATUS_CONFIG = {
   done: { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", label: "Live" },
   in_progress: { icon: Clock, color: "text-amber-600", bg: "bg-amber-50", label: "In Progress" },
   planned: { icon: Circle, color: "text-brand-600", bg: "bg-brand-50", label: "Planned" },
-  todo: { icon: AlertCircle, color: "text-ink-400", bg: "bg-surface-100", label: "Todo" },
-  evaluate: { icon: Circle, color: "text-ink-400", bg: "bg-surface-100", label: "Evaluate" },
+  todo: { icon: AlertCircle, color: "text-muted", bg: "bg-surface-100", label: "Todo" },
+  evaluate: { icon: Circle, color: "text-muted", bg: "bg-surface-100", label: "Evaluate" },
 };
 
 export default async function ListingsPage() {
@@ -73,7 +73,7 @@ export default async function ListingsPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-ink-900">{platform.name}</span>
                           <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
-                          <span className="text-[10px] text-ink-400">{platform.type}</span>
+                          <span className="text-[10px] text-muted">{platform.type}</span>
                         </div>
                         <p className="text-xs text-ink-500 mt-0.5">{platform.action}</p>
                       </div>

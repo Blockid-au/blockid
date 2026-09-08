@@ -39,11 +39,11 @@ export default async function Page() {
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-6xl mx-auto space-y-6">
         <header>
-          <h1 className="bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent font-bold text-xl">Roadmap Builder</h1>
-          <p className="text-sm text-[#94A3B8] mt-1">{cfg.founder_features_copy.roadmap_intro}</p>
-          <p className="text-xs text-[#94A3B8]/70 mt-1">
+          <h1 className="text-primary font-bold text-xl">Roadmap Builder</h1>
+          <p className="text-sm text-muted mt-1">{cfg.founder_features_copy.roadmap_intro}</p>
+          <p className="text-xs text-muted/70 mt-1">
             Growth-phase gates live on{" "}
-            <a href="/workspace/roadmap" className="text-[#00D4FF] hover:underline">/workspace/roadmap</a>.
+            <a href="/workspace/roadmap" className="text-action hover:underline">/workspace/roadmap</a>.
             This surface is your own quarterly plan.
           </p>
         </header>

@@ -312,7 +312,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                   "rounded-lg px-2 py-2 text-center text-[11px] font-medium border transition-all",
                   done && "bg-emerald-50 border-emerald-200 text-emerald-700",
                   active && "bg-brand-50 border-brand-300 text-brand-700 ring-2 ring-brand-200",
-                  !done && !active && "bg-surface-100 border-surface-200 text-ink-400",
+                  !done && !active && "bg-surface-100 border-surface-200 text-muted",
                 )}
               >
                 <span className="text-base block">{p.icon}</span>
@@ -321,7 +321,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
             );
           })}
         </div>
-        <p className="text-[10px] text-ink-400 mt-2 text-center">
+        <p className="text-[10px] text-muted mt-2 text-center">
           Based on SVI {analysis.totalSvi} — answering: Where am I now? What am I worth? What should I do next?
         </p>
       </div>
@@ -371,7 +371,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                       : hasSummary
                         ? "bg-amber-50 text-amber-700 hover:bg-amber-100"
                         : isLocked
-                          ? "bg-surface-100 text-ink-400 hover:bg-surface-200"
+                          ? "bg-surface-100 text-muted hover:bg-surface-200"
                           : "bg-surface-100 text-ink-600 hover:bg-brand-50"
                   )}
                 >
@@ -414,7 +414,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                     ) : hasSummary ? (
                       <FileText strokeWidth={1.75} className="h-4 w-4 text-amber-500 shrink-0" />
                     ) : (
-                      <Lock strokeWidth={1.75} className="h-4 w-4 text-ink-300 shrink-0" />
+                      <Lock strokeWidth={1.75} className="h-4 w-4 text-muted shrink-0" />
                     )}
                     <div className="min-w-0">
                       <span className="text-sm font-semibold text-ink-900 block truncate">{def.title}</span>
@@ -433,14 +433,14 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                       </span>
                     )}
                     {!hasContent && (
-                      <span className="rounded-full bg-surface-200 px-2 py-0.5 text-[10px] font-medium text-ink-400">
+                      <span className="rounded-full bg-surface-200 px-2 py-0.5 text-[10px] font-medium text-muted">
                         Locked
                       </span>
                     )}
                     {hasContent && (
                       isExpanded
-                        ? <ChevronUp strokeWidth={1.75} className="h-4 w-4 text-ink-400" />
-                        : <ChevronDown strokeWidth={1.75} className="h-4 w-4 text-ink-400" />
+                        ? <ChevronUp strokeWidth={1.75} className="h-4 w-4 text-muted" />
+                        : <ChevronDown strokeWidth={1.75} className="h-4 w-4 text-muted" />
                     )}
                   </div>
                 </button>
@@ -591,7 +591,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                 <p className="text-xs text-ink-600 mb-4">
                   {remainingSections.length} sections &middot; ~{remainingWords.toLocaleString()}{" "}
                   words &middot;{" "}
-                  <span className="line-through text-ink-400">{remainingCost.toFixed(2)} cr</span>{" "}
+                  <span className="line-through text-muted">{remainingCost.toFixed(2)} cr</span>{" "}
                   <span className="font-mono font-semibold text-brand-600">
                     {discountedCost.toFixed(2)} cr
                   </span>{" "}

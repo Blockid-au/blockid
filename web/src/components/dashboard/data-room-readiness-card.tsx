@@ -64,7 +64,7 @@ export function DataRoomReadinessCard() {
   if (loading) {
     return (
       <div className="rounded-2xl border border-surface-200 bg-white p-6 flex items-center justify-center min-h-[160px]">
-        <Loader2 className="h-5 w-5 text-ink-300 animate-spin" />
+        <Loader2 className="h-5 w-5 text-muted animate-spin" />
       </div>
     );
   }
@@ -147,7 +147,7 @@ export function DataRoomReadinessCard() {
               <span className={`truncate font-medium ${done ? "text-emerald-800" : "text-ink-700"}`}>
                 {item.label}
               </span>
-              <span className={`ml-auto shrink-0 font-mono tabular-nums ${done ? "text-emerald-600" : "text-ink-400"}`}>
+              <span className={`ml-auto shrink-0 font-mono tabular-nums ${done ? "text-emerald-600" : "text-muted"}`}>
                 {item.score}%
               </span>
             </div>

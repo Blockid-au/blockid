@@ -145,7 +145,7 @@ export function PricingConfig({ initial, defaults }: Props) {
                             onChange={(e) => setValue(field.key, e.target.value)}
                             className="w-40 text-sm border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono"
                           />
-                          {field.unit && <span className="text-xs text-ink-400">{field.unit}</span>}
+                          {field.unit && <span className="text-xs text-muted">{field.unit}</span>}
                         </div>
                       )}
                     </div>

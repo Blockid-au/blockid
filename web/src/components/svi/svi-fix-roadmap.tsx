@@ -195,9 +195,9 @@ export function SviFixRoadmap({ projectId, className }: SviFixRoadmapProps) {
             >
               <div className="flex items-center gap-3">
                 {isOpen ? (
-                  <ChevronDown className="h-4 w-4 text-ink-400" />
+                  <ChevronDown className="h-4 w-4 text-muted" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-ink-400" />
+                  <ChevronRight className="h-4 w-4 text-muted" />
                 )}
                 <span className="text-sm font-semibold text-ink-800 dark:text-ink-100">
                   Week {week}
@@ -233,7 +233,7 @@ export function SviFixRoadmap({ projectId, className }: SviFixRoadmapProps) {
                           className={cn(
                             "text-xs font-medium leading-snug",
                             isChecked
-                              ? "line-through text-ink-400 dark:text-ink-500"
+                              ? "line-through text-muted dark:text-ink-500"
                               : "text-ink-800 dark:text-ink-100"
                           )}
                         >

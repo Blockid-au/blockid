@@ -128,7 +128,7 @@ export function BrandingClient({ isPro }: BrandingClientProps) {
               className="h-14 w-auto rounded-lg border border-surface-200 object-contain bg-white p-1"
             />
           ) : (
-            <div className="h-14 w-32 rounded-lg border-2 border-dashed border-surface-300 flex items-center justify-center text-ink-300 text-xs">
+            <div className="h-14 w-32 rounded-lg border-2 border-dashed border-surface-300 flex items-center justify-center text-muted text-xs">
               No logo
             </div>
           )}
@@ -271,12 +271,12 @@ export function BrandingClient({ isPro }: BrandingClientProps) {
 
         {/* Preview swatch */}
         <div
-          className="mt-4 rounded-xl p-4 text-white text-xs font-medium"
+          className="mt-4 rounded-xl p-4 text-primary text-xs font-medium"
           style={{ background: settings.primaryColor }}
         >
           Report header preview
           <span
-            className="ml-2 rounded px-1.5 py-0.5 text-white text-xs"
+            className="ml-2 rounded px-1.5 py-0.5 text-primary text-xs"
             style={{ background: settings.accentColor }}
           >
             Score: 78

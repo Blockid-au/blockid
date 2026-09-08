@@ -336,7 +336,7 @@ export function JournalClient() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
           </div>
 
           <button
@@ -346,7 +346,7 @@ export function JournalClient() {
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
 
-          <span className="text-xs text-ink-400">
+          <span className="text-xs text-muted">
             {total} {total === 1 ? "entry" : "entries"}
           </span>
         </div>
@@ -414,7 +414,7 @@ export function JournalClient() {
 
             <div>
               <label className="block text-xs font-medium text-ink-600 mb-1">
-                Tags <span className="text-ink-400">(comma-separated)</span>
+                Tags <span className="text-muted">(comma-separated)</span>
               </label>
               <input
                 type="text"
@@ -446,12 +446,12 @@ export function JournalClient() {
 
         {/* Timeline grouped by month */}
         {loading ? (
-          <div className="text-center py-12 text-sm text-ink-400">Loading journal...</div>
+          <div className="text-center py-12 text-sm text-muted">Loading journal...</div>
         ) : entries.length === 0 ? (
           <div className="text-center py-16 space-y-3">
-            <BookOpen className="h-10 w-10 mx-auto text-ink-300" />
+            <BookOpen className="h-10 w-10 mx-auto text-muted" />
             <p className="text-sm text-ink-500">No journal entries yet.</p>
-            <p className="text-xs text-ink-400">
+            <p className="text-xs text-muted">
               Start documenting your startup journey — decisions, pivots, milestones, and learnings.
             </p>
           </div>
@@ -467,7 +467,7 @@ export function JournalClient() {
                   <h3 className="text-sm font-semibold text-ink-700">
                     {formatMonthLabel(monthKey)}
                   </h3>
-                  <span className="text-[10px] text-ink-400">
+                  <span className="text-[10px] text-muted">
                     {monthEntries.length} {monthEntries.length === 1 ? "entry" : "entries"}
                   </span>
                   <div className="flex-1 border-t border-surface-200" />
@@ -523,7 +523,7 @@ export function JournalClient() {
                                   >
                                     {typeConfig.label}
                                   </span>
-                                  <span className="text-[10px] text-ink-400">
+                                  <span className="text-[10px] text-muted">
                                     {date.toLocaleDateString("en-AU", {
                                       day: "numeric",
                                       month: "short",
@@ -531,7 +531,7 @@ export function JournalClient() {
                                     })}
                                   </span>
                                   {entry.svi_at_time != null && (
-                                    <span className="text-[10px] text-ink-400">
+                                    <span className="text-[10px] text-muted">
                                       SVI: {entry.svi_at_time}
                                     </span>
                                   )}
@@ -545,7 +545,7 @@ export function JournalClient() {
                                       e.stopPropagation();
                                       startEdit(entry);
                                     }}
-                                    className="h-7 w-7 flex items-center justify-center rounded-lg text-ink-300 hover:text-brand-500 hover:bg-brand-50 transition-colors cursor-pointer"
+                                    className="h-7 w-7 flex items-center justify-center rounded-lg text-muted hover:text-brand-500 hover:bg-brand-50 transition-colors cursor-pointer"
                                     title="Edit entry"
                                   >
                                     <Pencil className="h-3.5 w-3.5" />
@@ -557,7 +557,7 @@ export function JournalClient() {
                                     handleDelete(entry.id);
                                   }}
                                   disabled={deleting === entry.id}
-                                  className="h-7 w-7 flex items-center justify-center rounded-lg text-ink-300 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                                  className="h-7 w-7 flex items-center justify-center rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                                   title="Delete entry"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -608,7 +608,7 @@ export function JournalClient() {
                               <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                                 {entry.metadata.lowValuation != null && (
                                   <div className="rounded-xl bg-surface-50 px-3 py-2 text-center">
-                                    <div className="text-[10px] text-ink-400">Conservative</div>
+                                    <div className="text-[10px] text-muted">Conservative</div>
                                     <div className="text-sm font-semibold text-ink-700">
                                       ${(Number(entry.metadata.lowValuation) / 1_000_000).toFixed(2)}M
                                     </div>
@@ -632,7 +632,7 @@ export function JournalClient() {
                                 )}
                                 {entry.metadata.revenueMultiple != null && (
                                   <div className="rounded-xl bg-surface-50 px-3 py-2 text-center">
-                                    <div className="text-[10px] text-ink-400">Multiple</div>
+                                    <div className="text-[10px] text-muted">Multiple</div>
                                     <div className="text-sm font-semibold text-ink-700">
                                       {String(entry.metadata.revenueMultiple)}x
                                     </div>
@@ -683,7 +683,7 @@ export function JournalClient() {
               <h3 className="text-sm font-semibold text-ink-800">Entry Detail</h3>
               <button
                 onClick={() => setSelectedEntry(null)}
-                className="h-6 w-6 flex items-center justify-center rounded-lg text-ink-400 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer"
+                className="h-6 w-6 flex items-center justify-center rounded-lg text-muted hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -691,12 +691,12 @@ export function JournalClient() {
 
             <div className="space-y-3">
               <div>
-                <span className="text-[10px] text-ink-400 uppercase tracking-wider">Title</span>
+                <span className="text-[10px] text-muted uppercase tracking-wider">Title</span>
                 <p className="text-sm font-medium text-ink-800">{selectedEntry.title}</p>
               </div>
 
               <div>
-                <span className="text-[10px] text-ink-400 uppercase tracking-wider">Type</span>
+                <span className="text-[10px] text-muted uppercase tracking-wider">Type</span>
                 <div className="mt-0.5">
                   {(() => {
                     const cfg = getTypeConfig(selectedEntry.entry_type);
@@ -712,7 +712,7 @@ export function JournalClient() {
               </div>
 
               <div>
-                <span className="text-[10px] text-ink-400 uppercase tracking-wider">Date</span>
+                <span className="text-[10px] text-muted uppercase tracking-wider">Date</span>
                 <p className="text-sm text-ink-600">
                   {new Date(selectedEntry.created_at).toLocaleDateString("en-AU", {
                     weekday: "long",
@@ -725,14 +725,14 @@ export function JournalClient() {
 
               {selectedEntry.svi_at_time != null && (
                 <div>
-                  <span className="text-[10px] text-ink-400 uppercase tracking-wider">SVI at Time</span>
+                  <span className="text-[10px] text-muted uppercase tracking-wider">SVI at Time</span>
                   <p className="text-sm font-mono text-ink-700">{selectedEntry.svi_at_time}/1000</p>
                 </div>
               )}
 
               {selectedEntry.tags && selectedEntry.tags.length > 0 && (
                 <div>
-                  <span className="text-[10px] text-ink-400 uppercase tracking-wider">Tags</span>
+                  <span className="text-[10px] text-muted uppercase tracking-wider">Tags</span>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {selectedEntry.tags.map((tag) => (
                       <span
@@ -748,7 +748,7 @@ export function JournalClient() {
 
               {selectedEntry.ai_reflection && (
                 <div>
-                  <span className="text-[10px] text-ink-400 uppercase tracking-wider">AI Insight</span>
+                  <span className="text-[10px] text-muted uppercase tracking-wider">AI Insight</span>
                   <p className="text-xs text-brand-700 mt-0.5 leading-relaxed">
                     {selectedEntry.ai_reflection}
                   </p>

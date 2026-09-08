@@ -71,13 +71,13 @@ export default async function IntegrationsPage({
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <div className="p-6 max-w-3xl mx-auto space-y-6">
         <header>
-          <h1 className="bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent font-bold text-2xl">
+          <h1 className="text-primary font-bold text-2xl">
             Integrations
           </h1>
-          <p className="text-sm text-[#94A3B8] mt-1">
+          <p className="text-sm text-muted mt-1">
             One row per integration. Signals connectors auto-fill your Evidence Vault; the blockchain layer optionally mirrors equity events on-chain (off-chain is still the source of truth).
           </p>
-          <p className="text-xs text-[#94A3B8]/70 mt-2">
+          <p className="text-xs text-muted/70 mt-2">
             {summary.connected} of {summary.total} connected
             {summary.errored > 0 ? ` · ${summary.errored} need attention` : ""}
             {summary.not_configured > 0 ? ` · ${summary.not_configured} awaiting configuration` : ""}
@@ -102,11 +102,11 @@ export default async function IntegrationsPage({
         </div>
 
         {/* ── CRM Push via Zapier ───────────────────────────────────── */}
-        <section className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm rounded-2xl p-4 space-y-2">
-          <h2 className="text-sm font-semibold text-[#F8FAFC]">
+        <section className="bg-surface-sunken border border-line-subtle backdrop-blur-sm rounded-2xl p-4 space-y-2">
+          <h2 className="text-sm font-semibold text-primary">
             CRM Push (via Zapier)
           </h2>
-          <p className="text-xs text-[#94A3B8]">
+          <p className="text-xs text-muted">
             Push your startup profile and latest SVI score to HubSpot, Salesforce, Pipedrive, or any CRM
             connected through a Zapier webhook. Up to 5 pushes per hour.
           </p>

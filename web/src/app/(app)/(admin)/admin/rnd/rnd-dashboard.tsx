@@ -293,7 +293,7 @@ export function RndDashboard() {
               </button>
               <button
                 disabled
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-400 bg-surface-100 rounded-lg px-3 py-1.5 cursor-not-allowed opacity-50"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted bg-surface-100 rounded-lg px-3 py-1.5 cursor-not-allowed opacity-50"
                 title="Email delivery coming soon"
               >
                 <Mail className="h-3.5 w-3.5" />
@@ -327,7 +327,7 @@ export function RndDashboard() {
                   onClick={() => viewHistoryReport(stored)}
                   className="flex items-center gap-3 text-left flex-1 cursor-pointer"
                 >
-                  <Clock className="h-4 w-4 text-ink-400 shrink-0" />
+                  <Clock className="h-4 w-4 text-muted shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-ink-800">
                       {topicLabel(stored.topic)} Report
@@ -339,7 +339,7 @@ export function RndDashboard() {
                 </button>
                 <button
                   onClick={() => deleteHistoryReport(stored.id)}
-                  className="p-1.5 text-ink-400 hover:text-red-500 transition-colors cursor-pointer"
+                  className="p-1.5 text-muted hover:text-red-500 transition-colors cursor-pointer"
                   title="Remove from history"
                 >
                   <Trash2 className="h-3.5 w-3.5" />

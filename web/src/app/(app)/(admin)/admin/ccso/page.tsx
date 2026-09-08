@@ -142,7 +142,7 @@ export default function CcsoPage() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="rounded-2xl bg-white border border-surface-200 shadow-sm p-4 flex flex-col gap-1">
                 <span className="text-xs text-ink-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> NPS Score</span>
-                <span className={`text-3xl font-bold ${npsScore === null ? "text-ink-400" : npsScore >= 50 ? "text-green-600" : npsScore >= 0 ? "text-yellow-600" : "text-red-600"}`}>
+                <span className={`text-3xl font-bold ${npsScore === null ? "text-muted" : npsScore >= 50 ? "text-green-600" : npsScore >= 0 ? "text-yellow-600" : "text-red-600"}`}>
                   {npsScore === null ? "—" : npsScore > 0 ? `+${npsScore}` : npsScore}
                 </span>
               </div>
@@ -153,17 +153,17 @@ export default function CcsoPage() {
               <div className="rounded-2xl bg-white border border-surface-200 shadow-sm p-4 flex flex-col gap-1">
                 <span className="text-xs text-green-600 flex items-center gap-1"><ThumbsUp className="h-3 w-3" /> Promoters</span>
                 <span className="text-3xl font-bold text-green-700">{promoters}</span>
-                <span className="text-xs text-ink-400">{total > 0 ? `${Math.round((promoters / total) * 100)}%` : ""}</span>
+                <span className="text-xs text-muted">{total > 0 ? `${Math.round((promoters / total) * 100)}%` : ""}</span>
               </div>
               <div className="rounded-2xl bg-white border border-surface-200 shadow-sm p-4 flex flex-col gap-1">
                 <span className="text-xs text-yellow-600 flex items-center gap-1"><Minus className="h-3 w-3" /> Passives</span>
                 <span className="text-3xl font-bold text-yellow-700">{passives}</span>
-                <span className="text-xs text-ink-400">{total > 0 ? `${Math.round((passives / total) * 100)}%` : ""}</span>
+                <span className="text-xs text-muted">{total > 0 ? `${Math.round((passives / total) * 100)}%` : ""}</span>
               </div>
               <div className="rounded-2xl bg-white border border-surface-200 shadow-sm p-4 flex flex-col gap-1">
                 <span className="text-xs text-red-600 flex items-center gap-1"><ThumbsDown className="h-3 w-3" /> Detractors</span>
                 <span className="text-3xl font-bold text-red-700">{detractors}</span>
-                <span className="text-xs text-ink-400">{total > 0 ? `${Math.round((detractors / total) * 100)}%` : ""}</span>
+                <span className="text-xs text-muted">{total > 0 ? `${Math.round((detractors / total) * 100)}%` : ""}</span>
               </div>
             </div>
 
@@ -194,16 +194,16 @@ export default function CcsoPage() {
                   <tbody>
                     {responses.length === 0 && !npsLoading && (
                       <tr>
-                        <td colSpan={5} className="px-5 py-6 text-center text-sm text-ink-400">No responses yet.</td>
+                        <td colSpan={5} className="px-5 py-6 text-center text-sm text-muted">No responses yet.</td>
                       </tr>
                     )}
                     {responses.map((r) => (
                       <tr key={r.id} className="border-b border-surface-100 hover:bg-surface-50 transition-colors">
                         <td className="px-5 py-3"><ScoreBadge score={r.score} /></td>
                         <td className="px-4 py-3 text-ink-700 text-xs">{r.user_email}</td>
-                        <td className="px-4 py-3 text-ink-600 max-w-xs truncate">{r.comment || <span className="text-ink-300 italic">—</span>}</td>
-                        <td className="px-4 py-3 text-ink-400 text-xs">{r.context || "—"}</td>
-                        <td className="px-4 py-3 text-ink-400 text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-ink-600 max-w-xs truncate">{r.comment || <span className="text-muted italic">—</span>}</td>
+                        <td className="px-4 py-3 text-muted text-xs">{r.context || "—"}</td>
+                        <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
                           {new Date(r.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                         </td>
                       </tr>
@@ -241,7 +241,7 @@ export default function CcsoPage() {
                   <tbody>
                     {testimonials.length === 0 && !tLoading && (
                       <tr>
-                        <td colSpan={6} className="px-5 py-6 text-center text-sm text-ink-400">No testimonials yet.</td>
+                        <td colSpan={6} className="px-5 py-6 text-center text-sm text-muted">No testimonials yet.</td>
                       </tr>
                     )}
                     {testimonials.map((t) => (
@@ -249,8 +249,8 @@ export default function CcsoPage() {
                         <td className="px-5 py-3 max-w-sm">
                           <p className="text-ink-700 line-clamp-2 text-xs leading-relaxed">{t.text}</p>
                         </td>
-                        <td className="px-4 py-3 text-ink-600 text-xs whitespace-nowrap">{t.name || <span className="text-ink-300 italic">—</span>}</td>
-                        <td className="px-4 py-3 text-ink-600 text-xs whitespace-nowrap">{t.company || <span className="text-ink-300 italic">—</span>}</td>
+                        <td className="px-4 py-3 text-ink-600 text-xs whitespace-nowrap">{t.name || <span className="text-muted italic">—</span>}</td>
+                        <td className="px-4 py-3 text-ink-600 text-xs whitespace-nowrap">{t.company || <span className="text-muted italic">—</span>}</td>
                         <td className="px-4 py-3">
                           {t.public
                             ? <CheckCircle className="h-4 w-4 text-green-500" />
@@ -269,7 +269,7 @@ export default function CcsoPage() {
                               "text-xs rounded-lg px-3 py-1.5 font-medium transition-colors disabled:opacity-50",
                               t.approved
                                 ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                                : "bg-green-600 hover:bg-green-700 text-white",
+                                : "bg-green-600 hover:bg-green-700 text-primary",
                             ].join(" ")}
                           >
                             {approvingId === t.id ? "…" : t.approved ? "Revoke" : "Approve"}

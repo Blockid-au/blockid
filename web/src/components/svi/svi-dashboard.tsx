@@ -306,7 +306,7 @@ function RecentReports({ reports }: { reports: ReportEntry[] }) {
           <FileText strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
           <h3 className="text-sm font-semibold text-ink-900">Recent Reports</h3>
         </div>
-        <span className="text-xs text-ink-400">{reports.length} report{reports.length !== 1 ? "s" : ""}</span>
+        <span className="text-xs text-muted">{reports.length} report{reports.length !== 1 ? "s" : ""}</span>
       </div>
       <div className="divide-y divide-surface-100">
         {reports.map((report, idx) => {
@@ -344,7 +344,7 @@ function RecentReports({ reports }: { reports: ReportEntry[] }) {
                     {date.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                   {report.svi_version && (
-                    <span className="text-[10px] text-ink-400">v{report.svi_version}</span>
+                    <span className="text-[10px] text-muted">v{report.svi_version}</span>
                   )}
                 </div>
               </div>
@@ -357,7 +357,7 @@ function RecentReports({ reports }: { reports: ReportEntry[] }) {
                   {delta >= 0 ? "+" : ""}{delta}
                 </span>
               )}
-              <ExternalLink strokeWidth={1.75} className="h-3.5 w-3.5 text-ink-300 group-hover:text-brand-500 transition-colors shrink-0" />
+              <ExternalLink strokeWidth={1.75} className="h-3.5 w-3.5 text-muted group-hover:text-brand-500 transition-colors shrink-0" />
             </Link>
           );
         })}
@@ -452,7 +452,7 @@ export function SVIDashboard({
                 {deltaPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                 {deltaPositive ? "+" : ""}{deltaValue}
               </div>
-              <span className="text-ink-300">|</span>
+              <span className="text-muted">|</span>
               <span className={cn("text-sm font-semibold", sviColor)}>{sviLabel}</span>
             </div>
           </div>
@@ -495,7 +495,7 @@ export function SVIDashboard({
                 )}
                 {analysis.percentileRank != null && (
                   <>
-                    <span className="text-ink-300 ml-1">|</span>
+                    <span className="text-muted ml-1">|</span>
                     <span className="text-teal-600 font-medium ml-1">Top {Math.max(1, 100 - analysis.percentileRank)}% for stage {analysis.stage}</span>
                   </>
                 )}
@@ -512,7 +512,7 @@ export function SVIDashboard({
         </div>
 
         {/* Disclaimer */}
-        <p className="mt-4 pt-3 border-t border-surface-200 text-[10px] text-ink-400 leading-relaxed text-center">
+        <p className="mt-4 pt-3 border-t border-surface-200 text-[10px] text-muted leading-relaxed text-center">
           Valuation estimate is indicative only, based on SVI score and AU market benchmarks. This is not financial, investment, or legal advice.
           Upload more evidence and revenue data to improve accuracy. Always consult a qualified professional before making financial decisions.
         </p>

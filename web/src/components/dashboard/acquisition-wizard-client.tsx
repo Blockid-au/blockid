@@ -415,7 +415,7 @@ export function AcquisitionWizardClient() {
           </div>
         </div>
 
-        <p className="text-xs text-ink-400 leading-relaxed">{result.disclaimer}</p>
+        <p className="text-xs text-muted leading-relaxed">{result.disclaimer}</p>
       </div>
     </section>
   );

@@ -340,7 +340,7 @@ export function TeamPlannerClient({ initial, disabled, suggestedAdvisors }: Prop
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-ink-700">
-                      {m.full_name ?? <span className="text-ink-400 italic">— open —</span>}
+                      {m.full_name ?? <span className="text-muted italic">— open —</span>}
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-ink-700">
                       {m.equity_pct != null ? `${Number(m.equity_pct).toFixed(1)}%` : "—"}
@@ -381,7 +381,7 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
     <div className="rounded-xl border border-surface-200 bg-white p-3">
       <p className="text-[10px] uppercase font-semibold text-ink-500 tracking-wider">{label}</p>
       <p className="mt-1 text-lg font-bold text-ink-800 tabular-nums">{value}</p>
-      {hint && <p className="text-[10px] text-ink-400 mt-0.5">{hint}</p>}
+      {hint && <p className="text-[10px] text-muted mt-0.5">{hint}</p>}
     </div>
   );
 }

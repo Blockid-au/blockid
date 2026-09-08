@@ -401,7 +401,7 @@ export default async function AdminUsersPage({
                 ← previous
               </a>
             ) : (
-              <span className="text-ink-400">← previous</span>
+              <span className="text-muted">← previous</span>
             )}
             <span className="text-ink-500">
               page {page} / {totalPages}
@@ -414,7 +414,7 @@ export default async function AdminUsersPage({
                 next →
               </a>
             ) : (
-              <span className="text-ink-400">next →</span>
+              <span className="text-muted">next →</span>
             )}
           </nav>
         )}

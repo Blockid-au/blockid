@@ -173,7 +173,10 @@ export function VcValuationDashboard() {
   return (
     <div className="space-y-6">
       {/* Blended valuation hero */}
-      <div className="rounded-2xl bg-gradient-to-br from-brand-600 to-ink-900 text-white p-6 md:p-8">
+      {/* Intentionally dark valuation hero. data-theme="dark" scopes the
+          dark token map to this subtree (the ProShell pattern) so the
+          white-alpha chips inside resolve to real surface tokens. */}
+      <div data-theme="dark" className="rounded-2xl bg-gradient-to-br from-brand-700 to-surface text-primary p-6 md:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-brand-300 font-semibold">
@@ -196,7 +199,7 @@ export function VcValuationDashboard() {
               <button
                 type="button"
                 onClick={() => exportCsv(report)}
-                className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-white transition-colors"
+                className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-primary transition-colors"
               >
                 <Download strokeWidth={1.75} className="h-3 w-3" />
                 Export CSV
@@ -205,7 +208,7 @@ export function VcValuationDashboard() {
                 type="button"
                 onClick={() => void handlePdfExport()}
                 disabled={pdfLoading}
-                className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-primary transition-colors disabled:opacity-60"
               >
                 <Download strokeWidth={1.75} className="h-3 w-3" />
                 {pdfLoading ? "Generating..." : "Export PDF"}
@@ -289,7 +292,7 @@ function SummaryTab({ report }: { report: VcValuationReport }) {
           <div key={c.label} className="rounded-xl border border-surface-200 bg-white p-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">{c.label}</p>
             <p className="text-2xl font-bold text-ink-800 mt-1 tabular-nums">{c.value}</p>
-            <p className="text-xs text-ink-400 mt-0.5">{c.sub}</p>
+            <p className="text-xs text-muted mt-0.5">{c.sub}</p>
           </div>
         ))}
       </div>
@@ -360,11 +363,11 @@ function MethodsTab({ report }: { report: VcValuationReport }) {
               <p className="text-sm font-semibold text-ink-800">
                 {m.method.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
               </p>
-              <p className="text-xs text-ink-400 mt-0.5">Weight: {fmtPct(m.weight * 100)}</p>
+              <p className="text-xs text-muted mt-0.5">Weight: {fmtPct(m.weight * 100)}</p>
             </div>
             <div className="text-right">
               <p className="text-xl font-bold text-brand-600 tabular-nums">{fmtAud(m.midAud)}</p>
-              <p className="text-[10px] text-ink-400">
+              <p className="text-[10px] text-muted">
                 {fmtAud(m.lowAud)} – {fmtAud(m.highAud)}
               </p>
             </div>
@@ -477,7 +480,7 @@ function UnitEconomicsTab({ report }: { report: VcValuationReport }) {
           <div key={c.label} className="rounded-xl border border-surface-200 bg-white p-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">{c.label}</p>
             <p className="text-2xl font-bold text-ink-800 mt-1 tabular-nums">{c.value}</p>
-            <p className="text-xs text-ink-400 mt-0.5">{c.sub}</p>
+            <p className="text-xs text-muted mt-0.5">{c.sub}</p>
           </div>
         ))}
       </div>

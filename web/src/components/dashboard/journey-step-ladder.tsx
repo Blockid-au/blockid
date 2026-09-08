@@ -231,16 +231,16 @@ function PhaseNode({ ordinal, isCompleted, isCurrent, isFuture, currentOrdinal }
         )}
         aria-label={`Phase ${ordinal}: ${label}${isCurrent ? " (current)" : isCompleted ? " (completed)" : " (upcoming)"}`}
       >
-        {isCompleted && <CheckCircle2 className="h-4 w-4 text-white" strokeWidth={2.5} />}
-        {isCurrent && <span className="text-[11px] font-bold text-white">{ordinal}</span>}
-        {isFuture && <Lock className="h-3 w-3 text-ink-400" strokeWidth={2} aria-hidden />}
+        {isCompleted && <CheckCircle2 className="h-4 w-4 text-primary" strokeWidth={2.5} />}
+        {isCurrent && <span className="text-[11px] font-bold text-primary">{ordinal}</span>}
+        {isFuture && <Lock className="h-3 w-3 text-muted" strokeWidth={2} aria-hidden />}
       </div>
       <span
         className={cn(
           "mt-1.5 text-[9.5px] leading-tight font-medium text-center select-none max-w-[72px]",
           isCompleted && "text-emerald-700",
           isCurrent && "text-brand-700 font-semibold",
-          isFuture && "text-ink-400",
+          isFuture && "text-muted",
         )}
       >
         {label}
@@ -277,9 +277,9 @@ function MobileNode({ ordinal, isCompleted, isCurrent, isFuture, currentOrdinal 
       <div
         className={cn(
           "flex items-center justify-center rounded-full h-8 w-8 shrink-0",
-          isCompleted && "bg-emerald-500 text-white",
+          isCompleted && "bg-emerald-500 text-primary",
           isCurrent && "bg-brand-600 text-white ring-2 ring-brand-100",
-          isFuture && "bg-surface-200 text-ink-400",
+          isFuture && "bg-surface-200 text-muted",
         )}
         aria-hidden
       >
@@ -301,7 +301,7 @@ function MobileNode({ ordinal, isCompleted, isCurrent, isFuture, currentOrdinal 
           Phase {ordinal} · {label}
         </p>
         {isFuture && (
-          <p className="text-[10px] text-ink-400">
+          <p className="text-[10px] text-muted">
             Unlocks after phase {currentOrdinal}
           </p>
         )}

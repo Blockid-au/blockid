@@ -131,7 +131,7 @@ export function AIKeysClient() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ink-400" /></div>;
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted" /></div>;
   }
 
   return (
@@ -179,7 +179,7 @@ export function AIKeysClient() {
               const Icon = cfg.icon;
               return (
                 <div key={provider.id} className={`px-6 py-4 flex items-center gap-4 ${provider.status === "missing" ? "opacity-50" : ""}`}>
-                  <span className="text-xs font-mono text-ink-400 w-6 shrink-0">{idx + 1}.</span>
+                  <span className="text-xs font-mono text-muted w-6 shrink-0">{idx + 1}.</span>
                   <Icon strokeWidth={1.75} className={`h-5 w-5 shrink-0 ${cfg.color}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-ink-800">{provider.name}</p>

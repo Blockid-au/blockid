@@ -402,7 +402,7 @@ export function FundraiseClient() {
                   "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                   active && "bg-brand-50 text-brand-700 border border-brand-200",
                   done && "bg-brand-500 text-white cursor-pointer",
-                  !active && !done && "text-ink-400 bg-surface-50",
+                  !active && !done && "text-muted bg-surface-50",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -530,7 +530,7 @@ export function FundraiseClient() {
                   Target Raise (AUD)
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
                   <input
                     type="number"
                     min={1000}
@@ -547,7 +547,7 @@ export function FundraiseClient() {
                   Pre-Money Valuation (AUD)
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
                   <input
                     type="number"
                     min={10000}
@@ -568,7 +568,7 @@ export function FundraiseClient() {
                     Valuation Cap (AUD)
                   </label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
                     <input
                       type="number"
                       min={0}
@@ -584,7 +584,7 @@ export function FundraiseClient() {
                     Discount (%)
                   </label>
                   <div className="relative">
-                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
                     <input
                       type="number"
                       min={0}
@@ -806,7 +806,7 @@ export function FundraiseClient() {
                         {newCapTable.newInvestorBlock.name}
                       </td>
                       <td className="px-4 py-2.5 text-brand-600">investor</td>
-                      <td className="px-4 py-2.5 text-right text-ink-400">--</td>
+                      <td className="px-4 py-2.5 text-right text-muted">--</td>
                       <td className="px-4 py-2.5 text-right font-medium text-brand-700">
                         {newCapTable.newInvestorBlock.pct}%
                       </td>
@@ -922,7 +922,7 @@ export function FundraiseClient() {
                         </label>
                         <div className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm">
                           <span className="text-ink-800 font-medium">{fmtNum(shares)}</span>
-                          <span className="text-ink-400 mx-1">/</span>
+                          <span className="text-muted mx-1">/</span>
                           <span className="text-brand-600 font-medium">{pct}%</span>
                         </div>
                       </div>
@@ -1294,7 +1294,7 @@ export function FundraiseClient() {
                   </tbody>
                 </table>
               </div>
-              <p className="mt-4 text-xs text-ink-400">
+              <p className="mt-4 text-xs text-muted">
                 {readiness.disclaimer ??
                   "General information only. Not investment advice. Comparables from public reporting."}
               </p>

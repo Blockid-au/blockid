@@ -178,7 +178,7 @@ function ScheduleRow({ db }: { db: DBSchedule }) {
             <span className="text-xs text-ink-600 tabular-nums font-medium">
               {current.percent.toFixed(1)}%
             </span>
-            <span className="text-[10px] text-ink-400">
+            <span className="text-[10px] text-muted">
               {Math.round(current.vested).toLocaleString()} /{" "}
               {schedule.totalShares.toLocaleString()}
             </span>
@@ -202,7 +202,7 @@ function ScheduleRow({ db }: { db: DBSchedule }) {
         <div className="w-28 shrink-0 text-right hidden md:block">
           {!cliffPassed ? (
             <div>
-              <p className="text-[10px] text-ink-400 uppercase tracking-wider">
+              <p className="text-[10px] text-muted uppercase tracking-wider">
                 Cliff
               </p>
               <p className="text-xs font-medium text-amber-600">
@@ -214,7 +214,7 @@ function ScheduleRow({ db }: { db: DBSchedule }) {
             </div>
           ) : (
             <div>
-              <p className="text-[10px] text-ink-400 uppercase tracking-wider">
+              <p className="text-[10px] text-muted uppercase tracking-wider">
                 Monthly
               </p>
               <p className="text-xs font-medium text-ink-700 tabular-nums">
@@ -225,9 +225,9 @@ function ScheduleRow({ db }: { db: DBSchedule }) {
         </div>
 
         {expanded ? (
-          <ChevronUp strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" />
+          <ChevronUp strokeWidth={1.75} className="h-4 w-4 text-muted shrink-0" />
         ) : (
-          <ChevronDown strokeWidth={1.75} className="h-4 w-4 text-ink-400 shrink-0" />
+          <ChevronDown strokeWidth={1.75} className="h-4 w-4 text-muted shrink-0" />
         )}
       </button>
 
@@ -237,7 +237,7 @@ function ScheduleRow({ db }: { db: DBSchedule }) {
           {/* Stats grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-xl bg-surface-50 border border-surface-200 p-3">
-              <p className="text-[10px] text-ink-400 uppercase tracking-wider mb-1">
+              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">
                 Grant Date
               </p>
               <p className="text-sm font-semibold text-ink-800">
@@ -249,7 +249,7 @@ function ScheduleRow({ db }: { db: DBSchedule }) {
               </p>
             </div>
             <div className="rounded-xl bg-surface-50 border border-surface-200 p-3">
-              <p className="text-[10px] text-ink-400 uppercase tracking-wider mb-1">
+              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">
                 Months Elapsed
               </p>
               <p className="text-sm font-semibold text-ink-800">
@@ -257,7 +257,7 @@ function ScheduleRow({ db }: { db: DBSchedule }) {
               </p>
             </div>
             <div className="rounded-xl bg-surface-50 border border-surface-200 p-3">
-              <p className="text-[10px] text-ink-400 uppercase tracking-wider mb-1">
+              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">
                 Vested Shares
               </p>
               <p className="text-sm font-semibold text-emerald-700">
@@ -265,7 +265,7 @@ function ScheduleRow({ db }: { db: DBSchedule }) {
               </p>
             </div>
             <div className="rounded-xl bg-surface-50 border border-surface-200 p-3">
-              <p className="text-[10px] text-ink-400 uppercase tracking-wider mb-1">
+              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">
                 Triggers
               </p>
               <p className="text-sm font-semibold text-ink-800">
@@ -403,7 +403,7 @@ function AddGrantForm({
               value={form.shareholderName}
               onChange={(e) => update("shareholderName", e.target.value)}
               placeholder="e.g. Jane Smith"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
           <div>
@@ -415,7 +415,7 @@ function AddGrantForm({
               value={form.shareholderEmail}
               onChange={(e) => update("shareholderEmail", e.target.value)}
               placeholder="jane@company.com"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
         </div>
@@ -433,7 +433,7 @@ function AddGrantForm({
               value={form.totalShares}
               onChange={(e) => update("totalShares", e.target.value)}
               placeholder="e.g. 100000"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
             />
           </div>
           <div>
@@ -531,7 +531,7 @@ function AddGrantForm({
             value={form.notes}
             onChange={(e) => update("notes", e.target.value)}
             placeholder="Optional notes about this grant..."
-            className="w-full rounded-xl border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors resize-none"
+            className="w-full rounded-xl border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors resize-none"
           />
         </div>
 
@@ -638,7 +638,7 @@ export function VestingDashboard() {
           <div className="rounded-xl bg-white border border-surface-200 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Clock strokeWidth={1.75} className="h-4 w-4 text-brand-500" />
-              <span className="text-[10px] text-ink-400 uppercase tracking-wider">
+              <span className="text-[10px] text-muted uppercase tracking-wider">
                 Active
               </span>
             </div>
@@ -649,7 +649,7 @@ export function VestingDashboard() {
           <div className="rounded-xl bg-white border border-surface-200 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Check strokeWidth={1.75} className="h-4 w-4 text-emerald-500" />
-              <span className="text-[10px] text-ink-400 uppercase tracking-wider">
+              <span className="text-[10px] text-muted uppercase tracking-wider">
                 Completed
               </span>
             </div>
@@ -659,8 +659,8 @@ export function VestingDashboard() {
           </div>
           <div className="rounded-xl bg-white border border-surface-200 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-ink-400" />
-              <span className="text-[10px] text-ink-400 uppercase tracking-wider">
+              <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-muted" />
+              <span className="text-[10px] text-muted uppercase tracking-wider">
                 Granted
               </span>
             </div>
@@ -671,7 +671,7 @@ export function VestingDashboard() {
           <div className="rounded-xl bg-white border border-surface-200 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Zap strokeWidth={1.75} className="h-4 w-4 text-amber-500" />
-              <span className="text-[10px] text-ink-400 uppercase tracking-wider">
+              <span className="text-[10px] text-muted uppercase tracking-wider">
                 Vested
               </span>
             </div>
@@ -704,14 +704,14 @@ export function VestingDashboard() {
       {/* Schedules list */}
       {loading ? (
         <div className="rounded-2xl border border-surface-200 bg-white px-6 py-12 text-center">
-          <Loader2 className="h-6 w-6 text-ink-400 animate-spin mx-auto" />
+          <Loader2 className="h-6 w-6 text-muted animate-spin mx-auto" />
           <p className="text-sm text-ink-500 mt-3">Loading schedules...</p>
         </div>
       ) : schedules.length === 0 ? (
         <div className="rounded-2xl border border-surface-200 bg-white px-6 py-12 text-center">
           <Calendar
             strokeWidth={1.25}
-            className="mx-auto h-10 w-10 text-ink-300 mb-3"
+            className="mx-auto h-10 w-10 text-muted mb-3"
           />
           <p className="text-sm text-ink-500">
             No vesting schedules yet. Click &quot;Add Grant&quot; to create your

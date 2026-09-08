@@ -89,7 +89,7 @@ export function NotificationPrefs() {
             {saving && (
               <Loader2
                 strokeWidth={1.75}
-                className="h-4 w-4 text-ink-400 animate-spin"
+                className="h-4 w-4 text-muted animate-spin"
               />
             )}
             {saved && (

@@ -67,7 +67,7 @@ export default async function ResellerCodesPage() {
                   {c.active ? (
                     <span className="text-emerald-700">✓</span>
                   ) : (
-                    <span className="text-ink-400">off</span>
+                    <span className="text-muted">off</span>
                   )}
                 </td>
                 <td className="p-3 text-ink-600">

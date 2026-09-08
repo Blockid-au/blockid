@@ -45,7 +45,7 @@ export function SviEvidenceCard({
       >
         {label}
       </span>
-      <span className="tabular-nums font-medium text-ink-400 dark:text-ink-500">
+      <span className="tabular-nums font-medium text-muted dark:text-ink-500">
         +{impact}
       </span>
       {!present && onAdd && (

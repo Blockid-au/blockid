@@ -133,7 +133,7 @@ export function KnowledgeBaseClient({
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+        <Search strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
         <input
           type="text"
           placeholder="Search articles, methodologies, benchmarks…"
@@ -141,7 +141,7 @@ export function KnowledgeBaseClient({
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-surface-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
         />
-        {searching && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-400">searching…</span>}
+        {searching && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">searching…</span>}
       </div>
 
       {/* Category tabs */}
@@ -181,11 +181,11 @@ export function KnowledgeBaseClient({
                 <span className={cn("text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wide font-semibold", CATEGORY_TONE[a.category] ?? "bg-surface-100 text-ink-600 border-surface-200")}>
                   {a.category}
                 </span>
-                <span className="text-[10px] text-ink-400">{formatDate(a.updated_at)}</span>
+                <span className="text-[10px] text-muted">{formatDate(a.updated_at)}</span>
               </div>
               <h3 className="text-sm font-semibold text-ink-800 mb-1 line-clamp-2">{a.title}</h3>
               <p className="text-xs text-ink-500 line-clamp-3">{a.content.slice(0, 200)}</p>
-              <p className="text-[10px] text-ink-400 mt-2 italic">by {a.author}</p>
+              <p className="text-[10px] text-muted mt-2 italic">by {a.author}</p>
             </button>
           ))}
         </div>

@@ -166,7 +166,7 @@ export function GrowthProgressDashboard() {
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-50 transition-colors text-left"
               >
                 <div
-                  className="h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
+                  className="h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold text-primary shrink-0"
                   style={{ backgroundColor: phase.color }}
                 >
                   {phase.order}
@@ -203,8 +203,8 @@ export function GrowthProgressDashboard() {
                     {completedCount}/{phaseTotal}
                   </span>
                   {isExpanded
-                    ? <ChevronDown className="h-4 w-4 text-ink-400" />
-                    : <ChevronRight className="h-4 w-4 text-ink-400" />
+                    ? <ChevronDown className="h-4 w-4 text-muted" />
+                    : <ChevronRight className="h-4 w-4 text-muted" />
                   }
                 </div>
               </button>
@@ -223,11 +223,11 @@ export function GrowthProgressDashboard() {
                       >
                         <div className="mt-0.5 shrink-0">
                           {isToggling ? (
-                            <RefreshCw className="h-4 w-4 text-ink-400 animate-spin" />
+                            <RefreshCw className="h-4 w-4 text-muted animate-spin" />
                           ) : step.completed ? (
                             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                           ) : (
-                            <Circle className="h-4 w-4 text-ink-300 group-hover:text-ink-500" />
+                            <Circle className="h-4 w-4 text-muted group-hover:text-ink-500" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -237,12 +237,12 @@ export function GrowthProgressDashboard() {
                           )}>
                             {step.title}
                           </p>
-                          <p className="text-[11px] text-ink-400 mt-0.5">{step.description}</p>
+                          <p className="text-[11px] text-muted mt-0.5">{step.description}</p>
                           {step.notes && (
                             <p className="text-[10px] text-brand-500 mt-0.5 italic">{step.notes}</p>
                           )}
                         </div>
-                        <span className="text-[10px] text-ink-400 mt-0.5 shrink-0">
+                        <span className="text-[10px] text-muted mt-0.5 shrink-0">
                           {AGENT_LABELS[step.agentHint] ?? step.agentHint}
                         </span>
                       </button>

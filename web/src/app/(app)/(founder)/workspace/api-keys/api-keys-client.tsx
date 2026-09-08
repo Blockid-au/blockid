@@ -141,10 +141,10 @@ export function ApiKeysClient({
         <div className="divide-y divide-surface-200">
           {keys.length === 0 ? (
             <div className="px-6 py-12 text-center">
-              <Key strokeWidth={1.5} className="h-8 w-8 text-ink-300 mx-auto mb-3" />
+              <Key strokeWidth={1.5} className="h-8 w-8 text-muted mx-auto mb-3" />
               <p className="text-sm text-ink-500">No API keys yet.</p>
               {canCreate && (
-                <p className="text-xs text-ink-400 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Click &quot;Generate New Key&quot; to create your first key.
                 </p>
               )}
@@ -175,7 +175,7 @@ export function ApiKeysClient({
                   </div>
                   <div className="flex items-center gap-4 mt-1">
                     <code className="text-xs text-ink-500 font-mono">{key.prefix}</code>
-                    <span className="text-xs text-ink-400">
+                    <span className="text-xs text-muted">
                       Created{" "}
                       {new Date(key.createdAt).toLocaleDateString("en-AU", {
                         day: "numeric",
@@ -184,7 +184,7 @@ export function ApiKeysClient({
                       })}
                     </span>
                     {key.lastUsedAt && (
-                      <span className="text-xs text-ink-400">
+                      <span className="text-xs text-muted">
                         Last used{" "}
                         {new Date(key.lastUsedAt).toLocaleDateString("en-AU", {
                           day: "numeric",
@@ -200,7 +200,7 @@ export function ApiKeysClient({
                   <button
                     type="button"
                     onClick={() => setShowRevokeConfirm(key.id)}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg text-ink-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg text-muted hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
                     title="Revoke key"
                   >
                     <Trash2 strokeWidth={1.75} className="h-4 w-4" />
@@ -348,7 +348,7 @@ function CreateKeyModal({
             <button
               type="button"
               onClick={onClose}
-              className="h-7 w-7 flex items-center justify-center rounded-lg text-ink-400 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer"
+              className="h-7 w-7 flex items-center justify-center rounded-lg text-muted hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer"
             >
               <X strokeWidth={1.75} className="h-4 w-4" />
             </button>
@@ -380,7 +380,7 @@ function CreateKeyModal({
                     "h-8 w-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer shrink-0",
                     copied
                       ? "bg-emerald-50 text-emerald-600"
-                      : "text-ink-400 hover:text-ink-700 hover:bg-surface-100",
+                      : "text-muted hover:text-ink-700 hover:bg-surface-100",
                   )}
                   title="Copy to clipboard"
                 >
@@ -423,7 +423,7 @@ function CreateKeyModal({
                 maxLength={100}
                 className="w-full h-9 rounded-[10px] border border-surface-200 bg-white px-3 text-sm text-ink-800 placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
               />
-              <p className="text-xs text-ink-400 mt-1">
+              <p className="text-xs text-muted mt-1">
                 A friendly label to help you identify this key.
               </p>
             </div>

@@ -440,7 +440,7 @@ export function RevenueClient() {
             <span className="inline-block h-2.5 w-2.5 rounded bg-indigo-500" />
             Net Revenue
           </span>
-          <span className="text-ink-400">
+          <span className="text-muted">
             Total: {aud(revenue.revenue.total)} | Refunds: {aud(revenue.revenue.refunds)}
           </span>
         </div>
@@ -553,7 +553,7 @@ export function RevenueClient() {
             <button
               type="button"
               disabled
-              className="inline-flex h-8 items-center rounded-lg bg-surface-100 px-3 text-xs font-medium text-ink-400 cursor-not-allowed"
+              className="inline-flex h-8 items-center rounded-lg bg-surface-100 px-3 text-xs font-medium text-muted cursor-not-allowed"
             >
               Coming Soon
             </button>
@@ -569,7 +569,7 @@ export function RevenueClient() {
             <button
               type="button"
               disabled
-              className="inline-flex h-8 items-center rounded-lg bg-surface-100 px-3 text-xs font-medium text-ink-400 cursor-not-allowed"
+              className="inline-flex h-8 items-center rounded-lg bg-surface-100 px-3 text-xs font-medium text-muted cursor-not-allowed"
             >
               Coming Soon
             </button>
@@ -600,7 +600,7 @@ export function RevenueClient() {
               Amount (AUD)
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
               <input
                 id="rev-amount"
                 type="number"
@@ -609,7 +609,7 @@ export function RevenueClient() {
                 value={entryAmount}
                 onChange={(e) => setEntryAmount(e.target.value)}
                 placeholder="e.g. 5000"
-                className="w-full h-9 rounded-lg border border-surface-200 pl-7 pr-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                className="w-full h-9 rounded-lg border border-surface-200 pl-7 pr-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
               />
             </div>
           </div>
@@ -683,7 +683,7 @@ export function RevenueClient() {
                 }}
                 className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-surface-200 accent-brand-600"
               />
-              <div className="flex justify-between text-xs text-ink-400 mt-1">
+              <div className="flex justify-between text-xs text-muted mt-1">
                 <span>0% (retain all)</span>
                 <span>100% (distribute all)</span>
               </div>
@@ -875,7 +875,7 @@ function PnlRow({
       >
         {label}
         {sub && (
-          <span className="block text-xs font-normal text-ink-400">
+          <span className="block text-xs font-normal text-muted">
             {sub}
           </span>
         )}

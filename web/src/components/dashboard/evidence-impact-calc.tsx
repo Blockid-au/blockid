@@ -89,7 +89,7 @@ export function EvidenceImpactCalc({ analysis }: Props) {
                 )}
               >
                 {checked && (
-                  <svg viewBox="0 0 12 12" className="h-2.5 w-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <svg viewBox="0 0 12 12" className="h-2.5 w-2.5 text-primary" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M2 6l3 3 5-5" />
                   </svg>
                 )}
@@ -100,7 +100,7 @@ export function EvidenceImpactCalc({ analysis }: Props) {
               </div>
               <span className={cn(
                 "text-[10px] font-mono font-semibold shrink-0",
-                gap.priority === "P0" ? "text-red-500" : gap.priority === "P1" ? "text-amber-500" : "text-ink-400",
+                gap.priority === "P0" ? "text-red-500" : gap.priority === "P1" ? "text-amber-500" : "text-muted",
               )}>
                 +{gap.impact ?? 0}
               </span>

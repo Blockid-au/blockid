@@ -127,7 +127,7 @@ export function ReferralCard() {
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="rounded-xl bg-surface-50 p-3 text-center">
           <div className="flex items-center justify-center gap-1.5 mb-1">
-            <Users strokeWidth={1.75} className="h-3.5 w-3.5 text-ink-400" />
+            <Users strokeWidth={1.75} className="h-3.5 w-3.5 text-muted" />
             <span className="text-xs text-ink-500">Invited</span>
           </div>
           <span className="text-lg font-bold text-ink-800">{totalInvited}</span>

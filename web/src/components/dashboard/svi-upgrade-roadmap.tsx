@@ -143,7 +143,7 @@ export function SviUpgradeRoadmap({ currentSvi, targetSvi = 75, userEmail }: Svi
               )}
             </button>
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium ${completed.has(i) ? "line-through text-ink-400" : "text-ink-900"}`}>
+              <p className={`text-sm font-medium ${completed.has(i) ? "line-through text-muted" : "text-ink-900"}`}>
                 {action.action}
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -158,7 +158,7 @@ export function SviUpgradeRoadmap({ currentSvi, targetSvi = 75, userEmail }: Svi
                     <Clock className="h-3 w-3" />{action.deadline}
                   </span>
                 )}
-                <span className="text-xs text-ink-400">{action.cost}</span>
+                <span className="text-xs text-muted">{action.cost}</span>
               </div>
             </div>
             <span className={`flex-shrink-0 text-xs rounded-full px-2 py-0.5 font-medium ${

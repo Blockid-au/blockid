@@ -17,7 +17,7 @@ const STATUS_COLORS = {
   pass: "text-emerald-600",
   warning: "text-amber-600",
   fail: "text-red-600",
-  unknown: "text-ink-400",
+  unknown: "text-muted",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -51,7 +51,7 @@ export function ComplianceChecker({ analysis, className }: { analysis: SVIAnalys
       <div className="divide-y divide-surface-100">
         {categories.map(cat => (
           <div key={cat} className="px-5 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-400 mb-2">{CATEGORY_LABELS[cat] ?? cat}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-2">{CATEGORY_LABELS[cat] ?? cat}</p>
             <div className="space-y-2">
               {items.filter(i => i.category === cat).map(item => {
                 const Icon = STATUS_ICONS[item.status];
@@ -61,7 +61,7 @@ export function ComplianceChecker({ analysis, className }: { analysis: SVIAnalys
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-ink-800">{item.title}</span>
-                        {item.regulation && <span className="text-[9px] text-ink-400">{item.regulation}</span>}
+                        {item.regulation && <span className="text-[9px] text-muted">{item.regulation}</span>}
                       </div>
                       {item.action && (
                         <p className="text-xs text-ink-500 mt-0.5">{item.action}</p>

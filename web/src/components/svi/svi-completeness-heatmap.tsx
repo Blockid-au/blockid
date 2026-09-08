@@ -179,7 +179,7 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-ink-400 dark:text-ink-500 mt-1 tabular-nums">
+              <p className="text-[10px] text-muted dark:text-ink-500 mt-1 tabular-nums">
                 {dim.totalPresent}/{dim.totalPossible} items
               </p>
             </button>
@@ -202,7 +202,7 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <span className="text-xs font-bold tracking-widest text-ink-400 dark:text-ink-500">
+                <span className="text-xs font-bold tracking-widest text-muted dark:text-ink-500">
                   {DIMENSION_SHORT[selectedDim.dimension] ?? selectedDim.dimension.toUpperCase()}
                 </span>
                 <h3 id="svi-heatmap-modal-title" className="text-sm font-semibold text-ink-800 dark:text-ink-100 leading-tight">

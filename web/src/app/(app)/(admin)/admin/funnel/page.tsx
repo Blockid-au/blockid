@@ -156,7 +156,7 @@ export default function FunnelPage() {
               <div className="rounded-2xl bg-white border border-surface-200 shadow-sm p-4 flex flex-col gap-1">
                 <span className="text-xs text-ink-500 flex items-center gap-1"><Zap className="h-3 w-3 text-brand-500" /> End-to-End Conversion</span>
                 <span className="text-3xl font-bold text-brand-700 mt-1">{endToEnd}%</span>
-                <span className="text-xs text-ink-400">Landing → Payment</span>
+                <span className="text-xs text-muted">Landing → Payment</span>
               </div>
             </div>
 
@@ -166,7 +166,7 @@ export default function FunnelPage() {
                 <div className="flex items-center gap-2">
                   <FlaskConical className="h-4 w-4 text-violet-600" strokeWidth={1.75} />
                   <span className="text-xs font-semibold uppercase tracking-wide text-violet-700">Suggested next experiment</span>
-                  <span className="text-xs text-ink-400">· targets biggest drop-off</span>
+                  <span className="text-xs text-muted">· targets biggest drop-off</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <h3 className="text-base font-semibold text-ink-800">{suggestedExperiment.title}</h3>
@@ -174,7 +174,7 @@ export default function FunnelPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                   <div className="rounded-lg bg-white border border-surface-200 p-3">
-                    <div className="text-ink-400 mb-1">Control</div>
+                    <div className="text-muted mb-1">Control</div>
                     <div className="text-ink-700">{suggestedExperiment.control}</div>
                   </div>
                   <div className="rounded-lg bg-white border border-violet-200 p-3">
@@ -235,7 +235,7 @@ export default function FunnelPage() {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between text-xs text-ink-600 mb-0.5">
                           <span className="font-medium">{STEP_LABELS[s.step] ?? s.step}</span>
-                          <span className="text-ink-400">
+                          <span className="text-muted">
                             {s.count.toLocaleString()} &nbsp;·&nbsp; {pctOfTop.toFixed(1)}%
                           </span>
                         </div>
@@ -286,7 +286,7 @@ export default function FunnelPage() {
                               ? <span className={`text-xs font-medium ${parseFloat(dropPct) > 50 ? "text-red-600" : parseFloat(dropPct) > 20 ? "text-yellow-600" : "text-green-600"}`}>
                                   {dropPct}%
                                 </span>
-                              : <span className="text-ink-300">—</span>}
+                              : <span className="text-muted">—</span>}
                           </td>
                         </tr>
                       );
@@ -300,7 +300,7 @@ export default function FunnelPage() {
 
         {!loading && steps.length === 0 && (
           <div className="rounded-2xl border border-surface-200 bg-white shadow-sm px-6 py-12 text-center">
-            <p className="text-sm text-ink-400">No funnel data available for this range.</p>
+            <p className="text-sm text-muted">No funnel data available for this range.</p>
           </div>
         )}
       </main>

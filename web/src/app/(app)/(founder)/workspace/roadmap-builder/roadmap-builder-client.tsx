@@ -301,7 +301,7 @@ export function RoadmapBuilderClient({ initial, quarters, disabled }: Props) {
               <div key={q} className="rounded-2xl border border-surface-200 bg-surface-50 p-4">
                 <h3 className="text-sm font-bold text-ink-800 mb-3">{q}</h3>
                 {list.length === 0 && (
-                  <p className="text-xs text-ink-400 italic">No milestones yet.</p>
+                  <p className="text-xs text-muted italic">No milestones yet.</p>
                 )}
                 <ul className="space-y-3">
                   {list.map((m) => (

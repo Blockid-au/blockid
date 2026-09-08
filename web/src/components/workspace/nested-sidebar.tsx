@@ -140,7 +140,7 @@ function SubgroupBlock({
 }) {
   return (
     <div className="pl-2 mt-1">
-      <div className="px-2 pt-1 pb-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-ink-400">
+      <div className="px-2 pt-1 pb-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
         {subgroup.label}
       </div>
       {subgroup.items.map((leaf) => (
@@ -225,7 +225,7 @@ export function NestedSidebar({
                 aria-controls={panelId}
                 className="w-full px-3 pt-4 pb-1.5 flex items-center justify-between text-left hover:bg-surface-50/60 rounded-md transition-colors"
               >
-                <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-400">
+                <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
                   <ChevronDown
                     strokeWidth={1.75}
                     className={cn("h-3 w-3 transition-transform duration-150", !isOpen && "-rotate-90")}
@@ -234,7 +234,7 @@ export function NestedSidebar({
                   {group.label}
                 </span>
                 {group.stage && (
-                  <span className="text-[9px] text-ink-400/60">{group.stage}</span>
+                  <span className="text-[9px] text-muted/60">{group.stage}</span>
                 )}
               </button>
             )}

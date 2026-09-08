@@ -424,7 +424,7 @@ export function EsicAssessmentClient(props: Props) {
         </section>
       ) : null}
 
-      <p className="text-xs text-ink-400 leading-relaxed">
+      <p className="text-xs text-muted leading-relaxed">
         {props.disclaimer}
       </p>
     </div>

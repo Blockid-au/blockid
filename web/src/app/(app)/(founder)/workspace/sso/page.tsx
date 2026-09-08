@@ -37,7 +37,7 @@ export default async function SSOPage() {
             Available on Enterprise plans.
           </p>
           {/* EN/VI copy */}
-          <p className="mt-1 text-xs text-ink-400">
+          <p className="mt-1 text-xs text-muted">
             Cấu hình đăng nhập một lần SAML 2.0 / OIDC. Tính năng dành cho gói Enterprise.
           </p>
         </div>
@@ -49,10 +49,10 @@ export default async function SSOPage() {
             Enterprise workspace admins can upload IdP metadata, map attribute
             claims, and enforce SSO-only login for all members.
           </p>
-          <p className="mt-1 text-xs text-ink-400">
+          <p className="mt-1 text-xs text-muted">
             Tính năng SSO đang được phát triển và sẽ sớm khả dụng cho gói Enterprise.
           </p>
-          <p className="mt-4 text-xs text-ink-400">Estimated: Q4 2026</p>
+          <p className="mt-4 text-xs text-muted">Estimated: Q4 2026</p>
         </div>
 
         <div className="mt-6 text-center">

@@ -135,7 +135,7 @@ export function InsightsPanel() {
                     </details>
                   )}
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[11px] text-ink-400">
+                    <span className="text-[11px] text-muted">
                       {insight.source && `${insight.source} · `}
                       {new Date(insight.created_at).toLocaleDateString("en-AU", {
                         day: "numeric",

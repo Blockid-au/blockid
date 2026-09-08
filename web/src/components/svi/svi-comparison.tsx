@@ -89,7 +89,7 @@ export function SVIComparison({
             "text-[10px] font-medium px-2 py-0.5 rounded-full",
             live.source === "live"
               ? "bg-emerald-50 text-emerald-700"
-              : "bg-surface-100 text-ink-400",
+              : "bg-surface-100 text-muted",
           )}>
             {live.source === "live"
               ? `${live.sampleSize} startups`
@@ -165,7 +165,7 @@ export function SVIComparison({
                         aboveAvg ? "text-emerald-600" : "text-amber-600",
                       )}
                     >
-                      {score}<span className="font-normal text-ink-400">/{dimBench.avg}</span>
+                      {score}<span className="font-normal text-muted">/{dimBench.avg}</span>
                     </span>
                   </div>
                   <div className="h-1.5 bg-surface-200 rounded-full overflow-hidden">
@@ -177,7 +177,7 @@ export function SVIComparison({
                       style={{ width: `${score}%` }}
                     />
                   </div>
-                  <p className="text-[10px] text-ink-400 mt-1">
+                  <p className="text-[10px] text-muted mt-1">
                     avg {dimBench.avg} · top {dimBench.top}
                   </p>
                 </div>

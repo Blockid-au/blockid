@@ -164,7 +164,7 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
           {ADMIN_NAV_GROUPS.map((group) => (
             <div key={group.label} className="mb-3">
               {sidebarOpen && (
-                <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-ink-400">
+                <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
                   {group.label}
                 </div>
               )}

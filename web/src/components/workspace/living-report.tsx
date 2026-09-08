@@ -86,7 +86,7 @@ export function LivingReport({ email }: LivingReportProps) {
         </Button>
       </div>
 
-      <p className="mt-3 text-xs text-ink-400 flex items-center gap-1">
+      <p className="mt-3 text-xs text-muted flex items-center gap-1">
         <TrendingUp className="h-3 w-3" />
         Add evidence to improve your score and unlock deeper insights
       </p>

@@ -168,12 +168,12 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
 
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-1 flex items-center gap-1.5">
-            <Code2 className="h-3.5 w-3.5" />GitHub repo URL <span className="normal-case text-ink-400 font-normal">(optional)</span>
+            <Code2 className="h-3.5 w-3.5" />GitHub repo URL <span className="normal-case text-muted font-normal">(optional)</span>
           </span>
           <input
             type="url"
             placeholder="https://github.com/owner/repo"
-            className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none"
+            className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none"
             value={githubUrl}
             onChange={(e) => setCode2Url(e.target.value)}
           />
@@ -181,18 +181,18 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
 
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-1 flex items-center gap-1.5">
-            <Globe className="h-3.5 w-3.5" />Website URL <span className="normal-case text-ink-400 font-normal">(optional)</span>
+            <Globe className="h-3.5 w-3.5" />Website URL <span className="normal-case text-muted font-normal">(optional)</span>
           </span>
           <input
             type="url"
             placeholder="https://example.com"
-            className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none"
+            className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none"
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
           />
         </label>
 
-        <p className="text-[11px] text-ink-400">Requires at least one URL. No LLM calls — deterministic, fast, free.</p>
+        <p className="text-[11px] text-muted">Requires at least one URL. No LLM calls — deterministic, fast, free.</p>
 
         <button
           type="submit"
@@ -200,7 +200,7 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
           className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors cursor-pointer"
         >
           {busy ? (
-            <><span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Analysing…</>
+            <><span className="h-4 w-4 rounded-full border-2 border-line border-t-white animate-spin" />Analysing…</>
           ) : (
             <><Zap className="h-4 w-4" />Run Analyzer</>
           )}
@@ -215,12 +215,12 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
       {result?.ok && result.sub_score != null && (
         <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#0B0F2A] to-[#1B2A5E] px-6 py-4 flex items-center justify-between">
+          <div className="bg-surface-sunken px-6 py-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold mb-0.5">Analysis complete</p>
-              <h2 className="text-white font-semibold text-base">Code &amp; Website Score</h2>
+              <h2 className="text-primary font-semibold text-base">Code &amp; Website Score</h2>
             </div>
-            <span className="text-xs font-medium text-white/60">PTD dimension</span>
+            <span className="text-xs font-medium text-muted">PTD dimension</span>
           </div>
 
           <div className="p-6 space-y-6">
@@ -251,7 +251,7 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
             {/* Side-by-side bars */}
             {result.breakdown && (result.breakdown.githubSide != null || result.breakdown.websiteSide != null) && (
               <div className="space-y-3 border-t border-surface-100 pt-5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Score breakdown</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Score breakdown</p>
                 <ScoreBar
                   label="GitHub repo"
                   score={result.breakdown.githubSide}
@@ -268,7 +268,7 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
             {/* Rationale */}
             {result.rationale && result.rationale.length > 0 && (
               <div className="border-t border-surface-100 pt-5 space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Strengths &amp; gaps</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Strengths &amp; gaps</p>
                 <ul className="space-y-2">
                   {result.rationale.map((r) => <RationaleItem key={r} text={r} />)}
                 </ul>

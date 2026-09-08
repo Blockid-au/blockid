@@ -1075,13 +1075,13 @@ export function SVIEntrance() {
             {/* Project selector for logged-in users */}
             {loggedInUser && projects.length > 0 && (
               <div className="mb-3 flex items-center justify-center gap-2">
-                <span className="text-xs text-ink-400">Project:</span>
+                <span className="text-xs text-muted">Project:</span>
                 <div className="relative">
                   <button type="button" onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
                     className="inline-flex items-center gap-1.5 rounded-full border border-surface-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 hover:border-brand-300 hover:bg-brand-50 transition-all cursor-pointer shadow-sm">
                     <Sparkles strokeWidth={1.75} className="h-3 w-3 text-brand-500" />
                     {selectedProject === "__new__" ? "New Project" : projects.find(p => p.slug === selectedProject)?.name || "Select project"}
-                    <ChevronDown strokeWidth={1.75} className="h-3 w-3 text-ink-400" />
+                    <ChevronDown strokeWidth={1.75} className="h-3 w-3 text-muted" />
                   </button>
                   {projectDropdownOpen && (
                     <div className="absolute top-full left-0 mt-1 w-64 rounded-xl border border-surface-200 bg-white shadow-lg z-50 py-1 animate-fade-in">
@@ -1158,7 +1158,7 @@ export function SVIEntrance() {
 
             {/* Stage selector pills */}
             <div className="mt-4 flex flex-col items-center">
-              <p className="text-xs uppercase tracking-[0.15em] text-ink-400 font-medium mb-2">What stage is your startup?</p>
+              <p className="text-xs uppercase tracking-[0.15em] text-muted font-medium mb-2">What stage is your startup?</p>
               <div className="flex flex-wrap justify-center gap-2">
                 {([
                   { value: "Idea (Stage 0)", label: "Idea", Icon: Lightbulb },
@@ -1261,7 +1261,7 @@ export function SVIEntrance() {
                 <CheckCircle2 strokeWidth={2} className="h-4 w-4 shrink-0 text-emerald-500" />
                 5 free credits on signup &middot; No credit card required
               </p>
-              <p className="text-xs text-ink-400">
+              <p className="text-xs text-muted">
                 Early Bird: A$0.50/analysis &middot; Expires July 31, 2026
               </p>
             </div>
@@ -1271,7 +1271,7 @@ export function SVIEntrance() {
                 <span className="typing-dot h-1.5 w-1.5 rounded-full bg-brand-400" style={{ animationDelay: "0ms" }} />
                 <span className="typing-dot h-1.5 w-1.5 rounded-full bg-brand-400" style={{ animationDelay: "150ms" }} />
                 <span className="typing-dot h-1.5 w-1.5 rounded-full bg-brand-400" style={{ animationDelay: "300ms" }} />
-                <span className="ml-2 text-xs text-ink-400">Describe your startup idea...</span>
+                <span className="ml-2 text-xs text-muted">Describe your startup idea...</span>
               </div>
             )}
           </form>
@@ -1900,7 +1900,7 @@ function SVIPaywall({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full text-ink-400 hover:text-ink-700 hover:bg-surface-100 cursor-pointer transition-colors"
+          className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full text-muted hover:text-ink-700 hover:bg-surface-100 cursor-pointer transition-colors"
           aria-label="Close"
         >
           <X strokeWidth={1.75} className="h-5 w-5" />
@@ -1975,7 +1975,7 @@ function SVIPaywall({
           >
             {checkoutLoading === "starter" ? "..." : "Buy 5 credits (A$5)"}
           </button>
-          <span className="text-xs text-ink-300">|</span>
+          <span className="text-xs text-muted">|</span>
           <button
             type="button"
             onClick={() => handleCreditPack(25, "growth")}
@@ -1995,13 +1995,13 @@ function SVIPaywall({
         <div className="mt-5">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Tag strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+              <Tag strokeWidth={1.75} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
               <input
                 type="text"
                 value={couponCode}
                 onChange={(e) => { setCouponCode(e.target.value); if (couponState === "error") { setCouponState("idle"); setCouponMsg(""); } }}
                 placeholder="Enter coupon code"
-                className="h-10 w-full rounded-xl border border-surface-300 bg-surface-50 pl-9 pr-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                className="h-10 w-full rounded-xl border border-surface-300 bg-surface-50 pl-9 pr-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCouponValidate(); } }}
               />
             </div>

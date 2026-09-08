@@ -231,7 +231,7 @@ export default async function AdminRevenueSpendPage() {
                 {label}
               </p>
               <p className={`text-2xl font-bold ${color}`}>{value}</p>
-              <p className="text-xs text-ink-400 mt-0.5">{sub}</p>
+              <p className="text-xs text-muted mt-0.5">{sub}</p>
             </div>
           ))}
         </div>
@@ -244,7 +244,7 @@ export default async function AdminRevenueSpendPage() {
             </h2>
           </div>
           {weeklyRows.length === 0 ? (
-            <p className="px-6 py-8 text-sm text-ink-400 italic">
+            <p className="px-6 py-8 text-sm text-muted italic">
               No payment data found in stripe_webhook_events.
             </p>
           ) : (
@@ -268,7 +268,7 @@ export default async function AdminRevenueSpendPage() {
                       <td className="px-6 py-3 text-right font-semibold text-emerald-700">
                         {aud(row.revenue)}
                       </td>
-                      <td className="px-6 py-3 text-right text-ink-400">
+                      <td className="px-6 py-3 text-right text-muted">
                         {row.count > 0 ? aud(row.revenue / row.count) : "—"}
                       </td>
                     </tr>
@@ -284,11 +284,11 @@ export default async function AdminRevenueSpendPage() {
           <div className="px-6 py-4 border-b border-surface-100">
             <h2 className="text-base font-semibold text-ink-800">
               Credit Spend by Feature
-              <span className="ml-2 text-xs font-normal text-ink-400">(last 30 days)</span>
+              <span className="ml-2 text-xs font-normal text-muted">(last 30 days)</span>
             </h2>
           </div>
           {spendRows.length === 0 ? (
-            <p className="px-6 py-8 text-sm text-ink-400 italic">
+            <p className="px-6 py-8 text-sm text-muted italic">
               No credit spend recorded in last 30 days.
             </p>
           ) : (
@@ -312,7 +312,7 @@ export default async function AdminRevenueSpendPage() {
                         {row.credits.toFixed(2)}
                       </td>
                       <td className="px-6 py-3 text-right text-ink-600">{row.count}</td>
-                      <td className="px-6 py-3 text-right text-ink-400">
+                      <td className="px-6 py-3 text-right text-muted">
                         {(row.credits / row.count).toFixed(2)}
                       </td>
                     </tr>
@@ -328,11 +328,11 @@ export default async function AdminRevenueSpendPage() {
           <div className="px-6 py-4 border-b border-surface-100">
             <h2 className="text-base font-semibold text-ink-800">
               Recent Transactions
-              <span className="ml-2 text-xs font-normal text-ink-400">(last 20)</span>
+              <span className="ml-2 text-xs font-normal text-muted">(last 20)</span>
             </h2>
           </div>
           {recentTx.length === 0 ? (
-            <p className="px-6 py-8 text-sm text-ink-400 italic">
+            <p className="px-6 py-8 text-sm text-muted italic">
               No transactions found.
             </p>
           ) : (
@@ -352,7 +352,7 @@ export default async function AdminRevenueSpendPage() {
                       <td className="px-6 py-3 text-ink-600 whitespace-nowrap">
                         {fmtDate(tx.created_at)}
                       </td>
-                      <td className="px-6 py-3 font-mono text-xs text-ink-400 max-w-xs truncate">
+                      <td className="px-6 py-3 font-mono text-xs text-muted max-w-xs truncate">
                         {tx.id}
                       </td>
                       <td className="px-6 py-3 text-ink-500 font-mono text-xs max-w-xs truncate">
@@ -360,7 +360,7 @@ export default async function AdminRevenueSpendPage() {
                       </td>
                       <td className="px-6 py-3 text-right font-semibold text-emerald-700 whitespace-nowrap">
                         {aud(tx.payload_amount / 100)}{" "}
-                        <span className="text-xs font-normal text-ink-400">
+                        <span className="text-xs font-normal text-muted">
                           {tx.payload_currency}
                         </span>
                       </td>

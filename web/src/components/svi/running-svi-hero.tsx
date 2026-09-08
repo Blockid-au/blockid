@@ -140,7 +140,7 @@ export function RunningSviHero({ dims, stage, industry, totalCount, running, don
             band === "strong" && "text-emerald-700 dark:text-emerald-300",
             band === "developing" && "text-amber-700 dark:text-amber-300",
             band === "early" && "text-red-700 dark:text-red-300",
-            band === "pending" && "text-ink-400 dark:text-ink-600",
+            band === "pending" && "text-muted dark:text-ink-600",
           )}
         >
           {scored.length === 0 ? "—" : animatedSvi}

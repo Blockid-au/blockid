@@ -110,7 +110,7 @@ export function RevealEmailCell({ customerId, maskedEmail }: Props) {
         type="button"
         onClick={reveal}
         disabled={state.status === "loading"}
-        className="text-xs text-brand-700 underline hover:text-brand-900 disabled:text-ink-400 disabled:no-underline"
+        className="text-xs text-brand-700 underline hover:text-brand-900 disabled:text-muted disabled:no-underline"
       >
         {state.status === "loading" ? copy.revealing : copy.show}
       </button>

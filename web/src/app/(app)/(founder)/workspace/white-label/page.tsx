@@ -37,7 +37,7 @@ export default async function WhiteLabelPage() {
             Available on Scale and Enterprise plans.
           </p>
           {/* EN/VI copy */}
-          <p className="mt-1 text-xs text-ink-400">
+          <p className="mt-1 text-xs text-muted">
             Áp dụng thương hiệu của bạn — logo, bảng màu và tên miền riêng. Tính năng dành cho gói Scale và Enterprise.
           </p>
         </div>
@@ -50,10 +50,10 @@ export default async function WhiteLabelPage() {
             custom domain, and remove BlockID attribution from client-facing
             reports and investor data rooms.
           </p>
-          <p className="mt-1 text-xs text-ink-400">
+          <p className="mt-1 text-xs text-muted">
             Bảng cấu hình white-label đang được phát triển và sẽ sớm khả dụng.
           </p>
-          <p className="mt-4 text-xs text-ink-400">Estimated: Q4 2026</p>
+          <p className="mt-4 text-xs text-muted">Estimated: Q4 2026</p>
         </div>
 
         <div className="mt-6 text-center">

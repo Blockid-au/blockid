@@ -84,7 +84,7 @@ function MetricCard({
           )}
         </>
       ) : (
-        <p className="text-sm text-ink-400 mt-1">No data yet</p>
+        <p className="text-sm text-muted mt-1">No data yet</p>
       )}
     </div>
   );
@@ -270,28 +270,28 @@ function MetricsHistory({ metrics }: { metrics: MetricRow[] }) {
                 <tr key={row.id} className="border-b border-surface-100 last:border-b-0 hover:bg-surface-50/50 transition-colors">
                   <td className="px-4 py-2.5 font-medium text-ink-700 whitespace-nowrap">{monthLabel}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
-                    {row.mrr_aud != null ? `$${row.mrr_aud.toLocaleString()}` : <span className="text-ink-300">-</span>}
+                    {row.mrr_aud != null ? `$${row.mrr_aud.toLocaleString()}` : <span className="text-muted">-</span>}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
-                    {row.revenue != null ? `$${row.revenue.toLocaleString()}` : <span className="text-ink-300">-</span>}
+                    {row.revenue != null ? `$${row.revenue.toLocaleString()}` : <span className="text-muted">-</span>}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
-                    {row.users_total != null ? row.users_total.toLocaleString() : row.mau != null ? row.mau.toLocaleString() : <span className="text-ink-300">-</span>}
+                    {row.users_total != null ? row.users_total.toLocaleString() : row.mau != null ? row.mau.toLocaleString() : <span className="text-muted">-</span>}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
-                    {row.monthly_churn_pct != null ? `${row.monthly_churn_pct}%` : <span className="text-ink-300">-</span>}
+                    {row.monthly_churn_pct != null ? `${row.monthly_churn_pct}%` : <span className="text-muted">-</span>}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
-                    {row.burn_rate_aud != null ? `$${row.burn_rate_aud.toLocaleString()}` : <span className="text-ink-300">-</span>}
+                    {row.burn_rate_aud != null ? `$${row.burn_rate_aud.toLocaleString()}` : <span className="text-muted">-</span>}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
-                    {row.runway_months != null ? `${row.runway_months}mo` : <span className="text-ink-300">-</span>}
+                    {row.runway_months != null ? `${row.runway_months}mo` : <span className="text-muted">-</span>}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-ink-700">
-                    {row.nps != null ? row.nps : <span className="text-ink-300">-</span>}
+                    {row.nps != null ? row.nps : <span className="text-muted">-</span>}
                   </td>
                   <td className="px-4 py-2.5 text-ink-600 max-w-[200px] truncate">
-                    {row.notes || <span className="text-ink-300">-</span>}
+                    {row.notes || <span className="text-muted">-</span>}
                   </td>
                 </tr>
               );
@@ -327,7 +327,7 @@ function ConnectedSources() {
               className={
                 s.connected
                   ? "text-emerald-600 font-medium"
-                  : "text-ink-400"
+                  : "text-muted"
               }
             >
               {s.connected ? "Connected" : "Not connected"}

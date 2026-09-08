@@ -85,7 +85,7 @@ export default async function DashboardReportsIndexPage() {
                       <h2 className="text-base font-semibold text-ink-900">
                         {card.title}
                       </h2>
-                      <ArrowRight className="h-4 w-4 text-ink-400 group-hover:text-brand-600 transition" aria-hidden />
+                      <ArrowRight className="h-4 w-4 text-muted group-hover:text-brand-600 transition" aria-hidden />
                     </div>
                     <p className="mt-1 text-xs uppercase tracking-wide text-ink-500">
                       {card.audience}

@@ -257,7 +257,7 @@ export function ConnectorStatus() {
               {isConnected && ev ? (
                 <p className="text-xs text-ink-600 truncate">{getMetricSummary(ev)}</p>
               ) : !available ? (
-                <span className="text-xs text-ink-400 italic">Not configured</span>
+                <span className="text-xs text-muted italic">Not configured</span>
               ) : (
                 <button
                   type="button"

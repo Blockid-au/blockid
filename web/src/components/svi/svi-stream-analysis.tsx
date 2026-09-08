@@ -298,7 +298,7 @@ function DecisionLog({ entries }: { entries: LogEntry[] }) {
             )}>
               {e.score}
             </span>
-            <span className="shrink-0 text-ink-400 dark:text-ink-600">·</span>
+            <span className="shrink-0 text-muted dark:text-ink-600">·</span>
             <span className="font-medium text-ink-700 dark:text-ink-300 shrink-0">{meta?.label ?? e.dimKey}</span>
             <span className="text-ink-500 dark:text-ink-500 truncate">— {e.insight}</span>
           </div>
@@ -425,14 +425,14 @@ function DimCard({
             <span className="text-sm font-semibold text-ink-800 dark:text-ink-100 truncate">
               {meta.label}
             </span>
-            <span className="text-[10px] text-ink-400 dark:text-ink-500 tabular-nums">
+            <span className="text-[10px] text-muted dark:text-ink-500 tabular-nums">
               {meta.weight}% weight
             </span>
           </div>
 
           {/* Status line */}
           {state.status === "idle" && (
-            <p className="text-xs text-ink-400 dark:text-ink-500 mt-0.5">Waiting…</p>
+            <p className="text-xs text-muted dark:text-ink-500 mt-0.5">Waiting…</p>
           )}
           {state.status === "loading" && (
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -864,7 +864,7 @@ function EmailReportPanel({
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
           disabled={status === "sending" || status === "sent"}
-          className="flex-1 min-w-[200px] min-h-[44px] rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-950 px-3 py-2 text-sm text-ink-800 dark:text-ink-100 placeholder:text-ink-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          className="flex-1 min-w-[200px] min-h-[44px] rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-950 px-3 py-2 text-sm text-ink-800 dark:text-ink-100 placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         />
         <button
           type="button"
@@ -1158,7 +1158,7 @@ function TbrOnboardingSteps({
                 Download PDF
               </a>
             ) : (
-              <span className="text-[11px] text-ink-400">Waiting on step 2</span>
+              <span className="text-[11px] text-muted">Waiting on step 2</span>
             )
           }
         />

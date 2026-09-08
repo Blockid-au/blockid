@@ -103,7 +103,7 @@ export default async function ContentTrackerPage() {
         <section className="mb-8 grid gap-4 md:grid-cols-4">
           <div className="rounded-2xl border border-ink-200 bg-white p-5">
             <p className="text-xs uppercase tracking-wide text-ink-500">Published</p>
-            <p className="mt-1 text-2xl font-semibold text-ink-800">{totalPublished}<span className="text-base font-normal text-ink-400"> / {PILLARS_30D_TARGET}</span></p>
+            <p className="mt-1 text-2xl font-semibold text-ink-800">{totalPublished}<span className="text-base font-normal text-muted"> / {PILLARS_30D_TARGET}</span></p>
             <div className="mt-3 h-1.5 w-full rounded-full bg-ink-100">
               <div className="h-1.5 rounded-full bg-emerald-500" style={{ width: `${Math.min(100, monthlyPace)}%` }} />
             </div>
@@ -115,7 +115,7 @@ export default async function ContentTrackerPage() {
           </div>
           <div className="rounded-2xl border border-ink-200 bg-white p-5">
             <p className="text-xs uppercase tracking-wide text-ink-500">Pillars covered</p>
-            <p className="mt-1 text-2xl font-semibold text-ink-800">{pillarCounts.size}<span className="text-base font-normal text-ink-400"> / 9</span></p>
+            <p className="mt-1 text-2xl font-semibold text-ink-800">{pillarCounts.size}<span className="text-base font-normal text-muted"> / 9</span></p>
             <p className="mt-2 text-xs text-ink-500">Rotate evenly for SEO + audience signal.</p>
           </div>
           <div className="rounded-2xl border border-ink-200 bg-white p-5">
@@ -154,7 +154,7 @@ export default async function ContentTrackerPage() {
                   <div className="flex-1">
                     <p className="text-xs uppercase tracking-wide text-ink-500">{p.id} · {PILLAR_LABELS[p.pillar] ?? p.pillar}</p>
                     <h3 className="mt-1 text-base font-semibold text-ink-800">{p.title}</h3>
-                    {p.scheduledFor && <p className="mt-1 text-xs text-ink-400">Scheduled: {new Date(p.scheduledFor).toLocaleString("en-AU", { timeZone: "Australia/Sydney" })} AEST</p>}
+                    {p.scheduledFor && <p className="mt-1 text-xs text-muted">Scheduled: {new Date(p.scheduledFor).toLocaleString("en-AU", { timeZone: "Australia/Sydney" })} AEST</p>}
                   </div>
                   {p.cta && <a href={p.cta} target="_blank" rel="noopener" className="rounded-md border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">CTA</a>}
                 </div>
@@ -177,8 +177,8 @@ export default async function ContentTrackerPage() {
                 <li key={p.id} className="rounded-lg border border-ink-200 bg-white p-3 text-sm">
                   <span className="font-medium text-ink-800">{p.id}</span> · {PILLAR_LABELS[p.pillar] ?? p.pillar} ·
                   <span className="ml-2 text-ink-600">{p.title}</span>
-                  {p.publishedAt && <span className="ml-2 text-xs text-ink-400">({p.publishedAt.slice(0, 10)})</span>}
-                  {p.postId && <span className="ml-2 text-xs text-ink-400">[{p.postId.slice(-12)}]</span>}
+                  {p.publishedAt && <span className="ml-2 text-xs text-muted">({p.publishedAt.slice(0, 10)})</span>}
+                  {p.postId && <span className="ml-2 text-xs text-muted">[{p.postId.slice(-12)}]</span>}
                 </li>
               ))}
             </ul>

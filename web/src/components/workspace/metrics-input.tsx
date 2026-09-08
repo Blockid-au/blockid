@@ -379,7 +379,7 @@ function NumericField({
       </label>
       <div className="relative">
         {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-ink-400 pointer-events-none">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted pointer-events-none">
             {prefix}
           </span>
         )}
@@ -395,13 +395,13 @@ function NumericField({
           )}
         />
         {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-400 pointer-events-none">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted pointer-events-none">
             {suffix}
           </span>
         )}
       </div>
       {hint && (
-        <p className="text-[10px] text-ink-400 mt-0.5">{hint}</p>
+        <p className="text-[10px] text-muted mt-0.5">{hint}</p>
       )}
     </div>
   );

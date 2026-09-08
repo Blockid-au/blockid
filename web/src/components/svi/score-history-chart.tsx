@@ -115,9 +115,9 @@ export function ScoreHistoryChart({ history, startupName, className }: Props) {
           className,
         )}
       >
-        <BarChart3 strokeWidth={1.5} className="mx-auto mb-3 h-8 w-8 text-ink-300" />
+        <BarChart3 strokeWidth={1.5} className="mx-auto mb-3 h-8 w-8 text-muted" />
         <p className="text-sm font-medium text-ink-500">No score history yet</p>
-        <p className="mt-1 text-xs text-ink-400">
+        <p className="mt-1 text-xs text-muted">
           Your SVI trend chart will appear after your first analysis.
         </p>
       </div>
@@ -204,7 +204,7 @@ export function ScoreHistoryChart({ history, startupName, className }: Props) {
             <p className="text-2xl font-bold font-mono text-ink-900 leading-none">
               {latest.svi}
             </p>
-            <p className="text-[10px] text-ink-400 mt-0.5">current</p>
+            <p className="text-[10px] text-muted mt-0.5">current</p>
           </div>
 
           {/* Overall trend badge */}

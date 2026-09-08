@@ -145,7 +145,7 @@ export function PriorityTasks({ tasks, className }: Props) {
                 </div>
                 <p className="text-xs text-ink-500 mt-0.5">{task.why}</p>
                 <div className="flex items-center gap-3 mt-1.5">
-                  <span className="flex items-center gap-1 text-[11px] text-ink-400">
+                  <span className="flex items-center gap-1 text-[11px] text-muted">
                     <Clock strokeWidth={1.75} className="h-3 w-3" /> {task.time}
                   </span>
                   {!isDone && (

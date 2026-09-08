@@ -47,7 +47,7 @@ export function StatusCards({ sviScore, evidenceCount, phase, phaseName, hasCapT
               <Icon strokeWidth={1.75} className={cn("h-4 w-4", card.color)} />
             </div>
             <p className={cn("text-sm font-bold", card.color)}>{card.value}</p>
-            <p className="text-[10px] text-ink-400 mt-0.5">{card.sub}</p>
+            <p className="text-[10px] text-muted mt-0.5">{card.sub}</p>
           </div>
         );
       })}

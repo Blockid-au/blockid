@@ -76,7 +76,7 @@ export default async function ConfigPage() {
           <div className="flex items-center gap-2 mb-4">
             <DollarSign className="h-5 w-5 text-brand-600" />
             <h2 className="text-lg font-semibold">Pricing & Platform Config</h2>
-            <span className="text-xs text-ink-400 ml-auto">Changes live within 60s · no redeploy needed</span>
+            <span className="text-xs text-muted ml-auto">Changes live within 60s · no redeploy needed</span>
           </div>
           <PricingConfig initial={platformConfig} defaults={CONFIG_DEFAULTS} />
         </section>
@@ -86,7 +86,7 @@ export default async function ConfigPage() {
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="h-5 w-5 text-brand-600" />
             <h2 className="text-lg font-semibold">SVI Engine & Credits</h2>
-            <span className="text-xs text-ink-400 ml-auto">Changes live within 60s · no redeploy needed</span>
+            <span className="text-xs text-muted ml-auto">Changes live within 60s · no redeploy needed</span>
           </div>
           <SviConfig initial={{
             svi_weights: platformConfig.svi_weights,

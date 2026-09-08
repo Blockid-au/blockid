@@ -99,11 +99,11 @@ export default async function AdminCohortsPage() {
         </div>
 
         {cohorts === null ? (
-          <div className="rounded-xl border border-surface-200 bg-surface-50 px-6 py-12 text-center text-ink-400">
+          <div className="rounded-xl border border-surface-200 bg-surface-50 px-6 py-12 text-center text-muted">
             Supabase not configured.
           </div>
         ) : cohorts.length === 0 ? (
-          <div className="rounded-xl border border-surface-200 bg-surface-50 px-6 py-12 text-center text-ink-400">
+          <div className="rounded-xl border border-surface-200 bg-surface-50 px-6 py-12 text-center text-muted">
             No users found.
           </div>
         ) : (
@@ -135,7 +135,7 @@ export default async function AdminCohortsPage() {
                           {c.avgSVI.toFixed(0)}
                         </span>
                       ) : (
-                        <span className="text-ink-400 text-xs">—</span>
+                        <span className="text-muted text-xs">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-ink-500 truncate max-w-[200px]">

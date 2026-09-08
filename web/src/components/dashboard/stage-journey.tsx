@@ -53,7 +53,7 @@ export function StageJourney({ currentStage }: Props) {
                   )}
                 >
                   {(isCurrent || isPast) && (
-                    <svg viewBox="0 0 12 12" className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <svg viewBox="0 0 12 12" className="h-3 w-3 text-primary" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M2 6l3 3 5-5" />
                     </svg>
                   )}
@@ -63,7 +63,7 @@ export function StageJourney({ currentStage }: Props) {
                 </div>
                 <p className={cn(
                   "text-[9px] text-center mt-1.5 leading-tight",
-                  isCurrent ? "text-brand-700 font-semibold" : isPast ? "text-ink-600" : "text-ink-400",
+                  isCurrent ? "text-brand-700 font-semibold" : isPast ? "text-ink-600" : "text-muted",
                 )}>
                   {label}
                 </p>
@@ -71,7 +71,7 @@ export function StageJourney({ currentStage }: Props) {
                   <span className="text-[8px] text-brand-500 font-medium mt-0.5">YOU</span>
                 )}
                 {isNext && (
-                  <p className="text-[8px] text-ink-400 mt-0.5 text-center leading-tight">
+                  <p className="text-[8px] text-muted mt-0.5 text-center leading-tight">
                     {STAGE_MILESTONES[i]}
                   </p>
                 )}

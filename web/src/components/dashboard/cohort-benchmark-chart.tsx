@@ -43,7 +43,7 @@ export function CohortBenchmarkChart({
               className="flex-1 flex flex-col items-center justify-end gap-1"
             >
               <span
-                className={`text-[10px] font-medium ${isUser ? "text-brand-700" : "text-ink-400"}`}
+                className={`text-[10px] font-medium ${isUser ? "text-brand-700" : "text-muted"}`}
               >
                 {b.count}
               </span>
@@ -63,7 +63,7 @@ export function CohortBenchmarkChart({
         {buckets.map((b, i) => (
           <span
             key={b.label}
-            className={`flex-1 text-center text-[10px] ${i === userBucketIndex ? "text-brand-700 font-semibold" : "text-ink-400"}`}
+            className={`flex-1 text-center text-[10px] ${i === userBucketIndex ? "text-brand-700 font-semibold" : "text-muted"}`}
           >
             {b.label}
           </span>

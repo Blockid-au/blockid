@@ -40,7 +40,7 @@ export function WelcomeGuide() {
         <button
           type="button"
           onClick={dismiss}
-          className="h-7 w-7 flex items-center justify-center rounded-lg text-ink-400 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer shrink-0"
+          className="h-7 w-7 flex items-center justify-center rounded-lg text-muted hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer shrink-0"
           aria-label="Dismiss"
         >
           <X strokeWidth={1.75} className="h-4 w-4" />

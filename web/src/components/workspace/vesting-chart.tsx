@@ -115,7 +115,7 @@ export function VestingChart({
               x={padL - 6}
               y={yAt(pct) + 4}
               textAnchor="end"
-              className="fill-[#94A3B8]"
+              className="fill-tertiary"
               style={{ fontSize: "10px" }}
             >
               {pct}%
@@ -130,7 +130,7 @@ export function VestingChart({
             x={xAt(m)}
             y={height - 8}
             textAnchor="middle"
-            className="fill-[#94A3B8]"
+            className="fill-tertiary"
             style={{ fontSize: "10px" }}
           >
             {m}mo
@@ -153,7 +153,7 @@ export function VestingChart({
               x={xAt(cliffMonth)}
               y={padT - 6}
               textAnchor="middle"
-              className="fill-[#D97706]"
+              className="fill-warn"
               style={{ fontSize: "9px", fontWeight: 600 }}
             >
               CLIFF
@@ -207,7 +207,7 @@ export function VestingChart({
               x={xAt(clampedCurrent)}
               y={yAt(currentSnap.percentVested) - 10}
               textAnchor="middle"
-              className="fill-[#EF4444]"
+              className="fill-bear"
               style={{ fontSize: "9px", fontWeight: 600 }}
             >
               You are here

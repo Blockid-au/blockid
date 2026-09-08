@@ -32,7 +32,7 @@ export default function WorkspaceError({
           </p>
         )}
         {error.digest && (
-          <p className="mb-4 text-[11px] font-mono text-ink-400 dark:text-ink-500">
+          <p className="mb-4 text-[11px] font-mono text-muted dark:text-ink-500">
             Error ID: {error.digest}
           </p>
         )}

@@ -479,7 +479,7 @@ export function LpReportComposerClient() {
           <RedactedSlotPreview result={result} />
         </div>
 
-        <p className="text-xs text-ink-400 leading-relaxed">
+        <p className="text-xs text-muted leading-relaxed">
           {LP_REPORT_ANONYMISATION_DISCLAIMER}
         </p>
       </div>

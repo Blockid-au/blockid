@@ -150,7 +150,7 @@ export function ArchivedProjectsClient({ rows: initialRows }: Props) {
         <div className="text-center py-16 bg-surface-50 rounded-2xl border border-surface-200">
           <Archive
             strokeWidth={1.5}
-            className="h-12 w-12 mx-auto text-ink-300 mb-4"
+            className="h-12 w-12 mx-auto text-muted mb-4"
           />
           <h2 className="text-lg font-semibold text-ink-700 mb-2">
             No archived projects

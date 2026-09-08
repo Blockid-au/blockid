@@ -127,7 +127,7 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 h-8 w-8 flex items-center justify-center rounded-full text-ink-400 hover:text-ink-700 hover:bg-surface-100 cursor-pointer transition-colors -mt-0.5"
+              className="shrink-0 h-8 w-8 flex items-center justify-center rounded-full text-muted hover:text-ink-700 hover:bg-surface-100 cursor-pointer transition-colors -mt-0.5"
               aria-label="Close"
             >
               <X strokeWidth={1.75} className="h-5 w-5" />
@@ -261,7 +261,7 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
             <button
               type="button"
               onClick={() => setShowLegend((v) => !v)}
-              className="flex items-center gap-1 text-xs text-ink-400 hover:text-ink-600 cursor-pointer transition-colors"
+              className="flex items-center gap-1 text-xs text-muted hover:text-ink-600 cursor-pointer transition-colors"
             >
               {showLegend ? <ChevronUp strokeWidth={1.75} className="h-3 w-3" /> : <ChevronDown strokeWidth={1.75} className="h-3 w-3" />}
               Depth tier guide

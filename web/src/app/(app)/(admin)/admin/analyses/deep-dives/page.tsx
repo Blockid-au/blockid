@@ -123,14 +123,14 @@ export default async function AdminDeepDivesPage({
     <div className="max-w-7xl mx-auto px-6 pb-24 pt-10 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Deep-Dive Audit Trail</h1>
-          <p className="text-sm text-ink-400 mt-1">
+          <h1 className="text-2xl font-bold text-primary">Deep-Dive Audit Trail</h1>
+          <p className="text-sm text-muted mt-1">
             Per-dimension AI analyses (MPC / FTV / CGH / …). {total.toLocaleString()} record{total !== 1 ? "s" : ""} total.
           </p>
         </div>
         <Link
           href="/admin/analyses"
-          className="text-sm text-ink-400 hover:text-white transition-colors"
+          className="text-sm text-muted hover:text-primary transition-colors"
         >
           ← Score runs
         </Link>
@@ -141,12 +141,12 @@ export default async function AdminDeepDivesPage({
           name="user"
           defaultValue={sp.user ?? ""}
           placeholder="Email contains…"
-          className="min-w-64 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm text-white placeholder:text-ink-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="min-w-64 rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-ink-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
         />
         <select
           name="dimension"
           defaultValue={sp.dimension ?? ""}
-          className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-brand-400"
         >
           <option value="">Any dimension</option>
           {DIMENSIONS.map((d) => (
@@ -156,7 +156,7 @@ export default async function AdminDeepDivesPage({
         <select
           name="tier"
           defaultValue={sp.tier ?? ""}
-          className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-brand-400"
         >
           <option value="">Any tier</option>
           <option value="standard">standard</option>
@@ -166,15 +166,15 @@ export default async function AdminDeepDivesPage({
           Filter
         </button>
         {(sp.user || sp.dimension || sp.tier) && (
-          <Link href="/admin/analyses/deep-dives" className="rounded-lg border border-[rgba(255,255,255,0.1)] px-4 py-2 text-sm text-ink-300 hover:text-white transition-colors">
+          <Link href="/admin/analyses/deep-dives" className="rounded-lg border border-line-subtle px-4 py-2 text-sm text-muted hover:text-primary transition-colors">
             Clear
           </Link>
         )}
       </form>
 
-      <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] overflow-hidden">
+      <div className="rounded-2xl border border-line-subtle bg-surface-sunken overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-[rgba(255,255,255,0.03)] text-[10px] uppercase tracking-wider text-ink-400">
+          <thead className="bg-surface-sunken text-[10px] uppercase tracking-wider text-muted">
             <tr>
               <th className="text-left px-4 py-3">Timestamp</th>
               <th className="text-left px-4 py-3">User</th>
@@ -186,10 +186,10 @@ export default async function AdminDeepDivesPage({
               <th className="text-left px-4 py-3">Tier</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[rgba(255,255,255,0.05)]">
+          <tbody className="divide-y divide-line-subtle">
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-ink-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-muted">
                   No deep-dive analyses match this filter.
                 </td>
               </tr>
@@ -199,30 +199,30 @@ export default async function AdminDeepDivesPage({
               const score = typeof r.analysis_json?.score === "number" ? r.analysis_json.score : null;
               const report = typeof r.analysis_json?.report === "string" ? r.analysis_json.report : null;
               return (
-                <tr key={r.id} className="hover:bg-[rgba(255,255,255,0.02)]">
-                  <td className="px-4 py-3 text-xs text-ink-300 whitespace-nowrap">
+                <tr key={r.id} className="hover:bg-surface-sunken">
+                  <td className="px-4 py-3 text-xs text-muted whitespace-nowrap">
                     {fmtDateTime(r.created_at)}
                   </td>
-                  <td className="px-4 py-3 text-xs text-white">
+                  <td className="px-4 py-3 text-xs text-primary">
                     {acc?.email ?? (r.account_id?.slice(0, 8) ?? "—")}
                   </td>
-                  <td className="px-4 py-3 text-xs text-white">
+                  <td className="px-4 py-3 text-xs text-primary">
                     {acc?.startup_name ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-xs text-white uppercase">
+                  <td className="px-4 py-3 text-xs text-primary uppercase">
                     {r.dimension ?? "—"}
                   </td>
                   <td className={`px-4 py-3 text-right text-lg font-bold tabular-nums ${score != null ? scoreColor(score) : "text-ink-500"}`}>
                     {score ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-right text-xs text-ink-300 tabular-nums">
+                  <td className="px-4 py-3 text-right text-xs text-muted tabular-nums">
                     {r.credits_charged ?? 0}
                   </td>
-                  <td className="px-4 py-3 text-[11px] text-ink-300 max-w-md">
+                  <td className="px-4 py-3 text-[11px] text-muted max-w-md">
                     {report ? report.slice(0, 140) + (report.length > 140 ? "…" : "") : <span className="text-ink-500">(no report)</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-block rounded-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] px-2 py-0.5 text-[10px] text-ink-300">
+                    <span className="inline-block rounded-full bg-surface-hover border border-line-subtle px-2 py-0.5 text-[10px] text-muted">
                       {r.tier ?? "—"}
                     </span>
                   </td>
@@ -234,16 +234,16 @@ export default async function AdminDeepDivesPage({
       </div>
 
       {pages > 1 && (
-        <div className="flex items-center justify-between text-sm text-ink-400">
+        <div className="flex items-center justify-between text-sm text-muted">
           <div>Page {page} of {pages}</div>
           <div className="flex gap-2">
             {page > 1 && (
-              <Link href={linkFor(page - 1)} className="rounded-lg border border-[rgba(255,255,255,0.1)] px-3 py-1.5 text-xs hover:text-white transition-colors">
+              <Link href={linkFor(page - 1)} className="rounded-lg border border-line-subtle px-3 py-1.5 text-xs hover:text-primary transition-colors">
                 Previous
               </Link>
             )}
             {page < pages && (
-              <Link href={linkFor(page + 1)} className="rounded-lg border border-[rgba(255,255,255,0.1)] px-3 py-1.5 text-xs hover:text-white transition-colors">
+              <Link href={linkFor(page + 1)} className="rounded-lg border border-line-subtle px-3 py-1.5 text-xs hover:text-primary transition-colors">
                 Next
               </Link>
             )}

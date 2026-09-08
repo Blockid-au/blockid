@@ -21,7 +21,7 @@ export function SVIValuation({ analysis, className }: { analysis: SVIAnalysis; c
           <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
           <h3 className="text-sm font-semibold text-ink-900">Estimated Valuation</h3>
         </div>
-        <span className="text-[10px] text-ink-400 flex items-center gap-1">
+        <span className="text-[10px] text-muted flex items-center gap-1">
           <Info strokeWidth={1.75} className="h-3 w-3" /> Indicative only
         </span>
       </div>
@@ -35,7 +35,7 @@ export function SVIValuation({ analysis, className }: { analysis: SVIAnalysis; c
           <span>Method: {est.method}</span>
           <span>Confidence: {est.confidence}%</span>
         </div>
-        <p className="mt-4 text-[11px] text-ink-400 text-center leading-relaxed">
+        <p className="mt-4 text-[11px] text-muted text-center leading-relaxed">
           Based on your SVI score, stage, and AU market benchmarks. Upload revenue data and evidence to improve accuracy. Not financial advice.
         </p>
       </div>

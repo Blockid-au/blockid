@@ -81,7 +81,7 @@ function StepBreadcrumb({ current }: { current: Step }) {
               {s.label}
             </span>
             {i < steps.length - 1 && (
-              <span className="text-ink-300 dark:text-ink-700" aria-hidden="true">
+              <span className="text-muted dark:text-ink-700" aria-hidden="true">
                 →
               </span>
             )}
@@ -343,7 +343,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
           >
             <Wallet className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
             <span className="tabular-nums">{credits.balance.toFixed(2)} cr</span>
-            <span className="text-ink-400 dark:text-ink-500">·</span>
+            <span className="text-muted dark:text-ink-500">·</span>
             <span className="text-ink-500 dark:text-ink-400">{credits.plan}</span>
           </Link>
         )}
@@ -413,7 +413,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             onChange={(e) => setPastedText(e.target.value)}
             placeholder="Paste your executive summary, elevator pitch, or a rough combo of team + traction bullets…"
             rows={5}
-            className="w-full rounded-md border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-950 px-3 py-2 text-sm text-ink-800 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="w-full rounded-md border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-950 px-3 py-2 text-sm text-ink-800 dark:text-ink-100 placeholder:text-muted dark:placeholder:text-ink-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           />
           {error && (
             <p className="text-xs text-red-700 dark:text-red-400" role="alert">
@@ -437,7 +437,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               onClick={submitClassify}
               disabled={busy || (!file && pastedText.trim().length < 40)}
               className={cn(
-                "inline-flex items-center justify-center min-h-[44px] rounded-lg px-5 text-sm font-semibold text-white transition-colors",
+                "inline-flex items-center justify-center min-h-[44px] rounded-lg px-5 text-sm font-semibold text-primary transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900",
                 busy || (!file && pastedText.trim().length < 40)
                   ? "bg-brand-300 cursor-not-allowed opacity-70"
@@ -503,7 +503,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             >
               Select all 8
             </button>
-            <span className="text-ink-300 dark:text-ink-700">·</span>
+            <span className="text-muted dark:text-ink-700">·</span>
             <button
               type="button"
               onClick={() => {
@@ -517,7 +517,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             >
               Free only
             </button>
-            <span className="text-ink-300 dark:text-ink-700">·</span>
+            <span className="text-muted dark:text-ink-700">·</span>
             <button
               type="button"
               onClick={() => setSelected(new Set())}
@@ -584,7 +584,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                 onClick={submitAnalyze}
                 disabled={busy || selected.size === 0}
                 className={cn(
-                  "inline-flex items-center justify-center min-h-[44px] rounded-lg px-5 text-sm font-semibold text-white transition-colors",
+                  "inline-flex items-center justify-center min-h-[44px] rounded-lg px-5 text-sm font-semibold text-primary transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900",
                   busy || selected.size === 0
                     ? "bg-brand-300 cursor-not-allowed opacity-70"

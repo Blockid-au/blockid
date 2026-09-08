@@ -163,7 +163,7 @@ function CompetitorRowGroup({
               href={`https://${comp.url}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-ink-400 hover:text-brand-600 transition-colors"
+              className="text-muted hover:text-brand-600 transition-colors"
               aria-label={`Visit ${comp.name}`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -215,7 +215,7 @@ function CompetitorRowGroup({
 
         {/* Expand icon */}
         <td className="px-3 py-3 text-center">
-          <span className="inline-flex text-ink-400 group-hover:text-ink-600 transition-colors">
+          <span className="inline-flex text-muted group-hover:text-ink-600 transition-colors">
             {isOpen ? (
               <ChevronUp strokeWidth={1.75} className="h-4 w-4" />
             ) : (

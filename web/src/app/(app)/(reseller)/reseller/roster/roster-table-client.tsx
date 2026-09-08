@@ -73,7 +73,7 @@ function VerificationLevelChip({ level }: { level: number }) {
 }
 
 function StageBadge({ id }: { id: string | null }) {
-  if (!id) return <span className="text-xs text-ink-400">—</span>;
+  if (!id) return <span className="text-xs text-muted">—</span>;
   return (
     <span className="inline-flex items-center rounded bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-900">
       {id}

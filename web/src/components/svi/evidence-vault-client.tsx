@@ -311,7 +311,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
             })}
           </div>
           {evidenceGaps.length > 0 && (
-            <p className="text-[11px] text-ink-400 mt-2 text-center">
+            <p className="text-[11px] text-muted mt-2 text-center">
               Total potential gain: +{evidenceGaps.reduce((s, g) => s + g.impact, 0)} SVI points
               {currentSVI != null && ` → Projected SVI: ${currentSVI + evidenceGaps.reduce((s, g) => s + g.impact, 0)}`}
             </p>
@@ -447,7 +447,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-ink-400 text-center mt-3">
+          <p className="text-[11px] text-muted text-center mt-3">
             Each piece of evidence moves your confidence from self-declared (20%) toward connected source (75%) — dramatically improving your SVI accuracy and investor trust.
           </p>
         </div>

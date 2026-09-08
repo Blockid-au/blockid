@@ -96,7 +96,7 @@ export function TermSheetHistoryClient({ initialRows }: { initialRows: Row[] }) 
                       {r.risk}
                     </span>
                   ) : (
-                    <span className="text-ink-400 text-xs">—</span>
+                    <span className="text-muted text-xs">—</span>
                   )}
                 </td>
                 <td className="px-5 py-3 text-right">

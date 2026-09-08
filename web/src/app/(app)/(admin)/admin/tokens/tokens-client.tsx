@@ -287,7 +287,7 @@ export function AdminTokensClient({ user }: AdminTokensClientProps) {
           <div className="rounded-2xl border border-surface-200 bg-white p-8 text-center">
             <Wallet
               strokeWidth={1.25}
-              className="mx-auto h-12 w-12 text-ink-300 mb-4"
+              className="mx-auto h-12 w-12 text-muted mb-4"
             />
             <h2 className="text-lg font-bold text-ink-800 mb-2">
               MetaMask Required
@@ -371,7 +371,7 @@ export function AdminTokensClient({ user }: AdminTokensClientProps) {
                 {loadingCompanies ? (
                   <Loader2
                     strokeWidth={1.75}
-                    className="h-4 w-4 text-ink-400 animate-spin"
+                    className="h-4 w-4 text-muted animate-spin"
                   />
                 ) : (
                   <span className="text-xs text-ink-500">
@@ -385,7 +385,7 @@ export function AdminTokensClient({ user }: AdminTokensClientProps) {
                 <div className="px-6 py-12 text-center">
                   <Coins
                     strokeWidth={1.25}
-                    className="mx-auto h-10 w-10 text-ink-300 mb-3"
+                    className="mx-auto h-10 w-10 text-muted mb-3"
                   />
                   <p className="text-sm text-ink-500">
                     No company tokens found. The chain may be offline or no
@@ -631,7 +631,7 @@ export function AdminTokensClient({ user }: AdminTokensClientProps) {
                       value={modalTo}
                       onChange={(e) => setModalTo(e.target.value)}
                       placeholder="0x..."
-                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
                     />
                   </div>
                 )}
@@ -647,7 +647,7 @@ export function AdminTokensClient({ user }: AdminTokensClientProps) {
                     value={modalAmount}
                     onChange={(e) => setModalAmount(e.target.value)}
                     placeholder="e.g. 10000"
-                    className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                    className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
                   />
                 </div>
 
@@ -674,7 +674,7 @@ export function AdminTokensClient({ user }: AdminTokensClientProps) {
                     type="submit"
                     disabled={modalLoading || !modalAmount}
                     className={cn(
-                      "flex-1 h-10 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2",
+                      "flex-1 h-10 rounded-xl text-sm font-semibold text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2",
                       modalMode === "mint"
                         ? "bg-emerald-600 hover:bg-emerald-700"
                         : "bg-rose-600 hover:bg-rose-700",

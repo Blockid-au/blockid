@@ -339,7 +339,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
       <div className="p-5 flex items-center gap-4">
         <div
           className={cn(
-            "h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0",
+            "h-12 w-12 rounded-full flex items-center justify-center text-primary font-bold text-lg shrink-0",
             member.id === "ceo" ? "bg-brand-600" : "bg-surface-400",
             member.status === "Active" && "bg-brand-600",
             member.status === "Hiring" && "bg-purple-500",
@@ -371,7 +371,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
           <ChevronDown
             strokeWidth={1.75}
             className={cn(
-              "h-4 w-4 text-ink-400 transition-transform duration-200",
+              "h-4 w-4 text-muted transition-transform duration-200",
               open && "rotate-180",
             )}
           />
@@ -495,7 +495,7 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
                 </div>
                 <p className="text-lg font-bold font-mono text-ink-800">{value}</p>
                 <p className="text-[10px] font-medium text-ink-600">{label}</p>
-                <p className="text-[9px] text-ink-400">{sub}</p>
+                <p className="text-[9px] text-muted">{sub}</p>
               </div>
             ))}
           </div>

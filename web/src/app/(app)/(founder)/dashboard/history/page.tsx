@@ -85,7 +85,7 @@ export default async function ScoreHistoryPage() {
     return (
       <WorkspaceLayout user={user} isSandbox={isSandbox}>
         <div className="max-w-4xl mx-auto px-6 py-12 text-center">
-          <p className="text-ink-400 text-sm">
+          <p className="text-muted text-sm">
             Database is not configured. Score history is unavailable.
           </p>
         </div>
@@ -123,12 +123,12 @@ export default async function ScoreHistoryPage() {
       <WorkspaceLayout user={user} isSandbox={isSandbox}>
         <div className="max-w-4xl mx-auto px-6 pb-24 pt-10">
           <PageHeader />
-          <div className="mt-8 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] p-10 text-center">
+          <div className="mt-8 rounded-2xl border border-line-subtle bg-surface-sunken p-10 text-center">
             <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 border border-amber-400/20 mb-4">
               <BarChart3 className="h-7 w-7 text-amber-400" />
             </div>
-            <h2 className="text-lg font-semibold text-white mb-2">No analyses yet</h2>
-            <p className="text-ink-400 text-sm mb-6 max-w-sm mx-auto">
+            <h2 className="text-lg font-semibold text-primary mb-2">No analyses yet</h2>
+            <p className="text-muted text-sm mb-6 max-w-sm mx-auto">
               Run your first startup score to see your valuation journey and investment readiness
               trend tracked over time.
             </p>
@@ -175,29 +175,29 @@ export default async function ScoreHistoryPage() {
           return (
             <div
               key={group.startup_id}
-              className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.14)] transition-all duration-200 overflow-hidden"
+              className="rounded-2xl border border-line-subtle bg-surface-sunken hover:border-line transition-all duration-200 overflow-hidden"
             >
               {/* ── Card Header ── */}
-              <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-[rgba(255,255,255,0.06)]">
+              <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-line-subtle">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h2 className="text-xl font-bold text-white truncate">
+                    <h2 className="text-xl font-bold text-primary truncate">
                       {group.startup_name}
                     </h2>
                     {stage && (
-                      <span className="rounded-full bg-[rgba(0,212,255,0.12)] border border-[rgba(0,212,255,0.25)] px-2.5 py-0.5 text-[11px] font-medium text-[#00D4FF] capitalize whitespace-nowrap">
+                      <span className="rounded-full bg-action/10 border border-action/25 px-2.5 py-0.5 text-[11px] font-medium text-action capitalize whitespace-nowrap">
                         {stage}
                       </span>
                     )}
-                    <span className="rounded-full bg-[rgba(255,255,255,0.06)] px-2.5 py-0.5 text-[11px] font-medium text-ink-400 whitespace-nowrap">
+                    <span className="rounded-full bg-surface-hover px-2.5 py-0.5 text-[11px] font-medium text-muted whitespace-nowrap">
                       {group.entries.length} {group.entries.length === 1 ? "analysis" : "analyses"}
                     </span>
                   </div>
 
                   {/* Valuation range */}
                   {(latestLow || latestHigh) && (
-                    <p className="text-sm text-ink-400">
-                      <span className="text-white font-medium">
+                    <p className="text-sm text-muted">
+                      <span className="text-primary font-medium">
                         {latestLow && latestHigh
                           ? `${latestLow} – ${latestHigh}`
                           : latestLow ?? latestHigh}
@@ -214,15 +214,15 @@ export default async function ScoreHistoryPage() {
                   <div className={`text-3xl font-bold tabular-nums ${scoreColor(latest.total_score)}`}>
                     {latest.total_score}
                   </div>
-                  <div className="text-[10px] text-ink-400 mt-0.5">current</div>
+                  <div className="text-[10px] text-muted mt-0.5">current</div>
                 </div>
               </div>
 
               {/* ── Trend + delta ── */}
-              <div className="px-6 py-4 border-b border-[rgba(255,255,255,0.06)] flex flex-wrap items-center gap-6">
+              <div className="px-6 py-4 border-b border-line-subtle flex flex-wrap items-center gap-6">
                 {trend.length > 1 && (
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-ink-400 mb-1.5">
+                    <p className="text-[10px] uppercase tracking-wider text-muted mb-1.5">
                       Score trend
                     </p>
                     <div className="flex items-center gap-1.5">
@@ -230,7 +230,7 @@ export default async function ScoreHistoryPage() {
                         <span key={i} className={`text-sm font-semibold tabular-nums ${scoreColor(s)}`}>
                           {s}
                           {i < trend.length - 1 && (
-                            <span className="text-[#94A3B8]/50 mx-0.5">→</span>
+                            <span className="text-muted/50 mx-0.5">→</span>
                           )}
                         </span>
                       ))}
@@ -240,7 +240,7 @@ export default async function ScoreHistoryPage() {
 
                 {delta !== null && (
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-ink-400 mb-1.5">
+                    <p className="text-[10px] uppercase tracking-wider text-muted mb-1.5">
                       Total change
                     </p>
                     <span
@@ -249,7 +249,7 @@ export default async function ScoreHistoryPage() {
                           ? "text-green-400"
                           : delta < 0
                           ? "text-red-400"
-                          : "text-ink-400"
+                          : "text-muted"
                       }`}
                     >
                       {delta > 0 ? "+" : ""}
@@ -261,7 +261,7 @@ export default async function ScoreHistoryPage() {
 
               {/* ── Recent entries list ── */}
               <div className="px-6 py-3">
-                <p className="text-[10px] uppercase tracking-wider text-ink-400 mb-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted mb-3">
                   Recent analyses
                 </p>
                 <ul className="space-y-2">
@@ -270,15 +270,15 @@ export default async function ScoreHistoryPage() {
                     return (
                       <li key={entry.id} className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Clock className="h-3.5 w-3.5 text-ink-400 shrink-0" />
-                          <span className="text-sm text-ink-400 truncate">
+                          <Clock className="h-3.5 w-3.5 text-muted shrink-0" />
+                          <span className="text-sm text-muted truncate">
                             {fmtDate(entry.created_at)}
                           </span>
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                               src === "svi"
                                 ? "bg-purple-400/10 text-purple-400 border border-purple-400/20"
-                                : "bg-[rgba(0,212,255,0.08)] text-[#00D4FF] border border-[rgba(0,212,255,0.2)]"
+                                : "bg-action/10 text-action border border-action/25"
                             }`}
                           >
                             {src}
@@ -297,7 +297,7 @@ export default async function ScoreHistoryPage() {
               <div className="px-6 py-4">
                 <Link
                   href={`/dashboard/history/${encodeURIComponent(group.startup_id)}`}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-[#00D4FF] hover:text-white transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-action hover:text-primary transition-colors"
                 >
                   View full history
                   <ArrowRight className="h-4 w-4" />
@@ -319,14 +319,14 @@ function PageHeader({ count }: { count?: number }) {
       <div>
         <div className="flex items-center gap-3 mb-1">
           <TrendingUp className="h-6 w-6 text-amber-400" />
-          <h1 className="text-2xl font-bold text-white">Score History</h1>
+          <h1 className="text-2xl font-bold text-primary">Score History</h1>
           {count != null && count > 0 && (
-            <span className="rounded-full bg-[rgba(255,255,255,0.06)] px-2.5 py-0.5 text-xs font-medium text-ink-400">
+            <span className="rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-medium text-muted">
               {count} startup{count !== 1 ? "s" : ""}
             </span>
           )}
         </div>
-        <p className="text-sm text-ink-400">
+        <p className="text-sm text-muted">
           Track your startup&apos;s valuation journey and investment readiness over time.
         </p>
       </div>

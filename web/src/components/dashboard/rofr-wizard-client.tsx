@@ -408,7 +408,7 @@ export function RofrWizardClient() {
                         <td className="px-3 py-2">
                           {h.name ?? h.holder_id}
                           {h.name ? (
-                            <span className="ml-2 text-xs text-ink-400">
+                            <span className="ml-2 text-xs text-muted">
                               {h.holder_id}
                             </span>
                           ) : null}
@@ -463,7 +463,7 @@ export function RofrWizardClient() {
           ) : null}
         </div>
 
-        <p className="text-xs text-ink-400 leading-relaxed">
+        <p className="text-xs text-muted leading-relaxed">
           {result.disclaimer}
         </p>
       </div>

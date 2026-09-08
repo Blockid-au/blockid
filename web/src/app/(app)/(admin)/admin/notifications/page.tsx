@@ -145,28 +145,28 @@ export default async function NotificationsPage() {
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-surface-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Mail className="h-4 w-4 text-ink-400" />
+              <Mail className="h-4 w-4 text-muted" />
               <p className="text-xs text-ink-500">Total Sent</p>
             </div>
             <p className="text-2xl font-bold">{totalSent.toLocaleString()}</p>
           </div>
           <div className="bg-white border border-surface-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <MailOpen className="h-4 w-4 text-ink-400" />
+              <MailOpen className="h-4 w-4 text-muted" />
               <p className="text-xs text-ink-500">Total Opened</p>
             </div>
             <p className="text-2xl font-bold">{totalOpened.toLocaleString()}</p>
           </div>
           <div className="bg-white border border-surface-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Bell className="h-4 w-4 text-ink-400" />
+              <Bell className="h-4 w-4 text-muted" />
               <p className="text-xs text-ink-500">Open Rate</p>
             </div>
             <p className="text-2xl font-bold">{openRate}%</p>
           </div>
           <div className="bg-white border border-surface-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Bell className="h-4 w-4 text-ink-400" />
+              <Bell className="h-4 w-4 text-muted" />
               <p className="text-xs text-ink-500">Types Active</p>
             </div>
             <p className="text-2xl font-bold">
@@ -246,7 +246,7 @@ export default async function NotificationsPage() {
                             {new Date(n.opened_at).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
                           </span>
                         ) : (
-                          <span className="text-ink-400">--</span>
+                          <span className="text-muted">--</span>
                         )}
                       </td>
                     </tr>

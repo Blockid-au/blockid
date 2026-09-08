@@ -61,7 +61,7 @@ function HeatBadge({
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-ink-400">
+    <span className="inline-flex items-center gap-1 rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-muted">
       ❄ Cold
     </span>
   );
@@ -204,7 +204,7 @@ function CreateLinkModal({ onClose, onCreated }: CreateModalProps) {
           <h2 className="text-base font-semibold text-ink-800">Create Investor Link</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-ink-400 hover:bg-surface-100 hover:text-ink-600 transition-colors"
+            className="rounded-lg p-1.5 text-muted hover:bg-surface-100 hover:text-ink-600 transition-colors"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -390,7 +390,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
             <Plus className="h-6 w-6 text-brand-500" />
           </div>
           <p className="text-sm font-medium text-ink-700">No investor links yet</p>
-          <p className="mt-1 text-sm text-ink-400">
+          <p className="mt-1 text-sm text-muted">
             Create a per-investor link to track views and attribution per investor.
           </p>
           <button
@@ -430,25 +430,25 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-50 text-left">
-                <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
+                <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-muted">
                   Investor
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted">
                   Heat
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted">
                   Views
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted">
                   Last Viewed
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted">
                   Expires
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted">
                   Status
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-ink-400">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted">
                   Created
                 </th>
                 <th className="px-6 py-3" />
@@ -462,10 +462,10 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                       {link.investorName || link.investorEmail || "—"}
                     </p>
                     {link.investorName && link.investorEmail && (
-                      <p className="text-xs text-ink-400 truncate">{link.investorEmail}</p>
+                      <p className="text-xs text-muted truncate">{link.investorEmail}</p>
                     )}
                     {link.fundName && (
-                      <p className="text-xs text-ink-400 truncate">{link.fundName}</p>
+                      <p className="text-xs text-muted truncate">{link.fundName}</p>
                     )}
                   </td>
                   <td className="px-4 py-4">
@@ -488,7 +488,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                   <td className="px-4 py-4">
                     <StatusBadge status={link.status} />
                   </td>
-                  <td className="px-4 py-4 text-ink-400 text-xs tabular-nums">
+                  <td className="px-4 py-4 text-muted text-xs tabular-nums">
                     {formatDate(link.createdAt)}
                   </td>
                   <td className="px-6 py-4">
@@ -497,7 +497,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                       <button
                         onClick={() => handleCopy(link.url, link.token)}
                         title="Copy link"
-                        className="rounded-lg p-1.5 text-ink-400 hover:bg-surface-100 hover:text-ink-600 transition-colors"
+                        className="rounded-lg p-1.5 text-muted hover:bg-surface-100 hover:text-ink-600 transition-colors"
                       >
                         {copiedToken === link.token ? (
                           <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -511,7 +511,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Open link"
-                        className="rounded-lg p-1.5 text-ink-400 hover:bg-surface-100 hover:text-ink-600 transition-colors"
+                        className="rounded-lg p-1.5 text-muted hover:bg-surface-100 hover:text-ink-600 transition-colors"
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
@@ -521,7 +521,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                           onClick={() => handleRevoke(link.token)}
                           disabled={revoking === link.token}
                           title="Revoke link"
-                          className="rounded-lg p-1.5 text-ink-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                          className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -544,10 +544,10 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                     {link.investorName || link.investorEmail || "—"}
                   </p>
                   {link.investorName && link.investorEmail && (
-                    <p className="text-xs text-ink-400 truncate">{link.investorEmail}</p>
+                    <p className="text-xs text-muted truncate">{link.investorEmail}</p>
                   )}
                   {link.fundName && (
-                    <p className="text-xs text-ink-400 truncate">{link.fundName}</p>
+                    <p className="text-xs text-muted truncate">{link.fundName}</p>
                   )}
                 </div>
                 <StatusBadge status={link.status} />

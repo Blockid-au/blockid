@@ -103,23 +103,23 @@ export function FundraisingReadinessClient() {
       <div className="rounded-2xl border border-surface-200 bg-white p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-ink-400">Readiness Score</p>
-            <p className="mt-1 text-5xl font-bold text-ink-900">{data.readinessScore}<span className="text-2xl text-ink-400">/100</span></p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">Readiness Score</p>
+            <p className="mt-1 text-5xl font-bold text-ink-900">{data.readinessScore}<span className="text-2xl text-muted">/100</span></p>
             <span className={`mt-2 inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium ${tierColorClass}`}>
               {data.readinessBadge}
             </span>
           </div>
           <div className="text-right">
-            <p className="text-xs text-ink-400">Current Stage</p>
+            <p className="text-xs text-muted">Current Stage</p>
             <p className="text-lg font-semibold text-ink-800 capitalize">{data.currentStage.replace("-", " ")}</p>
-            <p className="text-xs text-ink-400 mt-1">SVI Score: <span className="font-medium text-ink-700">{data.sviScore}/100</span></p>
-            <p className="text-xs text-ink-400">{data.completedCount}/{data.totalCount} items complete</p>
+            <p className="text-xs text-muted mt-1">SVI Score: <span className="font-medium text-ink-700">{data.sviScore}/100</span></p>
+            <p className="text-xs text-muted">{data.completedCount}/{data.totalCount} items complete</p>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="mt-6">
-          <div className="flex justify-between text-xs text-ink-400 mb-1">
+          <div className="flex justify-between text-xs text-muted mb-1">
             <span>Progress</span>
             <span>{data.readinessScore}%</span>
           </div>
@@ -129,7 +129,7 @@ export function FundraisingReadinessClient() {
               style={{ width: barWidth }}
             />
           </div>
-          <div className="mt-2 flex justify-between text-[11px] text-ink-400">
+          <div className="mt-2 flex justify-between text-[11px] text-muted">
             <span>Pre-Seed Ready ({data.targets.preSeedReady}%)</span>
             <span>Seed Ready ({data.targets.seedReady}%)</span>
             <span>Series A Ready ({data.targets.seriesAReady}%)</span>
@@ -173,7 +173,7 @@ export function FundraisingReadinessClient() {
                   <span className="text-base">{CATEGORY_ICONS[category] ?? "📋"}</span>
                   <h3 className="text-sm font-semibold text-ink-800">{category}</h3>
                 </div>
-                <span className="text-xs text-ink-400">{doneCount}/{stageItems.length}</span>
+                <span className="text-xs text-muted">{doneCount}/{stageItems.length}</span>
               </div>
               <div className="space-y-1.5">
                 {stageItems.map(item => (
@@ -181,9 +181,9 @@ export function FundraisingReadinessClient() {
                     {item.completed ? (
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />
                     ) : (
-                      <Circle className="h-4 w-4 shrink-0 text-ink-300 mt-0.5" />
+                      <Circle className="h-4 w-4 shrink-0 text-muted mt-0.5" />
                     )}
-                    <span className={`text-xs leading-relaxed ${item.completed ? "text-ink-400 line-through" : "text-ink-700"}`}>
+                    <span className={`text-xs leading-relaxed ${item.completed ? "text-muted line-through" : "text-ink-700"}`}>
                       {item.item}
                     </span>
                   </div>
@@ -219,7 +219,7 @@ export function FundraisingReadinessClient() {
                 </div>
               </div>
               <div className="mt-2 pt-2 border-t border-surface-200">
-                <p className="text-[10px] text-ink-400">Key investors: {comp.investors}</p>
+                <p className="text-[10px] text-muted">Key investors: {comp.investors}</p>
               </div>
             </div>
           ))}
@@ -227,7 +227,7 @@ export function FundraisingReadinessClient() {
       </div>
 
       {/* CTA */}
-      <div className="rounded-2xl bg-ink-950 text-white p-6 flex items-center justify-between gap-4 flex-wrap">
+      <div data-theme="dark" className="rounded-2xl bg-surface text-primary p-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <p className="font-semibold">Improve your SVI score to unlock better valuations</p>
           <p className="text-sm text-slate-400 mt-1">Complete your startup profile to auto-fill more checklist items</p>

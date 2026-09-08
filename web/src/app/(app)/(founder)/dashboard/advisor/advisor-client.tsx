@@ -66,7 +66,7 @@ function stageBadge(stage: string | null) {
 }
 
 function sviBar(svi: number | null) {
-  if (svi === null) return <span className="text-xs text-ink-300">—</span>;
+  if (svi === null) return <span className="text-xs text-muted">—</span>;
   const pct = Math.min(100, Math.max(0, svi));
   const color =
     pct >= 70 ? "bg-green-500" : pct >= 40 ? "bg-amber-500" : "bg-red-400";
@@ -225,7 +225,7 @@ export function AdvisorClient() {
       {/* Toolbar */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
           <input
             type="text"
             placeholder="Search clients..."
@@ -264,7 +264,7 @@ export function AdvisorClient() {
                   error: null,
                 })
               }
-              className="text-ink-400 hover:text-ink-600"
+              className="text-muted hover:text-ink-600"
             >
               <X className="h-4 w-4" />
             </button>
@@ -303,13 +303,13 @@ export function AdvisorClient() {
       {/* Client table */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-5 w-5 animate-spin text-ink-400" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-surface-200 bg-white p-10 text-center">
           <Users
             strokeWidth={1.5}
-            className="h-10 w-10 text-ink-300 mx-auto mb-3"
+            className="h-10 w-10 text-muted mx-auto mb-3"
           />
           <p className="text-sm text-ink-500">
             {search
@@ -322,16 +322,16 @@ export function AdvisorClient() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface-100 bg-surface-50">
-                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                   Founder
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                   Stage
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                   SVI Score
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                   Last Analysis
                 </th>
                 <th className="px-4 py-3" />
@@ -348,14 +348,14 @@ export function AdvisorClient() {
                       {c.displayName ?? c.email}
                     </p>
                     {c.startupName && (
-                      <p className="text-xs text-ink-400">{c.startupName}</p>
+                      <p className="text-xs text-muted">{c.startupName}</p>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {stageBadge(c.startupStage)}
                   </td>
                   <td className="px-4 py-3">{sviBar(c.svi)}</td>
-                  <td className="px-4 py-3 text-xs text-ink-400">
+                  <td className="px-4 py-3 text-xs text-muted">
                     {formatRelative(c.lastAnalysisAt)}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -374,7 +374,7 @@ export function AdvisorClient() {
         </div>
       )}
 
-      <p className="text-xs text-ink-400 text-center">
+      <p className="text-xs text-muted text-center">
         Advisor portal — manage client startups and track their SVI progress.{" "}
         <Link
           href="/tools"

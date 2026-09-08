@@ -125,7 +125,7 @@ function ThisWeekHero({ action }: { action: Action }) {
     <div className="rounded-2xl border-2 border-amber-300 dark:border-amber-700/50 bg-amber-50/70 dark:bg-amber-950/15 p-5 sm:p-6">
       <div className="flex items-start gap-3">
         <div className="shrink-0 rounded-full bg-amber-500 dark:bg-amber-600 p-2.5">
-          <Flame className="h-5 w-5 text-white" />
+          <Flame className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-400 mb-1">

@@ -263,7 +263,7 @@ export function StructureDecisionFormClient() {
         </section>
       ) : null}
 
-      <p className="text-xs text-ink-400 leading-relaxed">
+      <p className="text-xs text-muted leading-relaxed">
         {result?.disclaimer ??
           "Answer at least one question and press Run to see the disclaimer with the recommendation."}
       </p>

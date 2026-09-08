@@ -85,7 +85,7 @@ export function FeedbackClient({ user, initialRows, stats }: Props) {
         <section className="bg-white border border-surface-200 rounded-lg p-4 space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" strokeWidth={1.75} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" strokeWidth={1.75} />
               <input
                 type="search"
                 value={query}
@@ -144,16 +144,16 @@ export function FeedbackClient({ user, initialRows, stats }: Props) {
                           <span className="italic">{r.ai_summary}</span>
                         </p>
                       )}
-                      {r.page && <p className="mt-1 text-[11px] text-ink-400">{r.page}</p>}
+                      {r.page && <p className="mt-1 text-[11px] text-muted">{r.page}</p>}
                     </td>
                     <td className="py-2 px-2 text-right font-mono text-xs">
                       <span className={scoreClass(Number(r.ai_score || 0))}>{Number(r.ai_score || 0)}</span>
-                      <span className="text-ink-400">/30</span>
+                      <span className="text-muted">/30</span>
                     </td>
                     <td className="py-2 px-2 text-right font-mono text-xs">
                       {Number(r.credits_awarded) > 0
                         ? <span className="text-emerald-700">+{Number(r.credits_awarded).toFixed(2)}</span>
-                        : <span className="text-ink-400">—</span>}
+                        : <span className="text-muted">—</span>}
                     </td>
                   </tr>
                 ))}
@@ -179,7 +179,7 @@ function scoreClass(s: number): string {
   if (s >= 25) return "text-emerald-700 font-semibold";
   if (s >= 20) return "text-brand-700";
   if (s >= 15) return "text-ink-700";
-  return "text-ink-400";
+  return "text-muted";
 }
 
 function formatDate(iso: string): string {
