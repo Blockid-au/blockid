@@ -9333,3 +9333,5 @@
 {"ts":"2026-09-08T13:20:47.087Z","event":"github-push-master","detail":"Blockid-au: feat(analyses): persist every intake run and let an account claim it (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:21:41.019Z","event":"github-push-master","detail":"Blockid-au: test(auth): pin claim-on-signup and claim-on-login into the route suites (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:22:39.194Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the row-size budget and the private-by-default flags (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:23:33.448Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): real investor share — working POST + rendered /s/dr/[token] page (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:24:31.243Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the store's fail-soft write, strict read, and claim idempotency (1 commits)","source":"github-webhook"}
