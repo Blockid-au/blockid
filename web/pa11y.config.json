@@ -1,0 +1,21 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "timeout": 45000,
+    "wait": 1500,
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+    },
+    "ignore": [
+      "warning",
+      "notice"
+    ]
+  },
+  "urls": [
+    { "url": "http://localhost:4001/", "screenCapture": null },
+    { "url": "http://localhost:4001/score", "screenCapture": null },
+    { "url": "http://localhost:4001/one-click-report", "screenCapture": null },
+    { "url": "http://localhost:4001/admin", "screenCapture": null },
+    { "url": "http://localhost:4001/dashboard", "screenCapture": null }
+  ]
+}
