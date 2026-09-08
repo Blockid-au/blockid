@@ -156,11 +156,11 @@ describe("nextBestUpgrade — score & tie-break ladder", () => {
     //
     // Setup: starter tier, phase 2. Every remaining candidate is ≥2 phases
     // away from 2, so all score 10 ("next-tier"). Owning the other four
-    // $70 growth features leaves report.premium as the sole cheapest:
-    //   report.premium      $70   phase 4   ← unique cheapest, must win
+    // $40 growth features leaves report.premium as the sole cheapest:
+    //   report.premium      $40   phase 4   ← unique cheapest, must win
+    //   esop.manage         $59   phase 8   (Equity add-on)
+    //   blockchain.sync     $59   phase 11  (Equity add-on)
     //   accelerator.cohort  $149  phase 5
-    //   esop.manage         $200  phase 8
-    //   blockchain.sync     $200  phase 11
     //   sso                 $500  phase 12
     const out = nextBestUpgrade({
       currentTier: "starter",
@@ -175,11 +175,11 @@ describe("nextBestUpgrade — score & tie-break ladder", () => {
     expect(out).not.toBeNull();
     expect(out!.feature).toBe("report.premium");
     expect(out!.rule).toBe("next-tier");
-    expect(out!.monthlyDeltaAud).toBe(70);
+    expect(out!.monthlyDeltaAud).toBe(40);
   });
 
   it("tie on score AND price → alphabetical by feature slug", () => {
-    // Free tier / phase 10 → three candidates tied at 100 pts and $70:
+    // Free tier / phase 10 → three candidates tied at 100 pts and $40:
     //   data_room.access, share_management, term_sheet.ai
     // Alphabetical winner: data_room.access.
     const out = nextBestUpgrade({

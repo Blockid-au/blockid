@@ -33,6 +33,8 @@ export interface UpgradeCandidate {
   addOnKey?: string;
 }
 
+// `monthlyDeltaAud` for growth-tier features is 40 = A$69 Growth - A$29
+// Founder (2026-09-08 ladder). It was 70 while Growth sold at A$99.
 export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
   {
     feature: "svi.run",
@@ -46,7 +48,7 @@ export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
     feature: "report.premium",
     minTier: "growth",
     bestAtPhase: 4,
-    monthlyDeltaAud: 70,
+    monthlyDeltaAud: 40,
     discoveryHint: "Investor-ready premium report with DOCX + PDF",
     upgradeCTA: "Upgrade to Growth",
   },
@@ -54,7 +56,7 @@ export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
     feature: "cap_table.write",
     minTier: "growth",
     bestAtPhase: 11,
-    monthlyDeltaAud: 70,
+    monthlyDeltaAud: 40,
     discoveryHint: "Manage share classes and ESOP pool",
     upgradeCTA: "Upgrade to Growth",
     addOnKey: "share_management",
@@ -63,7 +65,7 @@ export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
     feature: "share_management",
     minTier: "growth",
     bestAtPhase: 10,
-    monthlyDeltaAud: 70,
+    monthlyDeltaAud: 40,
     discoveryHint: "Cap table, data room, vesting & tokenisation bundle",
     upgradeCTA: "Add Share Management",
     addOnKey: "share_management",
@@ -72,7 +74,7 @@ export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
     feature: "data_room.access",
     minTier: "growth",
     bestAtPhase: 10,
-    monthlyDeltaAud: 70,
+    monthlyDeltaAud: 40,
     discoveryHint: "Open your data room to investors",
     upgradeCTA: "Upgrade to Growth",
   },
@@ -80,26 +82,31 @@ export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
     feature: "term_sheet.ai",
     minTier: "growth",
     bestAtPhase: 10,
-    monthlyDeltaAud: 70,
+    monthlyDeltaAud: 40,
     discoveryHint: "AI-drafted term sheets tuned for AU founders",
     upgradeCTA: "Upgrade to Growth",
   },
+  // esop.manage / blockchain.sync used to be a A$200 jump from Growth to the
+  // A$299 Scale tier. Scale was retired 2026-09-08; they now come from the
+  // flat A$59/mo Equity add-on sold on top of Growth, so the delta is 59 and
+  // the gating tier is growth.
   {
     feature: "esop.manage",
-    minTier: "scale",
+    minTier: "growth",
     bestAtPhase: 8,
-    monthlyDeltaAud: 200,
+    monthlyDeltaAud: 59,
     discoveryHint: "Full ESOP administration + Div83A checks",
-    upgradeCTA: "Add to plan",
+    upgradeCTA: "Add the Equity add-on",
     addOnKey: "share_management",
   },
   {
     feature: "blockchain.sync",
-    minTier: "scale",
+    minTier: "growth",
     bestAtPhase: 11,
-    monthlyDeltaAud: 200,
+    monthlyDeltaAud: 59,
     discoveryHint: "Mirror your cap table on-chain",
-    upgradeCTA: "Upgrade to Scale",
+    upgradeCTA: "Add the Equity add-on",
+    addOnKey: "share_management",
   },
   {
     feature: "accelerator.cohort",

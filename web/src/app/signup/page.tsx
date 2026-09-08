@@ -24,10 +24,13 @@ export const metadata: Metadata = {
   description: TRIAL_COPY.headline,
 };
 
+// founder_scale (Pro, A$299) retired 2026-09-08: its Stripe price is archived
+// and plans.csv marks it active=false, so `?plan=founder_scale` would start a
+// trial that cannot be charged. Dropping it from the allow-list makes such a
+// link fall back to founder_starter instead of dead-ending at checkout.
 const FOUNDER_TRIAL_PLAN_IDS = [
   "founder_starter",
   "founder_growth",
-  "founder_scale",
   "founder_enterprise",
 ] as const;
 

@@ -17,6 +17,8 @@
 //
 // PRICES ARE FROZEN. Do not edit monthlyAudBand values without a paired change
 // to plans-v2.ts and an explicit "pricing-change-approved" review label.
+// 2026-09-08 (founder-approved): Growth A$99 -> A$69, paired with plans-v2.ts,
+// plans.csv and migration 0121. founder_scale (A$299) retired.
 
 import type { Feature } from "@/lib/entitlements";
 import { PLAN_TIER_RANK, type PlanTier } from "@/lib/segments";
@@ -177,7 +179,7 @@ export const FOUNDER_LADDER: readonly TierLadderEntry[] = Object.freeze([
     segment: "founder",
     label: "Growth",
     rank: 20,
-    monthlyAudBand: "A$99",
+    monthlyAudBand: "A$69",
     targetPhaseRange: [3, 5],
     headlineUnlock:
       "Cap-table, Term Sheet AI and data-room read access to run your first raise",
@@ -194,7 +196,13 @@ export const FOUNDER_LADDER: readonly TierLadderEntry[] = Object.freeze([
     headlineUnlock:
       "ESOP management, blockchain sync and data-room write to operate at scale",
     supportingUnlocks: SCALE_FEATURES,
-    hiddenFromPublic: false,
+    // RETIRED 2026-09-08 — A$299 sat above JPMorgan Workplace Solutions
+    // (A$277 / 100 stakeholders). Its Stripe price is archived and plans.csv
+    // marks it active=false, so no new subscriber can land here. The rung
+    // stays in the ladder so a grandfathered subscriber's tier still resolves;
+    // the A$299 band is frozen for exactly that reason and is not a live
+    // price. Its capabilities now sell as the A$59/mo Equity add-on.
+    hiddenFromPublic: true,
   },
   {
     id: "founder_enterprise",
