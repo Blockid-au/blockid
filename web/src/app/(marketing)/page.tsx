@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import Link from "next/link";
 import path from "node:path";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { HeroSection } from "@/components/marketing/hero-section";
@@ -13,17 +14,30 @@ import {
   SIGNED_IN_LANDING_HREF,
 } from "@/lib/supabase/session-hint";
 
-// Fintech v2 (2026-09-08): the homepage tells the 70/30 story — 70%
+// Fintech v3 (2026-09-08): the homepage tells the 70/30 story — 70%
 // AI-powered evaluation + valuation, 30% blockchain equity on
-// subscription. Section order is deliberate:
+// subscription.
 //
-//   1. HeroSection       — H1 leads with the AI valuation promise.
-//   2. TwoPillarSplit    — asymmetric 70/30 pillar cards.
-//   3. SampleOutputs     — analysis-only samples (AI pillar).
-//   4. HowItWorksSection — 4 steps, 3 AI + 1 tokenize.
-//   5. GrowthPhaseStrip  — belongs to the AI pillar (evaluation journey).
-//   6. LogoBand          — trust + compliance strip (dark island).
-//   7. FinalCTA          — primary Analyse button, text link to pricing.
+// LIGHT/DARK RHYTHM. v2 banded dark -> light -> light -> dark -> dark ->
+// dark -> light -> dark, which is why the page read as sections from
+// different sites stacked together. The design system is light-first
+// (docs/design-system.md rev.3), so v3 is light-DOMINANT with exactly ONE
+// dark punctuation band in the middle:
+//
+//   1. HeroSection       — LIGHT  (bg.base)     H1 + omnibox + proof row.
+//   2. TwoPillarSplit    — LIGHT  (bg.sunken)   asymmetric 70/30 cards.
+//   3. SampleOutputs     — LIGHT  (bg.base)     three anonymised stages.
+//   4. HowItWorks        — DARK   punctuation   4 steps …
+//   5.   └ GrowthPhaseStrip — nested INSIDE the same dark band so the
+//        12-phase journey is part of the punctuation, not a second
+//        adjacent dark fragment.
+//   6. LogoBand          — LIGHT  (bg.sunken)   trust + compliance.
+//   7. FinalCTA          — LIGHT  (bg.base)     primary Analyse button.
+//   8. Entity strip      — DARK   footer edge   PPL Food PTY LTD.
+//
+// So the page alternates base/sunken/base — dark — sunken/base — dark
+// footer. Two dark regions total, both deliberate, both at structural
+// boundaries.
 export const metadata = {
   title:
     "AI-powered startup valuation before you pitch · BlockID.au",
@@ -71,10 +85,10 @@ export default async function HomePage() {
     .join(" · ");
 
   return (
-    <div style={{ backgroundColor: "#0A0F1E" }} className="min-h-screen">
+    <div className="min-h-screen bg-surface">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[#00D4FF] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#0A0F1E]"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-action focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-action"
       >
         Skip to content
       </a>
@@ -93,51 +107,52 @@ export default async function HomePage() {
             the omnibox produces before they type. */}
         <SampleOutputs />
 
-        {/* 4. How-it-works — 4 steps (3 AI + 1 tokenize). */}
-        <HowItWorksSection />
+        {/* 4 + 5. How-it-works, with the 12-phase growth strip nested
+            INSIDE the same dark band. Keeping them in one section is what
+            turns two adjacent dark fragments into a single deliberate
+            punctuation island. The strip links to the real Atlassian
+            walkthrough so visitors can walk an actual journey. */}
+        <HowItWorksSection>
+          <Link
+            href="/showcase/atlassian/growth-phases"
+            className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-inset"
+            aria-label="Where is your startup on the 12-phase growth journey?"
+          >
+            <GrowthPhaseStrip
+              variant="menu"
+              eyebrow="Where's your startup? — 12-phase journey"
+            />
+          </Link>
+        </HowItWorksSection>
 
-        {/* 5. Growth phase strip — belongs to the AI pillar. Wraps to
-            /showcase/atlassian so visitors can walk a real journey. */}
-        <a
-          href="/showcase/atlassian/growth-phases"
-          className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]"
-          aria-label="Where is your startup on the 12-phase growth journey?"
-        >
-          <GrowthPhaseStrip
-            variant="menu"
-            eyebrow="Where's your startup?"
-          />
-        </a>
-
-        {/* 6. Trust + compliance strip — dark island. */}
+        {/* 6. Trust + compliance strip — light. */}
         <LogoBand />
 
         {/* 7. Final CTA — primary Analyse button + secondary pricing link. */}
         <FinalCTA />
 
         {/* Entity footer strip — preserves the PPL Food entity line. */}
+        {/* 8. Entity strip — the page's second and last dark region, at
+            the footer edge where a colour change reads as a boundary.
+            Token-bound inside data-theme="dark" (globals.css rev.4), so
+            text-muted resolves to #CBD5E1 on #0B0F1A (11.6:1) instead of
+            the old inline #94A3B8. ENTITY STRING IS DELIBERATE: marketing
+            surfaces show PPL Food PTY LTD; billing/legal/JSON-LD use
+            Auschain PTY LTD. Do not change either. */}
         <section
           id="trust"
           aria-labelledby="trust-heading"
-          className="border-t py-10"
-          style={{
-            backgroundColor: "#0A0F1E",
-            borderColor: "rgba(255,255,255,0.08)",
-          }}
+          data-theme="dark"
+          className="border-t border-line-subtle bg-surface py-10"
         >
           <h2 id="trust-heading" className="sr-only">
             About BlockID.au
           </h2>
           <div className="mx-auto max-w-4xl px-6 text-center">
-            <p
-              className="text-xs font-medium uppercase tracking-[0.2em]"
-              style={{ color: "#94A3B8" }}
-            >
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Australian owned {"·"} Built in Sydney
             </p>
-            <p className="mt-3 text-sm" style={{ color: "#94A3B8" }}>
-              {entityLine}
-            </p>
+            <p className="mt-3 text-sm text-muted">{entityLine}</p>
           </div>
         </section>
       </main>
