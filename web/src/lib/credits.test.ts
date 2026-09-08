@@ -158,7 +158,10 @@ describe("PLAN_CREDITS", () => {
     // per-tier arithmetic. Changing these requires changing plans.csv and
     // regenerating plans.generated.ts in the same commit.
     expect(PLAN_CREDITS.founder_starter.amount).toBe(20);
-    expect(PLAN_CREDITS.founder_growth.amount).toBe(65);
+    expect(PLAN_CREDITS.founder_growth.amount).toBe(45);
+    // founder_scale retired 2026-09-08 (plans.csv active=false, Stripe price
+    // archived). The grant stays so a grandfathered Pro subscriber is not cut
+    // off mid-term; no new subscriber can reach this tier.
     expect(PLAN_CREDITS.founder_scale.amount).toBe(200);
     // Enterprise = -1 (unlimited) in plans.csv; grantCredits rejects <= 0 so
     // the module caps it. 1000 cr ≈ 333 runs sits inside the 70% budget.

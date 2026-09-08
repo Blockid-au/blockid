@@ -245,8 +245,10 @@ export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : 2;
 //
 // Worst-case arithmetic, at A$1.20/run and revenue ex-GST (inc-GST ÷ 1.1):
 //   A$29  → ex-GST 26.36 → 30% budget 7.91 → 6.6 runs → 20 credits → GM 69.6%
-//   A$99  → ex-GST 90.00 → 30% budget 27.00 → 22.5 runs → 65 credits → GM 71.1%
+//   A$69  → ex-GST 62.73 → 30% budget 18.82 → 15.7 runs → 45 credits → GM 71.4%
 //   A$299 → ex-GST 271.82 → 30% budget 81.55 → 68 runs → 200 credits → GM 70.6%
+//          (founder_scale retired 2026-09-08 — grant kept for grandfathered
+//           renewals only; no new subscriber can reach this tier)
 // At the expected A$0.80/run these land at ~80% instead. Prior grants (50/200/
 // 1000) exposed 24%/11%/negative margin at full burn — the heaviest users were
 // the least profitable.
@@ -267,7 +269,11 @@ export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }
   // No live subscribers on these at the time of the change, so the reduction
   // affects no existing customer.
   founder_starter:    { amount: 20,   recurring: true  }, // ≈6 enhanced reports
-  founder_growth:     { amount: 65,   recurring: true  }, // ≈21 enhanced reports
+  // A$69/mo (was A$99/65cr). 65 credits at A$1.20/run is 58.5% GM — below the
+  // 70% floor — so the grant was recomputed from the price, not carried over.
+  founder_growth:     { amount: 45,   recurring: true  }, // ≈15 enhanced reports
+  // RETIRED 2026-09-08 (plans.csv active=false, Stripe price archived). Kept
+  // so any grandfathered Pro subscriber still receives their monthly grant.
   founder_scale:      { amount: 200,  recurring: true  }, // ≈66 enhanced reports
   // plans.csv marks Enterprise as -1 ("unlimited"). grantCredits rejects
   // amount <= 0, so it needs a concrete cap. At A$150,000c/mo the 70% budget
