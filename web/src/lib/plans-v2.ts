@@ -19,9 +19,9 @@ export interface Plan {
   id: string;
   segment: Segment;
   name: string;
-  /** AUD per month, GST-exclusive. `null` = custom / contact-sales. */
+  /** AUD per month, GST-INCLUSIVE (Stripe prices are tax_behavior=inclusive). `null` = custom / contact-sales. */
   monthly_aud: number | null;
-  /** AUD per year, GST-exclusive. `null` = custom. Annual saves ~17% vs 12x monthly. */
+  /** AUD per year, GST-INCLUSIVE. `null` = custom. Annual saves ~17% vs 12x monthly. */
   annual_aud: number | null;
   trial_days: number;
   features: string[];
@@ -33,8 +33,9 @@ export interface Plan {
    * Whether this plan surfaces on the public /pricing ladder. Defaults to
    * `true` when omitted. `false` = hidden from the ladder but kept in the
    * catalogue for legacy renewals and contact-sales flows. Set false on
-   * founder_starter (A$29 legacy), founder_enterprise, investor_* and
-   * accelerator_* per the 2026-09-07 Universal 3-rung ladder decision.
+   * founder_scale (retired A$299 Pro), founder_enterprise, investor_* and
+   * accelerator_* per the 2026-09-08 pricing ladder
+   * (Free / Founder A$29 / Growth A$69 + A$59 equity add-on).
    */
   public?: boolean;
 }
@@ -67,10 +68,11 @@ const FOUNDER: Plan[] = [
     trial_days: 7,
     cta_kind: "trial",
     tagline: "Solo founder",
-    // 2026-09-07: A$29 legacy tier removed from public ladder per the
-    // Universal 3-rung ladder decision (Free / Growth / Pro). Kept in the
-    // catalogue for grandfathered renewals; Stripe SKU unchanged.
-    public: false,
+    // 2026-09-08: back on the public ladder. The 2026-09-07 3-rung decision
+    // (Free / Growth A$99 / Pro A$299) hid this tier; the new ladder is
+    // Free / Founder A$29 / Growth A$69, so A$29 is the entry rung again.
+    // A$29 is 1.44x the A$20.09 discretionary-tool benchmark median and sits
+    // below Xero (A$37) — the defensible floor for an unproven product.
     // NOTE: Founder accounts are limited to 1 startup per
     // web/src/lib/plans/startup-limit.ts (`ACCOUNT_TYPES_WITH_MULTI_STARTUP`).
     // The `usage_limits.profiles` on the plans.csv row is a maximum enforced
@@ -82,7 +84,7 @@ const FOUNDER: Plan[] = [
       "Full SVI 8-dimension score",
       "1 startup workspace",
       "Unlimited DOCX + PDF export",
-      "50 AI credits / month",
+      "20 AI credits / month",
       "Email support (48h)",
     ],
   },
@@ -90,19 +92,20 @@ const FOUNDER: Plan[] = [
     id: "founder_growth",
     segment: "founder",
     name: "Growth",
-    monthly_aud: 99,
-    annual_aud: 990,
+    monthly_aud: 69,
+    annual_aud: 690,
     trial_days: 7,
     cta_kind: "trial",
     most_popular: true,
     tagline: "Raising a round",
     features: [
       "Everything in Starter",
-      "Cap-table sync + vesting engine",
-      "Dividend simulator",
-      "200 AI credits / month",
+      "Cap-table sync + data room",
+      "45 AI credits / month",
       "Term Sheet AI drafter",
       "Priority support (24h)",
+      "Equity add-on +A$59/mo — ESOP, vesting, dividends, shareholder portal",
+      "Unlimited shareholders + employees on the add-on — never per head",
     ],
   },
   {
@@ -114,6 +117,14 @@ const FOUNDER: Plan[] = [
     trial_days: 7,
     cta_kind: "trial",
     tagline: "Series A ready",
+    // RETIRED 2026-09-08. A$299 exceeded JPMorgan Workplace Solutions
+    // (A$277 for 100 stakeholders) — indefensible for an unproven product.
+    // Its capabilities now sell as the A$59/mo equity add-on on top of
+    // Growth (A$128 combined, under the A$138.53 registry median). The
+    // Stripe price is archived (never deleted) and plans.csv marks the row
+    // active=false; the catalogue entry stays so a grandfathered subscriber
+    // still renders.
+    public: false,
     features: [
       "Everything in Growth",
       "Tokenization requests (on-chain)",

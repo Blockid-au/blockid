@@ -319,17 +319,25 @@ function PlanCard({
   };
 
   // Deep-link fragment id for persona → pricing card jumps. Maps the
-  // public-ladder SKUs to `#tier-free` / `#tier-growth` / `#tier-pro`;
+  // public-ladder SKUs to `#tier-free` / `#tier-starter` / `#tier-growth`;
   // other SKUs fall back to their plan id so hidden cards still get a
   // deterministic anchor.
   const anchorId =
     plan.id === "founder_free"
       ? "tier-free"
-      : plan.id === "founder_growth"
-        ? "tier-growth"
-        : plan.id === "founder_scale"
-          ? "tier-pro"
-          : `tier-${plan.id}`;
+      : plan.id === "founder_starter"
+        ? "tier-starter"
+        : plan.id === "founder_growth"
+          ? "tier-growth"
+          : plan.id === "founder_scale"
+            ? "tier-pro"
+            : `tier-${plan.id}`;
+
+  // `#tier-pro` is deep-linked from the persona/solutions pages, but the Pro
+  // (founder_scale, A$299) card was retired from the public ladder on
+  // 2026-09-08 and no longer renders. Park the orphaned fragment on Growth —
+  // the top public rung — so those links scroll somewhere instead of nowhere.
+  const legacyAnchorId = plan.id === "founder_growth" ? "tier-pro" : null;
 
   return (
     <article
@@ -342,6 +350,9 @@ function PlanCard({
       ].join(" ")}
       aria-label={`${plan.name} plan`}
     >
+      {legacyAnchorId && (
+        <span id={legacyAnchorId} aria-hidden="true" className="sr-only" />
+      )}
       {plan.most_popular && (
         <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-gold px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-navy shadow-lg">
           Most popular

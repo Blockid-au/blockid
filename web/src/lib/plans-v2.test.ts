@@ -159,11 +159,15 @@ describe("PLANS_V2 catalogue", () => {
     expect(freeSkus[0]!.id).toBe("founder_free");
   });
 
-  it("founder pricing anchors (starter=A$29, growth=A$99, scale=A$299) are stable", () => {
+  it("founder pricing anchors (starter=A$29, growth=A$69) are stable", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
     expect(byId.get("founder_starter")!.monthly_aud).toBe(29);
-    expect(byId.get("founder_growth")!.monthly_aud).toBe(99);
+    expect(byId.get("founder_growth")!.monthly_aud).toBe(69);
+    expect(byId.get("founder_growth")!.annual_aud).toBe(690);
+    // founder_scale (Pro) retired 2026-09-08 — the literal is frozen at A$299
+    // purely so a grandfathered subscriber's card still renders a price.
     expect(byId.get("founder_scale")!.monthly_aud).toBe(299);
+    expect(byId.get("founder_scale")!.public).toBe(false);
   });
 
   it("investor pricing anchors (angel=A$79, advisor=A$149, vc_sm=A$349) are stable", () => {
@@ -298,13 +302,13 @@ describe("plansForSegment()", () => {
 // ---------------------------------------------------------------------------
 
 describe("PUBLIC_HIDDEN_PLAN_IDS", () => {
-  it("hides the 2026-09-07 Universal 3-rung ladder off-list SKUs (starter/enterprise + all investor + all accelerator)", () => {
+  it("hides the 2026-09-08 ladder off-list SKUs (retired Pro + enterprise + all investor + all accelerator)", () => {
     expect([...PUBLIC_HIDDEN_PLAN_IDS].sort()).toEqual([
       "accelerator_enterprise",
       "accelerator_growth",
       "accelerator_starter",
       "founder_enterprise",
-      "founder_starter",
+      "founder_scale",
       "investor_advisor",
       "investor_angel",
       "investor_vc_ent",
@@ -319,20 +323,20 @@ describe("PUBLIC_HIDDEN_PLAN_IDS", () => {
     }
   });
 
-  it("does NOT hide founder_free / founder_growth / founder_scale (the public 3-rung ladder)", () => {
-    for (const id of ["founder_free", "founder_growth", "founder_scale"]) {
+  it("does NOT hide founder_free / founder_starter / founder_growth (the public ladder)", () => {
+    for (const id of ["founder_free", "founder_starter", "founder_growth"]) {
       expect(PUBLIC_HIDDEN_PLAN_IDS).not.toContain(id);
     }
   });
 });
 
 describe("publicPlansForSegment()", () => {
-  it("returns exactly the public 3-rung ladder for founder (Free + Growth + Pro)", () => {
+  it("returns exactly the public ladder for founder (Free + Founder A$29 + Growth A$69)", () => {
     const founder = publicPlansForSegment("founder");
     expect(founder.map((p) => p.id)).toEqual([
       "founder_free",
+      "founder_starter",
       "founder_growth",
-      "founder_scale",
     ]);
   });
 
@@ -348,12 +352,12 @@ describe("publicPlansForSegment()", () => {
     expect(publicPlansForSegment("advisor")).toEqual([]);
   });
 
-  it("founder segment retains ladder order (free → growth → pro)", () => {
+  it("founder segment retains ladder order (free → founder → growth)", () => {
     const founder = publicPlansForSegment("founder");
     expect(founder.map((p) => p.id)).toEqual([
       "founder_free",
+      "founder_starter",
       "founder_growth",
-      "founder_scale",
     ]);
   });
 });
