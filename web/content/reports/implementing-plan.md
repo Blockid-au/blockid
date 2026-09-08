@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.9.0  ·  **Updated:** 2026-09-06T16:00:02.569Z  ·  **Decided by:** ceo (2026-09-06T12:04:01.845Z)
+**Version:** v3.9.0  ·  **Updated:** 2026-09-07T16:00:02.611Z  ·  **Decided by:** ceo (2026-09-07T12:04:02.971Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -43,6 +43,9 @@
 | T0202 | CMO | AU Startup Ecosystem Analysis | major | ⬜ pending |
 | T0203 | CTO | First-Principles Redesign | minor | ⬜ pending |
 | T0204 | CLO | SCN Report + PDF Redesign | major | ⬜ pending |
+| T0205 | CRO | Implement VC Method Valuation & Pricing Strategy | minor | ⬜ pending |
+| T0206 | CTO | Update Essential Eight Vulnerabilities to reflect ACSC alerts | minor | ⬜ pending |
+| T0207 | CFO | Refine Startup Valuation Engine for PitchBook benchmark comparison | minor | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0193` **CFO** — Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator (`557222041`)

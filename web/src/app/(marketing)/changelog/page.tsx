@@ -80,10 +80,12 @@ function renderMarkdown(md: string): {
   const lines = md.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
   const releases: ReleaseAnchor[] = [];
-
-  let i = 0;
-  let inList = false;
-  let paraBuf: string[] = [];
+  // Block 5 rev.3 (2026-09-08): CHANGELOG.md contains repeated release
+  // headings (e.g. two "v3.5.0 — Code & Website" entries a week apart).
+  // Slugify would emit identical `id="…"` attributes which pa11y flags as
+  // WCAG 2.1 4.1.1. Track a per-slug counter and append `-2`, `-3`, … so
+  // every anchor is unique while the first occurrence keeps its clean id.
+  const slugCounts = new Map<string, number>();
 
   const flushList = () => {
     if (inList) {
@@ -130,7 +132,10 @@ function renderMarkdown(md: string): {
       flushPara();
       flushList();
       const text = trimmed.slice(3);
-      const id = slugify(text);
+      const base = slugify(text);
+      const seen = slugCounts.get(base) ?? 0;
+      slugCounts.set(base, seen + 1);
+      const id = seen === 0 ? base : `${base}-${seen + 1}`;
       releases.push({ id, label: text });
       out.push(
         `<h2 id="${id}" class="mt-14 border-t border-[var(--fintech-border)] pt-10 text-2xl font-bold tracking-tight text-[var(--fintech-ink)] sm:text-3xl">${renderInline(

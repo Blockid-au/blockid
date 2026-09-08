@@ -23,6 +23,12 @@ Founders can now drop *any* input — a pitch deck, a live website, or a free-te
 - Playwright headless crawler ships in v3.11 (deferred to Block 4).
 - OCR is currently included at cost; the self-service OCR upsell ships next release.
 
+### Related
+
+- **Roadmap:** see the "Recently landed" and "Next up" buckets at [`/roadmap`](/roadmap) — all seven v3.10.0 workstreams are tagged `shipped 2026-09-08`, and the four follow-ons (Playwright crawler v2, OCR self-service upsell, deck template library, agent-plan A/B for idea variant) sit in the Next-up column.
+- **Design system:** [`docs/design-system.md`](https://github.com/Blockid-au/blockid/blob/master/docs/design-system.md) rev.3 documents the token surface + the verified-AA-on-live 2026-09-08 tag.
+- **QA:** E2E specs at `web/tests/e2e/analyze/{deck,site,idea}.spec.ts` pin the intake→confirm→live hand-off across all three variants; the pa11y-ci config lives at `web/pa11y.live.config.json`.
+
 ## 2026-09-07 — v3.9.23: Unify messaging + simplify pricing + close feature drift
 
 Release id `JctZ0PfqkXowL6mTrcEs3` · git `8ed44c24a` · approved plan `h-y-review-t-on-b-foamy-pixel`.

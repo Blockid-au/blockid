@@ -1,9 +1,9 @@
-# CISO Nightly Review — 2026-08-22
+# CDO Nightly Review — 2026-09-07
 
-- **Persona:** ciso
-- **Generated:** 2026-08-22T08:00:04.040Z
-- **Date:** 2026-08-22
-- **Prior report:** `web/content/reports/ciso-nightly-2026-08-21.md`
+- **Persona:** cdo
+- **Generated:** 2026-09-07T02:58:39.898Z
+- **Date:** 2026-09-07
+- **Prior report:** `web/content/reports/cdo-nightly-2026-09-06.md`
 - **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed). No LLM output.
 
 ## Status

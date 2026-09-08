@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-06",
+  "date": "2026-09-07",
   "overall": 23,
   "status": "RED",
   "dimensions": [
@@ -84,7 +84,7 @@
       "key": "deploy_hygiene",
       "label": "Deploy hygiene",
       "score": 3,
-      "detail": "last deploy 999d ago, 1 unpushed commits",
+      "detail": "last deploy 999d ago, 0 unpushed commits",
       "findings": [
         "Last deploy was 999 days ago"
       ]

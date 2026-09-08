@@ -10,7 +10,7 @@
 //   2. Rate-limit       — every /api/* route calls checkRateLimit OR is public-static.
 //   3. Secrets hygiene  — no LINKEDIN_*, STRIPE_*, SUPABASE_SERVICE_*, GROQ_*, etc.
 //                         committed under web/src/ or web/content/.
-//   4. CSP / headers    — middleware.ts present + sets CSP + X-Frame + X-Content-Type.
+//   4. CSP / headers    — proxy.ts (Next 16) or middleware.ts present + sets CSP + X-Frame + X-Content-Type.
 //   5. Dependency vulns — npm audit summary (high/critical count).
 //   6. Supabase RLS     — % of tables in supabase/migrations with RLS enabled.
 //   7. Deploy hygiene   — last deploy < 7d, git push not behind > 5 commits.
@@ -144,8 +144,19 @@ async function scoreSecrets(): Promise<DimensionScore> {
 }
 
 async function scoreCspHeaders(): Promise<DimensionScore> {
+  // Next 16 renamed middleware.ts → proxy.ts. Read whichever exists (union).
+  // Also scan security-headers helper the proxy imports, so the check follows
+  // extractions instead of assuming everything inlines in the entry file.
+  const candidates = [
+    `${WEB_DIR}/src/proxy.ts`,
+    `${WEB_DIR}/src/middleware.ts`,
+    `${WEB_DIR}/src/lib/security-headers.ts`,
+  ];
   let mw = "";
-  try { mw = fs.readFileSync(`${WEB_DIR}/src/middleware.ts`, "utf8"); } catch { /* missing */ }
+  const sources: string[] = [];
+  for (const p of candidates) {
+    try { mw += "\n" + fs.readFileSync(p, "utf8"); sources.push(p.replace(`${WEB_DIR}/`, "")); } catch { /* missing */ }
+  }
   const checks = {
     csp: /Content-Security-Policy/i.test(mw),
     xframe: /X-Frame-Options|frame-ancestors/i.test(mw),
@@ -160,11 +171,12 @@ async function scoreCspHeaders(): Promise<DimensionScore> {
   if (!checks.xcontent) findings.push("Missing X-Content-Type-Options");
   if (!checks.referrer) findings.push("Missing Referrer-Policy");
   if (!checks.permissions) findings.push("Missing Permissions-Policy");
+  if (sources.length === 0) findings.push("Neither proxy.ts nor middleware.ts nor security-headers.ts found");
   return {
     key: "csp_headers",
-    label: "CSP + security headers (middleware)",
+    label: "CSP + security headers (proxy/middleware)",
     score: Math.round((passed / 5) * 10),
-    detail: `${passed}/5 standard headers set`,
+    detail: `${passed}/5 headers set${sources.length ? ` (source: ${sources.join(", ")})` : ""}`,
     findings,
   };
 }
@@ -197,9 +209,18 @@ async function scoreDeps(): Promise<DimensionScore> {
 }
 
 async function scoreSupabaseRls(): Promise<DimensionScore> {
-  const migDir = `${WEB_DIR}/../supabase/migrations`;
+  // Migrations live at web/supabase/migrations. Older layout put them at
+  // <repo>/supabase/migrations — keep that as a fallback so this scorer
+  // survives another restructure without silently reporting "not found".
+  const candidates = [`${WEB_DIR}/supabase/migrations`, `${WEB_DIR}/../supabase/migrations`];
+  let migDir = candidates[0];
   let files: string[] = [];
-  try { files = fs.readdirSync(migDir).filter(f => f.endsWith(".sql")); } catch { /* may not exist */ }
+  for (const c of candidates) {
+    try {
+      const list = fs.readdirSync(c).filter(f => f.endsWith(".sql"));
+      if (list.length) { migDir = c; files = list; break; }
+    } catch { /* try next */ }
+  }
   if (files.length === 0) {
     return {
       key: "supabase_rls",
@@ -234,11 +255,16 @@ async function scoreSupabaseRls(): Promise<DimensionScore> {
 }
 
 async function scoreDeployHygiene(): Promise<DimensionScore> {
-  const lastDeploy = await sh("tail -1 content/reports/deploy-log.jsonl 2>/dev/null");
+  // Prefer the most recent success entry; deploy-log.jsonl interleaves
+  // github-push events (from the webhook) with actual deploy-live.sh runs.
+  // Fall back to the last line so a log missing "success" still gets scored.
+  const successLine = await sh(`grep -F '"status":"success"' content/reports/deploy-log.jsonl 2>/dev/null | tail -1`);
+  const anyLine = successLine || await sh("tail -1 content/reports/deploy-log.jsonl 2>/dev/null");
   let deployAgeDays = 999;
   try {
-    const entry = JSON.parse(lastDeploy) as { time?: string };
-    if (entry.time) deployAgeDays = (Date.now() - Date.parse(entry.time)) / (24 * 60 * 60 * 1000);
+    const entry = JSON.parse(anyLine) as { ts?: string; time?: string };
+    const stamp = entry.ts ?? entry.time;
+    if (stamp) deployAgeDays = (Date.now() - Date.parse(stamp)) / (24 * 60 * 60 * 1000);
   } catch { /* skip */ }
   const unpushed = parseInt(await sh("git rev-list --count origin/master..HEAD 2>/dev/null") || "0", 10);
   const findings: string[] = [];

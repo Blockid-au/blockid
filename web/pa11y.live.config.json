@@ -1,0 +1,19 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "timeout": 60000,
+    "wait": 2500,
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+    },
+    "ignore": ["warning", "notice"]
+  },
+  "urls": [
+    { "url": "https://blockid.au/", "screenCapture": null },
+    { "url": "https://blockid.au/analyze", "screenCapture": null },
+    { "url": "https://blockid.au/team", "screenCapture": null },
+    { "url": "https://blockid.au/changelog", "screenCapture": null },
+    { "url": "https://blockid.au/roadmap", "screenCapture": null },
+    { "url": "https://blockid.au/docs", "screenCapture": null }
+  ]
+}

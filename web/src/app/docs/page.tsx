@@ -602,7 +602,7 @@ export default async function DocsPage() {
                   <p className="text-sm leading-relaxed text-ink-600 mb-2">
                     {doc.summary}
                   </p>
-                  <p className="text-[11px] font-mono text-ink-400 break-all">
+                  <p className="text-[11px] font-mono text-ink-600 break-all">
                     {doc.slug}
                   </p>
                 </li>
@@ -635,7 +635,7 @@ export default async function DocsPage() {
                   <p className="text-sm leading-relaxed text-ink-600 mb-2">
                     {doc.summary}
                   </p>
-                  <p className="text-[11px] font-mono text-ink-400 break-all">
+                  <p className="text-[11px] font-mono text-ink-600 break-all">
                     {doc.slug}
                   </p>
                 </li>

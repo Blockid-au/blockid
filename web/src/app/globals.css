@@ -163,6 +163,38 @@
   --shadow-xl: 0 24px 48px -12px rgba(15, 23, 42, 0.18);
   --shadow-glow-accent: 0 1px 3px rgba(0, 0, 0, 0.06),
     0 8px 28px -4px color-mix(in srgb, var(--ds-accent, #2563eb) 32%, transparent);
+
+  /* ── Block 5 rev.3 (2026-09-08): expose semantic ds-* tokens as
+       Tailwind v4 --color-* generators so utilities like bg-surface,
+       bg-surface-raised, text-primary, text-secondary, text-muted,
+       text-tertiary, border-line-subtle, text-action, bg-bull, and
+       text-bear actually emit CSS (previously they lived only in the
+       v3 tailwind.config.ts and were silently dropped by the v4
+       @theme pipeline). This unblocks the pa11y AA sweep because the
+       SmartIntake card + AnalyzeResults tokens now render with their
+       intended contrast pairs instead of inheriting from the parent
+       hero background. See docs/design-system.md rev.3. */
+  --color-surface: var(--ds-surface);
+  --color-surface-raised: var(--ds-surface-elevated);
+  --color-surface-sunken: var(--ds-surface-sunken);
+  --color-surface-hover: var(--ds-surface-hover);
+  --color-line: var(--ds-border-strong);
+  --color-line-subtle: var(--ds-border);
+  --color-line-strong: var(--ds-border-emphasis);
+  --color-primary: var(--ds-ink);
+  --color-strong: var(--ds-ink-strong);
+  --color-secondary: var(--ds-ink-muted);
+  --color-muted: var(--ds-ink-subtle);
+  --color-tertiary: var(--ds-ink-tertiary);
+  --color-faint: var(--ds-ink-faint);
+  --color-on-brand: var(--ds-brand-ink);
+  --color-on-action: var(--ds-accent-contrast);
+  --color-action: var(--ds-accent);
+  --color-action-hover: var(--ds-accent-hover);
+  --color-bull: var(--ds-success);
+  --color-bear: var(--ds-danger);
+  --color-warn: var(--ds-warn);
+  --color-svi-500: #ff9f0a;
 }
 
 /* ═══════════════════════════════════════════════════════════════

@@ -1,9 +1,9 @@
-# CRO Nightly Review — 2026-08-23
+# CDO Nightly Review — 2026-09-08
 
-- **Persona:** cro
-- **Generated:** 2026-08-23T01:24:16.762Z
-- **Date:** 2026-08-23
-- **Prior report:** `web/content/reports/cro-nightly-2026-08-22.md`
+- **Persona:** cdo
+- **Generated:** 2026-09-08T01:05:52.485Z
+- **Date:** 2026-09-08
+- **Prior report:** `web/content/reports/cdo-nightly-2026-09-07.md`
 - **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed). No LLM output.
 
 ## Status

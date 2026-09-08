@@ -1,9 +1,9 @@
-# CDO Nightly Review — 2026-08-23
+# CTO Nightly Review — 2026-09-07
 
-- **Persona:** cdo
-- **Generated:** 2026-08-23T01:24:16.762Z
-- **Date:** 2026-08-23
-- **Prior report:** `web/content/reports/cdo-nightly-2026-08-22.md`
+- **Persona:** cto
+- **Generated:** 2026-09-07T02:58:39.898Z
+- **Date:** 2026-09-07
+- **Prior report:** `web/content/reports/cto-nightly-2026-09-06.md`
 - **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed). No LLM output.
 
 ## Status

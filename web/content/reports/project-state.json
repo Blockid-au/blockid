@@ -1,6 +1,6 @@
 {
   "version": "3.9.0",
-  "updatedAt": "2026-09-06T16:00:02.569Z",
+  "updatedAt": "2026-09-07T16:00:02.611Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-31T14:00:01.953Z",
@@ -38,7 +38,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-09-06T12:04:01.845Z",
+    "decidedAt": "2026-09-07T12:04:02.971Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1490,6 +1490,33 @@
         "versionImpact": "major",
         "status": "pending",
         "createdAt": "2026-09-05T12:04:03.149Z"
+      },
+      {
+        "id": "T0205",
+        "agent": "cro",
+        "title": "Implement VC Method Valuation & Pricing Strategy",
+        "rationale": "Research suggests that incorporating VC Method and pricing strategy will improve the valuation engine accuracy and provide a competitive advantage over other SCN systems.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-07T12:04:02.971Z"
+      },
+      {
+        "id": "T0206",
+        "agent": "cto",
+        "title": "Update Essential Eight Vulnerabilities to reflect ACSC alerts",
+        "rationale": "Recent ACSC alerts require an update to the Essential Eight Vulnerability categories. This will ensure that BlockID stays secure and relevant in the startup ecosystem.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-07T12:04:02.971Z"
+      },
+      {
+        "id": "T0207",
+        "agent": "cfo",
+        "title": "Refine Startup Valuation Engine for PitchBook benchmark comparison",
+        "rationale": "By refining the valuation engine for PitchBook benchmark comparison, BlockID can gain a better understanding of the Australian startup ecosystem and improve positioning in Startup Navigation System.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-07T12:04:02.971Z"
       }
     ]
   },

@@ -149,17 +149,31 @@ type ShippedItem = {
 const RECENTLY_LANDED: ShippedItem[] = [
   {
     id: "context-aware-intake-v1",
-    title: "Context-aware intake v1 — one door, three inputs",
+    title: "Context-aware intake v1 — one door, three inputs (shipped 2026-09-08)",
     detail:
-      "Unified /analyze accepts pitch deck (PDF/DOCX/PPTX + OCR), website URL, or free-text idea in a single field. Haiku 4.5 classifier detects the input type, a BFS depth-1 crawler walks up to 8 same-host pages, and a section splitter cuts decks into problem/market/team/traction/ask. Dispatch is dynamic — the right C-Level agents fire for the detected stage (idea / MVP / revenue / scale) instead of the old fixed 13-criteria bundle. Cost preview reflects the plan before commit.",
-    ticket: "v3.10.0 · Block 1-3",
+      "Unified /analyze route accepts pitch deck (PDF/DOCX/PPTX + OCR), website URL, or free-text idea in a single field. Haiku 4.5 classifier detects the input type, a BFS depth-1 multi-page site crawler walks up to 8 same-host pages, and a pitch-deck section splitter cuts decks into problem/market/team/traction/ask. Dynamic agent selection fires the right C-Level agents for the detected stage (idea / MVP / revenue / scale) instead of the old fixed 13-criteria bundle. Cost preview reflects the plan before commit.",
+    ticket: "v3.10.0 · Block 1-3 · shipped 2026-09-08",
+  },
+  {
+    id: "unified-analyze-route",
+    title: "Unified /analyze route + legacy /score, /one-click-report redirects (shipped 2026-09-08)",
+    detail:
+      "Every legacy funnel — /score free-text, /one-click-report file+URL, hero search — now redirects (301) to /analyze. Founders land on the same omni-input regardless of entry point; hero query, tier=paid deep-link, and post-signup jumps all thread through cleanly.",
+    ticket: "v3.10.0 · Block 2 · shipped 2026-09-08",
+  },
+  {
+    id: "svi-repo-port",
+    title: "startupvalueindex.com port — light-first tokens + shared /api/intake (shipped 2026-09-08)",
+    detail:
+      "Sister site startupvalueindex.com now runs the same light-first design tokens + context-aware /api/intake classifier as blockid.au. Separate Next.js repo, systemd-managed, single Stripe on blockid.au; SVI stays a top-of-funnel score surface that hands warm leads through to the full platform.",
+    ticket: "v0.3.0 · Block 4 · shipped 2026-09-08",
   },
   {
     id: "light-first-design-system-rev2",
-    title: "Light-first design system rev.2 — WCAG AA across every surface",
+    title: "Light-first design system rev.2 → rev.3 — WCAG AA verified on live (shipped 2026-09-08)",
     detail:
-      "Token set flipped from dark-first to light-first (bg.base #FFFFFF, text.primary #0B0F1A, svi.500 #FF9F0A brand accent). Dark mode is opt-in via prefers-color-scheme; admin pinned to light for screenshot parity. AA contrast across marketing, workspace, admin, reports; AAA on body ≥14px. Deprecated tokens documented in docs/design-system.md rev.2.",
-    ticket: "v3.10.0 · Block 0",
+      "Token set flipped from dark-first to light-first (bg.base #FFFFFF, text.primary #0B0F1A, svi.500 #FF9F0A brand accent). Dark mode is opt-in via prefers-color-scheme; admin pinned to light for screenshot parity. Block 5 rev.3 exposes the ds-* semantic tokens as Tailwind v4 --color-* generators so utilities like bg-surface, text-primary, border-line-subtle actually emit CSS. AA contrast verified on live blockid.au 2026-09-08 via pa11y-ci (WCAG 2.1 AA on /, /analyze, /team, /roadmap, /changelog, /docs).",
+    ticket: "v3.10.0 · Block 0 + Block 5 · shipped 2026-09-08",
   },
   {
     id: "pitchdeck-analyzer-wave-11-18",

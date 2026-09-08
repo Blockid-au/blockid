@@ -230,3 +230,11 @@
 {"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":38,"timestamp":"2026-09-06T16:00:02.610Z"}
 {"stage":"qa","ok":true,"message":"QA: ?/21 pass, 0 fail","aiCalls":0,"durationMs":86190,"timestamp":"2026-09-06T18:01:27.930Z"}
 {"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":12,"timestamp":"2026-09-06T18:01:27.942Z"}
+{"stage":"research","ok":false,"message":"Research failed: The operation was aborted due to timeout","aiCalls":0,"durationMs":240002,"timestamp":"2026-09-07T12:04:02.186Z"}
+{"stage":"plan","ok":true,"message":"CEO implementing plan updated — 3 new task(s), 39 pending","aiCalls":1,"durationMs":786,"timestamp":"2026-09-07T12:04:02.973Z"}
+{"stage":"code","ok":true,"message":"Platform upgraded: 0 modules deployed, 0 failed (via agent-deploy → git commit → GitHub push → deploy-live)","aiCalls":0,"durationMs":30463,"timestamp":"2026-09-07T14:00:32.844Z"}
+{"stage":"deploy","ok":true,"message":"Production running — HTTP 200","aiCalls":0,"durationMs":311,"timestamp":"2026-09-07T14:00:33.155Z"}
+{"stage":"update_artifacts","ok":true,"message":"39 task(s) still in flight","aiCalls":0,"durationMs":525,"timestamp":"2026-09-07T16:00:02.615Z"}
+{"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":29,"timestamp":"2026-09-07T16:00:02.645Z"}
+{"stage":"qa","ok":true,"message":"QA: ?/21 pass, 0 fail","aiCalls":0,"durationMs":86792,"timestamp":"2026-09-07T18:01:28.205Z"}
+{"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":14,"timestamp":"2026-09-07T18:01:28.219Z"}

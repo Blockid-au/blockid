@@ -1,8 +1,14 @@
 # BlockID Design System — Canonical Token Spec
 
-> **Version:** 2027-09-08 · rev.2 (LIGHT-FIRST) · Applies to: `blockid.au` (web) + `startupvalueindex.com`
+> **Version:** 2026-09-08 · rev.3 (LIGHT-FIRST · verified AA on live 2026-09-08) · Applies to: `blockid.au` (web) + `startupvalueindex.com`
 > **Owner:** CEO (Do Van Long) · **Authority:** any UI change referencing colour/type must resolve tokens from this file before merging.
 > **Skill reference:** `ui-ux-pro-max` → *Data-Dense Dashboard* (Premium Neutral) chassis, SVI orange kept as brand accent.
+>
+> **rev.3 changelog (2026-09-08):**
+> - Exposed the semantic `ds-*` tokens as Tailwind v4 `--color-*` generators in `web/src/app/globals.css` (`--color-surface`, `--color-primary`, `--color-muted`, `--color-tertiary`, `--color-line-subtle`, `--color-action`, `--color-bull`, `--color-bear`, …) so `bg-surface`, `text-primary`, `border-line-subtle` etc. actually emit CSS. Previously they lived only in the v3 `tailwind.config.ts` nested-color map and were silently dropped by the v4 `@theme` pipeline, which caused the SmartIntake card on the dark hero to render with inherited (black-on-dark) text and fail pa11y contrast at 1.31:1.
+> - Fixed the `/docs` `text-ink-400` (#94a3b8 · 2.56:1) → `text-ink-600` (#475569 · 7.3:1) uplift.
+> - Fixed `/changelog` duplicate anchor `id="…"` collisions when CHANGELOG.md repeats a release heading — slugifier now appends `-2`, `-3`, … suffixes.
+> - **Verified AA on live 2026-09-08** — pa11y-ci WCAG 2.1 AA green on `https://blockid.au/`, `/analyze`, `/team`, `/roadmap`, `/changelog`, `/docs`.
 
 ## 1. Philosophy
 

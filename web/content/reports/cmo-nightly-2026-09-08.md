@@ -1,9 +1,9 @@
-# CEO Nightly Review — 2026-08-24
+# CMO Nightly Review — 2026-09-08
 
-- **Persona:** ceo
-- **Generated:** 2026-08-24T01:16:54.023Z
-- **Date:** 2026-08-24
-- **Prior report:** `web/content/reports/ceo-nightly-2026-08-23.md`
+- **Persona:** cmo
+- **Generated:** 2026-09-08T01:05:52.485Z
+- **Date:** 2026-09-08
+- **Prior report:** `web/content/reports/cmo-nightly-2026-09-07.md`
 - **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed). No LLM output.
 
 ## Status
