@@ -5,24 +5,34 @@
 
 import { cn } from "@/lib/utils";
 
+// Fintech v2 (2026-09-08): 4 steps, weighted 3:1 AI:blockchain to match
+// the homepage's 70/30 story. Steps 01-03 are all about analysis; step 04
+// is where the platform's paid layer (tokenized equity on subscription)
+// enters. Copy is short — the depth lives on /how-it-works and /tokenize.
 const STEPS = [
   {
     number: "01",
-    title: "Create your startup profile",
+    title: "Paste",
     description:
-      "Add your idea, MVP status, team, traction and stage. Takes under 2 minutes — no signup required to preview.",
+      "Pitch deck, URL, or free-text idea — the omnibox classifies the input and routes it to the right analyzer.",
   },
   {
     number: "02",
-    title: "Run AI analysis",
+    title: "AI analyses",
     description:
-      "Our 11 C-Level AI agents (CEO/CTO/CFO/CMO/CPO/CRO/CLO/CHRO/CISO/CDO/COO) score your Startup Value Index, benchmark competitors and surface your strengths and gaps.",
+      "13 evaluation criteria across the 8 SVI dimensions (FTV, MPC, PTD, TRE, CGH, IRI, LCO, SVM).",
   },
   {
     number: "03",
-    title: "Follow your guided roadmap",
+    title: "Get score + valuation",
     description:
-      "Get a personalised action plan — fundraising, GTM, cap table, accelerators — with real AU benchmarks at every step.",
+      "Berkus, VC, DCF and comparable-company methods — one AUD range plus an evidence-linked SVI score.",
+  },
+  {
+    number: "04",
+    title: "Subscribe → tokenize equity",
+    description:
+      "On a paid plan, issue on-chain shares on the private EVM. MetaMask-ready, ESOP + vesting enforced by contract.",
   },
 ];
 
@@ -50,7 +60,7 @@ export function HowItWorksSection({ className }: { className?: string }) {
             id="how-heading"
             className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-primary"
           >
-            From idea to investor-ready in 3 steps
+            From input to on-chain equity in 4 steps
           </h2>
         </div>
 
