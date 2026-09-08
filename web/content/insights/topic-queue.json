@@ -1286,6 +1286,21 @@
         "href": "..."
       },
       "angle": "..."
+    },
+    {
+      "slug": "kebab-case-slug",
+      "title": "Title Under 70 Chars",
+      "category": "valuation|cap-table|fundraising|equity|compliance|tools|growth",
+      "keywords": [
+        "keyword1",
+        "keyword2",
+        "keyword3"
+      ],
+      "cta": {
+        "label": "CTA Label",
+        "href": "/tools/xxx or /score or /"
+      },
+      "angle": "2-3 sentence brief for the writer"
     }
   ]
 }

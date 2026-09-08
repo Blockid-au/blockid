@@ -1,6 +1,23 @@
 {
   "articles": [
     {
+      "slug": "kebab-case-slug",
+      "title": "Startup Valuation Methods in Australia",
+      "description": "Understanding Startup Valuations in Australia: A Comprehensive Guide for Founders, Including Keyword1",
+      "keywords": [
+        "keyword1",
+        "keyword2",
+        "keyword3"
+      ],
+      "category": "valuation|cap-table|fundraising|equity|compliance|tools|growth",
+      "publishedAt": "2026-09-08",
+      "readingTime": 5,
+      "cta": {
+        "label": "CTA Label",
+        "href": "/tools/xxx or /score or /"
+      }
+    },
+    {
       "slug": "...",
       "title": "...",
       "description": "Maximize your startup valuation with BlockID SVI Score. In this SEO blog post, we explore the impact on pre-seed funding and provide valuable insights for ",
