@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 // No fabricated numeric claims (startups analysed / value indexed / rating).
 const STATS = [
   { value: "Sydney NSW", label: "Australian-owned HQ" },
-  { value: "ABN registered", label: "Auschain Pty Ltd" },
+  { value: "AU registered", label: "PPL Food PTY LTD" },
   { value: "8 SVI dimensions", label: "AI-powered scoring" },
   { value: "AU compliance-first", label: "ASIC · ESIC · R&D" },
 ];

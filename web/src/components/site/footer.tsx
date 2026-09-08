@@ -39,6 +39,7 @@ const columns = [
     title: "Company",
     items: [
       { href: "/about", label: "About" },
+      { href: "/team", label: "Team" },
       { href: "/benchmarks", label: "AU Benchmarks" },
       { href: "/insights", label: "Insights" },
       { href: "/investors", label: "Investors" },
@@ -89,9 +90,7 @@ export function Footer() {
               <div className="mt-6 space-y-2 text-xs text-slate-400">
                 <p className="flex items-center gap-2">
                   <ShieldCheck strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
-                  <span>
-                    ABN <span className="font-mono tabular-nums text-slate-300">79 659 615 111</span>
-                  </span>
+                  <span className="text-slate-300">PPL Food PTY LTD</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <MapPin strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
@@ -143,7 +142,7 @@ export function Footer() {
           <div className="mt-6 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-400 md:flex-row md:items-center md:justify-between">
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span>
-                &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
+                &copy; {new Date().getFullYear()} PPL Food PTY LTD.
               </span>
               <Link
                 href="/changelog"

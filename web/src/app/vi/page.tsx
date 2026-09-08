@@ -51,7 +51,7 @@ export default async function ViHomePage() {
         >
           <p className="text-sm text-brand-ink-muted">{t(m, "vi.hero.notice")}</p>
           <p className="mt-4 text-xs text-brand-ink-muted/70">
-            Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW
+            PPL Food PTY LTD
           </p>
         </section>
       </main>

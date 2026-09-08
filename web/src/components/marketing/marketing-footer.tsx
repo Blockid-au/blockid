@@ -61,6 +61,7 @@ const COLUMNS: FooterColumn[] = [
   {
     title: "Docs",
     items: [
+      { href: "/team", label: "Team" },
       { href: "/roadmap", label: "Roadmap" },
       { href: "/changelog", label: "Changelog" },
       { href: "/status", label: "Status" },
@@ -141,10 +142,10 @@ export function MarketingFooter() {
       <div className="border-t border-[var(--fintech-border)]">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[var(--fintech-ink-muted)]">
-            Auschain PTY LTD &middot; ACN 659 615 111 &middot; ABN 79 659 615 111 &middot; Sydney NSW
+            PPL Food PTY LTD
           </p>
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[var(--fintech-ink-muted)]">
-            <span>&copy; {year} Auschain Pty Ltd</span>
+            <span>&copy; {year} PPL Food PTY LTD</span>
             {version ? (
               <span className="font-mono text-[var(--fintech-ink-muted)]">
                 {version}

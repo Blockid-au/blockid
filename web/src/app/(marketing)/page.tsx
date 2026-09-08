@@ -58,12 +58,7 @@ export default async function HomePage() {
   void isSignedIn;
   void SIGNED_IN_LANDING_HREF;
 
-  const entityLine = [
-    "Auschain PTY LTD",
-    "ACN 659 615 111",
-    "ABN 79 659 615 111",
-    version,
-  ]
+  const entityLine = ["PPL Food PTY LTD", version]
     .filter((s): s is string => typeof s === "string" && s.length > 0)
     .join(" · ");
 
