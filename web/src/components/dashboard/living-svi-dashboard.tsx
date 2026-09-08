@@ -52,6 +52,12 @@ import { REPORT_SECTIONS, getUnlockAllCost } from "@/lib/report-sections";
 import type { ReportSectionDef } from "@/lib/report-sections";
 import { SVITrendChart } from "@/components/ui/svi-trend-chart";
 import { cn } from "@/lib/utils";
+// Block 2 (2026-09-08) — the per-section unlock confirm reuses the new
+// AnalyzeCostModal so pricing UX stays consistent between /analyze and
+// dashboard section unlock (Transparent Pricing rule).
+import { AnalyzeCostModal, type CostRow } from "@/components/analyze/analyze-cost-modal";
+import type { ModelTier } from "@/lib/analyze/agent-plan";
+import type { AgentRole } from "@/lib/report-pipeline/types";
 
 /* ─── Types ───────────────────────────────────────────────────────────────── */
 
@@ -999,6 +1005,54 @@ function FullReportTab({
   );
 }
 
+/* ─── Section → AnalyzeCostModal helper (Block 2 refactor) ───────────────── */
+
+const SECTION_TIER: Record<AgentRole, ModelTier> = {
+  ceo: "opus",
+  cfo: "opus",
+  cto: "sonnet",
+  cpo: "sonnet",
+  cmo: "sonnet",
+  cro: "sonnet",
+  clo: "sonnet",
+  chro: "haiku",
+  ciso: "haiku",
+  cdo: "haiku",
+  coo: "haiku",
+};
+
+const AGENT_ROLE_SET = new Set<AgentRole>([
+  "ceo",
+  "cto",
+  "cfo",
+  "cpo",
+  "cmo",
+  "cro",
+  "clo",
+  "chro",
+  "ciso",
+  "cdo",
+  "coo",
+]);
+
+function sectionToCostRows(
+  def: ReportSectionDef,
+  creditCost: number,
+): CostRow[] {
+  const owner = (def.agentOwner ?? "ceo") as string;
+  const agent: AgentRole = AGENT_ROLE_SET.has(owner as AgentRole)
+    ? (owner as AgentRole)
+    : "ceo";
+  const tier: ModelTier = SECTION_TIER[agent] ?? "sonnet";
+  return [
+    {
+      planned: { agent, tier },
+      credits: creditCost,
+      note: def.title,
+    },
+  ];
+}
+
 /* ─── Individual Report Section Row ──────────────────────────────────────── */
 
 function ReportSectionRow({
@@ -1179,61 +1233,32 @@ function ReportSectionRow({
                 </p>
               )}
 
-              {/* Inline credit confirmation */}
-              {confirmingUnlock ? (
-                <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                  <span className="text-xs text-amber-800">
-                    Unlock for{" "}
-                    <strong>{creditCost.toFixed(2)} credits</strong>?
-                    {!canAfford && (
-                      <span className="text-red-600 ml-1">
-                        (insufficient balance)
-                      </span>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingUnlock(false)}
-                      disabled={isLoading}
-                      className="rounded-md px-2.5 py-1 text-xs font-medium text-ink-600 hover:bg-amber-100 transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleUnlock}
-                      disabled={isLoading || !canAfford}
-                      className={cn(
-                        "rounded-md px-3 py-1 text-xs font-semibold transition-colors cursor-pointer",
-                        canAfford
-                          ? "bg-brand-600 text-white hover:bg-brand-700"
-                          : "bg-surface-200 text-ink-400 cursor-not-allowed",
-                      )}
-                    >
-                      {isLoading ? (
-                        <span className="flex items-center gap-1.5">
-                          <Loader2 className="h-3 w-3 animate-spin shrink-0" />
-                          <span className="text-xs truncate max-w-[150px]">{loadingStatus || "Starting..."}</span>
-                        </span>
-                      ) : (
-                        "Confirm"
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmingUnlock(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors cursor-pointer"
-                >
-                  <Zap className="h-3 w-3" />
-                  {hasSummary
-                    ? `Read full analysis (${creditCost.toFixed(2)} cr)`
-                    : `Unlock (${creditCost.toFixed(2)} cr)`}
-                </button>
-              )}
+              {/* Block 2 (2026-09-08) — swap inline confirm for the shared
+                  AnalyzeCostModal. Single-agent row (this section's
+                  agentOwner) so pricing UX matches /analyze exactly. */}
+              <button
+                type="button"
+                onClick={() => setConfirmingUnlock(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors cursor-pointer"
+              >
+                <Zap className="h-3 w-3" />
+                {hasSummary
+                  ? `Read full analysis (${creditCost.toFixed(2)} cr)`
+                  : `Unlock (${creditCost.toFixed(2)} cr)`}
+              </button>
+              <AnalyzeCostModal
+                open={confirmingUnlock}
+                onClose={() => setConfirmingUnlock(false)}
+                onConfirm={handleUnlock}
+                rows={sectionToCostRows(def, creditCost)}
+                totalCredits={creditCost}
+                creditBalance={creditBalance}
+                loading={isLoading}
+                title={`Unlock ${title}`}
+                subtitle="You'll only be charged after clicking Run. Nothing until then."
+                ctaLabel={isLoading ? loadingStatus || "Running…" : "Confirm"}
+                errorMessage={error}
+              />
 
               {/* Error message */}
               {error && (

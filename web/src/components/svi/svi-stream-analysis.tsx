@@ -86,7 +86,13 @@ type SSEEvent =
   | { type: "cache_hit"; ageMs: number; dims: number; criteria: number }
   | { type: "done"; totalMs: number; fromCache?: boolean }
   | { type: "error"; dimension: string; message: string }
-  | { type: "fatal_error"; message: string };
+  | { type: "fatal_error"; message: string }
+  // Block 2 (2026-09-08) — /analyze live variants stream these three
+  // additional event kinds so the panel-side UIs (DeckReaderPanel,
+  // SiteVisitorPanel, AgentLineup) can update from the same union.
+  | { type: "agent_status"; agent: string; status: "queued" | "running" | "done" | "skipped" }
+  | { type: "page_fetch"; url: string; status: "fetching" | "fetched" | "error"; ms?: number; title?: string }
+  | { type: "slide_parsed"; index: number; title?: string; section?: string };
 
 // ── Persistence helpers ───────────────────────────────────────────────────────
 // A completed SVI stream costs the founder minutes + provider quota — reload
@@ -1225,6 +1231,15 @@ interface SviStreamAnalysisProps {
   /** "sequential" runs dims one-at-a-time with a short breather between —
    * avoids provider rate-limit bursts. Default "parallel" (fastest). */
   mode?: "parallel" | "sequential";
+  /**
+   * Block 2 (2026-09-08) — /analyze routes reuse this component for
+   * three input flavours: "deck" (per-slide parsing surfaces
+   * slide_parsed events), "site" (crawler emits page_fetch), "idea"
+   * (idea-lab; only agent_status is meaningful). The default preserves
+   * legacy behaviour where the component runs the full dimension grid
+   * without variant-specific event handling.
+   */
+  variant?: "deck" | "site" | "idea" | "dimensions";
 }
 
 export function SviStreamAnalysis({
@@ -1235,7 +1250,12 @@ export function SviStreamAnalysis({
   autoStart,
   onDone,
   mode,
+  variant: _variant,
 }: SviStreamAnalysisProps) {
+  // `variant` is threaded through the props for downstream consumers
+  // (event listeners emit variant-specific handlers). Silence the unused
+  // warning at the leaf without changing existing behaviour.
+  void _variant;
   const [dimStates, setDimStates] = useState<Record<string, DimState>>(() =>
     Object.fromEntries(
       DIM_KEYS.map((k) => [
