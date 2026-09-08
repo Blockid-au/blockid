@@ -1,6 +1,6 @@
 # Nightly Digest — 2026-09-08
 
-- **Generated:** 2026-09-08T12:51:15.975Z
+- **Generated:** 2026-09-08T13:28:27.744Z
 - **Version:** v3.9.23
 - **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed)
 

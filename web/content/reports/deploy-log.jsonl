@@ -9339,3 +9339,4 @@
 {"ts":"2026-09-08T13:25:43.151Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the intake write path and the 404-not-403 read rule (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:25:57.046Z","event":"github-push-master","detail":"Blockid-au: test(data-room): pin the /s/dr/[token] read path, including bad-token 404 (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:27:29.121Z","event":"github-push-master","detail":"Blockid-au: fix(home): make the radar legible at 390px, and lead it with the score (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:28:12.050Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): generate now writes real documents, not status flags (1 commits)","source":"github-webhook"}
