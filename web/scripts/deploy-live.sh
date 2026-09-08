@@ -696,13 +696,25 @@ fi
 echo "  ✅ Temp server healthy"
 
 # Smoke test critical endpoints
+# Block 2 (2026-09-08): /one-click-report + /score now 301 → /analyze,
+# so the redirected pair is checked with 3xx-accept and /analyze itself
+# is added to the 200-required list.
 SMOKE_FAIL=0
-for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/one-click-report" "/tools/idea-valuation"; do
+for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/analyze" "/tools/idea-valuation"; do
   SC=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$TEMP_PORT$path" 2>/dev/null)
   if [ "$SC" = "200" ]; then
     echo "  ✅ $path → $SC"
   else
     echo "  ❌ $path → $SC"
+    SMOKE_FAIL=$((SMOKE_FAIL + 1))
+  fi
+done
+for legacy in "/one-click-report" "/score"; do
+  SC=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$TEMP_PORT$legacy" 2>/dev/null)
+  if [ "$SC" = "301" ] || [ "$SC" = "308" ]; then
+    echo "  ✅ $legacy → $SC (redirect to /analyze)"
+  else
+    echo "  ❌ $legacy → $SC (expected 301/308 redirect)"
     SMOKE_FAIL=$((SMOKE_FAIL + 1))
   fi
 done
