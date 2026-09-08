@@ -9337,3 +9337,5 @@
 {"ts":"2026-09-08T13:24:31.243Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the store's fail-soft write, strict read, and claim idempotency (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:24:49.909Z","event":"github-push-master","detail":"Blockid-au: test(data-room): rewrite investor-data-room suite against the real schema (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:25:43.151Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the intake write path and the 404-not-403 read rule (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:25:57.046Z","event":"github-push-master","detail":"Blockid-au: test(data-room): pin the /s/dr/[token] read path, including bad-token 404 (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:27:29.121Z","event":"github-push-master","detail":"Blockid-au: fix(home): make the radar legible at 390px, and lead it with the score (1 commits)","source":"github-webhook"}

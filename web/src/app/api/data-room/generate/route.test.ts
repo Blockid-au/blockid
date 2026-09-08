@@ -62,6 +62,9 @@ interface FakeState {
   orderCalls: Array<{ table: string; col: string; opts?: unknown }>;
   limitCalls: Array<{ table: string; n: number }>;
   selectCalls: Array<{ table: string; cols?: string }>;
+  upsertCalls: Array<{ table: string; payload: unknown; opts?: unknown }>;
+  insertCalls: Array<{ table: string; payload: unknown }>;
+  deleteCalls: Array<{ table: string }>;
   currentTable: string;
   responses: Response[];
 }
@@ -73,6 +76,9 @@ function freshState(): FakeState {
     orderCalls: [],
     limitCalls: [],
     selectCalls: [],
+    upsertCalls: [],
+    insertCalls: [],
+    deleteCalls: [],
     currentTable: "",
     responses: [],
   };
@@ -98,6 +104,18 @@ function makeFakeSupabase() {
     },
     limit(n: number) {
       state.limitCalls.push({ table: state.currentTable, n });
+      return chain;
+    },
+    upsert(payload: unknown, opts?: unknown) {
+      state.upsertCalls.push({ table: state.currentTable, payload, opts });
+      return chain;
+    },
+    insert(payload: unknown) {
+      state.insertCalls.push({ table: state.currentTable, payload });
+      return chain;
+    },
+    delete() {
+      state.deleteCalls.push({ table: state.currentTable });
       return chain;
     },
     maybeSingle() { return Promise.resolve(nextResponse()); },
@@ -142,9 +160,24 @@ vi.mock("@/lib/projects", () => ({
 const generateDataRoomMock = vi.fn<
   (params: Record<string, unknown>) => Record<string, unknown>
 >();
+// composeRoomDocuments is the "auto means something" half of the generator: it
+// turns the same params into rows for data_room_documents, with REAL prose in
+// template_content for what BlockID can produce and an honest 'missing' for
+// what it cannot. Mocked here so this file stays a wiring test — the content
+// contract itself is pinned in src/lib/data-room.test.ts.
+const composeRoomDocumentsMock = vi.fn<
+  (params: Record<string, unknown>) => Array<Record<string, unknown>>
+>();
+const documentCompletenessMock = vi.fn<
+  (docs: Array<Record<string, unknown>>) => number
+>();
 vi.mock("@/lib/data-room", () => ({
   generateDataRoom: (params: Record<string, unknown>) =>
     generateDataRoomMock(params),
+  composeRoomDocuments: (params: Record<string, unknown>) =>
+    composeRoomDocumentsMock(params),
+  documentCompleteness: (docs: Array<Record<string, unknown>>) =>
+    documentCompletenessMock(docs),
 }));
 
 // ── Valuation mock ─────────────────────────────────────────────────────
@@ -183,6 +216,32 @@ const USER = { id: "u-1", email: "founder@x.co", displayName: "Ada" };
 
 // Sentinel data-room the composer returns — the route echoes this in the
 // happy-path envelope so we assert it as-is.
+// Two documents: one BlockID genuinely produced (prose in templateContent)
+// and one it honestly cannot (missing + a "what to upload" note). Every
+// assertion about the document write below reads off this pair.
+const DOCUMENT_SENTINEL = [
+  {
+    section: "corporate",
+    folder: "1. Corporate & Legal",
+    documentName: "Company Summary",
+    documentType: "auto",
+    status: "complete",
+    priority: "P0",
+    templateContent: "# Company Summary\n\nReal prose.",
+    notes: null,
+  },
+  {
+    section: "captable",
+    folder: "2. Cap Table & Equity",
+    documentName: "Shareholders Agreement (executed)",
+    documentType: "upload",
+    status: "missing",
+    priority: "P0",
+    templateContent: null,
+    notes: "Upload the signed shareholders agreement.",
+  },
+];
+
 const DATA_ROOM_SENTINEL = {
   sections: [{ id: "co", title: "Company", items: [], completeness: 100 }],
   overallCompleteness: 100,
@@ -196,8 +255,12 @@ beforeEach(() => {
   spendCreditsMock.mockReset();
   getProjectIdFromRequestMock.mockReset();
   generateDataRoomMock.mockReset();
+  composeRoomDocumentsMock.mockReset();
+  documentCompletenessMock.mockReset();
   computeValuationMock.mockReset();
   generateDataRoomMock.mockReturnValue(DATA_ROOM_SENTINEL);
+  composeRoomDocumentsMock.mockReturnValue(DOCUMENT_SENTINEL);
+  documentCompletenessMock.mockReturnValue(50);
 });
 
 describe("POST /api/data-room/generate — auth + config guards", () => {
@@ -829,6 +892,7 @@ describe("POST /api/data-room/generate — happy-path response envelope", () => 
       // link straight to the saved room.
       dataRoomId: null,
       dataRoom: DATA_ROOM_SENTINEL,
+      documents: { total: 2, complete: 1, pending: 0, missing: 1, completeness: 50 },
       creditsUsed: 3.0,
       balance: 42.75,
     });
@@ -903,6 +967,148 @@ describe("POST /api/data-room/generate — happy-path response envelope", () => 
     expect(params.latestAnalysis).toEqual({
       totalSvi: 723,
       analysisJson,
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// "Auto" has to mean something (2026-09-08).
+//
+// The one seeded room on production had 34 documents, every one
+// status='complete', zero file_url and zero template_content — a checklist
+// marked done with nothing behind it. An investor opening that sees a full
+// index and empty files, which is strictly worse than an honest gap list.
+// These pins make sure the generator writes real rows, and that regenerating
+// never eats a founder's own uploads.
+// ---------------------------------------------------------------------------
+
+describe("POST /api/data-room/generate — writes real documents", () => {
+  // The upsert must return a row id, otherwise there is no room to hang
+  // documents off and the write is (correctly) skipped.
+  function savedRoomResponses() {
+    return [
+      { data: { id: "svi-1", current_svi: 500, current_stage: 3, startup_name: "Acme" }, error: null },
+      { data: null, error: null }, // svi_analyses
+      { data: null, error: null }, // startup_metrics
+      { data: null, error: null }, // svi_snapshots
+      { data: [], error: null }, // shareholders
+      { data: [], error: null }, // svi_evidence
+      { data: { id: "room-77" }, error: null }, // data_rooms upsert
+      { data: null, error: null }, // documents delete
+      { data: null, error: null }, // documents insert
+    ];
+  }
+
+  async function generateWithSavedRoom() {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    getProjectIdFromRequestMock.mockResolvedValue("proj-1");
+    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
+    computeValuationMock.mockReturnValue({ lowAud: 1, midAud: 2, highAud: 3 });
+    state.responses = savedRoomResponses();
+    return POST();
+  }
+
+  it("feeds composeRoomDocuments the same params as the section composer", async () => {
+    await generateWithSavedRoom();
+    expect(composeRoomDocumentsMock).toHaveBeenCalledTimes(1);
+    const [params] = composeRoomDocumentsMock.mock.calls[0] as [Record<string, unknown>];
+    expect(params.sviAccount).toEqual({
+      startupName: "Acme",
+      currentStage: 3,
+      currentSvi: 500,
+    });
+    expect(params.user).toEqual({ email: "founder@x.co", displayName: "Ada" });
+  });
+
+  it("inserts one data_room_documents row per composed document, tagged origin='generated'", async () => {
+    await generateWithSavedRoom();
+    const ins = state.insertCalls.find((i) => i.table === "data_room_documents");
+    expect(ins, "no documents were written — 'auto' would mean nothing again").toBeTruthy();
+    const rows = ins!.payload as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(row.origin).toBe("generated");
+      expect(row.data_room_id).toBe("room-77");
+      expect(row.account_id).toBe("u-1");
+    }
+  });
+
+  it("a 'complete' row always carries template_content — the empty-checklist regression", async () => {
+    await generateWithSavedRoom();
+    const rows = state.insertCalls.find((i) => i.table === "data_room_documents")!
+      .payload as Array<Record<string, unknown>>;
+    for (const row of rows) {
+      if (row.status === "complete") expect(row.template_content).toBeTruthy();
+    }
+  });
+
+  it("a non-complete row carries a 'what to upload' note instead of being silently blank", async () => {
+    await generateWithSavedRoom();
+    const rows = state.insertCalls.find((i) => i.table === "data_room_documents")!
+      .payload as Array<Record<string, unknown>>;
+    const missing = rows.find((r) => r.status === "missing")!;
+    expect(missing.notes).toBe("Upload the signed shareholders agreement.");
+    expect(missing.template_content).toBeNull();
+    expect(missing.completed_at).toBeNull();
+  });
+
+  it("clears only origin='generated' rows before reinserting — a founder's uploads survive a regenerate", async () => {
+    await generateWithSavedRoom();
+    expect(state.deleteCalls.some((d) => d.table === "data_room_documents")).toBe(true);
+    const docEqs = state.eqCalls.filter((c) => c.table === "data_room_documents");
+    expect(docEqs).toContainEqual({
+      table: "data_room_documents",
+      col: "data_room_id",
+      val: "room-77",
+    });
+    expect(docEqs).toContainEqual({
+      table: "data_room_documents",
+      col: "origin",
+      val: "generated",
+    });
+  });
+
+  it("persists completeness_score from real document content, not from status flags", async () => {
+    documentCompletenessMock.mockReturnValue(33);
+    await generateWithSavedRoom();
+    const upsert = state.upsertCalls.find((u) => u.table === "data_rooms")!;
+    expect((upsert.payload as Record<string, unknown>).completeness_score).toBe(33);
+  });
+
+  it("upserts on (user_id, project_id) so regenerating updates one room rather than piling up duplicates", async () => {
+    await generateWithSavedRoom();
+    const upsert = state.upsertCalls.find((u) => u.table === "data_rooms")!;
+    expect(upsert.opts).toEqual({ onConflict: "user_id,project_id" });
+    expect((upsert.payload as Record<string, unknown>).user_id).toBe("u-1");
+    expect((upsert.payload as Record<string, unknown>).project_id).toBe("proj-1");
+  });
+
+  it("skips the document write entirely when the room failed to persist — no orphan rows", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    getProjectIdFromRequestMock.mockResolvedValue(null);
+    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
+    state.responses = [
+      { data: null, error: null }, // svi_accounts
+      { data: [], error: null }, // shareholders
+      { data: null, error: { message: "upsert failed" } }, // data_rooms
+    ];
+    const res = await POST();
+    expect(res.status).toBe(200);
+    expect(state.insertCalls.some((i) => i.table === "data_room_documents")).toBe(false);
+  });
+
+  it("reports the document tallies in the response so the founder sees the gap count", async () => {
+    documentCompletenessMock.mockReturnValue(50);
+    const res = await generateWithSavedRoom();
+    const body = await res.json();
+    expect(body.documents).toEqual({
+      total: 2,
+      complete: 1,
+      pending: 0,
+      missing: 1,
+      completeness: 50,
     });
   });
 });
