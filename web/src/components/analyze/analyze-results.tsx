@@ -16,11 +16,12 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
-import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { computeSVI, type SVIAnalysis } from "@/lib/svi-analysis";
 import type { AgentRole } from "@/lib/report-pipeline/types";
-import type { StageKey } from "@/lib/journey-vocabulary";
+import { sviStageToCanonical, type StageKey } from "@/lib/journey-vocabulary";
 import { StageBanner, type StageSignal } from "./stage-banner";
 import { SviScoreRing } from "@/components/svi/svi-score-ring";
+import type { IntakeResult } from "@/lib/intake/analyze-input";
 import {
   ChevronDown,
   ChevronRight,
@@ -65,18 +66,40 @@ export interface RadarDimension {
 }
 
 export interface AnalyzeResultsProps {
-  stage: StageKey;
+  stage?: StageKey;
   stageSignals?: StageSignal[];
-  score: number;
+  score?: number;
   analysis?: SVIAnalysis;
   radar?: RadarDimension[];
-  gaps: GapItem[];
-  actions: PrioritisedAction[];
-  findings: AgentFinding[];
+  gaps?: GapItem[];
+  actions?: PrioritisedAction[];
+  findings?: AgentFinding[];
   pdfHref?: string;
   onOverrideStage?: () => void;
+  /**
+   * When an /api/intake result is available, the panel derives every
+   * downstream field (stage, score, radar, gaps, actions) from it via
+   * `computeSVI(intake.signals)` — no fake placeholders. Explicit props
+   * still win (allows a live SSE feed to overwrite the derived values).
+   */
+  intake?: IntakeResult;
   className?: string;
 }
+
+/**
+ * Local dimension metadata mirroring the /api/svi/dimensions/stream metadata
+ * so the radar chart can label bars without pulling the server-only module.
+ */
+const DIM_LABEL: Record<string, string> = {
+  ftv: "Founder & Team",
+  mpc: "Market & Problem",
+  ptd: "Product & Tech",
+  tre: "Traction & Revenue",
+  cgh: "Cap Table & Governance",
+  iri: "Investor Readiness",
+  lco: "Legal & Compliance",
+  svm: "Strategic Vision & Moat",
+};
 
 const AGENT_LABEL: Record<AgentRole, string> = {
   ceo: "CEO",
@@ -274,23 +297,108 @@ export function AnalyzeResults({
   findings,
   pdfHref,
   onOverrideStage,
+  intake,
   className,
 }: AnalyzeResultsProps) {
+  // ── Derive analysis from intake when no explicit analysis was passed ──
+  // computeSVI is a pure function of the extracted signals — safe to run
+  // client-side. This gives the founder the real dimension breakdown,
+  // strengths and gaps immediately after intake, without waiting for the
+  // deep-dive /api/svi/dimensions/stream job.
+  const derivedAnalysis: SVIAnalysis | undefined = React.useMemo(() => {
+    if (analysis) return analysis;
+    if (!intake) return undefined;
+    try {
+      return computeSVI(intake.signals);
+    } catch {
+      return undefined;
+    }
+  }, [analysis, intake]);
+
+  const effectiveStage: StageKey =
+    stage ??
+    (intake?.context
+      ? sviStageToCanonical(intake.context.stage)
+      : derivedAnalysis
+        ? sviStageToCanonical(derivedAnalysis.stage)
+        : "idea");
+
+  const effectiveScore =
+    typeof score === "number"
+      ? score
+      : derivedAnalysis?.totalSVI ?? 100;
+
+  const effectiveRadar: RadarDimension[] =
+    radar ??
+    (derivedAnalysis?.subs.map((s) => ({
+      key: s.key,
+      label: DIM_LABEL[s.key] ?? s.label,
+      value: Math.round(s.value),
+    })) ??
+      []);
+
+  const effectiveGaps: GapItem[] =
+    gaps ??
+    (derivedAnalysis?.evidenceGaps ?? []).slice(0, 5).map((g) => ({
+      dimension: g.evidenceType,
+      label: g.label,
+      severity:
+        g.priority === "P0" ? "high" : g.priority === "P1" ? "medium" : "low",
+      detail: g.action,
+    }));
+
+  const effectiveActions: PrioritisedAction[] =
+    actions ??
+    (derivedAnalysis?.nextActions ?? []).map((a) => ({
+      title: a.title,
+      detail: a.detail,
+      priority: a.priority,
+      effort: a.impact,
+    }));
+
+  const effectiveFindings: AgentFinding[] =
+    findings ??
+    (derivedAnalysis?.subs ?? [])
+      .filter((s) => s.evidence.length > 0 || s.gaps.length > 0)
+      .slice(0, 4)
+      .map<AgentFinding>((s) => ({
+        // Heuristic mapping SVI dimension → responsible agent for the
+        // findings accordion. Not authoritative — swapped when the real
+        // per-agent findings arrive from the deep-dive stream.
+        agent:
+          s.key === "ftv" || s.key === "cgh"
+            ? "chro"
+            : s.key === "mpc" || s.key === "svm"
+              ? "cmo"
+              : s.key === "ptd"
+                ? "cto"
+                : s.key === "tre"
+                  ? "cfo"
+                  : s.key === "iri"
+                    ? "ceo"
+                    : "clo",
+        headline: `${DIM_LABEL[s.key] ?? s.label}: ${Math.round(s.value)}/100`,
+        bullets: [
+          ...s.evidence.slice(0, 3),
+          ...s.gaps.slice(0, 2).map((g) => `Gap: ${g}`),
+        ],
+      }));
+
   return (
     <div
       className={cn("flex w-full flex-col", className)}
       data-testid="analyze-results"
     >
       <StageBanner
-        stage={stage}
-        confidence={analysis?.confidenceMultiplier}
+        stage={effectiveStage}
+        confidence={derivedAnalysis?.confidenceMultiplier}
         signals={stageSignals}
         onOverride={onOverrideStage}
       />
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6">
         <div className="grid grid-cols-1 items-center gap-4 rounded-2xl border border-line-subtle bg-surface-raised p-4 sm:grid-cols-[auto_1fr] sm:gap-6">
-          <SviScoreRing score={score} />
+          <SviScoreRing score={effectiveScore} />
           <div>
             <h1 className="text-xl font-semibold text-primary sm:text-2xl">
               Your Startup Value Index
@@ -312,15 +420,15 @@ export function AnalyzeResults({
           </div>
         </div>
 
-        {radar && radar.length > 0 && <SVIRadarChart dimensions={radar} />}
-        {analysis && <SVIValuation analysis={analysis} />}
+        {effectiveRadar.length > 0 && <SVIRadarChart dimensions={effectiveRadar} />}
+        {derivedAnalysis && <SVIValuation analysis={derivedAnalysis} />}
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <TopGapsList gaps={gaps} />
-          <PrioritisedActions actions={actions} />
+          <TopGapsList gaps={effectiveGaps} />
+          <PrioritisedActions actions={effectiveActions} />
         </div>
 
-        <AgentFindings findings={findings} />
+        <AgentFindings findings={effectiveFindings} />
       </div>
     </div>
   );
