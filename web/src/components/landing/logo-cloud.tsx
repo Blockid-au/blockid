@@ -73,9 +73,12 @@ function PartnerTile({ entry, compact, tone }: PartnerTileProps) {
     tone === "lux"
       ? "focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-[var(--fintech-bg-primary)]"
       : "focus-visible:ring-brand-500 focus-visible:ring-offset-surface-100";
+  // Legacy `text-brand-ink*` swapped for raw white/alpha so the lux branch
+  // no longer references the deprecated brand-ink Tailwind token. Visually
+  // identical because --color-brand-ink resolves to #F8FAFC ≈ white.
   const inkClass =
     tone === "lux"
-      ? "text-brand-ink/70 hover:text-brand-ink"
+      ? "text-white/70 hover:text-white"
       : "text-ink-600 hover:text-ink-800";
   const linkClass = [
     "inline-flex items-center justify-center rounded-md px-3 py-1",
