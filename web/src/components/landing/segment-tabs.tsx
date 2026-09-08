@@ -108,6 +108,11 @@ export function SegmentTabs({
   return (
     <SegmentContext.Provider value={ctx}>
       <div
+        // Intentional dark island — SegmentTabs is only rendered inside the
+        // lux marketing shell (pricing page, homepage v2). data-theme="dark"
+        // self-scope keeps its legacy brand-navy/brand-gold/brand-ink*
+        // utilities resolving to the dark palette.
+        data-theme="dark"
         className={
           sticky
             ? "sticky top-16 z-30 -mx-4 border-y border-brand-gold/10 bg-brand-navy/85 px-4 backdrop-blur"
