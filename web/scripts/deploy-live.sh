@@ -700,11 +700,16 @@ fi
 echo "  ✅ Temp server healthy"
 
 # Smoke test critical endpoints
-# Block 2 (2026-09-08): /one-click-report + /score now 301 → /analyze,
-# so the redirected pair is checked with 3xx-accept and /analyze itself
-# is added to the 200-required list.
+# Block 2 (2026-09-08): /score now 301 → /analyze, so it is checked with
+# 3xx-accept and /analyze itself is on the 200-required list.
+#
+# 2026-09-08 (later): /one-click-report moved BACK to the 200 list. It is the
+# only UI that POSTs to /api/guest-analysis/create-order — the A$3 guest
+# report, which was the sole live one-off revenue path. A 301 to
+# /analyze?tier=paid orphaned it, because /analyze never called that API.
+# Asserting a redirect here would re-break the sale. It must serve 200.
 SMOKE_FAIL=0
-for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/analyze" "/tools/idea-valuation"; do
+for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/analyze" "/tools/idea-valuation" "/one-click-report"; do
   SC=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$TEMP_PORT$path" 2>/dev/null)
   if [ "$SC" = "200" ]; then
     echo "  ✅ $path → $SC"
@@ -713,7 +718,7 @@ for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/analyze" "/to
     SMOKE_FAIL=$((SMOKE_FAIL + 1))
   fi
 done
-for legacy in "/one-click-report" "/score"; do
+for legacy in "/score"; do
   SC=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$TEMP_PORT$legacy" 2>/dev/null)
   if [ "$SC" = "301" ] || [ "$SC" = "308" ]; then
     echo "  ✅ $legacy → $SC (redirect to /analyze)"
