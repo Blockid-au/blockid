@@ -1,9 +1,12 @@
 /**
  * MarketingSection — vertical-rhythm section wrapper used across marketing
  * pages. Two tones:
- *   - `default` — bare section on the deep-navy background.
- *   - `elevated` — fintech card treatment (elevated surface, subtle
- *     border, generous inner padding).
+ *   - `default` — bare section on the page ground (`bg-surface`).
+ *   - `elevated` — a sunken panel (`bg-surface-sunken`) with a subtle
+ *     border and generous inner padding, so it reads as a distinct band
+ *     against the white page. Elevation inverts between the dark and
+ *     light systems: on a dark ground a panel gets lighter, on a light
+ *     ground it gets darker.
  *
  * Server component. Renders a semantic `<section>` element. If `title` is
  * supplied it wires an `aria-labelledby` so screen-reader users get the
@@ -36,19 +39,19 @@ export function MarketingSection({
       <div
         className={
           isElevated
-            ? "rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-8 sm:p-10"
+            ? "rounded-3xl border border-line-subtle bg-surface-sunken p-8 sm:p-10"
             : ""
         }
       >
         {kicker ? (
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-action">
             {kicker}
           </p>
         ) : null}
         {title ? (
           <h2
             id={headingId}
-            className="mt-3 font-display text-2xl font-semibold tracking-tight text-[var(--fintech-ink)] sm:text-3xl"
+            className="mt-3 font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {title}
           </h2>

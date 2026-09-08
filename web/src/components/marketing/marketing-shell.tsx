@@ -5,15 +5,22 @@
  *
  * Anatomy:
  *   - Skip link to `#main-content` (visible on focus, keyboard-accessible).
- *   - Persistent `NavV2` header (client component, self-contained).
- *   - `<main id="main-content">` with the fintech deep-navy background,
- *     a subtle radial gradient decorative layer (no external asset), and
- *     `text-[var(--fintech-ink)]` as the base ink colour.
- *   - `MarketingFooter` — shared 4-column public footer.
+ *   - Persistent `NavV2` header (client component, self-scoped dark).
+ *   - `<main id="main-content">` on the light-first `bg-surface` ground
+ *     with `text-primary` as the base ink colour.
+ *   - `MarketingFooter` — shared 4-column public footer, an intentional
+ *     dark punctuation band scoped with `data-theme="dark"`.
  *
- * The outer wrapping div carries `data-theme="lux"` so the `[data-theme=lux]`
- * overrides in `globals.css` (buttons/cards) automatically reskin
- * homepage-shared elements to the same fintech palette.
+ * 2026-09-08 (rev.4 rollout): the wrapper used to carry `data-theme="lux"`,
+ * which pulled the whole `--ds-*` ramp to the deep-navy dark palette. That
+ * made every marketing page dark while the homepage, /analyze, the
+ * dashboard, the workspace and admin had all moved to the light-first
+ * system — so a visitor got two themes in one session, the switch landing
+ * on /pricing. The attribute is gone; the shell now inherits the document
+ * light palette and each page styles itself with semantic tokens.
+ *
+ * The lux CSS in globals.css is retained as an opt-in (three non-marketing
+ * surfaces still request it) but nothing under this shell uses it.
  *
  * Server component. No client state. Children may be either server or
  * client components.
@@ -29,14 +36,11 @@ interface MarketingShellProps {
 
 export function MarketingShell({ children }: MarketingShellProps) {
   return (
-    <div
-      data-theme="lux"
-      className="min-h-screen bg-[var(--fintech-bg-primary)] text-[var(--fintech-ink)]"
-    >
+    <div className="min-h-screen bg-surface text-primary">
       {/* Skip-link for keyboard + screen-reader users */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:inline-flex focus:items-center focus:rounded-lg focus:bg-[var(--fintech-accent)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[var(--fintech-bg-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--fintech-accent)] focus:ring-offset-2 focus:ring-offset-[var(--fintech-bg-primary)]"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:inline-flex focus:items-center focus:rounded-lg focus:bg-action focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-action focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-surface"
       >
         Skip to main content
       </a>
@@ -45,19 +49,8 @@ export function MarketingShell({ children }: MarketingShellProps) {
 
       <main
         id="main-content"
-        className="relative isolate min-h-[60vh] bg-[var(--fintech-bg-primary)] text-[var(--fintech-ink)]"
+        className="relative isolate min-h-[60vh] bg-surface text-primary"
       >
-        {/* Subtle decorative radial gradient — single background-image, no
-             external asset. `pointer-events-none` + `aria-hidden` so it never
-             intercepts interaction or reaches assistive tech. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            backgroundImage:
-              "radial-gradient(60% 40% at 50% -10%, rgba(34, 211, 238, 0.14) 0%, rgba(34, 211, 238, 0) 60%), radial-gradient(50% 40% at 90% 20%, rgba(168, 85, 247, 0.10) 0%, rgba(168, 85, 247, 0) 65%)",
-          }}
-        />
         {children}
       </main>
 
