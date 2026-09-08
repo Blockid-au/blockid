@@ -2,11 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { HeroSection } from "@/components/marketing/hero-section";
-import { LogoBand } from "@/components/marketing/logo-band";
-import { FeaturesGrid } from "@/components/marketing/features-grid";
-import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
-import { CTASection } from "@/components/marketing/cta-section";
-import { TrustStrip } from "@/components/landing/trust-strip";
+import { SampleOutputs } from "@/components/marketing/sample-outputs";
 import {
   readSignedInHint,
   SIGNED_IN_LANDING_HREF,
@@ -74,39 +70,15 @@ export default async function HomePage() {
       <NavV2 />
 
       <main id="main-content">
-        {/* Hero: full viewport, animated gradient search ring */}
+        {/* Input-centric hero: H1 promise + SmartIntake omnibox + trust row.
+            Redesigned 2026-09-08 to put the paste-anything box front-and-
+            centre in the first viewport. Everything else — features, how-it-
+            works, partner logos, CTA card — moved to /product and /for/*. */}
         <HeroSection />
 
-        {/* Logo band: trusted by AU founders */}
-        <LogoBand />
-
-        {/* Features: 6 glassmorphism cards */}
-        <FeaturesGrid />
-
-        {/* How it works: 3 numbered steps */}
-        <HowItWorksSection />
-
-        {/* Partners / trust strips */}
-        <section
-          id="partners"
-          aria-labelledby="partners-heading"
-          className="border-t py-12"
-          style={{
-            backgroundColor: "#0A0F1E",
-            borderColor: "rgba(255,255,255,0.08)",
-          }}
-        >
-          <h2 id="partners-heading" className="sr-only">
-            Programs and integrations
-          </h2>
-          <div className="mx-auto max-w-5xl px-6">
-            <TrustStrip group="accepted" className="mt-4" />
-            <TrustStrip group="integrated" className="mt-8" />
-          </div>
-        </section>
-
-        {/* CTA: bottom gradient-border card */}
-        <CTASection />
+        {/* One below-the-fold section: three anonymised sample outputs so
+            visitors see what the box produces before they type. */}
+        <SampleOutputs />
 
         {/* Entity footer strip */}
         <section
