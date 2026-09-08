@@ -44,7 +44,11 @@ export const ARTEFACT_ITEMS: ArtefactGateItem[] = [
     label: "Unwatermarked export",
     detail:
       "Download the full analysis as a clean PDF you can send to an investor without a preview watermark across it.",
-    href: "/workspace/analyses",
+    // /workspace/business-report is where the signed-in PDF download actually
+    // lives (it calls /api/svi/report/pdf). Linking anywhere else would be a
+    // promise the destination does not keep, which is the same dishonesty as
+    // a button that 401s.
+    href: "/workspace/business-report",
   },
   {
     key: "data-room",
