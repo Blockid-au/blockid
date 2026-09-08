@@ -22,7 +22,11 @@ import { fetchJson, filterFreeOpenRouter, rank } from "@/lib/model-discovery";
 export const dynamic = "force-dynamic";
 
 const CRON_SECRET = process.env.CRON_SECRET;
-const NEW_PER_PROVIDER = 3; // top-3 strongest NEW models added per provider per call
+const NEW_PER_PROVIDER = 5; // top-5 strongest NEW models added per provider per call
+                             // (bumped from 3 → 5 on 2026-09-08: quota-exhaustion and
+                             // provider-offline events now trigger this endpoint
+                             // immediately, so each burst should meaningfully widen
+                             // the fallback chain, not just top it up by a sliver.)
 const MAX_LIST_LEN = 15;    // hard cap so list never grows unbounded
 
 async function dbKey(provider: string): Promise<string | null> {

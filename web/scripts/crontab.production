@@ -82,9 +82,16 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # ── Phase 4: Auto-Improve + CI/CD (7:00am AEST / 21:00 UTC) ──
 0 21 * * * bash $RUN agent-auto-improve --timeout 300
 5 21 * * * bash $RUN refresh-models
-# Weekly proactive top-up — prepend 3 strong NEW free models per provider so the
-# list keeps drifting forward even without rate-limit pressure (the ai-client
-# fires this on-demand too when ≥2 models hit 429 in a 5-min window).
+# End-of-day AEST refresh (23:59 AEST = 13:59 UTC): re-rank top-12 free models per
+# provider and rewrite ai-free-models.json. Complements the 07:05 AEST refresh —
+# picks up any model catalogue changes providers made during the working day and
+# hands tomorrow's calls a freshly-ranked fallback chain from the moment they run.
+59 13 * * * bash $RUN refresh-models
+# On-demand top-up — prepend 5 strong NEW free models per provider (bumped from 3
+# on 2026-09-08). ai-client fires this immediately on any hard quota-exhausted
+# or provider-offline error (30-min debounce), OR on ≥2 soft rate-limit events
+# in 5 min. Weekly proactive run below keeps the list drifting forward even
+# when nothing is failing.
 0 4 * * 0 bash $RUN discover-models
 
 # ── AI Model Health Monitor + Auto-Refresh (v3.9.12) ──────────

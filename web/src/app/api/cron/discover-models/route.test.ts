@@ -194,12 +194,12 @@ describe("POST /api/cron/discover-models — OpenRouter discovery", () => {
     expect(parsed.openrouter.length).toBe(15);
   });
 
-  it("requests only 3 top-strongest NEW models per provider", async () => {
+  it("requests top-5 strongest NEW models per provider (widen fallback on quota bursts)", async () => {
     mocks.filterFreeOpenRouterMock.mockReturnValue([{ id: "x" }]);
     mocks.rankMock.mockReturnValue(["new/1"]);
     await POST(req({ authorization: "Bearer test_cron_secret" }));
     const rankCall = mocks.rankMock.mock.calls[0];
-    expect(rankCall?.[1]).toBe(3);
+    expect(rankCall?.[1]).toBe(5);
   });
 
   it("dedupes even when the same model id appears in both fresh + existing", async () => {

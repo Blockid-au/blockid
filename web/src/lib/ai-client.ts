@@ -292,10 +292,24 @@ function coolDownModel(model: string, errMsg: string): void {
   const m = errMsg.toLowerCase();
   let ms = 90_000; // default 90s for transient errors
   const isRateLimit = /rate.?limit|\b429\b|quota|temporarily|too many requests|capacity/.test(m);
+  // ── Hard signals that mean "widen the fallback chain NOW", not "wait for a storm":
+  // 1. Quota EXHAUSTED (not just throttled): the provider explicitly says the account
+  //    is out of credit / daily limit hit — retrying the same model is hopeless.
+  // 2. Provider OFFLINE: 5xx from the API or a socket/DNS failure — the whole
+  //    provider is down, so every model on it is unreachable.
+  // Either signal fires discover-models immediately (bypasses STORM_THRESHOLD=2).
+  const isQuotaExhausted = /quota (exceeded|exhausted)|out of (credit|quota)|daily limit|monthly limit|insufficient_quota|credit.*(exceeded|exhausted)|payment.?required|\b402\b/.test(m);
+  const isProviderOffline = /\b(500|502|503|504)\b|internal server error|bad gateway|service unavailable|gateway timeout|econn(refused|reset)|enotfound|getaddrinfo|network|socket hang up|fetch failed/.test(m);
   if (/not found|no endpoints|no allowed providers|invalid model|\b404\b|does not exist|unsupported model/.test(m)) {
     ms = 60 * 60_000; // model gone → 1h (next daily refresh usually drops it)
+  } else if (isQuotaExhausted) {
+    ms = 60 * 60_000; // quota gone → 1h; try elsewhere
+    noteHardFailureEvent(model, "quota_exhausted");
+  } else if (isProviderOffline) {
+    ms = 10 * 60_000; // provider down → 10 min
+    noteHardFailureEvent(model, "provider_offline");
   } else if (isRateLimit) {
-    ms = 5 * 60_000; // out of credit / rate-limited → 5 min
+    ms = 5 * 60_000; // rate-limited (soft) → 5 min
     noteRateLimitEvent(model);
   }
   modelCooldownUntil.set(model, Date.now() + ms);
@@ -325,6 +339,23 @@ function noteRateLimitEvent(model: string): void {
   rateLimitTimestamps.length = 0;
   fireDiscoverModels(model).catch((err) => {
     console.warn(`[ai-client:storm] discover-models trigger failed: ${err instanceof Error ? err.message : err}`);
+  });
+}
+
+// Hard failure = definitive quota exhaustion or provider offline. Unlike a soft
+// rate-limit event (which only trips discover-models after STORM_THRESHOLD=2
+// events in 5 min), a single hard failure means "the running fallback chain is
+// no longer viable" — so we fire discover-models immediately. Still gated by
+// the 30-min debounce so a sustained outage doesn't hammer the discovery
+// endpoint. `kind` is logged for observability (quota vs offline).
+function noteHardFailureEvent(model: string, kind: "quota_exhausted" | "provider_offline"): void {
+  const now = Date.now();
+  if (now - lastDiscoverFiredAt < DISCOVER_DEBOUNCE_MS) return;
+  lastDiscoverFiredAt = now;
+  rateLimitTimestamps.length = 0;
+  console.warn(`[ai-client:hard-fail] ${kind} on ${model} → firing discover-models NOW (bypass storm threshold)`);
+  fireDiscoverModels(model).catch((err) => {
+    console.warn(`[ai-client:hard-fail] discover-models trigger failed: ${err instanceof Error ? err.message : err}`);
   });
 }
 
