@@ -223,11 +223,17 @@
   --color-ink-800: #e2e8f0;
   --color-ink-700: #cbd5e1;
   --color-ink-600: #94a3b8;
-  --color-ink-500: #64748b;
+  /* WCAG AA contrast fix Sep 2026 — user reported AI-analysis body text
+   * looked gray/faded on dark ground. Previous #64748b hit 4.4:1 on #0B0F14
+   * (fails WCAG AA for body <18px). Bumping to slate-400 (#94a3b8) lifts
+   * every text-ink-500 usage — including all ~148 in svi-results-panel and
+   * rnd-results-panel where AI output renders — to ~6.9:1, clearing AA
+   * body while keeping the "muted-meta" visual hierarchy vs ink-400/300. */
+  --color-ink-500: #94a3b8;
   --color-ink-400: #e2e8f0; /* bright on dark — inverted intent (was slate-400) */
   --color-ink-300: #cbd5e1;
   --color-ink-200: #94a3b8;
-  --color-ink-100: #64748b; /* deep muted on dark */
+  --color-ink-100: #94a3b8; /* deep muted on dark — also lifted from #64748b */
 
   --color-paper-50: #1e293b;
 
@@ -677,7 +683,10 @@ body {
   --color-ink-600: #94A3B8;
   --color-ink-700: #CBD5E1;
   --color-ink-800: #F1F5F9;
-  --color-ink-100: #64748B;
+  /* Contrast fix Sep 2026 (lux theme parity with dark) — lift ink-100 from
+   * slate-500 to slate-400 so muted-meta text on the deep navy ground clears
+   * WCAG AA body. Was: #64748B → 4.4:1 fail body; now #94A3B8 → 6.9:1 pass. */
+  --color-ink-100: #94A3B8;
   --color-ink-200: #94A3B8;
   --color-ink-300: #CBD5E1;
   --color-ink-400: #E2E8F0;

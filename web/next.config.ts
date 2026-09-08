@@ -109,10 +109,10 @@ const nextConfig: NextConfig = {
       // /tools/svi-score — QA sweep Sep 2026: this path is referenced by
       // marketing cards but was never a route. The SVI scoring tool lives
       // at /score. 301 so search engines forget the old path.
+      // (Next.js requires exactly one of `permanent` or `statusCode`.)
       {
         source: "/tools/svi-score",
         destination: "/score",
-        permanent: true,
         statusCode: 301,
       },
     ];
