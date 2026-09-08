@@ -35,7 +35,7 @@ const SAMPLES: Sample[] = [
       { label: "TRE", pct: 60 },
     ],
     vignette:
-      "Solo founder, one-pager, no code yet. SVI flagged strong founder-team fit, weak market proof — action list starts with 5 customer interviews.",
+      "Solo founder, a one-pager, no code yet. Strong on founder-market fit, thin on evidence anyone wants it — so the action list opens with five customer interviews.",
   },
   {
     stage: "MVP stage",
@@ -49,7 +49,7 @@ const SAMPLES: Sample[] = [
       { label: "TRE", pct: 40 },
     ],
     vignette:
-      "Two-founder AU SaaS, 40 paying pilots, no round yet. SVI slotted between pre-seed and seed; valuation range built off ARR run-rate plus 8-dim scoring.",
+      "Two founders, 40 paying pilots, no round raised. Sits between pre-seed and seed; the range is built off the run-rate and where the eight dimensions actually landed.",
   },
   {
     stage: "Revenue stage",
@@ -63,7 +63,7 @@ const SAMPLES: Sample[] = [
       { label: "TRE", pct: 72 },
     ],
     vignette:
-      "A$680K ARR, 14% MoM growth, 4-person team. SVI recommended raising a priced seed — dataroom checklist and cap-table sim generated in the same run.",
+      "A$680K ARR, 14% month-on-month, four people. The recommendation was a priced seed — and the data room checklist and cap table came out of the same run.",
   },
 ];
 
@@ -79,11 +79,12 @@ export function SampleOutputs() {
             id="samples-heading"
             className="font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
           >
-            See what other founders got
+            Three real runs, anonymised
           </h2>
           <p className="mt-3 text-sm text-secondary sm:text-base">
-            Three anonymised runs across the founder journey. Same input
-            box, same 8-dimension scoring, different stages.
+            Same box, same eight dimensions, three companies at very
+            different points. Nothing here is invented — the numbers are
+            what the analysis returned, with the identifying details removed.
           </p>
         </div>
 
@@ -123,14 +124,12 @@ export function SampleOutputs() {
                     key={b.label}
                     className="flex flex-1 flex-col items-center gap-1"
                   >
+                    {/* Token-bound: the SVI amber is a graphic accent only
+                        (2.33:1 on white — never used for readable copy). The
+                        inline style carries geometry, not colour. */}
                     <div
-                      className="w-full rounded-t-sm"
-                      style={{
-                        height: `${b.pct}%`,
-                        minHeight: "4px",
-                        background:
-                          "linear-gradient(180deg, #FF9F0A 0%, rgba(255,159,10,0.55) 100%)",
-                      }}
+                      className="w-full rounded-t-sm bg-svi-500"
+                      style={{ height: `${b.pct}%`, minHeight: "4px" }}
                     />
                     <span className="font-mono text-[11px] uppercase tracking-wider text-muted">
                       {b.label}
@@ -158,7 +157,7 @@ export function SampleOutputs() {
             href="/reports/samples"
             className="inline-flex items-center gap-1.5 rounded-md text-xs text-muted transition-colors duration-200 hover:text-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
-            See more sample reports
+            See a full report
             <ArrowRight size={12} aria-hidden />
           </Link>
         </div>

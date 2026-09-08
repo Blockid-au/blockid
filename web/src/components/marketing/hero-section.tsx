@@ -70,7 +70,7 @@ export function HeroSection() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 55% 45% at 50% 42%, rgba(255,159,10,0.07) 0%, transparent 70%)",
+            "radial-gradient(ellipse 55% 45% at 50% 42%, color-mix(in srgb, var(--color-svi-500) 8%, transparent) 0%, transparent 70%)",
         }}
       />
 

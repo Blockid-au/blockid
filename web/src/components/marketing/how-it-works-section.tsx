@@ -36,27 +36,27 @@ import { cn } from "@/lib/utils";
 const STEPS = [
   {
     number: "01",
-    title: "Paste",
+    title: "Give it what you have",
     description:
-      "Pitch deck, URL, or free-text idea — the omnibox classifies the input and routes it to the right analyzer.",
+      "A pitch deck, your website, or a few sentences. Whatever you hand over, it works out what stage the company is at before it scores anything.",
   },
   {
     number: "02",
-    title: "AI analyses",
+    title: "It reads the thing properly",
     description:
-      "13 evaluation criteria across the 8 SVI dimensions (FTV, MPC, PTD, TRE, CGH, IRI, LCO, SVM).",
+      "Thirteen criteria across eight dimensions — team, market, product, traction, capital, risk, compliance and momentum — each scored against something specific in what you gave it.",
   },
   {
     number: "03",
-    title: "Get score + valuation",
+    title: "You get a number and a range",
     description:
-      "Berkus, VC, DCF and comparable-company methods — one AUD range plus an evidence-linked SVI score.",
+      "Berkus, the VC method, discounted cash flow and comparable companies, run side by side in Australian dollars, with the workings attached.",
   },
   {
     number: "04",
-    title: "Subscribe → tokenize equity",
+    title: "Then you decide what to do with it",
     description:
-      "On a paid plan, issue on-chain shares on the private EVM. MetaMask-ready, ESOP + vesting enforced by contract.",
+      "A ranked list of next moves, a data room drafted from your own answers, and — when the time comes — the share register itself.",
   },
 ];
 
@@ -87,7 +87,7 @@ export function HowItWorksSection({
             id="how-heading"
             className="font-display text-3xl font-bold tracking-tight text-primary sm:text-4xl"
           >
-            From input to on-chain equity in 4 steps
+            What happens after you press the button
           </h2>
         </div>
 

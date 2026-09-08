@@ -29,7 +29,7 @@ export function FinalCTA({ className }: { className?: string }) {
             id="final-cta-heading"
             className="mb-4 font-display text-3xl font-bold tracking-tight text-primary sm:text-4xl"
           >
-            No credit card. 30 seconds to your first SVI.
+            Your first number costs nothing.
           </h2>
 
           {/* De-duplicated 2026-09-08: this line previously repeated the H2
@@ -37,9 +37,9 @@ export function FinalCTA({ className }: { className?: string }) {
               your first SVI."), so the heading and body said the same
               sentence twice. The body now adds what the heading cannot. */}
           <p className="mb-8 text-base leading-relaxed text-secondary">
-            Paste a deck, a URL, or a sentence about the idea. You get the SVI
-            score, the 4-method valuation range, and the prioritised next
-            actions — then decide whether to tokenize equity.
+            Paste a deck, a link, or a sentence about the idea. You get the
+            score, the valuation range and the ranked next moves. Whether you
+            ever issue equity here is a decision for after you have seen them.
           </p>
 
           <div className="flex flex-col items-center gap-4">
@@ -58,7 +58,7 @@ export function FinalCTA({ className }: { className?: string }) {
               href="/pricing"
               className="inline-flex items-center gap-1.5 text-sm text-secondary transition-colors duration-200 hover:text-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
-              Or see pricing + tokenize equity
+              See plans and pricing
               <ArrowRight size={14} aria-hidden />
             </Link>
           </div>

@@ -3,46 +3,59 @@ import Link from "next/link";
 import path from "node:path";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { HeroSection } from "@/components/marketing/hero-section";
-import { TwoPillarSplit } from "@/components/marketing/two-pillar-split";
+import { OutcomeGrid } from "@/components/marketing/outcome-grid";
 import { SampleOutputs } from "@/components/marketing/sample-outputs";
 import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
 import { GrowthPhaseStrip } from "@/components/marketing/growth-phase-strip";
 import { LogoBand } from "@/components/marketing/logo-band";
 import { FinalCTA } from "@/components/marketing/final-cta";
+import { EquityBand } from "@/components/marketing/equity-band";
+import { AudienceSplit } from "@/components/marketing/audience-split";
 import {
   readSignedInHint,
   SIGNED_IN_LANDING_HREF,
 } from "@/lib/supabase/session-hint";
 
-// Fintech v3 (2026-09-08): the homepage tells the 70/30 story — 70%
-// AI-powered evaluation + valuation, 30% blockchain equity on
-// subscription.
+// Homepage v4 (2026-09-08) — evaluation-led, two audiences, one dark band.
 //
-// LIGHT/DARK RHYTHM. v2 banded dark -> light -> light -> dark -> dark ->
-// dark -> light -> dark, which is why the page read as sections from
-// different sites stacked together. The design system is light-first
-// (docs/design-system.md rev.3), so v3 is light-DOMINANT with exactly ONE
-// dark punctuation band in the middle:
+// WHAT CHANGED AND WHY
 //
-//   1. HeroSection       — LIGHT  (bg.base)     H1 + omnibox + proof row.
-//   2. TwoPillarSplit    — LIGHT  (bg.sunken)   asymmetric 70/30 cards.
-//   3. SampleOutputs     — LIGHT  (bg.base)     three anonymised stages.
-//   4. HowItWorks        — DARK   punctuation   4 steps …
-//   5.   └ GrowthPhaseStrip — nested INSIDE the same dark band so the
-//        12-phase journey is part of the punctuation, not a second
-//        adjacent dark fragment.
-//   6. LogoBand          — LIGHT  (bg.sunken)   trust + compliance.
-//   7. FinalCTA          — LIGHT  (bg.base)     primary Analyse button.
-//   8. Entity strip      — DARK   footer edge   PPL Food PTY LTD.
+// v3 told visitors about our own weighting ("AI evaluation, weighted 70%.
+// Blockchain equity on subscription, 30%"). That is a sentence from a
+// strategy deck: true, and useless to a founder deciding whether to paste a
+// deck. v4 keeps the same 70/30 emphasis but expresses it structurally —
+// four evaluation-led bands before equity gets its own smaller one — and
+// spends the words on what the visitor gets instead.
 //
-// So the page alternates base/sunken/base — dark — sunken/base — dark
-// footer. Two dark regions total, both deliberate, both at structural
-// boundaries.
+// v3 also spoke only to founders. An investor had no line addressed to them
+// and no route in, despite /for/investor and the sample reports existing.
+// AudienceSplit fixes that with one question and one link per side.
+//
+// PATTERN: bento grid (ui-ux-pro-max "Bento Box Grid") over a proof-first
+// tour. The product is a *set* of artefacts produced from one input, so
+// varying tile weight shows the whole set at a glance the way Stripe and
+// Linear show a multi-artefact product — rather than the skill's default
+// scroll-storytelling pattern, which needs animation-heavy chapters and
+// would fight both the calm reference class and the 390px requirement.
+//
+// LIGHT/DARK RHYTHM — light-dominant, ONE dark punctuation band plus the
+// dark footer edge, held for the whole page:
+//
+//   1. HeroSection    — LIGHT  (bg.base)    H1 + omnibox + one real result.
+//   2. OutcomeGrid    — LIGHT  (bg.sunken)  bento of what a run returns.
+//   3. SampleOutputs  — LIGHT  (bg.base)    three anonymised runs.
+//   4. HowItWorks     — DARK   punctuation  4 steps …
+//   5.   └ GrowthPhaseStrip — nested INSIDE the same dark band.
+//   6. EquityBand     — LIGHT  (bg.sunken)  the 30%: register, ESOP, payouts.
+//   7. AudienceSplit  — LIGHT  (bg.base)    founders | investors.
+//   8. LogoBand       — LIGHT  (bg.sunken)  where it is built and how it runs.
+//   9. FinalCTA       — LIGHT  (bg.base)    one primary button.
+//  10. Entity strip   — DARK   footer edge  PPL Food PTY LTD.
 export const metadata = {
   title:
-    "AI-powered startup valuation before you pitch · BlockID.au",
+    "Know what your company is worth · BlockID.au",
   description:
-    "Paste your pitch deck, URL, or idea. Get an SVI score, 4-method valuation, and investor-ready data room in 30 seconds. Add blockchain equity on subscription.",
+    "Give it a pitch deck, a website, or a few sentences. Get a score across eight dimensions, a valuation from four methods, the next moves that lift both, and a data room investors can read. Issue and administer equity when you are ready.",
   alternates: {
     canonical: "https://blockid.au",
   },
@@ -96,22 +109,20 @@ export default async function HomePage() {
       <NavV2 />
 
       <main id="main-content">
-        {/* 1. Hero — input omnibox anchor, H1 leads AI-valuation promise. */}
+        {/* 1. Hero — the omnibox. Whatever is typed here carries straight
+            through to a running analysis; it is never asked for twice. */}
         <HeroSection />
 
-        {/* 2. Two-pillar split — asymmetric 70/30 (AI col-span-8, blockchain
-            col-span-4 on desktop; stacked AI-first on mobile). */}
-        <TwoPillarSplit />
+        {/* 2. What a run returns — bento, evaluation-led. */}
+        <OutcomeGrid />
 
-        {/* 3. Sample outputs — analysis-only samples so visitors see what
-            the omnibox produces before they type. */}
+        {/* 3. Proof: three anonymised runs at three different stages. */}
         <SampleOutputs />
 
-        {/* 4 + 5. How-it-works, with the 12-phase growth strip nested
-            INSIDE the same dark band. Keeping them in one section is what
-            turns two adjacent dark fragments into a single deliberate
-            punctuation island. The strip links to the real Atlassian
-            walkthrough so visitors can walk an actual journey. */}
+        {/* 4 + 5. The page's ONE dark punctuation band: the four steps with
+            the 12-phase journey nested inside it, so the two dark regions
+            that used to sit adjacent read as a single island. The strip
+            links to the real Atlassian walkthrough. */}
         <HowItWorksSection>
           <Link
             href="/showcase/atlassian/growth-phases"
@@ -125,10 +136,16 @@ export default async function HomePage() {
           </Link>
         </HowItWorksSection>
 
-        {/* 6. Trust + compliance strip — light. */}
+        {/* 6. The equity half — deliberately the smaller half. */}
+        <EquityBand />
+
+        {/* 7. Founders and investors, one question each. */}
+        <AudienceSplit />
+
+        {/* 8. Where it is built and how it is run. */}
         <LogoBand />
 
-        {/* 7. Final CTA — primary Analyse button + secondary pricing link. */}
+        {/* 9. Final CTA — one primary button, pricing as a text link. */}
         <FinalCTA />
 
         {/* Entity footer strip — preserves the PPL Food entity line. */}

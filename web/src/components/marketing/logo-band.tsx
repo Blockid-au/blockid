@@ -28,8 +28,8 @@ import { cn } from "@/lib/utils";
 const STATS = [
   { value: "Sydney NSW", label: "Australian-owned HQ" },
   { value: "AU registered", label: "PPL Food PTY LTD" },
-  { value: "8 SVI dimensions", label: "AI-powered scoring" },
-  { value: "ASIC · ESIC · R&D", label: "AU compliance-first" },
+  { value: "Off-chain register", label: "The legal record stays statutory" },
+  { value: "ASIC · ESIC · R&D", label: "Australian rules, not US ones" },
 ];
 
 const COMPLIANCE = [
@@ -52,7 +52,7 @@ export function LogoBand({ className }: { className?: string }) {
           id="trust-strip-heading"
           className="mb-10 text-center font-mono text-[11px] uppercase tracking-[0.28em] text-muted"
         >
-          Trusted by AU founders
+          Where this is built, and how it is run
         </h2>
 
         <dl className="grid grid-cols-2 gap-x-6 gap-y-8 text-center lg:grid-cols-4">
