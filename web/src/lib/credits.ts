@@ -187,6 +187,9 @@ export const FEATURE_COSTS: Record<string, number> = {
   // ── DOCX Export ─────────────────────────────────────────────────────
   docx_export: 0.50,                // Export existing report as DOCX
 
+  // ── Pitch-deck OCR (LLM vision fallback for image-only PDFs) ────────
+  pitchdeck_ocr: 2.00,              // Only charged when tesseract yields < 30 chars
+
   // ── AI Image Generation (for report infographics) ─────────────────
   report_image_ai: 0.10,            // Single AI-generated infographic (Gemini free, fallback paid)
   report_images_bundle: 0.50,       // All section images for a report (8-12 images)
