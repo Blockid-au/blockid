@@ -631,81 +631,36 @@ body {
 .prose-legal p  { margin-top: 0.75rem; }
 .prose-legal ul { margin-top: 0.5rem; padding-left: 1.5rem; list-style: disc; }
 
-/* ── Animated gradient border for SVI input ───────────────── */
-@keyframes gradient-rotate {
-  0% { --gradient-angle: 0deg; }
-  100% { --gradient-angle: 360deg; }
-}
-
-@property --gradient-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
+/* Sep 2026 — user feedback: the input frame's rotating conic-gradient
+ * border read as "quay vòng" (spinning) instead of static professional
+ * focus. Replaced the rotating gradient + blur glow with a single, calm
+ * border-color transition. Idle: subtle muted border. Hover: brand cyan
+ * hint. Focus: solid brand cyan (matches every other focus ring in the
+ * design system). No animation, no gradient, no rotation. */
 .svi-input-glow {
   position: relative;
   background: white;
   border-radius: 28px;
+  border: 2px solid #cbd5e1;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 .dark .svi-input-glow {
   background: #1e293b;
+  border-color: rgba(148, 163, 184, 0.32);
 }
-
-.svi-input-glow::before {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: 31px;
-  background: conic-gradient(
-    from var(--gradient-angle, 0deg),
-    #3b82f6,
-    #06b6d4,
-    #10b981,
-    #f59e0b,
-    #ef4444,
-    #8b5cf6,
-    #3b82f6
-  );
-  animation: gradient-rotate 3s linear infinite;
-  z-index: -1;
-  opacity: 0.7;
-  filter: blur(1px);
-  transition: opacity 0.3s, filter 0.3s;
+.svi-input-glow:hover {
+  border-color: #06b6d4;
 }
-
-.svi-input-glow:hover::before {
-  opacity: 0.9;
-  filter: blur(0px);
+.dark .svi-input-glow:hover {
+  border-color: #22d3ee;
 }
-
-.svi-input-glow:focus-within::before {
-  opacity: 1;
-  inset: -4px;
-  filter: blur(0px);
+.svi-input-glow:focus-within {
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.16);
 }
-
-.svi-input-glow::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: 34px;
-  background: conic-gradient(
-    from var(--gradient-angle, 0deg),
-    #3b82f620,
-    #10b98120,
-    #f59e0b20,
-    #3b82f620
-  );
-  animation: gradient-rotate 3s linear infinite;
-  z-index: -2;
-  filter: blur(12px);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.svi-input-glow:focus-within::after {
-  opacity: 1;
+.dark .svi-input-glow:focus-within {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.22);
 }
 
 /* ═══════════════════════════════════════════════════════════════
