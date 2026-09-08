@@ -74,9 +74,9 @@ export function Ga4TrafficReport() {
   useEffect(() => { void load(); }, []);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-lg overflow-hidden">
+    <div className="rounded-2xl border border-line-subtle bg-surface-sunken backdrop-blur-md shadow-lg overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-line-subtle">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-cyan-400" aria-hidden="true" />
           <h2 className="text-base font-semibold text-ink-900 dark:text-white">
@@ -93,7 +93,7 @@ export function Ga4TrafficReport() {
           onClick={() => { void load(); }}
           disabled={loading}
           aria-label="Refresh GA4 report"
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 text-ink-600 dark:text-slate-300 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-surface-hover hover:bg-surface-hover text-ink-600 dark:text-slate-300 transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
           {loading ? "Loading…" : "Refresh"}
@@ -129,7 +129,7 @@ export function Ga4TrafficReport() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/10 text-xs font-semibold text-ink-500 dark:text-slate-400 uppercase tracking-wide">
+                <tr className="border-b border-line-subtle text-xs font-semibold text-ink-500 dark:text-slate-400 uppercase tracking-wide">
                   <th className="pb-2 text-left pr-4">Page</th>
                   <th className="pb-2 text-right pr-4">Pageviews</th>
                   <th className="pb-2 text-right pr-4">Sessions</th>
@@ -139,7 +139,7 @@ export function Ga4TrafficReport() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {data.rows.map((row) => (
-                  <tr key={row.page} className="hover:bg-white/5 transition-colors">
+                  <tr key={row.page} className="hover:bg-surface-sunken transition-colors">
                     <td className="py-2.5 pr-4 font-mono text-xs text-brand-700 dark:text-cyan-400 truncate max-w-[220px]" title={row.page}>
                       {row.page}
                     </td>

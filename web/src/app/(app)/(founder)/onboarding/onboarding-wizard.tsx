@@ -172,7 +172,7 @@ export function OnboardingWizard({
   return (
     <div
       data-theme="lux"
-      className="min-h-svh bg-brand-navy bg-lux-radial text-brand-ink"
+      className="min-h-svh bg-brand-navy bg-lux-radial text-primary"
     >
       {nav}
 
@@ -197,7 +197,7 @@ export function OnboardingWizard({
             <button
               type="button"
               onClick={handleBack}
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-brand-ink-muted transition-colors hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
             >
               <ArrowLeft aria-hidden="true" className="h-4 w-4" />
               Back
@@ -210,14 +210,14 @@ export function OnboardingWizard({
             <button
               type="button"
               onClick={handleSkipTrial}
-              className="rounded-lg px-2 py-1 text-sm font-medium text-brand-ink-muted underline decoration-brand-ink-muted/40 underline-offset-4 transition-colors hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+              className="rounded-lg px-2 py-1 text-sm font-medium text-muted underline decoration-brand-ink-muted/40 underline-offset-4 transition-colors hover:text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
             >
               Continue without card — 14-day evaluation, read-only exports
             </button>
           )}
         </div>
 
-        <p className="mt-10 text-center text-xs text-brand-ink-muted">
+        <p className="mt-10 text-center text-xs text-muted">
           Signed in as {user.email}
         </p>
       </main>

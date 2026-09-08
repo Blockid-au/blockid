@@ -64,14 +64,14 @@ export default async function I18nReviewPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
       <header className="mb-6" data-i18n-skip>
-        <div className="text-xs uppercase tracking-wider text-brand-ink-muted">Admin · i18n</div>
-        <h1 className="text-2xl font-semibold text-brand-ink">
+        <div className="text-xs uppercase tracking-wider text-muted">Admin · i18n</div>
+        <h1 className="text-2xl font-semibold text-primary">
           Translation cache review — VI
         </h1>
-        <p className="mt-2 text-sm text-brand-ink-muted">
+        <p className="mt-2 text-sm text-muted">
           {entries.length} recent EN→VI entries (last-write-wins per EN
           string). Override the translation to update
-          <code className="mx-1 rounded bg-white/10 px-1 py-0.5 text-xs">
+          <code className="mx-1 rounded bg-surface-hover px-1 py-0.5 text-xs">
             web/content/i18n/vi-cache.json
           </code>
           and append an audit line.

@@ -290,7 +290,7 @@ export function GoalsClient() {
             </div>
             <button
               onClick={fetchData}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 transition-colors"
+              className="bg-surface-hover hover:bg-surface-sunken rounded-lg p-2 transition-colors"
               title="Refresh"
             >
               <RefreshCw className="h-4 w-4" />

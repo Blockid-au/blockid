@@ -66,9 +66,9 @@ export function I18nReviewClient({ entries }: Props) {
         placeholder="Filter EN or VI…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-brand-ink placeholder:text-brand-ink-muted focus:border-brand-cyan focus:outline-none"
+        className="w-full rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-action focus:outline-none"
       />
-      <div className="text-xs text-brand-ink-muted">
+      <div className="text-xs text-muted">
         Showing {filtered.length} of {entries.length}
       </div>
       <ul className="space-y-3">
@@ -78,20 +78,20 @@ export function I18nReviewClient({ entries }: Props) {
           return (
             <li
               key={e.en}
-              className="rounded-lg border border-white/10 bg-white/5 p-3"
+              className="rounded-lg border border-line-subtle bg-surface-sunken p-3"
             >
-              <div className="mb-2 text-xs text-brand-ink-muted">
+              <div className="mb-2 text-xs text-muted">
                 {e.ts.slice(0, 19).replace("T", " ")} UTC
               </div>
               <div className="grid gap-2 md:grid-cols-2">
                 <div>
-                  <div className="mb-1 text-xs uppercase tracking-wider text-brand-ink-muted">EN</div>
-                  <div className="whitespace-pre-wrap rounded bg-black/30 p-2 text-sm text-brand-ink">
+                  <div className="mb-1 text-xs uppercase tracking-wider text-muted">EN</div>
+                  <div className="whitespace-pre-wrap rounded bg-surface-sunken p-2 text-sm text-primary">
                     {e.en}
                   </div>
                 </div>
                 <div>
-                  <div className="mb-1 flex items-center justify-between text-xs uppercase tracking-wider text-brand-ink-muted">
+                  <div className="mb-1 flex items-center justify-between text-xs uppercase tracking-wider text-muted">
                     <span>VI</span>
                     <span className={
                       state === "ok" ? "text-emerald-400"
@@ -108,13 +108,13 @@ export function I18nReviewClient({ entries }: Props) {
                     onChange={(ev) =>
                       setOverrides((o) => ({ ...o, [e.en]: ev.target.value }))
                     }
-                    className="w-full rounded border border-white/10 bg-black/30 p-2 text-sm text-brand-ink focus:border-brand-cyan focus:outline-none"
+                    className="w-full rounded border border-line-subtle bg-surface-sunken p-2 text-sm text-primary focus:border-action focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => saveOne(e.en)}
                     disabled={state === "saving" || current === e.vi}
-                    className="mt-2 rounded bg-brand-cyan px-3 py-1 text-xs font-semibold text-brand-navy disabled:opacity-40"
+                    className="mt-2 rounded bg-action px-3 py-1 text-xs font-semibold text-brand-navy disabled:opacity-40"
                   >
                     Save override
                   </button>
