@@ -85,7 +85,7 @@ export default async function ScoreHistoryPage() {
     return (
       <WorkspaceLayout user={user} isSandbox={isSandbox}>
         <div className="max-w-4xl mx-auto px-6 py-12 text-center">
-          <p className="text-[#94A3B8] text-sm">
+          <p className="text-ink-400 text-sm">
             Database is not configured. Score history is unavailable.
           </p>
         </div>
@@ -128,7 +128,7 @@ export default async function ScoreHistoryPage() {
               <BarChart3 className="h-7 w-7 text-amber-400" />
             </div>
             <h2 className="text-lg font-semibold text-white mb-2">No analyses yet</h2>
-            <p className="text-[#94A3B8] text-sm mb-6 max-w-sm mx-auto">
+            <p className="text-ink-400 text-sm mb-6 max-w-sm mx-auto">
               Run your first startup score to see your valuation journey and investment readiness
               trend tracked over time.
             </p>
@@ -189,14 +189,14 @@ export default async function ScoreHistoryPage() {
                         {stage}
                       </span>
                     )}
-                    <span className="rounded-full bg-[rgba(255,255,255,0.06)] px-2.5 py-0.5 text-[11px] font-medium text-[#94A3B8] whitespace-nowrap">
+                    <span className="rounded-full bg-[rgba(255,255,255,0.06)] px-2.5 py-0.5 text-[11px] font-medium text-ink-400 whitespace-nowrap">
                       {group.entries.length} {group.entries.length === 1 ? "analysis" : "analyses"}
                     </span>
                   </div>
 
                   {/* Valuation range */}
                   {(latestLow || latestHigh) && (
-                    <p className="text-sm text-[#94A3B8]">
+                    <p className="text-sm text-ink-400">
                       <span className="text-white font-medium">
                         {latestLow && latestHigh
                           ? `${latestLow} – ${latestHigh}`
@@ -214,7 +214,7 @@ export default async function ScoreHistoryPage() {
                   <div className={`text-3xl font-bold tabular-nums ${scoreColor(latest.total_score)}`}>
                     {latest.total_score}
                   </div>
-                  <div className="text-[10px] text-[#94A3B8] mt-0.5">current</div>
+                  <div className="text-[10px] text-ink-400 mt-0.5">current</div>
                 </div>
               </div>
 
@@ -222,7 +222,7 @@ export default async function ScoreHistoryPage() {
               <div className="px-6 py-4 border-b border-[rgba(255,255,255,0.06)] flex flex-wrap items-center gap-6">
                 {trend.length > 1 && (
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                    <p className="text-[10px] uppercase tracking-wider text-ink-400 mb-1.5">
                       Score trend
                     </p>
                     <div className="flex items-center gap-1.5">
@@ -240,7 +240,7 @@ export default async function ScoreHistoryPage() {
 
                 {delta !== null && (
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] mb-1.5">
+                    <p className="text-[10px] uppercase tracking-wider text-ink-400 mb-1.5">
                       Total change
                     </p>
                     <span
@@ -249,7 +249,7 @@ export default async function ScoreHistoryPage() {
                           ? "text-green-400"
                           : delta < 0
                           ? "text-red-400"
-                          : "text-[#94A3B8]"
+                          : "text-ink-400"
                       }`}
                     >
                       {delta > 0 ? "+" : ""}
@@ -261,7 +261,7 @@ export default async function ScoreHistoryPage() {
 
               {/* ── Recent entries list ── */}
               <div className="px-6 py-3">
-                <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] mb-3">
+                <p className="text-[10px] uppercase tracking-wider text-ink-400 mb-3">
                   Recent analyses
                 </p>
                 <ul className="space-y-2">
@@ -270,8 +270,8 @@ export default async function ScoreHistoryPage() {
                     return (
                       <li key={entry.id} className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Clock className="h-3.5 w-3.5 text-[#94A3B8] shrink-0" />
-                          <span className="text-sm text-[#94A3B8] truncate">
+                          <Clock className="h-3.5 w-3.5 text-ink-400 shrink-0" />
+                          <span className="text-sm text-ink-400 truncate">
                             {fmtDate(entry.created_at)}
                           </span>
                           <span
@@ -321,12 +321,12 @@ function PageHeader({ count }: { count?: number }) {
           <TrendingUp className="h-6 w-6 text-amber-400" />
           <h1 className="text-2xl font-bold text-white">Score History</h1>
           {count != null && count > 0 && (
-            <span className="rounded-full bg-[rgba(255,255,255,0.06)] px-2.5 py-0.5 text-xs font-medium text-[#94A3B8]">
+            <span className="rounded-full bg-[rgba(255,255,255,0.06)] px-2.5 py-0.5 text-xs font-medium text-ink-400">
               {count} startup{count !== 1 ? "s" : ""}
             </span>
           )}
         </div>
-        <p className="text-sm text-[#94A3B8]">
+        <p className="text-sm text-ink-400">
           Track your startup&apos;s valuation journey and investment readiness over time.
         </p>
       </div>

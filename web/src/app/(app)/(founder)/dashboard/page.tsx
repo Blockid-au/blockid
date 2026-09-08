@@ -77,11 +77,11 @@ function MetricCard({
   return (
     <div className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm rounded-2xl p-4 hover:border-[rgba(0,212,255,0.3)] transition-all duration-300">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-[#94A3B8] uppercase tracking-wider font-medium">{title}</p>
-        <Icon className="h-4 w-4 text-[#94A3B8]" />
+        <p className="text-xs text-ink-400 uppercase tracking-wider font-medium">{title}</p>
+        <Icon className="h-4 w-4 text-ink-400" />
       </div>
-      <p className="text-2xl font-bold text-[#F8FAFC]">{value}</p>
-      {subtitle && <p className="text-xs text-[#94A3B8] mt-0.5">{subtitle}</p>}
+      <p className="text-2xl font-bold text-ink-100">{value}</p>
+      {subtitle && <p className="text-xs text-ink-400 mt-0.5">{subtitle}</p>}
       {trend != null && trend !== 0 && (
         <span className={`text-xs font-semibold ${trend > 0 ? "text-emerald-400" : "text-red-400"}`}>
           {trend > 0 ? "+" : ""}
@@ -323,17 +323,17 @@ function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase:
           href={a.href}
           className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-[rgba(255,255,255,0.06)] group"
         >
-          <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.06)] text-[#94A3B8] group-hover:bg-[rgba(0,212,255,0.12)] group-hover:text-[#00D4FF] transition-colors shrink-0">
+          <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-[rgba(255,255,255,0.06)] text-ink-400 group-hover:bg-[rgba(0,212,255,0.12)] group-hover:text-[#00D4FF] transition-colors shrink-0">
             <a.icon strokeWidth={1.75} className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-[#F8FAFC] truncate">{a.label}</p>
+              <p className="text-sm font-medium text-ink-100 truncate">{a.label}</p>
               {a.badge && <span className="shrink-0 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">{a.badge}</span>}
             </div>
-            <p className="text-xs text-[#94A3B8] truncate">{a.desc}</p>
+            <p className="text-xs text-ink-400 truncate">{a.desc}</p>
           </div>
-          <ChevronRight className="h-4 w-4 text-ink-300 group-hover:text-[#94A3B8]" />
+          <ChevronRight className="h-4 w-4 text-ink-300 group-hover:text-ink-400" />
         </Link>
       ))}
 
@@ -352,7 +352,7 @@ function QuickActionsList({ hasAnalysis, phase }: { hasAnalysis: boolean; phase:
                 <a.icon strokeWidth={1.75} className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#94A3B8] truncate">{a.label}</p>
+                <p className="text-sm font-medium text-ink-400 truncate">{a.label}</p>
                 <p className="text-xs text-[#94A3B8]/60 truncate">{a.desc}</p>
               </div>
             </div>
@@ -779,7 +779,7 @@ export default async function DashboardPage({
               <p className="font-semibold text-emerald-300">
                 Your {sp.plan ?? "new"} plan is now active!
               </p>
-              <p className="mt-1 text-sm text-[#94A3B8]">
+              <p className="mt-1 text-sm text-ink-400">
                 Payment confirmed. All plan features are unlocked and ready to use.
               </p>
             </div>
@@ -789,10 +789,10 @@ export default async function DashboardPage({
           <div className="flex items-start gap-3 rounded-xl border border-[rgba(0,212,255,0.2)] bg-[rgba(0,212,255,0.06)] p-4">
             <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-[#00D4FF]" />
             <div>
-              <p className="font-semibold text-[#F8FAFC]">
+              <p className="font-semibold text-ink-100">
                 Welcome to BlockID. Your account is live.
               </p>
-              <p className="mt-1 text-sm text-[#94A3B8]">
+              <p className="mt-1 text-sm text-ink-400">
                 Run your first SVI analysis to unlock personalised startup guidance.
               </p>
             </div>
@@ -883,17 +883,17 @@ export default async function DashboardPage({
                 <p className="text-xs uppercase tracking-wider text-[#00D4FF] font-medium">
                   Current Project
                 </p>
-                <h2 className="text-xl font-bold text-[#F8FAFC] mt-1">
+                <h2 className="text-xl font-bold text-ink-100 mt-1">
                   {projectName || "My Startup"}
                 </h2>
                 {ideaSummary && (
-                  <p className="text-sm text-[#94A3B8] mt-2 line-clamp-2">{ideaSummary}</p>
+                  <p className="text-sm text-ink-400 mt-2 line-clamp-2">{ideaSummary}</p>
                 )}
               </div>
               {sviScore != null && (
                 <div className="text-right shrink-0 ml-4">
                   <div className="text-3xl font-bold bg-gradient-to-r from-[#00D4FF] to-[#0066FF] bg-clip-text text-transparent">{sviScore}</div>
-                  <p className="text-xs text-[#94A3B8]">SVI Score</p>
+                  <p className="text-xs text-ink-400">SVI Score</p>
                 </div>
               )}
             </div>
@@ -976,11 +976,11 @@ export default async function DashboardPage({
                 <div className="flex items-start gap-4">
                   <Lightbulb className="h-8 w-8 text-[#00D4FF] shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-[#F8FAFC]">Recommended Next Step</p>
-                    <p className="text-sm text-[#94A3B8] mt-1">{nextAction.text}</p>
+                    <p className="text-sm font-bold text-ink-100">Recommended Next Step</p>
+                    <p className="text-sm text-ink-400 mt-1">{nextAction.text}</p>
                     <Link
                       href={nextAction.url}
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0066FF] px-5 py-2.5 text-sm font-semibold text-[#0A0F1E] hover:opacity-90 transition-opacity"
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00D4FF] to-[#0066FF] px-5 py-2.5 text-sm font-semibold text-ink-950 hover:opacity-90 transition-opacity"
                     >
                       {nextAction.label}
                       <ArrowRight className="h-4 w-4" />
@@ -1003,11 +1003,11 @@ export default async function DashboardPage({
             className="grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
             <div className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm rounded-2xl p-6 hover:border-[rgba(0,212,255,0.3)] transition-all duration-300">
-              <h3 className="text-sm font-bold text-[#F8FAFC] mb-4">Recent Reports</h3>
+              <h3 className="text-sm font-bold text-ink-100 mb-4">Recent Reports</h3>
               {displayReports.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-[rgba(255,255,255,0.08)] px-4 py-8 text-center">
                   <FileText className="h-6 w-6 mx-auto text-[#94A3B8]/40 mb-2" />
-                  <p className="text-sm text-[#94A3B8]">No reports yet.</p>
+                  <p className="text-sm text-ink-400">No reports yet.</p>
                   <p className="text-xs text-[#94A3B8]/60 mt-1">
                     Run your first SVI analysis to generate a report.
                   </p>
@@ -1017,14 +1017,14 @@ export default async function DashboardPage({
                   {displayReports.map((r) => (
                     <Link key={r.id} href={`/workspace/reports/${r.id}`}>
                       <div className="flex items-center gap-3 py-3 border-b border-[rgba(255,255,255,0.06)] last:border-0 hover:bg-[rgba(255,255,255,0.04)] -mx-2 px-2 rounded-lg transition-colors">
-                        <FileText className="h-4 w-4 text-[#94A3B8] shrink-0" />
+                        <FileText className="h-4 w-4 text-ink-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#F8FAFC] truncate">
+                          <p className="text-sm font-medium text-ink-100 truncate">
                             {r.raw_input
                               ? r.raw_input.slice(0, 60) + (r.raw_input.length > 60 ? "..." : "")
                               : `Analysis ${new Date(r.created_at).toLocaleDateString("en-AU")}`}
                           </p>
-                          <p className="text-xs text-[#94A3B8]">
+                          <p className="text-xs text-ink-400">
                             {new Date(r.created_at).toLocaleDateString("en-AU")} · SVI {r.total_svi}
                           </p>
                         </div>
@@ -1045,7 +1045,7 @@ export default async function DashboardPage({
             </div>
 
             <div className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] backdrop-blur-sm rounded-2xl p-6 hover:border-[rgba(0,212,255,0.3)] transition-all duration-300">
-              <h3 className="text-sm font-bold text-[#F8FAFC] mb-4">Quick Actions</h3>
+              <h3 className="text-sm font-bold text-ink-100 mb-4">Quick Actions</h3>
               <QuickActionsList hasAnalysis={!!analysis} phase={phase} />
             </div>
           </div>
@@ -1091,10 +1091,10 @@ export default async function DashboardPage({
               <div className="flex items-center gap-3">
                 <BarChart3 className="h-5 w-5 text-[#00D4FF]" />
                 <div>
-                  <p className="text-sm font-semibold text-[#F8FAFC]">
+                  <p className="text-sm font-semibold text-ink-100">
                     See your cohort percentile
                   </p>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-ink-400">
                     Compare your SVI against anonymised AU pre-seed/seed startups.
                   </p>
                 </div>

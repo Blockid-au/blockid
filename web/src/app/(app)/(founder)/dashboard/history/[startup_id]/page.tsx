@@ -97,7 +97,7 @@ function SubScoreBar({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[11px] text-[#94A3B8]">{label}</span>
+        <span className="text-[11px] text-ink-400">{label}</span>
         <span className={`text-[11px] font-semibold tabular-nums ${scoreColor(pct)}`}>
           {value}
         </span>
@@ -172,14 +172,14 @@ export default async function StartupHistoryPage({
         <div>
           <Link
             href="/dashboard/history"
-            className="inline-flex items-center gap-1.5 text-sm text-[#94A3B8] hover:text-white transition-colors mb-4"
+            className="inline-flex items-center gap-1.5 text-sm text-ink-400 hover:text-white transition-colors mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Score History
           </Link>
 
           <h1 className="text-2xl font-bold text-white">{startupName}</h1>
-          <p className="text-sm text-[#94A3B8] mt-1">
+          <p className="text-sm text-ink-400 mt-1">
             Analysis History &mdash; {entries.length} record{entries.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -219,7 +219,7 @@ export default async function StartupHistoryPage({
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <Calendar className="h-3.5 w-3.5 text-[#94A3B8] shrink-0" />
+                    <Calendar className="h-3.5 w-3.5 text-ink-400 shrink-0" />
                     <span className="text-sm text-white font-medium">
                       {fmtDateTime(entry.created_at)}
                     </span>
@@ -240,7 +240,7 @@ export default async function StartupHistoryPage({
                   </div>
 
                   {(latestLow || latestHigh) && (
-                    <p className="text-xs text-[#94A3B8] mt-1">
+                    <p className="text-xs text-ink-400 mt-1">
                       Valuation:{" "}
                       <span className="text-white font-medium">
                         {latestLow && latestHigh
@@ -250,7 +250,7 @@ export default async function StartupHistoryPage({
                     </p>
                   )}
 
-                  <p className="text-xs text-[#94A3B8] mt-0.5">
+                  <p className="text-xs text-ink-400 mt-0.5">
                     {fmtDate(entry.created_at)}
                   </p>
                 </div>
@@ -264,14 +264,14 @@ export default async function StartupHistoryPage({
                   >
                     {entry.total_score}
                   </div>
-                  <div className="text-[10px] text-[#94A3B8] mt-0.5">score</div>
+                  <div className="text-[10px] text-ink-400 mt-0.5">score</div>
                 </div>
               </div>
 
               {/* ── Sub-scores ── */}
               {subScoreEntries.length > 0 && (
                 <div className="px-6 py-4 border-b border-[rgba(255,255,255,0.06)]">
-                  <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] mb-3">
+                  <p className="text-[10px] uppercase tracking-wider text-ink-400 mb-3">
                     Dimension scores
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
@@ -290,10 +290,10 @@ export default async function StartupHistoryPage({
               {(executiveSummary || topPriorities.length > 0) && (
                 <details className="group px-6 py-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-wider text-[#94A3B8]">
+                    <span className="text-[10px] uppercase tracking-wider text-ink-400">
                       Executive summary & priorities
                     </span>
-                    <ChevronDown className="h-4 w-4 text-[#94A3B8] transition-transform group-open:rotate-180" />
+                    <ChevronDown className="h-4 w-4 text-ink-400 transition-transform group-open:rotate-180" />
                   </summary>
 
                   <div className="mt-4 space-y-4">
@@ -302,7 +302,7 @@ export default async function StartupHistoryPage({
                         <p className="text-xs font-medium text-white mb-1.5">
                           Executive Summary
                         </p>
-                        <p className="text-sm text-[#94A3B8] leading-relaxed">
+                        <p className="text-sm text-ink-400 leading-relaxed">
                           {executiveSummary}
                         </p>
                       </div>
@@ -319,7 +319,7 @@ export default async function StartupHistoryPage({
                               <span className="flex-shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400/10 border border-amber-400/20 text-[10px] font-bold text-amber-400 mt-0.5">
                                 {i + 1}
                               </span>
-                              <span className="text-sm text-[#94A3B8] leading-relaxed">{p}</span>
+                              <span className="text-sm text-ink-400 leading-relaxed">{p}</span>
                             </li>
                           ))}
                         </ol>

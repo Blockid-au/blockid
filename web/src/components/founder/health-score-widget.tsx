@@ -171,7 +171,7 @@ function ArcGauge({ score, grade }: { score: number; grade: Grade }) {
       {/* Centre */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className={`text-4xl font-extrabold tabular-nums ${colours.text}`}>{score}</span>
-        <span className="text-[10px] text-[#94A3B8] uppercase tracking-widest mt-1">/ 100</span>
+        <span className="text-[10px] text-ink-400 uppercase tracking-widest mt-1">/ 100</span>
       </div>
     </div>
   );
@@ -191,8 +191,8 @@ function ComponentBar({ label, value, nullLabel }: { label: string; value: numbe
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs text-[#94A3B8]">{label}</span>
-        <span className="text-xs font-semibold text-[#F8FAFC]">
+        <span className="text-xs text-ink-400">{label}</span>
+        <span className="text-xs font-semibold text-ink-100">
           {value == null ? nullLabel : `${Math.round(pct)}`}
         </span>
       </div>
@@ -213,7 +213,7 @@ function ActionCard({ action, index }: { action: string; index: number }) {
   const bgColors = ["bg-cyan-500/10 border-cyan-500/20", "bg-emerald-500/10 border-emerald-500/20", "bg-amber-500/10 border-amber-500/20"];
   return (
     <div className={`flex items-start gap-3 rounded-xl border p-3 ${bgColors[index] ?? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.08)]"}`}>
-      <span className={`text-sm font-bold shrink-0 mt-0.5 ${rankColors[index] ?? "text-[#94A3B8]"}`}>
+      <span className={`text-sm font-bold shrink-0 mt-0.5 ${rankColors[index] ?? "text-ink-400"}`}>
         {index + 1}.
       </span>
       <span className="text-xs text-[#CBD5E1] leading-relaxed">{action}</span>
@@ -265,12 +265,12 @@ export function HealthScoreWidget({ startupId, lang = "en" }: Props) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-wider text-[#00D4FF] font-semibold">{c.title}</p>
-            <p className="text-xs text-[#94A3B8] mt-0.5">{c.subtitle}</p>
+            <p className="text-xs text-ink-400 mt-0.5">{c.subtitle}</p>
           </div>
           {result && (
             <Link
               href="/workspace/reports"
-              className="flex items-center gap-1.5 text-xs font-medium text-[#94A3B8] hover:text-[#00D4FF] transition-colors"
+              className="flex items-center gap-1.5 text-xs font-medium text-ink-400 hover:text-[#00D4FF] transition-colors"
             >
               <ArrowUpRight className="h-3.5 w-3.5" />
               {c.viewReport}
@@ -281,7 +281,7 @@ export function HealthScoreWidget({ startupId, lang = "en" }: Props) {
 
       {loading && (
         <div className="flex items-center justify-center py-10">
-          <span className="text-sm text-[#94A3B8] animate-pulse">{c.loading}</span>
+          <span className="text-sm text-ink-400 animate-pulse">{c.loading}</span>
         </div>
       )}
 
@@ -306,7 +306,7 @@ export function HealthScoreWidget({ startupId, lang = "en" }: Props) {
                   {result.grade}
                 </div>
                 <div>
-                  <p className="text-xs text-[#94A3B8] uppercase tracking-wider font-medium">{c.grade}</p>
+                  <p className="text-xs text-ink-400 uppercase tracking-wider font-medium">{c.grade}</p>
                   <p className="text-xs text-[#CBD5E1] mt-0.5 max-w-[160px] leading-relaxed">
                     {c.gradeNarrative[result.grade]}
                   </p>
@@ -317,13 +317,13 @@ export function HealthScoreWidget({ startupId, lang = "en" }: Props) {
               {valuation && (
                 <div className="w-full rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] p-4 text-center">
                   <div className="flex items-center justify-center gap-1.5 mb-1">
-                    <TrendingUp className="h-3.5 w-3.5 text-[#94A3B8]" />
-                    <p className="text-[10px] uppercase tracking-widest text-[#94A3B8] font-medium">{c.valuationLabel}</p>
+                    <TrendingUp className="h-3.5 w-3.5 text-ink-400" />
+                    <p className="text-[10px] uppercase tracking-widest text-ink-400 font-medium">{c.valuationLabel}</p>
                   </div>
                   <p className="text-2xl font-extrabold bg-gradient-to-r from-[#00D4FF] to-[#3B82F6] bg-clip-text text-transparent">
                     {valuation}
                   </p>
-                  <p className="text-[10px] text-[#94A3B8] mt-1">Based on your SVI Score</p>
+                  <p className="text-[10px] text-ink-400 mt-1">Based on your SVI Score</p>
                 </div>
               )}
 
@@ -352,7 +352,7 @@ export function HealthScoreWidget({ startupId, lang = "en" }: Props) {
                 <div>
                   <div className="flex items-center gap-2 mb-2.5">
                     <Zap className="h-3.5 w-3.5 text-[#00D4FF]" />
-                    <p className="text-xs uppercase tracking-wider text-[#94A3B8] font-semibold">{c.topActions}</p>
+                    <p className="text-xs uppercase tracking-wider text-ink-400 font-semibold">{c.topActions}</p>
                   </div>
                   <div className="space-y-2">
                     {result.topActions.slice(0, 3).map((action, i) => (
