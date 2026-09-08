@@ -1,4 +1,17 @@
 #!/bin/bash
+# Zero-downtime deploy pipeline — MUST lock IMMEDIATELY to prevent concurrent builds.
+# Two agents launching this script within seconds could both pass the old flock
+# check (which ran ~line 74 after shell setup) and race Gate 5 (webpack build),
+# clobbering each other's `.next/` output. Lock here on FD 200 before anything else.
+exec 200>/tmp/blockid-deploy.lock
+if ! flock -x -n 200; then
+  holder=$(cat /tmp/blockid-deploy.pid 2>/dev/null || echo "unknown")
+  echo "❌ Another deploy is already running (holder pid=$holder)"
+  echo "   Aborting to avoid a build race. Retry after it finishes."
+  exit 1
+fi
+echo $$ > /tmp/blockid-deploy.pid
+trap 'rm -f /tmp/blockid-deploy.pid' EXIT
 # BlockID.au — Zero-Downtime Deploy from Source (with CI gates)
 #
 # Built-in CI/CD pipeline (no Docker, no GitLab, no GitHub Actions):
@@ -61,22 +74,13 @@ LKG_FILE="$WEB_DIR/content/reports/last-good-build.json"
 cd "$WEB_DIR"
 
 # ══════════════════════════════════════════════════════════════════════
-# DEPLOY LOCK — only ONE deploy at a time.
-# Prevents concurrent runs from racing `rm -rf .next` / build output, which
-# was the #1 recurring failure. Auto-update/auto-deploy jobs queue instead of
-# colliding. The lock auto-releases when this process exits.
+# DEPLOY LOCK — acquired at the top of this script (see FD 200 above).
+# ⚠ NEVER `rm -f /tmp/blockid-deploy.lock` to "unstick" a deploy — deleting
+# the file lets a new `exec 200>` create a fresh inode that flock won't see
+# as conflicting, so two builds race and each `rm -rf .next` clobbers the
+# other. If a deploy is wedged, kill the pid printed by the refusal message.
 # ══════════════════════════════════════════════════════════════════════
 LOCK_FILE="/tmp/blockid-deploy.lock"
-# ⚠ NEVER `rm -f` this lock to "unstick" a deploy — deleting the file lets a new
-# `exec 9>` create a fresh inode that flock won't see as conflicting, so two
-# builds race and each `rm -rf .next` clobbers the other. If a deploy is wedged,
-# kill its PID instead. (This footgun caused the static-asset 500 outage.)
-exec 9>"$LOCK_FILE"
-if ! flock -n 9; then
-  echo "❌ Another deploy is already running (lock: $LOCK_FILE)."
-  echo "   Aborting to avoid a build race. Retry after it finishes."
-  exit 1
-fi
 
 # ── Debounce: collapse rapid duplicate deploys of the SAME commit ─────
 # Multiple triggers (GitHub webhook + agent self-upgrade loops) used to fire
