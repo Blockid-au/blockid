@@ -997,16 +997,19 @@ async function callDeepInfra(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.DEEPINFRA_API_KEY ?? getDBKey("deepinfra")?.api_key ?? "";
   if (!apiKey) throw new Error("DeepInfra API key not configured");
 
-  // Ranked by quality-per-$ for financial / SVI reasoning (Sep 2026).
-  // Model IDs VERIFIED live against /v1/openai/models on 2026-09-08:
-  // "meta-llama/Llama-3.3-70B-Instruct-Turbo" is the actual DeepInfra id
-  // (no "Meta-" prefix, "-Turbo" suffix). Prior "Meta-Llama-3.3-70B-Instruct"
-  // returned 404 during smoke test.
+  // CHEAPEST-FIRST ranking (Sep 2026 — user-directed policy): once we've
+  // fallen through the free tier, spend the least possible per token. Live
+  // smoke-test cost per test call (5-token completion):
+  //   Llama-3.3-70B-Turbo    → $3.2e-6   ($0.10 in / $0.32 out per 1M)
+  //   Qwen2.5-72B-Instruct   → $2.7e-6   ($0.13 in / $0.39 out per 1M)
+  //   DeepSeek-V3.2          → $5.3e-6   ($0.32 in / $0.89 out per 1M)
+  // Llama 3.3 70B Turbo covers the bulk of SVI scoring at the lowest cost;
+  // DeepSeek V3.2 stays in the chain as a quality fallback only.
   const DEEPINFRA_MODELS = getDynamicModels("deepinfra", [
-    "deepseek-ai/DeepSeek-V3.2",             // S-tier reasoning — latest V3 checkpoint
-    "deepseek-ai/DeepSeek-V3.1",             // S-tier — previous V3 checkpoint (safety net)
-    "meta-llama/Llama-3.3-70B-Instruct-Turbo", // B-tier workhorse — verified ID
-    "Qwen/Qwen2.5-72B-Instruct",             // B-tier — best Vietnamese quality
+    "meta-llama/Llama-3.3-70B-Instruct-Turbo", // cheapest workhorse — first pick
+    "Qwen/Qwen2.5-72B-Instruct",               // second cheapest, best Vietnamese
+    "deepseek-ai/DeepSeek-V3.2",               // S-tier reasoning — quality fallback
+    "deepseek-ai/DeepSeek-V3.1",               // safety net if V3.2 unavailable
   ]);
 
   let lastErr: Error | null = null;
@@ -1373,6 +1376,57 @@ const PROVIDER_RPM: Record<Provider, number> = {
   "ollama":             9999,  // local, no external limit
   "none":                  0,
 };
+
+// ── Free-first tier segregation (user requirement Sep 2026) ──────────────
+// A "free" tier includes: zero-cost free-tier providers (Groq, Cerebras,
+// SambaNova, OpenRouter free models), the local Ollama runtime, and the
+// Claude subscription paths (already paid for as a flat fee — no per-call
+// marginal cost). The dispatcher tries EVERY free provider first; it only
+// engages the paid tier (DeepInfra, Haiku direct API) when every free
+// provider is either saturated OR on cooldown. This preserves the user's
+// "free before paid" contract even when capacity-based routing would
+// otherwise pick a higher-RPM paid provider.
+const PROVIDER_TIER: Record<Provider, "free" | "paid"> = {
+  "groq":               "free",
+  "cerebras":           "free",
+  "sambanova":          "free",
+  "openrouter":         "free",
+  "ollama":             "free",
+  "claude-oauth":       "free",  // covered by subscription — no per-call cost
+  "claude-proxy":       "free",  // covered by subscription — no per-call cost
+  "deepinfra":          "paid",
+  "claude-haiku-direct":"paid",
+  "claude-apikey":      "paid",
+  "openai-apikey":      "paid",
+  "gemini":             "paid",
+  "none":               "free",
+};
+
+/** True when the caller is about to burn per-token marginal cost. Emits an
+ *  observable log line so the admin dashboard / user notification banner
+ *  can show "AI đang chạy trên gói trả phí" when free capacity is exhausted.
+ *  Debounced 60 s so a sustained free-outage doesn't spam the log. */
+const paidTierEvents: number[] = [];
+let lastPaidLogAt = 0;
+function notePaidTierEngaged(provider: Provider): void {
+  const now = Date.now();
+  paidTierEvents.push(now);
+  while (paidTierEvents.length > 0 && paidTierEvents[0] < now - 60 * 60_000) paidTierEvents.shift();
+  if (now - lastPaidLogAt < 60_000) return;
+  lastPaidLogAt = now;
+  console.warn(
+    `[ai-client:paid-tier] engaged ${provider} — free tier saturated. ` +
+    `paid-events in last hour: ${paidTierEvents.length}`
+  );
+}
+
+/** Live counter — how many times paid tier was engaged in the last hour.
+ *  Surface this in the admin dashboard so ops can see when to add more
+ *  free-tier keys or lift caps. */
+export function getPaidTierEventsLastHour(): number {
+  const now = Date.now();
+  return paidTierEvents.filter((t) => t > now - 60 * 60_000).length;
+}
 const RPM_HEADROOM = 0.85; // stop firing at 85% of ceiling → burst safety margin
 const RPM_WINDOW_MS = 60_000;
 
@@ -1406,17 +1460,50 @@ function providerCapacity(p: Provider): number {
  *  quiet system still prefers the strongest provider). If EVERY candidate is
  *  saturated we still return the least-saturated one — worst case, that call
  *  gets 429'd and cools down, which is what we want. Returns null only when
- *  the input list is empty. */
+ *  the input list is empty.
+ *
+ *  Free-first policy (Sep 2026): free-tier providers (see PROVIDER_TIER) are
+ *  evaluated FIRST. Paid providers are only considered when every free
+ *  provider is on cooldown OR has zero remaining capacity. This preserves
+ *  the user's cost contract: paid credit is a fallback, not a peer. */
 export function pickBestProvider(candidates: Provider[]): Provider | null {
   if (candidates.length === 0) return null;
   const now = Date.now();
-  const alive = candidates.filter((p) => (providerCooldown.get(p) ?? 0) <= now);
-  const pool = alive.length > 0 ? alive : candidates;
-  const scored = pool.map((p, i) => ({ p, i, cap: providerCapacity(p) }));
-  const hasRoom = scored.filter((x) => x.cap > 0);
-  const picks = hasRoom.length > 0 ? hasRoom : scored;
-  picks.sort((a, b) => b.cap - a.cap || a.i - b.i);
-  return picks[0].p;
+
+  const free = candidates.filter((p) => PROVIDER_TIER[p] === "free");
+  const paid = candidates.filter((p) => PROVIDER_TIER[p] === "paid");
+
+  const pickFrom = (pool: Provider[]): Provider | null => {
+    if (pool.length === 0) return null;
+    const alive = pool.filter((p) => (providerCooldown.get(p) ?? 0) <= now);
+    const usable = alive.length > 0 ? alive : pool;
+    const scored = usable.map((p, i) => ({ p, i, cap: providerCapacity(p) }));
+    const hasRoom = scored.filter((x) => x.cap > 0);
+    const picks = hasRoom.length > 0 ? hasRoom : scored;
+    picks.sort((a, b) => b.cap - a.cap || a.i - b.i);
+    return picks[0].p;
+  };
+
+  // Prefer free tier when it has ANY provider with real headroom.
+  if (free.length > 0) {
+    const now2 = Date.now();
+    const freeAlive = free.filter((p) => (providerCooldown.get(p) ?? 0) <= now2);
+    const anyFreeHasRoom = freeAlive.some((p) => providerCapacity(p) > 0);
+    if (anyFreeHasRoom) return pickFrom(free);
+  }
+
+  // Fall back to paid tier — every free provider is either cooling down or
+  // saturated. Log the engagement so the admin dashboard can react.
+  if (paid.length > 0) {
+    const pick = pickFrom(paid);
+    if (pick) notePaidTierEngaged(pick);
+    return pick;
+  }
+
+  // No paid providers configured — last-ditch attempt at free tier even
+  // though everything is saturated. Some call has to fail so cooldowns get
+  // fresh signals; better to let it 429 than return null.
+  return pickFrom(free);
 }
 
 // ── L3. Global concurrency semaphore ─────────────────────────────────────

@@ -702,6 +702,43 @@ describe("pickBestProvider — capacity-aware routing", () => {
     const pick = pickBestProvider(["cerebras", "groq"]);
     expect(pick).not.toBeNull();
   });
+
+  it("prefers a free provider over a paid one even when the paid has more capacity", async () => {
+    const { pickBestProvider } = await loadClient();
+    // deepinfra (paid, 300 RPM) has 15× the capacity of cerebras (free, 30 RPM),
+    // but the free-first policy must still pick cerebras.
+    expect(pickBestProvider(["deepinfra", "cerebras"])).toBe("cerebras");
+    expect(pickBestProvider(["cerebras", "deepinfra"])).toBe("cerebras");
+  });
+
+  it("only picks a paid provider when NO free provider is available in the candidate list", async () => {
+    const { pickBestProvider } = await loadClient();
+    // No free tier in the list → paid tier is all there is.
+    expect(pickBestProvider(["deepinfra", "claude-haiku-direct"])).toBe("deepinfra");
+    // deepinfra has more capacity (300) than claude-haiku-direct (200)
+  });
+
+  it("classifies claude-oauth and claude-proxy as free (subscription = no per-call cost)", async () => {
+    const { pickBestProvider } = await loadClient();
+    // Claude subscription paths must beat DeepInfra (paid).
+    expect(pickBestProvider(["deepinfra", "claude-oauth"])).toBe("claude-oauth");
+    expect(pickBestProvider(["deepinfra", "claude-proxy"])).toBe("claude-proxy");
+  });
+});
+
+describe("getPaidTierEventsLastHour — paid-tier engagement counter", () => {
+  it("is 0 when no paid provider has been engaged", async () => {
+    const { getPaidTierEventsLastHour, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(getPaidTierEventsLastHour()).toBe(0);
+  });
+
+  it("increments after pickBestProvider chooses a paid provider (no free candidates)", async () => {
+    const { pickBestProvider, getPaidTierEventsLastHour, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    pickBestProvider(["deepinfra"]);            // paid-only list → engages paid tier
+    expect(getPaidTierEventsLastHour()).toBeGreaterThan(0);
+  });
 });
 
 describe("getDispatcherState — observability snapshot", () => {
