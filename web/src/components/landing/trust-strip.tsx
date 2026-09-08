@@ -25,7 +25,11 @@ export function TrustStrip({ className = "", group, ...rest }: TrustStripProps) 
   if (!resolved) return null;
 
   return (
-    <div className={className} {...rest}>
+    // Intentional dark island — TrustStrip is only rendered inside the lux
+    // hero / partners band which paints its own #0A0F1E ground. Self-scoping
+    // with data-theme="dark" keeps its legacy brand-ink / white-alpha
+    // utilities readable regardless of the outer page's palette.
+    <div data-theme="dark" className={className} {...rest}>
       <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-brand-ink-muted">
         {resolved.label ?? "Working with"}
       </p>
