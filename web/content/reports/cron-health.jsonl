@@ -820,3 +820,4 @@
 {"ts":"2026-09-08T14:30:01Z","endpoint":"lifecycle-mailer","status":"ok","duration_ms":864,"detail":"{\"processed\": 0, \"results\": []}"}
 {"ts":"2026-09-08T14:30:01Z","endpoint":"performance-audit","status":"fail","duration_ms":17141,"detail":"<!DOCTYPE html><html lang=\"en-AU\" class=\"__variable_48b81b __variable_1f5b15 __variable_6b9622 h-full antialiased\"><head"}
 {"ts":"2026-09-08T14:40:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":2424,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 18, \"raw\": \"18% used (228621312 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 8, \"raw\": \"8% used (270179696 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-09-08T14:45:01Z","endpoint":"lifecycle-mailer","status":"ok","duration_ms":248,"detail":"{\"processed\": 0, \"results\": []}"}

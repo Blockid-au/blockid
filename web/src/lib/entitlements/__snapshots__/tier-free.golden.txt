@@ -5,7 +5,9 @@ home	SVI Score	/dashboard/svi
 home	Score History	/dashboard/history
 home	New Analysis	/
 home	Action Plan	/workspace/roadmap
+validate / validate.evaluate	Your Analyses	/workspace/analyses
 validate / validate.track	Weekly Reports	/workspace/reports
+validate	Your Analyses	/workspace/analyses
 validate	Weekly Reports	/workspace/reports
 build / build.strategy	Code & Web Analyzer	/dashboard/analyzer
 build	Code & Web Analyzer	/dashboard/analyzer

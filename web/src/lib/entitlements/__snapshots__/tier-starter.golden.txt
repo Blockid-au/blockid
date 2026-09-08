@@ -7,6 +7,7 @@ home	New Analysis	/
 home	Action Plan	/workspace/roadmap
 validate / validate.discover	Market Size	/dashboard/market-size
 validate / validate.discover	Knowledge Base	/workspace/knowledge-base
+validate / validate.evaluate	Your Analyses	/workspace/analyses
 validate / validate.evaluate	Evaluation (13)	/workspace/evaluation
 validate / validate.evaluate	Evidence Vault	/workspace/evidence
 validate / validate.evaluate	Evidence Completeness	/workspace/svi-evidence
@@ -15,6 +16,7 @@ validate / validate.evaluate	SVI Trend	/workspace/svi-trend
 validate / validate.track	Weekly Reports	/workspace/reports
 validate	Market Size	/dashboard/market-size
 validate	Knowledge Base	/workspace/knowledge-base
+validate	Your Analyses	/workspace/analyses
 validate	Evaluation (13)	/workspace/evaluation
 validate	Evidence Vault	/workspace/evidence
 validate	Evidence Completeness	/workspace/svi-evidence

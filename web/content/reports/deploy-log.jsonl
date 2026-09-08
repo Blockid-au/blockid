@@ -9360,3 +9360,4 @@
 {"ts":"2026-09-08T14:33:53.944Z","event":"github-push-master","detail":"Blockid-au: feat(workspace): Your analyses list with a first-run empty state, not a sign-in wall (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T14:35:10.633Z","event":"github-push-master","detail":"Blockid-au: fix(dashboard): point first-run cards at pages that exist and at /analyze (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T14:35:56.943Z","event":"github-push-master","detail":"Blockid-au: feat(auth): carry real claimed counts into the post-signup landing (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T14:42:25.384Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): investor share panel — who it went to, and when they opened it (1 commits)","source":"github-webhook"}
