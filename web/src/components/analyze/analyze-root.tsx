@@ -22,6 +22,7 @@ import * as React from "react";
 import dynamic from "next/dynamic";
 import { SmartIntake, type SmartIntakeSubmission } from "./smart-intake";
 import { AnalyzeCostModal, type CostRow } from "./analyze-cost-modal";
+import { SavedAnalysisPanel } from "./saved-analysis-panel";
 import {
   GuestPaidCheckout,
   type GuestInputType,
@@ -196,6 +197,10 @@ export function AnalyzeRoot({
   const [submission, setSubmission] =
     React.useState<SmartIntakeSubmission | null>(null);
   const [intake, setIntake] = React.useState<IntakeResult | null>(null);
+  // Row id from POST /api/intake. `null` means the save failed — the analysis
+  // is still valid, we just have no permalink to offer and say nothing about
+  // saving. See SavedAnalysisPanel.
+  const [analysisId, setAnalysisId] = React.useState<string | null>(null);
   const [intakeLoading, setIntakeLoading] = React.useState(false);
   const [estimate, setEstimate] = React.useState<EstimateResult | null>(null);
   const [estimateLoading, setEstimateLoading] = React.useState(false);
@@ -293,13 +298,19 @@ export function AnalyzeRoot({
         setIntakeLoading(false);
         return;
       }
-      const data = (await res.json()) as { ok?: boolean } & IntakeResult;
+      const data = (await res.json()) as {
+        ok?: boolean;
+        analysisId?: string | null;
+      } & IntakeResult;
       if (!data.ok) {
         setErrorMsg("Something went wrong. Try again or contact support.");
         setIntakeLoading(false);
         return;
       }
       setIntake(data);
+      setAnalysisId(
+        typeof data.analysisId === "string" ? data.analysisId : null,
+      );
       setOcrOffered(
         data.inputKind === "pitch_deck" &&
           Boolean(
@@ -424,6 +435,7 @@ export function AnalyzeRoot({
     setPhase("intake");
     setSubmission(null);
     setIntake(null);
+    setAnalysisId(null);
     setEstimate(null);
     setErrorMsg(null);
     setOcrOffered(false);
@@ -592,14 +604,20 @@ export function AnalyzeRoot({
       {phase === "results" && intake && (
         <>
           <AnalyzeResults intake={intake} />
-          <div className="mx-auto mt-4 max-w-6xl px-4">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="rounded-lg border border-line-subtle px-4 py-2 text-sm font-medium text-primary transition-colors hover:border-action"
-            >
-              Analyse another
-            </button>
+          <div className="mx-auto mt-6 flex max-w-6xl flex-col gap-4 px-4 text-left">
+            <SavedAnalysisPanel
+              analysisId={analysisId}
+              authenticated={authenticated}
+            />
+            <div>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="rounded-lg border border-line-subtle px-4 py-2 text-sm font-medium text-primary transition-colors hover:border-action"
+              >
+                Analyse another
+              </button>
+            </div>
           </div>
         </>
       )}
