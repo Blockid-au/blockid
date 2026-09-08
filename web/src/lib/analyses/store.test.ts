@@ -52,7 +52,7 @@ function makeClient() {
       state.calls.push(call);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const b: any = {};
-      for (const m of ["insert", "select", "eq", "is", "order", "limit", "update"]) {
+      for (const m of ["insert", "select", "eq", "gte", "is", "order", "limit", "update"]) {
         b[m] = (...args: unknown[]) => {
           call.ops.push({ name: m, args });
           return b;
@@ -92,10 +92,12 @@ import {
   WRITE_LIMIT_PER_IP,
   checkAnalysisWriteLimit,
   claimAnalyses,
+  countAnonRunsInWindow,
   getAnalysisForViewer,
   listAnalysesForViewer,
   saveAnalysis,
 } from "./store";
+import { ANON_RUN_WINDOW_MS } from "./signup-gate";
 import { extractSignals } from "@/lib/svi-analysis";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 
@@ -355,5 +357,61 @@ describe("claimAnalyses", () => {
     await expect(
       claimAnalyses({ userId: "u1", anonKey: "anon1" }),
     ).resolves.toEqual({ analyses: 0, guestAnalyses: 0 });
+  });
+});
+
+// ── Signup gate count ────────────────────────────────────────────────────
+//
+// This count is the ONLY input to whether an anonymous visitor's run is
+// allowed to start. Two failure modes matter, in opposite directions:
+//   * counting outside the window would wall a visitor returning months
+//     later, who has no memory of ever using the site;
+//   * throwing or counting high on a database hiccup would wall a real
+//     founder over an outage, so it must fail OPEN.
+
+describe("countAnonRunsInWindow", () => {
+  it("counts only this anon key's rows, newest window only", async () => {
+    state.list = { data: [{ id: "a" }, { id: "b" }], error: null };
+    const n = await countAnonRunsInWindow("anon1", { since: "2026-08-09T00:00:00.000Z" });
+    expect(n).toBe(2);
+    const call = state.calls[0];
+    expect(call.table).toBe(ANALYSES_TABLE);
+    expect(argOf(call, "eq")).toEqual(["anon_key", "anon1"]);
+    expect(argOf(call, "gte")).toEqual(["created_at", "2026-08-09T00:00:00.000Z"]);
+  });
+
+  it("bounds the read instead of counting an unbounded slice", async () => {
+    await countAnonRunsInWindow("anon1", { cap: 4 });
+    expect(argOf(state.calls[0], "limit")).toEqual([4]);
+    expect(opsOf(state.calls[0])).toContain("select");
+  });
+
+  it("defaults the cutoff to the rolling window", async () => {
+    await countAnonRunsInWindow("anon1");
+    const [column, cutoff] = argOf(state.calls[0], "gte") as [string, string];
+    expect(column).toBe("created_at");
+    const ageMs = Date.now() - Date.parse(cutoff);
+    expect(ageMs).toBeGreaterThan(ANON_RUN_WINDOW_MS - 5_000);
+    expect(ageMs).toBeLessThan(ANON_RUN_WINDOW_MS + 5_000);
+  });
+
+  it("returns 0 with no anon key rather than querying", async () => {
+    expect(await countAnonRunsInWindow("")).toBe(0);
+    expect(state.calls).toHaveLength(0);
+  });
+
+  it("FAILS OPEN when supabase is unconfigured", async () => {
+    state.client = null;
+    expect(await countAnonRunsInWindow("anon1")).toBe(0);
+  });
+
+  it("FAILS OPEN when the query errors", async () => {
+    state.list = { data: null, error: { message: "relation missing" } };
+    expect(await countAnonRunsInWindow("anon1")).toBe(0);
+  });
+
+  it("FAILS OPEN when the client throws", async () => {
+    state.throwOnFrom = true;
+    expect(await countAnonRunsInWindow("anon1")).toBe(0);
   });
 });

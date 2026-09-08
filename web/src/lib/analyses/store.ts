@@ -15,6 +15,7 @@ import {
   type CompactSvi,
   type StoredAnalysisRow,
 } from "./payload";
+import { anonRunWindowStart } from "./signup-gate";
 
 export const ANALYSES_TABLE = "analyses";
 export const GUEST_ANALYSES_TABLE = "guest_analyses";
@@ -59,6 +60,49 @@ export function checkAnalysisWriteLimit(
   );
   if (!byIp.allowed) return { allowed: false, reason: "ip" };
   return { allowed: true };
+}
+
+// ── Signup gate: how many runs has this browser already had? ─────────────
+
+/**
+ * Count this anon key's runs inside the gate window.
+ *
+ * Reads at most `cap` ids and returns how many came back, so the query is a
+ * bounded index scan on `analyses_anon_key_created_idx (anon_key, created_at
+ * desc)` — no `count(*)` over an unbounded slice. The gate only ever compares
+ * against FREE_ANON_RUNS, so an exact count above the cap is worthless.
+ *
+ * FAILS OPEN. If Supabase is unreachable or the query errors we return 0 and
+ * the visitor gets their run. The wall exists to protect model spend from
+ * repeat anonymous visitors; blocking a real founder because our database
+ * hiccuped would cost more than the run it saved, and the anonymous write
+ * rate limit is still underneath as a ceiling.
+ */
+export async function countAnonRunsInWindow(
+  anonKey: string,
+  opts?: { since?: string; cap?: number },
+): Promise<number> {
+  const cap = opts?.cap ?? 10;
+  const since = opts?.since ?? anonRunWindowStart();
+  if (!anonKey) return 0;
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return 0;
+    const { data, error } = await supabase
+      .from(ANALYSES_TABLE)
+      .select("id")
+      .eq("anon_key", anonKey)
+      .gte("created_at", since)
+      .limit(cap);
+    if (error) {
+      console.error("[analyses:count] query failed —", error.message);
+      return 0;
+    }
+    return (data ?? []).length;
+  } catch (err) {
+    console.error("[analyses:count] threw —", err);
+    return 0;
+  }
 }
 
 // ── Write ────────────────────────────────────────────────────────────────
