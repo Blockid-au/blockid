@@ -41,6 +41,7 @@ function renderHtml(p: DigestPayload): string {
   const viewsBlock = renderViewsBlock(p);
   const leadsBlock = renderLeadsBlock(p);
   const sviBlock = renderSviBlock(p);
+  const aiSummaryBlock = renderAiSummaryBlock(p);
   const actionBlock = renderActionBlock(p);
   const shareBlock = p.shareUrl
     ? `<div style="padding:16px 24px;border-top:1px solid #e2e8f0"><p style="margin:0;font-size:13px;color:#475569">Your current share link:</p><p style="margin:6px 0 0"><a href="${escapeAttr(p.shareUrl)}" style="color:#0f766e;font-weight:600;text-decoration:none;word-break:break-all">${escapeHtml(p.shareUrl)}</a></p></div>`
@@ -57,6 +58,7 @@ function renderHtml(p: DigestPayload): string {
     ${viewsBlock}
     ${leadsBlock}
     ${sviBlock}
+    ${aiSummaryBlock}
     ${actionBlock}
     ${shareBlock}
     <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
@@ -134,6 +136,31 @@ function renderSviBlock(p: DigestPayload): string {
   </div>`;
 }
 
+function renderAiSummaryBlock(p: DigestPayload): string {
+  const s = p.aiSummary;
+  if (!s) return "";
+  const val = s.latestValuationLowAud && s.latestValuationHighAud
+    ? `A$${Math.round(s.latestValuationLowAud / 1000)}K – A$${Math.round(s.latestValuationHighAud / 1000)}K`
+    : "not yet computed";
+  const delta7 = s.scoreDelta7d;
+  const deltaCopy = delta7 === null
+    ? ""
+    : delta7 === 0
+      ? ' (flat this week)'
+      : ` (${delta7 > 0 ? "+" : ""}${delta7} this week)`;
+  const topRecs = s.topRecommendations.slice(0, 3);
+  return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0;background:#f8fafc">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:0.16em">AI evaluation snapshot</p>
+    <p style="margin:0 0 4px;font-size:12px;color:#475569">${s.totalScoreRuns} scoring run${s.totalScoreRuns === 1 ? "" : "s"} · ${s.totalDeepDives} deep dive${s.totalDeepDives === 1 ? "" : "s"} · ${s.agentsRun.length} agent${s.agentsRun.length === 1 ? "" : "s"} run</p>
+    <p style="margin:6px 0 0;font-size:14px;color:#0f172a"><strong>Latest SVI ${s.latestTotalScore ?? "—"}</strong>${escapeHtml(deltaCopy)} · Valuation ${escapeHtml(val)}</p>
+    ${topRecs.length > 0 ? `
+    <p style="margin:12px 0 6px;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.14em">Top AI recommendations across your analyses</p>
+    <ol style="margin:0;padding-left:20px;color:#334155;font-size:13px;line-height:1.55">
+      ${topRecs.map((r) => `<li style="margin:0 0 4px">${escapeHtml(r)}</li>`).join("")}
+    </ol>` : ""}
+  </div>`;
+}
+
 function renderActionBlock(p: DigestPayload): string {
   if (!p.topAction) return "";
   const a = p.topAction;
@@ -184,6 +211,24 @@ function renderText(p: DigestPayload): string {
       lines.push(`  Change:  ${sign}${p.svi.delta} pts (was ${p.svi.previous})`);
     } else if (p.svi.newSnapshot) {
       lines.push("  First snapshot on record.");
+    }
+    lines.push("");
+  }
+  if (p.aiSummary) {
+    const s = p.aiSummary;
+    lines.push("AI EVALUATION SNAPSHOT");
+    lines.push(`  ${s.totalScoreRuns} scoring run(s) · ${s.totalDeepDives} deep dive(s) · ${s.agentsRun.length} agent(s) run`);
+    if (s.latestTotalScore !== null) {
+      const d = s.scoreDelta7d;
+      const dCopy = d === null ? "" : d === 0 ? " (flat this week)" : ` (${d > 0 ? "+" : ""}${d} this week)`;
+      lines.push(`  Latest SVI: ${s.latestTotalScore}${dCopy}`);
+    }
+    if (s.latestValuationLowAud && s.latestValuationHighAud) {
+      lines.push(`  Valuation:  A$${Math.round(s.latestValuationLowAud / 1000)}K – A$${Math.round(s.latestValuationHighAud / 1000)}K`);
+    }
+    if (s.topRecommendations.length > 0) {
+      lines.push("  Top AI recommendations:");
+      s.topRecommendations.slice(0, 3).forEach((r, i) => lines.push(`    ${i + 1}. ${r}`));
     }
     lines.push("");
   }

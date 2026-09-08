@@ -12,6 +12,7 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getAllStartupSummaries, type StartupAISummary } from "@/lib/analysis/aggregate-startup-summary";
 
 export interface DigestActionRecommendation {
   /** Dimension key (ftv/mpc/ptd/tre/cgh/iri/lco/svm). */
@@ -60,6 +61,11 @@ export interface DigestPayload {
   leads: DigestLeadsSection;
   svi: DigestSviSection | null;
   topAction: DigestActionRecommendation | null;
+  /** Aggregated AI evaluation snapshot for the founder's primary startup —
+   *  null when they have no scoring history yet. Populated from the same
+   *  aggregation lib the founder dashboard uses so the email numbers match
+   *  what they see when they log in. */
+  aiSummary: StartupAISummary | null;
   shareUrl: string | null;
   notificationsUrl: string;
 }
@@ -326,6 +332,11 @@ export async function buildFounderDigest(
     return null;
   }
 
+  // AI evaluation aggregate — same lib the founder dashboard uses so numbers
+  // match. Failure-safe: if the query throws, digest still sends without it.
+  const summaries = await getAllStartupSummaries(userId).catch(() => []);
+  const aiSummary = summaries[0] ?? null;
+
   return {
     userId,
     projectId,
@@ -336,6 +347,7 @@ export async function buildFounderDigest(
     leads,
     svi,
     topAction,
+    aiSummary,
     shareUrl,
     notificationsUrl: `${siteBase()}/workspace/notifications`,
   };
