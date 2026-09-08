@@ -1256,7 +1256,7 @@ export function RndResultsPanel({
                     <p className="text-sm font-semibold text-ink-800">
                       Track your progress over time
                     </p>
-                    <span className="rounded-full bg-brand-100 border border-brand-200 px-2 py-0.5 text-[10px] font-medium text-brand-600 uppercase tracking-wider">
+                    <span className="rounded-full bg-brand-100 border border-brand-200 px-2 py-0.5 text-[10px] font-medium text-brand-700 uppercase tracking-wider">
                       100 spots only
                     </span>
                   </div>

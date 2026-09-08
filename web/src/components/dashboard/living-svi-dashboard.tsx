@@ -562,7 +562,7 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
                     "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
                     isActive
                       ? "bg-white/20 text-primary"
-                      : "bg-surface-200 text-ink-500",
+                      : "bg-surface-200 text-ink-600",
                   )}
                 >
                   {tab.badge}
@@ -791,7 +791,7 @@ function JourneyTab({
           icon={FileText}
           label="Reports Unlocked"
           value={savedSections.filter((s) => s.depth === "full").length.toString()}
-          color="text-emerald-600 bg-emerald-50"
+          color="text-emerald-700 bg-emerald-50"
         />
         <QuickStatCard
           icon={CreditCard}
@@ -1178,7 +1178,7 @@ function ReportSectionRow({
             <div className="flex items-center gap-2 shrink-0">
               {/* Word count badge for unlocked content */}
               {hasFull && saved && (
-                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
                   {saved.word_count.toLocaleString()}w
                 </span>
               )}

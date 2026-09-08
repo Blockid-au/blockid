@@ -53,7 +53,7 @@ export function WelcomeGuide() {
             href="/"
             className="flex items-start gap-3 group rounded-xl px-3 py-2.5 -mx-3 hover:bg-brand-50/60 transition-colors"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-brand-600 shrink-0 mt-0.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-brand-700 shrink-0 mt-0.5">
               <CheckCircle2 strokeWidth={1.75} className="h-4 w-4" />
             </span>
             <div>
@@ -71,7 +71,7 @@ export function WelcomeGuide() {
             href="/workspace/evidence"
             className="flex items-start gap-3 group rounded-xl px-3 py-2.5 -mx-3 hover:bg-brand-50/60 transition-colors"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shrink-0 mt-0.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
               <UploadCloud strokeWidth={1.75} className="h-4 w-4" />
             </span>
             <div>

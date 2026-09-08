@@ -48,7 +48,7 @@ const TIER_COLORS: Record<string, string> = {
   "not-ready": "text-red-600 bg-red-50 border-red-200",
   "early": "text-amber-600 bg-amber-50 border-amber-200",
   "getting-ready": "text-blue-600 bg-blue-50 border-blue-200",
-  "investor-ready": "text-emerald-600 bg-emerald-50 border-emerald-200",
+  "investor-ready": "text-emerald-700 bg-emerald-50 border-emerald-200",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {

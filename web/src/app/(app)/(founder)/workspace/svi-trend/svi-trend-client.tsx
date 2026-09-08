@@ -202,7 +202,7 @@ export function SviTrendClient({ projectId }: Props) {
               <button
                 type="button"
                 disabled
-                className="inline-flex items-center gap-1.5 rounded-lg bg-ink-200 dark:bg-ink-800 text-ink-500 dark:text-ink-500 text-sm font-semibold px-4 py-2 cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-ink-200 dark:bg-ink-800 text-ink-600 dark:text-ink-600 text-sm font-semibold px-4 py-2 cursor-not-allowed"
               >
                 Run new analysis <RefreshCw className="h-3.5 w-3.5" />
               </button>

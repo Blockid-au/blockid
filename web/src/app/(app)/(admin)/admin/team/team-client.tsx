@@ -363,7 +363,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
               member.status === "Hiring" &&
                 "bg-purple-100 text-purple-700",
               member.status === "Planned" &&
-                "bg-surface-200 text-ink-500",
+                "bg-surface-200 text-ink-600",
             )}
           >
             {member.status}
@@ -474,7 +474,7 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
             </div>
             <Link
               href="/admin/architecture"
-              className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-xl px-4 py-2 transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-xl px-4 py-2 transition-colors"
             >
               View System Architecture
               <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
@@ -618,7 +618,7 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
                               "inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-2.5 py-0.5",
                               isActive
                                 ? "bg-emerald-100 text-emerald-700"
-                                : "bg-surface-200 text-ink-500",
+                                : "bg-surface-200 text-ink-600",
                             )}
                           >
                             {isActive && (

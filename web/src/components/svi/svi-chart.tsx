@@ -69,7 +69,7 @@ export function SVIChart({ snapshots }: SVIChartProps) {
         {weekDelta !== 0 && (
           <span className={cn(
             "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold font-mono",
-            deltaPositive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600",
+            deltaPositive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600",
           )}>
             {deltaPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
             {deltaPositive ? "+" : ""}{weekDelta} this week

@@ -250,7 +250,7 @@ export function NestedSidebar({
                   type="button"
                   onClick={dismissReorgHint}
                   aria-label="Dismiss reorganization hint"
-                  className="shrink-0 rounded p-0.5 text-brand-600/70 hover:bg-brand-100 hover:text-brand-800"
+                  className="shrink-0 rounded p-0.5 text-brand-700/70 hover:bg-brand-100 hover:text-brand-800"
                 >
                   <X strokeWidth={1.75} className="h-3 w-3" />
                 </button>

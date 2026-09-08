@@ -401,7 +401,7 @@ export function FundraiseClient() {
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                   active && "bg-brand-50 text-brand-700 border border-brand-200",
-                  done && "bg-brand-500 text-white cursor-pointer",
+                  done && "bg-brand-600 text-white cursor-pointer",
                   !active && !done && "text-muted bg-surface-50",
                 )}
               >

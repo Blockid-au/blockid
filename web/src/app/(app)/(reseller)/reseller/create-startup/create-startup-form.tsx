@@ -163,7 +163,7 @@ export default function CreateStartupForm({ allowedTiers }: Props) {
         <button
           type="submit"
           disabled={busy || allowedTiers.length === 0}
-          className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:bg-surface-200 disabled:text-ink-500"
+          className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:bg-surface-200 disabled:text-ink-600"
         >
           {busy ? "Provisioning…" : "Provision startup"}
         </button>

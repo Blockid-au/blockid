@@ -31,7 +31,7 @@ interface Insight {
 const TYPE_CONFIG: Record<string, { icon: typeof Lightbulb; color: string; label: string }> = {
   market_trend: { icon: TrendingUp, color: "text-blue-600 bg-blue-50 border-blue-200", label: "Market Trend" },
   competitor_update: { icon: Users, color: "text-amber-600 bg-amber-50 border-amber-200", label: "Competitor" },
-  new_business: { icon: Zap, color: "text-emerald-600 bg-emerald-50 border-emerald-200", label: "New Business" },
+  new_business: { icon: Zap, color: "text-emerald-700 bg-emerald-50 border-emerald-200", label: "New Business" },
   opportunity: { icon: Target, color: "text-brand-600 bg-brand-50 border-brand-200", label: "Opportunity" },
 };
 
@@ -145,7 +145,7 @@ export function InsightsPanel() {
                     <button
                       onClick={() => markAsRead(insight.id)}
                       disabled={isDismissing}
-                      className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-ink-500 transition-colors hover:bg-surface-200 hover:text-ink-700 disabled:opacity-50"
+                      className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-ink-600 transition-colors hover:bg-surface-200 hover:text-ink-700 disabled:opacity-50"
                     >
                       {isDismissing ? (
                         <Loader2 className="h-3 w-3 animate-spin" />

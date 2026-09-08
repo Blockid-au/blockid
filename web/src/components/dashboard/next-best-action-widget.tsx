@@ -41,7 +41,7 @@ interface NBAResult {
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
 const effortColor = {
-  low: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20",
+  low: "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20",
   medium: "text-amber-600 bg-amber-50 dark:bg-amber-950/20",
   high: "text-red-500 bg-red-50 dark:bg-red-950/20",
 };

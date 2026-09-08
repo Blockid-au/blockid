@@ -453,7 +453,7 @@ function ProjectionsTab({ report }: { report: VcValuationReport }) {
 function UnitEconomicsTab({ report }: { report: VcValuationReport }) {
   const u = report.unitEconomics;
   const VERDICT_COLOR = {
-    strong: "text-emerald-600 bg-emerald-50 border-emerald-200",
+    strong: "text-emerald-700 bg-emerald-50 border-emerald-200",
     healthy: "text-blue-600 bg-blue-50 border-blue-200",
     watch: "text-amber-600 bg-amber-50 border-amber-200",
     weak: "text-red-600 bg-red-50 border-red-200",

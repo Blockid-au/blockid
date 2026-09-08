@@ -276,7 +276,7 @@ export function AnalyzeTierModal({ evidenceId, evidenceLabel, onClose, onAnalyze
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-ink-800">{tier.label}</p>
                       {tier.popular && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded">Popular</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700 bg-brand-100 px-1.5 py-0.5 rounded">Popular</span>
                       )}
                       <span className="text-xs text-ink-500 ml-auto">{tier.time}</span>
                     </div>

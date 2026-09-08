@@ -276,7 +276,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
             </span>
           )}
           {remainingSections.length > 0 && (
-            <span className="rounded-full bg-surface-200 text-ink-500 px-2.5 py-0.5">
+            <span className="rounded-full bg-surface-200 text-ink-600 px-2.5 py-0.5">
               {remainingSections.length} remaining
             </span>
           )}
@@ -340,7 +340,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
           <div className="flex items-center gap-2 mb-3">
             <Sparkles strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
             <span className="text-sm font-bold text-ink-900">Report Sections</span>
-            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-600">
+            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">
               {SECTION_DEFS.length} sections
             </span>
           </div>

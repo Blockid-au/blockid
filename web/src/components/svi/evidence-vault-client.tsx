@@ -433,7 +433,7 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI 
               { icon: Receipt, title: "Add Revenue Proof", desc: "Invoices, Stripe, or bank statements boost traction", pts: "+12-20", action: "Upload" },
             ].map(({ icon: Icon, title, desc, pts, action }) => (
               <button key={title} onClick={() => setShowWizard(true)} className="flex items-start gap-3 rounded-2xl border border-surface-200 bg-white p-4 text-left hover:border-brand-200 hover:shadow-md transition-all cursor-pointer group">
-                <div className="h-10 w-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 shrink-0 group-hover:bg-brand-100 transition-colors">
+                <div className="h-10 w-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-700 shrink-0 group-hover:bg-brand-100 transition-colors">
                   <Icon strokeWidth={1.75} className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">

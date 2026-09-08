@@ -85,7 +85,7 @@ export function RoadmapSteps({ completedSteps = [1] }: { completedSteps?: number
             {!step.done && step.href && (
               <a
                 href={step.href}
-                className="shrink-0 h-7 px-3 rounded-lg bg-brand-50 border border-brand-200 text-xs font-medium text-brand-600 hover:bg-brand-100 transition-colors flex items-center mt-0.5"
+                className="shrink-0 h-7 px-3 rounded-lg bg-brand-50 border border-brand-200 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors flex items-center mt-0.5"
               >
                 Do It Now
               </a>

@@ -35,7 +35,7 @@ export function WeeklyReportCard({
         {/* Delta badge */}
         <div className={cn(
           "flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-mono font-bold text-lg",
-          positive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500",
+          positive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-500",
         )}>
           {positive ? <TrendingUp strokeWidth={1.75} className="h-4 w-4" /> : <TrendingDown strokeWidth={1.75} className="h-4 w-4" />}
           {positive ? "+" : ""}{delta}
@@ -86,7 +86,7 @@ export function WeeklyReportCard({
           View Full Report
         </a>
         {onAddEvidence && (
-          <button type="button" onClick={onAddEvidence} className="flex-1 h-8 rounded-lg bg-brand-50 border border-brand-200 text-xs font-medium text-brand-600 hover:bg-brand-100 transition-colors cursor-pointer">
+          <button type="button" onClick={onAddEvidence} className="flex-1 h-8 rounded-lg bg-brand-50 border border-brand-200 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors cursor-pointer">
             + Add Evidence
           </button>
         )}

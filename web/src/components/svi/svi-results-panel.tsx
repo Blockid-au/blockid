@@ -465,7 +465,7 @@ function DimensionBar({
             <Link
               href={DIMENSION_ACTIONS[keyName]?.link ?? "/workspace/evidence"}
               onClick={(e) => e.stopPropagation()}
-              className="ml-1 sm:ml-2 shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand-50 border border-brand-200 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
+              className="ml-1 sm:ml-2 shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand-50 border border-brand-200 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-medium text-brand-700 hover:bg-brand-100 transition-colors"
             >
               <ArrowUpRight className="h-3 w-3" /> <span className="hidden sm:inline">{DIMENSION_ACTIONS[keyName]?.label ?? "Improve"}</span><span className="sm:hidden">Fix</span>
             </Link>
@@ -594,7 +594,7 @@ function FullReportViewer({ report }: { report: string }) {
           <div className="flex items-center gap-2">
             <FileText strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
             <h3 className="text-base font-bold text-ink-900">Full AI Report</h3>
-            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-600">
+            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">
               {wordCount.toLocaleString()} words
             </span>
           </div>
@@ -939,7 +939,7 @@ function ProgressiveReport() {
           <div className="flex items-center gap-2">
             <Sparkles strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
             <h3 className="text-base font-bold text-ink-900">Your SVI Report</h3>
-            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-600">
+            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">
               {SECTION_DEFS.length} sections
             </span>
           </div>
@@ -950,7 +950,7 @@ function ProgressiveReport() {
               </span>
             )}
             {summaryCount > 0 && (
-              <span className="rounded-full bg-brand-100 text-brand-600 px-2 py-0.5 font-medium">
+              <span className="rounded-full bg-brand-100 text-brand-700 px-2 py-0.5 font-medium">
                 {summaryCount} previewed
               </span>
             )}
@@ -1024,7 +1024,7 @@ function ProgressiveReport() {
                     <div className="flex items-center gap-2.5 mb-3">
                       <Lock strokeWidth={1.75} className="h-4 w-4 text-muted" />
                       <span className="text-sm font-semibold text-ink-600">{def.title}</span>
-                      <span className="rounded-full bg-surface-200 px-2 py-0.5 text-[10px] font-medium text-ink-500 uppercase tracking-wider">
+                      <span className="rounded-full bg-surface-200 px-2 py-0.5 text-[10px] font-medium text-ink-600 uppercase tracking-wider">
                         Premium
                       </span>
                     </div>
@@ -1117,7 +1117,7 @@ function ProgressiveReport() {
                       </span>
                     )}
                     {!hasFull && def.tier === "included" && (
-                      <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-600">
+                      <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">
                         Included
                       </span>
                     )}
@@ -2611,7 +2611,7 @@ export function SVIResultsPanel({
                   className={cn(
                     "inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors",
                     copied
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-600"
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                       : "border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600",
                   )}
                 >
@@ -2661,7 +2661,7 @@ export function SVIResultsPanel({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-ink-800">
                     Track your SVI over time
-                    <span className="ml-2 rounded-full bg-brand-100 border border-brand-200 px-2 py-0.5 text-[10px] font-medium text-brand-600 uppercase tracking-wider">
+                    <span className="ml-2 rounded-full bg-brand-100 border border-brand-200 px-2 py-0.5 text-[10px] font-medium text-brand-700 uppercase tracking-wider">
                       50 spots
                     </span>
                   </p>

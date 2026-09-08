@@ -354,7 +354,7 @@ function statusBadge(status: Phase["status"]) {
     case "In Progress":
       return "bg-brand-100 text-brand-700";
     case "Planned":
-      return "bg-surface-200 text-ink-500";
+      return "bg-surface-200 text-ink-600";
   }
 }
 
@@ -486,7 +486,7 @@ function PhaseCard({ phase }: { phase: Phase }) {
                           ? "bg-amber-100 text-amber-700"
                           : section.priority === "P2"
                             ? "bg-blue-100 text-blue-700"
-                            : "bg-surface-200 text-ink-500",
+                            : "bg-surface-200 text-ink-600",
                     )}
                   >
                     {section.priority}

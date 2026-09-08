@@ -25,7 +25,7 @@ interface ResearchResult {
 }
 
 function ScorePill({ label, score, icon: Icon }: { label: string; score: number; icon: React.ElementType }) {
-  const color = score >= 70 ? "text-emerald-600 bg-emerald-50 border-emerald-200"
+  const color = score >= 70 ? "text-emerald-700 bg-emerald-50 border-emerald-200"
     : score >= 50 ? "text-amber-600 bg-amber-50 border-amber-200"
     : "text-red-600 bg-red-50 border-red-200";
   return (
@@ -41,7 +41,7 @@ function ThreatBadge({ threat }: { threat: "high" | "medium" | "low" }) {
   const styles = {
     high: "bg-red-50 text-red-600 border-red-200",
     medium: "bg-amber-50 text-amber-600 border-amber-200",
-    low: "bg-emerald-50 text-emerald-600 border-emerald-200",
+    low: "bg-emerald-50 text-emerald-700 border-emerald-200",
   };
   const labels = { high: "High threat", medium: "Med threat", low: "Low threat" };
   return (

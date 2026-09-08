@@ -20,7 +20,7 @@ interface SviUpgradeRoadmapProps {
 }
 
 const EFFORT_COLORS = {
-  low: "text-emerald-600 bg-emerald-50",
+  low: "text-emerald-700 bg-emerald-50",
   medium: "text-amber-600 bg-amber-50",
   high: "text-red-600 bg-red-50",
 };

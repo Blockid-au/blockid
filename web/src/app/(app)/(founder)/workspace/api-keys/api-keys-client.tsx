@@ -379,7 +379,7 @@ function CreateKeyModal({
                   className={cn(
                     "h-8 w-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer shrink-0",
                     copied
-                      ? "bg-emerald-50 text-emerald-600"
+                      ? "bg-emerald-50 text-emerald-700"
                       : "text-muted hover:text-ink-700 hover:bg-surface-100",
                   )}
                   title="Copy to clipboard"

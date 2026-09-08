@@ -187,7 +187,7 @@ export default async function AdminAnalysesPage({
         </select>
         <button
           type="submit"
-          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-400 transition-colors"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-400 transition-colors"
         >
           Filter
         </button>

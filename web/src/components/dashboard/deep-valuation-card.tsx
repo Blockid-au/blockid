@@ -76,7 +76,7 @@ function ProjectIntro({ summary }: { summary: InputSummary }) {
 
 function PerspectiveRow({ p }: { p: DeepValuation["perspectives"][number] }) {
   const Icon = PERSPECTIVE_ICONS[p.code] ?? BarChart3;
-  const confColor = p.confidence === "high" ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20"
+  const confColor = p.confidence === "high" ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20"
     : p.confidence === "medium" ? "text-blue-600 bg-blue-50 dark:bg-blue-950/20"
     : "text-amber-600 bg-amber-50 dark:bg-amber-950/20";
 

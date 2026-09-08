@@ -172,7 +172,7 @@ export function OAuthConnectorCard(props: OAuthConnectorCardProps): React.ReactE
           ) : (
             <a
               href={startUrl}
-              className="px-3 py-1.5 text-sm rounded-md bg-brand-600 hover:bg-brand-500 text-white"
+              className="px-3 py-1.5 text-sm rounded-md bg-brand-600 hover:bg-brand-700 text-white"
             >
               Connect
             </a>

@@ -63,7 +63,7 @@ export function EmptyDashboardState({
     : "text-xs text-ink-600";
   const cardIconWrapClasses = isDark
     ? "mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-action/10 text-action"
-    : "mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-100 text-brand-600";
+    : "mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-100 text-brand-700";
 
   return (
     <div className="space-y-6">

@@ -63,7 +63,7 @@ function DimensionBar({ sub, rank }: { sub: SVIAnalysis["subs"][number]; rank: n
             <Link
               href={DIMENSION_ACTIONS[sub.key]?.link ?? "/workspace/evidence"}
               onClick={(e) => e.stopPropagation()}
-              className="ml-2 shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand-50 border border-brand-200 px-2.5 py-1 text-[11px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
+              className="ml-2 shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand-50 border border-brand-200 px-2.5 py-1 text-[11px] font-medium text-brand-700 hover:bg-brand-100 transition-colors"
             >
               <ArrowUpRight className="h-3 w-3" /> Improve (+{potentialPts} pts)
             </Link>
