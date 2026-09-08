@@ -39,9 +39,11 @@ const saveAnalysisMock = vi.fn<(i: Record<string, unknown>) => Promise<string | 
 const checkWriteLimitMock = vi.fn<
   (a: string, ip: string) => { allowed: boolean; reason?: string }
 >();
+const countAnonRunsMock = vi.fn<(a: string) => Promise<number>>();
 vi.mock("@/lib/analyses/store", () => ({
   saveAnalysis: (i: Record<string, unknown>) => saveAnalysisMock(i),
   checkAnalysisWriteLimit: (a: string, ip: string) => checkWriteLimitMock(a, ip),
+  countAnonRunsInWindow: (a: string) => countAnonRunsMock(a),
 }));
 
 const deriveMock = vi.fn<() => unknown>();
@@ -82,6 +84,7 @@ beforeEach(() => {
     .mockResolvedValue({ key: "anon-key-000000000000000", issued: true });
   saveAnalysisMock.mockReset().mockResolvedValue("row-1");
   checkWriteLimitMock.mockReset().mockReturnValue({ allowed: true });
+  countAnonRunsMock.mockReset().mockResolvedValue(0);
   deriveMock.mockReset().mockReturnValue({ totalSVI: 118 });
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -197,5 +200,90 @@ describe("POST /api/intake — failure paths", () => {
     const res = await POST(req({ text: "an idea" }));
     expect(res.status).toBe(500);
     expect(saveAnalysisMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── Signup gate ──────────────────────────────────────────────────────────
+//
+// The gate's entire value is that it SPENDS NOTHING. Every assertion below
+// that checks `analyzeInputMock` was not called is checking a real A$0.40-1.20
+// of model spend that did not happen. If the gate ever moves below
+// `analyzeInput`, or the client-side check becomes the only one, that money
+// starts flowing again for visitors who have never paid us anything.
+//
+// The other half is the wall's shape: run 1 unwalled, the A$3 guest path
+// untouched, and a signed-in caller never gated at all.
+
+describe("POST /api/intake — signup gate: run 1 is unwalled", () => {
+  it("runs the first anonymous analysis with no wall", async () => {
+    countAnonRunsMock.mockResolvedValue(0);
+    const res = await POST(req({ text: "an idea" }));
+    const body = await json(res);
+    expect(body.ok).toBe(true);
+    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts prior runs against the anon key", async () => {
+    await POST(req({ text: "an idea" }));
+    expect(countAnonRunsMock).toHaveBeenCalledWith("anon-key-000000000000000");
+  });
+});
+
+describe("POST /api/intake — signup gate: run 2 costs us nothing", () => {
+  beforeEach(() => countAnonRunsMock.mockResolvedValue(1));
+
+  it("declines WITHOUT invoking the pipeline", async () => {
+    const res = await POST(req({ text: "an idea" }));
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+    expect(saveAnalysisMock).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+  });
+
+  it("answers 200 with a machine-readable reason, not an error status", async () => {
+    const res = await POST(req({ text: "an idea" }));
+    const body = await json(res);
+    expect(res.status).toBe(200);
+    expect(body.ok).toBe(false);
+    expect(body.reason).toBe("signup_required");
+    expect(body.analysisId).toBeNull();
+  });
+
+  it("reports the real counts so the prompt never invents copy", async () => {
+    countAnonRunsMock.mockResolvedValue(3);
+    const body = await json(await POST(req({ text: "an idea" })));
+    expect(body.priorRuns).toBe(3);
+    expect(body.windowDays).toBe(30);
+  });
+});
+
+describe("POST /api/intake — signup gate: who is never walled", () => {
+  it("never gates a signed-in caller, however many runs they have", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    countAnonRunsMock.mockResolvedValue(99);
+    const body = await json(await POST(req({ text: "an idea" })));
+    expect(body.ok).toBe(true);
+    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips the count query entirely for a signed-in caller", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    await POST(req({ text: "an idea" }));
+    expect(countAnonRunsMock).not.toHaveBeenCalled();
+  });
+
+  it("never gates the A$3 guest path (tier=paid with a site URL)", async () => {
+    countAnonRunsMock.mockResolvedValue(5);
+    const body = await json(
+      await POST(req({ url: "https://example.com", tier: "paid" })),
+    );
+    expect(body.ok).toBe(true);
+    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("still gates tier=paid on a typed idea — there is no A$3 SKU for it", async () => {
+    countAnonRunsMock.mockResolvedValue(5);
+    const body = await json(await POST(req({ text: "an idea", tier: "paid" })));
+    expect(body.ok).toBe(false);
+    expect(analyzeInputMock).not.toHaveBeenCalled();
   });
 });

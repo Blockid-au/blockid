@@ -16,13 +16,48 @@
 // simply slow to accept the insert, the analysis is still returned with a
 // loud server log and `analysisId: null`. Losing a good analysis to a
 // database hiccup would be a worse failure than not saving it.
+//
+// SIGNUP GATE (2026-09-08)
+// ------------------------
+// Run 1 is completely unwalled. From run 2, an anonymous browser is asked for
+// an email BEFORE the pipeline runs — see `@/lib/analyses/signup-gate` for
+// the reasoning and the counting window.
+//
+// The gate is checked here, server-side, before `analyzeInput` is called. A
+// client-side check would be bypassed with one devtools edit and would leave
+// the model-spend exposure exactly where it started. The point of the gate is
+// to SPEND NOTHING, so the sequence is strictly: parse body → resolve
+// identity → count prior runs → decide → only then analyse.
+//
+// RESPONSE SHAPE — 200 with `{ ok: false, reason: "signup_required" }`, not 401
+//   A 401 says "your credentials failed". Nothing failed here: the request was
+//   valid, we understood it completely, and we are deliberately declining to
+//   run it yet. Three concrete reasons for the 200:
+//     1. the existing client already collapses every non-2xx into a generic
+//        "Something went wrong" — a 401 would surface the account wall as an
+//        error, which it is not;
+//     2. a 401 invites browsers, proxies and monitors to treat the route as
+//        broken and (for some) to prompt for HTTP auth;
+//     3. `reason` is a discriminator the client can branch on without parsing
+//        prose, and it rides alongside the real `priorRuns` / `windowDays` so
+//        the prompt can state facts rather than invent copy.
+//   The status line is not the contract; `ok` is.
 
 import { NextResponse } from "next/server";
 import { analyzeInput, type IntakeFileInput, type IntakeResult } from "@/lib/intake/analyze-input";
 import { getCurrentUser } from "@/lib/auth";
 import { ensureAnonKey } from "@/lib/analyses/anon-key";
-import { checkAnalysisWriteLimit, saveAnalysis } from "@/lib/analyses/store";
+import {
+  checkAnalysisWriteLimit,
+  countAnonRunsInWindow,
+  saveAnalysis,
+} from "@/lib/analyses/store";
 import { deriveCompactSvi } from "@/lib/analyses/payload";
+import {
+  decideSignupGate,
+  isPaidSellableInput,
+  type SignupGateDecision,
+} from "@/lib/analyses/signup-gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +65,8 @@ export const dynamic = "force-dynamic";
 interface Body {
   text?: string;
   url?: string;
+  /** `?tier=` the visitor arrived on — only ever widens the gate, never charges. */
+  tier?: string;
   file?: {
     filename: string;
     base64: string;
@@ -50,28 +87,24 @@ interface PersistMeta {
  */
 async function persist(
   request: Request,
+  anonKey: string | null,
+  userId: string | null,
   result: IntakeResult,
   meta: PersistMeta,
 ): Promise<string | null> {
   try {
-    const { key: anonKey } = await ensureAnonKey();
+    const key = anonKey ?? (await ensureAnonKey()).key;
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    const limit = checkAnalysisWriteLimit(anonKey, ip);
+    const limit = checkAnalysisWriteLimit(key, ip);
     if (!limit.allowed) {
       console.warn(
         `[intake] write rate-limited (${limit.reason}) — analysis returned but not saved`,
       );
       return null;
     }
-    let userId: string | null = null;
-    try {
-      userId = (await getCurrentUser())?.id ?? null;
-    } catch {
-      userId = null; // anonymous is the normal case, not an error
-    }
     return await saveAnalysis({
-      anonKey,
+      anonKey: key,
       userId,
       result,
       svi: deriveCompactSvi(result),
@@ -86,8 +119,46 @@ async function persist(
   }
 }
 
+/**
+ * Who is asking, and how many runs have they already had?
+ *
+ * Everything here is fail-soft in the permissive direction: an unavailable
+ * cookie store or session table means "anonymous, zero prior runs", so a
+ * platform wobble opens the gate instead of walling everybody.
+ */
+async function resolveCaller(): Promise<{
+  anonKey: string | null;
+  userId: string | null;
+}> {
+  let anonKey: string | null = null;
+  try {
+    anonKey = (await ensureAnonKey()).key;
+  } catch {
+    anonKey = null; // un-cookied: the run still happens, it just cannot be counted
+  }
+  let userId: string | null = null;
+  try {
+    userId = (await getCurrentUser())?.id ?? null;
+  } catch {
+    userId = null; // anonymous is the normal case, not an error
+  }
+  return { anonKey, userId };
+}
+
+/** The 200 body the client branches on when the account wall fires. */
+function gatedResponse(decision: Extract<SignupGateDecision, { allow: false }>) {
+  return NextResponse.json({
+    ok: false,
+    reason: decision.reason,
+    priorRuns: decision.priorRuns,
+    windowDays: decision.windowDays,
+    analysisId: null,
+  });
+}
+
 export async function POST(request: Request) {
   let body: Body;
+  let file: IntakeFileInput | undefined;
   try {
     const contentType = request.headers.get("content-type") ?? "";
     if (contentType.includes("multipart/form-data")) {
@@ -95,31 +166,26 @@ export async function POST(request: Request) {
       body = {
         text: (form.get("text") as string | null) ?? undefined,
         url: (form.get("url") as string | null) ?? undefined,
+        tier: (form.get("tier") as string | null) ?? undefined,
       };
-      const file = form.get("file");
-      if (file && typeof file !== "string") {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const filename = (file as File).name || "upload.bin";
-        const fileInput: IntakeFileInput = {
-          filename,
+      const formFile = form.get("file");
+      if (formFile && typeof formFile !== "string") {
+        const buffer = Buffer.from(await formFile.arrayBuffer());
+        file = {
+          filename: (formFile as File).name || "upload.bin",
           buffer,
-          mimeType: (file as File).type,
+          mimeType: (formFile as File).type,
         };
-        const result = await analyzeInput({
-          text: body.text,
-          url: body.url,
-          file: fileInput,
-        });
-        const analysisId = await persist(request, result, {
-          url: body.url,
-          filename,
-          mimeType: (file as File).type,
-          bytes: buffer.length,
-        });
-        return NextResponse.json({ ok: true, analysisId, ...result });
       }
     } else {
       body = (await request.json()) as Body;
+      if (body.file) {
+        file = {
+          filename: body.file.filename,
+          buffer: Buffer.from(body.file.base64, "base64"),
+          mimeType: body.file.mimeType,
+        };
+      }
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -129,13 +195,25 @@ export async function POST(request: Request) {
     );
   }
 
-  const file: IntakeFileInput | undefined = body.file
-    ? {
-        filename: body.file.filename,
-        buffer: Buffer.from(body.file.base64, "base64"),
-        mimeType: body.file.mimeType,
-      }
-    : undefined;
+  // ── The gate. Nothing above this line costs money; nothing below it runs
+  // until the gate says so. ────────────────────────────────────────────────
+  const { anonKey, userId } = await resolveCaller();
+  const authenticated = Boolean(userId);
+  // Counting is pointless for a signed-in caller and for an un-cookied one
+  // (nothing to count against), so skip the query entirely in both cases.
+  const priorRuns =
+    authenticated || !anonKey ? 0 : await countAnonRunsInWindow(anonKey);
+  const decision = decideSignupGate({
+    authenticated,
+    priorRuns,
+    tier: body.tier === "paid" ? "paid" : "free",
+    paidSellable: isPaidSellableInput({
+      hasFile: Boolean(file),
+      url: body.url,
+      text: body.text,
+    }),
+  });
+  if (!decision.allow) return gatedResponse(decision);
 
   try {
     const result = await analyzeInput({
@@ -143,7 +221,7 @@ export async function POST(request: Request) {
       url: body.url,
       file,
     });
-    const analysisId = await persist(request, result, {
+    const analysisId = await persist(request, anonKey, userId, result, {
       url: body.url,
       filename: file?.filename,
       mimeType: file?.mimeType,
