@@ -558,6 +558,12 @@ export function NavV2() {
   return (
     <header
       ref={navRef}
+      // Intentional dark island — the persistent NavV2 header always renders
+      // against the deep-navy lux ground even when hosted in a light-theme
+      // page. Self-scoping with data-theme="dark" keeps its legacy
+      // `text-brand-ink*`, `bg-brand-navy`, `border-white/*` utilities
+      // resolving to the dark palette regardless of the surrounding page.
+      data-theme="dark"
       className="sticky top-0 z-50 border-b border-white/5 bg-brand-navy/85 backdrop-blur"
     >
 <nav
