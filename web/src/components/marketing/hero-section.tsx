@@ -3,36 +3,30 @@
 /**
  * HeroSection — light-first, input-centric homepage hero.
  *
- * Redesign (2026-09-08, homepage-fintech-redesign agent).
+ * Rewrite (2026-09-08, homepage-redesign agent). Two things changed:
  *
- * The previous revision was a DARK island (`data-theme="dark"` on a
- * `#0A0F1E` surface) sitting on top of a light-first design system. Three
- * things went wrong and all three are fixed here:
+ *   1. The submission now carries through. It used to push
+ *      `/analyze?q=…`, which `analyze/page.tsx` never read, so the
+ *      visitor typed their idea, navigated, and was asked to type it
+ *      again. The submission — including a dropped File, which cannot be
+ *      encoded in a URL — is parked in `pending-intake` and claimed by
+ *      AnalyzeRoot on mount, which starts the run straight away.
+ *   2. The copy stopped describing the technology and started describing
+ *      the outcome. "AI-powered startup valuation" says nothing a founder
+ *      can act on; knowing your number before the meeting does.
  *
- *   1. `text-primary` resolved to the LIGHT ink (#0B0F1A) because Tailwind
- *      v4 substitutes `@theme` vars once on `:root`. The H1 painted
- *      near-black on near-black — ~1.02:1, literally invisible. (The token
- *      pipeline is fixed in globals.css rev.4; the hero no longer relies
- *      on nested dark scoping at all.)
- *   2. `min-h-[calc(100vh-64px)]` + `justify-center` left ~800px of void
- *      around a single input, which reads as a broken page.
- *   3. The hero was the only dark band before three light sections, which
- *      is what made the page feel like stacked fragments.
+ * COLOUR CONTRACT. SVI orange (#FF9F0A) is 2.33:1 on white — it fails AA
+ * even at large-text sizes, so it is used ONLY as a graphic accent (the
+ * rotating omnibox ring, the bar chips), never as readable copy. The H1
+ * accent line uses `text-action` (#1D4ED8, 8.59:1 AAA).
  *
- * This version commits the hero to LIGHT (docs/design-system.md rev.3 is
- * light-first), sizes it to roughly one viewport, and gives it something to
- * hold besides the input: a compact score + valuation preview so the value
- * proposition is visible before the visitor types anything.
- *
- * SVI orange (#FF9F0A) is 2.33:1 on white — it fails AA even at large-text
- * sizes, so it is used ONLY as a graphic accent (the rotating omnibox ring,
- * the score numeral's rule, the bar chips), never as readable copy. The H1
- * accent line uses `text-action` (#1D4ED8, 8.59:1 AAA) instead.
+ * Keep `AnimatedSearchFrame` around the omnibox — the rotating conic ring
+ * is a deliberate founder request.
  */
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ShieldCheck, Wallet, Zap } from "lucide-react";
+import { ArrowRight, Landmark, ScrollText, Sparkles } from "lucide-react";
 import { SmartIntake, type SmartIntakeSubmission } from "@/components/analyze/smart-intake";
 import {
   pendingIntakeQuery,
@@ -45,6 +39,12 @@ const PREVIEW_DIMENSIONS = [
   { label: "MPC", pct: 58 },
   { label: "PTD", pct: 55 },
   { label: "TRE", pct: 40 },
+];
+
+const TRUST_POINTS = [
+  { icon: Sparkles, label: "First run free — no card, no signup" },
+  { icon: ScrollText, label: "Berkus · VC method · DCF · comparables" },
+  { icon: Landmark, label: "Built in Australia, for AU company law" },
 ];
 
 export function HeroSection() {
@@ -75,13 +75,9 @@ export function HeroSection() {
       />
 
       <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center gap-6 text-center">
-        {/* Eyebrow — sets the "free, no signup" expectation up front. */}
         <p className="animate-fade-in-up inline-flex items-center gap-2 rounded-full border border-line-subtle bg-surface-sunken px-3 py-1 text-xs font-medium text-muted">
-          <span
-            aria-hidden
-            className="h-1.5 w-1.5 rounded-full bg-svi-500"
-          />
-          Free analysis · no card, no signup
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-svi-500" />
+          Valuation, scoring and equity for Australian startups
         </p>
 
         <h1
@@ -89,22 +85,22 @@ export function HeroSection() {
           className="animate-fade-in-up font-display max-w-3xl text-balance text-4xl font-bold leading-[1.08] tracking-tight text-primary sm:text-5xl lg:text-[3.5rem]"
           style={{ animationDelay: "40ms" }}
         >
-          AI-powered startup valuation{" "}
-          <span className="text-action">before you pitch.</span>
+          Know what your company is worth{" "}
+          <span className="text-action">before you walk into the room.</span>
         </h1>
 
         <p
           className="animate-fade-in-up max-w-2xl text-balance text-base leading-relaxed text-secondary sm:text-lg"
           style={{ animationDelay: "80ms" }}
         >
-          Paste a pitch deck, a URL, or a plain-text idea. Get an SVI score, a
-          4-method valuation, and an investor-ready data room in 30 seconds.
+          Give it a pitch deck, your website, or three sentences about the
+          idea. You get a score across eight dimensions, a valuation from four
+          methods, and the moves that lift both — starting in about thirty
+          seconds.
         </p>
 
         {/* The primary action. SmartIntake wraps itself in
-            AnimatedSearchFrame, so the rotating orange -> blue -> green ring
-            lives here and is now genuinely visible (see
-            components/ui/animated-search-frame.tsx). */}
+            AnimatedSearchFrame, so the rotating ring lives here. */}
         <div
           className="animate-fade-in-up w-full max-w-3xl"
           style={{ animationDelay: "120ms" }}
@@ -118,39 +114,26 @@ export function HeroSection() {
         <ul
           className="animate-fade-in-up flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted"
           style={{ animationDelay: "160ms" }}
-          aria-label="Trust signals"
+          aria-label="What you get"
         >
-          <li className="inline-flex items-center gap-1.5">
-            <Zap size={14} aria-hidden className="text-action" />
-            30-second analysis
-          </li>
-          <li aria-hidden className="text-line">
-            ·
-          </li>
-          <li className="inline-flex items-center gap-1.5">
-            <ShieldCheck size={14} aria-hidden className="text-action" />
-            AU compliance-first
-          </li>
-          <li aria-hidden className="text-line">
-            ·
-          </li>
-          <li className="inline-flex items-center gap-1.5">
-            <Wallet size={14} aria-hidden className="text-action" />
-            Blockchain equity ready
-          </li>
+          {TRUST_POINTS.map(({ icon: Icon, label }) => (
+            <li key={label} className="inline-flex items-center gap-1.5">
+              <Icon size={14} aria-hidden className="text-action" />
+              {label}
+            </li>
+          ))}
         </ul>
       </div>
 
       {/* Compact proof element — a real anonymised MVP-stage result, so the
-          hero shows the OUTPUT rather than only the input box. Kept to one
-          row so the whole hero stays inside a single viewport. */}
+          hero shows the OUTPUT rather than only the input box. */}
       <div
         className="animate-fade-in-up relative z-10 mx-auto mt-10 w-full max-w-3xl"
         style={{ animationDelay: "200ms" }}
       >
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-line-subtle bg-surface-sunken px-5 py-4 sm:flex-row sm:gap-6 sm:px-6">
           <p className="shrink-0 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
-            Sample output
+            A recent run
           </p>
 
           <div className="flex items-baseline gap-2">
@@ -182,14 +165,14 @@ export function HeroSection() {
           </div>
 
           <p className="text-sm leading-snug text-muted sm:flex-1">
-            MVP-stage AU SaaS, 40 paying pilots.
+            Two founders, 40 paying pilots, no round raised yet.
           </p>
 
           <Link
             href="/reports/samples"
             className="inline-flex shrink-0 items-center gap-1.5 rounded-md text-sm font-medium text-action transition-colors hover:text-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
-            See samples
+            See the report
             <ArrowRight size={14} aria-hidden />
           </Link>
         </div>
