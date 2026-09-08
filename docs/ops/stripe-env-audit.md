@@ -17,6 +17,23 @@ host.
 
 ## Founder tier — required for /signup
 
+> **RESOLVED 2026-09-08.** The three public tiers are provisioned. Three new
+> Products + AUD monthly Prices (`tax_behavior=inclusive`, `metadata.sku` =
+> tier id) were minted in live mode; `web/.env` + `web/.env.runtime` carry the
+> env vars, and `web/supabase/migrations/0119_founder_ladder_stripe_prices.sql`
+> repoints `plans.stripe_price_id`.
+>
+> That migration also fixed a worse latent fault: `plans.stripe_price_id` was
+> not empty but held stale 2025 legacy ids that did **not** match the
+> advertised amounts — `founder_starter` (A$29) pointed at a A$99/mo price and
+> `founder_scale` (A$299) at a A$499/mo price, so the ladder was mis-charging
+> rather than merely returning 503.
+>
+> `STRIPE_PRICE_FOUNDER_ENTERPRISE` stays intentionally unset: enterprise is
+> invoiced offline. `/api/stripe/checkout` now answers custom-priced tiers
+> (`plans.interval = 'custom'`) with `{ ok:false, error:"contact_sales",
+> contactUrl }` at HTTP 200 instead of a misleading "Invalid or free plan" 400.
+
 | Env var                       | Consumer(s)                                                    | Missing consequence                                     |
 |-------------------------------|----------------------------------------------------------------|---------------------------------------------------------|
 | `STRIPE_PRICE_FOUNDER_STARTER` | `/api/auth/register-with-card` + `getPlanCached("founder_starter")` | Signup for the Starter tier returns `plan_not_provisioned`; UI shows plan as "(unavailable)" in the picker. |
