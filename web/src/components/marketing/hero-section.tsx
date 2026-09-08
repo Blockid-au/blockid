@@ -20,7 +20,7 @@
  */
 
 import { useRouter } from "next/navigation";
-import { DollarSign, ShieldCheck, Zap } from "lucide-react";
+import { ShieldCheck, Wallet, Zap } from "lucide-react";
 import { SmartIntake, type SmartIntakeSubmission } from "@/components/analyze/smart-intake";
 
 export function HeroSection() {
@@ -61,24 +61,26 @@ export function HeroSection() {
           className="animate-fade-in-up font-display max-w-2xl text-balance text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl text-primary"
           style={{ animationDelay: "0ms" }}
         >
-          Know what your startup is worth
+          AI-powered startup valuation
           <span className="block text-transparent" style={{
             background: "linear-gradient(135deg, #FF9F0A 0%, #FFB84A 60%, #FFD08A 100%)",
             WebkitBackgroundClip: "text",
             backgroundClip: "text",
             color: "transparent",
           }}>
-            before you pitch it.
+            before you pitch.
           </span>
         </h1>
 
-        {/* Sub-headline — single sentence, names the three input modes. */}
+        {/* Sub-headline — leads with the AI-evaluate promise (70% of the
+            story). Blockchain equity is a one-line ancillary phrase. */}
         <p
           className="animate-fade-in-up max-w-xl text-balance text-base leading-relaxed sm:text-lg"
           style={{ color: "#94A3B8", animationDelay: "80ms" }}
         >
-          Paste your pitch deck, paste your URL, or just describe your
-          idea. Get an SVI score plus AUD valuation in 30 seconds.
+          Paste your pitch deck, URL, or idea. Get an SVI score, 4-method
+          valuation, and investor-ready data room in 30 seconds. Add
+          blockchain equity on subscription.
         </p>
 
         {/* The input. SmartIntake wraps itself in AnimatedSearchFrame,
@@ -110,8 +112,8 @@ export function HeroSection() {
           </li>
           <li aria-hidden>·</li>
           <li className="inline-flex items-center gap-1.5">
-            <DollarSign size={14} aria-hidden style={{ color: "#FF9F0A" }} />
-            No card required
+            <Wallet size={14} aria-hidden style={{ color: "#FF9F0A" }} />
+            Blockchain equity ready
           </li>
         </ul>
       </div>
