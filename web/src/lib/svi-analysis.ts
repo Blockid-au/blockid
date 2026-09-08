@@ -433,15 +433,28 @@ export function extractSignals(
       ? "clear"
       : "vague";
 
-  const revenueBand: SVIExtractedSignals["revenueBand"] = has(
-    "mrr", "arr", "monthly revenue", "revenue", "paying", "$1m", "$500k", "1m arr",
-  )
-    ? has("$1m", "$2m", "1m arr", "scaling", "growth stage")
-      ? "scaling"
-      : has("$100k", "$200k", "$500k", "growing")
-        ? "growing"
-        : "early"
-    : "pre-revenue";
+  // `has` is a plain substring test, so "pre-revenue" contains "revenue" and
+  // used to read as revenue — which pushed a bootstrapped, no-product startup
+  // to stage 4 and priced it in the revenue band. Check the negations first
+  // and short-circuit; an explicit "we are pre-revenue" outranks any keyword
+  // that happens to appear later in the same text.
+  const deniesRevenue = has(
+    "pre-revenue", "pre revenue", "prerevenue",
+    "no revenue", "zero revenue", "without revenue", "little revenue",
+    "not generating revenue", "yet to generate revenue", "no paying customer",
+    "not yet monetis", "not yet monetiz", "no monetis", "no monetiz",
+    "haven't monetis", "havent monetis", "yet to monetis",
+  );
+
+  const revenueBand: SVIExtractedSignals["revenueBand"] = deniesRevenue
+    ? "pre-revenue"
+    : has("mrr", "arr", "monthly revenue", "revenue", "paying", "$1m", "$500k", "1m arr")
+      ? has("$1m", "$2m", "1m arr", "scaling", "growth stage")
+        ? "scaling"
+        : has("$100k", "$200k", "$500k", "growing")
+          ? "growing"
+          : "early"
+      : "pre-revenue";
 
   // Evidence quality: check file types and keywords
   let evidenceLevel: keyof typeof EVIDENCE_CONFIDENCE = "self_declared";

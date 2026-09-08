@@ -26,17 +26,47 @@ describe("classifyInput — truth table", () => {
     expect(r.variant).toBe("url");
   });
 
-  it("short text (<40 tokens) is empty with helper reason", () => {
-    const r = classifyInput({ text: "we build a fintech app", file: null });
+  // The floor is 8 tokens, not 40. A founder describing their business in one
+  // sentence should be able to run it; the old 40-word bar left the CTA stuck
+  // on "Keep typing…" for most genuine attempts.
+  it("a bare fragment is still too thin to classify", () => {
+    const r = classifyInput({ text: "fintech app", file: null });
     expect(r.variant).toBe("empty");
-    expect(r.chipLabel).toMatch(/\d+\/40/);
+    expect(r.chipLabel).toMatch(/\d+ words/);
+    expect(r.reason).toMatch(/tell us a little more/i);
   });
 
-  it("long text (≥40 tokens) is idea variant", () => {
+  it("shows no chip and an inviting CTA when the box is empty", () => {
+    const r = classifyInput({ text: "", file: null });
+    expect(r.variant).toBe("empty");
+    expect(r.chipLabel).toBe("");
+    expect(r.ctaLabel).toMatch(/paste a link, drop a deck, or type an idea/i);
+  });
+
+  it("one descriptive sentence is enough to classify as an idea", () => {
+    const r = classifyInput({
+      text: "We build an AI copilot that drafts letters of advice for Australian solicitors.",
+      file: null,
+    });
+    expect(r.variant).toBe("idea");
+    expect(r.ctaLabel).toMatch(/classify/i);
+  });
+
+  it("nudges for more detail on a short idea, but still lets it run", () => {
+    const r = classifyInput({
+      text: "An AI copilot for Australian solicitors that drafts advice letters.",
+      file: null,
+    });
+    expect(r.variant).toBe("idea");
+    expect(r.chipLabel).toMatch(/more detail sharpens it/i);
+  });
+
+  it("long text is idea variant without the nudge", () => {
     const long = Array.from({ length: 55 }, (_, i) => `word${i}`).join(" ");
     const r = classifyInput({ text: long, file: null });
     expect(r.variant).toBe("idea");
     expect(r.ctaLabel).toMatch(/classify/i);
+    expect(r.chipLabel).not.toMatch(/more detail/i);
   });
 
   it("PDF file (mime) is deck variant regardless of text", () => {

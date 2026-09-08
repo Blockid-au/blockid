@@ -3,7 +3,8 @@
 // SmartIntake — a single omni-box on /analyze that accepts a URL paste,
 // a file drop (PDF / DOCX / PPTX) or free-text idea copy. The client
 // classifier runs debounced 150 ms — URL regex, file MIME sniff, or
-// deterministic /api/svi/stage-classify for text ≥40 tokens. The CTA
+// deterministic /api/svi/stage-classify once the text says what the
+// business is (a sentence or two). The CTA
 // morphs to match the detected variant so the founder always knows
 // what action the button will fire.
 
@@ -30,7 +31,12 @@ const DECK_MIME_ALLOWLIST = [
   "application/vnd.ms-powerpoint",
 ];
 const DECK_EXT_REGEX = /\.(pdf|docx?|pptx?)$/i;
-const MIN_TOKENS_FOR_TEXT_CLASSIFY = 40;
+// A description only has to be enough to say what the business is — a sentence
+// or two does that. The old 40-word floor turned the hero into a writing task
+// and left the CTA reading "Keep typing…" for most real attempts, which is a
+// wall in front of the one action the whole page exists to invite. Anything
+// shorter than this is genuinely too thin to classify (a bare product name).
+const MIN_TOKENS_FOR_TEXT_CLASSIFY = 8;
 const DEBOUNCE_MS = 150;
 
 /** Classifier decision the omnibox produces synchronously (no network). */
@@ -118,16 +124,16 @@ export function classifyInput(input: {
   if (tokens >= MIN_TOKENS_FOR_TEXT_CLASSIFY) {
     return {
       variant: "idea",
-      reason: "Detected idea text (≥40 tokens)",
-      chipLabel: `Idea · ${tokens} words`,
+      reason: `Detected idea text (${tokens} tokens)`,
+      chipLabel: tokens < 25 ? `Idea · ${tokens} words — more detail sharpens it` : `Idea · ${tokens} words`,
       ctaLabel: "Classify my idea",
     };
   }
 
   return {
     variant: "empty",
-    reason: `Need at least ${MIN_TOKENS_FOR_TEXT_CLASSIFY} words to classify an idea (currently ${tokens})`,
-    chipLabel: `${tokens}/${MIN_TOKENS_FOR_TEXT_CLASSIFY} words`,
+    reason: `Tell us a little more — what it does and who it is for (${tokens} words so far)`,
+    chipLabel: tokens === 0 ? "Paste, drop, or type" : `${tokens} words`,
     ctaLabel: "Keep typing…",
   };
 }

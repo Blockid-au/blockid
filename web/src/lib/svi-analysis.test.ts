@@ -372,3 +372,38 @@ describe("constants", () => {
     expect(EVIDENCE_CONFIDENCE.third_party_verified).toBe(1.0);
   });
 });
+
+// ── revenue negation (regression) ───────────────────────────────────────────
+
+describe("extractSignals — revenue negation", () => {
+  // `has` is a substring test, so "pre-revenue" contains "revenue". Before the
+  // fix this read as revenue, pushed detectStage to 4, and priced a
+  // bootstrapped no-product startup in the revenue band — a live case returned
+  // "Series A (Growth), 90% confidence" and A$37.3M pre-money for a
+  // two-founder pre-revenue idea.
+  const denials = [
+    "We are pre-revenue and bootstrapping with our own savings.",
+    "The company is pre revenue with no outside capital raised.",
+    "We have no revenue yet, only a prototype we demo to prospects.",
+    "Zero revenue so far; we are still validating the problem.",
+    "We have not yet monetised the product.",
+  ];
+
+  for (const text of denials) {
+    it(`treats "${text.slice(0, 34)}…" as pre-revenue, not early revenue`, () => {
+      const signals = extractSignals({ rawText: text });
+      expect(signals.revenueBand).toBe("pre-revenue");
+      expect(signals.hasRevenue).toBe(false);
+      expect(detectStage(signals)).toBeLessThan(4);
+    });
+  }
+
+  it("still detects real revenue when it is actually claimed", () => {
+    const signals = extractSignals({
+      rawText: "We have forty paying enterprise customers and A$680,000 ARR.",
+    });
+    expect(signals.revenueBand).not.toBe("pre-revenue");
+    expect(signals.hasRevenue).toBe(true);
+    expect(detectStage(signals)).toBeGreaterThanOrEqual(4);
+  });
+});
