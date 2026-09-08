@@ -83,6 +83,17 @@ describe("analyzeInput — regex fast-path", () => {
     expect(result.inputKind).toBe("existing_company_text");
   });
 
+  it("handles the ambiguous 'we built a fintech app' fixture without erroring", async () => {
+    const result = await analyzeInput({ text: "we built a fintech app" });
+    // Short input + no explicit existing markers → shortText heuristic
+    // classifies as idea_text through the regex path; the LLM ambiguity
+    // path is exercised by longer fixtures. What matters is we return
+    // one of the four canonical kinds with non-zero confidence.
+    expect(["idea_text", "existing_company_text"]).toContain(result.inputKind);
+    expect(result.confidence).toBeGreaterThan(0);
+    expect(["regex", "llm", "hybrid"]).toContain(result.classifierMode);
+  });
+
   it("returns idea_text with empty rawText when no input given", async () => {
     const result = await analyzeInput({});
     expect(result.inputKind).toBe("idea_text");
