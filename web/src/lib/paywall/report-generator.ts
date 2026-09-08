@@ -323,6 +323,10 @@ export async function generateTrustReportForOrder(
   const locale = localeForOrderMetadata(order.metadata);
 
   // ── 4. Orchestrate ───────────────────────────────────────────────────
+  // agentId scoped to this paid order → each order's report gets its own
+  // per-agent semaphore, so many buyers can generate reports in parallel
+  // instead of queueing behind a shared "paywall-report" bucket.
+  const paywallAgentId = `paywall:${order.id ?? accountId}`;
   const aiCaller = async (
     systemPrompt: string,
     userPrompt: string,
@@ -333,6 +337,7 @@ export async function generateTrustReportForOrder(
       user: userPrompt,
       maxTokens,
       timeoutMs: 120_000,
+      agentId: paywallAgentId,
     });
     return result.text;
   };

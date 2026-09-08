@@ -212,6 +212,11 @@ export async function POST(request: Request) {
   }
 
   // ── 7. Orchestrate report ───────────────────────────────────────────────
+  // agentId scoped to this account+project → each SVI report gets its own
+  // per-agent semaphore slot, so N concurrent reports run in parallel instead
+  // of serialising through a shared 5-slot bucket. Cross-profile parallelism
+  // is what makes the dispatcher's 60-slot global cap actually usable.
+  const svAgentId = `svi:${account.id}${projectId ? `:${projectId}` : ""}`;
   const aiCaller = async (
     systemPrompt: string,
     userPrompt: string,
@@ -222,6 +227,7 @@ export async function POST(request: Request) {
       user: userPrompt,
       maxTokens,
       timeoutMs: 120_000,
+      agentId: svAgentId,
     });
     return result.text;
   };

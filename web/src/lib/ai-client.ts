@@ -1300,10 +1300,11 @@ export function pickBestProvider(candidates: Provider[]): Provider | null {
 
 // ── L3. Global concurrency semaphore ─────────────────────────────────────
 // Chosen from sum(RPM ceilings) with a safety divisor. Sum ~= 1550 RPM;
-// at 4s avg call → ~103 concurrent sustainable. Default 60 gives headroom
-// for token latency spikes without leaving free-tier throughput on the table.
-const MAX_CONCURRENT_AI_CALLS = Number(process.env.AI_MAX_CONCURRENT ?? 60);
-const MAX_QUEUED_AI_CALLS = Number(process.env.AI_MAX_QUEUED ?? 200);
+// at 5s avg call → ~130 concurrent sustainable. Default 120 leaves ~15%
+// buffer for latency spikes and is the "burst" sweet spot: ~90 profiles/min
+// (≈5,400/hr) without saturating Groq's 850 RPM headroom.
+const MAX_CONCURRENT_AI_CALLS = Number(process.env.AI_MAX_CONCURRENT ?? 120);
+const MAX_QUEUED_AI_CALLS = Number(process.env.AI_MAX_QUEUED ?? 400);
 
 let globalRunning = 0;
 const globalQueue: Array<() => void> = [];
@@ -1327,7 +1328,10 @@ function releaseGlobal(): void {
 // ── L4. Per-agent semaphore ──────────────────────────────────────────────
 // Each named caller (agentId) has its own concurrency cap. Prevents a
 // runaway multi-prompt agent from starving other agents / user traffic.
-const MAX_PER_AGENT = Number(process.env.AI_MAX_PER_AGENT ?? 5);
+// 8 slots × 15 concurrent agents = 120 (matches L3 ceiling); a single agent
+// with 13 SVI criteria completes in 2 rounds (⌈13/8⌉) ≈ 10s instead of 3
+// rounds (15s) at the previous 5.
+const MAX_PER_AGENT = Number(process.env.AI_MAX_PER_AGENT ?? 8);
 const agentRunning = new Map<string, number>();
 const agentQueues = new Map<string, Array<() => void>>();
 
