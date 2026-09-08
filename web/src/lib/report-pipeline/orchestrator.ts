@@ -28,6 +28,8 @@ import {
   buildEvidenceCatalogue,
   type DispatchOptions,
 } from "./agent-dispatcher";
+import { selectAgentsForContext } from "./agent-selector";
+import type { IntakeContext } from "@/lib/intake/detect-context";
 import { assembleReport } from "./section-assembler";
 import { buildAgentPrompt } from "./agent-prompts";
 import { auditSections, type AuditableSection } from "./llm-auditor";
@@ -60,6 +62,13 @@ export interface OrchestratorInput {
    * with their (free) deterministic verdict only.
    */
   auditBudgetOk?: () => boolean;
+  /**
+   * Optional intake context. When provided and `DYNAMIC_WAVES !== "false"`,
+   * the orchestrator swaps the static WAVE_1/2/3 for phase-tuned waves via
+   * `selectAgentsForContext`. Kept optional so every existing caller keeps
+   * the legacy behaviour without a code change.
+   */
+  context?: IntakeContext;
 }
 
 // ── Orchestrate ─────────────────────────────────────────────────────────────
@@ -109,17 +118,26 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     ...(input.dispatchOptions ?? {}),
   };
 
+  // Resolve which waves to run — dynamic (context-aware) vs static (legacy).
+  const dynamicEnabled = process.env.DYNAMIC_WAVES !== "false";
+  const [wave1, wave2, wave3] =
+    dynamicEnabled && input.context
+      ? selectAgentsForContext(input.context)
+      : [WAVE_1, WAVE_2, WAVE_3];
+
   // Wave 1: Independent analyses
   notify("wave1", 15);
-  await dispatchWave(WAVE_1, context, input.tier, input.callAI, dispatchOpts);
+  await dispatchWave(wave1, context, input.tier, input.callAI, dispatchOpts);
 
   // Wave 2: Depends on Wave 1
   notify("wave2", 45);
-  await dispatchWave(WAVE_2, context, input.tier, input.callAI, dispatchOpts);
+  await dispatchWave(wave2, context, input.tier, input.callAI, dispatchOpts);
 
-  // Wave 3: Depends on Wave 1 + 2
-  notify("wave3", 75);
-  await dispatchWave(WAVE_3, context, input.tier, input.callAI, dispatchOpts);
+  // Wave 3: Depends on Wave 1 + 2 (may be empty when evidenceCompleteness < 0.5)
+  if (wave3.length > 0) {
+    notify("wave3", 75);
+    await dispatchWave(wave3, context, input.tier, input.callAI, dispatchOpts);
+  }
 
   // ── Phase 3: SYNTHESIZE ─────────────────────────────────────────────
   notify("synthesizing", 85);

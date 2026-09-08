@@ -347,9 +347,14 @@ export function buildAgentPrompt(
   agentRole: AgentRole,
   context: ReportContext,
   criterionKey?: string,
+  skillAddon?: string,
 ): string {
   const agent = AGENT_PROMPTS[agentRole];
   const stageContext = getStageContext(context.stage);
+  const addonBlock = skillAddon && skillAddon.trim().length > 0
+    ? `\n\n## Phase-Tuned Skill Guidance\n${skillAddon.trim()}`
+    : "";
+  void criterionKey; // criterion is threaded into the user prompt, not the system prompt
 
   return `${AU_CONTEXT}
 
@@ -375,7 +380,7 @@ ${agent.outputGuidance}
 - End with ### Recommended Actions (numbered 1-5)
 - Final line: <!-- SCORE: XX -->
 - Be specific, data-driven, and actionable
-- Total output: 500-1500 words depending on available evidence`;
+- Total output: 500-1500 words depending on available evidence${addonBlock}`;
 }
 
 // ── Stage-Aware Context ─────────────────────────────────────────────────────

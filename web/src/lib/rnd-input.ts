@@ -1,4 +1,9 @@
 import "server-only";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import { extractFileText } from "@/lib/guest-analysis/runner";
 
 export type InputType = "idea" | "url" | "document";
 
@@ -6,10 +11,34 @@ const URL_REGEX = /^https?:\/\//i;
 const DOMAIN_REGEX = /^(www\.)?[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}/;
 
 export function detectInputType(rawText: string, fileName?: string): InputType {
-  if (fileName && /\.(pdf|docx?|xlsx?)$/i.test(fileName)) return "document";
+  if (fileName && /\.(pdf|docx?|xlsx?|pptx?)$/i.test(fileName)) return "document";
   const trimmed = rawText.trim();
   if (URL_REGEX.test(trimmed) || DOMAIN_REGEX.test(trimmed)) return "url";
   return "idea";
+}
+
+/**
+ * Reusable buffer → text extractor for pitch decks and other founder
+ * artefacts. Writes to a scratch tmp file so we can reuse the existing
+ * on-disk `extractFileText` helper from guest-analysis/runner.
+ *
+ * PPTX is not handled here — call `splitDeckToSections` upstream after
+ * `web/src/lib/intake/analyze-input.ts` extracts slides via
+ * `node-pptx-parser`.
+ */
+export async function extractDeckText(
+  buffer: Buffer,
+  filename: string,
+): Promise<string> {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60) || "deck.bin";
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "deck-"));
+  const tmpPath = path.join(tmpDir, safe);
+  try {
+    await fs.writeFile(tmpPath, buffer);
+    return await extractFileText(tmpPath, filename);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+  }
 }
 
 // ─── Deep Tech Audit Types ──────────────────────────────────────────────────
@@ -205,6 +234,91 @@ export async function scrapeUrl(url: string): Promise<{ title: string; descripti
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// ─── BFS site crawl (depth 1) ───────────────────────────────────────────────
+//
+// Extends the single-URL scraper with a shallow same-host BFS. Respects the
+// SSRF allow-list because every fetch flows back through `scrapeUrl`, which
+// runs `isSafeUrl` before touching the network. Cap: 8 pages total.
+// Priority paths surface first so the intake pipeline can look at /about,
+// /pricing, /team, /product without needing a homepage link.
+
+const BFS_MAX_PAGES = 8;
+const BFS_PRIORITY_PATHS = ["/about", "/pricing", "/team", "/product", "/customers", "/contact"];
+
+export interface CrawledPage {
+  url: string;
+  title: string;
+  description: string;
+  text: string;
+  techHints: string[];
+}
+
+function sameHostAnchors(html: string, base: URL): string[] {
+  const out = new Set<string>();
+  const re = /<a\s+[^>]*href=["']([^"'#]+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) != null) {
+    try {
+      const u = new URL(m[1], base);
+      if (u.hostname !== base.hostname) continue;
+      if (!/^https?:$/.test(u.protocol)) continue;
+      u.hash = "";
+      out.add(u.toString().replace(/\/$/, ""));
+    } catch {
+      // ignore
+    }
+    if (out.size >= 60) break;
+  }
+  return Array.from(out);
+}
+
+function orderByPriority(urls: string[]): string[] {
+  const p: string[] = [];
+  const r: string[] = [];
+  for (const u of urls) {
+    if (BFS_PRIORITY_PATHS.some(pth => u.toLowerCase().includes(pth))) p.push(u);
+    else r.push(u);
+  }
+  return [...p, ...r];
+}
+
+/**
+ * BFS depth-1 crawl of `startUrl`. Fetches the root once for anchor
+ * discovery, then scrapes up to `BFS_MAX_PAGES - 1` same-host children in
+ * priority order. All network calls flow through `scrapeUrl` (SSRF-guarded).
+ */
+export async function scrapeSiteBFS(startUrl: string): Promise<CrawledPage[]> {
+  let full = startUrl.trim();
+  if (!full.startsWith("http")) full = `https://${full}`;
+
+  const base = new URL(full);
+  const root = await scrapeUrl(full);
+  const pages: CrawledPage[] = [{ url: full, ...root }];
+
+  let rootHtml = "";
+  try {
+    const rootRes = await fetch(full, {
+      headers: { "User-Agent": "BlockID-Bot/1.0 (+https://blockid.au)" },
+      signal: AbortSignal.timeout(8000),
+    });
+    rootHtml = await rootRes.text();
+  } catch {
+    return pages;
+  }
+
+  const children = orderByPriority(sameHostAnchors(rootHtml, base)).slice(0, BFS_MAX_PAGES - 1);
+  for (const child of children) {
+    try {
+      const scraped = await scrapeUrl(child);
+      pages.push({ url: child, ...scraped });
+    } catch {
+      // Skip failed children — a partial crawl is more useful than aborting.
+    }
+    if (pages.length >= BFS_MAX_PAGES) break;
+  }
+  return pages;
 }
 
 // ─── Deep Tech Audit ────────────────────────────────────────────────────────
