@@ -106,9 +106,12 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
         {children}
       </main>
 
+      {/* Intentional dark footer — scope with data-theme so the dark
+          palette here doesn't leak into siblings via inherited vars. */}
       <footer
+        data-theme="dark"
         className={
-          "border-t border-white/5 bg-[#070B17] text-white/60 " +
+          "border-t border-white/5 bg-[color:var(--ds-surface-sunken)] text-white/60 " +
           (isLanding ? "py-10" : "py-6")
         }
       >
