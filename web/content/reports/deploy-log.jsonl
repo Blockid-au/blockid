@@ -9356,3 +9356,4 @@
 {"ts":"2026-09-08T14:29:30.839Z","event":"github-push-master","detail":"Blockid-au: feat(analyses): carry a real claim count through the post-auth redirect (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T14:30:12.240Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): saved-run panel with permalink, copy, and honest guest prompt (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T14:30:34.513Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): surface the saved-run permalink after results (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T14:32:36.596Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): /analyze/[id] renders a saved run, 404 stays indistinguishable (1 commits)","source":"github-webhook"}
