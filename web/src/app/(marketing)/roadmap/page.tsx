@@ -137,7 +137,7 @@ const CURRENT_PLATFORM_PHASE = 5;
 // roadmap sync tick.
 // ---------------------------------------------------------------------------
 
-const SNAPSHOT_DATE = "2026-07-31";
+const SNAPSHOT_DATE = "2026-09-08";
 
 type ShippedItem = {
   id: string;
@@ -147,6 +147,20 @@ type ShippedItem = {
 };
 
 const RECENTLY_LANDED: ShippedItem[] = [
+  {
+    id: "context-aware-intake-v1",
+    title: "Context-aware intake v1 — one door, three inputs",
+    detail:
+      "Unified /analyze accepts pitch deck (PDF/DOCX/PPTX + OCR), website URL, or free-text idea in a single field. Haiku 4.5 classifier detects the input type, a BFS depth-1 crawler walks up to 8 same-host pages, and a section splitter cuts decks into problem/market/team/traction/ask. Dispatch is dynamic — the right C-Level agents fire for the detected stage (idea / MVP / revenue / scale) instead of the old fixed 13-criteria bundle. Cost preview reflects the plan before commit.",
+    ticket: "v3.10.0 · Block 1-3",
+  },
+  {
+    id: "light-first-design-system-rev2",
+    title: "Light-first design system rev.2 — WCAG AA across every surface",
+    detail:
+      "Token set flipped from dark-first to light-first (bg.base #FFFFFF, text.primary #0B0F1A, svi.500 #FF9F0A brand accent). Dark mode is opt-in via prefers-color-scheme; admin pinned to light for screenshot parity. AA contrast across marketing, workspace, admin, reports; AAA on body ≥14px. Deprecated tokens documented in docs/design-system.md rev.2.",
+    ticket: "v3.10.0 · Block 0",
+  },
   {
     id: "pitchdeck-analyzer-wave-11-18",
     title: "Pitchdeck valuation flow — upload → coverage → analysis → dashboard (Waves 11-18)",
@@ -247,6 +261,34 @@ type UpcomingItem = {
 };
 
 const IN_PROGRESS: UpcomingItem[] = [
+  {
+    id: "playwright-headless-crawler-v2",
+    title: "Playwright headless crawler v2",
+    detail:
+      "Upgrade the intake crawler from fetch+regex to a Playwright-driven headless browser so SPA sites, dynamic pricing tables, and JS-rendered team pages produce the same evidence quality as static marketing sites. Depth stays capped at 1; per-host budget and robots.txt honoured.",
+    status: "planned",
+  },
+  {
+    id: "ocr-self-service-upsell",
+    title: "OCR self-service upsell",
+    detail:
+      "Break out the PDF-vision OCR path from the base analyze quote into a founder-visible +2-credit chip with a preview thumbnail before commit — no surprise bills, no forced OCR when the deck already has a text layer.",
+    status: "planned",
+  },
+  {
+    id: "agent-plan-ab-idea-variant",
+    title: "Agent-plan A/B (idea variant)",
+    detail:
+      "Test two dispatch manifests for pure-idea inputs: minimal 4-agent (CEO/CMO/CPO/CFO) vs. balanced 7-agent. Compare completion rate, SVI-delta after 30 days, and credit-per-insight. Winner becomes the default idea-stage plan.",
+    status: "planned",
+  },
+  {
+    id: "public-deck-template-library",
+    title: "Public deck template library",
+    detail:
+      "Curated pitch-deck templates (pre-seed AU, seed SaaS, marketplace, deep-tech, healthtech) hosted at /decks/templates with one-click load-into-/analyze so founders can benchmark their draft against a reference deck the classifier already understands.",
+    status: "planned",
+  },
   {
     id: "reseller-promo",
     title: "Reseller promotion codes (Agent K) — IFV / DVL prefixes",
