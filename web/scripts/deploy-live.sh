@@ -199,7 +199,7 @@ if [ "${1:-}" = "--rollback" ]; then
     fuser -k $PROD_PORT/tcp 2>/dev/null || true
     sleep 1
     cd "$PREV_DIR"
-    nohup node server.js > "$LOG" 2>&1 9>&- &
+    nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
     echo $! > "$PID_FILE"
     # current and previous swap places
     CUR_BEFORE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
@@ -224,7 +224,7 @@ if [ "${1:-}" = "--rollback" ]; then
       fuser -k $PROD_PORT/tcp 2>/dev/null || true
       sleep 1
       cd "$SNAP_DIR"
-      nohup node server.js > "$LOG" 2>&1 9>&- &
+      nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
       echo $! > "$PID_FILE"
       sleep 3
       HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
@@ -248,7 +248,7 @@ if [ "${1:-}" = "--rollback" ]; then
   fuser -k $PROD_PORT/tcp 2>/dev/null || true
   sleep 1
   cd "$STANDALONE"
-  nohup node server.js > "$LOG" 2>&1 9>&- &
+  nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
   echo $! > "$PID_FILE"
   sleep 3
   HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
@@ -674,7 +674,7 @@ fuser -k $TEMP_PORT/tcp 2>/dev/null || true
 sleep 1
 
 cd "$RELEASE_DIR"
-nohup node server.js > "$LOG_NEW" 2>&1 9>&- &
+nohup node server.js > "$LOG_NEW" 2>&1 9>&- 200>&- &
 NEW_PID=$!
 
 # Wait for healthy (max 15s)
@@ -825,7 +825,7 @@ sleep 2
 # Start new on production port — from the immutable release dir.
 export PORT=$PROD_PORT
 cd "$RELEASE_DIR"
-nohup node server.js > "$LOG" 2>&1 9>&- &
+nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
 echo $! > "$PID_FILE"
 # Mark this release as the live one, then prune stale releases.
 ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
