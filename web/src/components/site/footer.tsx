@@ -141,8 +141,17 @@ export function Footer() {
             </p>
           </div>
           <div className="mt-6 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-slate-400 md:flex-row md:items-center md:justify-between">
-            <p>
-              &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>
+                &copy; {new Date().getFullYear()} Auschain Pty Ltd (ACN 659 615 111). Sydney, NSW, Australia.
+              </span>
+              <Link
+                href="/changelog"
+                className="inline-flex items-center rounded-full border border-ink-700 bg-ink-900/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-brand-300 hover:border-brand-500/60 hover:text-brand-200"
+                aria-label="View changelog for release v3.10.0"
+              >
+                v3.10.0
+              </Link>
             </p>
             <p>
               Not financial advice. BlockID is a software platform — engage a
