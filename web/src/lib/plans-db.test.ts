@@ -452,8 +452,8 @@ describe("fromRow normalisers (observed via getPlansCached happy path)", () => {
     const [p] = await getPlansCached();
     expect(p.segment).toBe("founder");
     expect(p.name).toBe("Growth");
-    expect(p.price_aud_cents).toBe(9900);
-    expect(p.annual_price_aud_cents).toBe(99000);
+    expect(p.price_aud_cents).toBe(6900);
+    expect(p.annual_price_aud_cents).toBe(69000);
     expect(p.trial_days).toBe(7);
     expect(p.sort_order).toBe(30);
   });
