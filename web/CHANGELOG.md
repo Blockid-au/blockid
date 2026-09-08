@@ -1,5 +1,28 @@
 # BlockID.au Changelog
 
+## 2026-09-08 — v3.10.0: Context-aware analysis + light-first design system
+
+Release id `context-aware-intake-v1` · approved plan `h-y-ph-n-t-ch-th-m-whimsical-kahn` (Block 3 — DOCS).
+
+Founders can now drop *any* input — a pitch deck, a live website, or a free-text idea — into a single door and the platform reads it in real time. No more picking the "right" upload page. The system detects what you sent, extracts what it needs, decides which C-Level agents should weigh in for your stage, and only then quotes credits.
+
+### Features
+
+- **feat(intake — unified `/analyze`)** Single intake accepts pitch deck (PDF / DOCX / PPTX with OCR fallback), website URL, and free-text idea in one input. Legacy `/score` and `/one-click-report` funnels redirect here.
+- **feat(intake — LLM classifier)** Haiku 4.5-powered input classifier auto-detects `pitch_deck | website | idea_text | existing_company_text` with a confidence score, no user-facing "what am I?" prompt.
+- **feat(dispatch — dynamic agent selection)** The right C-Level agents fire based on the detected startup stage (idea / MVP / revenue / scale) instead of blindly running all 13. Each stage carries an explicit agent manifest so the plan is inspectable before commit.
+- **feat(crawler — BFS depth 1)** Multi-page site crawl (up to 8 URLs / same host, `/about /pricing /team /product` prioritised) with tech-stack detection (framework, analytics, payment rails).
+- **feat(deck — section splitter)** Pitch decks are split into problem / market / team / traction / ask sections; each section dispatches to the agent most qualified to critique it.
+- **feat(ui — live "reading" surface)** Three purpose-built live views — deck reader, site visitor, idea lab — show which page/slide/signal is being processed right now, so founders see the platform *earn* every credit.
+- **feat(design-system — light-first, WCAG AA)** App-wide light-first token set (`bg.base #FFFFFF`, `text.primary #0B0F1A`, `svi.500 #FF9F0A`). Dark mode is opt-in via `prefers-color-scheme` (admin surfaces pinned to light for screenshot parity). AA contrast enforced across marketing, admin, workspace, reports; AAA on body ≥14px.
+- **feat(pricing — transparent cost preview)** The credit quote shown before "Run analysis" reflects the *dynamic* agent plan, not the old fixed 13-criteria bundle. Per-agent line items visible; skip / add agents before commit.
+
+### Notes for existing users
+
+- Existing pitch deck uploads land unchanged — no re-upload required.
+- Playwright headless crawler ships in v3.11 (deferred to Block 4).
+- OCR is currently included at cost; the self-service OCR upsell ships next release.
+
 ## 2026-09-07 — v3.9.23: Unify messaging + simplify pricing + close feature drift
 
 Release id `JctZ0PfqkXowL6mTrcEs3` · git `8ed44c24a` · approved plan `h-y-review-t-on-b-foamy-pixel`.
