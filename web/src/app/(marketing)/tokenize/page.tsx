@@ -59,11 +59,14 @@ const FEATURES: Feature[] = [
 ];
 
 function WorkflowDiagram() {
-  // Inline SVG — no external asset, retint via currentColor / stroke tokens
-  // so it works in both themes. Reduced-motion respected (no animation).
+  // Inline SVG — no external asset. Every fill/stroke is a Tailwind
+  // utility over the semantic ramp (fill-action, fill-primary,
+  // fill-tertiary, stroke-warn), so the diagram retints with the theme
+  // instead of baking the old dark palette in as raw hex. Reduced-motion
+  // respected (no animation).
   return (
     <figure aria-labelledby="tokenize-workflow-caption" className="mt-6">
-      <div className="overflow-x-auto rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6">
+      <div className="overflow-x-auto rounded-2xl border border-line-subtle bg-surface-sunken p-6">
         <svg
           viewBox="0 0 720 220"
           role="img"
@@ -75,53 +78,53 @@ function WorkflowDiagram() {
           </title>
           {/* Off-chain lane */}
           <g>
-            <rect x="20" y="30" width="200" height="60" rx="12" fill="rgba(0,212,255,0.10)" stroke="#00D4FF" strokeWidth="1.5" />
-            <text x="120" y="55" textAnchor="middle" fill="#e2e8f0" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">Auschain PTY LTD</text>
-            <text x="120" y="75" textAnchor="middle" fill="#94a3b8" fontFamily="Inter, sans-serif" fontSize="11">Legal share issue (ASIC)</text>
+            <rect x="20" y="30" width="200" height="60" rx="12" className="fill-action/10 stroke-action" strokeWidth="1.5" />
+            <text x="120" y="55" textAnchor="middle" className="fill-primary" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">Auschain PTY LTD</text>
+            <text x="120" y="75" textAnchor="middle" className="fill-tertiary" fontFamily="Inter, sans-serif" fontSize="11">Legal share issue (ASIC)</text>
           </g>
           <g>
-            <rect x="260" y="30" width="200" height="60" rx="12" fill="rgba(0,212,255,0.10)" stroke="#00D4FF" strokeWidth="1.5" />
-            <text x="360" y="55" textAnchor="middle" fill="#e2e8f0" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">Share Register</text>
-            <text x="360" y="75" textAnchor="middle" fill="#94a3b8" fontFamily="Inter, sans-serif" fontSize="11">Source of truth (AU law)</text>
+            <rect x="260" y="30" width="200" height="60" rx="12" className="fill-action/10 stroke-action" strokeWidth="1.5" />
+            <text x="360" y="55" textAnchor="middle" className="fill-primary" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">Share Register</text>
+            <text x="360" y="75" textAnchor="middle" className="fill-tertiary" fontFamily="Inter, sans-serif" fontSize="11">Source of truth (AU law)</text>
           </g>
           <g>
-            <rect x="500" y="30" width="200" height="60" rx="12" fill="rgba(0,212,255,0.10)" stroke="#00D4FF" strokeWidth="1.5" />
-            <text x="600" y="55" textAnchor="middle" fill="#e2e8f0" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">Cap Table</text>
-            <text x="600" y="75" textAnchor="middle" fill="#94a3b8" fontFamily="Inter, sans-serif" fontSize="11">Founder-facing UI</text>
+            <rect x="500" y="30" width="200" height="60" rx="12" className="fill-action/10 stroke-action" strokeWidth="1.5" />
+            <text x="600" y="55" textAnchor="middle" className="fill-primary" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">Cap Table</text>
+            <text x="600" y="75" textAnchor="middle" className="fill-tertiary" fontFamily="Inter, sans-serif" fontSize="11">Founder-facing UI</text>
           </g>
           {/* Vertical mirror arrows */}
-          <g stroke="#FF9F0A" strokeWidth="1.5" fill="none">
+          <g className="stroke-warn" strokeWidth="1.5" fill="none">
             <path d="M120 90 L120 130" markerEnd="url(#arrow)" />
             <path d="M360 90 L360 130" markerEnd="url(#arrow)" />
             <path d="M600 90 L600 130" markerEnd="url(#arrow)" />
           </g>
           <defs>
             <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF9F0A" />
+              <path d="M 0 0 L 10 5 L 0 10 z" className="fill-warn" />
             </marker>
           </defs>
-          <text x="360" y="118" textAnchor="middle" fill="#FF9F0A" fontFamily="IBM Plex Mono, monospace" fontSize="10" letterSpacing="0.14em">MIRROR (OPTIONAL, ON PAID PLAN)</text>
+          <text x="360" y="118" textAnchor="middle" className="fill-warn" fontFamily="IBM Plex Mono, monospace" fontSize="10" letterSpacing="0.14em">MIRROR (OPTIONAL, ON PAID PLAN)</text>
           {/* On-chain lane */}
           <g>
-            <rect x="20" y="140" width="200" height="60" rx="12" fill="rgba(255,159,10,0.10)" stroke="#FF9F0A" strokeWidth="1.5" />
-            <text x="120" y="165" textAnchor="middle" fill="#e2e8f0" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">ERC-20 shares</text>
-            <text x="120" y="185" textAnchor="middle" fill="#94a3b8" fontFamily="Inter, sans-serif" fontSize="11">Private EVM · chainId 420</text>
+            <rect x="20" y="140" width="200" height="60" rx="12" className="fill-warn/10 stroke-warn" strokeWidth="1.5" />
+            <text x="120" y="165" textAnchor="middle" className="fill-primary" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">ERC-20 shares</text>
+            <text x="120" y="185" textAnchor="middle" className="fill-tertiary" fontFamily="Inter, sans-serif" fontSize="11">Private EVM · chainId 420</text>
           </g>
           <g>
-            <rect x="260" y="140" width="200" height="60" rx="12" fill="rgba(255,159,10,0.10)" stroke="#FF9F0A" strokeWidth="1.5" />
-            <text x="360" y="165" textAnchor="middle" fill="#e2e8f0" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">Vesting contract</text>
-            <text x="360" y="185" textAnchor="middle" fill="#94a3b8" fontFamily="Inter, sans-serif" fontSize="11">Cliff + monthly release</text>
+            <rect x="260" y="140" width="200" height="60" rx="12" className="fill-warn/10 stroke-warn" strokeWidth="1.5" />
+            <text x="360" y="165" textAnchor="middle" className="fill-primary" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">Vesting contract</text>
+            <text x="360" y="185" textAnchor="middle" className="fill-tertiary" fontFamily="Inter, sans-serif" fontSize="11">Cliff + monthly release</text>
           </g>
           <g>
-            <rect x="500" y="140" width="200" height="60" rx="12" fill="rgba(255,159,10,0.10)" stroke="#FF9F0A" strokeWidth="1.5" />
-            <text x="600" y="165" textAnchor="middle" fill="#e2e8f0" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">MetaMask view</text>
-            <text x="600" y="185" textAnchor="middle" fill="#94a3b8" fontFamily="Inter, sans-serif" fontSize="11">Founder wallet balance</text>
+            <rect x="500" y="140" width="200" height="60" rx="12" className="fill-warn/10 stroke-warn" strokeWidth="1.5" />
+            <text x="600" y="165" textAnchor="middle" className="fill-primary" fontFamily="Inter, sans-serif" fontSize="12" fontWeight="600">MetaMask view</text>
+            <text x="600" y="185" textAnchor="middle" className="fill-tertiary" fontFamily="Inter, sans-serif" fontSize="11">Founder wallet balance</text>
           </g>
         </svg>
       </div>
       <figcaption
         id="tokenize-workflow-caption"
-        className="mt-3 text-center text-xs text-[var(--fintech-ink-muted)]"
+        className="mt-3 text-center text-xs text-secondary"
       >
         Off-chain first. On-chain mirrors the legal register — never overrides it.
       </figcaption>
@@ -137,7 +140,7 @@ export default function TokenizePage() {
         title={
           <>
             Cổ phần startup trên private EVM
-            <span className="block text-[var(--fintech-accent)]">
+            <span className="block text-action">
               quản trị on-chain, compliance off-chain
             </span>
           </>
@@ -155,19 +158,18 @@ export default function TokenizePage() {
           {FEATURES.map(({ title, body, Icon }) => (
             <li
               key={title}
-              className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6"
+              className="rounded-2xl border border-line-subtle bg-surface-sunken p-6"
             >
               <div
                 aria-hidden
-                className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl"
-                style={{ backgroundColor: "rgba(0,212,255,0.12)", color: "#00D4FF" }}
+                className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-action/10 text-action"
               >
                 <Icon size={18} />
               </div>
-              <h3 className="font-display text-lg font-semibold text-[var(--fintech-ink)]">
+              <h3 className="font-display text-lg font-semibold text-primary">
                 {title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+              <p className="mt-2 text-sm leading-relaxed text-secondary">
                 {body}
               </p>
             </li>
@@ -179,7 +181,7 @@ export default function TokenizePage() {
         kicker="How the mirror works"
         title="Off-chain-first workflow"
       >
-        <p className="max-w-2xl text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+        <p className="max-w-2xl text-sm leading-relaxed text-secondary">
           Auschain PTY LTD issues shares under the Corporations Act — the
           legal share register in the founder-facing cap table is the source
           of truth. On a paid plan, every register event mirrors onto the
@@ -193,16 +195,15 @@ export default function TokenizePage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
           <div
             aria-hidden
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-            style={{ backgroundColor: "rgba(255,159,10,0.12)", color: "#FF9F0A" }}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warn/10 text-warn"
           >
             <Check size={18} />
           </div>
           <div>
-            <h3 className="font-display text-xl font-semibold text-[var(--fintech-ink)]">
+            <h3 className="font-display text-xl font-semibold text-primary">
               Blockchain layer is optional
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+            <p className="mt-2 text-sm leading-relaxed text-secondary">
               Off-chain equity is the source of truth per AU corporate law.
               You can run BlockID.au forever with tokenization switched off,
               turn it on for a subset of grants, or mirror the whole register
@@ -212,14 +213,14 @@ export default function TokenizePage() {
             <div className="mt-4 flex flex-wrap gap-4">
               <Link
                 href="/pricing"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fintech-accent)] hover:underline"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-action hover:underline"
               >
                 See pricing
                 <ArrowRight size={14} aria-hidden />
               </Link>
               <Link
                 href="/tools/cap-table"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fintech-ink)] hover:underline"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
               >
                 Try the cap-table demo
                 <ArrowRight size={14} aria-hidden />

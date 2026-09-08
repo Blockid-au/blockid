@@ -110,42 +110,42 @@ export default async function AgentProfilePage({
         <div className="grid gap-8 lg:grid-cols-[1fr_260px]">
           {/* Main column */}
           <article className="min-w-0 space-y-8">
-            <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 sm:p-8">
-              <h2 className="text-lg font-semibold text-[var(--fintech-ink)]">
+            <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-6 sm:p-8">
+              <h2 className="text-lg font-semibold text-primary">
                 Mandate
               </h2>
-              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-secondary">
                 {detail.description}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 sm:p-8">
+            <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-6 sm:p-8">
               <div className="mb-4 flex items-baseline justify-between">
-                <h2 className="text-lg font-semibold text-[var(--fintech-ink)]">
+                <h2 className="text-lg font-semibold text-primary">
                   Recent activity
                 </h2>
-                <span className="font-mono text-xs tabular-nums text-[var(--fintech-ink-muted)]">
+                <span className="font-mono text-xs tabular-nums text-secondary">
                   {detail.last30d_count} last 30d
                 </span>
               </div>
               {detail.activity.length === 0 ? (
-                <p className="text-sm text-[var(--fintech-ink-muted)]">
+                <p className="text-sm text-secondary">
                   No activity in the last 30 days.
                 </p>
               ) : (
-                <ul className="divide-y divide-[var(--fintech-border)]">
+                <ul className="divide-y divide-line-subtle">
                   {detail.activity.map((row, i) => (
                     <li
                       key={`${row.date}-${i}`}
                       className="flex flex-wrap items-baseline gap-3 py-3 text-sm"
                     >
-                      <span className="font-mono text-xs tabular-nums text-[var(--fintech-ink-muted)]">
+                      <span className="font-mono text-xs tabular-nums text-secondary">
                         {row.date}
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-[var(--fintech-ink)]">
+                      <span className="min-w-0 flex-1 truncate text-primary">
                         {row.title}
                       </span>
-                      <span className="font-mono text-[10px] text-[var(--fintech-ink-muted)]">
+                      <span className="font-mono text-[10px] text-secondary">
                         {row.file}
                       </span>
                     </li>
@@ -157,18 +157,18 @@ export default async function AgentProfilePage({
 
           {/* Sidebar */}
           <aside className="space-y-6">
-            <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+            <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-action">
                 KPIs owned
               </p>
               <ul className="mt-3 space-y-2">
                 {detail.kpis.length === 0 ? (
-                  <li className="text-xs text-[var(--fintech-ink-muted)]">
+                  <li className="text-xs text-secondary">
                     None declared.
                   </li>
                 ) : (
                   detail.kpis.map((k) => (
-                    <li key={k} className="text-sm text-[var(--fintech-ink)]">
+                    <li key={k} className="text-sm text-primary">
                       {k}
                     </li>
                   ))
@@ -176,15 +176,15 @@ export default async function AgentProfilePage({
               </ul>
             </div>
 
-            <div className="rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+            <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-action">
                 Related
               </p>
               <ul className="mt-3 space-y-2 text-sm">
                 <li>
                   <Link
                     href="/team"
-                    className="text-[var(--fintech-accent)] hover:underline"
+                    className="text-action hover:underline"
                   >
                     All 11 agents
                   </Link>
@@ -192,7 +192,7 @@ export default async function AgentProfilePage({
                 <li>
                   <Link
                     href="/changelog"
-                    className="text-[var(--fintech-accent)] hover:underline"
+                    className="text-action hover:underline"
                   >
                     Recent releases
                   </Link>
@@ -200,7 +200,7 @@ export default async function AgentProfilePage({
                 <li>
                   <Link
                     href="/roadmap"
-                    className="text-[var(--fintech-accent)] hover:underline"
+                    className="text-action hover:underline"
                   >
                     Roadmap
                   </Link>

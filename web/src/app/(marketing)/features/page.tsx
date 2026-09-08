@@ -162,23 +162,23 @@ function FeatureCard({ feature }: { feature: Feature }) {
   return (
     <article
       id={feature.anchor}
-      className="group relative flex h-full scroll-mt-24 flex-col rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] p-6 transition-colors duration-200 hover:border-[var(--fintech-border-strong)]"
+      className="group relative flex h-full scroll-mt-24 flex-col rounded-2xl border border-line-subtle bg-surface-raised p-6 transition-colors duration-200 hover:border-line"
     >
       <div
         aria-hidden="true"
-        className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--fintech-border-strong)] bg-[var(--fintech-bg-elevated)] text-[var(--fintech-accent)]"
+        className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-sunken text-action"
       >
         <Icon className="h-5 w-5" />
       </div>
-      <h3 className="font-display text-lg font-semibold text-[var(--fintech-ink)]">
+      <h3 className="font-display text-lg font-semibold text-primary">
         {feature.title}
       </h3>
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+      <p className="mt-2 flex-1 text-sm leading-relaxed text-secondary">
         {feature.copy}
       </p>
       <Link
         href={feature.href}
-        className="mt-4 inline-flex items-center gap-1 self-start rounded-md text-sm font-semibold text-[var(--fintech-accent)] transition-colors duration-200 ease-out hover:text-[var(--fintech-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+        className="mt-4 inline-flex items-center gap-1 self-start rounded-md text-sm font-semibold text-action transition-colors duration-200 ease-out hover:text-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
       >
         {feature.linkLabel}
         <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -229,7 +229,7 @@ export default function FeaturesPage() {
         title="For founders"
         kicker="Build, share, get paid"
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           The full arc from your first SVI score to your first franked
           dividend — every step lives in the same audit trail.
         </p>
@@ -243,7 +243,7 @@ export default function FeaturesPage() {
         title="For investors"
         kicker="Evidence in, anonymity out"
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           Investor-facing surfaces refuse to score anything without
           evidence, and let you share cohort benchmarks with LPs without
           leaking individual startup names.
@@ -257,7 +257,7 @@ export default function FeaturesPage() {
         title="For everyone"
         kicker="Compliance out of the box"
       >
-        <p className="text-sm text-[var(--fintech-ink-muted)]">
+        <p className="text-sm text-secondary">
           The moment you pay, you have paperwork your accountant already
           accepts.
         </p>
@@ -269,10 +269,10 @@ export default function FeaturesPage() {
       <MarketingSection tone="elevated">
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-xl">
-            <h2 className="font-display text-xl font-semibold text-[var(--fintech-ink)] sm:text-2xl">
+            <h2 className="font-display text-xl font-semibold text-primary sm:text-2xl">
               Ready to see it working?
             </h2>
-            <p className="mt-2 text-sm text-[var(--fintech-ink-muted)]">
+            <p className="mt-2 text-sm text-secondary">
               Open a real trust report end-to-end — no sign-up — or jump
               straight to pricing.
             </p>
@@ -280,14 +280,14 @@ export default function FeaturesPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/pricing"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--fintech-accent)] px-6 text-sm font-semibold text-[var(--fintech-bg-primary)] transition-colors duration-200 ease-out hover:bg-[var(--fintech-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-action px-6 text-sm font-semibold text-on-action transition-colors duration-200 ease-out hover:bg-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               Prices
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Link>
             <Link
               href="/tbr/demo"
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--fintech-border-strong)] px-6 text-sm font-semibold text-[var(--fintech-ink)] transition-colors duration-200 ease-out hover:bg-[var(--fintech-bg-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+              className="inline-flex h-11 items-center justify-center rounded-full border border-line px-6 text-sm font-semibold text-primary transition-colors duration-200 ease-out hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               See a trust report
             </Link>

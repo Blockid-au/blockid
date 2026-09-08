@@ -101,16 +101,16 @@ export default function HowItWorksPage() {
         className="mx-auto max-w-5xl space-y-6 px-6 py-16"
       >
         <div className="text-center">
-          <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.28em] text-ink-500">
+          <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.28em] text-tertiary">
             The 8 dimensions
           </p>
           <h2
             id="dimensions-heading"
-            className="font-display text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl"
+            className="font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
           >
             What the Startup Value Index measures
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-ink-500">
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-tertiary">
             Every SVI score is a weighted composite of these eight dimensions.
             Move any lever and the roadmap re-plans against the current cohort
             benchmark.
@@ -121,24 +121,24 @@ export default function HowItWorksPage() {
           {DIMENSIONS.map((d) => (
             <li
               key={d.code}
-              className="rounded-2xl border border-surface-200 bg-white p-6"
+              className="rounded-2xl border border-line-subtle bg-white p-6"
             >
               <div className="flex items-baseline gap-3">
                 <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">
                   {d.code}
                 </span>
-                <h3 className="text-base font-semibold text-ink-900">
+                <h3 className="text-base font-semibold text-primary">
                   {d.title}
                 </h3>
               </div>
-              <p className="mt-2 text-sm leading-relaxed text-ink-500">
+              <p className="mt-2 text-sm leading-relaxed text-tertiary">
                 {d.body}
               </p>
             </li>
           ))}
         </ul>
 
-        <div className="pt-4 text-center text-sm text-ink-500">
+        <div className="pt-4 text-center text-sm text-tertiary">
           Read the full methodology in the{" "}
           <Link
             href="/guide/01-vision"

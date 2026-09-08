@@ -71,34 +71,34 @@ export default function TeamPage() {
         aria-label="Founder and operating entity"
         className="mx-auto max-w-6xl px-6 pt-10 sm:pt-14"
       >
-        <div className="grid gap-4 rounded-3xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 sm:grid-cols-2 sm:p-8">
+        <div className="grid gap-4 rounded-3xl border border-line-subtle bg-surface-sunken p-6 sm:grid-cols-2 sm:p-8">
           <div className="flex items-start gap-4">
             <span
               aria-hidden="true"
-              className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] text-[var(--fintech-accent)]"
+              className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line-subtle bg-surface-raised text-action"
             >
               <User className="h-5 w-5" strokeWidth={1.75} />
             </span>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-action">
                 Founder
               </p>
-              <h2 className="mt-1 text-lg font-semibold text-[var(--fintech-ink)]">
+              <h2 className="mt-1 text-lg font-semibold text-primary">
                 Long DO — Founder
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+              <p className="mt-2 text-sm leading-relaxed text-secondary">
                 Founder and product lead. Sets the roadmap, approves every
                 ship, and owns the founder relationship. Execution is
                 delivered by a cross-border team coordinated with{" "}
-                <strong className="text-[var(--fintech-ink)]">Auschain PTY LTD</strong>{" "}
+                <strong className="text-primary">Auschain PTY LTD</strong>{" "}
                 in Australia (go-to-market, compliance, customer contracts)
                 and the{" "}
-                <strong className="text-[var(--fintech-ink)]">
+                <strong className="text-primary">
                   tech team at Vietnam Blockchain Corporation
                 </strong>{" "}
                 (engineering, blockchain infrastructure, data platform), with
                 every shipped change audited via the daily digest at{" "}
-                <code className="rounded bg-[var(--fintech-surface)] px-1 py-0.5 text-[0.85em]">
+                <code className="rounded bg-surface-raised px-1 py-0.5 text-[0.85em]">
                   /admin
                 </code>
                 .
@@ -108,7 +108,7 @@ export default function TeamPage() {
                   href="https://www.linkedin.com/in/dovanlong/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-[var(--fintech-accent)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
+                  className="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-action underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                   aria-label="Long DO on LinkedIn (opens in new tab)"
                 >
                   LinkedIn
@@ -120,22 +120,22 @@ export default function TeamPage() {
           <div className="flex items-start gap-4">
             <span
               aria-hidden="true"
-              className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--fintech-border)] bg-[var(--fintech-surface)] text-[var(--fintech-accent)]"
+              className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line-subtle bg-surface-raised text-action"
             >
               <Building2 className="h-5 w-5" strokeWidth={1.75} />
             </span>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-action">
                 Operating entity
               </p>
-              <h2 className="mt-1 text-lg font-semibold text-[var(--fintech-ink)]">
+              <h2 className="mt-1 text-lg font-semibold text-primary">
                 PPL Food PTY LTD
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+              <p className="mt-2 text-sm leading-relaxed text-secondary">
                 Australian proprietary company; all customer contracts,
                 invoices and GST are issued in this entity&apos;s name.
               </p>
-              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-[var(--fintech-ink-muted)]">
+              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-secondary">
                 <MapPin className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.75} />
                 Sydney, NSW, Australia
               </p>
@@ -149,42 +149,42 @@ export default function TeamPage() {
         className="mx-auto max-w-6xl px-6 py-12 sm:py-16"
       >
         <div className="mb-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--fintech-accent)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-action">
             AI advisor bench
           </p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-[var(--fintech-ink)] sm:text-3xl">
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-primary sm:text-3xl">
             {roster.length || 11} specialised C-Level agents
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-secondary">
             Each seat below is an AI agent with its own research + build cron,
             colocated tests, and audit trail. Cards show live shipping activity
             from the last 30 days.
           </p>
         </div>
         {/* Summary bar */}
-        <div className="mb-10 rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] px-6 py-5">
+        <div className="mb-10 rounded-2xl border border-line-subtle bg-surface-sunken px-6 py-5">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="font-mono text-2xl font-extrabold tabular-nums text-[var(--fintech-accent)]">
+              <p className="font-mono text-2xl font-extrabold tabular-nums text-action">
                 {roster.length}
               </p>
-              <p className="mt-1 text-xs text-[var(--fintech-ink-muted)]">
+              <p className="mt-1 text-xs text-secondary">
                 Roles staffed
               </p>
             </div>
             <div>
-              <p className="font-mono text-2xl font-extrabold tabular-nums text-[var(--fintech-accent)]">
+              <p className="font-mono text-2xl font-extrabold tabular-nums text-action">
                 {activeRoles}
               </p>
-              <p className="mt-1 text-xs text-[var(--fintech-ink-muted)]">
+              <p className="mt-1 text-xs text-secondary">
                 Active in last 30 days
               </p>
             </div>
             <div>
-              <p className="font-mono text-2xl font-extrabold tabular-nums text-[var(--fintech-accent)]">
+              <p className="font-mono text-2xl font-extrabold tabular-nums text-action">
                 {totalShips}
               </p>
-              <p className="mt-1 text-xs text-[var(--fintech-ink-muted)]">
+              <p className="mt-1 text-xs text-secondary">
                 Reports & ships (30d)
               </p>
             </div>
@@ -193,9 +193,9 @@ export default function TeamPage() {
 
         {/* Grid */}
         {roster.length === 0 ? (
-          <p className="text-sm text-[var(--fintech-ink-muted)]">
+          <p className="text-sm text-secondary">
             Team roster not yet published for this environment. Run
-            <code className="mx-1 rounded bg-[var(--fintech-surface)] px-1.5 py-0.5 text-[0.85em]">
+            <code className="mx-1 rounded bg-surface-raised px-1.5 py-0.5 text-[0.85em]">
               node scripts/docs/regenerate-team-page.mjs
             </code>
             to populate this page.
@@ -206,25 +206,25 @@ export default function TeamPage() {
               <li key={r.slug}>
                 <Link
                   href={`/team/${r.slug}`}
-                  className="group block h-full rounded-2xl border border-[var(--fintech-border)] bg-[var(--fintech-bg-elevated)] p-6 transition-colors hover:border-[var(--fintech-accent)]"
+                  className="group block h-full rounded-2xl border border-line-subtle bg-surface-sunken p-6 transition-colors hover:border-action"
                 >
                   <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fintech-accent)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-action">
                       {r.slug === "customer-success"
                         ? "CS"
                         : r.slug.toUpperCase()}
                     </p>
-                    <span className="rounded-full border border-[var(--fintech-border)] px-2 py-0.5 font-mono text-[10px] tabular-nums text-[var(--fintech-ink-muted)]">
+                    <span className="rounded-full border border-line-subtle px-2 py-0.5 font-mono text-[10px] tabular-nums text-secondary">
                       {r.last30d_count} 30d
                     </span>
                   </div>
-                  <h3 className="mt-2 text-base font-semibold text-[var(--fintech-ink)]">
+                  <h3 className="mt-2 text-base font-semibold text-primary">
                     {r.role}
                   </h3>
-                  <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
+                  <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-secondary">
                     {shortTagline(r)}
                   </p>
-                  <p className="mt-4 text-xs text-[var(--fintech-ink-muted)]">
+                  <p className="mt-4 text-xs text-secondary">
                     {r.latest_activity_date
                       ? `Last shipped ${r.latest_activity_date}`
                       : "No activity this window"}
