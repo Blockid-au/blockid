@@ -154,6 +154,7 @@ const MENU: MenuEntry[] = [
   },
   { kind: "link", key: "features", label: "Features", href: "/features" },
   { kind: "link", key: "pricing", label: "Pricing", href: "/pricing" },
+  { kind: "link", key: "team",    label: "Team", href: "/team" },
   { kind: "link", key: "index",   label: "Startup Index", href: "/index" },
   {
     // ux-ia-startup-flow-v1 §C.1 + §C.7 — global Demo entry-point so a

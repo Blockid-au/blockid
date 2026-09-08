@@ -120,6 +120,9 @@ const navItems: NavEntry[] = [
   { href: "/#product", label: "Product" },
   { href: "/features", label: "Features" },
   { href: "/#pricing", label: "Pricing" },
+  // Team page — surfaces the founder card (Long DO + LinkedIn) so the
+  // /team route is one click from every page, not only from the footer.
+  { href: "/team", label: "Team" },
   // ux-ia-startup-flow-v1 §C.2 — collapse Benchmarks / Insights / Version
   // under a single Resources dropdown so the top-nav stays at <=7 items
   // after adding Demo.
