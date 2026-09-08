@@ -53,7 +53,7 @@ export function CheckoutButton({ planId, label }: CheckoutButtonProps) {
         type="button"
         onClick={handleClick}
         disabled={busy}
-        className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-5 py-3 text-sm font-semibold text-slate-100 hover:border-cyan-500 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface-raised px-5 py-3 text-sm font-semibold text-primary hover:border-action hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {busy ? (
           <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -63,7 +63,7 @@ export function CheckoutButton({ planId, label }: CheckoutButtonProps) {
         {label}
       </button>
       {error && (
-        <p role="alert" className="mt-2 text-xs text-rose-300">
+        <p role="alert" className="mt-2 text-xs text-bear">
           {error}
         </p>
       )}

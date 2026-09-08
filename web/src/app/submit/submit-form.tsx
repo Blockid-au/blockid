@@ -34,11 +34,11 @@ const STAGES = [
 ] as const;
 
 const FIELD_CLASS =
-  "w-full px-4 py-3 rounded-lg border border-white/20 bg-white/10 text-[var(--fintech-ink)] " +
-  "placeholder:text-[var(--fintech-ink-muted)] focus:outline-none focus:ring-2 " +
-  "focus:ring-[var(--fintech-accent)] focus:border-transparent transition-colors";
+  "w-full px-4 py-3 rounded-lg border border-line bg-surface text-primary " +
+  "placeholder:text-secondary focus:outline-none focus:ring-2 " +
+  "focus:ring-action focus:border-transparent transition-colors";
 
-const LABEL_CLASS = "block text-sm font-medium text-[var(--fintech-ink)] mb-1.5";
+const LABEL_CLASS = "block text-sm font-medium text-primary mb-1.5";
 
 export function SubmitForm() {
   const [fields, setFields] = useState({
@@ -96,16 +96,16 @@ export function SubmitForm() {
   if (submitted) {
     return (
       <div className="flex flex-col items-center gap-4 py-12 text-center">
-        <CheckCircle className="h-14 w-14 text-[var(--fintech-accent)]" />
-        <h2 className="text-2xl font-bold text-[var(--fintech-ink-strong)]">
+        <CheckCircle className="h-14 w-14 text-action" />
+        <h2 className="text-2xl font-bold text-strong">
           Submission received!
         </h2>
-        <p className="max-w-md text-[var(--fintech-ink-muted)]">
+        <p className="max-w-md text-secondary">
           We&apos;ll review your startup and list it on the AU Startup Public Index within 24 hours. Keep an eye on your inbox.
         </p>
-        <div className="mt-6 pt-6 border-t border-white/20 text-center w-full max-w-md">
-          <p className="text-sm text-[var(--fintech-ink-muted)] mb-3">While we review your submission, get your free SVI score:</p>
-          <a href="/score" className="inline-flex items-center gap-2 rounded-xl bg-[var(--fintech-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--fintech-bg-primary)] hover:bg-[var(--fintech-accent-hover)] transition-colors">
+        <div className="mt-6 pt-6 border-t border-line text-center w-full max-w-md">
+          <p className="text-sm text-secondary mb-3">While we review your submission, get your free SVI score:</p>
+          <a href="/score" className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors">
             Get Your Free SVI Score →
           </a>
         </div>
@@ -118,7 +118,7 @@ export function SubmitForm() {
       {/* Startup name */}
       <div>
         <label htmlFor="startup_name" className={LABEL_CLASS}>
-          Startup name <span className="text-[var(--fintech-accent)]">*</span>
+          Startup name <span className="text-action">*</span>
         </label>
         <input
           id="startup_name"
@@ -134,8 +134,8 @@ export function SubmitForm() {
       {/* Tagline */}
       <div>
         <label htmlFor="tagline" className={LABEL_CLASS}>
-          One-line tagline <span className="text-[var(--fintech-accent)]">*</span>
-          <span className="ml-2 text-xs text-[var(--fintech-ink-muted)] font-normal">
+          One-line tagline <span className="text-action">*</span>
+          <span className="ml-2 text-xs text-secondary font-normal">
             max 120 chars
           </span>
         </label>
@@ -149,7 +149,7 @@ export function SubmitForm() {
           onChange={(e) => set("tagline", e.target.value)}
           className={FIELD_CLASS}
         />
-        <p className="mt-1 text-xs text-[var(--fintech-ink-muted)] text-right">
+        <p className="mt-1 text-xs text-secondary text-right">
           {fields.tagline.length}/120
         </p>
       </div>
@@ -207,7 +207,7 @@ export function SubmitForm() {
       <div>
         <label htmlFor="website_url" className={LABEL_CLASS}>
           Website URL{" "}
-          <span className="text-xs text-[var(--fintech-ink-muted)] font-normal">optional</span>
+          <span className="text-xs text-secondary font-normal">optional</span>
         </label>
         <input
           id="website_url"
@@ -222,7 +222,7 @@ export function SubmitForm() {
       {/* Contact email */}
       <div>
         <label htmlFor="contact_email" className={LABEL_CLASS}>
-          Email address <span className="text-[var(--fintech-accent)]">*</span>
+          Email address <span className="text-action">*</span>
         </label>
         <input
           id="contact_email"
@@ -233,7 +233,7 @@ export function SubmitForm() {
           onChange={(e) => set("contact_email", e.target.value)}
           className={FIELD_CLASS}
         />
-        <p className="mt-1 text-xs text-[var(--fintech-ink-muted)]">
+        <p className="mt-1 text-xs text-secondary">
           We&apos;ll notify you when your listing goes live. Never shared publicly.
         </p>
       </div>
@@ -245,9 +245,9 @@ export function SubmitForm() {
           type="checkbox"
           checked={fields.is_public_opt_in}
           onChange={(e) => set("is_public_opt_in", e.target.checked)}
-          className="mt-0.5 h-4 w-4 rounded border-white/30 accent-[var(--fintech-accent)]"
+          className="mt-0.5 h-4 w-4 rounded border-line accent-action"
         />
-        <label htmlFor="is_public_opt_in" className="text-sm text-[var(--fintech-ink-muted)] leading-relaxed">
+        <label htmlFor="is_public_opt_in" className="text-sm text-secondary leading-relaxed">
           List my startup on the AU Startup Public Index so investors and founders can discover us.
           You can request removal at any time.
         </label>
@@ -255,7 +255,7 @@ export function SubmitForm() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-start gap-2 rounded-lg border border-bear/30 bg-bear/10 px-4 py-3 text-sm text-bear">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -265,7 +265,7 @@ export function SubmitForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-[var(--fintech-accent)] px-6 py-3.5 font-semibold text-[var(--fintech-bg-primary)] hover:bg-[var(--fintech-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        className="w-full rounded-lg bg-action px-6 py-3.5 font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -277,7 +277,7 @@ export function SubmitForm() {
         )}
       </button>
 
-      <p className="text-xs text-center text-[var(--fintech-ink-muted)]">
+      <p className="text-xs text-center text-secondary">
         Free forever. Review takes up to 24 hours.
       </p>
     </form>

@@ -47,8 +47,8 @@ export function InsightsCategoryFilter({ categories, categoryLabels, articles }:
             onClick={() => setActive(cat.key)}
             className={`rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
               active === cat.key
-                ? "bg-gradient-to-r from-[#00D4FF] to-[#0066FF] text-[#0A0F1E] shadow-md shadow-[rgba(0,212,255,0.25)]"
-                : "border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] text-[#94A3B8] hover:bg-[rgba(255,255,255,0.08)] hover:text-[#F8FAFC]"
+                ? "bg-action text-on-action shadow-md shadow-[rgba(0,212,255,0.25)]"
+                : "border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] text-secondary hover:bg-[rgba(255,255,255,0.08)] hover:text-primary"
             }`}
           >
             {cat.label}
@@ -64,23 +64,23 @@ export function InsightsCategoryFilter({ categories, categoryLabels, articles }:
         >
           <div className="p-8 md:p-10">
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#00D4FF] bg-[rgba(0,212,255,0.1)] px-2.5 py-1 rounded-full">
+              <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-action bg-[rgba(0,212,255,0.1)] px-2.5 py-1 rounded-full">
                 Featured
               </span>
               <CategoryBadge category={featured.category} labels={categoryLabels} />
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-[#F8FAFC] group-hover:text-[#00D4FF] transition-colors leading-tight">
+            <h2 className="text-2xl md:text-3xl font-bold text-primary group-hover:text-action transition-colors leading-tight">
               {featured.title}
             </h2>
-            <p className="mt-3 text-base text-[#94A3B8] leading-relaxed max-w-3xl line-clamp-3">
+            <p className="mt-3 text-base text-secondary leading-relaxed max-w-3xl line-clamp-3">
               {featured.description}
             </p>
             <div className="mt-5 flex items-center gap-4">
-              <span className="text-xs text-[#94A3B8] flex items-center gap-1.5">
+              <span className="text-xs text-secondary flex items-center gap-1.5">
                 <Clock strokeWidth={1.75} className="h-3.5 w-3.5" />
                 {featured.readingTime} min read
               </span>
-              <span className="text-xs text-[#94A3B8]">
+              <span className="text-xs text-secondary">
                 {new Date(featured.publishedAt).toLocaleDateString("en-AU", {
                   day: "numeric",
                   month: "short",
@@ -88,7 +88,7 @@ export function InsightsCategoryFilter({ categories, categoryLabels, articles }:
                 })}
               </span>
             </div>
-            <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#00D4FF] group-hover:gap-2.5 transition-all">
+            <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-action group-hover:gap-2.5 transition-all">
               Read more <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
             </span>
           </div>
@@ -109,13 +109,13 @@ export function InsightsCategoryFilter({ categories, categoryLabels, articles }:
                   <div className="flex items-center gap-2 mb-3">
                     <CategoryBadge category={article.category} labels={categoryLabels} />
                   </div>
-                  <h3 className="text-lg font-bold text-[#F8FAFC] group-hover:text-[#00D4FF] transition-colors leading-snug line-clamp-2">
+                  <h3 className="text-lg font-bold text-primary group-hover:text-action transition-colors leading-snug line-clamp-2">
                     {article.title}
                   </h3>
-                  <p className="mt-2 text-sm text-[#94A3B8] leading-relaxed line-clamp-2 flex-1">
+                  <p className="mt-2 text-sm text-secondary leading-relaxed line-clamp-2 flex-1">
                     {article.description}
                   </p>
-                  <div className="mt-4 flex items-center gap-3 text-xs text-[#94A3B8]">
+                  <div className="mt-4 flex items-center gap-3 text-xs text-secondary">
                     <span className="flex items-center gap-1">
                       <Clock strokeWidth={1.75} className="h-3 w-3" />
                       {article.readingTime} min
@@ -128,7 +128,7 @@ export function InsightsCategoryFilter({ categories, categoryLabels, articles }:
                       })}
                     </span>
                   </div>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#00D4FF] group-hover:gap-2.5 transition-all">
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-action group-hover:gap-2.5 transition-all">
                     Read more <ArrowRight strokeWidth={1.75} className="h-3.5 w-3.5" />
                   </span>
                 </div>
@@ -150,7 +150,7 @@ function CategoryBadge({
 }) {
   const cat = labels[category] ?? { label: category, color: "" };
   return (
-    <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-[rgba(0,212,255,0.1)] text-[#00D4FF]">
+    <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-[rgba(0,212,255,0.1)] text-action">
       {cat.label}
     </span>
   );

@@ -196,8 +196,8 @@ export default function SecurityAuditPage() {
                 <span
                   className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${
                     f.severity === "High"
-                      ? "bg-rose-500/15 text-rose-200"
-                      : "bg-amber-500/15 text-amber-200"
+                      ? "bg-bear/10 text-bear"
+                      : "bg-warn/10 text-warn"
                   }`}
                 >
                   {f.severity}

@@ -61,7 +61,7 @@ export default function StartupPackagePage() {
     <MarketingShell>
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-5xl px-6 pt-20 pb-10 text-center">
-        <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-400">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-action">
           Founder Package · Ship 1
         </p>
         <h1 className="mt-4 text-4xl font-semibold leading-tight text-primary sm:text-5xl">
@@ -109,7 +109,7 @@ export default function StartupPackagePage() {
             >
               <span
                 aria-hidden="true"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action/20 text-sm font-semibold text-cyan-300"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action/10 text-sm font-semibold text-action"
               >
                 {step.n}
               </span>

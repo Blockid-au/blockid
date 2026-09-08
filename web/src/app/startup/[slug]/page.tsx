@@ -206,7 +206,7 @@ function ListingHero({
 }) {
   return (
     <header className="mb-10 border-b border-line-subtle pb-8">
-      <div className="flex flex-wrap items-baseline gap-3 text-xs uppercase tracking-[0.16em] text-cyan-300/80">
+      <div className="flex flex-wrap items-baseline gap-3 text-xs uppercase tracking-[0.16em] text-action">
         <span className="rounded bg-action/15 px-2 py-0.5">
           BlockID Startup Package
         </span>
@@ -235,7 +235,7 @@ function ListingHero({
 function SviBadge({ svi }: { svi: NonNullable<PublicListingPayload["svi"]> }) {
   const bandColour: Record<typeof svi.band, string> = {
     seed: "bg-surface-hover text-secondary ring-line",
-    growth: "bg-emerald-500/15 text-emerald-200 ring-emerald-400/40",
+    growth: "bg-bull/10 text-bull ring-bull/40",
     scale: "bg-action/15 text-cyan-100 ring-cyan-400/40",
     unicorn: "bg-fuchsia-500/15 text-fuchsia-100 ring-fuchsia-400/40",
   };
@@ -272,14 +272,14 @@ function HealthGradeBadge({ sviTotal }: { sviTotal: number }) {
 
   const colourClass =
     grade === "A"
-      ? "bg-action/15 text-cyan-200 ring-cyan-400/40"
+      ? "bg-action/10 text-action ring-action/40"
       : grade === "B"
-        ? "bg-emerald-500/15 text-emerald-200 ring-emerald-400/40"
+        ? "bg-bull/10 text-bull ring-bull/40"
         : grade === "C"
-          ? "bg-amber-500/15 text-amber-200 ring-amber-400/40"
+          ? "bg-warn/10 text-warn ring-warn/40"
           : grade === "D"
             ? "bg-orange-500/15 text-orange-200 ring-orange-400/40"
-            : "bg-red-500/15 text-red-200 ring-red-400/40";
+            : "bg-bear/10 text-bear ring-bear/40";
 
   return (
     <div
@@ -304,10 +304,10 @@ function TechScoreBadge({ techAnalysis }: { techAnalysis: TechAnalysisRow }) {
     score > 75
       ? "bg-action/10 text-action border-[rgba(0,212,255,0.3)]"
       : score > 60
-        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+        ? "bg-bull/10 text-bull border-bull/30"
         : score >= 40
-          ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-          : "bg-red-500/10 text-red-400 border-red-500/30";
+          ? "bg-warn/10 text-warn border-warn/30"
+          : "bg-bear/10 text-bear border-bear/30";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -350,7 +350,7 @@ function CardRow({ listing }: { listing: PublicListingPayload }) {
             key={card.slot}
             className="rounded-xl border border-line-subtle bg-surface-sunken p-5 backdrop-blur"
           >
-            <p className="text-xs font-semibold uppercase tracking-widest text-cyan-300/80">
+            <p className="text-xs font-semibold uppercase tracking-widest text-action">
               {card.title}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-secondary">
