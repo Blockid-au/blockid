@@ -816,3 +816,5 @@
 {"ts":"2026-09-08T14:15:01Z","endpoint":"lifecycle-mailer","status":"ok","duration_ms":163,"detail":"{\"processed\": 0, \"results\": []}"}
 {"ts":"2026-09-08T14:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":176,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}
 {"ts":"2026-09-08T14:20:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":565,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 18, \"raw\": \"18% used (228625360 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 8, \"raw\": \"8% used (270179916 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-09-08T14:30:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":648,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 18, \"raw\": \"18% used (228623484 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 8, \"raw\": \"8% used (270179800 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-09-08T14:30:01Z","endpoint":"lifecycle-mailer","status":"ok","duration_ms":864,"detail":"{\"processed\": 0, \"results\": []}"}

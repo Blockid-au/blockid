@@ -9353,3 +9353,4 @@
 {"ts":"2026-09-08T14:17:00Z","status":"success","gates":"12/12","pid":"58204","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-09-08T14:28:11.858Z","event":"github-push-master","detail":"Blockid-au: feat(analyses): client-safe presentation helpers for saved runs (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T14:28:41.123Z","event":"github-push-master","detail":"Blockid-au: test(analyses): pin the saved-run presentation helpers (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T14:29:30.839Z","event":"github-push-master","detail":"Blockid-au: feat(analyses): carry a real claim count through the post-auth redirect (1 commits)","source":"github-webhook"}
