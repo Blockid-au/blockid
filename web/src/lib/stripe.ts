@@ -82,9 +82,41 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
  * A missing env var yields `null` so callers can detect "not-yet-provisioned"
  * without a runtime crash.
  */
-export const ADDON_PRICE_IDS: Record<string, string | null> = {
+// SAFETY GATE — 2026-09-08.
+// The A$59 Equity add-on price exists and is active in Stripe, but nothing
+// grants entitlements when it is purchased: `getEntitlements()` takes a plan
+// id and returns that plan's `feature_flags`, so it cannot see a per-user
+// add-on subscription, and the webhook has no branch for
+// `isShareMgmtAddonPrice`. Selling it would charge a founder A$59/month and
+// grant them nothing.
+//
+// So the *purchase* path is closed until add-on -> entitlement resolution
+// exists, while *recognition* stays open: ADDON_PRICE_IDS (what the billing
+// drawer offers) resolves to null, but isShareMgmtAddonPrice still reads the
+// raw env so any add-on subscription item that does exist is still identified
+// correctly by change-plan and the webhook. Callers already treat null as
+// "not-yet-provisioned" and render the drawer inert rather than crashing.
+//
+// To re-enable selling: make entitlement resolution user-aware (webhook
+// records the add-on subscription; `getEntitlements` unions the add-on's
+// features on top of the plan's), then flip ADDON_ENTITLEMENTS_WIRED and
+// update the pins in stripe.test.ts.
+const ADDON_ENTITLEMENTS_WIRED = false;
+
+/** Raw env values — used for *recognising* an existing add-on subscription. */
+const ADDON_PRICE_IDS_RAW: Record<string, string | null> = {
   share_management_monthly: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY ?? null,
   share_management_annual: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL ?? null,
+};
+
+/** What the billing UI may offer for purchase. Null while the gate is closed. */
+export const ADDON_PRICE_IDS: Record<string, string | null> = {
+  share_management_monthly: ADDON_ENTITLEMENTS_WIRED
+    ? ADDON_PRICE_IDS_RAW.share_management_monthly
+    : null,
+  share_management_annual: ADDON_ENTITLEMENTS_WIRED
+    ? ADDON_PRICE_IDS_RAW.share_management_annual
+    : null,
 };
 
 export function getShareMgmtAddonPrice(cadence: "monthly" | "annual"): string | null {
@@ -96,7 +128,7 @@ export function getShareMgmtAddonPrice(cadence: "monthly" | "annual"): string | 
 export function isShareMgmtAddonPrice(priceId: string | null | undefined): boolean {
   if (!priceId) return false;
   return (
-    priceId === ADDON_PRICE_IDS.share_management_monthly ||
-    priceId === ADDON_PRICE_IDS.share_management_annual
+    priceId === ADDON_PRICE_IDS_RAW.share_management_monthly ||
+    priceId === ADDON_PRICE_IDS_RAW.share_management_annual
   );
 }
