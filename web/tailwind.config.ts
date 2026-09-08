@@ -46,6 +46,57 @@ const config: Config = {
           "ink-muted": "#CBD5E1",
           "ink-dark": "#1B2A5E",
         },
+        // ── Light-first design system tokens (docs/design-system.md rev.2) ──
+        // Bind Tailwind utilities to the semantic CSS vars declared in
+        // globals.css :root, so bg-surface / text-primary / border-line etc.
+        // retint automatically when [data-theme] changes.
+        surface: {
+          DEFAULT: "var(--ds-surface)",
+          base: "var(--ds-surface)",
+          raised: "var(--ds-surface-elevated)",
+          sunken: "var(--ds-surface-sunken)",
+          hover: "var(--ds-surface-hover)",
+        },
+        line: {
+          DEFAULT: "var(--ds-border-strong)",
+          subtle: "var(--ds-border)",
+          strong: "var(--ds-border-emphasis)",
+        },
+        text: {
+          primary: "var(--ds-ink)",
+          strong: "var(--ds-ink-strong)",
+          secondary: "var(--ds-ink-muted)",
+          muted: "var(--ds-ink-subtle)",
+          tertiary: "var(--ds-ink-tertiary)",
+          faint: "var(--ds-ink-faint)",
+          "on-brand": "var(--ds-brand-ink)",
+          "on-action": "var(--ds-accent-contrast)",
+        },
+        svi: {
+          50: "#FFF7ED",
+          400: "#FBBF24",
+          500: "#FF9F0A",
+          600: "#EA580C",
+        },
+        action: {
+          DEFAULT: "var(--ds-accent)",
+          hover: "var(--ds-accent-hover)",
+        },
+        bull: {
+          DEFAULT: "var(--ds-success)",
+          50: "#ECFDF5",
+          700: "#047857",
+        },
+        bear: {
+          DEFAULT: "var(--ds-danger)",
+          50: "#FEF2F2",
+          700: "#B91C1C",
+        },
+        warn: {
+          DEFAULT: "var(--ds-warn)",
+          50: "#FFFBEB",
+          700: "#B45309",
+        },
       },
       backgroundImage: {
         "lux-radial":

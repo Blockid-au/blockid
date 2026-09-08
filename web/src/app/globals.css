@@ -165,80 +165,204 @@
     0 8px 28px -4px color-mix(in srgb, var(--ds-accent, #2563eb) 32%, transparent);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT-FIRST TOKEN LAYER (docs/design-system.md rev.2)
+   Default surfaces render white/off-white with near-black text.
+   Dark palette activates only via prefers-color-scheme OR an
+   explicit :root[data-theme="dark"] scope.
+   ═══════════════════════════════════════════════════════════════ */
+
 :root {
   color-scheme: light;
 
-  /* ── Semantic design-system layer (skin-agnostic) ──────────
+  /* ── Semantic design-system layer (skin-agnostic, light-first) ──
      Consumers read var(--ds-*) instead of hard-coded color
-     scales so both light and lux/dark skins retint together. */
-  --ds-surface: #ffffff;
-  --ds-surface-elevated: #ffffff;
-  --ds-surface-sunken: #f8fafc;
-  --ds-border: #e2e8f0;
-  --ds-border-strong: #cbd5e1;
-  --ds-ink: #0f172a;
-  --ds-ink-muted: #475569;
-  --ds-ink-subtle: #64748b;
-  --ds-accent: #2563eb;
-  --ds-accent-hover: #1d4ed8;
+     scales so all skins retint together. */
+  --ds-surface: #ffffff;              /* bg.base */
+  --ds-surface-elevated: #ffffff;     /* bg.raised — border-styled */
+  --ds-surface-sunken: #f7f8fa;       /* bg.surface */
+  --ds-surface-hover: #eef0f5;        /* bg.hover */
+  --ds-border: #e5e7eb;               /* line.subtle */
+  --ds-border-strong: #d1d5db;        /* line.DEFAULT */
+  --ds-border-emphasis: #4b5563;      /* line.strong */
+  --ds-ink: #0b0f1a;                  /* text.primary — 19.62:1 AAA */
+  --ds-ink-strong: #0b0f1a;
+  --ds-ink-muted: #1f2937;            /* text.secondary — 15.35:1 AAA */
+  --ds-ink-subtle: #4b5563;           /* text.muted — 8.94:1 AAA body */
+  --ds-ink-tertiary: #6b7280;         /* text.tertiary — 5.74:1 AA */
+  --ds-ink-faint: #9ca3af;            /* text.faint — DECORATIVE ONLY */
+  --ds-accent: #1d4ed8;               /* action / info — 8.59:1 on white */
+  --ds-accent-hover: #1e40af;
   --ds-accent-contrast: #ffffff;
-  --ds-success: #059669;
-  --ds-warn: #d97706;
-  --ds-danger: #dc2626;
-  --ds-info: #0ea5e9;
-  --ds-focus-ring: #3b82f6;
+  --ds-brand: #ff9f0a;                /* svi.500 — brand only (graphic) */
+  --ds-brand-ink: #0b0f1a;            /* text.on-brand — 8.42:1 on #FF9F0A */
+  --ds-success: #047857;              /* bull — 6.36:1 */
+  --ds-warn: #b45309;                 /* warn — 5.93:1 */
+  --ds-danger: #b91c1c;               /* bear — 7.29:1 */
+  --ds-info: #1d4ed8;
+  --ds-focus-ring: #1d4ed8;
+
+  /* Semantic pill grounds (paired with the 700-shade text) */
+  --ds-bg-success: #ecfdf5;
+  --ds-bg-warn: #fffbeb;
+  --ds-bg-danger: #fef2f2;
+  --ds-bg-info: #eff6ff;
+  --ds-bg-brand: #fff7ed;
 }
 
+/* ── DARK PALETTE — opt-in ─────────────────────────────────────
+   Activates when either:
+     (a) OS is in dark mode AND user hasn't forced :root[data-theme="light"], OR
+     (b) an explicit :root[data-theme="dark"] scope requests it.
+   Legacy `.dark` and `[data-theme="lux"]` selectors kept so existing
+   opt-in wrappers continue to work. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --ds-surface: #0b0f1a;
+    --ds-surface-elevated: #111827;
+    --ds-surface-sunken: #050813;
+    --ds-surface-hover: #1f2937;
+    --ds-border: rgba(148, 163, 184, 0.16);
+    --ds-border-strong: rgba(148, 163, 184, 0.28);
+    --ds-border-emphasis: #cbd5e1;
+    --ds-ink: #f9fafb;
+    --ds-ink-strong: #ffffff;
+    --ds-ink-muted: #e5e7eb;
+    --ds-ink-subtle: #cbd5e1;
+    --ds-ink-tertiary: #9ca3af;
+    --ds-ink-faint: #6b7280;
+    --ds-accent: #60a5fa;
+    --ds-accent-hover: #93c5fd;
+    --ds-accent-contrast: #0b0f1a;
+    --ds-brand: #fbbf24;
+    --ds-brand-ink: #0b0f1a;
+    --ds-success: #34d399;
+    --ds-warn: #fbbf24;
+    --ds-danger: #f87171;
+    --ds-info: #60a5fa;
+    --ds-focus-ring: #93c5fd;
+
+    --ds-bg-success: rgba(52, 211, 153, 0.12);
+    --ds-bg-warn: rgba(251, 191, 36, 0.14);
+    --ds-bg-danger: rgba(248, 113, 113, 0.14);
+    --ds-bg-info: rgba(96, 165, 250, 0.14);
+    --ds-bg-brand: rgba(251, 191, 36, 0.14);
+
+    --color-surface-50: #0b0f1a;
+    --color-surface-100: #111827;
+    --color-surface-200: #1f2937;
+    --color-surface-300: #374151;
+    --color-surface-400: #4b5563;
+
+    --color-ink-950: #f9fafb;
+    --color-ink-900: #f3f4f6;
+    --color-ink-800: #e5e7eb;
+    --color-ink-700: #d1d5db;
+    --color-ink-600: #9ca3af;
+    --color-ink-500: #9ca3af;
+    --color-ink-400: #e5e7eb;
+    --color-ink-300: #d1d5db;
+    --color-ink-200: #9ca3af;
+    --color-ink-100: #9ca3af;
+
+    --color-paper-50: #111827;
+  }
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"],
 .dark,
 [data-theme="lux"] {
-  --ds-surface: #0b0f2a;
-  --ds-surface-elevated: #131938;
-  --ds-surface-sunken: #05081c;
-  --ds-border: rgba(148, 163, 184, 0.18);
-  --ds-border-strong: rgba(148, 163, 184, 0.32);
-  --ds-ink: #f1f5f9;
-  --ds-ink-muted: #cbd5e1;
-  --ds-ink-subtle: #94a3b8;
-  --ds-accent: #22d3ee;
-  --ds-accent-hover: #67e8f9;
-  --ds-accent-contrast: #0b0f2a;
-  --ds-success: #10b981;
-  --ds-warn: #f59e0b;
-  --ds-danger: #ef4444;
-  --ds-info: #38bdf8;
-  --ds-focus-ring: #67e8f9;
-}
-
-.dark {
   color-scheme: dark;
 
-  --color-surface-50: #0f172a;
-  --color-surface-100: #1e293b;
-  --color-surface-200: #334155;
-  --color-surface-300: #475569;
-  --color-surface-400: #64748b;
+  --ds-surface: #0b0f1a;
+  --ds-surface-elevated: #111827;
+  --ds-surface-sunken: #050813;
+  --ds-surface-hover: #1f2937;
+  --ds-border: rgba(148, 163, 184, 0.16);
+  --ds-border-strong: rgba(148, 163, 184, 0.28);
+  --ds-border-emphasis: #cbd5e1;
+  --ds-ink: #f9fafb;
+  --ds-ink-strong: #ffffff;
+  --ds-ink-muted: #e5e7eb;
+  --ds-ink-subtle: #cbd5e1;
+  --ds-ink-tertiary: #9ca3af;
+  --ds-ink-faint: #6b7280;
+  --ds-accent: #60a5fa;
+  --ds-accent-hover: #93c5fd;
+  --ds-accent-contrast: #0b0f1a;
+  --ds-brand: #fbbf24;
+  --ds-brand-ink: #0b0f1a;
+  --ds-success: #34d399;
+  --ds-warn: #fbbf24;
+  --ds-danger: #f87171;
+  --ds-info: #60a5fa;
+  --ds-focus-ring: #93c5fd;
 
-  --color-ink-950: #f8fafc;
-  --color-ink-900: #f1f5f9;
-  --color-ink-800: #e2e8f0;
-  --color-ink-700: #cbd5e1;
-  --color-ink-600: #94a3b8;
-  /* WCAG AA contrast fix Sep 2026 — user reported AI-analysis body text
-   * looked gray/faded on dark ground. Previous #64748b hit 4.4:1 on #0B0F14
-   * (fails WCAG AA for body <18px). Bumping to slate-400 (#94a3b8) lifts
-   * every text-ink-500 usage — including all ~148 in svi-results-panel and
-   * rnd-results-panel where AI output renders — to ~6.9:1, clearing AA
-   * body while keeping the "muted-meta" visual hierarchy vs ink-400/300. */
-  --color-ink-500: #94a3b8;
-  --color-ink-400: #e2e8f0; /* bright on dark — inverted intent (was slate-400) */
-  --color-ink-300: #cbd5e1;
-  --color-ink-200: #94a3b8;
-  --color-ink-100: #94a3b8; /* deep muted on dark — also lifted from #64748b */
+  --ds-bg-success: rgba(52, 211, 153, 0.12);
+  --ds-bg-warn: rgba(251, 191, 36, 0.14);
+  --ds-bg-danger: rgba(248, 113, 113, 0.14);
+  --ds-bg-info: rgba(96, 165, 250, 0.14);
+  --ds-bg-brand: rgba(251, 191, 36, 0.14);
 
-  --color-paper-50: #1e293b;
+  --color-surface-50: #0b0f1a;
+  --color-surface-100: #111827;
+  --color-surface-200: #1f2937;
+  --color-surface-300: #374151;
+  --color-surface-400: #4b5563;
 
-  --color-brand-50: #172554;
-  --color-brand-100: #1e3a5f;
+  --color-ink-950: #f9fafb;
+  --color-ink-900: #f3f4f6;
+  --color-ink-800: #e5e7eb;
+  --color-ink-700: #d1d5db;
+  --color-ink-600: #9ca3af;
+  --color-ink-500: #9ca3af;
+  --color-ink-400: #e5e7eb;
+  --color-ink-300: #d1d5db;
+  --color-ink-200: #9ca3af;
+  --color-ink-100: #9ca3af;
+
+  --color-paper-50: #111827;
+}
+
+/* Force-light escape hatch — admin shell, dashboards that must stay
+   light regardless of user OS preference. Re-declares light DS vars
+   inside the scope so [data-theme="light"] beats any ancestor dark. */
+:root[data-theme="light"],
+[data-theme="light"] {
+  color-scheme: light;
+
+  --ds-surface: #ffffff;
+  --ds-surface-elevated: #ffffff;
+  --ds-surface-sunken: #f7f8fa;
+  --ds-surface-hover: #eef0f5;
+  --ds-border: #e5e7eb;
+  --ds-border-strong: #d1d5db;
+  --ds-border-emphasis: #4b5563;
+  --ds-ink: #0b0f1a;
+  --ds-ink-strong: #0b0f1a;
+  --ds-ink-muted: #1f2937;
+  --ds-ink-subtle: #4b5563;
+  --ds-ink-tertiary: #6b7280;
+  --ds-ink-faint: #9ca3af;
+  --ds-accent: #1d4ed8;
+  --ds-accent-hover: #1e40af;
+  --ds-accent-contrast: #ffffff;
+  --ds-brand: #ff9f0a;
+  --ds-brand-ink: #0b0f1a;
+  --ds-success: #047857;
+  --ds-warn: #b45309;
+  --ds-danger: #b91c1c;
+  --ds-info: #1d4ed8;
+  --ds-focus-ring: #1d4ed8;
+
+  --ds-bg-success: #ecfdf5;
+  --ds-bg-warn: #fffbeb;
+  --ds-bg-danger: #fef2f2;
+  --ds-bg-info: #eff6ff;
+  --ds-bg-brand: #fff7ed;
 }
 
 html, body {
