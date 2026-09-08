@@ -17,6 +17,10 @@
   --color-ink-700: #334155;
   --color-ink-600: #475569;
   --color-ink-500: #64748b;
+  --color-ink-400: #94a3b8; /* default muted meta — matches Tailwind slate-400 */
+  --color-ink-300: #cbd5e1; /* mid muted */
+  --color-ink-200: #e2e8f0; /* light muted */
+  --color-ink-100: #f8fafc; /* near-white, decorative */
 
   --color-paper-50: #f8fafc;
 
@@ -220,6 +224,10 @@
   --color-ink-700: #cbd5e1;
   --color-ink-600: #94a3b8;
   --color-ink-500: #64748b;
+  --color-ink-400: #e2e8f0; /* bright on dark — inverted intent (was slate-400) */
+  --color-ink-300: #cbd5e1;
+  --color-ink-200: #94a3b8;
+  --color-ink-100: #64748b; /* deep muted on dark */
 
   --color-paper-50: #1e293b;
 
@@ -669,6 +677,10 @@ body {
   --color-ink-600: #94A3B8;
   --color-ink-700: #CBD5E1;
   --color-ink-800: #F1F5F9;
+  --color-ink-100: #64748B;
+  --color-ink-200: #94A3B8;
+  --color-ink-300: #CBD5E1;
+  --color-ink-400: #E2E8F0;
   --color-brand-900: #F1F5F9;
   --color-brand-600: #22D3EE;
   --color-brand-700: #0891B2;
