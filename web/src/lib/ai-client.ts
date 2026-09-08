@@ -446,7 +446,7 @@ const BUDGET_FILE = "/tmp/blockid-ai-budget.json";
 
 // Rough cost estimates per 1K tokens (input+output averaged)
 const COST_PER_1K: Record<string, number> = {
-  "claude-haiku-4-5-20251001": 0.001,
+  "claude-haiku-4-5-20251001": 0.003, // direct API: $1 in + $5 out per 1M ≈ $0.003/1K blended
   "claude-sonnet-5": 0.015,
   "gpt-4o-mini": 0.0003,
   "o3-mini": 0.0055,
@@ -505,8 +505,6 @@ const COST_PER_1K: Record<string, number> = {
   "deepseek-ai/DeepSeek-V3": 0.00061,
   "meta-llama/Meta-Llama-3.3-70B-Instruct": 0.00021,
   "Qwen/Qwen2.5-72B-Instruct": 0.00027,
-  // Claude Haiku direct API ($1 in / $5 out per 1M, prompt cache $0.10/M read):
-  "claude-haiku-4-5-20251001": 0.003,
   // Legacy OpenRouter entries (kept for health record continuity)
   "nvidia/nemotron-3-ultra-550b-a55b:free": 0,
   "deepseek/deepseek-v4-flash:free": 0,
