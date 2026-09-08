@@ -16,7 +16,10 @@ const SVI_500 = "#FF9F0A"; // brand-accent per docs/design-system.md
 const BULL = "#16C784";
 const WARN = "#F5B23F";
 const BEAR = "#F16169";
-const TRACK = "rgba(148, 163, 184, 0.16)"; // matches --fintech-border
+// Theme-aware track. Was rgba(148,163,184,0.16), a value picked for the
+// deep-navy ground — over the light-first surface it is ~1.1:1 and the
+// gauge renders with no track at all. --ds-border-strong retints.
+const TRACK = "var(--ds-border-strong)";
 
 function pickEndStop(score: number): string {
   if (score >= 70) return BULL;
@@ -122,12 +125,11 @@ export function SviScoreRing({
           }}
         >
           <span
-            className="font-display"
+            className="font-display text-primary"
             style={{
               fontSize: Math.round(size * 0.32),
               fontWeight: 700,
               lineHeight: 1,
-              color: "var(--fintech-ink, #F1F5F9)",
               letterSpacing: "-0.02em",
             }}
           >
@@ -135,12 +137,12 @@ export function SviScoreRing({
           </span>
           {label ? (
             <span
+              className="text-tertiary"
               style={{
                 marginTop: 4,
                 fontSize: 11,
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "var(--fintech-ink-muted, #94A3B8)",
               }}
             >
               {label}

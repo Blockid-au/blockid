@@ -134,7 +134,7 @@ export function GrowthPhaseStrip({
                       (isActive
                         ? "border-transparent text-white shadow-sm"
                         : isPast
-                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                          ? "border-bull/30 bg-bull/10 text-bull"
                           : "border-line-subtle bg-surface-hover text-secondary")
                     }
                     style={
