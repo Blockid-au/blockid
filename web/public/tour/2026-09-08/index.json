@@ -1,0 +1,52 @@
+[
+  {
+    "url": "https://blockid.au/",
+    "status": 200,
+    "file": "web/public/tour/2026-09-08/01-home.png"
+  },
+  {
+    "url": "https://blockid.au/analyze",
+    "status": 200,
+    "file": "web/public/tour/2026-09-08/02-analyze-free.png"
+  },
+  {
+    "url": "https://blockid.au/analyze?tier=paid",
+    "status": 200,
+    "file": "web/public/tour/2026-09-08/03-analyze-paid.png"
+  },
+  {
+    "url": "https://blockid.au/team",
+    "status": 200,
+    "file": "web/public/tour/2026-09-08/04-team.png"
+  },
+  {
+    "url": "https://blockid.au/changelog",
+    "status": 200,
+    "file": "web/public/tour/2026-09-08/05-changelog.png"
+  },
+  {
+    "url": "https://blockid.au/roadmap",
+    "status": 200,
+    "file": "web/public/tour/2026-09-08/06-roadmap.png"
+  },
+  {
+    "url": "https://blockid.au/docs",
+    "status": 200,
+    "file": "web/public/tour/2026-09-08/07-docs.png"
+  },
+  {
+    "url": "https://blockid.au/dashboard",
+    "status": 200,
+    "file": "web/public/tour/2026-09-08/08-dashboard.png"
+  },
+  {
+    "url": "https://startupvalueindex.com/",
+    "status": 200,
+    "file": "web/public/tour/2026-09-08/09-svi-home.png"
+  },
+  {
+    "url": "https://startupvalueindex.com/analyze",
+    "status": 404,
+    "file": "web/public/tour/2026-09-08/10-svi-analyze.png"
+  }
+]

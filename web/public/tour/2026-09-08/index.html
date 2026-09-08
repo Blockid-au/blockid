@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlockID Tour — 2026-09-08 (Block 5 final)</title>
+<style>
+  :root { --bg: #ffffff; --ink: #0b0f1a; --muted: #4b5563; --line: #e5e7eb; --raised: #f7f8fa; --accent: #1d4ed8; }
+  body { margin: 0; font: 14px/1.55 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--ink); }
+  header { padding: 32px 24px 16px; max-width: 1240px; margin: 0 auto; }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+  figure { margin: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--raised); }
+  figure a { display: block; }
+  figure img { display: block; width: 100%; height: auto; }
+  figcaption { padding: 10px 14px; border-top: 1px solid var(--line); }
+  figcaption .name { font-weight: 600; }
+  figcaption .url { color: var(--accent); font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; text-decoration: none; word-break: break-all; }
+  figcaption .status { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .bad { color: #b91c1c; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BlockID + SVI screenshot tour — 2026-09-08</h1>
+  <p>Block 5 final: 10 routes captured against live at 1440x900. Click any thumbnail for the full-resolution PNG.</p>
+</header>
+<main id="tiles"></main>
+<script>
+  const routes = [
+    { file: '01-home.png', name: 'Homepage', url: 'https://blockid.au/', status: 200 },
+    { file: '02-analyze-free.png', name: '/analyze (free tier)', url: 'https://blockid.au/analyze', status: 200 },
+    { file: '03-analyze-paid.png', name: '/analyze?tier=paid', url: 'https://blockid.au/analyze?tier=paid', status: 200 },
+    { file: '04-team.png', name: 'Team', url: 'https://blockid.au/team', status: 200 },
+    { file: '05-changelog.png', name: 'Changelog', url: 'https://blockid.au/changelog', status: 200 },
+    { file: '06-roadmap.png', name: 'Roadmap', url: 'https://blockid.au/roadmap', status: 200 },
+    { file: '07-docs.png', name: 'Docs', url: 'https://blockid.au/docs', status: 200 },
+    { file: '08-dashboard.png', name: 'Dashboard', url: 'https://blockid.au/dashboard', status: 200 },
+    { file: '09-svi-home.png', name: 'SVI homepage', url: 'https://startupvalueindex.com/', status: 200 },
+    { file: '10-svi-analyze.png', name: 'SVI /analyze (route not published yet)', url: 'https://startupvalueindex.com/analyze', status: 404 },
+  ];
+  const tiles = document.getElementById('tiles');
+  for (const r of routes) {
+    const fig = document.createElement('figure');
+    fig.innerHTML = '<a href="' + r.file + '"><img src="' + r.file + '" alt="' + r.name + '" loading="lazy"></a>' +
+      '<figcaption><div class="name">' + r.name + '</div>' +
+      '<a class="url" href="' + r.url + '" target="_blank" rel="noreferrer">' + r.url + '</a>' +
+      '<div class="status ' + (r.status !== 200 ? 'bad' : '') + '">HTTP ' + r.status + '</div></figcaption>';
+    tiles.appendChild(fig);
+  }
+</script>
+</body>
+</html>
