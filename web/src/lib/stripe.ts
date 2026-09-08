@@ -54,7 +54,24 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   // consumed by the guest checkout route (Phase 2).
   one_click_report: process.env.STRIPE_PRICE_ONE_CLICK_REPORT,
   // Share Management add-on — per docs/plans/reseller-module-plan.md § F.5 / P8.
-  // Env vars minted by Stripe account owner (P8.5, human-blocked until then).
+  //
+  // 2026-09-08: provisioned and sold as the **Equity add-on**, a flat
+  // A$59/mo AUD price (tax_behavior=inclusive) on Stripe Product
+  // "BlockID Equity". It gates ESOP grant administration, vesting schedules,
+  // dividend runs, the shareholder/employee portal, on-chain sync and ATO ESS
+  // reporting.
+  //
+  // Deliberately NOT per-seat: shareholders and employees consume no seats and
+  // are unlimited. Every competitor charges per head (Cake +$1–60, Qapita
+  // +$40/yr, Eqvista $2/mo), which taxes the founder exactly as the cap table
+  // grows and creates an incentive to keep people off the register — fatal
+  // when the off-chain register is the legal source of truth under AU
+  // corporate law and only has value if it is complete. The gate is
+  // company-level capability instead.
+  //
+  // The `_annual` slot stays unprovisioned (null): the add-on ships
+  // monthly-only, and the billing drawer hides its cadence toggle when the
+  // annual price id is null.
   addon_share_mgmt_monthly: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY,
   addon_share_mgmt_annual: process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL,
 };

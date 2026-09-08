@@ -256,7 +256,11 @@ export function ShareMgmtDrawer({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-          {/* Cadence toggle */}
+          {/* Cadence toggle. Rendered only when BOTH cadences are provisioned.
+              The Equity add-on shipped 2026-09-08 as a flat A$59/mo price with
+              no annual SKU; showing an "Annual" tab that resolves to a null
+              price id would render a dead, permanently-disabled CTA. */}
+          {priceIds.annual && (
           <div className="grid grid-cols-2 rounded-xl bg-surface-100 p-1 text-sm">
             <button
               type="button"
@@ -286,6 +290,7 @@ export function ShareMgmtDrawer({
               </span>
             </button>
           </div>
+          )}
 
           {/* Benefits */}
           <ul className="space-y-2 text-sm text-ink-700">
