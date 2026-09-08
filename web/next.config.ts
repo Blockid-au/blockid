@@ -115,6 +115,23 @@ const nextConfig: NextConfig = {
         destination: "/score",
         statusCode: 301,
       },
+      // Block 2 (2026-09-08) — unified `/analyze` entry point supersedes the
+      // three legacy free-text / URL / file surfaces. Preserve SEO on
+      // `/score` and `/one-click-report` by 301-ing them to /analyze with
+      // the correct tier hint so the omnibox lands the right upsell.
+      // The earlier "do not redirect /score" note above (2026-08 QA) is
+      // superseded by this consolidation — /analyze now hosts the actual
+      // analyser form.
+      {
+        source: "/score",
+        destination: "/analyze?tier=free",
+        statusCode: 301,
+      },
+      {
+        source: "/one-click-report",
+        destination: "/analyze?tier=paid",
+        statusCode: 301,
+      },
     ];
   },
   async headers() {

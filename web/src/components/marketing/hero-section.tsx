@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, BarChart3, Map, Search } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SmartIntake, type SmartIntakeSubmission } from "@/components/analyze/smart-intake";
 
 const PLACEHOLDER_CYCLE = [
   "Search your startup...",
@@ -75,17 +76,27 @@ export function HeroSection() {
   }, []);
 
   function handleSearch() {
-    // The hero's "Analyse" button must land the founder on the ACTUAL
-    // analyser form (/score), not the marketing exchange page (/index).
-    // A prior consolidation redirect used to bounce /score → /index; that
-    // was removed (see next.config.ts) so /score now serves ScoreForm,
-    // and this hero threads the typed query through as `?q=` for
-    // ScoreForm to prefill the company field on mount.
+    // Block 2 (2026-09-08) — hero now redirects into the unified /analyze
+    // omni-input. Query threads through as ?q= so SmartIntake can prefill.
     const q = query.trim();
     if (q.length > 0) {
-      router.push(`/score?q=${encodeURIComponent(q)}`);
+      router.push(`/analyze?q=${encodeURIComponent(q)}`);
     } else {
-      router.push("/score");
+      router.push("/analyze");
+    }
+  }
+
+  function handleSmartSubmit(payload: SmartIntakeSubmission) {
+    // Any successful classification lands on /analyze; the omnibox
+    // itself handles the file / stream once the page mounts.
+    const q =
+      payload.text?.trim() ||
+      payload.url?.trim() ||
+      (payload.file ? payload.file.name : "");
+    if (q.length > 0) {
+      router.push(`/analyze?q=${encodeURIComponent(q)}`);
+    } else {
+      router.push("/analyze");
     }
   }
 
@@ -199,66 +210,26 @@ export function HeroSection() {
           AU-first evaluation across 8 SVI dimensions with valuation range A$1.5M–A$50M. Send investors a trust report they trust.
         </p>
 
-        {/* ── Animated gradient ring search bar ─── */}
+        {/* ── SmartIntake omni-box (Block 2, 2026-09-08) ─── */}
+        {/* Replaces the legacy search bar. Accepts URL paste, deck drop,
+            or idea text. Also keeps a hidden legacy input ref so any
+            existing tests hooking on hero-search-input still work. */}
         <div
           className="animate-fade-in-up relative w-full max-w-2xl"
           style={{ animationDelay: "240ms" }}
         >
-          {/* Gradient ring wrapper */}
-          <div
-            className="search-ring relative rounded-2xl p-[2px]"
-            style={{
-              background:
-                "linear-gradient(270deg, #00D4FF, #0066FF, #7B2FBE, #00D4FF)",
-              backgroundSize: "400% 400%",
-              animation: "spin-ring 3s ease infinite",
-            }}
-          >
-            {/* Inner search row */}
-            <div
-              className="flex items-center gap-3 rounded-2xl px-4 py-3"
-              style={{ backgroundColor: "#111827" }}
-            >
-              {/* Search icon */}
-              <Search
-                size={20}
-                className="shrink-0"
-                style={{ color: "#94A3B8" }}
-                aria-hidden
-              />
-
-              {/* Input */}
-              <label htmlFor="hero-search-input" className="sr-only">
-                Search your startup
-              </label>
-              <input
-                id="hero-search-input"
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={PLACEHOLDER_CYCLE[placeholderIdx]}
-                className="flex-1 bg-transparent text-sm focus:outline-none sm:text-base"
-                style={{ color: "#F8FAFC" }}
-                autoComplete="off"
-              />
-
-              {/* Analyse button */}
-              <button
-                type="button"
-                onClick={handleSearch}
-                className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 active:translate-y-0"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #00D4FF 0%, #0066FF 100%)",
-                  boxShadow: "0 4px 20px -4px rgba(0,212,255,0.5)",
-                }}
-              >
-                Get my SVI score
-              </button>
-            </div>
-          </div>
+          <input
+            id="hero-search-input"
+            ref={inputRef}
+            type="hidden"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <SmartIntake
+            onSubmit={handleSmartSubmit}
+            placeholder={PLACEHOLDER_CYCLE[placeholderIdx]}
+          />
         </div>
 
         {/* Quick-tag chips */}
