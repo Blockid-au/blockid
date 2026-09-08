@@ -60,6 +60,14 @@ export interface AnalyzeCostModalProps {
   ctaLabel?: string;
   loading?: boolean;
   errorMessage?: string | null;
+  /**
+   * When the estimate endpoint returned 401 (unauthenticated) the confirm
+   * CTA is swapped for a "Sign in to run — X credits" link. Pass the
+   * absolute href (e.g. "/auth/login?next=/analyze") — no auto-navigation.
+   */
+  signInHref?: string;
+  /** True while the caller is still fetching a live estimate. */
+  estimateLoading?: boolean;
 }
 
 export function AnalyzeCostModal({
@@ -75,6 +83,8 @@ export function AnalyzeCostModal({
   ctaLabel = "Run analysis",
   loading = false,
   errorMessage = null,
+  signInHref,
+  estimateLoading = false,
 }: AnalyzeCostModalProps) {
   const total =
     totalCredits ?? rows.reduce((sum, r) => sum + (r.credits || 0), 0);
@@ -204,23 +214,37 @@ export function AnalyzeCostModal({
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={() => void onConfirm()}
-            disabled={loading || !canAfford}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
-              !canAfford
-                ? "bg-surface-hover text-tertiary cursor-not-allowed"
-                : "bg-action text-on-action hover:bg-action-hover",
-            )}
-            data-testid="cost-confirm"
-          >
-            {loading && (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-            )}
-            {loading ? "Running…" : ctaLabel}
-          </button>
+          {signInHref ? (
+            <a
+              href={signInHref}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover"
+              data-testid="cost-signin"
+            >
+              Sign in to run — {total.toFixed(2)} cr
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void onConfirm()}
+              disabled={loading || estimateLoading || !canAfford}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
+                !canAfford || estimateLoading
+                  ? "bg-surface-hover text-tertiary cursor-not-allowed"
+                  : "bg-action text-on-action hover:bg-action-hover",
+              )}
+              data-testid="cost-confirm"
+            >
+              {(loading || estimateLoading) && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              )}
+              {loading
+                ? "Running…"
+                : estimateLoading
+                  ? "Estimating…"
+                  : ctaLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>
