@@ -178,6 +178,10 @@ export async function POST(request: Request) {
   let priceId: string | null | undefined;
   let trialDays = 0;
   let dbPlanSegment: string | null = null;
+  // Tiers priced by negotiation (plans.interval = 'custom', e.g.
+  // founder_enterprise) are invoiced offline and never minted as a Stripe
+  // Price. They must answer "contact sales", not "invalid plan" / 503.
+  let isCustomPriced = false;
 
   if (IS_STARTUP_PACKAGE) {
     plan = {
@@ -215,6 +219,7 @@ export async function POST(request: Request) {
         priceId = dbPlan.stripe_price_id ?? STRIPE_PRICE_MAP[planId];
         trialDays = Number(dbPlan.trial_days ?? 0) || 0;
         dbPlanSegment = typeof dbPlan.segment === "string" ? dbPlan.segment : null;
+        isCustomPriced = dbPlan.interval === "custom";
       }
     } catch {
       // plans-db not available yet (W1 rollout in progress) — legacy behaviour.
@@ -226,6 +231,24 @@ export async function POST(request: Request) {
         priceId = STRIPE_PRICE_MAP[planId];
       }
     }
+  }
+
+  // Custom-priced tiers (enterprise) are a sales conversation, not a broken
+  // checkout — answer with an explicit contact-sales shape so the UI can route
+  // the user instead of surfacing a generic failure.
+  if (isCustomPriced) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "contact_sales",
+        planId,
+        // Matches the contact-sales CTA href in components/landing/pricing-matrix.tsx.
+        contactUrl: `/contact?plan=${encodeURIComponent(planId)}`,
+        message:
+          "This plan is priced individually and invoiced offline. Contact our team to get started.",
+      },
+      { status: 200 },
+    );
   }
 
   if (!plan || plan.cadence === "free") {
