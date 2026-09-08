@@ -155,6 +155,11 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
   return (
     <section
       id="pricing-anchor"
+      // Intentional dark island — PricingMatrix is only rendered inside the
+      // lux marketing shell (pricing page, homepage v2). data-theme="dark"
+      // self-scope keeps its legacy brand-* utilities resolving to the dark
+      // palette regardless of the outer page.
+      data-theme="dark"
       className="mx-auto max-w-7xl scroll-mt-16 px-4 py-16 sm:py-20"
       aria-labelledby="pricing-matrix-heading"
     >
