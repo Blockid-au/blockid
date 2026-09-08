@@ -1,12 +1,15 @@
 {
-  "updatedAt": "2026-09-06T22:01:23.636Z",
+  "updatedAt": "2026-09-08T02:00:00.000Z",
   "openrouter": [
-    "poolside/laguna-s-2.1:free",
+    "inclusionai/ling-3.0-flash-fin:free",
     "liquid/lfm-2.5-2.6b:free",
+    "poolside/laguna-xs-2.1:free",
+    "openrouter/free",
+    "cohere/north-mini-code:free",
     "google/lyria-3-pro-preview",
+    "google/lyria-3-clip-preview",
+    "thinkingmachines/inkling-small:free",
     "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "minimax/minimax-m3:free",
-    "minimax/minimax-m2.7:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
     "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
@@ -14,18 +17,19 @@
     "thinkingmachines/inkling:free",
     "nvidia/nemotron-3.5-lightning:free",
     "dots-studio/dots-3-note-preview:free",
-    "inclusionai/ling-3.0-flash-sante:free",
-    "inclusionai/ling-3.0-flash-fin:free"
+    "inclusionai/ling-3.0-flash-sante:free"
   ],
   "groq": [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
     "qwen/qwen3.8-27b",
     "qwen/qwen3.6-27b",
     "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
     "groq/compound",
     "allam-2-7b",
-    "canopylabs/orpheus-arabic-saudi",
     "canopylabs/orpheus-v1-english",
+    "canopylabs/orpheus-arabic-saudi",
     "groq/compound-mini"
   ],
   "cerebras": [
@@ -34,6 +38,7 @@
     "qwen-3.8-27b"
   ],
   "sambanova": [
+    "DeepSeek-R1",
     "DeepSeek-V3.1",
     "DeepSeek-V3.2",
     "MiniMax-M3",

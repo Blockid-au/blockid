@@ -421,7 +421,9 @@ const COST_PER_1K: Record<string, number> = {
   "o3-mini": 0.0055,
   "gpt-4.1-mini": 0.002,
   "gemini-2.5-flash": 0.0014,   // PAID: $0.30/1M input + $2.50/1M output averaged
-  "llama-3.3-70b-versatile": 0,  // Groq free tier (legacy — health shows dead, kept for records)
+  "llama-3.3-70b-versatile": 0,  // Groq free tier — verified live in Groq docs (Sep 2026): 280 t/s, 131K ctx, 32K max out
+  "inclusionai/ling-3.0-flash-fin:free": 0, // OpenRouter free — 124B MoE, 262K ctx, finance-tuned (matches BlockID domain)
+  "liquid/lfm-2.5-2.6b:free": 0, // OpenRouter free — Liquid AI 2.6B, 65K ctx, ultra-fast small-model fallback
   "qwen/qwen3.6-27b": 0,        // Groq free tier (Aug 2026 — top of discovery)
   "openai/gpt-oss-120b": 0,     // Groq free tier
   "openai/gpt-oss-20b": 0,      // Groq free tier
@@ -777,13 +779,13 @@ async function callGroq(opts: AICallOptions): Promise<AICallResult> {
   const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
   if (!apiKey) throw new Error("Groq API key not configured");
 
-  // Groq models ranked by Aug 2026 discovery + prod health data:
-  // qwen/qwen3.6-27b (ok:12, discovery top) > openai/gpt-oss-120b (ok:4)
-  // > llama-3.1-8b-instant (ok:76, ultra-reliable) > gpt-oss-20b (ok:6)
-  // NOTE: llama-3.3-70b-versatile DROPPED — health shows 0 ok, 5 fails (dead endpoint)
+  // Groq models ranked by Sep 2026 official docs + prod health data:
+  // llama-3.3-70b-versatile re-added — Groq's own docs list it as production-grade
+  // (280 t/s, 131K ctx). Kept below qwen3.6 while cooldown/health prove it out again.
   const GROQ_MODELS = getDynamicModels("groq", [
     "qwen/qwen3.6-27b",          // A-tier: Qwen3 27B, top of Aug 2026 discovery
     "openai/gpt-oss-120b",       // A-tier: 117B MoE, best quality when available
+    "llama-3.3-70b-versatile",   // B-tier: 70B, 280 t/s — re-verified in Groq docs (Sep 2026)
     "llama-3.1-8b-instant",      // C-tier: 8B, 560 t/s — most reliable in prod (76 ok)
     "openai/gpt-oss-20b",        // C-tier: 20B, fast fallback
   ]);
@@ -883,6 +885,7 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
   // > gemma-4-31B-it (B-tier) > Meta-Llama-3.3-70B (B-tier) > Meta-Llama-3.1-8B (C-tier)
   // NOTE: "DeepSeek-V3-0324" kept last for health record continuity — may still be live
   const SAMBANOVA_MODELS = getDynamicModels("sambanova", [
+    "DeepSeek-R1",                 // S-tier: strongest free reasoning model on SambaNova
     "DeepSeek-V3.2",               // S-tier: latest DeepSeek V3 on SambaNova (Aug 2026)
     "DeepSeek-V3.1",               // S-tier: previous DeepSeek V3 checkpoint
     "gpt-oss-120b",                // A-tier: OpenAI 117B open-weight on SambaNova
@@ -947,10 +950,12 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
     "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",        // NVIDIA Nemotron 253B — large reasoning
     "microsoft/phi-4-reasoning-plus:free",                 // Phi-4 Reasoning Plus — strong for size
     "tngtech/deepseek-r1t-chimera:free",                   // DeepSeek R1T Chimera — hybrid reasoning
+    "inclusionai/ling-3.0-flash-fin:free",                 // Ling 3.0 Fin — 124B MoE, 262K ctx, finance-tuned (BlockID domain fit)
 
     // ── B-tier: Solid quality, reliable ─────────────────────────────
     "google/gemma-3-27b-it:free",                          // Gemma 3 27B — Google efficient instruct
     "mistralai/mistral-small-3.2-24b-instruct:free",       // Mistral Small 3.2 — reliable European model
+    "liquid/lfm-2.5-2.6b:free",                            // Liquid LFM 2.5 2.6B — 65K ctx, ultra-fast small fallback
   ]);
 
   let lastErr: Error | null = null;
