@@ -1,14 +1,29 @@
 "use client";
 
 // IdeaLabPanel — renders the founder's typed idea as a "manuscript"
-// card and then flips to a stage-classification card before dimension
-// deep-dive opens. Uses the canonical stage vocabulary so the label
-// matches the rest of the app.
+// card and then flips to a stage-classification card before the
+// dimension deep-dive opens.
+//
+// Modes:
+//   1. Legacy — pass `ideaText` + `phase` + `classification` explicitly
+//      (used by tests and callers with their own classifier state).
+//   2. `intake` prop — read `intake.rawText` and derive the classification
+//      from `intake.context` (stage/maturity/evidenceCompleteness). The
+//      panel shows the stage card BEFORE running any deep-dive, honouring
+//      the "explain what we saw before charging credits" principle. Fires
+//      `onDone(intake)` after a short pause so the founder can read the
+//      classification before the results view mounts.
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { CANONICAL_STAGE_LABELS, type StageKey } from "@/lib/journey-vocabulary";
+import {
+  CANONICAL_STAGE_LABELS,
+  sviStageToCanonical,
+  type StageKey,
+} from "@/lib/journey-vocabulary";
 import { Sparkles } from "lucide-react";
+import type { IntakeResult } from "@/lib/intake/analyze-input";
+import type { IntakeContext } from "@/lib/intake/detect-context";
 
 export type IdeaLabPhase = "manuscript" | "classifying" | "classified";
 
@@ -19,18 +34,81 @@ export interface IdeaClassification {
 }
 
 export interface IdeaLabPanelProps {
-  ideaText: string;
-  phase: IdeaLabPhase;
+  /** Legacy — pass everything explicitly. */
+  ideaText?: string;
+  phase?: IdeaLabPhase;
   classification?: IdeaClassification | null;
+  /**
+   * Preferred — drive the panel off the /api/intake result. The panel
+   * reads intake.rawText for the manuscript body and intake.context for
+   * the stage classification card.
+   */
+  intake?: IntakeResult;
+  /** Fired after the classification card has rendered for `holdMs`. */
+  onDone?: (intake: IntakeResult) => void;
+  /** How long to hold the classification card before firing onDone. */
+  holdMs?: number;
   className?: string;
 }
 
+/** Human-readable reasons pulled from an IntakeContext. */
+function reasonsFromContext(ctx: IntakeContext): string[] {
+  const out: string[] = [];
+  out.push(
+    `Maturity heuristics point at ${ctx.maturity} (${Math.round(
+      ctx.evidenceCompleteness * 100,
+    )}% signal completeness).`,
+  );
+  if (ctx.missingSignals.length > 0) {
+    out.push(`Missing: ${ctx.missingSignals.slice(0, 3).join(", ")}`);
+  }
+  out.push(`Growth phase: ${ctx.growthPhaseId.replace(/_/g, " ")}`);
+  return out;
+}
+
+/** Confidence proxy from IntakeContext.evidenceCompleteness (0..1). */
+function confidenceFromContext(ctx: IntakeContext): number {
+  // Floor at 0.35 so even a bare idea shows a visible confidence bar.
+  return Math.max(0.35, ctx.evidenceCompleteness);
+}
+
 export function IdeaLabPanel({
-  ideaText,
-  phase,
-  classification,
+  ideaText: ideaTextProp,
+  phase: phaseProp,
+  classification: classificationProp,
+  intake,
+  onDone,
+  holdMs = 1400,
   className,
 }: IdeaLabPanelProps) {
+  const doneRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!intake) return;
+    doneRef.current = false;
+    const t = window.setTimeout(() => {
+      if (doneRef.current) return;
+      doneRef.current = true;
+      onDone?.(intake);
+    }, holdMs);
+    return () => window.clearTimeout(t);
+  }, [intake, onDone, holdMs]);
+
+  // Derive props from intake when in intake mode.
+  const derivedIdeaText = intake?.rawText ?? ideaTextProp ?? "";
+  const derivedClassification: IdeaClassification | null = intake?.context
+    ? {
+        stage: sviStageToCanonical(intake.context.stage),
+        confidence: confidenceFromContext(intake.context),
+        reasons: reasonsFromContext(intake.context),
+      }
+    : classificationProp ?? null;
+  const derivedPhase: IdeaLabPhase =
+    phaseProp ?? (intake ? "classified" : "manuscript");
+
+  const ideaText = derivedIdeaText;
+  const phase = derivedPhase;
+  const classification = derivedClassification;
+
   return (
     <div
       className={cn(
