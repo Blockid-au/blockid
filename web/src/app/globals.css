@@ -300,6 +300,32 @@
     --color-ink-100: #9ca3af;
 
     --color-paper-50: #111827;
+
+    /* rev.4 — re-substitute the semantic generators (see the note in the
+       [data-theme="dark"] block) so OS-dark also repoints text-primary,
+       bg-surface, border-line-subtle etc. instead of inheriting the
+       light values already substituted on :root by @theme. */
+    --color-surface: var(--ds-surface);
+    --color-surface-raised: var(--ds-surface-elevated);
+    --color-surface-sunken: var(--ds-surface-sunken);
+    --color-surface-hover: var(--ds-surface-hover);
+    --color-line: var(--ds-border-strong);
+    --color-line-subtle: var(--ds-border);
+    --color-line-strong: var(--ds-border-emphasis);
+    --color-primary: var(--ds-ink);
+    --color-strong: var(--ds-ink-strong);
+    --color-secondary: var(--ds-ink-muted);
+    --color-muted: var(--ds-ink-subtle);
+    --color-tertiary: var(--ds-ink-tertiary);
+    --color-faint: var(--ds-ink-faint);
+    --color-on-brand: var(--ds-brand-ink);
+    --color-on-action: var(--ds-accent-contrast);
+    --color-action: var(--ds-accent);
+    --color-action-hover: var(--ds-accent-hover);
+    --color-bull: var(--ds-success);
+    --color-bear: var(--ds-danger);
+    --color-warn: var(--ds-warn);
+    --color-svi-500: var(--ds-brand);
   }
 }
 
@@ -357,6 +383,42 @@
   --color-ink-100: #9ca3af;
 
   --color-paper-50: #111827;
+
+  /* ── rev.4 (2026-09-08): re-declare the semantic --color-* generators
+       inside the dark scope.
+
+       Tailwind v4 hoists the `@theme` block to `:root`, so
+       `--color-primary: var(--ds-ink)` is *substituted* on :root against
+       the LIGHT `--ds-ink` (#0b0f1a) and descendants then inherit that
+       already-computed value. Re-pointing `--ds-ink` on a nested
+       `[data-theme="dark"]` section therefore did nothing: `text-primary`
+       kept painting near-black ink onto the dark hero, which is why the
+       homepage H1 rendered invisible (#0b0f1a on #0a0f1e ≈ 1.02:1).
+
+       Restating each --color-* here re-substitutes it against the dark
+       --ds-* values within the scope, so nested dark islands resolve for
+       real. Keep this list in sync with the @theme block above. */
+  --color-surface: var(--ds-surface);
+  --color-surface-raised: var(--ds-surface-elevated);
+  --color-surface-sunken: var(--ds-surface-sunken);
+  --color-surface-hover: var(--ds-surface-hover);
+  --color-line: var(--ds-border-strong);
+  --color-line-subtle: var(--ds-border);
+  --color-line-strong: var(--ds-border-emphasis);
+  --color-primary: var(--ds-ink);
+  --color-strong: var(--ds-ink-strong);
+  --color-secondary: var(--ds-ink-muted);
+  --color-muted: var(--ds-ink-subtle);
+  --color-tertiary: var(--ds-ink-tertiary);
+  --color-faint: var(--ds-ink-faint);
+  --color-on-brand: var(--ds-brand-ink);
+  --color-on-action: var(--ds-accent-contrast);
+  --color-action: var(--ds-accent);
+  --color-action-hover: var(--ds-accent-hover);
+  --color-bull: var(--ds-success);
+  --color-bear: var(--ds-danger);
+  --color-warn: var(--ds-warn);
+  --color-svi-500: var(--ds-brand);
 }
 
 /* Force-light escape hatch — admin shell, dashboards that must stay
@@ -395,6 +457,37 @@
   --ds-bg-danger: #fef2f2;
   --ds-bg-info: #eff6ff;
   --ds-bg-brand: #fff7ed;
+
+  /* rev.4 — same re-substitution as the dark scope (see note above), so a
+     [data-theme="light"] island nested inside a dark ancestor resolves its
+     semantic --color-* tokens against the LIGHT --ds-* values. */
+  --color-surface: var(--ds-surface);
+  --color-surface-raised: var(--ds-surface-elevated);
+  --color-surface-sunken: var(--ds-surface-sunken);
+  --color-surface-hover: var(--ds-surface-hover);
+  --color-line: var(--ds-border-strong);
+  --color-line-subtle: var(--ds-border);
+  --color-line-strong: var(--ds-border-emphasis);
+  --color-primary: var(--ds-ink);
+  --color-strong: var(--ds-ink-strong);
+  --color-secondary: var(--ds-ink-muted);
+  --color-muted: var(--ds-ink-subtle);
+  --color-tertiary: var(--ds-ink-tertiary);
+  --color-faint: var(--ds-ink-faint);
+  --color-on-brand: var(--ds-brand-ink);
+  --color-on-action: var(--ds-accent-contrast);
+  --color-action: var(--ds-accent);
+  --color-action-hover: var(--ds-accent-hover);
+  --color-bull: var(--ds-success);
+  --color-bear: var(--ds-danger);
+  --color-warn: var(--ds-warn);
+  --color-svi-500: var(--ds-brand);
+
+  --color-surface-50: #ffffff;
+  --color-surface-100: #f8fafc;
+  --color-surface-200: #f1f5f9;
+  --color-surface-300: #e2e8f0;
+  --color-surface-400: #cbd5e1;
 }
 
 html, body {
