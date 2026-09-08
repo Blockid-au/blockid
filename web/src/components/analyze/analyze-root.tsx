@@ -22,6 +22,10 @@ import * as React from "react";
 import dynamic from "next/dynamic";
 import { SmartIntake, type SmartIntakeSubmission } from "./smart-intake";
 import { AnalyzeCostModal, type CostRow } from "./analyze-cost-modal";
+import {
+  GuestPaidCheckout,
+  type GuestInputType,
+} from "./guest-paid-checkout";
 import { plannedAgentsFor } from "@/lib/analyze/agent-plan";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 import type { IntakeContext } from "@/lib/intake/detect-context";
@@ -50,6 +54,13 @@ type Phase = "intake" | "confirm" | "live" | "results";
 interface AnalyzeRootProps {
   /** ?tier=free|paid — controls whether a paid tier is pre-selected. */
   tier?: "free" | "paid";
+  /**
+   * Server-resolved session state. When false and `tier === "paid"` the
+   * confirm step sells the A$3 guest report instead of spending credits the
+   * visitor does not have. Undefined means "unknown" — we then fall back to
+   * the 401 signal from /api/svi/report-estimate.
+   */
+  authenticated?: boolean;
 }
 
 // Placeholder per-agent credit cost used before the live estimate arrives
@@ -112,7 +123,43 @@ async function postIntake(sub: SmartIntakeSubmission): Promise<Response> {
   });
 }
 
-export function AnalyzeRoot({ tier = "free" }: AnalyzeRootProps) {
+/**
+ * Which guest SKU (if any) this submission can be sold as. The guest API
+ * (`/api/guest-analysis/create-order`) only accepts `pitch_file` and
+ * `website_url` — a typed idea has no A$3 SKU, so it stays on the free /
+ * credits path.
+ */
+export function guestInputTypeFor(
+  intake: IntakeResult | null,
+  sub: SmartIntakeSubmission | null,
+): GuestInputType | null {
+  if (!intake) return null;
+  if (intake.inputKind === "pitch_deck" && sub?.file) return "pitch_file";
+  if (intake.inputKind === "website" && guestUrlFor(intake, sub)) {
+    return "website_url";
+  }
+  return null;
+}
+
+/** Best-effort recovery of the site URL the visitor supplied. */
+export function guestUrlFor(
+  intake: IntakeResult | null,
+  sub: SmartIntakeSubmission | null,
+): string {
+  const candidate = sub?.url ?? sub?.text ?? intake?.rawText ?? "";
+  const trimmed = candidate.trim();
+  try {
+    const u = new URL(trimmed);
+    return u.protocol === "http:" || u.protocol === "https:" ? trimmed : "";
+  } catch {
+    return "";
+  }
+}
+
+export function AnalyzeRoot({
+  tier = "free",
+  authenticated,
+}: AnalyzeRootProps) {
   const [phase, setPhase] = React.useState<Phase>("intake");
   const [submission, setSubmission] =
     React.useState<SmartIntakeSubmission | null>(null);
@@ -124,6 +171,7 @@ export function AnalyzeRoot({ tier = "free" }: AnalyzeRootProps) {
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [ocrOffered, setOcrOffered] = React.useState(false);
   const [ocrLoading, setOcrLoading] = React.useState(false);
+  const [guestCheckoutOpen, setGuestCheckoutOpen] = React.useState(false);
 
   /** POST /api/svi/report-estimate with the freshly-detected context. */
   const loadEstimate = React.useCallback(
@@ -238,9 +286,24 @@ export function AnalyzeRoot({ tier = "free" }: AnalyzeRootProps) {
     }
   }
 
-  /** Confirm modal → advance to the live variant panel. */
+  // ── Guest A$3 path ─────────────────────────────────────────────────
+  // `?tier=paid` on an anonymous visit means "I want the paid report" — the
+  // credits flow is useless to someone with no account. Sell them the same
+  // A$3 One-Click Report that /one-click-report sells, using the identical
+  // upload-pitch → create-order → Stripe contract.
+  const isAnonymous =
+    authenticated === false ||
+    (authenticated === undefined && estimate?.signInRequired === true);
+  const guestInputType = guestInputTypeFor(intake, submission);
+  const guestSellable = tier === "paid" && isAnonymous && !!guestInputType;
+
+  /** Confirm modal → guest checkout, or advance to the live variant panel. */
   function handleConfirm() {
     if (!intake) return;
+    if (guestSellable) {
+      setGuestCheckoutOpen(true);
+      return;
+    }
     setPhase("live");
     setRunning(true);
   }
@@ -285,6 +348,7 @@ export function AnalyzeRoot({ tier = "free" }: AnalyzeRootProps) {
     setEstimate(null);
     setErrorMsg(null);
     setOcrOffered(false);
+    setGuestCheckoutOpen(false);
   }
 
   // ── Render ─────────────────────────────────────────────────────────
@@ -307,7 +371,9 @@ export function AnalyzeRoot({ tier = "free" }: AnalyzeRootProps) {
           </div>
         )}
         <p className="text-[11px] uppercase tracking-wider text-tertiary">
-          {tier === "paid" ? "Paid tier pre-selected" : "Free tier · upgrade any time"}
+          {tier === "paid"
+            ? "Paid report · A$3 inc GST · emailed as a PDF"
+            : "Free tier · upgrade any time"}
         </p>
       </div>
     );
@@ -343,18 +409,39 @@ export function AnalyzeRoot({ tier = "free" }: AnalyzeRootProps) {
       )}
 
       <AnalyzeCostModal
-        open={phase === "confirm" && !!estimate}
+        open={phase === "confirm" && !!estimate && !guestCheckoutOpen}
         onClose={handleReset}
         onConfirm={handleConfirm}
         rows={estimate?.rows ?? []}
         totalCredits={estimate?.total}
         fullTeardownCredits={estimate?.fullTeardown}
-        creditBalance={estimate?.balance}
+        // A guest buying the A$3 report is not spending credits, so the
+        // balance / affordability gate must not disable the CTA.
+        creditBalance={guestSellable ? undefined : estimate?.balance}
         estimateLoading={estimateLoading}
-        signInHref={estimate?.signInRequired ? "/auth/login?next=/analyze" : undefined}
-        title="Confirm the analysis"
-        subtitle={`Detected stage: ${stageLabel} · ${lineupCount} agents will run.`}
+        signInHref={
+          !guestSellable && estimate?.signInRequired
+            ? "/auth/login?next=/analyze"
+            : undefined
+        }
+        ctaLabel={guestSellable ? "Continue — A$3 report" : "Run analysis"}
+        title={guestSellable ? "Your A$3 report" : "Confirm the analysis"}
+        subtitle={
+          guestSellable
+            ? `Detected stage: ${stageLabel} · ${lineupCount} agents run on your input. One-off A$3 inc GST — emailed as a PDF, no account needed.`
+            : `Detected stage: ${stageLabel} · ${lineupCount} agents will run.`
+        }
       />
+
+      {guestInputType && (
+        <GuestPaidCheckout
+          open={guestCheckoutOpen}
+          onClose={() => setGuestCheckoutOpen(false)}
+          inputType={guestInputType}
+          file={submission?.file ?? null}
+          url={guestUrlFor(intake, submission)}
+        />
+      )}
 
       {errorMsg && (
         <div

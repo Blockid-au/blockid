@@ -9,6 +9,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AnalyzeRoot } from "@/components/analyze/analyze-root";
+import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Analyze your startup — SVI Score, Valuation, and Next Actions",
@@ -33,6 +34,11 @@ export default async function AnalyzePage({
 }) {
   const params = (await searchParams) ?? {};
   const tier = params.tier === "paid" ? "paid" : "free";
+  // Anonymous + ?tier=paid means "sell me the A$3 report", not "spend credits
+  // you don't have". AnalyzeRoot uses this to switch the confirm step over to
+  // the guest checkout. getCurrentUser tolerates missing cookies/Supabase and
+  // returns null rather than throwing.
+  const user = await getCurrentUser();
   return (
     <main className="min-h-screen bg-surface">
       <section
@@ -54,7 +60,10 @@ export default async function AnalyzePage({
             detect your stage, pick the right C-Level agents, and show the
             price before charging you a single credit.
           </p>
-          <AnalyzeRoot tier={tier as "free" | "paid"} />
+          <AnalyzeRoot
+            tier={tier as "free" | "paid"}
+            authenticated={Boolean(user)}
+          />
           <p className="text-xs text-muted">
             Prefer a walkthrough?{" "}
             <Link href="/tbr/demo" className="text-action hover:underline">
