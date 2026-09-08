@@ -504,3 +504,243 @@ describe("generateDataRoom — evidence matching", () => {
     expect(item(emptyRoom, "company", "ABN / Company Registration").status).toBe("missing");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Share links + honest document composition (2026-09-08).
+//
+// Context: "Share with investor" inserted seven columns that do not exist on
+// `data_rooms` and had therefore never once worked, and the one seeded room
+// marked 34 documents 'complete' with zero file_url and zero template_content.
+// These pins exist so neither failure can come back:
+//
+//   - a share token must be long and random (it IS the credential — there is
+//     no auth on the investor page);
+//   - shareLinkState must treat revoked_at, is_active=false and a past
+//     expires_at as all non-active, so a pulled link stays pulled;
+//   - composeRoomDocuments must NEVER emit status:'complete' with a null
+//     templateContent — that is exactly the empty-checklist failure;
+//   - every non-producible document must carry a "what to upload" note.
+
+import {
+  mintShareToken,
+  shareLinkState,
+  resolveExpiry,
+  composeRoomDocuments,
+  documentCompleteness,
+  UPLOAD_ONLY_DOCUMENTS,
+  DEFAULT_SHARE_DAYS,
+  MAX_SHARE_DAYS,
+} from "./data-room";
+
+describe("mintShareToken", () => {
+  it("returns a 32-char base64url token (24 random bytes ≈ 192 bits)", () => {
+    const t = mintShareToken();
+    expect(t).toHaveLength(32);
+    expect(t).toMatch(/^[A-Za-z0-9_-]{32}$/);
+  });
+
+  it("does not repeat across 200 mints — a collision would hand one investor another founder's room", () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 200; i++) seen.add(mintShareToken());
+    expect(seen.size).toBe(200);
+  });
+});
+
+describe("shareLinkState", () => {
+  const now = new Date("2026-09-08T00:00:00.000Z");
+
+  it("active when is_active and no revoke/expiry", () => {
+    expect(shareLinkState({ is_active: true }, now)).toBe("active");
+  });
+
+  it("revoked when revoked_at is set, even if is_active was left true", () => {
+    expect(
+      shareLinkState({ is_active: true, revoked_at: "2026-09-01T00:00:00Z" }, now),
+    ).toBe("revoked");
+  });
+
+  it("revoked when is_active is false", () => {
+    expect(shareLinkState({ is_active: false }, now)).toBe("revoked");
+  });
+
+  it("expired when expires_at is in the past", () => {
+    expect(
+      shareLinkState({ is_active: true, expires_at: "2026-09-07T23:59:59Z" }, now),
+    ).toBe("expired");
+  });
+
+  it("expired exactly at expires_at — the boundary is closed, not open", () => {
+    expect(
+      shareLinkState({ is_active: true, expires_at: now.toISOString() }, now),
+    ).toBe("expired");
+  });
+
+  it("active when expires_at is still in the future", () => {
+    expect(
+      shareLinkState({ is_active: true, expires_at: "2026-10-01T00:00:00Z" }, now),
+    ).toBe("active");
+  });
+
+  it("null/undefined is_active is treated as active — the column defaults true", () => {
+    expect(shareLinkState({}, now)).toBe("active");
+    expect(shareLinkState({ is_active: null }, now)).toBe("active");
+  });
+});
+
+describe("resolveExpiry", () => {
+  const now = new Date("2026-09-08T00:00:00.000Z");
+
+  it("defaults to DEFAULT_SHARE_DAYS when the caller sends nothing", () => {
+    expect(resolveExpiry(undefined, now)).toBe(
+      new Date(now.getTime() + DEFAULT_SHARE_DAYS * 86_400_000).toISOString(),
+    );
+  });
+
+  it("explicit null means a link that never expires", () => {
+    expect(resolveExpiry(null, now)).toBeNull();
+  });
+
+  it("clamps to MAX_SHARE_DAYS so a fat-fingered 99999 is not a forever link", () => {
+    expect(resolveExpiry(99999, now)).toBe(
+      new Date(now.getTime() + MAX_SHARE_DAYS * 86_400_000).toISOString(),
+    );
+  });
+
+  it("zero / negative / NaN degrade to no expiry rather than an already-dead link", () => {
+    expect(resolveExpiry(0, now)).toBeNull();
+    expect(resolveExpiry(-5, now)).toBeNull();
+    expect(resolveExpiry(Number.NaN, now)).toBeNull();
+  });
+
+  it("non-numeric input falls back to the default window", () => {
+    expect(resolveExpiry("30", now)).toBe(
+      new Date(now.getTime() + DEFAULT_SHARE_DAYS * 86_400_000).toISOString(),
+    );
+  });
+});
+
+describe("composeRoomDocuments — never fakes completeness", () => {
+  const RICH: Params = {
+    user: USER,
+    sviAccount: { startupName: "Acme", currentStage: 4, currentSvi: 640 },
+    latestAnalysis: {
+      totalSvi: 640,
+      analysisJson: { dimensions: { ftv: 80, mpc: 55, ptd: 70, tre: 40, cgh: 65, iri: 50, lco: 60, svm: 75 } },
+    },
+    metrics: [
+      { metricType: "mrr", value: 12000 },
+      { metricType: "arr", value: 144000 },
+      { metricType: "burn_rate", value: 30000 },
+      { metricType: "runway", value: 9 },
+      { metricType: "revenue_growth", value: 12 },
+    ],
+    capTable: {
+      shareholders: [
+        { name: "Ava Founder", role: "founder", shares_held: 700000 },
+        { name: "Ben Cofounder", role: "co-founder", shares_held: 300000 },
+      ],
+    },
+    evidence: [{ evidenceType: "doc", label: "ABN 79 659 615 111", valueOrUrl: "79659615111" }],
+    valuation: { low: 1_000_000, mid: 2_500_000, high: 4_000_000 },
+  };
+
+  it("every 'complete' document carries real templateContent — the empty-checklist regression", () => {
+    for (const doc of composeRoomDocuments(RICH)) {
+      if (doc.status === "complete") {
+        expect(doc.templateContent, `${doc.documentName} claimed complete with no content`).toBeTruthy();
+        expect((doc.templateContent ?? "").trim().length).toBeGreaterThan(80);
+      }
+    }
+  });
+
+  it("every non-complete document carries a 'what to upload' note", () => {
+    for (const doc of composeRoomDocuments(RICH)) {
+      if (doc.status !== "complete") {
+        expect(doc.notes, `${doc.documentName} is a silent gap`).toBeTruthy();
+      }
+    }
+  });
+
+  it("produces the five data-backed summaries plus the evidence index", () => {
+    const names = composeRoomDocuments(RICH)
+      .filter((d) => d.status === "complete")
+      .map((d) => d.documentName);
+    expect(names).toEqual([
+      "Company Summary",
+      "SVI Score Breakdown",
+      "Valuation Summary",
+      "Cap Table Summary",
+      "Traction & Metrics Summary",
+      "Evidence Index",
+    ]);
+  });
+
+  it("never marks an upload-only document complete, however much evidence exists", () => {
+    const docs = composeRoomDocuments({
+      ...RICH,
+      evidence: UPLOAD_ONLY_DOCUMENTS.map((s, i) => ({
+        evidenceType: "doc",
+        label: s.keywords[0]!,
+        valueOrUrl: `u${i}`,
+      })),
+    });
+    for (const spec of UPLOAD_ONLY_DOCUMENTS) {
+      const doc = docs.find((d) => d.documentName === spec.documentName)!;
+      expect(doc.status).not.toBe("complete");
+    }
+  });
+
+  it("evidence without an attached file downgrades to 'pending' and says which evidence matched", () => {
+    const docs = composeRoomDocuments({
+      ...RICH,
+      evidence: [{ evidenceType: "doc", label: "Signed shareholders agreement scan", valueOrUrl: "u" }],
+    });
+    const sha = docs.find((d) => d.documentName === "Shareholders Agreement (executed)")!;
+    expect(sha.status).toBe("pending");
+    expect(sha.notes).toContain("Signed shareholders agreement scan");
+  });
+
+  it("an empty workspace produces zero complete documents — no data, no claims", () => {
+    const docs = composeRoomDocuments({ user: USER, sviAccount: null });
+    expect(docs.filter((d) => d.status === "complete")).toHaveLength(0);
+    expect(documentCompleteness(docs)).toBe(0);
+    for (const d of docs) expect(d.notes).toBeTruthy();
+  });
+
+  it("cap table summary percentages are of issued shares and sum to 100", () => {
+    const doc = composeRoomDocuments(RICH).find((d) => d.documentName === "Cap Table Summary")!;
+    expect(doc.templateContent).toContain("70.00%");
+    expect(doc.templateContent).toContain("30.00%");
+    expect(doc.templateContent).toContain("not fully-diluted");
+  });
+
+  it("valuation summary renders AUD bands and refuses to read as advice", () => {
+    const doc = composeRoomDocuments(RICH).find((d) => d.documentName === "Valuation Summary")!;
+    expect(doc.templateContent).toContain("A$2,500,000");
+    expect(doc.templateContent).toContain("financial product advice");
+  });
+
+  it("SVI breakdown lists the three weakest dimensions as the diligence agenda", () => {
+    const doc = composeRoomDocuments(RICH).find((d) => d.documentName === "SVI Score Breakdown")!;
+    expect(doc.templateContent).toContain("Weakest dimensions");
+    expect(doc.templateContent).toContain("Traction & Revenue Engine (TRE)");
+  });
+
+  it("accepts dimension_scores as well as dimensions on the analysis json", () => {
+    const doc = composeRoomDocuments({
+      ...RICH,
+      latestAnalysis: { totalSvi: 400, analysisJson: { dimension_scores: { ftv: 10, mpc: 20 } } },
+    }).find((d) => d.documentName === "SVI Score Breakdown")!;
+    expect(doc.templateContent).toContain("Founder-Team Value (FTV)");
+  });
+
+  it("documentCompleteness counts content, not status flags", () => {
+    expect(documentCompleteness([])).toBe(0);
+    expect(
+      documentCompleteness([
+        { section: "a", folder: "f", documentName: "x", documentType: "auto", status: "complete", priority: "P0", templateContent: "y", notes: null },
+        { section: "a", folder: "f", documentName: "z", documentType: "upload", status: "missing", priority: "P0", templateContent: null, notes: "up" },
+      ]),
+    ).toBe(50);
+  });
+});

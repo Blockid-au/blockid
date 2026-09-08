@@ -9328,3 +9328,4 @@
 {"ts":"2026-09-08T13:10:52.590Z","event":"github-push-master","detail":"Blockid-au: feat(home): draw the journey, the data room and the stage comparison (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:12:24.754Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): migration 0125 — share-link revocation, view attribution, honest doc status (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T13:14:42.644Z","event":"github-push-master","detail":"Blockid-au: feat(home): rebuild the homepage around its own output (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:14:46.816Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): share-link + honest document composition helpers in lib/data-room (1 commits)","source":"github-webhook"}

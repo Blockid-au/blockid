@@ -11,8 +11,8 @@
 //     storing it would be paying ~30 KB a row for derivable data.
 
 import type { IntakeResult } from "@/lib/intake/analyze-input";
-import type { SVIAnalysis } from "@/lib/svi-analysis";
-import type { ValuationEstimate } from "@/lib/valuation";
+import { computeSVI, type SVIAnalysis } from "@/lib/svi-analysis";
+import { estimateValuation, type ValuationEstimate } from "@/lib/valuation";
 
 /** Hard cap on stored raw text. ~64 KB covers every real deck we have seen. */
 export const MAX_INPUT_TEXT_CHARS = 65_536;
@@ -208,4 +208,33 @@ export function toClientAnalysis(row: StoredAnalysisRow): Record<string, unknown
     context: row.context,
     svi: row.svi,
   };
+}
+
+/**
+ * Derive the compact score + valuation from an intake result, exactly the
+ * way `AnalyzeResults` does client-side — same `computeSVI(signals)`, same
+ * `estimateValuation(total, stage, {sector}, dims)` — so the row and the
+ * screen can never disagree about what the founder was shown.
+ *
+ * Returns null rather than throwing: a scoring hiccup must not cost the
+ * founder the row, and the retained signals make it recomputable later.
+ */
+export function deriveCompactSvi(result: IntakeResult): CompactSvi | null {
+  try {
+    if (!result.signals) return null;
+    const analysis = computeSVI(result.signals);
+    const dims =
+      analysis.dimensionScores ??
+      Object.fromEntries((analysis.subs ?? []).map((s) => [s.key, s.value]));
+    const valuation = estimateValuation(
+      analysis.totalSVI,
+      analysis.stage ?? 0,
+      { sector: analysis.sector ?? analysis.signals?.sector },
+      dims,
+    );
+    return compactSvi(analysis, valuation);
+  } catch (err) {
+    console.error("[analyses:derive] scoring failed —", err);
+    return null;
+  }
 }
