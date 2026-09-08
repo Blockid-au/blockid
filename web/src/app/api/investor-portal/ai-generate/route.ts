@@ -31,6 +31,42 @@ interface Body {
   temperature?: number;
   timeoutMs?: number;
   purpose?: string;
+  /**
+   * When "json", the proxy prepends a strict JSON-only instruction to the
+   * system prompt, strips markdown fences from the response, and retries
+   * once with a stronger hint if the body doesn't parse. Returned `text`
+   * is guaranteed to start with `{` or `[` when the call succeeds.
+   *
+   * SVI's structured pipelines (per-field analyse, sixteen-answers,
+   * market drill-in) should ALWAYS pass "json" — otherwise a chatty
+   * model reply breaks the downstream schema parse and the caller
+   * silently falls back to a 503.
+   */
+  responseFormat?: "text" | "json";
+}
+
+const JSON_PRIMER =
+  "\n\nOUTPUT CONTRACT: Return ONE valid JSON object or array only. " +
+  "No markdown code fences. No prose before or after. No comments. " +
+  "Every string must be properly escaped. If unsure of a field, use null.";
+
+function stripFences(raw: string): string {
+  const fenced = raw.match(/```(?:json|JSON)?\s*([\s\S]*?)```/);
+  const body = fenced ? fenced[1] : raw;
+  return body.trim();
+}
+
+function looksLikeJson(raw: string): boolean {
+  const t = stripFences(raw);
+  if (!t) return false;
+  const head = t[0];
+  if (head !== "{" && head !== "[") return false;
+  try {
+    JSON.parse(t);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(req: Request) {
@@ -50,27 +86,56 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
-  const system = typeof body.system === "string" ? body.system.slice(0, MAX_SYSTEM) : "";
+  const rawSystem = typeof body.system === "string" ? body.system.slice(0, MAX_SYSTEM) : "";
   const user = typeof body.user === "string" ? body.user.slice(0, MAX_USER) : "";
   if (!user) {
     return NextResponse.json({ error: "missing_user" }, { status: 400 });
   }
+  const wantsJson = body.responseFormat === "json";
+  const system = wantsJson ? rawSystem + JSON_PRIMER : rawSystem;
+  const callOpts = {
+    system,
+    user,
+    maxTokens: Math.min(body.maxTokens ?? 4000, 16_000),
+    temperature: body.temperature ?? (wantsJson ? 0.2 : undefined),
+    timeoutMs: Math.min(body.timeoutMs ?? 120_000, 300_000),
+  };
   try {
-    const out = await callAI({
-      system,
-      user,
-      maxTokens: Math.min(body.maxTokens ?? 4000, 16_000),
-      temperature: body.temperature,
-      timeoutMs: Math.min(body.timeoutMs ?? 120_000, 300_000),
-    });
+    let out = await callAI(callOpts);
+    let text = wantsJson ? stripFences(out.text) : out.text;
+    let retried = false;
+
+    // JSON-mode retry: if the first response isn't parseable JSON, retry
+    // once with a much stronger prompt hint. This is cheaper than SVI's
+    // silent "markProxyBroken" penalty which locks the proxy for 5 min
+    // for ALL tasks on a single stray token.
+    if (wantsJson && !looksLikeJson(text)) {
+      retried = true;
+      const stricter =
+        rawSystem +
+        JSON_PRIMER +
+        "\n\nREPEAT: your previous reply was not valid JSON. " +
+        "Return ONLY a JSON object matching what the user requested. " +
+        "Start with `{` and end with `}`. No other characters.";
+      out = await callAI({ ...callOpts, system: stricter, temperature: 0.1 });
+      text = stripFences(out.text);
+    }
+
     return NextResponse.json({
       ok: true,
-      text: out.text,
+      text,
       provider: out.provider,
+      responseFormat: wantsJson ? "json" : "text",
+      retried,
     });
   } catch (err) {
     return NextResponse.json(
-      { ok: false, error: "ai_call_failed", detail: err instanceof Error ? err.message : String(err) },
+      {
+        ok: false,
+        error: "ai_call_failed",
+        detail: err instanceof Error ? err.message : String(err),
+        responseFormat: wantsJson ? "json" : "text",
+      },
       { status: 502 },
     );
   }
