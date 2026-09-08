@@ -15,11 +15,20 @@ vi.mock("@/lib/rnd-input", async () => {
 });
 
 vi.mock("@/lib/ai-client", () => ({
-  callAI: vi.fn(async () => ({
-    text: JSON.stringify({ kind: "idea_text", confidence: 0.7, reason: "short pre-revenue statement" }),
-    provider: "gemini",
-    model: "test",
-  })),
+  callAI: vi.fn(async (opts: { user: string }) => {
+    // Return an existing-company answer for prompts that clearly describe one,
+    // otherwise default to idea_text. Matches the classifier's ambiguity path.
+    const isExisting = /founded in \d{4}|paying customers|mrr|arr|employees|raised/i.test(opts.user);
+    return {
+      text: JSON.stringify({
+        kind: isExisting ? "existing_company_text" : "idea_text",
+        confidence: 0.7,
+        reason: isExisting ? "detected real company signals" : "short pre-revenue statement",
+      }),
+      provider: "gemini",
+      model: "test",
+    };
+  }),
 }));
 
 vi.mock("@/lib/guest-analysis/runner", () => ({
