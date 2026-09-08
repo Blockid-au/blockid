@@ -830,6 +830,61 @@ body {
    Legacy styles above are untouched for rollback.
    ═══════════════════════════════════════════════════════════════ */
 
+/* ── Animated search frame (hero + /analyze omnibox) ──────────────
+   Hoisted out of the component. It used to render as an inline
+   <style> inside AnimatedSearchFrame, which produced a React #418
+   hydration mismatch on the two pages that mount it — / and
+   /analyze, the two that matter most. Static CSS belongs in the
+   stylesheet; only --asf-thickness stays inline, because it is a
+   per-instance prop.
+
+   The ring is the wrapper's own padding band. A content-box mask
+   was tried first and failed: the child (SmartIntake's card) is an
+   opaque bg-surface-raised panel at inset 0 and painted straight
+   over the masked border, so the ring never registered. Padding
+   physically insets the child, so the band cannot be covered. */
+@property --asf-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes asf-spin {
+  to { --asf-angle: 360deg; }
+}
+.asf-wrap {
+  background: transparent;
+  border-radius: inherit;
+  padding: var(--asf-thickness, 3px);
+  isolation: isolate;
+}
+.asf-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--asf-angle),
+    #FF9F0A 0deg,
+    #1D4ED8 120deg,
+    #047857 240deg,
+    #FF9F0A 360deg
+  );
+  opacity: 0.6;
+  animation: asf-spin 12s linear infinite;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.asf-wrap:hover::before { opacity: 0.85; }
+.asf-wrap:focus-within::before { opacity: 1; }
+.asf-wrap:focus-within { box-shadow: 0 0 0 4px rgba(255, 159, 10, 0.16); }
+/* Child sits above the gradient and paints the interior. Its own
+   opaque background is what makes the band read as a ring. */
+.asf-wrap > * { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .asf-wrap::before { animation: none; opacity: 0.6; }
+}
+
 @layer utilities {
   /*
    * NOTE: selector is `[data-theme="lux"] .lux-card`, NOT
