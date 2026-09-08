@@ -90,8 +90,10 @@ function truncateForModel(text: string): string {
 
 /** Best-effort PDF text extraction. Uses `pdf-parse` when available;
  *  falls back to a byte-scan on the buffer (better than nothing for the
- *  fail-soft path — the SVI pipeline can still score on tiny corpora). */
-async function extractPdfText(filepath: string): Promise<string> {
+ *  fail-soft path — the SVI pipeline can still score on tiny corpora).
+ *
+ *  Re-exported from `@/lib/intake/deck-sections` for the intake pipeline. */
+export async function extractPdfText(filepath: string): Promise<string> {
   const buffer = await fs.readFile(filepath);
   try {
     // Dynamic import so a missing dep doesn't break `tsc --noEmit`
@@ -120,7 +122,7 @@ async function extractPdfText(filepath: string): Promise<string> {
 }
 
 /** Best-effort DOCX text extraction via `mammoth`. Falls back to empty. */
-async function extractDocxText(filepath: string): Promise<string> {
+export async function extractDocxText(filepath: string): Promise<string> {
   try {
     const mod = (await import("mammoth")) as {
       extractRawText?: (opts: {
