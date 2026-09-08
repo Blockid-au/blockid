@@ -12,7 +12,10 @@ const ideaIntake = { inputKind: "idea_text" } as IntakeResult;
 
 describe("shouldAutoRun", () => {
   it("runs straight away for an anonymous free visitor", () => {
-    // This is the hero handoff: they already pressed the button once.
+    // True on EVERY path, not just the hero handoff. For an anonymous caller
+    // the confirm modal renders a sign-in link in place of the run button, so
+    // routing run 1 through it would wall the one run that must never be
+    // walled.
     expect(shouldAutoRun({ tier: "free", authenticated: false })).toBe(true);
   });
 

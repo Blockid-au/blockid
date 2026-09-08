@@ -376,9 +376,16 @@ export function AnalyzeRoot({
             data.warnings?.some((w) => /pdf.*ocr|image-only/i.test(w)),
           ),
       );
-      if (opts?.autoRun) {
-        // The visitor already committed by pressing the hero button. Nothing
-        // is being charged on this path, so go straight to the live panel.
+      // Default to the shared rule rather than to "show the modal". An
+      // anonymous free run costs the visitor nothing, so the confirm step has
+      // no price to disclose — and for an anonymous caller the modal renders
+      // a SIGN IN link in place of the run button, which walled run 1 for
+      // anyone who typed into the box on /analyze instead of arriving from
+      // the hero. Run 1 is meant to be completely unwalled on every path.
+      const autoRun =
+        opts?.autoRun ??
+        shouldAutoRun({ tier, authenticated, resumedFromSignup });
+      if (autoRun) {
         setPhase("live");
         setRunning(true);
       } else {
