@@ -50,9 +50,19 @@ const JSON_PRIMER =
   "No markdown code fences. No prose before or after. No comments. " +
   "Every string must be properly escaped. If unsure of a field, use null.";
 
+// Strip <think>...</think> reasoning blocks that Groq/DeepSeek gpt-oss and
+// reasoning-tuned models emit before the actual answer. SVI's extractJson
+// would otherwise land on the "<" of the think tag and fail. Removing them
+// here fixes it for every downstream consumer of this proxy in one place.
+function stripThinkTags(raw: string): string {
+  // <think>…</think> — greedy across newlines, one or more blocks.
+  return raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+}
+
 function stripFences(raw: string): string {
-  const fenced = raw.match(/```(?:json|JSON)?\s*([\s\S]*?)```/);
-  const body = fenced ? fenced[1] : raw;
+  const noThink = stripThinkTags(raw);
+  const fenced = noThink.match(/```(?:json|JSON)?\s*([\s\S]*?)```/);
+  const body = fenced ? fenced[1] : noThink;
   return body.trim();
 }
 
@@ -102,7 +112,10 @@ export async function POST(req: Request) {
   };
   try {
     let out = await callAI(callOpts);
-    let text = wantsJson ? stripFences(out.text) : out.text;
+    // Always strip <think>…</think> reasoning blocks, JSON or text mode.
+    // gpt-oss / reasoning models emit them by default and downstream
+    // consumers (SVI extractJson, chat UIs) treat them as raw output.
+    let text = wantsJson ? stripFences(out.text) : stripThinkTags(out.text);
     let retried = false;
 
     // JSON-mode retry: if the first response isn't parseable JSON, retry
