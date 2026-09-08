@@ -124,8 +124,21 @@ export function DimensionRadar({ run }: DimensionRadarProps) {
           fillRule="evenodd"
           className="fill-surface-hover"
         />
-        <path d={outer} fill="none" className="stroke-line" strokeWidth={1.5} />
-        <path d={inner} fill="none" className="stroke-line" strokeWidth={1.5} />
+        {/* The two boundaries carry meaning — average and top quartile — so
+            they take line.strong (8.9:1 on white). At line.DEFAULT they were
+            1.47:1 and the band had no readable edge. */}
+        <path
+          d={outer}
+          fill="none"
+          className="stroke-line-strong"
+          strokeWidth={1}
+        />
+        <path
+          d={inner}
+          fill="none"
+          className="stroke-line-strong"
+          strokeWidth={1}
+        />
 
         {/* This run's readings. Dot + 2px surface ring + direct label. */}
         {bands.map((b, i) => {
@@ -189,7 +202,7 @@ export function DimensionRadar({ run }: DimensionRadarProps) {
         <span className="inline-flex items-center gap-2">
           <span
             aria-hidden
-            className="h-2.5 w-4 rounded-sm border border-line bg-surface-hover"
+            className="h-2.5 w-4 rounded-sm border border-line-strong bg-surface-hover"
           />
           Australian {stageLabel.toLowerCase()}-stage companies, average to top
           quartile

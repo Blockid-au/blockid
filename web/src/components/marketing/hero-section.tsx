@@ -197,14 +197,18 @@ export function HeroSection() {
                 <span className="w-32 shrink-0 text-xs text-secondary">
                   {b.label}
                 </span>
-                <span className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-surface-hover">
-                  <span
-                    className="absolute inset-y-0 left-0 rounded-full bg-action"
-                    style={{ width: `${b.measured}%` }}
-                  />
+                <span className="relative mb-2 h-1.5 flex-1">
+                  <span className="block h-full w-full overflow-hidden rounded-full bg-surface-hover">
+                    <span
+                      className="block h-full rounded-full bg-action"
+                      style={{ width: `${b.measured}%` }}
+                    />
+                  </span>
+                  {/* The cohort tick hangs below the bar: inside the fill it
+                      is 1.13:1 and invisible. */}
                   <span
                     aria-hidden
-                    className="absolute inset-y-0 w-px bg-line-strong"
+                    className="absolute -bottom-1.5 h-1.5 w-px bg-line-strong"
                     style={{ left: `${b.avg}%` }}
                   />
                 </span>

@@ -4,10 +4,11 @@
  *
  * FORM (dataviz). Small multiples of the same four-bar chart, identical
  * scales across all three cards, which is the whole point: the reader
- * compares by position, not by re-reading axes. Each bar carries a
- * hairline at the Australian cohort average for that dimension at that
+ * compares by position, not by re-reading axes. Each bar carries a tick
+ * under it at the Australian cohort average for that dimension at that
  * stage, so a bar means "ahead of peers" or "behind peers" rather than
- * just "a number". One data hue; the reference mark is grey.
+ * just "a number". One data hue; the reference mark is grey, and it sits
+ * outside the bar because inside the fill it is 1.13:1 and invisible.
  *
  * DATA. Scores, ranges and vignettes are the published anonymised runs,
  * unchanged. The cohort hairlines come from `lib/benchmarks.ts`.
@@ -63,18 +64,24 @@ export function RunComparison() {
                     </span>
                   </div>
                   <div
-                    className="relative mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-hover"
+                    className="relative mt-1 mb-2 h-1.5 w-full"
                     role="img"
                     aria-label={`${b.label} scored ${b.measured}; the Australian ${cohortStageLabel(run).toLowerCase()}-stage average is ${b.avg}`}
                   >
-                    <div
-                      className="h-full rounded-full bg-action"
-                      style={{ width: `${b.measured}%` }}
-                    />
-                    {/* Cohort average — a reference mark, so it stays grey. */}
+                    <div className="h-full w-full overflow-hidden rounded-full bg-surface-hover">
+                      <div
+                        className="h-full rounded-full bg-action"
+                        style={{ width: `${b.measured}%` }}
+                      />
+                    </div>
+                    {/* Cohort average — a reference mark, so it stays grey,
+                        and it hangs BELOW the track rather than crossing it.
+                        Drawn inside the bar it sat at 1.13:1 against the fill
+                        and simply vanished on every bar that cleared the
+                        average, which is most of them. */}
                     <span
                       aria-hidden
-                      className="absolute top-0 h-full w-px bg-line-strong"
+                      className="absolute -bottom-1.5 h-1.5 w-px bg-line-strong"
                       style={{ left: `${b.avg}%` }}
                     />
                   </div>
@@ -101,7 +108,7 @@ export function RunComparisonLegend() {
       </span>
       <span className="inline-flex items-center gap-2">
         <span aria-hidden className="h-3 w-px bg-line-strong" />
-        Australian average at the same stage
+        Australian average at the same stage (the tick under each bar)
       </span>
       <Link
         href="/reports/samples"
