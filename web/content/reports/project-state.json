@@ -1,6 +1,6 @@
 {
   "version": "3.9.0",
-  "updatedAt": "2026-09-07T16:00:02.611Z",
+  "updatedAt": "2026-09-08T12:04:04.648Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-31T14:00:01.953Z",
@@ -38,7 +38,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-09-07T12:04:02.971Z",
+    "decidedAt": "2026-09-08T12:04:04.648Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1517,6 +1517,33 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-07T12:04:02.971Z"
+      },
+      {
+        "id": "T0208",
+        "agent": "cro",
+        "title": "ACSC alerts integration",
+        "rationale": "Integrating the latest ACSC alerts will provide timely security updates and maintain BlockID as a reliable source for founders in the Australian startup ecosystem.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-09-08T12:04:04.647Z"
+      },
+      {
+        "id": "T0209",
+        "agent": "cto",
+        "title": "Startup ecosystem data & grant trends",
+        "rationale": "Updating startup ecosystem data and grant trends will enhance the accuracy and relevance of the CTO's recommendations.",
+        "versionImpact": "major",
+        "status": "pending",
+        "createdAt": "2026-09-08T12:04:04.648Z"
+      },
+      {
+        "id": "T0210",
+        "agent": "cro",
+        "title": "CISA alerts integration",
+        "rationale": "Integrating CISA alerts will ensure BlockID remains up-to-date with the latest cybersecurity threats affecting Australian startups.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-09-08T12:04:04.648Z"
       }
     ]
   },

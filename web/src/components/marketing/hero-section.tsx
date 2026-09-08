@@ -1,27 +1,32 @@
 "use client";
 
 /**
- * HeroSection — light-first, input-centric homepage hero.
+ * HeroSection — the omnibox, and the three questions the page answers.
  *
- * Rewrite (2026-09-08, homepage-redesign agent). Two things changed:
+ * REBUILD (2026-09-08, homepage visualisation rebuild). Two changes.
  *
- *   1. The submission now carries through. It used to push
- *      `/analyze?q=…`, which `analyze/page.tsx` never read, so the
- *      visitor typed their idea, navigated, and was asked to type it
- *      again. The submission — including a dropped File, which cannot be
- *      encoded in a URL — is parked in `pending-intake` and claimed by
- *      AnalyzeRoot on mount, which starts the run straight away.
- *   2. The copy stopped describing the technology and started describing
- *      the outcome. "AI-powered startup valuation" says nothing a founder
- *      can act on; knowing your number before the meeting does.
+ *   1. The headline used to sell one of the three questions. "Know what
+ *      your company is worth before you walk into the room" is a good line
+ *      about valuation and silent about the other two thirds of the
+ *      product, and silent about investors entirely. It now says what the
+ *      whole thing is for, and the three questions became the page's
+ *      entry points — real anchors into the three sections that answer
+ *      them — rather than a list crammed into the H1.
+ *   2. The proof strip under the box is now a chart rather than a row of
+ *      numbers: the MVP-stage run's four published readings as meters
+ *      against the Australian average at that stage. Same data, same
+ *      grammar as every other chart on the page.
  *
- * COLOUR CONTRACT. SVI orange (#FF9F0A) is 2.33:1 on white — it fails AA
- * even at large-text sizes, so it is used ONLY as a graphic accent (the
- * rotating omnibox ring, the bar chips), never as readable copy. The H1
- * accent line uses `text-action` (#1D4ED8, 8.59:1 AAA).
+ * UNCHANGED, DELIBERATELY. `SmartIntake` wraps itself in
+ * `AnimatedSearchFrame`, so the rotating conic ring lives here; it is a
+ * standing founder request. The handoff is also untouched: the whole
+ * submission — including a dropped File, which cannot be encoded in a URL —
+ * is parked in `pending-intake` and claimed by AnalyzeRoot on mount, so
+ * nothing is ever typed twice.
  *
- * Keep `AnimatedSearchFrame` around the omnibox — the rotating conic ring
- * is a deliberate founder request.
+ * COLOUR CONTRACT. SVI orange (#FF9F0A) is 2.33:1 on white — a graphic
+ * accent only, never readable copy. Readable accents use `text-action`
+ * (#1D4ED8, 8.59:1).
  */
 
 import Link from "next/link";
@@ -32,23 +37,30 @@ import {
   pendingIntakeQuery,
   setPendingIntake,
 } from "@/lib/analyze/pending-intake";
+import {
+  cohortBandsForRun,
+  runById,
+} from "@/components/marketing/homepage/sample-runs";
 
-/** Compact proof row shown under the omnibox — a real MVP-stage sample. */
-const PREVIEW_DIMENSIONS = [
-  { label: "FTV", pct: 62 },
-  { label: "MPC", pct: 58 },
-  { label: "PTD", pct: 55 },
-  { label: "TRE", pct: 40 },
+/** The three questions, as entry points into the sections that answer them. */
+const QUESTIONS = [
+  { href: "#worth", label: "What is it worth?" },
+  { href: "#state", label: "What state am I in?" },
+  { href: "#next", label: "What do I do next?" },
 ];
 
 const TRUST_POINTS = [
   { icon: Sparkles, label: "First run free — no card, no signup" },
-  { icon: ScrollText, label: "Berkus · VC method · DCF · comparables" },
-  { icon: Landmark, label: "Built in Australia, for AU company law" },
+  { icon: ScrollText, label: "Full written report, A$3 one-off" },
+  { icon: Landmark, label: "Built in Australia, for Australian company law" },
 ];
 
 export function HeroSection() {
   const router = useRouter();
+  const preview = runById("mvp");
+  const previewBands = cohortBandsForRun(preview).filter(
+    (b) => b.measured !== null,
+  );
 
   function handleSmartSubmit(payload: SmartIntakeSubmission) {
     // Park the whole submission — including a dropped File, which cannot be
@@ -85,18 +97,18 @@ export function HeroSection() {
           className="animate-fade-in-up font-display max-w-3xl text-balance text-4xl font-bold leading-[1.08] tracking-tight text-primary sm:text-5xl lg:text-[3.5rem]"
           style={{ animationDelay: "40ms" }}
         >
-          Know what your company is worth{" "}
-          <span className="text-action">before you walk into the room.</span>
+          See your company{" "}
+          <span className="text-action">the way an investor will.</span>
         </h1>
 
         <p
           className="animate-fade-in-up max-w-2xl text-balance text-base leading-relaxed text-secondary sm:text-lg"
           style={{ animationDelay: "80ms" }}
         >
-          Give it a pitch deck, your website, or three sentences about the
-          idea. You get a score across eight dimensions, a valuation from four
-          methods, and the moves that lift both — starting in about thirty
-          seconds.
+          Paste a deck, a link, or three sentences about the idea. Out comes a
+          score across eight dimensions, one valuation range, your position on
+          a twelve-phase journey, and the data room an investor would ask for
+          next.
         </p>
 
         {/* The primary action. SmartIntake wraps itself in
@@ -111,9 +123,27 @@ export function HeroSection() {
           <SmartIntake onSubmit={handleSmartSubmit} />
         </div>
 
+        {/* The three questions, as the way into the page. */}
+        <nav
+          aria-label="What this page answers"
+          className="animate-fade-in-up flex flex-wrap items-center justify-center gap-2"
+          style={{ animationDelay: "150ms" }}
+        >
+          {QUESTIONS.map((q) => (
+            <a
+              key={q.href}
+              href={q.href}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-primary transition-colors duration-200 hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            >
+              {q.label}
+              <ArrowRight size={13} aria-hidden className="text-action" />
+            </a>
+          ))}
+        </nav>
+
         <ul
           className="animate-fade-in-up flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted"
-          style={{ animationDelay: "160ms" }}
+          style={{ animationDelay: "180ms" }}
           aria-label="What you get"
         >
           {TRUST_POINTS.map(({ icon: Icon, label }) => (
@@ -125,56 +155,70 @@ export function HeroSection() {
         </ul>
       </div>
 
-      {/* Compact proof element — a real anonymised MVP-stage result, so the
-          hero shows the OUTPUT rather than only the input box. */}
+      {/* Proof strip — a real anonymised MVP-stage run, drawn the same way
+          every chart further down the page is drawn. */}
       <div
         className="animate-fade-in-up relative z-10 mx-auto mt-10 w-full max-w-3xl"
-        style={{ animationDelay: "200ms" }}
+        style={{ animationDelay: "220ms" }}
       >
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-line-subtle bg-surface-sunken px-5 py-4 sm:flex-row sm:gap-6 sm:px-6">
-          <p className="shrink-0 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
-            A recent run
-          </p>
-
-          <div className="flex items-baseline gap-2">
-            <span className="font-display text-3xl font-bold leading-none text-primary tabular-nums">
-              58
-            </span>
-            <span className="text-xs font-medium uppercase tracking-wider text-muted">
-              SVI
-            </span>
+        <div className="rounded-2xl border border-line-subtle bg-surface-sunken px-5 py-5 sm:px-6">
+          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
+              A recent run
+            </p>
+            <p className="flex items-baseline gap-2">
+              <span className="font-sans text-3xl font-semibold leading-none text-primary">
+                {preview.sviScore}
+              </span>
+              <span className="text-xs font-medium uppercase tracking-wider text-muted">
+                out of 100
+              </span>
+            </p>
+            <p className="font-mono text-sm text-secondary tabular-nums">
+              {preview.valuationLowLabel}
+              <span className="mx-1 text-muted">–</span>
+              {preview.valuationHighLabel}
+            </p>
+            <Link
+              href="/reports/samples"
+              className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-md text-sm font-medium text-action transition-colors hover:text-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            >
+              See the report
+              <ArrowRight size={14} aria-hidden />
+            </Link>
           </div>
 
-          <p className="font-mono text-sm text-secondary tabular-nums">
-            A$850K<span className="mx-1 text-muted">–</span>A$2.1M
-          </p>
-
-          {/* 4-dimension mini bars — graphic use of the brand orange. */}
-          <div className="flex h-8 shrink-0 items-end gap-1.5" aria-hidden>
-            {PREVIEW_DIMENSIONS.map((d) => (
-              <div key={d.label} className="flex w-6 flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-t-sm bg-svi-500"
-                  style={{ height: `${d.pct}%`, minHeight: "3px" }}
-                />
-                <span className="font-mono text-[9px] uppercase tracking-wider text-tertiary">
-                  {d.label}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <p className="text-sm leading-snug text-muted sm:flex-1">
-            Two founders, 40 paying pilots, no round raised yet.
-          </p>
-
-          <Link
-            href="/reports/samples"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md text-sm font-medium text-action transition-colors hover:text-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+          <ul
+            role="list"
+            className="mt-4 grid gap-x-6 gap-y-2.5 sm:grid-cols-2"
           >
-            See the report
-            <ArrowRight size={14} aria-hidden />
-          </Link>
+            {previewBands.map((b) => (
+              <li key={b.key} className="flex items-center gap-3">
+                <span className="w-32 shrink-0 text-xs text-secondary">
+                  {b.label}
+                </span>
+                <span className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-surface-hover">
+                  <span
+                    className="absolute inset-y-0 left-0 rounded-full bg-action"
+                    style={{ width: `${b.measured}%` }}
+                  />
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 w-px bg-line-strong"
+                    style={{ left: `${b.avg}%` }}
+                  />
+                </span>
+                <span className="w-6 shrink-0 text-right font-mono text-xs text-primary tabular-nums">
+                  {b.measured}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-4 text-sm leading-snug text-muted">
+            Two founders, 40 paying pilots, no round raised yet. The hairline
+            on each bar is the Australian average at the same stage.
+          </p>
         </div>
       </div>
     </section>

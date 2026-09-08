@@ -9238,3 +9238,91 @@
 {"ts":"2026-09-08T06:29:51.642Z","event":"github-push-master","detail":"Blockid-au: feat(marketing): Long DO + LinkedIn on Team page, homepage entity → PPL Food PTY LTD (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T06:49:44Z","status":"success","gates":"12/12","pid":"2610894","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-09-08T06:58:34.375Z","event":"github-push-master","detail":"Blockid-au: test(analyze): e2e specs for deck / site / idea variants of /analyze (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T07:07:53.851Z","event":"github-push-master","detail":"Blockid-au: fix(a11y+design): pa11y AA green on live + ds-* tokens emit CSS (rev.3) (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T07:11:05.590Z","event":"github-push-master","detail":"Blockid-au: docs(tour): Block 5 final screenshot tour — 10 routes @ 2026-09-08 (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T07:15:07.590Z","event":"github-push-master","detail":"Blockid-au: fix(changelog): restore i/inList/paraBuf locals dropped by slug-counter edit (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T07:15:18.770Z","event":"github-push-master","detail":"Blockid-au: feat(nav): surface /team in both main navs (Team page discoverable from every page) (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T07:32:24Z","status":"success","gates":"12/12","pid":"2772195","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T07:39:41.073Z","event":"github-push-master","detail":"Blockid-au: copy(team): remove \"solo founder\" — surface AU (Auschain) + VN (Vietnam Blockchain Corp) team (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T07:42:57.469Z","event":"github-push-master","detail":"Blockid-au: fix(homepage): kill invisible white H2 on light body — wrap intentionally-dark marketing sections in data-theme=\"dark\" and swap hardcoded #F8FAFC for text-primary token so headings resolve to legible ink under the light-first design system. (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T07:45:39.972Z","event":"github-push-master","detail":"Blockid-au: feat(ui): animated-search-frame + design-system migration pass (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T07:47:15.505Z","event":"github-push-master","detail":"Blockid-au: feat(ui/button): add 'action' variant on the shared Button using the light-first (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T07:50:34Z","status":"success","gates":"12/12","pid":"2839426","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T07:56:27.567Z","event":"github-push-master","detail":"Blockid-au: fix(analyze): static color-transition border + wire Analyze to real backend (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:07:31Z","status":"success","gates":"12/12","pid":"2911682","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T08:10:39.356Z","event":"github-push-master","detail":"Blockid-au: feat(ui): restore rotating conic-gradient ring on AnimatedSearchFrame (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:14:09.094Z","event":"github-push-master","detail":"Blockid-au: fix(nav-v2): wrap header in data-theme=\"dark\" self-scope (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:14:22.391Z","event":"github-push-master","detail":"Blockid-au: fix(trust-strip): wrap in data-theme=\"dark\" self-scope (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:14:36.700Z","event":"github-push-master","detail":"Blockid-au: chore(migrate): drop text-brand-ink from LogoCloud lux branch (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:14:49.860Z","event":"github-push-master","detail":"Blockid-au: feat(home): input-centric homepage redesign (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:14:54.759Z","event":"github-push-master","detail":"Blockid-au: fix(segment-tabs): wrap in data-theme=\"dark\" self-scope (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:15:09.245Z","event":"github-push-master","detail":"Blockid-au: fix(pricing-matrix): wrap section in data-theme=\"dark\" self-scope (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:15:49.683Z","event":"github-push-master","detail":"Blockid-au: chore(migrate): light-first tokens on ProShell (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:21:38Z","status":"success","gates":"12/12","pid":"2967420","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T08:38:15Z","status":"success","gates":"9/9","pid":"3030272","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T08:47:21.422Z","event":"github-push-master","detail":"Blockid-au: fix(deploy): acquire lock immediately to prevent parallel build race (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:49:40.549Z","event":"github-push-master","detail":"Blockid-au: feat(intake): return IntakeContext alongside signals (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:52:14.734Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): deck-reader panel accepts real intake result (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:55:04.369Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): site-visitor panel streams real /api/site-crawl SSE events (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:56:57.674Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): idea-lab panel drives stage card from real intake context (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:57:41.415Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): cost modal supports auth-gated CTA + live estimate loading (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:58:48.425Z","event":"github-push-master","detail":"Blockid-au: feat(cache): purge SVI zone too when CLOUDFLARE_ZONE_ID_SVI is set (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T08:59:34.667Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): analyze-results derives real values from intake result (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:03:21.367Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): wire handleConfirm to real backend flow (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:13:18.983Z","event":"github-push-master","detail":"Blockid-au: feat(home): add asymmetric two-pillar split (70% AI / 30% blockchain) (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:13:50.189Z","event":"github-push-master","detail":"Blockid-au: feat(home): hero copy leads with AI valuation, 70/30 weight ratio (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:14:14Z","status":"success","gates":"12/12","pid":"3152339","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T09:14:16.965Z","event":"github-push-master","detail":"Blockid-au: feat(home): how-it-works becomes 4 steps (3 AI + 1 tokenize) (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:14:33.692Z","event":"github-push-master","detail":"Blockid-au: feat(home): sample-outputs adds \"See more sample reports\" tertiary link → /reports/samples (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:14:56.240Z","event":"github-push-master","detail":"Blockid-au: feat(home): add FinalCTA (primary Analyse button + text link to pricing) (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:15:32.186Z","event":"github-push-master","detail":"Blockid-au: feat(home): rebuild homepage in the 7-section fintech v2 order (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:17:19.608Z","event":"github-push-master","detail":"Blockid-au: feat(marketing): add /tokenize public marketing page (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:17:36.239Z","event":"github-push-master","detail":"Blockid-au: feat(home): add /subscribe /plans /blockchain /onchain 301 redirects (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:18:28.419Z","event":"github-push-master","detail":"Blockid-au: feat(marketing): primary nav mirrors fintech v2 homepage order (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:37:01Z","status":"success","gates":"12/12","pid":"3244075","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T09:39:47.075Z","event":"github-push-master","detail":"Blockid-au: fix(revenue): remove /one-click-report 301 that killed the A$3 guest path (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:42:54.500Z","event":"github-push-master","detail":"Blockid-au: feat(revenue): /analyze?tier=paid now sells the A$3 guest report (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:43:24.146Z","event":"github-push-master","detail":"Blockid-au: fix(billing): provision founder subscription ladder Stripe prices (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:43:46.663Z","event":"github-push-master","detail":"Blockid-au: fix(deploy): close FD 200 when launching next-server so the deploy lock releases (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:43:53.341Z","event":"github-push-master","detail":"Blockid-au: fix(tokens): re-substitute semantic --color-* inside dark/light scopes (rev.4) (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:44:29.290Z","event":"github-push-master","detail":"Blockid-au: fix(ui): make AnimatedSearchFrame ring actually visible (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:45:34.788Z","event":"github-push-master","detail":"Blockid-au: feat(home): commit hero to light, kill the 800px void, add a proof element (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:46:12.982Z","event":"github-push-master","detail":"Blockid-au: fix(home): one language per locale + card elevation in TwoPillarSplit (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:48:20.045Z","event":"github-push-master","detail":"Blockid-au: fix(home): step-number legibility, light trust strip, de-duplicated CTA (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:51:22.593Z","event":"github-push-master","detail":"Blockid-au: feat(home): commit to a light-dominant rhythm with one dark punctuation band (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T09:56:46.167Z","event":"github-push-master","detail":"Blockid-au: fix(deploy): smoke gate expects /one-click-report 200, not a redirect (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T10:06:13.578Z","event":"github-push-master","detail":"Blockid-au: docs(ops): mark founder ladder Stripe prices as provisioned (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T10:14:04.856Z","event":"github-push-master","detail":"Blockid-au: fix(tour): resolve output dir from the script, not the caller's cwd (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T10:25:23Z","status":"success","gates":"12/12","pid":"3428830","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T10:32:56.161Z","event":"github-push-master","detail":"Blockid-au: fix(billing): right-size included credit grants to hold 70% gross margin (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T10:45:32Z","status":"success","gates":"12/12","pid":"3500973","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T11:56:11.272Z","event":"github-push-master","detail":"Blockid-au: feat(pricing): Growth A$69/45 credits; retire Pro A$299 (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T11:56:38.267Z","event":"github-push-master","detail":"Blockid-au: fix(billing): PLAN_CREDITS founder_growth 65 -> 45 for the A$69 price (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T11:56:57.231Z","event":"github-push-master","detail":"Blockid-au: fix(analyze): carry the hero input through so nobody types it twice (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T11:57:20.774Z","event":"github-push-master","detail":"Blockid-au: feat(db): migration 0121 — Growth A$69/45cr, retire Pro A$299 (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T11:58:39.416Z","event":"github-push-master","detail":"Blockid-au: feat(pricing): public ladder becomes Free / Founder A$29 / Growth A$69 (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:00:00.460Z","event":"github-push-master","detail":"Blockid-au: fix(compliance): price display says GST-inclusive, matching Stripe (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:00:32.556Z","event":"github-push-master","detail":"Blockid-au: feat(billing): provision the A$59/mo Equity add-on into the existing slot (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:04:34.881Z","event":"github-push-master","detail":"Blockid-au: feat(home): add outcome bento, equity band, and audience split sections (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:04:38.939Z","event":"github-push-master","detail":"Blockid-au: test(plans-db): repin the GENERATED_PLANS fallback to A$69 Growth (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:08:43.816Z","event":"github-push-master","detail":"Blockid-au: fix(upsell): quote the new ladder, stop routing users at a retired tier (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:16:57.958Z","event":"github-push-master","detail":"Blockid-au: feat(home): rewrite the hero around the outcome, not the technology (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:19:29.480Z","event":"github-push-master","detail":"Blockid-au: feat(home): rebuild the page around what a run returns, and address investors (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:20:36.206Z","event":"github-push-master","detail":"Blockid-au: test(analyze): pin the auto-run gate and the guest A$3 SKU routing (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:20:41Z","status":"success","gates":"12/12","pid":"3804894","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T12:21:39.621Z","event":"github-push-master","detail":"Blockid-au: fix(compliance): the /pricing GST FAQ said the opposite of what we charge (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:21:40.742Z","event":"github-push-master","detail":"Blockid-au: fix(analyze): show the run starting instead of an empty box during handoff (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:23:28.368Z","event":"github-push-master","detail":"Blockid-au: fix(signup): stop /register-with-card accepting the retired Pro tier (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:29:57.463Z","event":"github-push-master","detail":"Blockid-au: fix(billing): stop selling the Equity add-on until it grants anything (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:32:54Z","status":"success","gates":"12/12","pid":"3855877","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T12:35:21.913Z","event":"github-push-master","detail":"Blockid-au: style(home): tighten the vertical rhythm and stop two trust labels wrapping (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:46:20Z","status":"success","gates":"12/12","pid":"3908773","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T12:47:58.523Z","event":"github-push-master","detail":"Blockid-au: fix(svi): \"pre-revenue\" no longer reads as revenue, and drop the 40-word wall (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T12:50:10.112Z","event":"github-push-master","detail":"Blockid-au: fix(analyze): stop showing customers our model names and internal role jargon (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:01:20Z","status":"success","gates":"12/12","pid":"3968272","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T13:05:19.134Z","event":"github-push-master","detail":"Blockid-au: fix(privacy,billing): require consent for deal flow; stop discarding a paid data room (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:05:23.836Z","event":"github-push-master","detail":"Blockid-au: feat(home): single provenance module for every homepage figure (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:08:19.637Z","event":"github-push-master","detail":"Blockid-au: feat(home): draw the eight dimensions and the valuation ranges (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:10:43.656Z","event":"github-push-master","detail":"Blockid-au: feat(db): migration 0124 — analyses table + guest_analyses.user_id (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:10:44.559Z","event":"github-push-master","detail":"Blockid-au: feat(db): migration 0124 — analyses table + guest_analyses.user_id (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T13:10:52.590Z","event":"github-push-master","detail":"Blockid-au: feat(home): draw the journey, the data room and the stage comparison (1 commits)","source":"github-webhook"}

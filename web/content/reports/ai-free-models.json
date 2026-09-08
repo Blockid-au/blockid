@@ -1,6 +1,13 @@
 {
-  "updatedAt": "2026-09-08T05:23:12.995Z",
+  "updatedAt": "2026-09-08T12:00:06.447Z",
   "openrouter": [
+    "inclusionai/ling-3.0-flash-sante:free",
+    "inclusionai/ling-3.0-flash-fin:free",
+    "poolside/laguna-s-2.1:free",
+    "liquid/lfm-2.5-2.6b:free",
+    "poolside/laguna-xs-2.1:free",
+    "openrouter/free",
+    "cohere/north-mini-code:free",
     "nvidia/nemotron-3-ultra-550b-a55b:free",
     "google/lyria-3-pro-preview",
     "google/lyria-3-clip-preview",
@@ -8,14 +15,7 @@
     "nvidia/nemotron-3-super-120b-a12b:free",
     "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "thinkingmachines/inkling:free",
-    "nvidia/nemotron-3.5-lightning:free",
-    "dots-studio/dots-3-note-preview:free",
-    "inclusionai/ling-3.0-flash-sante:free",
-    "deepseek/deepseek-chat-v3.1:free",
-    "poolside/laguna-s-2.1:free",
-    "inclusionai/ling-3.0-flash-fin:free"
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
   ],
   "groq": [
     "llama-3.3-70b-versatile",
