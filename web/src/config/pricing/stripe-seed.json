@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-08T10:29:44.688Z",
+  "generated_at": "2026-09-08T11:55:45.751Z",
   "plans": [
     {
       "plan_id": "founder_starter",
@@ -18,19 +18,8 @@
       "segment": "founder",
       "stripe_env_var": "STRIPE_PRICE_FOUNDER_GROWTH",
       "currency": "aud",
-      "monthly_amount_cents": 9900,
-      "annual_amount_cents": 99000,
-      "interval": "monthly",
-      "trial_days": 7
-    },
-    {
-      "plan_id": "founder_scale",
-      "product_name": "Pro",
-      "segment": "founder",
-      "stripe_env_var": "STRIPE_PRICE_FOUNDER_SCALE",
-      "currency": "aud",
-      "monthly_amount_cents": 29900,
-      "annual_amount_cents": 299000,
+      "monthly_amount_cents": 6900,
+      "annual_amount_cents": 69000,
       "interval": "monthly",
       "trial_days": 7
     },

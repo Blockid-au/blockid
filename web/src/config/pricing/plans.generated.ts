@@ -62,8 +62,8 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "id": "founder_growth",
     "segment": "founder",
     "name": "Growth",
-    "price_aud_cents": 9900,
-    "annual_price_aud_cents": 99000,
+    "price_aud_cents": 6900,
+    "annual_price_aud_cents": 69000,
     "interval": "monthly",
     "trial_days": 7,
     "stripe_env_var": "STRIPE_PRICE_FOUNDER_GROWTH",
@@ -80,7 +80,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "usage_limits": {
       "profiles": 3,
       "svi_per_month": 50,
-      "monthly_credits": 65
+      "monthly_credits": 45
     },
     "active": true,
     "sort_order": 30
@@ -117,7 +117,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "svi_per_month": -1,
       "monthly_credits": 200
     },
-    "active": true,
+    "active": false,
     "sort_order": 40
   },
   {

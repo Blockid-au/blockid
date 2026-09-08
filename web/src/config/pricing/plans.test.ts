@@ -66,12 +66,14 @@ function parseCsv(): CsvRow[] {
   });
 }
 
-describe("PRC-INV — 13-SKU pricing matrix (12 tier SKUs + Startup Package one-off)", () => {
+describe("PRC-INV — 12-SKU pricing matrix (11 tier SKUs + Startup Package one-off)", () => {
   const rows = parseCsv();
   const activeRows = rows.filter((r) => r.active === "true");
 
-  it("plans.csv declares exactly 13 active SKUs (12 recurring + founder_package one-off)", () => {
-    expect(activeRows).toHaveLength(13);
+  it("plans.csv declares exactly 12 active SKUs (11 recurring + founder_package one-off)", () => {
+    // founder_scale (Pro, A$299) retired 2026-09-08 — active=false in the CSV,
+    // row retained so historical invoices + grandfathered renewals resolve.
+    expect(activeRows).toHaveLength(12);
     // Regression guard: the 13th active SKU MUST be the Startup Package.
     expect(activeRows.some((r) => r.id === "founder_package")).toBe(true);
   });
@@ -81,7 +83,7 @@ describe("PRC-INV — 13-SKU pricing matrix (12 tier SKUs + Startup Package one-
     for (const row of activeRows) {
       expect(generatedIds.has(row.id), `missing generated SKU: ${row.id}`).toBe(true);
     }
-    expect(GENERATED_PLANS.filter((p) => p.active)).toHaveLength(13);
+    expect(GENERATED_PLANS.filter((p) => p.active)).toHaveLength(12);
   });
 
   it("Founder / Investor / Advisor / Accelerator segment tabs collectively surface all 12 tier SKUs", () => {
