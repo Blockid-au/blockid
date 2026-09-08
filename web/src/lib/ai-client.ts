@@ -498,6 +498,15 @@ const COST_PER_1K: Record<string, number> = {
   "tngtech/deepseek-r1t-chimera:free": 0,
   "google/gemma-3-27b-it:free": 0,
   "mistralai/mistral-small-3.2-24b-instruct:free": 0,
+  "deepseek/deepseek-chat-v3.1:free": 0, // OpenRouter free — S-tier reasoning, 20 RPM
+  "qwen-3-32b": 0,                         // Cerebras free — 32B, 2000 t/s, Vietnamese-friendly
+  "Qwen3-235B-A22B-Instruct-2507": 0,      // SambaNova free — 235B MoE, competes with Claude
+  // Paid tier — DeepInfra ($0.32 in / $0.89 out per 1M for DeepSeek V3):
+  "deepseek-ai/DeepSeek-V3": 0.00061,
+  "meta-llama/Meta-Llama-3.3-70B-Instruct": 0.00021,
+  "Qwen/Qwen2.5-72B-Instruct": 0.00027,
+  // Claude Haiku direct API ($1 in / $5 out per 1M, prompt cache $0.10/M read):
+  "claude-haiku-4-5-20251001": 0.003,
   // Legacy OpenRouter entries (kept for health record continuity)
   "nvidia/nemotron-3-ultra-550b-a55b:free": 0,
   "deepseek/deepseek-v4-flash:free": 0,
@@ -628,7 +637,7 @@ function readCliOAuthToken(): string | null {
 
 // ── Provider detection ─────────────────────────────────────────────────
 
-type Provider = "claude-oauth" | "claude-apikey" | "claude-proxy" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "cerebras" | "sambanova" | "ollama" | "none";
+type Provider = "claude-oauth" | "claude-apikey" | "claude-haiku-direct" | "claude-proxy" | "openai-apikey" | "gemini" | "groq" | "openrouter" | "cerebras" | "sambanova" | "deepinfra" | "ollama" | "none";
 
 function getAvailableProviders(): Provider[] {
   const providers: Provider[] = [];
@@ -659,7 +668,7 @@ function getAvailableProviders(): Provider[] {
   // Groq gpt-oss production models advertise 1000 RPM — the highest free ceiling —
   // so it becomes the natural first pick under any real concurrency; Cerebras
   // stays high because it is ultra-fast (2000 t/s) for low-load calls.
-  // 1. Groq — 1000 RPM (gpt-oss family), ~500 t/s. Best headroom under bursts.
+  // 1. Groq — 1000 RPM free / 4000+ RPM Developer tier. Best headroom under bursts.
   if (process.env.GROQ_API_KEY) providers.push("groq");
   else if (getDBKey("groq")) providers.push("groq");
   // 2. Cerebras — 30 RPM but ultra-fast (2000 t/s); wins under low load only
@@ -668,15 +677,25 @@ function getAvailableProviders(): Provider[] {
   // 3. SambaNova — DeepSeek V3.2/V3.1 free, 294 TPS, excellent reasoning quality
   if (process.env.SAMBANOVA_API_KEY) providers.push("sambanova");
   else if (getDBKey("sambanova")) providers.push("sambanova");
-  // 4. Claude OAuth — Sonnet 4.6 (subscription, best quality) — after free tiers
+  // 4. DeepInfra — CHEAP PAID: DeepSeek V3 $0.32/$0.89 per 1M, 200 concurrent.
+  //    Kicks in only when DEEPINFRA_API_KEY is set — free chain stays $0.
+  if (process.env.DEEPINFRA_API_KEY) providers.push("deepinfra");
+  else if (getDBKey("deepinfra")) providers.push("deepinfra");
+  // 5. Claude OAuth — Sonnet 4.6 (subscription, best quality) — after free tiers
   //    to preserve rate-limit headroom for tasks only Claude handles well
   if (readCliOAuthToken()) providers.push("claude-oauth");
-  // 5. Proxy — Sonnet 4.6 (shared key)
+  // 6. Claude Haiku direct API — $1/$5 per 1M with prompt caching ($0.10/M read).
+  //    Ideal for final CEO synthesis where hallucination cost is highest.
+  //    Requires ANTHROPIC_HAIKU_API_KEY (kept SEPARATE from ANTHROPIC_API_KEY so
+  //    ops can enable Haiku-only spending without unlocking the whole Sonnet chain).
+  if (process.env.ANTHROPIC_HAIKU_API_KEY) providers.push("claude-haiku-direct");
+  else if (getDBKey("anthropic_haiku")) providers.push("claude-haiku-direct");
+  // 7. Proxy — Sonnet 4.6 (shared key)
   if (process.env.ANTHROPIC_PROXY_API_KEY && process.env.ANTHROPIC_PROXY_BASE_URL) providers.push("claude-proxy");
   else if (getDBKey("anthropic_proxy")) providers.push("claude-proxy");
-  // 6. Ollama — local GPU backup
+  // 8. Ollama — local GPU backup
   if (process.env.OLLAMA_HOST || process.env.OLLAMA_ENABLED === "true") providers.push("ollama");
-  // 7. OpenRouter — LAST: 24+ free models but variable uptime and rate limits
+  // 9. OpenRouter — LAST: 24+ free models but 20 RPM/model + variable uptime
   if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
   else if (getDBKey("openrouter")) providers.push("openrouter");
 
@@ -878,8 +897,9 @@ async function callCerebras(opts: AICallOptions): Promise<AICallResult> {
   const CEREBRAS_MODELS = getDynamicModels("cerebras", [
     "gemma-4-31b",             // B-tier: 1424 prod successes — most reliable on Cerebras
     "gpt-oss-120b",            // A-tier: 117B MoE, high throughput when available (ok:506)
-    "llama-3.1-8b",            // C-tier: 8B ultra-fast fallback
+    "qwen-3-32b",              // B-tier: Qwen 3 32B, 2000 t/s, Vietnamese-friendly (Sep 2026 add)
     "llama-3.3-70b",           // B-tier: 70B, legacy compat
+    "llama-3.1-8b",            // C-tier: 8B ultra-fast fallback
   ]);
 
   let lastErr: Error | null = null;
@@ -926,14 +946,15 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
   // > gemma-4-31B-it (B-tier) > Meta-Llama-3.3-70B (B-tier) > Meta-Llama-3.1-8B (C-tier)
   // NOTE: "DeepSeek-V3-0324" kept last for health record continuity — may still be live
   const SAMBANOVA_MODELS = getDynamicModels("sambanova", [
-    "DeepSeek-R1",                 // S-tier: strongest free reasoning model on SambaNova
-    "DeepSeek-V3.2",               // S-tier: latest DeepSeek V3 on SambaNova (Aug 2026)
-    "DeepSeek-V3.1",               // S-tier: previous DeepSeek V3 checkpoint
-    "gpt-oss-120b",                // A-tier: OpenAI 117B open-weight on SambaNova
-    "gemma-4-31B-it",              // B-tier: Gemma 4 31B instruct (Aug 2026 discovery)
-    "Meta-Llama-3.3-70B-Instruct", // B-tier: Llama 3.3 70B, reliable general
-    "Meta-Llama-3.1-8B-Instruct",  // C-tier: Llama 3.1 8B, fast fallback
-    "DeepSeek-V3-0324",            // S-tier: legacy ID — may still be aliased on SambaNova
+    "DeepSeek-R1",                    // S-tier: strongest free reasoning model on SambaNova
+    "Qwen3-235B-A22B-Instruct-2507",  // S-tier: 235B MoE, competes with Claude (Sep 2026 add)
+    "DeepSeek-V3.2",                  // S-tier: latest DeepSeek V3 on SambaNova (Aug 2026)
+    "DeepSeek-V3.1",                  // S-tier: previous DeepSeek V3 checkpoint
+    "gpt-oss-120b",                   // A-tier: OpenAI 117B open-weight on SambaNova
+    "gemma-4-31B-it",                 // B-tier: Gemma 4 31B instruct (Aug 2026 discovery)
+    "Meta-Llama-3.3-70B-Instruct",    // B-tier: Llama 3.3 70B, reliable general
+    "Meta-Llama-3.1-8B-Instruct",     // C-tier: Llama 3.1 8B, fast fallback
+    "DeepSeek-V3-0324",               // S-tier: legacy ID — may still be aliased on SambaNova
   ]);
 
   let lastErr: Error | null = null;
@@ -967,6 +988,92 @@ async function callSambaNova(opts: AICallOptions): Promise<AICallResult> {
   throw lastErr ?? new Error("All SambaNova models failed");
 }
 
+// ── DeepInfra (OpenAI-compatible, cheap-paid) ─────────────────────────
+// Sep 2026: DeepSeek V3 verified at $0.32 in / $0.89 out per 1M, 200 concurrent
+// requests, no per-minute RPM published. Llama 3.3 70B at $0.10/$0.32.
+// API: https://api.deepinfra.com/v1/openai (OpenAI-compatible).
+// Only wired when DEEPINFRA_API_KEY is set — no free tier here, so the presence
+// of the key is the "user has opted into paid" signal.
+
+async function callDeepInfra(opts: AICallOptions): Promise<AICallResult> {
+  const apiKey = process.env.DEEPINFRA_API_KEY ?? getDBKey("deepinfra")?.api_key ?? "";
+  if (!apiKey) throw new Error("DeepInfra API key not configured");
+
+  // Ranked by quality-per-$ for financial / SVI reasoning (Sep 2026):
+  // DeepSeek V3 leads on numeric tables + legal parsing at $0.32/$0.89;
+  // Llama 3.3 70B is the cheap workhorse at $0.10/$0.32; Qwen 2.5 72B
+  // covers Vietnamese-language tasks better than either.
+  const DEEPINFRA_MODELS = getDynamicModels("deepinfra", [
+    "deepseek-ai/DeepSeek-V3",              // S-tier reasoning, $0.32/$0.89
+    "meta-llama/Meta-Llama-3.3-70B-Instruct", // B-tier workhorse, $0.10/$0.32
+    "Qwen/Qwen2.5-72B-Instruct",             // B-tier, best Vietnamese quality
+  ]);
+
+  let lastErr: Error | null = null;
+  for (const model of readyModels(DEEPINFRA_MODELS)) {
+    try {
+      const raw = await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      }, JSON.stringify({
+        model,
+        max_tokens: Math.min(opts.maxTokens ?? 4096, 8192),
+        temperature: opts.temperature ?? 0.7,
+        messages: [
+          { role: "system", content: opts.system },
+          { role: "user", content: opts.user },
+        ],
+      }), opts.timeoutMs);
+
+      const data = JSON.parse(raw);
+      if (data.error) throw new Error(data.error.message ?? "DeepInfra error");
+      const text = data.choices?.[0]?.message?.content ?? "";
+      if (!text) throw new Error("Empty DeepInfra response");
+      recordModelOutcome(model, true);
+      return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      coolDownModel(model, lastErr.message);
+      console.warn(`[ai-client] DeepInfra ${model} failed: ${lastErr.message}`);
+    }
+  }
+  throw lastErr ?? new Error("All DeepInfra models failed");
+}
+
+// ── Claude Haiku 4.5 direct API (paid, prompt-cached) ────────────────
+// $1/$5 per 1M input/output tokens, $0.10/M for cached reads. Prompt caching
+// is the killer feature for SVI: the ~4K-token rubric is identical across
+// every profile, so from the 2nd call onward the input cost drops 10×.
+// Kept separate from callClaude (Sonnet) so the two can be enabled/disabled
+// independently — Sonnet OAuth for chat, Haiku direct for high-volume synthesis.
+
+async function callClaudeHaikuDirect(opts: AICallOptions): Promise<AICallResult> {
+  const apiKey = process.env.ANTHROPIC_HAIKU_API_KEY ?? getDBKey("anthropic_haiku")?.api_key ?? "";
+  if (!apiKey) throw new Error("Anthropic Haiku API key not configured");
+  const model = "claude-haiku-4-5-20251001";
+
+  // Split system into a cacheable block. cache_control on the last block of
+  // system content tells Anthropic to reuse it across identical prefixes for
+  // up to 5 minutes — cache_read_input_tokens is billed at 10% of fresh cost.
+  const raw = await workerFetch("https://api.anthropic.com/v1/messages", {
+    "x-api-key": apiKey,
+    "anthropic-version": "2023-06-01",
+    "Content-Type": "application/json",
+  }, JSON.stringify({
+    model,
+    max_tokens: opts.maxTokens ?? 4096,
+    system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
+    messages: [{ role: "user", content: opts.user }],
+  }), opts.timeoutMs);
+
+  const data = JSON.parse(raw);
+  if (data.error) throw new Error(data.error.message ?? "Anthropic Haiku error");
+  let text = "";
+  for (const block of (data.content ?? [])) if (block.type === "text") text = block.text;
+  if (!text) throw new Error("Empty Haiku response");
+  return { text, provider: "claude", model };
+}
+
 // ── OpenRouter (OpenAI-compatible, free models) ──────────────────────
 
 async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
@@ -981,6 +1088,7 @@ async function callOpenRouter(opts: AICallOptions): Promise<AICallResult> {
     // ── S-tier: Frontier-class free models ──────────────────────────
     "google/gemini-2.5-flash:free",                        // Google Gemini 2.5 Flash — fastest frontier model
     "deepseek/deepseek-r1:free",                           // DeepSeek R1 reasoning — strongest free reasoning
+    "deepseek/deepseek-chat-v3.1:free",                    // DeepSeek V3.1 chat — S-tier reasoning (Sep 2026 add)
     "deepseek/deepseek-v3:free",                           // DeepSeek V3 — top-tier general + coding
     "meta-llama/llama-4-maverick:free",                    // Llama 4 Maverick — Meta's best free MoE
     "qwen/qwen3-235b-a22b:free",                           // Qwen3 235B MoE — Alibaba flagship free
@@ -1119,6 +1227,8 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
       return callClaude(readCliOAuthToken()!, opts);
     case "claude-apikey":
       return callClaude(process.env.ANTHROPIC_API_KEY ?? getDBKey("anthropic")?.api_key ?? "", opts);
+    case "claude-haiku-direct":
+      return callClaudeHaikuDirect(noTools);
     case "claude-proxy":
       return callClaudeProxy(opts);
     case "openai-apikey":
@@ -1129,6 +1239,8 @@ async function callProvider(provider: Provider, opts: AICallOptions): Promise<AI
       return callCerebras(noTools);
     case "sambanova":
       return callSambaNova(noTools);
+    case "deepinfra":
+      return callDeepInfra(noTools);
     case "openrouter":
       return callOpenRouter(noTools);
     case "gemini": {
@@ -1239,18 +1351,27 @@ const providerCooldown = new Map<string, number>();
 /** Known free-tier requests-per-minute ceilings (conservative). Overrideable
  *  via env for future tuning without a redeploy. Groq's gpt-oss models allow
  *  1000 RPM — the highest — so they naturally win the capacity race under load. */
+// Sep 2026 verified ceilings:
+//   Groq free = 30 RPM/model; Developer tier = 1000 RPM/model. Default assumes
+//     Developer tier is on (env AI_RPM_GROQ can lower if still on free).
+//   OpenRouter free = 20 RPM/model (correction — $10 top-up lifts daily cap,
+//     NOT per-minute). Was mis-set to 60.
+//   DeepInfra = 200 concurrent, no published per-minute ceiling → estimate 300.
+//   Claude Haiku direct = tier-scaled starting 50 RPM, grows to 4000+ with usage.
 const PROVIDER_RPM: Record<Provider, number> = {
-  "groq":          Number(process.env.AI_RPM_GROQ ?? 1000),
-  "sambanova":     Number(process.env.AI_RPM_SAMBANOVA ?? 60),
-  "openrouter":    Number(process.env.AI_RPM_OPENROUTER ?? 60),
-  "cerebras":      Number(process.env.AI_RPM_CEREBRAS ?? 30),
-  "claude-oauth":  Number(process.env.AI_RPM_CLAUDE_OAUTH ?? 50),
-  "claude-proxy":  Number(process.env.AI_RPM_CLAUDE_PROXY ?? 50),
-  "claude-apikey": Number(process.env.AI_RPM_CLAUDE_APIKEY ?? 120),
-  "openai-apikey": Number(process.env.AI_RPM_OPENAI ?? 200),
-  "gemini":        Number(process.env.AI_RPM_GEMINI ?? 60),
-  "ollama":        9999,  // local, no external limit
-  "none":             0,
+  "groq":               Number(process.env.AI_RPM_GROQ ?? 4000),
+  "sambanova":          Number(process.env.AI_RPM_SAMBANOVA ?? 60),
+  "openrouter":         Number(process.env.AI_RPM_OPENROUTER ?? 20),
+  "cerebras":           Number(process.env.AI_RPM_CEREBRAS ?? 30),
+  "deepinfra":          Number(process.env.AI_RPM_DEEPINFRA ?? 300),
+  "claude-haiku-direct":Number(process.env.AI_RPM_CLAUDE_HAIKU ?? 200),
+  "claude-oauth":       Number(process.env.AI_RPM_CLAUDE_OAUTH ?? 50),
+  "claude-proxy":       Number(process.env.AI_RPM_CLAUDE_PROXY ?? 50),
+  "claude-apikey":      Number(process.env.AI_RPM_CLAUDE_APIKEY ?? 120),
+  "openai-apikey":      Number(process.env.AI_RPM_OPENAI ?? 200),
+  "gemini":             Number(process.env.AI_RPM_GEMINI ?? 60),
+  "ollama":             9999,  // local, no external limit
+  "none":                  0,
 };
 const RPM_HEADROOM = 0.85; // stop firing at 85% of ceiling → burst safety margin
 const RPM_WINDOW_MS = 60_000;

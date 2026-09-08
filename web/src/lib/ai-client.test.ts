@@ -690,9 +690,9 @@ describe("pickBestProvider — capacity-aware routing", () => {
 
   it("keeps input order when capacities tie (ties preserve quality ranking)", async () => {
     const { pickBestProvider } = await loadClient();
-    // sambanova and openrouter both default to 60 RPM in the same table
-    expect(pickBestProvider(["sambanova", "openrouter"])).toBe("sambanova");
-    expect(pickBestProvider(["openrouter", "sambanova"])).toBe("openrouter");
+    // claude-oauth and claude-proxy both default to 50 RPM in the same table
+    expect(pickBestProvider(["claude-oauth", "claude-proxy"])).toBe("claude-oauth");
+    expect(pickBestProvider(["claude-proxy", "claude-oauth"])).toBe("claude-proxy");
   });
 
   it("returns a candidate even when every provider is saturated (least-bad wins)", async () => {
