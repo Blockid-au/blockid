@@ -324,6 +324,7 @@ export function AnalyzeRoot({
           : "Network error — please retry.",
       );
     } finally {
+      setAwaitingHandoff(false);
       setIntakeLoading(false);
     }
   }
@@ -336,6 +337,13 @@ export function AnalyzeRoot({
   // bytes falls through to the intake box with an explanation.
   const autoRanRef = React.useRef(false);
   const [deckHandoffLost, setDeckHandoffLost] = React.useState(false);
+  // Whether a handoff is expected on this render. Derived from the URL only
+  // (never from the module store), so the server HTML and the first client
+  // render agree — otherwise the visitor sees an empty box flash before the
+  // run starts, which is the exact "type it again" moment being removed.
+  const [awaitingHandoff, setAwaitingHandoff] = React.useState(
+    () => Boolean(initialQuery) || initialKind === "deck",
+  );
 
   React.useEffect(() => {
     if (autoRanRef.current) return;
@@ -344,6 +352,7 @@ export function AnalyzeRoot({
     const sub = parked ?? submissionFromQuery({ q: initialQuery, kind: initialKind });
     if (!sub) {
       if (initialKind === "deck") setDeckHandoffLost(true);
+      setAwaitingHandoff(false);
       return;
     }
     void handleSubmit(sub, {
@@ -411,6 +420,7 @@ export function AnalyzeRoot({
   function handleReset() {
     clearPendingIntake();
     setDeckHandoffLost(false);
+    setAwaitingHandoff(false);
     setPhase("intake");
     setSubmission(null);
     setIntake(null);
@@ -422,6 +432,29 @@ export function AnalyzeRoot({
 
   // ── Render ─────────────────────────────────────────────────────────
   if (phase === "intake") {
+    // A handoff is in flight — show that the run is starting rather than an
+    // empty box the visitor might start retyping into.
+    if (awaitingHandoff && !errorMsg) {
+      return (
+        <div
+          className="flex w-full flex-col items-center gap-3 rounded-2xl border border-line-subtle bg-surface-raised px-6 py-10"
+          data-testid="analyze-handoff-starting"
+          role="status"
+          aria-live="polite"
+        >
+          <span
+            aria-hidden
+            className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-action motion-reduce:animate-none"
+          />
+          <p className="text-sm font-medium text-primary">
+            Starting your analysis…
+          </p>
+          <p className="text-xs text-muted">
+            Using what you already entered — no need to type it again.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="flex w-full flex-col items-center gap-3">
         {deckHandoffLost && (
