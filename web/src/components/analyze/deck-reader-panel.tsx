@@ -88,7 +88,7 @@ function slideIndexToSection(
   const map = new Map<number, DeckSection>();
   if (!sections) return map;
   for (const name of SECTION_ORDER) {
-    const bucket = (sections as Record<string, string[]>)[name] ?? [];
+    const bucket = (sections as unknown as Record<string, string[]>)[name] ?? [];
     for (const slideText of bucket) {
       const idx = slides.indexOf(slideText);
       if (idx >= 0) map.set(idx, name);
