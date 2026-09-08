@@ -87,10 +87,17 @@ export default function TeamPage() {
                 Long DO — Founder
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-[var(--fintech-ink-muted)]">
-                Solo human founder. Sets the roadmap, approves every ship, and
-                owns the founder relationship. All C-Level execution — build,
-                research, reporting — is delegated to the AI advisor bench
-                below and audited via the daily digest at{" "}
+                Founder and product lead. Sets the roadmap, approves every
+                ship, and owns the founder relationship. Execution is
+                delivered by a cross-border team coordinated with{" "}
+                <strong className="text-[var(--fintech-ink)]">Auschain PTY LTD</strong>{" "}
+                in Australia (go-to-market, compliance, customer contracts)
+                and the{" "}
+                <strong className="text-[var(--fintech-ink)]">
+                  tech team at Vietnam Blockchain Corporation
+                </strong>{" "}
+                (engineering, blockchain infrastructure, data platform), with
+                every shipped change audited via the daily digest at{" "}
                 <code className="rounded bg-[var(--fintech-surface)] px-1 py-0.5 text-[0.85em]">
                   /admin
                 </code>
