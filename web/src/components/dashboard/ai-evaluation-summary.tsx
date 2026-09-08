@@ -46,67 +46,67 @@ export function AIEvaluationSummary({
     : fmtAud(summary.latestValuationLowAud) ?? fmtAud(summary.latestValuationHighAud) ?? "not yet computed";
 
   return (
-    <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] overflow-hidden">
-      <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-[rgba(255,255,255,0.06)]">
+    <div className="rounded-2xl border border-line-subtle bg-surface overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-line-subtle">
         <div className="flex items-center gap-2">
-          <Brain className="h-4 w-4 text-brand-400" />
-          <h2 className="text-sm font-semibold text-white">AI evaluation summary</h2>
+          <Brain className="h-4 w-4 text-action" />
+          <h2 className="text-sm font-semibold text-primary">AI evaluation summary</h2>
         </div>
-        <Link href={href} className="text-[11px] text-ink-400 hover:text-white transition-colors">
+        <Link href={href} className="text-xs text-muted hover:text-primary transition-colors">
           Full history →
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[rgba(255,255,255,0.05)]">
+      <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-line-subtle">
         <div className="px-5 py-4">
-          <div className="text-[10px] uppercase tracking-wider text-ink-400 mb-1">Latest SVI</div>
+          <div className="text-xs uppercase tracking-wider text-muted mb-1">Latest SVI</div>
           <div className="flex items-baseline gap-2">
             <div className={`text-2xl font-bold tabular-nums ${summary.latestTotalScore != null ? scoreColor(summary.latestTotalScore) : "text-ink-500"}`}>
               {summary.latestTotalScore ?? "—"}
             </div>
             <DeltaChip delta={summary.scoreDelta7d} />
           </div>
-          <div className="text-[10px] text-ink-500 mt-1">
+          <div className="text-xs text-tertiary mt-1">
             {summary.scoreDelta30d != null ? `${summary.scoreDelta30d >= 0 ? "+" : ""}${summary.scoreDelta30d} vs 30d` : "no 30d baseline"}
           </div>
         </div>
 
         <div className="px-5 py-4">
-          <div className="text-[10px] uppercase tracking-wider text-ink-400 mb-1">Valuation</div>
-          <div className="text-sm font-semibold text-white">{val}</div>
+          <div className="text-xs uppercase tracking-wider text-muted mb-1">Valuation</div>
+          <div className="text-sm font-semibold text-primary">{val}</div>
           {summary.latestConfidence != null && (
-            <div className="text-[10px] text-ink-500 mt-1">
+            <div className="text-xs text-tertiary mt-1">
               confidence {Number(summary.latestConfidence).toFixed(0)}%
             </div>
           )}
         </div>
 
         <div className="px-5 py-4">
-          <div className="text-[10px] uppercase tracking-wider text-ink-400 mb-1">AI runs</div>
-          <div className="text-sm font-semibold text-white">
+          <div className="text-xs uppercase tracking-wider text-muted mb-1">AI runs</div>
+          <div className="text-sm font-semibold text-primary">
             {summary.totalScoreRuns} scoring · {summary.totalDeepDives} deep-dive
           </div>
-          <div className="text-[10px] text-ink-500 mt-1">
+          <div className="text-xs text-tertiary mt-1">
             since {fmtDate(summary.firstAnalysisAt)}
           </div>
         </div>
 
         <div className="px-5 py-4">
-          <div className="text-[10px] uppercase tracking-wider text-ink-400 mb-1">Agents run</div>
-          <div className="text-sm font-semibold text-white">
+          <div className="text-xs uppercase tracking-wider text-muted mb-1">Agents run</div>
+          <div className="text-sm font-semibold text-primary">
             {summary.agentsRun.length > 0 ? summary.agentsRun.length : summary.totalAiCallsLogged}
           </div>
-          <div className="text-[10px] text-ink-500 mt-1 truncate">
+          <div className="text-xs text-tertiary mt-1 truncate">
             {summary.agentsRun.slice(0, 3).join(", ") || "auto-logged calls"}
           </div>
         </div>
       </div>
 
       {summary.deepDiveDimensions.length > 0 && (
-        <div className="px-5 py-3 border-t border-[rgba(255,255,255,0.06)]">
+        <div className="px-5 py-3 border-t border-line-subtle">
           <div className="flex items-center gap-2 mb-2">
             <Compass className="h-3.5 w-3.5 text-ink-400" />
-            <span className="text-[10px] uppercase tracking-wider text-ink-400">
+            <span className="text-xs uppercase tracking-wider text-muted">
               Dimensions you deep-dived
             </span>
           </div>
@@ -114,7 +114,7 @@ export function AIEvaluationSummary({
             {summary.deepDiveDimensions.map((d) => (
               <span
                 key={d}
-                className="rounded-full bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 text-[10px] font-medium text-brand-400 uppercase"
+                className="rounded-full bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 text-[10px] font-medium text-action uppercase"
               >
                 {d}
               </span>
@@ -124,10 +124,10 @@ export function AIEvaluationSummary({
       )}
 
       {summary.topRecommendations.length > 0 && (
-        <div className="px-5 py-4 border-t border-[rgba(255,255,255,0.06)]">
+        <div className="px-5 py-4 border-t border-line-subtle">
           <div className="flex items-center gap-2 mb-3">
             <Zap className="h-3.5 w-3.5 text-amber-400" />
-            <span className="text-[10px] uppercase tracking-wider text-ink-400">
+            <span className="text-xs uppercase tracking-wider text-muted">
               Top recommendations from all AI analyses
             </span>
           </div>

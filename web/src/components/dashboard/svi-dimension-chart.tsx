@@ -72,7 +72,7 @@ function barColor(score: number): string {
 }
 
 function barTrackStyle(): React.CSSProperties {
-  return { background: "rgba(255,255,255,0.06)" };
+  return { background: "var(--ds-surface-sunken)" };
 }
 
 // AU benchmark line position as a percentage of the bar width (55/100 = 55%)
@@ -89,7 +89,7 @@ function DimensionBar({ label, score }: { label: string; score: number }) {
     <div className="flex items-center gap-3 group">
       {/* Label — fixed width, right-aligned */}
       <span
-        className="text-xs text-[#94A3B8] text-right shrink-0 truncate"
+        className="text-xs text-muted text-right shrink-0 truncate"
         style={{ width: "160px", minWidth: "120px" }}
         title={label}
       >
@@ -115,7 +115,7 @@ function DimensionBar({ label, score }: { label: string; score: number }) {
           style={{
             left: benchmarkLeft,
             width: "1px",
-            borderLeft: "1.5px dashed rgba(255,255,255,0.30)",
+            borderLeft: "1.5px dashed var(--ds-border-strong)",
             zIndex: 10,
           }}
         />
@@ -177,23 +177,23 @@ export function SviDimensionChart({ dimensionScores, className = "" }: SviDimens
 
   return (
     <div
-      className={`rounded-2xl border border-[rgba(255,255,255,0.08)] backdrop-blur-sm overflow-hidden hover:border-[rgba(0,212,255,0.3)] transition-all duration-300 ${className}`}
-      style={{ background: "rgba(255,255,255,0.04)" }}
+      className={`rounded-2xl border border-line-subtle backdrop-blur-sm overflow-hidden hover:border-action/25 transition-all duration-300 ${className}`}
+      style={{ background: "var(--ds-surface-sunken)" }}
     >
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between gap-4 flex-wrap">
+      <div className="px-6 py-4 border-b border-line-subtle flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-xs uppercase tracking-wider font-semibold text-[#00D4FF]">
+          <p className="text-xs uppercase tracking-wider font-semibold text-action">
             SVI Dimension Breakdown
           </p>
-          <p className="text-xs text-[#64748B] mt-0.5">
+          <p className="text-xs text-tertiary mt-0.5">
             8 scoring dimensions · AU benchmark at 55
           </p>
         </div>
 
         {/* Summary pills */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider bg-[rgba(255,255,255,0.06)] text-[#94A3B8]">
+          <span className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider bg-surface-hover text-muted">
             Avg&nbsp;
             <span style={{ color: barColor(avg) }}>{avg}</span>
           </span>
@@ -214,9 +214,9 @@ export function SviDimensionChart({ dimensionScores, className = "" }: SviDimens
         <div className="flex items-center gap-1.5 ml-auto">
           {/* Benchmark icon */}
           <svg width="16" height="10" viewBox="0 0 16 10" aria-hidden="true">
-            <line x1="8" y1="0" x2="8" y2="10" stroke="rgba(255,255,255,0.40)" strokeWidth="1.5" strokeDasharray="2 2" />
+            <line x1="8" y1="0" x2="8" y2="10" stroke="var(--ds-border-emphasis)" strokeWidth="1.5" strokeDasharray="2 2" />
           </svg>
-          <span className="text-[10px] text-[#64748B]">AU Benchmark (55)</span>
+          <span className="text-[10px] text-tertiary">AU Benchmark (55)</span>
         </div>
       </div>
 
@@ -246,7 +246,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
-      <span className="text-[10px] text-[#64748B]">{label}</span>
+      <span className="text-[10px] text-tertiary">{label}</span>
     </div>
   );
 }

@@ -543,7 +543,7 @@ function BlendedView({
         </p>
         <Link
           href={hint.href}
-          className="mt-2 inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+          className="mt-2 inline-flex items-center rounded-md bg-action px-3 py-1.5 text-xs font-medium text-on-action hover:bg-action-hover"
         >
           {hint.cta}
         </Link>

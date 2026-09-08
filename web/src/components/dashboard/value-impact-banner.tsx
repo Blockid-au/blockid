@@ -49,19 +49,19 @@ interface ChipProps {
   accent?: string;
 }
 
-function Chip({ icon, label, value, sub, accent = "#00D4FF" }: ChipProps) {
+function Chip({ icon, label, value, sub, accent = "var(--ds-accent)" }: ChipProps) {
   return (
     <div className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3">
       <div
         className="h-9 w-9 flex items-center justify-center rounded-lg shrink-0"
-        style={{ background: `${accent}14`, color: accent }}
+        style={{ background: `color-mix(in srgb, ${accent} 10%, transparent)`, color: accent }}
       >
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-widest font-semibold text-[#94A3B8]">{label}</p>
-        <p className="text-lg font-extrabold text-[#F8FAFC] leading-tight">{value}</p>
-        {sub && <p className="text-[10px] text-[#64748B] mt-0.5 truncate">{sub}</p>}
+        <p className="text-xs uppercase tracking-widest font-semibold text-muted">{label}</p>
+        <p className="text-lg font-extrabold text-primary leading-tight">{value}</p>
+        {sub && <p className="text-xs text-tertiary mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
   );
@@ -88,24 +88,24 @@ export function ValueImpactBanner({
   const milestones = evidenceCount + actionsCompleted;
 
   return (
-    <div className="rounded-2xl border border-[rgba(0,212,255,0.18)] bg-gradient-to-r from-[rgba(11,15,42,0.9)] to-[rgba(19,25,56,0.9)] backdrop-blur-sm overflow-hidden">
+    <div className="rounded-2xl border border-action/25 bg-surface overflow-hidden">
       {/* Top label */}
-      <div className="px-5 py-3 border-b border-[rgba(255,255,255,0.06)] flex items-center gap-2">
-        <Sparkles className="h-3.5 w-3.5 text-[#00D4FF]" />
-        <p className="text-xs font-semibold text-[#00D4FF] uppercase tracking-widest">
+      <div className="px-5 py-3 border-b border-line-subtle flex items-center gap-2">
+        <Sparkles className="h-3.5 w-3.5 text-action" />
+        <p className="text-xs font-semibold text-action uppercase tracking-widest">
           {startupName ? `${startupName} · ` : ""}BlockID Value Delivered
         </p>
       </div>
 
       {/* Stats row */}
-      <div className="flex flex-wrap divide-x divide-[rgba(255,255,255,0.07)]">
+      <div className="flex flex-wrap divide-x divide-line-subtle">
         {/* SVI growth */}
         <Chip
           icon={<TrendingUp className="h-4 w-4" />}
           label="SVI Score"
           value={String(sviCurrent)}
           sub={delta != null ? `${fmtDelta(delta)} pts since first analysis` : "Current score"}
-          accent="#00D4FF"
+          accent="var(--ds-accent)"
         />
 
         {/* Estimated valuation */}
@@ -114,7 +114,7 @@ export function ValueImpactBanner({
           label="Est. Value"
           value={fmtVal(currentVal)}
           sub={valDelta != null && valDelta > 0 ? `+${fmtVal(valDelta)} gained` : "Your startup value"}
-          accent="#10B981"
+          accent="var(--ds-success)"
         />
 
         {/* Investor readiness */}
@@ -123,7 +123,7 @@ export function ValueImpactBanner({
           label="Investor Ready"
           value={`${readinessPct}%`}
           sub="Readiness score"
-          accent="#F59E0B"
+          accent="var(--ds-warn)"
         />
 
         {/* Milestones */}
@@ -132,7 +132,7 @@ export function ValueImpactBanner({
           label="Milestones"
           value={String(milestones)}
           sub={`${evidenceCount} evidence · ${actionsCompleted} actions done`}
-          accent="#8B5CF6"
+          accent="var(--ds-accent-hover)"
         />
       </div>
     </div>

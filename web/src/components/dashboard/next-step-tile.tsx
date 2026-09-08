@@ -175,7 +175,7 @@ export function NextStepTile() {
             href={next_action.cta_url}
             data-testid="next-step-action-cta"
             data-category={next_action.category}
-            className="mt-3 inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+            className="mt-3 inline-flex items-center rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action hover:bg-action-hover"
           >
             {next_action.cta_label}
           </Link>

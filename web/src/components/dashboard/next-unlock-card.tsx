@@ -58,7 +58,7 @@ export function NextUnlockCard({
     <div
       data-testid="next-unlock-card"
       data-phase={currentPhase}
-      className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4"
+      className="rounded-2xl border border-line-subtle bg-surface p-5 space-y-4"
     >
       {/* Header — phase ordinal + label */}
       <div className="flex items-start justify-between gap-3">
@@ -72,7 +72,7 @@ export function NextUnlockCard({
         </div>
         {/* Pct badge */}
         <span
-          className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${pctColor} bg-white/5 border border-white/10`}
+          className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${pctColor} bg-surface-sunken border border-line-subtle`}
         >
           {clamped}%
         </span>
@@ -80,7 +80,7 @@ export function NextUnlockCard({
 
       {/* Progress bar */}
       <div>
-        <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+        <div className="h-1.5 w-full rounded-full bg-surface-hover overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-700 ${barColor}`}
             style={{ width: `${clamped}%` }}
@@ -124,7 +124,7 @@ export function NextUnlockCard({
 
       {/* Next action */}
       {nextAction && (
-        <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+        <div className="rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3">
           <p className="text-[10px] uppercase tracking-widest text-slate-400 font-medium mb-1">
             Next action
           </p>
