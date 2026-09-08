@@ -33,6 +33,10 @@ const buttonVariants = cva(
         // `link` = inline text-link styled button.
         link:
           "bg-transparent text-brand-600 hover:text-brand-700 underline underline-offset-4 decoration-brand-300 hover:decoration-brand-500 shadow-none rounded-none h-auto px-0",
+        // Light-first design-system canonical CTA. Uses `action` / `on-action`
+        // tokens and rounded-lg radius to align with hero, /analyze, and admin.
+        action:
+          "bg-action text-on-action rounded-lg hover:bg-action-hover focus-visible:ring-action shadow-sm",
       },
       size: {
         // Legacy sizes preserved.
