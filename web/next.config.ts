@@ -132,6 +132,32 @@ const nextConfig: NextConfig = {
         destination: "/analyze?tier=paid",
         statusCode: 301,
       },
+      // Fintech v2 (2026-09-08): consolidate subscription + blockchain
+      // marketing entry points. `/subscribe` and `/plans` are common
+      // discovery URLs that never had their own page; both land on
+      // `/pricing`. `/blockchain` and `/onchain` are the two most
+      // guessed URLs for the tokenization pillar and now 301 to the
+      // canonical `/tokenize` shelf.
+      {
+        source: "/subscribe",
+        destination: "/pricing",
+        statusCode: 301,
+      },
+      {
+        source: "/plans",
+        destination: "/pricing",
+        statusCode: 301,
+      },
+      {
+        source: "/blockchain",
+        destination: "/tokenize",
+        statusCode: 301,
+      },
+      {
+        source: "/onchain",
+        destination: "/tokenize",
+        statusCode: 301,
+      },
     ];
   },
   async headers() {
