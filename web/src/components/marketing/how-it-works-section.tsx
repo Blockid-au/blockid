@@ -30,6 +30,7 @@ export function HowItWorksSection({ className }: { className?: string }) {
   return (
     <section
       aria-labelledby="how-heading"
+      data-theme="dark"
       className={cn("border-t py-24", className)}
       style={{
         backgroundColor: "#0A0F1E",
@@ -47,8 +48,7 @@ export function HowItWorksSection({ className }: { className?: string }) {
           </p>
           <h2
             id="how-heading"
-            className="font-display text-3xl font-bold tracking-tight sm:text-4xl"
-            style={{ color: "#F8FAFC" }}
+            className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-primary"
           >
             From idea to investor-ready in 3 steps
           </h2>
@@ -87,8 +87,7 @@ export function HowItWorksSection({ className }: { className?: string }) {
 
                 <div>
                   <h3
-                    className="mb-2 font-display text-lg font-semibold"
-                    style={{ color: "#F8FAFC" }}
+                    className="mb-2 font-display text-lg font-semibold text-primary"
                   >
                     {step.title}
                   </h3>

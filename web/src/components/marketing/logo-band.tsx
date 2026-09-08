@@ -18,6 +18,7 @@ export function LogoBand({ className }: { className?: string }) {
   return (
     <section
       aria-label="Platform statistics"
+      data-theme="dark"
       className={cn("border-y py-10", className)}
       style={{
         backgroundColor: "#0A0F1E",
@@ -36,8 +37,7 @@ export function LogoBand({ className }: { className?: string }) {
             <div key={stat.value} className="flex items-center gap-8 sm:gap-16">
               <div className="flex flex-col items-center gap-1 text-center">
                 <span
-                  className="text-2xl font-bold tracking-tight"
-                  style={{ color: "#F8FAFC" }}
+                  className="text-2xl font-bold tracking-tight text-primary"
                 >
                   {stat.value}
                 </span>

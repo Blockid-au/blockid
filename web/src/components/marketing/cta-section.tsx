@@ -11,6 +11,7 @@ export function CTASection({ className }: { className?: string }) {
   return (
     <section
       aria-labelledby="cta-heading"
+      data-theme="dark"
       className={cn("border-t py-24", className)}
       style={{
         backgroundColor: "#0A0F1E",
@@ -49,8 +50,7 @@ export function CTASection({ className }: { className?: string }) {
 
             <h2
               id="cta-heading"
-              className="relative mb-4 font-display text-3xl font-bold tracking-tight sm:text-4xl"
-              style={{ color: "#F8FAFC" }}
+              className="relative mb-4 font-display text-3xl font-bold tracking-tight sm:text-4xl text-primary"
             >
               Know what your startup is worth — before you pitch
             </h2>

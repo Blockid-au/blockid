@@ -74,6 +74,7 @@ export function FeaturesGrid({ className }: { className?: string }) {
   return (
     <section
       aria-labelledby="features-heading"
+      data-theme="dark"
       className={cn("py-24", className)}
       style={{ backgroundColor: "#0A0F1E" }}
     >
@@ -88,8 +89,7 @@ export function FeaturesGrid({ className }: { className?: string }) {
           </p>
           <h2
             id="features-heading"
-            className="font-display text-3xl font-bold tracking-tight sm:text-4xl"
-            style={{ color: "#F8FAFC" }}
+            className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-primary"
           >
             Everything a founder needs
           </h2>
@@ -127,8 +127,7 @@ export function FeaturesGrid({ className }: { className?: string }) {
                     <Icon size={20} style={{ color: feat.iconColor }} />
                   </div>
                   <h3
-                    className="mb-2 font-display text-base font-semibold"
-                    style={{ color: "#F8FAFC" }}
+                    className="mb-2 font-display text-base font-semibold text-primary"
                   >
                     {feat.title}
                   </h3>

@@ -110,6 +110,7 @@ export function HeroSection() {
   return (
     <section
       aria-labelledby="hero-heading"
+      data-theme="dark"
       className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-24"
       style={{ backgroundColor: "#0A0F1E" }}
     >
@@ -168,8 +169,8 @@ export function HeroSection() {
         {/* Headline */}
         <h1
           id="hero-heading"
-          className="animate-fade-in-up font-display max-w-3xl text-balance text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl"
-          style={{ color: "#F8FAFC", animationDelay: "80ms" }}
+          className="animate-fade-in-up font-display max-w-3xl text-balance text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl text-primary"
+          style={{ animationDelay: "80ms" }}
         >
           Know your startup&apos;s{" "}
           <span
@@ -189,12 +190,11 @@ export function HeroSection() {
             Sits above the fold on mobile 360px; uses brand gradient border. */}
         <Link
           href="/one-click-report"
-          className="animate-fade-in-up inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 sm:text-sm"
+          className="animate-fade-in-up inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 sm:text-sm text-primary"
           style={{
             background:
               "linear-gradient(135deg, rgba(0,212,255,0.14) 0%, rgba(123,47,190,0.14) 100%)",
             border: "1px solid rgba(0,212,255,0.55)",
-            color: "#F8FAFC",
             animationDelay: "120ms",
           }}
         >
@@ -287,7 +287,7 @@ export function HeroSection() {
         >
           {STATS.map((stat, i) => (
             <span key={stat} className="inline-flex items-center gap-3">
-              <span className="font-semibold" style={{ color: "#F8FAFC" }}>
+              <span className="font-semibold text-primary">
                 {stat}
               </span>
               {i < STATS.length - 1 && (
