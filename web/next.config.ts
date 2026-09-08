@@ -99,6 +99,22 @@ const nextConfig: NextConfig = {
         destination: "/auth/login",
         permanent: false,
       },
+      // /auth/signup — legacy path referenced by nav/CTA copy that predates
+      // the top-level /signup route. QA sweep Sep 2026 found 404 here.
+      {
+        source: "/auth/signup",
+        destination: "/signup",
+        permanent: false,
+      },
+      // /tools/svi-score — QA sweep Sep 2026: this path is referenced by
+      // marketing cards but was never a route. The SVI scoring tool lives
+      // at /score. 301 so search engines forget the old path.
+      {
+        source: "/tools/svi-score",
+        destination: "/score",
+        permanent: true,
+        statusCode: 301,
+      },
     ];
   },
   async headers() {
