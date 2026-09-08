@@ -597,6 +597,10 @@ export interface AICallOptions {
   /** Tools for Claude (e.g. web_search). Ignored by OpenAI/Gemini. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tools?: any[];
+  /** Logical caller id (e.g. "cfo", "cdo", "svi-scoring"). Used by the per-agent
+   *  semaphore so one caller's burst can't hog the whole provider pool. Omit for
+   *  ad-hoc calls — they share a generic "default" bucket. */
+  agentId?: string;
 }
 
 interface AICallResult {
@@ -649,12 +653,18 @@ function getAvailableProviders(): Provider[] {
   //   openrouter    — LAST: 24+ free models but variable uptime + rate limits
   // ──────────────────────────────────────────────────────────────────────
 
-  // 1. Cerebras — ultra-fast 2000 t/s, gemma-4-31b highly reliable in prod
-  if (process.env.CEREBRAS_API_KEY) providers.push("cerebras");
-  else if (getDBKey("cerebras")) providers.push("cerebras");
-  // 2. Groq — 400 RPM free, ~500 t/s; qwen3.6-27b top of Aug 2026 discovery
+  // Parallel-load-aware ordering (Sep 2026): the dispatcher picks by remaining
+  // capacity, not by list position — this order is only the tiebreak when several
+  // providers have equal headroom (i.e. the first call in a quiet system).
+  // Groq gpt-oss production models advertise 1000 RPM — the highest free ceiling —
+  // so it becomes the natural first pick under any real concurrency; Cerebras
+  // stays high because it is ultra-fast (2000 t/s) for low-load calls.
+  // 1. Groq — 1000 RPM (gpt-oss family), ~500 t/s. Best headroom under bursts.
   if (process.env.GROQ_API_KEY) providers.push("groq");
   else if (getDBKey("groq")) providers.push("groq");
+  // 2. Cerebras — 30 RPM but ultra-fast (2000 t/s); wins under low load only
+  if (process.env.CEREBRAS_API_KEY) providers.push("cerebras");
+  else if (getDBKey("cerebras")) providers.push("cerebras");
   // 3. SambaNova — DeepSeek V3.2/V3.1 free, 294 TPS, excellent reasoning quality
   if (process.env.SAMBANOVA_API_KEY) providers.push("sambanova");
   else if (getDBKey("sambanova")) providers.push("sambanova");
@@ -1205,6 +1215,170 @@ async function callViaGateway(opts: AICallOptions): Promise<AICallResult | null>
 // Track recently failed providers — skip them for 2 minutes to avoid wasting time
 const providerCooldown = new Map<string, number>();
 
+// ═════════════════════════════════════════════════════════════════════════
+// PARALLEL-SERVING DISPATCHER (Sep 2026)
+// ═════════════════════════════════════════════════════════════════════════
+// Problem it solves: when many analyses fire concurrently (multi-agent SVI
+// scoring, C-Level report generation), every request hit Cerebras first
+// because the fallback chain is in fixed order. Cerebras' 30 RPM free
+// ceiling was blown almost instantly and requests cascaded through the chain
+// picking up 429 after 429.
+//
+// The dispatcher spreads concurrent load across providers using known RPM
+// ceilings + live in-flight counts. Four defensive layers:
+//   L1. Per-provider RPM window — never fire when a provider is at 85% of
+//       its published ceiling (proactive, prevents 429 before it happens).
+//   L2. Least-loaded (max-capacity) routing — first-try target is whichever
+//       provider has the most headroom right now, not a fixed favourite.
+//   L3. Global concurrency semaphore — hard cap on total in-flight callAI()
+//       so a runaway agent burst can't create a 500-request stampede.
+//   L4. Per-agent semaphore — one agentId can't monopolise the pool.
+// Every layer is a Map/counter — no external dependency, restart-safe by
+// virtue of being all in-process (a fresh worker starts clean).
+
+/** Known free-tier requests-per-minute ceilings (conservative). Overrideable
+ *  via env for future tuning without a redeploy. Groq's gpt-oss models allow
+ *  1000 RPM — the highest — so they naturally win the capacity race under load. */
+const PROVIDER_RPM: Record<Provider, number> = {
+  "groq":          Number(process.env.AI_RPM_GROQ ?? 1000),
+  "sambanova":     Number(process.env.AI_RPM_SAMBANOVA ?? 60),
+  "openrouter":    Number(process.env.AI_RPM_OPENROUTER ?? 60),
+  "cerebras":      Number(process.env.AI_RPM_CEREBRAS ?? 30),
+  "claude-oauth":  Number(process.env.AI_RPM_CLAUDE_OAUTH ?? 50),
+  "claude-proxy":  Number(process.env.AI_RPM_CLAUDE_PROXY ?? 50),
+  "claude-apikey": Number(process.env.AI_RPM_CLAUDE_APIKEY ?? 120),
+  "openai-apikey": Number(process.env.AI_RPM_OPENAI ?? 200),
+  "gemini":        Number(process.env.AI_RPM_GEMINI ?? 60),
+  "ollama":        9999,  // local, no external limit
+  "none":             0,
+};
+const RPM_HEADROOM = 0.85; // stop firing at 85% of ceiling → burst safety margin
+const RPM_WINDOW_MS = 60_000;
+
+const inFlightByProvider = new Map<Provider, number>();
+const rpmWindow = new Map<Provider, number[]>(); // ms timestamps of recent fires
+
+function noteFire(p: Provider): void {
+  const now = Date.now();
+  const ts = (rpmWindow.get(p) ?? []).filter((t) => now - t < RPM_WINDOW_MS);
+  ts.push(now);
+  rpmWindow.set(p, ts);
+  inFlightByProvider.set(p, (inFlightByProvider.get(p) ?? 0) + 1);
+}
+
+function noteDone(p: Provider): void {
+  inFlightByProvider.set(p, Math.max(0, (inFlightByProvider.get(p) ?? 1) - 1));
+}
+
+/** Remaining capacity = ceiling*headroom − recent-fires − in-flight.
+ *  Negative means "already saturated, do not fire". */
+function providerCapacity(p: Provider): number {
+  const ceiling = (PROVIDER_RPM[p] ?? 30) * RPM_HEADROOM;
+  const now = Date.now();
+  const recent = (rpmWindow.get(p) ?? []).filter((t) => now - t < RPM_WINDOW_MS).length;
+  const inflight = inFlightByProvider.get(p) ?? 0;
+  return ceiling - recent - inflight;
+}
+
+/** L1+L2: pick the provider with the most remaining capacity that isn't on
+ *  cooldown. Ties keep the input order (which is the quality ranking, so a
+ *  quiet system still prefers the strongest provider). If EVERY candidate is
+ *  saturated we still return the least-saturated one — worst case, that call
+ *  gets 429'd and cools down, which is what we want. Returns null only when
+ *  the input list is empty. */
+export function pickBestProvider(candidates: Provider[]): Provider | null {
+  if (candidates.length === 0) return null;
+  const now = Date.now();
+  const alive = candidates.filter((p) => (providerCooldown.get(p) ?? 0) <= now);
+  const pool = alive.length > 0 ? alive : candidates;
+  const scored = pool.map((p, i) => ({ p, i, cap: providerCapacity(p) }));
+  const hasRoom = scored.filter((x) => x.cap > 0);
+  const picks = hasRoom.length > 0 ? hasRoom : scored;
+  picks.sort((a, b) => b.cap - a.cap || a.i - b.i);
+  return picks[0].p;
+}
+
+// ── L3. Global concurrency semaphore ─────────────────────────────────────
+// Chosen from sum(RPM ceilings) with a safety divisor. Sum ~= 1550 RPM;
+// at 4s avg call → ~103 concurrent sustainable. Default 60 gives headroom
+// for token latency spikes without leaving free-tier throughput on the table.
+const MAX_CONCURRENT_AI_CALLS = Number(process.env.AI_MAX_CONCURRENT ?? 60);
+const MAX_QUEUED_AI_CALLS = Number(process.env.AI_MAX_QUEUED ?? 200);
+
+let globalRunning = 0;
+const globalQueue: Array<() => void> = [];
+
+async function acquireGlobal(): Promise<void> {
+  if (globalRunning < MAX_CONCURRENT_AI_CALLS) { globalRunning++; return; }
+  if (globalQueue.length >= MAX_QUEUED_AI_CALLS) {
+    throw new Error(
+      `AI queue full (${globalQueue.length}/${MAX_QUEUED_AI_CALLS} queued, ${globalRunning} running) — try again shortly`
+    );
+  }
+  await new Promise<void>((resolve) => globalQueue.push(resolve));
+  globalRunning++;
+}
+function releaseGlobal(): void {
+  globalRunning = Math.max(0, globalRunning - 1);
+  const next = globalQueue.shift();
+  if (next) next();
+}
+
+// ── L4. Per-agent semaphore ──────────────────────────────────────────────
+// Each named caller (agentId) has its own concurrency cap. Prevents a
+// runaway multi-prompt agent from starving other agents / user traffic.
+const MAX_PER_AGENT = Number(process.env.AI_MAX_PER_AGENT ?? 5);
+const agentRunning = new Map<string, number>();
+const agentQueues = new Map<string, Array<() => void>>();
+
+async function acquireAgent(agentId: string): Promise<void> {
+  const running = agentRunning.get(agentId) ?? 0;
+  if (running < MAX_PER_AGENT) { agentRunning.set(agentId, running + 1); return; }
+  const q = agentQueues.get(agentId) ?? [];
+  agentQueues.set(agentId, q);
+  await new Promise<void>((resolve) => q.push(resolve));
+  agentRunning.set(agentId, (agentRunning.get(agentId) ?? 0) + 1);
+}
+function releaseAgent(agentId: string): void {
+  agentRunning.set(agentId, Math.max(0, (agentRunning.get(agentId) ?? 1) - 1));
+  const q = agentQueues.get(agentId);
+  const next = q?.shift();
+  if (next) next();
+}
+
+/** Debug/observability snapshot — useful in tests + admin dashboards. */
+export function getDispatcherState(): {
+  globalRunning: number;
+  globalQueued: number;
+  perProvider: Record<string, { inFlight: number; recentFires: number; capacity: number }>;
+  perAgent: Record<string, number>;
+} {
+  const now = Date.now();
+  const perProvider: Record<string, { inFlight: number; recentFires: number; capacity: number }> = {};
+  for (const p of Object.keys(PROVIDER_RPM) as Provider[]) {
+    const recent = (rpmWindow.get(p) ?? []).filter((t) => now - t < RPM_WINDOW_MS).length;
+    const inflight = inFlightByProvider.get(p) ?? 0;
+    if (recent === 0 && inflight === 0) continue;
+    perProvider[p] = { inFlight: inflight, recentFires: recent, capacity: providerCapacity(p) };
+  }
+  const perAgent: Record<string, number> = {};
+  for (const [id, n] of agentRunning) if (n > 0) perAgent[id] = n;
+  return { globalRunning, globalQueued: globalQueue.length, perProvider, perAgent };
+}
+
+/** Test-only reset — clears all dispatcher state. Never call from production code. */
+export function _resetDispatcherForTests(): void {
+  inFlightByProvider.clear();
+  rpmWindow.clear();
+  providerCooldown.clear();
+  agentRunning.clear();
+  agentQueues.clear();
+  globalRunning = 0;
+  globalQueue.length = 0;
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+
 export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   // Phase 1: Try AI Gateway microservice first (if configured)
   const gatewayResult = await callViaGateway(opts);
@@ -1214,16 +1388,8 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   await getDBKeys();
 
   const allProviders = getAvailableProviders();
-  const now = Date.now();
-  // Skip providers that failed in the last 2 minutes
-  const providers = allProviders.filter(p => {
-    const cooldownUntil = providerCooldown.get(p) ?? 0;
-    return now > cooldownUntil;
-  });
-  // If all providers are on cooldown, try them all anyway
-  const effectiveProviders = providers.length > 0 ? providers : allProviders;
 
-  if (effectiveProviders.length === 0) {
+  if (allProviders.length === 0) {
     throw new Error(
       "No AI provider configured. Set up keys in Admin → AI Keys, or configure env vars."
     );
@@ -1236,36 +1402,56 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
     );
   }
 
-  let lastError: Error | null = null;
+  // L3 + L4: acquire global slot, then agent-specific slot. Both use bounded
+  // queues so a stampede returns "queue full" instead of forming a stampede.
+  const agentId = opts.agentId ?? "default";
+  await acquireGlobal();
+  await acquireAgent(agentId);
 
-  for (const provider of effectiveProviders) {
-    try {
-      const result = await callProvider(provider, opts);
-      const estimatedTokens = Math.ceil((opts.system.length + opts.user.length) / 3) * 2;
-      trackCost(result.model, estimatedTokens);
-      return result;
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-      // Cooldown so the next call skips this provider instantly. Three tiers:
-      //  - 24h  hard quota exhausted (HTTP 402 payment_required / billing) —
-      //         daily free-tier caps only reset at provider midnight.
-      //  - 15m  rate limited (429, "quota", "capacity") — transient burst.
-      //  - 2m   generic transient failure (timeouts, 5xx).
-      const msg = lastError.message.toLowerCase();
-      let cooldownMs: number;
-      if (/\b402\b|payment.?required|billing|insufficient.?quota|hard.?limit/.test(msg)) {
-        cooldownMs = 24 * 60 * 60_000; // 24h
-      } else if (/rate.?limit|\b429\b|quota|too many requests|overloaded|capacity/.test(msg)) {
-        cooldownMs = 15 * 60_000; // 15 min
-      } else {
-        cooldownMs = 120_000; // 2 min
+  let lastError: Error | null = null;
+  // Try each provider at most once per call. pickBestProvider excludes ones
+  // already on cooldown, so this loop terminates in O(providers) worst case.
+  const tried = new Set<Provider>();
+  try {
+    while (tried.size < allProviders.length) {
+      const remaining = allProviders.filter((p) => !tried.has(p));
+      const provider = pickBestProvider(remaining);
+      if (!provider) break;
+      tried.add(provider);
+      noteFire(provider);
+      try {
+        const result = await callProvider(provider, opts);
+        const estimatedTokens = Math.ceil((opts.system.length + opts.user.length) / 3) * 2;
+        trackCost(result.model, estimatedTokens);
+        return result;
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        // Cooldown so the next call skips this provider instantly. Three tiers:
+        //  - 24h  hard quota exhausted (HTTP 402 payment_required / billing) —
+        //         daily free-tier caps only reset at provider midnight.
+        //  - 15m  rate limited (429, "quota", "capacity") — transient burst.
+        //  - 2m   generic transient failure (timeouts, 5xx).
+        const msg = lastError.message.toLowerCase();
+        let cooldownMs: number;
+        if (/\b402\b|payment.?required|billing|insufficient.?quota|hard.?limit/.test(msg)) {
+          cooldownMs = 24 * 60 * 60_000; // 24h
+        } else if (/rate.?limit|\b429\b|quota|too many requests|overloaded|capacity/.test(msg)) {
+          cooldownMs = 15 * 60_000; // 15 min
+        } else {
+          cooldownMs = 120_000; // 2 min
+        }
+        providerCooldown.set(provider, Date.now() + cooldownMs);
+        const cooldownLabel = cooldownMs >= 60 * 60_000
+          ? `${Math.round(cooldownMs / (60 * 60_000))}h`
+          : `${Math.round(cooldownMs / 60_000)}min`;
+        console.warn(`[ai-client] ${provider} failed (cooldown ${cooldownLabel}): ${lastError.message}`);
+      } finally {
+        noteDone(provider);
       }
-      providerCooldown.set(provider, Date.now() + cooldownMs);
-      const cooldownLabel = cooldownMs >= 60 * 60_000
-        ? `${Math.round(cooldownMs / (60 * 60_000))}h`
-        : `${Math.round(cooldownMs / 60_000)}min`;
-      console.warn(`[ai-client] ${provider} failed (cooldown ${cooldownLabel}): ${lastError.message}`);
     }
+  } finally {
+    releaseAgent(agentId);
+    releaseGlobal();
   }
 
   throw lastError ?? new Error("All AI providers failed");

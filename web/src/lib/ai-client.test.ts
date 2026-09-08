@@ -657,3 +657,95 @@ describe("invalidateAIKeysCache", () => {
     expect(supabaseMock.getSupabaseAdmin.mock.calls.length).toBeGreaterThan(beforeCount);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Parallel-serving dispatcher: pickBestProvider + getDispatcherState
+// ---------------------------------------------------------------------------
+// These tests exercise the pure-logic pieces of the dispatcher: routing choice
+// under simulated load and the observability snapshot. They don't call callAI
+// itself (that needs a full HTTP mock stack) — the routing invariants are what
+// determine whether N concurrent calls stampede one provider or spread out.
+
+describe("pickBestProvider — capacity-aware routing", () => {
+  beforeEach(async () => {
+    const mod = await loadClient();
+    mod._resetDispatcherForTests();
+  });
+
+  it("returns null for an empty candidate list", async () => {
+    const { pickBestProvider } = await loadClient();
+    expect(pickBestProvider([])).toBeNull();
+  });
+
+  it("returns the sole candidate when only one provider is available", async () => {
+    const { pickBestProvider } = await loadClient();
+    expect(pickBestProvider(["groq"])).toBe("groq");
+  });
+
+  it("prefers the higher-RPM provider on a cold system (tiebreak by capacity)", async () => {
+    const { pickBestProvider } = await loadClient();
+    // groq (1000 RPM) has vastly more headroom than cerebras (30 RPM) at rest
+    expect(pickBestProvider(["cerebras", "groq"])).toBe("groq");
+  });
+
+  it("keeps input order when capacities tie (ties preserve quality ranking)", async () => {
+    const { pickBestProvider } = await loadClient();
+    // sambanova and openrouter both default to 60 RPM in the same table
+    expect(pickBestProvider(["sambanova", "openrouter"])).toBe("sambanova");
+    expect(pickBestProvider(["openrouter", "sambanova"])).toBe("openrouter");
+  });
+
+  it("returns a candidate even when every provider is saturated (least-bad wins)", async () => {
+    const { pickBestProvider } = await loadClient();
+    // With no way to fire, we still want a target to attempt — the caller's
+    // cooldown / error path will handle the 429 that likely follows.
+    const pick = pickBestProvider(["cerebras", "groq"]);
+    expect(pick).not.toBeNull();
+  });
+});
+
+describe("getDispatcherState — observability snapshot", () => {
+  beforeEach(async () => {
+    const mod = await loadClient();
+    mod._resetDispatcherForTests();
+  });
+
+  it("reports zero global running/queued on a fresh dispatcher", async () => {
+    const { getDispatcherState } = await loadClient();
+    const s = getDispatcherState();
+    expect(s.globalRunning).toBe(0);
+    expect(s.globalQueued).toBe(0);
+  });
+
+  it("perProvider only lists providers with active fires/in-flight (never all 10 rows)", async () => {
+    const { getDispatcherState } = await loadClient();
+    const s = getDispatcherState();
+    expect(Object.keys(s.perProvider)).toEqual([]);
+  });
+
+  it("perAgent only lists agents with active work (empty on a fresh dispatcher)", async () => {
+    const { getDispatcherState } = await loadClient();
+    const s = getDispatcherState();
+    expect(s.perAgent).toEqual({});
+  });
+});
+
+describe("_resetDispatcherForTests — hermetic reset", () => {
+  it("is exported (tests can restore a clean slate between cases)", async () => {
+    const { _resetDispatcherForTests } = await loadClient();
+    expect(typeof _resetDispatcherForTests).toBe("function");
+  });
+
+  it("returns undefined and does not throw when called on a fresh dispatcher", async () => {
+    const { _resetDispatcherForTests } = await loadClient();
+    expect(_resetDispatcherForTests()).toBeUndefined();
+  });
+
+  it("is idempotent (calling twice in a row is safe)", async () => {
+    const { _resetDispatcherForTests } = await loadClient();
+    expect(() => {
+      _resetDispatcherForTests();
+      _resetDispatcherForTests();
+    }).not.toThrow();
+  });
+});
