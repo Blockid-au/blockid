@@ -152,15 +152,25 @@ describe("PLAN_CREDITS", () => {
   });
 
   it("pins the monthly credit grant per v2 plan (plans.csv monthly_credits)", () => {
-    expect(PLAN_CREDITS.founder_starter.amount).toBe(50);
-    expect(PLAN_CREDITS.founder_growth.amount).toBe(200);
-    // Docs note: marketing shows 3000 but plans.csv is 1000. Round 6
-    // directive says take the smaller. If this fails, the reconciliation is
-    // due — bump the constant *and* the plans.csv row in the same PR.
-    expect(PLAN_CREDITS.founder_scale.amount).toBe(1000);
-    // Enterprise = -1 (unlimited) in plans.csv; module caps at 5000 as a
-    // conservative safety net until a real unlimited path exists.
-    expect(PLAN_CREDITS.founder_enterprise.amount).toBe(5000);
+    // Sized so full burn on the most expensive action still clears 70% GM.
+    // The binding cost is enhanced_report_standard (3.00 cr → the 13-criteria
+    // multi-agent run, A$0.40–1.20 model spend). See PLAN_CREDITS for the
+    // per-tier arithmetic. Changing these requires changing plans.csv and
+    // regenerating plans.generated.ts in the same commit.
+    expect(PLAN_CREDITS.founder_starter.amount).toBe(20);
+    expect(PLAN_CREDITS.founder_growth.amount).toBe(65);
+    expect(PLAN_CREDITS.founder_scale.amount).toBe(200);
+    // Enterprise = -1 (unlimited) in plans.csv; grantCredits rejects <= 0 so
+    // the module caps it. 1000 cr ≈ 333 runs sits inside the 70% budget.
+    expect(PLAN_CREDITS.founder_enterprise.amount).toBe(1000);
+  });
+
+  it("does not cut the grandfathered legacy grants (live paying subscribers)", () => {
+    // `growth` / `growth_annual` have live subscribers on 200/mo. Reducing an
+    // existing customer's included allowance mid-term is a downgrade, so these
+    // stay put even though the v2 equivalents came down.
+    expect(PLAN_CREDITS.growth.amount).toBe(200);
+    expect(PLAN_CREDITS.growth_annual.amount).toBe(200);
   });
 
   it("keeps legacy grandfathered plan ids so app_users.plan mid-migration still works", () => {

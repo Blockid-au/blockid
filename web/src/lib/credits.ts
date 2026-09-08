@@ -235,29 +235,44 @@ export const isPromoActive = () => new Date() < PROMO_DEADLINE;
 /** Signup credits — 5 during promo (normally 2). */
 export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : 2;
 
-// Legacy IDs kept for grandfathered app_users.plan values; canonical v2 IDs
-// align with plans-v2.ts and pricing-data.ts. Values for the v2 IDs come from
-// the plans.csv `usage_limits.monthly_credits` column (starter=50, growth=200,
-// scale=1000, enterprise=-1/unlimited → capped at 5000 as a conservative
-// monthly grant; lift once we wire the true "unlimited" path).
+// Grants are sized so that a subscriber who burns EVERY included credit on the
+// most expensive action still leaves ≥70% gross margin.
+//
+// The binding cost is `enhanced_report_standard` (3.00 credits) — the only key
+// that runs the 13-criteria multi-agent pipeline via orchestrateReport(), at
+// A$0.40–1.20 of model spend per run. (`svi_analysis` at 0.50 credits runs the
+// deterministic computeSVI() and costs ~nothing, so it never binds.)
+//
+// Worst-case arithmetic, at A$1.20/run and revenue ex-GST (inc-GST ÷ 1.1):
+//   A$29  → ex-GST 26.36 → 30% budget 7.91 → 6.6 runs → 20 credits → GM 69.6%
+//   A$99  → ex-GST 90.00 → 30% budget 27.00 → 22.5 runs → 65 credits → GM 71.1%
+//   A$299 → ex-GST 271.82 → 30% budget 81.55 → 68 runs → 200 credits → GM 70.6%
+// At the expected A$0.80/run these land at ~80% instead. Prior grants (50/200/
+// 1000) exposed 24%/11%/negative margin at full burn — the heaviest users were
+// the least profitable.
+//
+// Mirrors plans.csv `usage_limits.monthly_credits`; regenerate plans.generated.ts
+// with `npx tsx scripts/build-plans.ts` after changing either.
 export const PLAN_CREDITS: Record<string, { amount: number; recurring: boolean }> = {
-  // ── Legacy (grandfathered) ──────────────────────────────────────────────
-  free:           { amount: isPromoActive() ? 5 : 2, recurring: false },  // 5 during promo, 2 after
-  founding50:     { amount: 50,     recurring: false },  // 50 credits lifetime (matches founding_credits default; A$5 promo until 2026-08-31, then A$99)
-  growth:         { amount: 200,    recurring: true  },  // 200 credits/month (matches growth_plan_credits_monthly default)
-  growth_annual:  { amount: 200,    recurring: true  },  // 200 credits/month (annual billing)
+  // ── Legacy (grandfathered — do NOT reduce) ──────────────────────────────
+  // `growth` has live paying subscribers on the old 200/mo entitlement.
+  // Cutting an existing customer's included allowance is a mid-term downgrade;
+  // they keep 200 until they move to a v2 plan of their own accord.
+  free:           { amount: isPromoActive() ? 5 : 3, recurring: false },  // 3 = exactly one enhanced report, so a free user can taste the real output once
+  founding50:     { amount: 50,     recurring: false },  // 50 credits lifetime (expired A$5 promo; closed cohort)
+  growth:         { amount: 200,    recurring: true  },  // grandfathered — live subscribers
+  growth_annual:  { amount: 200,    recurring: true  },  // grandfathered — live subscribers
 
   // ── Canonical v2 (see plans-v2.ts / plans.csv) ──────────────────────────
-  founder_starter:    { amount: 50,   recurring: true  }, // plans.csv monthly_credits=50
-  founder_growth:     { amount: 200,  recurring: true  }, // plans.csv monthly_credits=200
-  // NOTE: marketing copy says "3,000 AI credits / month" but the plans.csv
-  // entitlement is monthly_credits=1000. Picking the smaller of the two per
-  // Round 6 directive so we never over-grant; lift once the CFO reconciles.
-  founder_scale:      { amount: 1000, recurring: true  }, // plans.csv monthly_credits=1000
-  // NOTE: plans.csv marks Enterprise as -1 ("unlimited"). Until we implement a
-  // true unlimited path in grantCredits, cap at 5000/month as a conservative
-  // safety net (grantCredits rejects amount <= 0, so -1 would break the flow).
-  founder_enterprise: { amount: 5000, recurring: true  }, // plans.csv monthly_credits=-1 (unlimited, capped)
+  // No live subscribers on these at the time of the change, so the reduction
+  // affects no existing customer.
+  founder_starter:    { amount: 20,   recurring: true  }, // ≈6 enhanced reports
+  founder_growth:     { amount: 65,   recurring: true  }, // ≈21 enhanced reports
+  founder_scale:      { amount: 200,  recurring: true  }, // ≈66 enhanced reports
+  // plans.csv marks Enterprise as -1 ("unlimited"). grantCredits rejects
+  // amount <= 0, so it needs a concrete cap. At A$150,000c/mo the 70% budget
+  // is ~378 runs; 1000 credits ≈ 333 runs sits just inside that.
+  founder_enterprise: { amount: 1000, recurring: true  },
 };
 
 // ---------------------------------------------------------------------------

@@ -53,7 +53,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "usage_limits": {
       "profiles": 1,
       "svi_per_month": 10,
-      "monthly_credits": 50
+      "monthly_credits": 20
     },
     "active": true,
     "sort_order": 20
@@ -80,7 +80,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "usage_limits": {
       "profiles": 3,
       "svi_per_month": 50,
-      "monthly_credits": 200
+      "monthly_credits": 65
     },
     "active": true,
     "sort_order": 30
@@ -115,7 +115,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "usage_limits": {
       "profiles": 10,
       "svi_per_month": -1,
-      "monthly_credits": 1000
+      "monthly_credits": 200
     },
     "active": true,
     "sort_order": 40
