@@ -13,6 +13,10 @@
 import "server-only";
 import { randomBytes } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import {
+  canSendEmail,
+  type EmailCategory,
+} from "@/lib/email-preferences";
 
 export type DripCampaign =
   | "onboarding_d1"
@@ -21,7 +25,12 @@ export type DripCampaign =
   | "onboarding_d14"
   | "nps_d30";
 
-export type DripStatus = "pending" | "sent" | "cancelled" | "failed";
+export type DripStatus =
+  | "pending"
+  | "sent"
+  | "cancelled"
+  | "failed"
+  | "expired";
 
 export interface EmailDrip {
   id: string;
@@ -174,6 +183,121 @@ export async function enqueueOnboardingDrip(
   if (insertErr) console.warn("[email-drip] insert failed", insertErr);
 }
 
+// ── Expiry guard ─────────────────────────────────────────────────────────────
+
+/**
+ * A pending row more than this many days past its `scheduled_for` is
+ * expired, never sent.
+ *
+ * Chosen from the queue itself, not from a guess. When the worker was first
+ * scheduled the 60-row backlog split cleanly: a recent cluster 0–13 days
+ * overdue and a stale tail 16–50 days overdue, with nothing in between. 14
+ * sits in that gap, and it is also the D14 touch interval — past it a
+ * founder has been overtaken by the next step of their own sequence, so the
+ * time-anchored copy ("Day 1 — your report is ready", "you have been on the
+ * free tier for two weeks") is no longer true. Sending it would be a cold
+ * blast from a domain whose deliverability transactional mail depends on.
+ */
+export const DRIP_EXPIRY_DAYS = 14;
+
+/**
+ * Mark every pending, unsent row more than `maxOverdueDays` past its
+ * scheduled_for as `expired`.
+ *
+ * Runs BEFORE any send in the cron worker so a stale row can never reach
+ * the transport. Idempotent: the `status = pending` filter means a second
+ * pass matches zero rows. Returns the number of rows expired.
+ */
+export async function expireStaleDrips(
+  now: Date,
+  maxOverdueDays: number = DRIP_EXPIRY_DAYS,
+): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return 0;
+  const cutoff = new Date(
+    now.getTime() - maxOverdueDays * DAY_MS,
+  ).toISOString();
+  const { data, error } = await supabase
+    .from("email_drips")
+    .update({
+      status: "expired",
+      last_error: `expired: more than ${maxOverdueDays} days past scheduled_for`,
+    })
+    .eq("status", "pending")
+    .is("sent_at", null)
+    .lt("scheduled_for", cutoff)
+    .select("id");
+  if (error) {
+    console.warn("[email-drip] expireStaleDrips failed", error);
+    return 0;
+  }
+  return (data ?? []).length;
+}
+
+// ── Suppression ──────────────────────────────────────────────────────────────
+
+/**
+ * Which `email_preferences` category a campaign belongs to. The D14 touch is
+ * a pricing pitch, so it rides `promotions`; the tips and the NPS pulse are
+ * product mail. There is no second suppression list — this only maps a
+ * campaign onto the existing categories so `canSendEmail` can decide.
+ */
+export function dripCategory(campaign: DripCampaign): EmailCategory {
+  return campaign === "onboarding_d14" ? "promotions" : "product_updates";
+}
+
+/** Thin delegate to the single suppression mechanism, `canSendEmail`. */
+export async function canSendDrip(
+  email: string,
+  campaign: DripCampaign,
+): Promise<boolean> {
+  return canSendEmail(email, dripCategory(campaign));
+}
+
+/**
+ * Retire a row the recipient has opted out of. `sent_at` is deliberately
+ * left null and the row goes to `cancelled`, not `sent` — an unsubscribed
+ * address must never be recorded as having been mailed.
+ */
+export async function suppressDrip(id: string, reason: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+  await supabase
+    .from("email_drips")
+    .update({ status: "cancelled", last_error: reason.slice(0, 500) })
+    .eq("id", id)
+    .is("sent_at", null);
+}
+
+// ── Once-only claim ──────────────────────────────────────────────────────────
+
+/**
+ * Claim a row for sending by stamping `sent_at` under a conditional
+ * `WHERE sent_at IS NULL AND status = 'pending'`.
+ *
+ * Returns true only when this call is the one that won the row. A retry, an
+ * overlapping cron tick, or a re-run after a crash matches zero rows and
+ * gets false — the caller must not send. `markFailed` afterwards leaves
+ * `sent_at` stamped on purpose, so a transport failure is recorded once and
+ * never silently re-fired at the recipient.
+ */
+export async function claimDrip(id: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("email_drips")
+    .update({ sent_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "pending")
+    .is("sent_at", null)
+    .select("id");
+  if (error) {
+    console.warn("[email-drip] claimDrip failed", error);
+    return false;
+  }
+  return (data ?? []).length === 1;
+}
+
 // ── Cron helpers ─────────────────────────────────────────────────────────────
 
 export async function dueDrips(now: Date, limit: number): Promise<EmailDrip[]> {
@@ -183,6 +307,7 @@ export async function dueDrips(now: Date, limit: number): Promise<EmailDrip[]> {
     .from("email_drips")
     .select("*")
     .eq("status", "pending")
+    .is("sent_at", null)
     .lte("scheduled_for", now.toISOString())
     .order("scheduled_for", { ascending: true })
     .limit(limit);

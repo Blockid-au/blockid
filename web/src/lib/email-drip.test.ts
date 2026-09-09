@@ -78,6 +78,9 @@ interface FakeState {
     eqs: Array<{ table: string; op: string; col: string; val: unknown }>;
     gts: Array<{ table: string; col: string; val: unknown }>;
     ltes: Array<{ table: string; col: string; val: unknown }>;
+    lts: Array<{ table: string; op: string; col: string; val: unknown }>;
+    iss: Array<{ table: string; op: string; col: string; val: unknown }>;
+    updateSelects: Array<{ table: string; cols: string }>;
     orders: Array<{ table: string; col: string; ascending: boolean }>;
     limits: Array<{ table: string; op: string; n: number }>;
     inserts: Array<{ table: string; rows: unknown }>;
@@ -95,6 +98,9 @@ const state: FakeState = {
     eqs: [],
     gts: [],
     ltes: [],
+    lts: [],
+    iss: [],
+    updateSelects: [],
     orders: [],
     limits: [],
     inserts: [],
@@ -112,6 +118,9 @@ function resetState() {
     eqs: [],
     gts: [],
     ltes: [],
+    lts: [],
+    iss: [],
+    updateSelects: [],
     orders: [],
     limits: [],
     inserts: [],
@@ -123,6 +132,11 @@ function resetState() {
 function resultFor(key: string): ChainResult {
   return state.results[key] ?? { data: null, error: null };
 }
+
+const canSendEmailMock = vi.fn();
+vi.mock("@/lib/email-preferences", () => ({
+  canSendEmail: (...args: unknown[]) => canSendEmailMock(...args),
+}));
 
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => {
@@ -143,6 +157,10 @@ vi.mock("@/lib/supabase", () => ({
           },
           lte(col: string, val: unknown) {
             state.captured.ltes.push({ table, col, val });
+            return selectChain;
+          },
+          is(col: string, val: unknown) {
+            state.captured.iss.push({ table, op: "select", col, val });
             return selectChain;
           },
           order(col: string, opts: { ascending: boolean }) {
@@ -170,6 +188,18 @@ vi.mock("@/lib/supabase", () => ({
           _op: "update",
           eq(col: string, val: unknown) {
             state.captured.updateEqs.push({ table, col, val });
+            return updateChain;
+          },
+          is(col: string, val: unknown) {
+            state.captured.iss.push({ table, op: "update", col, val });
+            return updateChain;
+          },
+          lt(col: string, val: unknown) {
+            state.captured.lts.push({ table, op: "update", col, val });
+            return updateChain;
+          },
+          select(cols: string) {
+            state.captured.updateSelects.push({ table, cols });
             return updateChain;
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,10 +240,18 @@ import {
   dueDrips,
   markSent,
   markFailed,
+  expireStaleDrips,
+  claimDrip,
+  suppressDrip,
+  canSendDrip,
+  dripCategory,
+  DRIP_EXPIRY_DAYS,
 } from "./email-drip";
 
 beforeEach(() => {
   resetState();
+  canSendEmailMock.mockReset();
+  canSendEmailMock.mockResolvedValue(true);
   // Pin site URL so every rendered link is deterministic. Individual
   // tests override + restore this to prove the trailing-slash strip and
   // the default-fallback path.
@@ -915,5 +953,219 @@ describe("markFailed", () => {
     const patch = state.captured.updates[0].patch as { last_error: string };
     expect(patch.last_error).toHaveLength(500);
     expect(patch.last_error).toBe("X".repeat(500));
+  });
+});
+
+// ── F · Expiry guard ─────────────────────────────────────────────────────────
+
+describe("DRIP_EXPIRY_DAYS", () => {
+  it("is 14 — the gap in the real backlog between the recent cluster (<=13d late) and the stale tail (>=16d late), and the D14 touch interval", () => {
+    expect(DRIP_EXPIRY_DAYS).toBe(14);
+  });
+});
+
+describe("expireStaleDrips", () => {
+  it("returns 0 when getSupabaseAdmin() is null (never throws to the cron)", async () => {
+    state.adminNull = true;
+    await expect(expireStaleDrips(new Date())).resolves.toBe(0);
+    expect(state.captured.updates).toHaveLength(0);
+  });
+
+  it("returns 0 and warns on error rather than throwing", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    state.results["email_drips:update"] = {
+      data: null,
+      error: { message: "constraint" },
+    };
+    await expect(expireStaleDrips(new Date())).resolves.toBe(0);
+    expect(warn).toHaveBeenCalledWith(
+      "[email-drip] expireStaleDrips failed",
+      expect.objectContaining({ message: "constraint" }),
+    );
+  });
+
+  it("counts the returned rows so the cron envelope reports what it retired", async () => {
+    state.results["email_drips:update"] = {
+      data: [{ id: "1" }, { id: "2" }, { id: "3" }],
+      error: null,
+    };
+    await expect(expireStaleDrips(new Date())).resolves.toBe(3);
+  });
+
+  it("null data collapses to 0", async () => {
+    state.results["email_drips:update"] = { data: null, error: null };
+    await expect(expireStaleDrips(new Date())).resolves.toBe(0);
+  });
+
+  it("writes status=expired with a reason naming the threshold", async () => {
+    await expireStaleDrips(new Date("2026-09-09T00:00:00.000Z"));
+    const patch = state.captured.updates[0].patch as {
+      status: string;
+      last_error: string;
+    };
+    expect(patch.status).toBe("expired");
+    expect(patch.last_error).toBe(
+      "expired: more than 14 days past scheduled_for",
+    );
+  });
+
+  it("only touches pending, unsent rows strictly older than now minus the threshold", async () => {
+    const now = new Date("2026-09-09T00:00:00.000Z");
+    await expireStaleDrips(now, 14);
+    const statusEq = state.captured.updateEqs.find((e) => e.col === "status");
+    expect(statusEq?.val).toBe("pending");
+    const sentAtIs = state.captured.iss.find(
+      (i) => i.op === "update" && i.col === "sent_at",
+    );
+    expect(sentAtIs?.val).toBeNull();
+    const lt = state.captured.lts.find((l) => l.col === "scheduled_for");
+    expect(lt?.val).toBe("2026-08-26T00:00:00.000Z");
+    expect(state.captured.updateSelects[0]).toEqual({
+      table: "email_drips",
+      cols: "id",
+    });
+  });
+
+  it("honours a caller-supplied threshold (used by the ops dry-run tooling)", async () => {
+    await expireStaleDrips(new Date("2026-09-09T00:00:00.000Z"), 7);
+    const lt = state.captured.lts.find((l) => l.col === "scheduled_for");
+    expect(lt?.val).toBe("2026-09-02T00:00:00.000Z");
+    const patch = state.captured.updates[0].patch as { last_error: string };
+    expect(patch.last_error).toBe(
+      "expired: more than 7 days past scheduled_for",
+    );
+  });
+
+  it("is idempotent by construction — the status=pending filter means a second sweep matches nothing", async () => {
+    state.results["email_drips:update"] = { data: [{ id: "1" }], error: null };
+    await expireStaleDrips(new Date());
+    state.results["email_drips:update"] = { data: [], error: null };
+    await expect(expireStaleDrips(new Date())).resolves.toBe(0);
+  });
+});
+
+// ── G · Suppression ──────────────────────────────────────────────────────────
+
+describe("dripCategory", () => {
+  it("maps the D14 pricing pitch onto promotions", () => {
+    expect(dripCategory("onboarding_d14")).toBe("promotions");
+  });
+
+  it("maps the tips and the NPS pulse onto product_updates", () => {
+    expect(dripCategory("onboarding_d1")).toBe("product_updates");
+    expect(dripCategory("onboarding_d3")).toBe("product_updates");
+    expect(dripCategory("onboarding_d7")).toBe("product_updates");
+    expect(dripCategory("nps_d30")).toBe("product_updates");
+  });
+});
+
+describe("canSendDrip", () => {
+  it("delegates to the single existing mechanism, canSendEmail, with the mapped category", async () => {
+    await canSendDrip("a@b.co", "onboarding_d7");
+    expect(canSendEmailMock).toHaveBeenCalledWith("a@b.co", "product_updates");
+  });
+
+  it("passes promotions through for the D14 touch", async () => {
+    await canSendDrip("a@b.co", "onboarding_d14");
+    expect(canSendEmailMock).toHaveBeenCalledWith("a@b.co", "promotions");
+  });
+
+  it("returns whatever canSendEmail decides — no second opinion", async () => {
+    canSendEmailMock.mockResolvedValueOnce(false);
+    await expect(canSendDrip("a@b.co", "onboarding_d1")).resolves.toBe(false);
+    canSendEmailMock.mockResolvedValueOnce(true);
+    await expect(canSendDrip("a@b.co", "onboarding_d1")).resolves.toBe(true);
+  });
+});
+
+describe("suppressDrip", () => {
+  it("no-ops when admin is null", async () => {
+    state.adminNull = true;
+    await expect(suppressDrip("row-1", "opt-out")).resolves.toBeUndefined();
+    expect(state.captured.updates).toHaveLength(0);
+  });
+
+  it("cancels the row and leaves sent_at untouched — an opted-out address is never recorded as mailed", async () => {
+    await suppressDrip("row-1", "suppressed: promotions opt-out");
+    const patch = state.captured.updates[0].patch as {
+      status: string;
+      last_error: string;
+      sent_at?: unknown;
+    };
+    expect(patch.status).toBe("cancelled");
+    expect(patch.last_error).toBe("suppressed: promotions opt-out");
+    expect(patch).not.toHaveProperty("sent_at");
+    expect(state.captured.updateEqs[0]).toEqual({
+      table: "email_drips",
+      col: "id",
+      val: "row-1",
+    });
+    const sentAtIs = state.captured.iss.find(
+      (i) => i.op === "update" && i.col === "sent_at",
+    );
+    expect(sentAtIs?.val).toBeNull();
+  });
+
+  it("truncates the reason to 500 chars", async () => {
+    await suppressDrip("row-1", "Y".repeat(900));
+    const patch = state.captured.updates[0].patch as { last_error: string };
+    expect(patch.last_error).toHaveLength(500);
+  });
+});
+
+// ── H · Once-only claim ──────────────────────────────────────────────────────
+
+describe("claimDrip", () => {
+  it("returns false when admin is null", async () => {
+    state.adminNull = true;
+    await expect(claimDrip("row-1")).resolves.toBe(false);
+  });
+
+  it("returns false and warns on error rather than throwing", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    state.results["email_drips:update"] = {
+      data: null,
+      error: { message: "deadlock" },
+    };
+    await expect(claimDrip("row-1")).resolves.toBe(false);
+    expect(warn).toHaveBeenCalledWith(
+      "[email-drip] claimDrip failed",
+      expect.objectContaining({ message: "deadlock" }),
+    );
+  });
+
+  it("returns true only when exactly one row was claimed", async () => {
+    state.results["email_drips:update"] = { data: [{ id: "row-1" }], error: null };
+    await expect(claimDrip("row-1")).resolves.toBe(true);
+  });
+
+  it("returns false when zero rows matched — the retry case that must not double-send", async () => {
+    state.results["email_drips:update"] = { data: [], error: null };
+    await expect(claimDrip("row-1")).resolves.toBe(false);
+  });
+
+  it("returns false when data is null", async () => {
+    state.results["email_drips:update"] = { data: null, error: null };
+    await expect(claimDrip("row-1")).resolves.toBe(false);
+  });
+
+  it("stamps sent_at under WHERE id = ? AND status = pending AND sent_at IS NULL", async () => {
+    state.results["email_drips:update"] = { data: [{ id: "row-1" }], error: null };
+    await claimDrip("row-1");
+    const patch = state.captured.updates[0].patch as { sent_at: string };
+    expect(new Date(patch.sent_at).toString()).not.toBe("Invalid Date");
+    expect(patch).not.toHaveProperty("status");
+    expect(state.captured.updateEqs).toEqual([
+      { table: "email_drips", col: "id", val: "row-1" },
+      { table: "email_drips", col: "status", val: "pending" },
+    ]);
+    const sentAtIs = state.captured.iss.find(
+      (i) => i.op === "update" && i.col === "sent_at",
+    );
+    expect(sentAtIs?.val).toBeNull();
+    expect(state.captured.updateSelects[0]).toEqual({
+      table: "email_drips",
+      cols: "id",
+    });
   });
 });

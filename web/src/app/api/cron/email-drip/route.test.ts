@@ -44,11 +44,21 @@ const dueDripsMock = vi.fn();
 const markSentMock = vi.fn();
 const markFailedMock = vi.fn();
 const renderDripBodyMock = vi.fn();
+const expireStaleDripsMock = vi.fn();
+const canSendDripMock = vi.fn();
+const claimDripMock = vi.fn();
+const suppressDripMock = vi.fn();
 vi.mock("@/lib/email-drip", () => ({
   dueDrips: (...args: unknown[]) => dueDripsMock(...args),
   markSent: (...args: unknown[]) => markSentMock(...args),
   markFailed: (...args: unknown[]) => markFailedMock(...args),
   renderDripBody: (...args: unknown[]) => renderDripBodyMock(...args),
+  expireStaleDrips: (...args: unknown[]) => expireStaleDripsMock(...args),
+  canSendDrip: (...args: unknown[]) => canSendDripMock(...args),
+  claimDrip: (...args: unknown[]) => claimDripMock(...args),
+  suppressDrip: (...args: unknown[]) => suppressDripMock(...args),
+  dripCategory: (campaign: string) =>
+    campaign === "onboarding_d14" ? "promotions" : "product_updates",
 }));
 
 import * as routeModule from "./route";
@@ -77,13 +87,25 @@ function req(method: "GET" | "POST" = "POST", headers: Record<string, string> = 
   return new Request("http://x/api/cron/email-drip", { method, headers });
 }
 
+function dryReq(headers: Record<string, string> = {}) {
+  return new Request("http://x/api/cron/email-drip?dry=1", { method: "POST", headers });
+}
+
 beforeEach(() => {
   sendEmailMock.mockReset();
   dueDripsMock.mockReset();
   markSentMock.mockReset();
   markFailedMock.mockReset();
   renderDripBodyMock.mockReset();
+  expireStaleDripsMock.mockReset();
+  canSendDripMock.mockReset();
+  claimDripMock.mockReset();
+  suppressDripMock.mockReset();
 
+  expireStaleDripsMock.mockResolvedValue(0);
+  canSendDripMock.mockResolvedValue(true);
+  claimDripMock.mockResolvedValue(true);
+  suppressDripMock.mockResolvedValue(undefined);
   dueDripsMock.mockResolvedValue([]);
   markSentMock.mockResolvedValue(undefined);
   markFailedMock.mockResolvedValue(undefined);
@@ -153,11 +175,15 @@ describe("POST /api/cron/email-drip — empty queue", () => {
     const body = await res.json();
     expect(body).toEqual({
       ok: true,
+      dryRun: false,
       considered: 0,
+      expired: 0,
       sent: 0,
       failed: 0,
+      skipped: 0,
       cap: 50,
       failures: [],
+      wouldSend: [],
     });
     expect(sendEmailMock).not.toHaveBeenCalled();
     expect(markSentMock).not.toHaveBeenCalled();
@@ -309,7 +335,18 @@ describe("POST /api/cron/email-drip — envelope contract", () => {
     const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
     const body = await res.json();
     expect(Object.keys(body).sort()).toEqual(
-      ["cap", "considered", "failed", "failures", "ok", "sent"].sort(),
+      [
+        "cap",
+        "considered",
+        "dryRun",
+        "expired",
+        "failed",
+        "failures",
+        "ok",
+        "sent",
+        "skipped",
+        "wouldSend",
+      ].sort(),
     );
   });
 
@@ -336,5 +373,195 @@ describe("GET /api/cron/email-drip — parity with POST", () => {
     expect(Object.keys(gBody).sort()).toEqual(Object.keys(pBody).sort());
     expect(gBody.cap).toBe(pBody.cap);
     expect(gBody.cap).toBe(50);
+  });
+});
+
+// ── Expiry guard ─────────────────────────────────────────────────────────────
+
+describe("POST /api/cron/email-drip — expiry guard", () => {
+  it("runs expireStaleDrips BEFORE dueDrips so a stale row can never reach the transport", async () => {
+    const order: string[] = [];
+    expireStaleDripsMock.mockImplementationOnce(async () => {
+      order.push("expire");
+      return 7;
+    });
+    dueDripsMock.mockImplementationOnce(async () => {
+      order.push("due");
+      return [];
+    });
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(order).toEqual(["expire", "due"]);
+  });
+
+  it("reports the expired count in the envelope", async () => {
+    expireStaleDripsMock.mockResolvedValueOnce(46);
+    const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body.expired).toBe(46);
+  });
+
+  it("passes a Date to expireStaleDrips and lets it use its own default threshold", async () => {
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(expireStaleDripsMock).toHaveBeenCalledTimes(1);
+    expect(expireStaleDripsMock.mock.calls[0][0]).toBeInstanceOf(Date);
+    expect(expireStaleDripsMock.mock.calls[0]).toHaveLength(1);
+  });
+});
+
+// ── Suppression ──────────────────────────────────────────────────────────────
+
+describe("POST /api/cron/email-drip — suppression", () => {
+  it("checks canSendDrip BEFORE claimDrip so a suppressed address never burns its slot", async () => {
+    const order: string[] = [];
+    canSendDripMock.mockImplementationOnce(async () => {
+      order.push("canSend");
+      return true;
+    });
+    claimDripMock.mockImplementationOnce(async () => {
+      order.push("claim");
+      return true;
+    });
+    dueDripsMock.mockResolvedValueOnce([drip()]);
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(order).toEqual(["canSend", "claim"]);
+  });
+
+  it("does not claim, render or send when canSendDrip returns false", async () => {
+    canSendDripMock.mockResolvedValueOnce(false);
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-optout" })]);
+    const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body).toMatchObject({ considered: 1, sent: 0, failed: 0, skipped: 1 });
+    expect(claimDripMock).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+    expect(renderDripBodyMock).not.toHaveBeenCalled();
+    expect(markSentMock).not.toHaveBeenCalled();
+  });
+
+  it("cancels the suppressed row with the opted-out category in the reason", async () => {
+    canSendDripMock.mockResolvedValueOnce(false);
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-optout", campaign: "onboarding_d14" })]);
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(suppressDripMock).toHaveBeenCalledWith("d-optout", "suppressed: promotions opt-out");
+  });
+
+  it("routes non-D14 campaigns through the product_updates category", async () => {
+    canSendDripMock.mockResolvedValueOnce(false);
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-nps", campaign: "nps_d30" })]);
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(suppressDripMock).toHaveBeenCalledWith(
+      "d-nps",
+      "suppressed: product_updates opt-out",
+    );
+  });
+
+  it("passes the row's own email + campaign to canSendDrip", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ email: "x@y.io", campaign: "onboarding_d7" })]);
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(canSendDripMock).toHaveBeenCalledWith("x@y.io", "onboarding_d7");
+  });
+
+  it("a suppressed row in the middle of a batch does not stop the rest sending", async () => {
+    canSendDripMock
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    dueDripsMock.mockResolvedValueOnce([
+      drip({ id: "a" }),
+      drip({ id: "b" }),
+      drip({ id: "c" }),
+    ]);
+    const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body).toMatchObject({ considered: 3, sent: 2, skipped: 1, failed: 0 });
+    expect(markSentMock.mock.calls.map((c) => c[0])).toEqual(["a", "c"]);
+  });
+});
+
+// ── Once-only claim ──────────────────────────────────────────────────────────
+
+describe("POST /api/cron/email-drip — once-only claim", () => {
+  it("does not send when claimDrip returns false (row already claimed)", async () => {
+    claimDripMock.mockResolvedValueOnce(false);
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-taken" })]);
+    const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body).toMatchObject({ considered: 1, sent: 0, failed: 0, skipped: 1 });
+    expect(sendEmailMock).not.toHaveBeenCalled();
+    expect(markSentMock).not.toHaveBeenCalled();
+    expect(markFailedMock).not.toHaveBeenCalled();
+  });
+
+  it("claims by row id before handing anything to the transport", async () => {
+    const order: string[] = [];
+    claimDripMock.mockImplementationOnce(async (id: string) => {
+      order.push(`claim:${id}`);
+      return true;
+    });
+    sendEmailMock.mockImplementationOnce(async () => {
+      order.push("send");
+      return { ok: true };
+    });
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-first" })]);
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(order).toEqual(["claim:d-first", "send"]);
+  });
+
+  it("a whole batch of already-claimed rows sends nothing and reports skipped", async () => {
+    claimDripMock.mockResolvedValue(false);
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "a" }), drip({ id: "b" })]);
+    const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body).toMatchObject({ considered: 2, sent: 0, skipped: 2 });
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── Dry run ──────────────────────────────────────────────────────────────────
+
+describe("POST /api/cron/email-drip?dry=1 — dry run", () => {
+  it("sends nothing, writes nothing, and lists campaign:email for each row that would send", async () => {
+    dueDripsMock.mockResolvedValueOnce([
+      drip({ id: "a", campaign: "onboarding_d1", email: "a@x.io" }),
+      drip({ id: "b", campaign: "nps_d30", email: "b@x.io" }),
+    ]);
+    const res = await POST(dryReq({ authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body).toMatchObject({
+      ok: true,
+      dryRun: true,
+      considered: 2,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+    });
+    expect(body.wouldSend).toEqual(["onboarding_d1:a@x.io", "nps_d30:b@x.io"]);
+    expect(sendEmailMock).not.toHaveBeenCalled();
+    expect(claimDripMock).not.toHaveBeenCalled();
+    expect(markSentMock).not.toHaveBeenCalled();
+  });
+
+  it("does not expire anything — a dry run must never mutate the queue", async () => {
+    const res = await POST(dryReq({ authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(expireStaleDripsMock).not.toHaveBeenCalled();
+    expect(body.expired).toBe(0);
+  });
+
+  it("still applies suppression, and does not cancel the row while dry", async () => {
+    canSendDripMock.mockResolvedValueOnce(false);
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-optout", email: "no@x.io" })]);
+    const res = await POST(dryReq({ authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body).toMatchObject({ dryRun: true, considered: 1, skipped: 1 });
+    expect(body.wouldSend).toEqual([]);
+    expect(suppressDripMock).not.toHaveBeenCalled();
+  });
+
+  it("dryRun is false on a plain request (the flag is opt-in, never sticky)", async () => {
+    const res = await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    const body = await res.json();
+    expect(body.dryRun).toBe(false);
+    expect(body.wouldSend).toEqual([]);
   });
 });
