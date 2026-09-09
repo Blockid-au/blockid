@@ -1110,7 +1110,14 @@ export async function POST(request: Request) {
       .update({
         status: "paid",
         stripe_payment_intent: paymentIntentId,
+        // Legacy, misnamed: this column is stamped with the INTENDED 300 at
+        // session creation, long before any money moves — see migration 0128.
+        // Kept in sync here only so old readers stay consistent.
         amount_paid_aud_cents: session.amount_total ?? 300,
+        // The honest one. NULL everywhere except where Stripe itself has
+        // confirmed a payment, so `paid_amount_aud_cents IS NOT NULL` is the
+        // only safe "did they actually pay us" predicate.
+        paid_amount_aud_cents: session.amount_total ?? null,
       })
       .eq("id", guestAnalysisId)
       .eq("status", "pending");

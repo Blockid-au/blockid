@@ -2675,7 +2675,7 @@ export async function sendGuestReport(params: {
         This report was generated for ${escapeHtml(to)} · Order ID: ${escapeHtml(guestAnalysisId.slice(0, 8))}
       </p>
       <p style="margin:4px 0 0;color:#475569;font-size:12px;text-align:center;">
-        Tax invoice · BlockID Pty Ltd · ABN 79 659 615 111 · A$3.00 inc. GST
+        Tax invoice · Auschain Pty Ltd trading as BlockID.au · ABN 79 659 615 111 · A$3.00 inc. GST
       </p>
     </div>
   `);
