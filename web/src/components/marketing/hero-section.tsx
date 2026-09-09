@@ -109,9 +109,8 @@ export function HeroSection() {
           className="animate-fade-in-up max-w-2xl text-balance text-base leading-relaxed text-secondary sm:text-lg"
           style={{ animationDelay: "80ms" }}
         >
-          Paste a deck, a link, or three sentences. You get a score, a
-          valuation range and your next move on screen straight away — what it
-          is worth, what state it is in, what to do next. Free, no account.
+          Paste a deck, a link, or three sentences. Your score, valuation range
+          and next move appear on screen straight away — free, no account.
         </p>
 
         {/* The primary action. SmartIntake wraps itself in

@@ -85,8 +85,14 @@ describe("HOMEPAGE_TIERS", () => {
   it("takes the free rung's page count from the one definition", () => {
     const free = HOMEPAGE_TIERS.find((t) => t.id === "free")!;
     expect(free.gist).toContain(`${FREE_SUMMARY_PAGE_COUNT}-page`);
-    for (const page of FREE_SUMMARY_PAGES.slice(0, 3)) {
-      expect(free.includes).toContain(page.title);
+    // The page titles are one line, not five bullets, but they are still
+    // generated — the card cannot name a page the PDF does not contain.
+    const pageLine = free.includes.find((l) =>
+      l.startsWith(`The ${FREE_SUMMARY_PAGE_COUNT} pages:`),
+    );
+    expect(pageLine).toBeDefined();
+    for (const page of FREE_SUMMARY_PAGES) {
+      expect(pageLine!.toLowerCase()).toContain(page.title.toLowerCase());
     }
   });
 

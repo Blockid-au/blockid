@@ -48,7 +48,7 @@ export function JourneyPath() {
       {/* The track. Chips sit above the marked nodes; the numbers sit below
           every node, so the scale is readable without the chips. */}
       <div
-        className="relative mt-10 h-24"
+        className="relative mt-8 h-24"
         role="img"
         aria-label={
           "The twelve growth phases, with three runs marked: " +
@@ -119,7 +119,7 @@ export function JourneyPath() {
 
       {/* What each mark means, in words — the reading that does not depend
           on seeing the track. */}
-      <ul role="list" className="mt-8 grid gap-3 sm:grid-cols-3">
+      <ul role="list" className="mt-6 grid gap-3 sm:grid-cols-3">
         {marks.map((m) => (
           <li
             key={m.run.id}
@@ -139,7 +139,7 @@ export function JourneyPath() {
       </ul>
 
       {/* The full twelve, so the marked three have something to sit inside. */}
-      <ol className="mt-8 grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-4">
+      <ol className="mt-6 grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-4">
         {JOURNEY_PHASES.map((phase) => {
           const marked = markedOrders.has(phase.order);
           return (

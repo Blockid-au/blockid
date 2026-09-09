@@ -28,7 +28,7 @@ export function DataRoomBuild() {
   const steps = dataRoomBuildUp();
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-14">
+    <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:gap-12">
       <figure className="m-0">
         <figcaption className="text-sm leading-relaxed text-secondary">
           The list is not the same length all the way through. An investor
@@ -43,7 +43,7 @@ export function DataRoomBuild() {
           , across {DATA_ROOM_SECTIONS.length} sections.
         </figcaption>
 
-        <ul role="list" className="mt-6 flex flex-col gap-5">
+        <ul role="list" className="mt-5 flex flex-col gap-4">
           {steps.map((step) => {
             const width = (step.cumulative / DATA_ROOM_TOTAL_DOCUMENTS) * 100;
             return (
@@ -92,7 +92,7 @@ export function DataRoomBuild() {
           {DATA_ROOM_SECTIONS.map((section) => (
             <li
               key={section.name}
-              className="flex items-baseline justify-between gap-3 py-2"
+              className="flex items-baseline justify-between gap-3 py-1.5"
             >
               <span className="text-sm text-secondary">{section.name}</span>
               <span className="shrink-0 font-mono text-xs text-muted tabular-nums">

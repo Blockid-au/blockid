@@ -92,7 +92,10 @@ export const HOMEPAGE_TIERS: readonly HomepageTier[] = [
     includes: [
       "Your score and valuation range on screen, before anything is asked of you",
       `A ${FREE_SUMMARY_PAGE_COUNT}-page written summary, emailed — yours to forward`,
-      ...FREE_SUMMARY_PAGES.slice(0, 3).map((page) => page.title),
+      // The page titles read as fragments in a list of sentences, so they are
+      // one line rather than five bullets. Still generated from the single
+      // definition, so the card cannot name a page the PDF does not have.
+      `The ${FREE_SUMMARY_PAGE_COUNT} pages: ${FREE_SUMMARY_PAGES.map((page) => page.title.toLowerCase()).join("; ")}`,
       "One-click unsubscribe on every email we send",
     ],
     cta: { label: "Start with an idea, a link or a deck", href: "#top" },

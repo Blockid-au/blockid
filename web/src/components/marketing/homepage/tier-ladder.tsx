@@ -70,7 +70,7 @@ export function TierLadder() {
               {tier.ask}
             </p>
 
-            <ul role="list" className="mt-5 flex-1 space-y-2">
+            <ul role="list" className="mt-4 flex-1 space-y-1.5">
               {tier.includes.map((line) => (
                 <li key={line} className="flex items-start gap-2 text-sm">
                   <Check
@@ -87,7 +87,7 @@ export function TierLadder() {
             <Link
               href={tier.cta.href}
               className={[
-                "mt-6 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+                "mt-5 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
                 accent
                   ? "bg-action text-on-action hover:opacity-90"
                   : "border border-line text-primary hover:bg-surface-hover",
