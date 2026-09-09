@@ -242,3 +242,7 @@
 {"stage":"plan","ok":true,"message":"CEO implementing plan updated — 3 new task(s), 42 pending","aiCalls":1,"durationMs":2530,"timestamp":"2026-09-08T12:04:04.650Z"}
 {"stage":"code","ok":true,"message":"Platform upgraded: 0 modules deployed, 0 failed (via agent-deploy → git commit → GitHub push → deploy-live)","aiCalls":0,"durationMs":28627,"timestamp":"2026-09-08T14:00:30.793Z"}
 {"stage":"deploy","ok":true,"message":"Production running — HTTP 200","aiCalls":0,"durationMs":292,"timestamp":"2026-09-08T14:00:31.085Z"}
+{"stage":"update_artifacts","ok":true,"message":"42 task(s) still in flight","aiCalls":0,"durationMs":687,"timestamp":"2026-09-08T16:00:02.129Z"}
+{"stage":"git_push","ok":true,"message":"GitHub in sync — 0 unpushed commits","aiCalls":0,"durationMs":43,"timestamp":"2026-09-08T16:00:02.173Z"}
+{"stage":"qa","ok":true,"message":"QA: ?/21 pass, 0 fail","aiCalls":0,"durationMs":119182,"timestamp":"2026-09-08T18:02:01.225Z"}
+{"stage":"report","ok":true,"message":"Telegram sent, 0 AI calls","aiCalls":0,"durationMs":15,"timestamp":"2026-09-08T18:02:01.240Z"}

@@ -2715,3 +2715,114 @@ export async function sendGuestReport(params: {
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
+
+// ---------- Abandoned A$3 guest checkout — single recovery email -------------
+//
+// Sent once, by /api/cron/guest-analysis-reconcile, roughly an hour after
+// Stripe confirmed the checkout went unpaid. Never a sequence: the cron
+// claims `guest_analyses.recovery_email_sent_at` before calling this, so a
+// re-run sends nothing.
+//
+// Spam Act 2003 (Cth) requirements for a commercial electronic message:
+//   * accurate sender identification — the billing entity Auschain Pty Ltd,
+//     its ACN/ABN and a real reply address appear in the footer;
+//   * a functional unsubscribe — a live link plus a List-Unsubscribe header,
+//     honoured through the existing email_preferences suppression table
+//     (the caller checks canSendEmail(email, "promotions") first).
+//
+// No dark patterns by design: no countdown, no invented discount, no fake
+// scarcity. It restates what they gave us and offers to finish the job.
+
+export async function sendGuestCheckoutRecovery(params: {
+  email: string;
+  inputType: "pitch_file" | "website_url";
+  /** The URL they pasted, or the deck filename they uploaded. */
+  inputLabel: string;
+  /** Link that rebuilds their Stripe checkout with the same input. */
+  resumeUrl: string;
+  guestAnalysisId: string;
+}): Promise<SendResult> {
+  const { email: to, inputType, inputLabel, resumeUrl, guestAnalysisId } = params;
+
+  // Defensive second check — the cron already gated on this, but this
+  // function must never be the reason an unsubscribed address gets mail.
+  if (!(await canSendEmail(to, "promotions"))) {
+    return { ok: false, reason: "unsubscribed" };
+  }
+
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(to);
+
+  const whatTheyGave =
+    inputType === "website_url"
+      ? `the website you entered, <strong style="color:#F8FAFC;">${escapeHtml(inputLabel)}</strong>`
+      : `the pitch deck you uploaded, <strong style="color:#F8FAFC;">${escapeHtml(inputLabel)}</strong>`;
+
+  const subject =
+    inputType === "website_url"
+      ? `Your startup analysis for ${inputLabel.replace(/^https?:\/\//, "").replace(/\/$/, "")} is ready to run`
+      : `Your startup analysis for ${inputLabel} is ready to run`;
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — One-Click Investor Analysis</p>
+          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#F8FAFC;">You started an analysis but didn't finish checkout</h1>
+          <p style="margin:0 0 20px;color:#94A3B8;font-size:15px;line-height:1.6;">
+            You began a One-Click Investor Analysis using ${whatTheyGave}, and the payment step wasn't completed. Nothing was charged.
+          </p>
+          <p style="margin:0 0 24px;color:#94A3B8;font-size:15px;line-height:1.6;">
+            If you'd still like the report, the link below picks up exactly where you left off — same input, nothing to retype.
+          </p>
+
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 24px;">
+            <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">What you'll get</p>
+            <p style="margin:0;color:#94A3B8;font-size:14px;line-height:1.7;">
+              An 8-dimension Startup Value Index scorecard, a comparable-based valuation range in AUD, and a prioritised action list — delivered by email as a PDF.
+            </p>
+            <p style="margin:14px 0 0;color:#F8FAFC;font-size:14px;font-weight:600;">A$3.00 inc. GST — one payment, no subscription.</p>
+          </div>
+
+          <p style="margin:0 0 24px;text-align:center;">
+            <a href="${resumeUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Finish my analysis</a>
+          </p>
+
+          <p style="margin:0 0 4px;color:#64748B;font-size:12px;line-height:1.6;">
+            This is the only email we'll send about this checkout. Reference: ${escapeHtml(guestAnalysisId.slice(0, 8))}.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:0 16px 32px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">
+        <tr><td style="padding:0 8px;">
+          <p style="margin:0 0 6px;color:#64748B;font-size:12px;line-height:1.6;">
+            You're receiving this because you entered ${escapeHtml(to)} on blockid.au to order a One-Click Investor Analysis.
+          </p>
+          <p style="margin:0 0 6px;color:#64748B;font-size:12px;line-height:1.6;">
+            <a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:underline;">Unsubscribe</a>
+            &nbsp;·&nbsp;
+            <a href="${preferencesUrl}" style="color:#94A3B8;text-decoration:underline;">Manage email preferences</a>
+          </p>
+          <p style="margin:0;color:#475569;font-size:12px;line-height:1.6;">
+            Auschain Pty Ltd trading as BlockID.au · ACN 659 615 111 · ABN 79 659 615 111<br>
+            Sydney NSW, Australia · <a href="mailto:info@blockid.au" style="color:#64748B;text-decoration:underline;">info@blockid.au</a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+
+  const result = await sendEmail({ to, subject, html, unsubscribeUrl });
+
+  console.info("[blockid:email] guest checkout recovery", {
+    guestAnalysisId,
+    to: redactEmail(to),
+    ok: result.ok,
+  });
+
+  return result;
+}

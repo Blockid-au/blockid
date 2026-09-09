@@ -1,7 +1,7 @@
-# Nightly Digest — 2026-09-08
+# Nightly Digest — 2026-09-09
 
-- **Generated:** 2026-09-08T22:00:10.169Z
-- **Version:** v3.9.23
+- **Generated:** 2026-09-09T01:07:41.009Z
+- **Version:** v3.10.0
 - **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed)
 
 ## Overall Status: YELLOW

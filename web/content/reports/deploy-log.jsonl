@@ -9361,3 +9361,47 @@
 {"ts":"2026-09-08T14:35:10.633Z","event":"github-push-master","detail":"Blockid-au: fix(dashboard): point first-run cards at pages that exist and at /analyze (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T14:35:56.943Z","event":"github-push-master","detail":"Blockid-au: feat(auth): carry real claimed counts into the post-signup landing (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-08T14:42:25.384Z","event":"github-push-master","detail":"Blockid-au: feat(data-room): investor share panel — who it went to, and when they opened it (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T14:45:36.223Z","event":"github-push-master","detail":"Blockid-au: test(nav): refresh tier goldens for the Your Analyses row (all tiers, free included) (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T14:57:58Z","status":"success","gates":"12/12","pid":"207568","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T15:07:13.229Z","event":"github-push-master","detail":"Blockid-au: feat(intake): make the hero omnibox a real search pill (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:09:55.595Z","event":"github-push-master","detail":"Blockid-au: refactor(workspace): put the signed-in shell on the light-first tokens (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:11:30.364Z","event":"github-push-master","detail":"Blockid-au: refactor(dashboard): retire the cyan/navy palette for design-system tokens (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:13:20.146Z","event":"github-push-master","detail":"Blockid-au: refactor(svi): token-back the SVI/report surfaces and clear five AA fails (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:13:59.642Z","event":"github-push-master","detail":"Blockid-au: fix(entitlements): resync plan feature flags — the data room was 402ing every tier (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:17:48.133Z","event":"github-push-master","detail":"Blockid-au: refactor(app): one colour system across workspace, dashboard pages and admin (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:18:33.200Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): add the pure signup-gate decision for anonymous runs (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:19:17.660Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): count an anon key's runs inside the gate window (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:19:50.761Z","event":"github-push-master","detail":"Blockid-au: fix(admin): make the forced-light shell actually resolve light tokens (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:21:03.620Z","event":"github-push-master","detail":"Blockid-au: feat(intake): gate run 2+ server-side, before any model spend (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:23:08.604Z","event":"github-push-master","detail":"Blockid-au: fix(a11y): close the last two AA gaps in the migrated tree (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:28:25.666Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): the account-wall prompt shown in place of run 2 (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:33:10.402Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): name the account-only artefacts instead of hiding them (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:35:43.791Z","event":"github-push-master","detail":"Blockid-au: feat(analyze): show the account wall in place of run 2, keep the input (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:37:08.331Z","event":"github-push-master","detail":"Blockid-au: feat(intake): generous IP ceiling behind the cookie-keyed signup gate (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:37:12Z","status":"success","gates":"12/12","pid":"372919","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T15:42:58.620Z","event":"github-push-master","detail":"Blockid-au: fix(intake): the empty-state invitation is copy, not a button label (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T15:50:12Z","status":"success","gates":"12/12","pid":"425601","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T15:56:05.769Z","event":"github-push-master","detail":"Blockid-au: fix(a11y): lift 35 semantic pills in the app tree to AA (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T16:03:09.327Z","event":"github-push-master","detail":"Blockid-au: fix(analyze): stop the confirm modal walling run 1 on the direct path (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T16:05:34.256Z","event":"github-push-master","detail":"Blockid-au: fix(analyze): point the export row at the page that actually exports (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T16:06:02Z","status":"success","gates":"12/12","pid":"490226","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T16:25:51Z","status":"success","gates":"12/12","pid":"565748","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T16:27:43.157Z","event":"github-push-master","detail":"Blockid-au: feat(marketing): flip MarketingShell off the lux dark theme (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T16:30:02.699Z","event":"github-push-master","detail":"Blockid-au: feat(pricing): rebuild the pricing surface on light-first tokens (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T16:31:16.509Z","event":"github-push-master","detail":"Blockid-au: feat(marketing): light-first /team, /tokenize, /features, /how-it-works (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T16:32:57.470Z","event":"github-push-master","detail":"Blockid-au: feat(marketing): light-first pass on the remaining 28 marketing pages (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T16:34:21.630Z","event":"github-push-master","detail":"Blockid-au: fix(marketing): two components that only worked over the dark ground (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T16:46:29Z","status":"success","gates":"12/12","pid":"644771","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T17:00:16.119Z","event":"github-push-master","detail":"Blockid-au: fix(marketing): child components the MarketingShell grep did not reach (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T17:03:08.538Z","event":"github-push-master","detail":"Blockid-au: fix(status): status tiles were blocks of pale colour with no readable text (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T17:23:17Z","status":"success","gates":"12/12","pid":"774314","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T17:32:59.435Z","event":"github-push-master","detail":"Blockid-au: fix(docs): lift the /docs/startup-package eyebrow and CTA to AA (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T17:44:55Z","status":"success","gates":"12/12","pid":"856607","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T17:51:47.623Z","event":"github-push-master","detail":"Blockid-au: fix(compliance): the site said GST-exclusive while Stripe charges GST-inclusive (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T17:54:43.217Z","event":"github-push-master","detail":"Blockid-au: fix(footer): render the copyright year in UTC, matching its sibling (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-08T18:07:17Z","status":"success","gates":"12/12","pid":"947633","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-08T18:53:57Z","status":"success","gates":"12/12","pid":"1109388","note":"Auto-upgrade (Claude subscription): fix(auto): render remaining copyright years in UTC, matching the site footer"}
+{"ts":"2026-09-08T18:53:59.923Z","event":"github-push-master","detail":"Blockid-au: fix(auto): render remaining copyright years in UTC, matching the site footer (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T01:01:59.454Z","event":"github-push-master","detail":"Blockid-au: docs(version): record what v3.10.0 actually shipped (2 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T01:17:49Z","status":"success","gates":"12/12","pid":"2304970","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-09T01:18:05.450Z","event":"github-push-master","detail":"Blockid-au: feat(guest-analysis): migration 0128 — abandoned-checkout reconcile + recovery (1 commits)","source":"github-webhook"}

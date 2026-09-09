@@ -1,13 +1,13 @@
 {
-  "date": "2026-09-07",
-  "overall": 23,
+  "date": "2026-09-08",
+  "overall": 51,
   "status": "RED",
   "dimensions": [
     {
       "key": "auth_coverage",
       "label": "Auth coverage on /api/* routes",
       "score": 8,
-      "detail": "395/497 guarded (Bearer / user-auth / public-tagged)",
+      "detail": "398/504 guarded (Bearer / user-auth / public-tagged)",
       "findings": [
         "Ungated: api/ab/pricing-expose/route.ts",
         "Ungated: api/abr/lookup/route.ts",
@@ -23,7 +23,7 @@
       "key": "rate_limit",
       "label": "Rate-limit coverage on /api/* routes",
       "score": 0,
-      "detail": "23/497 call checkRateLimit (or @rate-limit-exempt)",
+      "detail": "23/504 call checkRateLimit (or @rate-limit-exempt)",
       "findings": [
         "No rate-limit: api/ab/pricing-expose/route.ts",
         "No rate-limit: api/abr/lookup/route.ts",
@@ -50,49 +50,49 @@
     },
     {
       "key": "csp_headers",
-      "label": "CSP + security headers (middleware)",
-      "score": 0,
-      "detail": "0/5 standard headers set",
-      "findings": [
-        "Missing Content-Security-Policy header",
-        "Missing X-Frame-Options / frame-ancestors",
-        "Missing X-Content-Type-Options",
-        "Missing Referrer-Policy",
-        "Missing Permissions-Policy"
-      ]
+      "label": "CSP + security headers (proxy/middleware)",
+      "score": 10,
+      "detail": "5/5 headers set (source: src/proxy.ts, src/lib/security-headers.ts)",
+      "findings": []
     },
     {
       "key": "deps",
       "label": "Dependency vulnerabilities",
       "score": 0,
-      "detail": "crit 0, high 10, mod 7",
+      "detail": "crit 1, high 9, mod 8",
       "findings": [
-        "10 high CVE(s)",
-        "7 moderate CVE(s)"
+        "1 critical CVE(s)",
+        "9 high CVE(s)",
+        "8 moderate CVE(s)"
       ]
     },
     {
       "key": "supabase_rls",
       "label": "Supabase RLS enabled across tables",
-      "score": 5,
-      "detail": "supabase/migrations dir not found — unable to verify",
+      "score": 8,
+      "detail": "195/260 tables have RLS enabled in migrations",
       "findings": [
-        "Cannot read supabase/migrations to verify RLS coverage"
+        "No RLS migration found for table: user_actions",
+        "No RLS migration found for table: svi_analysis_usage",
+        "No RLS migration found for table: api_rate_limits",
+        "No RLS migration found for table: vesting_schedules",
+        "No RLS migration found for table: share_structure",
+        "No RLS migration found for table: ai_equity_recommendations",
+        "No RLS migration found for table: blockchain_sync_config",
+        "No RLS migration found for table: blockchain_sync_queue"
       ]
     },
     {
       "key": "deploy_hygiene",
       "label": "Deploy hygiene",
-      "score": 3,
-      "detail": "last deploy 999d ago, 0 unpushed commits",
-      "findings": [
-        "Last deploy was 999 days ago"
-      ]
+      "score": 10,
+      "detail": "last deploy 0d ago, 1 unpushed commits",
+      "findings": []
     }
   ],
   "recommendations": [
     "Add checkRateLimit() to every /api/* route or tag with @rate-limit-exempt comment",
     "Move leaked secret patterns out of repo; rotate any exposed credentials immediately",
-    "Add missing security headers to src/middleware.ts (CSP, X-Frame, X-Content-Type, Referrer, Permissions)"
+    "Run `npm audit fix` for moderate; manually upgrade high/critical"
   ]
 }
