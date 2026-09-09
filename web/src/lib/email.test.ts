@@ -1042,3 +1042,85 @@ describe("sendWholesaleWelcome — reseller delegation", () => {
     );
   });
 });
+
+describe("sendGuestCheckoutRecovery — abandoned A$3 checkout, one email only", () => {
+  // This is the only commercial message BlockID sends to someone who has no
+  // account, so it is the one most exposed to Spam Act 2003 s16/s18: it needs
+  // a working unsubscribe and truthful sender identification, and it must
+  // never reach an address that has already opted out. It also must never
+  // read as a cold approach — the founder's own input has to appear in it,
+  // or it stops being a continuation of something they started.
+  beforeEach(() => {
+    process.env.SMTP_USER = "u";
+    process.env.SMTP_PASS = "p";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://blockid.au";
+  });
+
+  const args = {
+    email: "founder@example.com",
+    inputType: "website_url" as const,
+    inputLabel: "https://example.com",
+    resumeUrl: "https://blockid.au/api/guest-analysis/resume/deadbeef",
+    guestAnalysisId: "e3a3e793-4cd5-47ff-86e4-20b5e8ed339c",
+  };
+
+  it("refuses to send to an address that has unsubscribed", async () => {
+    canSendEmailMock.mockResolvedValueOnce(false);
+    const { sendGuestCheckoutRecovery } = await import("./email");
+    const res = await sendGuestCheckoutRecovery(args);
+    expect(res).toEqual({ ok: false, reason: "unsubscribed" });
+    expect(canSendEmailMock).toHaveBeenCalledWith(
+      "founder@example.com",
+      "promotions",
+    );
+    expect(sendMailSpy).not.toHaveBeenCalled();
+  });
+
+  it("carries the founder's own input and the resume link", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendGuestCheckoutRecovery } = await import("./email");
+    await sendGuestCheckoutRecovery(args);
+    const mail = lastMail();
+    expect(mail.subject).toContain("example.com");
+    expect(mail.html).toContain("https://example.com");
+    expect(mail.html).toContain(args.resumeUrl);
+    // Reassures them nothing was taken — they abandoned at the card form.
+    expect(mail.html).toContain("Nothing was charged");
+  });
+
+  it("identifies the real billing entity and offers a working unsubscribe", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendGuestCheckoutRecovery } = await import("./email");
+    await sendGuestCheckoutRecovery(args);
+    const mail = lastMail();
+    expect(mail.html).toContain("Auschain Pty Ltd");
+    expect(mail.html).toContain("ABN 79 659 615 111");
+    expect(mail.html).toContain("/unsubscribe?token=");
+    expect(mail.headers?.["List-Unsubscribe"]).toBeTruthy();
+    expect(mail.headers?.["List-Unsubscribe-Post"]).toBe(
+      "List-Unsubscribe=One-Click",
+    );
+  });
+
+  it("uses no urgency, no discount and no countdown", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendGuestCheckoutRecovery } = await import("./email");
+    await sendGuestCheckoutRecovery(args);
+    const html = lastMail().html ?? "";
+    expect(html).not.toMatch(/expires? (in|soon)|hurry|last chance|only \d+ left|% off|discount|limited time/i);
+    // And it says out loud that it is a one-off, not the start of a drip.
+    expect(html).toContain("the only email we'll send");
+  });
+
+  it("names the uploaded deck when the input was a pitch file", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendGuestCheckoutRecovery } = await import("./email");
+    await sendGuestCheckoutRecovery({
+      ...args,
+      inputType: "pitch_file",
+      inputLabel: "seed-deck.pdf",
+    });
+    expect(lastMail().html).toContain("seed-deck.pdf");
+    expect(lastMail().subject).toContain("seed-deck.pdf");
+  });
+});
