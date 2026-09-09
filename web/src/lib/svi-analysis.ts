@@ -389,6 +389,37 @@ export function extractSignals(
 
   const has = (...terms: string[]) => terms.some((t) => text.includes(t));
 
+  // Negation-aware positive match.
+  //
+  // `has` is a flat substring test, so every denial contains its own keyword:
+  // "no product yet" contains "product", "no advisors" contains "advisor",
+  // "no cap table" contains "cap table", "no paying customers" contains both
+  // "customer" and "paying". Each one turned a founder telling us what they do
+  // NOT have into a signal that they do — and the error only ever runs upward,
+  // because a denial can add a signal but never remove one.
+  //
+  // This had already been patched by hand three times (revenue, customers,
+  // raise) with a bespoke denial list each time. `hasPos` is the general form:
+  // a term counts only where at least one occurrence is not governed by a
+  // negator within the preceding few words.
+  //
+  // Note the asymmetry with `has`, which is still the right tool for finding a
+  // denial phrase deliberately (see deniesRevenue below) — there we WANT the
+  // negated reading.
+  const NEGATOR_RE =
+    /(?:\b(?:no|not|without|zero|never|lack|lacks|lacking|minus)\s+(?:\S+\s+){0,3}|\b(?:haven't|havent|hasn't|hasnt|don't|dont|doesn't|doesnt|didn't|didnt|won't|wont)\s+(?:\S+\s+){0,3}|\byet\s+to\s+(?:\S+\s+){0,2})$/;
+
+  const hasPos = (...terms: string[]) =>
+    terms.some((t) => {
+      let i = text.indexOf(t);
+      while (i !== -1) {
+        const before = text.slice(Math.max(0, i - 40), i);
+        if (!NEGATOR_RE.test(before)) return true;
+        i = text.indexOf(t, i + 1);
+      }
+      return false;
+    });
+
   // "N founders", digits or words. The literal list this replaced carried
   // "2 founders" and "three founders" but not "two founders" — so a two-person
   // team that spelled the number out (much the commoner phrasing) was scored
@@ -525,43 +556,43 @@ export function extractSignals(
       COFOUNDER_COUNT_RE.test(text),
     founderExperience,
     founderSectorFit: has("background in", "worked in", "experience in", "years in", "domain"),
-    hasAdvisors: has("advisor", "mentor", "angel", "board member"),
+    hasAdvisors: hasPos("advisor", "mentor", "angel", "board member"),
     marketSize,
     problemClarity,
-    hasCustomerInterviews: has("customer interview", "user interview", "discovery call", "survey"),
+    hasCustomerInterviews: hasPos("customer interview", "user interview", "discovery call", "survey"),
     isAIWrapper,
     hasMoat,
     hasNetworkEffect,
     hasDataAdvantage,
     hasSwitchingCosts,
     sector,
-    hasProduct: has("product", "app", "platform", "tool", "software", "mvp", "beta", "saas"),
-    hasDemo: has("demo", "prototype", "proof of concept", "poc", "live"),
-    hasSourceCode: has("github", "gitlab", "bitbucket", "source code", "repository", "open source"),
-    hasWebsite: has("website", "landing page", "domain", ".com", ".au", "online"),
-    hasApp: has("ios", "android", "app store", "play store", "mobile app"),
+    hasProduct: hasPos("product", "app", "platform", "tool", "software", "mvp", "beta", "saas"),
+    hasDemo: hasPos("demo", "prototype", "proof of concept", "poc", "live"),
+    hasSourceCode: hasPos("github", "gitlab", "bitbucket", "source code", "repository", "open source"),
+    hasWebsite: hasPos("website", "landing page", "domain", ".com", ".au", "online"),
+    hasApp: hasPos("ios", "android", "app store", "play store", "mobile app"),
     hasRevenue: revenueBand !== "pre-revenue",
     revenueBand,
     hasCustomers: !deniesCustomers &&
       has("customer", "client", "user", "paying", "subscriber", "member"),
-    hasSocialProof: has("linkedin", "twitter", "instagram", "facebook", "tiktok", "youtube",
+    hasSocialProof: hasPos("linkedin", "twitter", "instagram", "facebook", "tiktok", "youtube",
                        "social", "followers", "community", "discord", "telegram"),
-    hasAnalytics: has("analytics", "search console", "ga4", "mixpanel", "amplitude", "data"),
-    hasCapTable: has("cap table", "equity", "shares", "shareholding", "ownership", "stake"),
-    hasVesting: has("vesting", "cliff", "4 year", "12 month cliff"),
-    hasShareholdersAgreement: has("shareholders agreement", "sha", "shareholders deed"),
-    hasBoardCadence: has("board meeting", "board minutes", "quarterly meeting", "board cadence"),
-    hasFinancialAudit: has("audit", "audited", "financial audit", "big 4", "pwc", "deloitte"),
-    esopAllocated: has("esop", "option pool", "employee options", "eso", "share option"),
-    hasPitchDeck: has("pitch deck", "deck", "presentation", "slideshow"),
-    hasFinancialModel: has("financial model", "p&l", "revenue forecast", "financial projection", "cashflow"),
-    hasDataRoom: has("data room", "dataroom", "due diligence", "dd folder"),
+    hasAnalytics: hasPos("analytics", "search console", "ga4", "mixpanel", "amplitude", "data"),
+    hasCapTable: hasPos("cap table", "equity", "shares", "shareholding", "ownership", "stake"),
+    hasVesting: hasPos("vesting", "cliff", "4 year", "12 month cliff"),
+    hasShareholdersAgreement: hasPos("shareholders agreement", "sha", "shareholders deed"),
+    hasBoardCadence: hasPos("board meeting", "board minutes", "quarterly meeting", "board cadence"),
+    hasFinancialAudit: hasPos("audit", "audited", "financial audit", "big 4", "pwc", "deloitte"),
+    esopAllocated: hasPos("esop", "option pool", "employee options", "eso", "share option"),
+    hasPitchDeck: hasPos("pitch deck", "deck", "presentation", "slideshow"),
+    hasFinancialModel: hasPos("financial model", "p&l", "revenue forecast", "financial projection", "cashflow"),
+    hasDataRoom: hasPos("data room", "dataroom", "due diligence", "dd folder"),
     targetRaiseMentioned,
     raiseMentioned: targetRaiseMentioned,
-    hasABN: has("abn", "australian business number", "asic", "registered company"),
-    hasIPProtection: has("patent", "trademark", "copyright", "ip protection"),
-    hasContracts: has("contract", "agreement", "terms of service", "tos"),
-    hasLegalDocs: has("legal", "lawyer", "solicitor", "company constitution"),
+    hasABN: hasPos("abn", "australian business number", "asic", "registered company"),
+    hasIPProtection: hasPos("patent", "trademark", "copyright", "ip protection"),
+    hasContracts: hasPos("contract", "agreement", "terms of service", "tos"),
+    hasLegalDocs: hasPos("legal", "lawyer", "solicitor", "company constitution"),
     evidenceLevel,
   };
 

@@ -119,6 +119,39 @@ describe("extractSignals", () => {
     expect(s.targetRaiseMentioned).toBe(true);
   });
 
+  it.each([
+    ["hasProduct", "We have no product yet, just a landing page idea", "hasProduct"],
+    ["hasAdvisors", "Solo effort, no advisors and no mentor so far", "hasAdvisors"],
+    ["hasCapTable", "There is no cap table yet, nothing has been issued", "hasCapTable"],
+    ["hasWebsite", "We have not built a website yet", "hasWebsite"],
+    ["hasPitchDeck", "No pitch deck yet, still writing it", "hasPitchDeck"],
+    ["hasIPProtection", "We hold no patent and no trademark", "hasIPProtection"],
+    ["esopAllocated", "No esop and no option pool has been set aside", "esopAllocated"],
+    ["hasDataRoom", "We do not have a data room", "hasDataRoom"],
+  ])("a denial does not set %s", (_label, rawText, field) => {
+    const s = extractSignals({ rawText }) as unknown as Record<string, unknown>;
+    expect(s[field]).toBe(false);
+  });
+
+  it.each([
+    ["hasProduct", "Our product is live with a working MVP", "hasProduct"],
+    ["hasAdvisors", "Two advisors joined us last quarter", "hasAdvisors"],
+    ["hasCapTable", "The cap table is clean and up to date", "hasCapTable"],
+    ["hasPitchDeck", "Our pitch deck is attached", "hasPitchDeck"],
+    ["hasDataRoom", "The data room is open to investors", "hasDataRoom"],
+  ])("a plain claim still sets %s", (_label, rawText, field) => {
+    const s = extractSignals({ rawText }) as unknown as Record<string, unknown>;
+    expect(s[field]).toBe(true);
+  });
+
+  it("a denial elsewhere does not suppress a genuine claim of the same thing", () => {
+    // Both appear; the unnegated occurrence must win.
+    const s = extractSignals({
+      rawText: "We had no product in January. Today the product is live with 200 users.",
+    });
+    expect(s.hasProduct).toBe(true);
+  });
+
   it("detects serial founder", () => {
     const s = extractSignals({ rawText: "I'm a serial founder who exited my last company" });
     expect(s.founderExperience).toBe("serial");
