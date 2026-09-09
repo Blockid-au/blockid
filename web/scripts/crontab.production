@@ -452,3 +452,20 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # 4-hourly cadence keeps drift < 4h from the target send window without
 # hammering SMTP or Supabase.
 0 */4 * * * curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/tbr-lead-drip >> /var/log/blockid/tbr-lead-drip.log 2>&1
+
+# Abandoned A$3 guest checkout reconcile + single recovery email.
+# The A$3 One-Click Report is the only self-serve purchase on the site, so a
+# dropped checkout costs disproportionately — and until this job existed the
+# abandoned rows sat at status='pending' forever, indistinguishable from a
+# paid-but-undelivered order.
+#
+# Phase 1 asks STRIPE what happened to each expired pending session: paid
+# means we missed a webhook (flip to paid + run the owed delivery), unpaid
+# means 'abandoned'. Phase 2 sends exactly ONE recovery email per row, an
+# hour after abandonment, claim-guarded so a re-run can never send a second.
+#
+# Hourly is the right cadence: the delay gate is an hour, Stripe sessions live
+# 24h, and the table sees single-digit rows a month. Add ?dry=1 by hand to
+# inspect without writing or sending.
+# Auth: Bearer $CRON_SECRET via cron-runner.sh.
+7 * * * * bash $RUN guest-analysis-reconcile --timeout 120
