@@ -49,6 +49,20 @@ describe("PAID_REPORT_ADDITIONS", () => {
       expect(line.trim().length).toBeGreaterThan(10);
     }
   });
+
+  // The A$3 renderer builds section pages from `analysis.subs.slice(0, 6)`
+  // and the guest pipeline never populates `acceleratorReadiness`. Neither
+  // promise may come back without the renderer changing first.
+  it("does not promise a page for all eight dimensions", () => {
+    const joined = PAID_REPORT_ADDITIONS.join(" ").toLowerCase();
+    expect(joined).not.toContain("a page per dimension");
+    expect(joined).not.toContain("eight dimensions");
+  });
+
+  it("does not promise the accelerator-readiness checklist", () => {
+    const joined = PAID_REPORT_ADDITIONS.join(" ").toLowerCase();
+    expect(joined).not.toContain("accelerator");
+  });
 });
 
 describe("normaliseSummaryEmail", () => {

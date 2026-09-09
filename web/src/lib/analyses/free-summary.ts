@@ -83,11 +83,23 @@ export const FREE_SUMMARY_PAGES: readonly FreeSummaryPage[] = [
  * not a tease. Every line here is something the paid renderer genuinely emits
  * (`svi-report-pdf.tsx`) — nothing aspirational.
  */
+//
+// 2026-09-09 correction. Two of these lines described a report we do not
+// render for A$3:
+//
+//   • "A page per dimension" — `svi-report-pdf.tsx` builds its section pages
+//     from `analysis.subs.slice(0, 6)`. Six of the eight dimensions get a
+//     page; the promise of eight was never kept.
+//   • "The accelerator-readiness checklist" — that page renders only when
+//     `analysis.acceleratorReadiness` is populated, and the only producer is
+//     `evaluateAcceleratorReadiness()` in `/api/svi`. The guest A$3 pipeline
+//     (`lib/guest-analysis/runner.ts`) never sets it, so the page has never
+//     appeared in a report anybody paid for. The line is cut rather than
+//     softened — we do not sell it, so we do not describe it.
 export const PAID_REPORT_ADDITIONS: readonly string[] = [
   "The valuation working: four independent methods, their inputs, and where they disagree",
-  "A page per dimension — the rationale behind each reading, not just the number",
-  "Your percentile against a real cohort of Australian companies at the same stage",
-  "The accelerator-readiness checklist, scored against 30+ published criteria",
+  "A dedicated page on each of your six most significant dimensions — the rationale, not just the number",
+  "Your percentile against a cohort of Australian companies at the same stage",
   "The risk landscape, with a mitigation for each flagged risk",
   "A 90-day roadmap sequencing the actions into weeks",
 ];
