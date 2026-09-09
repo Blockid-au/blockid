@@ -1,5 +1,44 @@
 # BlockID.au Changelog
 
+## 2026-09-09 — v3.10.0 (continued): persistence, the investor data room, and one visual system
+
+The 2026-09-08 entry below was written mid-release. This records what landed after it.
+
+### The product now remembers you
+
+- **feat(analyses — persistence)** `POST /api/intake` writes every run against an httpOnly anonymous key; `GET /api/analyses` and `/api/analyses/{id}` read them back. Registering, logging in, magic-link and Google sign-in all claim prior runs and report the count. Before this, an analysis ceased to exist the moment the visitor navigated — there was nothing to save, share, or attach a data room to.
+- **feat(analyze — saved runs)** `/analyze/{id}` renders a saved run; `/workspace/analyses` lists them. A missing or unauthorised id returns an identical "not found" — it must not confirm that an id exists to someone who cannot see it.
+- **feat(intake — signup gate)** First run in a rolling 30 days is free and unwalled. From the second, we ask for an email *before* running, not after: a full run costs real model spend and asking afterwards means paying it for a visitor about to leave. The A$3 guest path is exempt.
+
+### The investor data room actually opens
+
+- **fix(data-room — share)** `POST /api/investor-data-room` rewritten against the real schema. It had inserted five columns that do not exist on `data_rooms`, so it had returned 500 on every call since it was written; `investor_links` and `data_room_access_tokens` were both empty. Investors now open `/s/dr/<token>`; bad and revoked tokens 404.
+- **feat(data-room — real content)** Generated rooms carry written company, SVI, valuation, cap-table and traction summaries. What the platform genuinely cannot produce — an executed shareholders agreement, audited statements — is marked missing with an upload prompt. A test forbids a `complete` document with empty content. The demo room's 34 documents had all been flagged complete with zero content behind them.
+- **fix(data-room — billing)** `/api/data-room/generate` charged 3 credits, returned JSON and persisted nothing; a refresh lost what the founder had paid for. It now saves and returns the row id.
+
+### One visual system
+
+- **refactor(design)** Light-first rev.4 across marketing, dashboard, workspace and admin. The `lux` dark theme is retired from all 34 marketing pages, so the site no longer changes personality when a visitor clicks Pricing. pa11y WCAG2AA passes 26/26.
+- **feat(home)** Rebuilt to show the product's output — valuation intervals, an eight-dimension radar, the twelve-phase journey, data-room completeness — rather than describing it. Every figure traces to a published sample run; the four-method convergence chart was dropped because the runs record one range each, and plotting five estimates would have meant inventing five numbers.
+- **feat(ui)** The hero omnibox is a pill with a rotating conic-gradient ring, shared with `/analyze`.
+
+### Money and privacy
+
+- **fix(billing — ladder)** A$29 Founder / A$69 Growth / +A$59 Equity add-on. A$299 Pro retired — it exceeded JPMorgan Workplace Solutions at A$277 for a comparable register. Credit grants right-sized so full burn still clears 70% gross margin. Stripe prices that billed Starter A$29 as A$99 and Pro A$299 as A$499 were replaced; the old prices are archived, never deleted.
+- **fix(billing — add-on)** The A$59 add-on is not sellable until entitlement resolution exists: `getEntitlements()` resolves from a plan id and cannot see a per-user add-on, so a purchase would have charged and granted nothing.
+- **fix(entitlements)** `plans.feature_flags` had drifted from `plans.csv`, so `share_management` was absent everywhere and every tier 402'd out of its own data room. A test now pins that each tier is a superset of the one below.
+- **fix(privacy)** `scores.investor_visible` (default false) gates investor deal flow, which had been surfacing 18 founders' company names and scores with no opt-in anywhere in the schema.
+- **fix(compliance)** The site claimed GST-exclusive pricing while every Stripe price is `tax_behavior=inclusive` — including in FAQ JSON-LD that Google indexes.
+
+### Correctness
+
+- **fix(svi)** `has()` is a substring test, so `"pre-revenue"` matched `"revenue"` and pushed `detectStage` to the revenue band. A two-founder pre-revenue startup was being returned as *Series A, 90% confidence, A$37.3M pre-money*. Negations are now checked first, pinned by regression tests.
+- **fix(intake)** The 40-word floor on the hero refused most genuine attempts and left the CTA reading "Keep typing…". It is now 8 words, with a nudge rather than a refusal.
+
+### Note
+
+The defects that mattered most here were not found by reading code. They surfaced by running the product and looking at screenshots: white-on-white headings, an invisible SVI numeral on the dashboard, invisible form labels on `/submit`, a data room of documents marked complete with nothing behind them, and a share button that had never once worked.
+
 ## 2026-09-08 — v3.10.0: Context-aware analysis + light-first design system
 
 Release id `context-aware-intake-v1` · approved plan `h-y-ph-n-t-ch-th-m-whimsical-kahn` (Block 3 — DOCS).
