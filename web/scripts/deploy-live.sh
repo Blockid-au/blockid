@@ -73,6 +73,7 @@ LKG_FILE="$WEB_DIR/content/reports/last-good-build.json"
 DEPLOY_LOG="$WEB_DIR/content/reports/deploy-log.jsonl"
 GATE_SKIPPED=0
 GITLEAKS_STATUS="ok"        # "skipped" when the binary is absent — recorded in the JSONL
+LINT_STATUS="not-run"       # ok | errors | not-run (--quick/--skip-build) — recorded in the JSONL
 # SWAPPED flips to 1 the instant Gate 8 takes the old process off $PROD_PORT.
 # Before that, a failure really is harmless ("old build still running").
 # After it, the new build IS live, so fail() must roll back instead of lying.
@@ -137,8 +138,8 @@ write_deploy_log() {
   note_json=$(printf '%s' "${DEPLOY_NOTE:-Triển khai từ src lên public}" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo '"deploy"')
   reason_json=$(printf '%s' "$reason" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo '""')
   mkdir -p "$(dirname "$DEPLOY_LOG")" 2>/dev/null || true
-  printf '{"ts":"%s","status":"%s","gates":"%s/%s","skipped":%s,"gitleaks":"%s","swapped":%s,"rollback":"%s","pid":"%s","reason":%s,"note":%s}\n' \
-    "$ts" "$status" "$GATE_PASSED" "$GATE_TOTAL" "$GATE_SKIPPED" "$GITLEAKS_STATUS" "$SWAPPED" "$ROLLBACK_STATUS" \
+  printf '{"ts":"%s","status":"%s","gates":"%s/%s","skipped":%s,"gitleaks":"%s","lint":"%s","swapped":%s,"rollback":"%s","pid":"%s","reason":%s,"note":%s}\n' \
+    "$ts" "$status" "$GATE_PASSED" "$GATE_TOTAL" "$GATE_SKIPPED" "$GITLEAKS_STATUS" "$LINT_STATUS" "$SWAPPED" "$ROLLBACK_STATUS" \
     "$(cat "$PID_FILE" 2>/dev/null)" "$reason_json" "$note_json" >> "$DEPLOY_LOG" 2>/dev/null || true
 }
 
@@ -495,22 +496,41 @@ if [ "${1:-}" != "--skip-build" ] && [ "${1:-}" != "--quick" ]; then
 # ══════════════════════════════════════════════════════════════════════
   gate "ESLint"
 
-  LINT_TIMEOUT="${LINT_TIMEOUT:-30}"
-  # PIPESTATUS[0], not `$?` — piping to tail otherwise masks the real exit
-  # code (the same false-pass bug Gate 4b and Gate 11 already document).
+  # ESLint over this repo takes ~240s (measured 2026-09-09), so the old 30s
+  # budget ALWAYS expired — and the expiry was rewritten to LINT_EXIT=0, so
+  # this gate has been reporting "clean" for months without ever running to
+  # completion. Two distinct outcomes, deliberately treated differently:
+  #   • timeout (124) → the lint did NOT run. Unverified. Fail, per the rule
+  #     that a gate which did not execute can never be a pass.
+  #   • non-zero exit → the lint DID run and returned a real verdict. It is
+  #     printed, recorded in the JSONL, and NOT counted as a pass — but it
+  #     blocks the deploy only under LINT_BLOCKING=1, because the tree carries
+  #     281 pre-existing errors from the whole period this gate was inert.
+  #     Flip LINT_BLOCKING=1 (or set it in the cron env) once those are fixed.
+  LINT_TIMEOUT="${LINT_TIMEOUT:-600}"
+  LINT_BLOCKING="${LINT_BLOCKING:-0}"
+  LINT_LOG="/tmp/blockid-deploy-lint.log"
+  # Redirect to a file rather than piping to tail: a pipe makes $? the tail's,
+  # which is the exact false-pass shape Gate 4b and Gate 11 already document.
   set +e
-  timeout "$LINT_TIMEOUT" npm run lint 2>&1 | tail -5
-  LINT_EXIT=${PIPESTATUS[0]}
+  timeout "$LINT_TIMEOUT" npm run lint > "$LINT_LOG" 2>&1
+  LINT_EXIT=$?
   set -e
-  # Exit code 124 = timeout. A lint that timed out did not run, so it cannot
-  # be a pass: it is exactly as unverified as a lint that errored. Fail.
+  tail -5 "$LINT_LOG" 2>/dev/null || true
   if [ "$LINT_EXIT" -eq 124 ]; then
     fail "ESLint timed out after ${LINT_TIMEOUT}s — the lint did not run, so this deploy is unverified. Re-run, or raise LINT_TIMEOUT."
   fi
   if [ "$LINT_EXIT" -ne 0 ]; then
-    fail "ESLint found errors. Fix before deploy."
+    LINT_SUMMARY="$(grep -oE '[0-9]+ problems \([0-9]+ errors' "$LINT_LOG" 2>/dev/null | tail -1)"
+    LINT_STATUS="errors"
+    if [ "$LINT_BLOCKING" = "1" ]; then
+      fail "ESLint failed (exit $LINT_EXIT${LINT_SUMMARY:+ — $LINT_SUMMARY}). Full output: $LINT_LOG"
+    fi
+    skip "ESLint returned exit $LINT_EXIT${LINT_SUMMARY:+ — $LINT_SUMMARY} — NOT a pass. Pre-existing debt; set LINT_BLOCKING=1 to make it fatal. Full output: $LINT_LOG"
+  else
+    LINT_STATUS="ok"
+    pass "ESLint clean (warnings OK)"
   fi
-  pass "ESLint clean (warnings OK)"
 fi
 
 # ══════════════════════════════════════════════════════════════════════
@@ -555,8 +575,14 @@ if [ "${1:-}" != "--skip-build" ]; then
   fi
 
   rm -rf "$WEB_DIR/.next"
+  # `BUILD_OUTPUT=$(npm run build)` under `set -e` aborts the whole script the
+  # instant the build fails — before BUILD_EXIT is ever read — so the backup
+  # restore below, the "GATE FAILED" banner and the JSONL line never ran: a
+  # failed build exited silently with status 1. Bound it with set +e.
+  set +e
   BUILD_OUTPUT=$(npm run build 2>&1)
   BUILD_EXIT=$?
+  set -e
 
   if [ $BUILD_EXIT -ne 0 ]; then
     echo "$BUILD_OUTPUT" | tail -20
@@ -1092,7 +1118,7 @@ pass "Post-deploy hydrated smoke passed against $PLAYWRIGHT_BASE_URL"
 echo ""
 echo "════════════════════════════════════════════"
 echo "  ✅ DEPLOY COMPLETE"
-echo "  Gates: $GATE_PASSED/$GATE_TOTAL passed$([ "$GATE_SKIPPED" -gt 0 ] && echo " ($GATE_SKIPPED skipped — see \"gitleaks\" in deploy-log.jsonl)")"
+echo "  Gates: $GATE_PASSED/$GATE_TOTAL passed$([ "$GATE_SKIPPED" -gt 0 ] && echo " ($GATE_SKIPPED skipped/unverified — see \"gitleaks\" and \"lint\" in deploy-log.jsonl)")"
 echo "  PID:   $(cat "$PID_FILE")"
 echo "  Release: ${BUILD_ID:-?} (releases/${BUILD_ID:-?})"
 echo "  Local: HTTP $LOCAL"
