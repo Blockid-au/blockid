@@ -60,8 +60,12 @@ export default async function ViSolutionsVnSmePage() {
       emotionalLine={t(m, "solutions.vnSme.lede")}
       outcomeLine={t(m, "solutions.vnSme.support")}
       primaryCtaLabel={t(m, "solutions.vnSme.cta")}
-      secondaryCtaLabel={t(m, "solutions.cta.secondary.report")}
-      secondaryCtaHref="/one-click-report"
+      // Deliberately /pricing, not /one-click-report: that page carries an
+      // unattributed testimonial ("— Australian founder feedback") that
+      // nothing in the repo backs, and a persona page must not funnel
+      // traffic into a claim it cannot stand behind.
+      secondaryCtaLabel={t(m, "solutions.cta.secondary.pricing")}
+      secondaryCtaHref="/pricing"
       benefitsTitle={t(m, "solutions.vnSme.benefits.title")}
       benefits={[
         {

@@ -60,8 +60,12 @@ export default async function SolutionsFounderPage() {
       emotionalLine={t(m, "solutions.founder.lede")}
       outcomeLine={t(m, "solutions.founder.support")}
       primaryCtaLabel={t(m, "solutions.founder.cta")}
-      secondaryCtaLabel={t(m, "solutions.cta.secondary.report")}
-      secondaryCtaHref="/one-click-report"
+      // Deliberately /pricing, not /one-click-report: that page carries an
+      // unattributed testimonial ("— Australian founder feedback") that
+      // nothing in the repo backs, and a persona page must not funnel
+      // traffic into a claim it cannot stand behind.
+      secondaryCtaLabel={t(m, "solutions.cta.secondary.pricing")}
+      secondaryCtaHref="/pricing"
       benefitsTitle={t(m, "solutions.founder.benefits.title")}
       benefits={[
         {

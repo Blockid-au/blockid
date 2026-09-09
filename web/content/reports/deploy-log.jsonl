@@ -9476,3 +9476,4 @@
 {"ts":"2026-09-09T14:18:21.664Z","event":"github-push-master","detail":"Blockid-au: fix(solutions): stop selling the Trust Report on four live pages (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T14:20:02.995Z","event":"github-push-master","detail":"Blockid-au: fix(solutions): point the persona pages at the pages they now describe (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T14:20:17.568Z","event":"github-push-master","detail":"Blockid-au: fix(solutions): make the index cards match the pages they open (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T14:22:05.147Z","event":"github-push-master","detail":"Blockid-au: fix(for/advisor): stop recommending a plan /pricing does not sell (1 commits)","source":"github-webhook"}

@@ -40,8 +40,14 @@ const marketingProductJsonLd = {
   "@context": "https://schema.org",
   "@type": "Product",
   name: "BlockID SVI One-Click Report",
+  // 2026-09-09: this described the A$3 guest report as an "Investor Trust
+  // Report" containing a "cap-table snapshot". The Trust Report is the retired
+  // A$5.50 SKU that has never taken a payment, and a guest checkout has no
+  // account and therefore no cap table to snapshot. Structured data is what
+  // Google reads, so a stale claim here outlives the page copy that carried
+  // it. This now lists what the report actually contains.
   description:
-    "One-click Investor Trust Report for Australian founders. AI-generated SVI score across 8 dimensions, AUD valuation range, cap-table snapshot, and a 30-day investor-readiness plan — delivered by email in under 5 minutes.",
+    "A full startup analysis for Australian founders, from a pitch deck or a website URL. Startup Value Index score across 8 dimensions, an AUD valuation range with the methods behind it, a prioritised action list and a 90-day plan — emailed as a PDF, no account required.",
   brand: { "@type": "Brand", name: "BlockID.au" },
   url: `${SITE_URL}/one-click-report`,
   image: `${SITE_URL}/opengraph-image`,
