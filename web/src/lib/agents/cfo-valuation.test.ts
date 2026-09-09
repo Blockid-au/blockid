@@ -120,17 +120,20 @@ describe("cfo-valuation — VC-grade valuation engine", () => {
     expect(classifyGrowthBand(NaN)).toBe("low");
   });
 
-  it("growthAdjustedSectorMultiple ranks high > mid > low for SaaS/Fintech/AI", () => {
-    for (const sector of ["saas", "fintech", "ai"]) {
+  it("growthAdjustedSectorMultiple ranks high > mid > low for every sector with an explicit growth table", () => {
+    // Every entry added to GROWTH_MULTIPLES must monotonically rank cohorts;
+    // if a new sector row breaks this, the failure names the sector so the
+    // regression is obvious.
+    for (const sector of ["saas", "fintech", "ai", "healthtech", "cybertech", "marketplace", "ecommerce"]) {
       const hi = growthAdjustedSectorMultiple(sector, 6);
       const md = growthAdjustedSectorMultiple(sector, 2);
       const lo = growthAdjustedSectorMultiple(sector, 0.5);
-      expect(hi.band).toBe("high");
-      expect(md.band).toBe("mid");
-      expect(lo.band).toBe("low");
-      expect(hi.mid).toBeGreaterThan(md.mid);
-      expect(md.mid).toBeGreaterThan(lo.mid);
-      expect(hi.high).toBeGreaterThan(hi.low);
+      expect(hi.band, sector).toBe("high");
+      expect(md.band, sector).toBe("mid");
+      expect(lo.band, sector).toBe("low");
+      expect(hi.mid, sector).toBeGreaterThan(md.mid);
+      expect(md.mid, sector).toBeGreaterThan(lo.mid);
+      expect(hi.high, sector).toBeGreaterThan(hi.low);
     }
   });
 

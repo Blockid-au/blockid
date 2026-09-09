@@ -341,6 +341,34 @@ const GROWTH_MULTIPLES: Partial<Record<Sector, Record<GrowthBand, GrowthMultiple
     mid:  { low: 12.0, mid: 16.0, high: 20.0 },
     low:  { low: 6.0,  mid: 8.0,  high: 11.0 },
   },
+  // Digital Health Benchmarks 2025 — sticky contracts but longer sales cycles
+  // hold the top band below pure-play SaaS.
+  healthtech: {
+    high: { low: 6.5, mid: 9.0,  high: 12.0 },
+    mid:  { low: 4.0, mid: 5.5,  high: 7.5 },
+    low:  { low: 2.0, mid: 3.0,  high: 4.0 },
+  },
+  // Bessemer Cyber Index 2025 — high NRR and long-term deferred revenue
+  // support a premium over generalist SaaS at the top of the growth band.
+  cybertech: {
+    high: { low: 7.5, mid: 10.0, high: 13.0 },
+    mid:  { low: 5.0, mid: 6.5,  high: 8.5 },
+    low:  { low: 2.5, mid: 3.5,  high: 4.8 },
+  },
+  // PitchBook Marketplace Report 2025 — take-rate + GMV compress the range
+  // below SaaS at every growth cohort.
+  marketplace: {
+    high: { low: 5.0, mid: 6.5,  high: 8.0 },
+    mid:  { low: 2.5, mid: 3.5,  high: 5.0 },
+    low:  { low: 1.2, mid: 2.0,  high: 2.8 },
+  },
+  // Public retail comps 2025 — margin-thin category; even top-quartile
+  // ecommerce trades well below software.
+  ecommerce: {
+    high: { low: 3.0, mid: 4.5,  high: 6.0 },
+    mid:  { low: 1.8, mid: 2.5,  high: 3.5 },
+    low:  { low: 0.8, mid: 1.3,  high: 2.0 },
+  },
 };
 
 export function classifyGrowthBand(monthlyGrowthRatePct: number): GrowthBand {
