@@ -51,9 +51,13 @@ const FEATURES: Feature[] = [
     Icon: Wallet,
   },
   {
+    // The contract really does hold vesting: SVToken.sol grantVesting /
+    // revokeVesting, with client bindings in lib/wallet.ts. What it does not
+    // do is populate itself — a grant reaches the chain when someone signs it,
+    // not when the register changes. The body says so.
     title: "ESOP + vesting smart contract",
     body:
-      "Cliffs, monthly release schedules and leaver clauses execute on-chain. The contract mirrors the off-chain option-plan agreement one-for-one.",
+      "Cliffs, monthly release schedules and leaver clauses are held by the contract and enforced on-chain. Each grant is signed onto the chain deliberately, to match the option-plan agreement you have already signed off-chain.",
     Icon: Lock,
   },
 ];
@@ -103,7 +107,7 @@ function WorkflowDiagram() {
               <path d="M 0 0 L 10 5 L 0 10 z" className="fill-warn" />
             </marker>
           </defs>
-          <text x="360" y="118" textAnchor="middle" className="fill-warn" fontFamily="IBM Plex Mono, monospace" fontSize="10" letterSpacing="0.14em">MIRROR (OPTIONAL, ON PAID PLAN)</text>
+          <text x="360" y="118" textAnchor="middle" className="fill-warn" fontFamily="IBM Plex Mono, monospace" fontSize="10" letterSpacing="0.14em">MIRROR (OPTIONAL · SIGNED PER EVENT)</text>
           {/* On-chain lane */}
           <g>
             <rect x="20" y="140" width="200" height="60" rx="12" className="fill-warn/10 stroke-warn" strokeWidth="1.5" />
@@ -184,9 +188,12 @@ export default function TokenizePage() {
         <p className="max-w-2xl text-sm leading-relaxed text-secondary">
           Auschain PTY LTD issues shares under the Corporations Act — the
           legal share register in the founder-facing cap table is the source
-          of truth. On a paid plan, every register event mirrors onto the
-          private EVM so founders and grantees can see their holdings in
-          MetaMask without an external exchange, custodian, or KYC gate.
+          of truth. On a paid plan you can deploy a company token to the
+          private EVM and put holdings on-chain, so founders and grantees can
+          see them in MetaMask without an external exchange, custodian, or KYC
+          gate. Putting a register event on-chain is a deliberate, signed step
+          — nothing is mirrored automatically, and the register stands on its
+          own whether or not you ever use the chain.
         </p>
         <WorkflowDiagram />
       </MarketingSection>
