@@ -6,6 +6,10 @@
 // { ok: false, reason: 'not_configured' }.
 
 import "server-only";
+import {
+  FREE_SUMMARY_PAGES,
+  PAID_REPORT_ADDITIONS,
+} from "@/lib/analyses/free-summary";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import nodemailer from "nodemailer";
@@ -2822,6 +2826,187 @@ export async function sendGuestCheckoutRecovery(params: {
     guestAnalysisId,
     to: redactEmail(to),
     ok: result.ok,
+  });
+
+  return result;
+}
+
+// ---------- Free 5-page summary — the first rung of the funnel --------------
+//
+// Sent once per analysis, from `POST /api/analyses/[id]/free-summary`, after
+// the founder has already seen their score and valuation range on screen and
+// then chosen to ask for the written version. Never a sequence: the caller
+// claims `analyses.summary_requested_at` with a conditional UPDATE before it
+// gets here, so a retry or a double-click sends nothing.
+//
+// Consent: the address was typed into a form whose only label is "where should
+// we send the summary?" — an inferred consent under the Spam Act 2003 (Cth)
+// that is about as unambiguous as it gets, and it is scoped to this one
+// message. There is no drip behind it.
+//
+// Spam Act 2003 (Cth) requirements for a commercial electronic message:
+//   * accurate sender identification — Auschain Pty Ltd, its ACN and ABN, its
+//     Sydney address and a real reply address, in the footer;
+//   * a functional unsubscribe — a live link plus the List-Unsubscribe header,
+//     honoured through the existing `email_preferences` suppression table.
+//     `canSendEmail(email, "promotions")` is checked here as well as by the
+//     route, because this function must never be the reason an address that
+//     opted out receives mail.
+//
+// The A$3 upgrade is IN this email, and it is an offer: what the report adds,
+// what it costs, one link. No countdown, no invented discount, no scarcity, no
+// follow-up. If they want it they will click it.
+export async function sendFreeSummary(params: {
+  email: string;
+  /** Rendered PDF — exactly five pages, see `svi-summary-pdf.tsx`. */
+  pdf: Buffer | Uint8Array;
+  /** What the run scored, for the subject line and the recap block. */
+  svi: number;
+  stageLabel: string;
+  valuationLow: number;
+  valuationHigh: number;
+  /** Best-known name for the company. Optional — the copy works without it. */
+  startupName?: string | null;
+  /** Permalink back to the on-screen run, so the email is not the only copy. */
+  analysisUrl: string;
+  analysisId: string;
+}): Promise<SendResult> {
+  const {
+    email: to,
+    pdf,
+    svi,
+    stageLabel,
+    valuationLow,
+    valuationHigh,
+    startupName,
+    analysisUrl,
+    analysisId,
+  } = params;
+
+  // Defensive second check — the route already gated on this.
+  if (!(await canSendEmail(to, "promotions"))) {
+    return { ok: false, reason: "unsubscribed" };
+  }
+
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(to);
+
+  const name = (startupName ?? "").trim();
+  const subjectName = name.length > 0 ? name : "your startup";
+  const score = Math.round(svi);
+  const range = `${fmtAud(valuationLow)} – ${fmtAud(valuationHigh)}`;
+  const pageCount = FREE_SUMMARY_PAGES.length;
+
+  const pageRows = FREE_SUMMARY_PAGES.map(
+    (page, i) => `<tr>
+        <td style="padding:5px 0;color:#64748B;font-size:13px;vertical-align:top;width:22px;">${i + 1}</td>
+        <td style="padding:5px 0 5px 6px;">
+          <p style="margin:0;color:#F8FAFC;font-size:13px;font-weight:600;">${escapeHtml(page.title)}</p>
+          <p style="margin:1px 0 0;color:#94A3B8;font-size:12px;line-height:1.5;">${escapeHtml(page.blurb)}</p>
+        </td>
+      </tr>`,
+  ).join("");
+
+  const addsRows = PAID_REPORT_ADDITIONS.map(
+    (line) =>
+      `<li style="margin:0 0 5px;color:#94A3B8;font-size:13px;line-height:1.55;">${escapeHtml(line)}</li>`,
+  ).join("");
+
+  const html = shell(`
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+        <tr><td>
+          <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Free summary</p>
+          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#F8FAFC;">Your ${pageCount}-page summary is attached</h1>
+          <p style="margin:0 0 20px;color:#94A3B8;font-size:15px;line-height:1.6;">
+            This is the written version of the run you just did for ${escapeHtml(subjectName)}. Nothing here is behind a wall — it is yours to forward.
+          </p>
+
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:top;">
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Startup Value Index</p>
+                  <p style="margin:0;font-size:40px;font-weight:800;color:#4ADE80;line-height:1;">${score}</p>
+                  <p style="margin:6px 0 0;color:#94A3B8;font-size:13px;">${escapeHtml(stageLabel)} stage</p>
+                </td>
+                <td style="vertical-align:top;text-align:right;">
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Valuation range</p>
+                  <p style="margin:0;color:#F8FAFC;font-size:17px;font-weight:700;">${escapeHtml(range)}</p>
+                  <p style="margin:6px 0 0;color:#64748B;font-size:12px;">Indicative, not a formal valuation</p>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
+            <p style="margin:0 0 12px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">What is in the ${pageCount} pages</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${pageRows}</table>
+          </div>
+
+          <p style="margin:0 0 24px;text-align:center;">
+            <a href="${analysisUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Open the run on screen</a>
+          </p>
+
+          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px;">
+            <p style="margin:0 0 6px;color:#F8FAFC;font-size:15px;font-weight:600;">If you want the working behind it — A$3</p>
+            <p style="margin:0 0 10px;color:#94A3B8;font-size:13px;line-height:1.6;">
+              The full written report is ten pages or more and adds:
+            </p>
+            <ul style="margin:0 0 12px;padding-left:18px;">${addsRows}</ul>
+            <a href="${siteUrl()}/one-click-report" style="color:#3B7DD8;font-size:13px;font-weight:600;text-decoration:underline;">Get the full report — A$3.00 inc. GST, one payment</a>
+          </div>
+
+          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">
+            This is the only email we send about this run. Reference: ${escapeHtml(analysisId.slice(0, 8))}.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:0 16px 32px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">
+        <tr><td style="padding:0 8px;">
+          <p style="margin:0 0 6px;color:#64748B;font-size:12px;line-height:1.6;">
+            You're receiving this because you entered ${escapeHtml(to)} on blockid.au and asked us to send you this summary.
+          </p>
+          <p style="margin:0 0 6px;color:#64748B;font-size:12px;line-height:1.6;">
+            <a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:underline;">Unsubscribe</a>
+            &nbsp;·&nbsp;
+            <a href="${preferencesUrl}" style="color:#94A3B8;text-decoration:underline;">Manage email preferences</a>
+          </p>
+          <p style="margin:0 0 6px;color:#475569;font-size:12px;line-height:1.6;">
+            Auschain Pty Ltd trading as BlockID.au · ACN 659 615 111 · ABN 79 659 615 111<br>
+            Sydney NSW, Australia · <a href="mailto:info@blockid.au" style="color:#64748B;text-decoration:underline;">info@blockid.au</a>
+          </p>
+          <p style="margin:0;color:#475569;font-size:11px;line-height:1.5;">
+            The Startup Value Index is a directional analysis, not a financial valuation or an investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inclusive of GST.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>`);
+
+  const result = await sendEmail({
+    to,
+    subject: `Your ${pageCount}-page summary for ${subjectName} — index ${score}`,
+    html,
+    unsubscribeUrl,
+    attachments: [
+      {
+        filename: "blockid-summary.pdf",
+        content: Buffer.from(pdf),
+        contentType: "application/pdf",
+      },
+    ],
+  });
+
+  console.info("[blockid:email] free summary", {
+    analysisId,
+    to: redactEmail(to),
+    ok: result.ok,
+    pages: pageCount,
   });
 
   return result;

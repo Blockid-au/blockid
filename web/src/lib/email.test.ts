@@ -1124,3 +1124,117 @@ describe("sendGuestCheckoutRecovery — abandoned A$3 checkout, one email only",
     expect(lastMail().subject).toContain("seed-deck.pdf");
   });
 });
+
+describe("sendFreeSummary — the free tier's one email", () => {
+  // The free rung of the funnel. It carries a commercial offer (the A$3
+  // upgrade) to an address with no account, so Spam Act 2003 s16/s18 applies
+  // in full: suppression honoured, unsubscribe working, sender identified.
+  // It must also stay a single message — the whole design is that there is no
+  // sequence behind it.
+  beforeEach(() => {
+    process.env.SMTP_USER = "u";
+    process.env.SMTP_PASS = "p";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://blockid.au";
+  });
+
+  const args = {
+    email: "founder@example.com",
+    pdf: Buffer.from("%PDF-1.3 fake"),
+    svi: 142,
+    stageLabel: "Traction",
+    valuationLow: 850_000,
+    valuationHigh: 2_100_000,
+    startupName: "Northwind Freight",
+    analysisUrl: "https://blockid.au/analyze/abc123",
+    analysisId: "e3a3e793-4cd5-47ff-86e4-20b5e8ed339c",
+  };
+
+  it("refuses to send to an address that has unsubscribed", async () => {
+    canSendEmailMock.mockResolvedValueOnce(false);
+    const { sendFreeSummary } = await import("./email");
+    const res = await sendFreeSummary(args);
+    expect(res).toEqual({ ok: false, reason: "unsubscribed" });
+    expect(canSendEmailMock).toHaveBeenCalledWith(
+      "founder@example.com",
+      "promotions",
+    );
+    expect(sendMailSpy).not.toHaveBeenCalled();
+  });
+
+  it("attaches the summary PDF", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendFreeSummary } = await import("./email");
+    await sendFreeSummary(args);
+    const mail = lastMail();
+    expect(mail.attachments).toHaveLength(1);
+    expect(mail.attachments?.[0].filename).toBe("blockid-summary.pdf");
+    expect(mail.attachments?.[0].contentType).toBe("application/pdf");
+  });
+
+  it("puts the score and the range in the subject and the body", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendFreeSummary } = await import("./email");
+    await sendFreeSummary(args);
+    const mail = lastMail();
+    expect(mail.subject).toContain("142");
+    expect(mail.subject).toContain("Northwind Freight");
+    expect(mail.subject).toContain("5-page");
+    expect(mail.html).toContain("142");
+    expect(mail.html).toContain("Traction");
+    expect(mail.html).toContain(args.analysisUrl);
+  });
+
+  it("lists all five pages, from the single definition", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { FREE_SUMMARY_PAGES } = await import("@/lib/analyses/free-summary");
+    const { sendFreeSummary } = await import("./email");
+    await sendFreeSummary(args);
+    const html = lastMail().html ?? "";
+    for (const page of FREE_SUMMARY_PAGES) {
+      expect(html).toContain(page.title);
+    }
+  });
+
+  it("identifies the real billing entity and offers a working unsubscribe", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendFreeSummary } = await import("./email");
+    await sendFreeSummary(args);
+    const mail = lastMail();
+    expect(mail.html).toContain("Auschain Pty Ltd");
+    expect(mail.html).toContain("ACN 659 615 111");
+    expect(mail.html).toContain("ABN 79 659 615 111");
+    expect(mail.html).toContain("Sydney NSW");
+    expect(mail.html).toContain("/unsubscribe?token=");
+    expect(mail.headers?.["List-Unsubscribe"]).toBeTruthy();
+    expect(mail.headers?.["List-Unsubscribe-Post"]).toBe(
+      "List-Unsubscribe=One-Click",
+    );
+  });
+
+  it("makes the A$3 upgrade an offer, not a nag", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendFreeSummary } = await import("./email");
+    await sendFreeSummary(args);
+    const html = lastMail().html ?? "";
+    expect(html).toContain("A$3.00 inc. GST");
+    expect(html).toContain("/one-click-report");
+    expect(html).not.toMatch(
+      /expires? (in|soon)|hurry|last chance|only \d+ left|% off|discount|limited time|act now/i,
+    );
+    expect(html).toContain("the only email we send about this run");
+  });
+
+  it("carries the AFSL disclaimer", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendFreeSummary } = await import("./email");
+    await sendFreeSummary(args);
+    expect(lastMail().html).toContain("does not hold an AFSL");
+  });
+
+  it("works without a startup name", async () => {
+    canSendEmailMock.mockResolvedValue(true);
+    const { sendFreeSummary } = await import("./email");
+    await sendFreeSummary({ ...args, startupName: null });
+    expect(lastMail().subject).toContain("your startup");
+  });
+});
