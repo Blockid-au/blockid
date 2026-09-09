@@ -143,8 +143,13 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
     label: "Advisors",
     hero: {
       headline: "BlockID for Advisors",
+      // 2026-09-09: the subhead sold the multi-client console, engagement
+      // logging and own-brand reporting — the three things the feature list
+      // directly below it marks as in build or not built. A hero that
+      // contradicts its own scope list four lines later is worse than a plain
+      // one, so it now says what an advisor can do today.
       subhead:
-        "One console for every client — track their SVI progress, log engagements, and report progress in your own brand.",
+        "Score a company you advise on the same eight dimensions its investors will, and follow the number between sessions.",
     },
     // 2026-09-09. Every bullet here described the advisor console as shipped.
     // It is not: `lib/advisor-portal.ts` reads `advisor_portal` and

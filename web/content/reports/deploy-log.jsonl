@@ -9477,3 +9477,5 @@
 {"ts":"2026-09-09T14:20:02.995Z","event":"github-push-master","detail":"Blockid-au: fix(solutions): point the persona pages at the pages they now describe (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T14:20:17.568Z","event":"github-push-master","detail":"Blockid-au: fix(solutions): make the index cards match the pages they open (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T14:22:05.147Z","event":"github-push-master","detail":"Blockid-au: fix(for/advisor): stop recommending a plan /pricing does not sell (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T14:33:19.344Z","event":"github-push-master","detail":"Blockid-au: fix(solutions): correct the indexed Product description, and stop linking to an unbacked quote (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T14:34:54Z","status":"failed","gates":"0/1","skipped":0,"gitleaks":"ok","lint":"not-run","swapped":0,"rollback":"n/a","pid":"739599","reason":"gitleaks flagged committed content \u2014 run 'gitleaks detect --verbose' to inspect","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
