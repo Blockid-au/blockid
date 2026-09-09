@@ -20,7 +20,7 @@ import type { Segment } from "@/lib/plans-v2";
 export const dynamic = "force-dynamic";
 
 // 2026-09-07 (Workstream B5): the persona segment tabs are gone. /pricing
-// renders the Universal 3-rung ladder (Free / Growth / Pro) + a
+// renders the Universal 3-rung ladder (Free / Starter / Growth) + a
 // contact-sales row for Accelerator / VC / Enterprise. Persona pages now
 // deep-link to a specific card via `#tier-growth` / `#tier-pro`
 // fragments defined on <PricingMatrix />.
@@ -135,7 +135,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
       <MarketingHero
         eyebrow="Pricing v2.0"
         title="Get fundable in 7 days. Then choose your plan."
-        subtitle="7-day free trial (Growth + Pro). Card required at signup, charged only on Day 8. Cancel anytime before with no charge. Accelerator / VC / Enterprise pilots on request (14-day)."
+        subtitle="7-day free trial on Starter and Growth. Card required at signup, charged only on Day 8. Cancel anytime before with no charge. Accelerator / VC / Enterprise pilots on request (14-day)."
         primaryCta={{
           href: "/signup?plan=founder_growth&trial=1",
           label: "Start 7-day free trial",
@@ -151,7 +151,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
             href="#pricing-matrix"
             className="text-sm font-medium text-action underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface rounded"
           >
-            See all 12 plans below ↓
+            See the plans below ↓
           </a>
         </div>
       </section>
@@ -181,7 +181,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-secondary">
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-action" />
-            7-day free trial (Growth + Pro)
+            7-day free trial on Starter and Growth
           </span>
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-action" />
@@ -198,7 +198,12 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         </div>
       </section>
 
-      {/* Universal 3-rung pricing matrix (Free / Growth / Pro).
+      {/* Universal 3-rung pricing matrix (Free / Starter A$29 / Growth A$69).
+          "Pro" (founder_scale) was retired 2026-09-08 — plans.csv active=false,
+          public:false, Stripe price archived — so the hero no longer offers a
+          trial on it, and the anchor link no longer says "12 plans" when the
+          matrix renders three. `publicPlansForSegment("founder")` is the
+          authority for that count; plans-v2.test.ts pins it.
           `id="pricing-matrix"` is the anchor target for the hero's
           secondary text link. Persona segment tabs retired 2026-09-07 —
           persona pages now deep-link to a specific card via
