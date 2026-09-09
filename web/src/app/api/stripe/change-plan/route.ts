@@ -10,6 +10,7 @@ import {
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getPlan } from "@/lib/plans";
 import { buildAddonRemovalSchedulePhases } from "@/lib/stripe/addon-schedule";
+import { reconcileSubscriptionAddon } from "@/lib/stripe/addon-entitlements";
 import { hashUserId } from "@/lib/reseller/hash";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
 
@@ -529,6 +530,18 @@ async function handleAddItem(args: {
       },
     });
 
+    // Grant now rather than waiting for customer.subscription.updated to come
+    // back from Stripe. Same rule, same function — this reconciles from the
+    // subscription Stripe just returned, so it cannot grant anything the
+    // webhook would not also grant a second later, and the webhook remains the
+    // authority that corrects it if the charge is later reversed.
+    await reconcileSubscriptionAddon({
+      supabase,
+      subscription: updated,
+      userId,
+      customerId,
+    });
+
     console.info(
       `[blockid:stripe] added share-mgmt add-on ${priceId} to sub ${updated.id} for customer ${customerId}`,
     );
@@ -651,6 +664,10 @@ async function handleRemoveItem(args: {
       },
     });
 
+    // No revoke here on purpose. The removal is scheduled for the end of the
+    // period the founder has already paid for, so they keep the capability
+    // until then. The customer.subscription.updated that fires when the
+    // schedule takes effect is what revokes it.
     console.info(
       `[blockid:stripe] scheduled share-mgmt add-on removal on sub ${activeSub.id} at period_end via schedule ${updated.id}`,
     );

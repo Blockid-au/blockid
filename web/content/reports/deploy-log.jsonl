@@ -9434,3 +9434,4 @@
 {"ts":"2026-09-09T04:18:13Z","status":"success","gates":"12/12","pid":"2970653","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-09-09T04:22:03.049Z","event":"github-push-master","detail":"Blockid-au: fix: guard nightly-review's main(), and point the nav CTA at the path that works (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T04:26:57.938Z","event":"github-push-master","detail":"Blockid-au: feat(entitlements): give the entitlements table a reader so add-ons can be sold (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T04:31:55.834Z","event":"github-push-master","detail":"Blockid-au: feat(entitlements): resolve entitlements per user, not per plan alone (1 commits)","source":"github-webhook"}

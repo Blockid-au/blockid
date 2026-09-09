@@ -18,6 +18,10 @@ import {
 } from "@/lib/stripe/verify";
 import { FOUNDING_PROMO_END } from "@/lib/founding-promo";
 import { emitEvent } from "@/lib/analytics/server";
+import {
+  reconcileSubscriptionAddon,
+  revokeAddonForCustomer,
+} from "@/lib/stripe/addon-entitlements";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -584,6 +588,16 @@ export async function POST(request: Request) {
         );
     }
 
+    // The subscription is gone, so any add-on item on it is gone too. Revoke
+    // before the emails so a failure to send never leaves someone entitled to
+    // a capability they have stopped paying for.
+    await revokeAddonForCustomer({
+      supabase,
+      customerId,
+      userId: userRow?.id ?? null,
+      reason: "subscription_deleted",
+    });
+
     console.info(`[blockid:stripe] downgraded customer ${customerId} to free`);
 
     if (userRow?.email) {
@@ -687,6 +701,20 @@ export async function POST(request: Request) {
       const planId = currentPriceId ? planIdFromPrice(currentPriceId) : null;
       await upsertTrialState(userId, planId, subscription);
     }
+
+    // Reconcile the add-on against the subscription we were just handed. This
+    // one call covers the whole add-on lifecycle that flows through this
+    // event: the item being attached (purchase), the scheduled removal taking
+    // effect at period end (cancellation), and every status transition in
+    // between — trialing -> active re-grants, active -> past_due/unpaid
+    // revokes. It is a pure function of the subscription, so redelivery and
+    // out-of-order delivery both converge on the right answer.
+    await reconcileSubscriptionAddon({
+      supabase,
+      subscription,
+      userId,
+      customerId,
+    });
   }
 
   async function handleTrialWillEnd(e: Stripe.Event): Promise<void> {
@@ -792,6 +820,17 @@ export async function POST(request: Request) {
       .update({ payment_failed_at: new Date().toISOString() })
       .eq("stripe_customer_id", customerId);
 
+    // The base plan stays active on a first failure (banner only — hard
+    // cancel is dunning-retry's job after MAX_ATTEMPTS), but the add-on does
+    // not: it is a separate paid capability and we should not extend it on an
+    // unpaid invoice. It comes back automatically when the retry succeeds —
+    // invoice.paid reconciles from the subscription below.
+    await revokeAddonForCustomer({
+      supabase,
+      customerId,
+      reason: "invoice_payment_failed",
+    });
+
     console.info(`[blockid:stripe] payment failed for customer ${customerId}`);
   }
 
@@ -839,6 +878,36 @@ export async function POST(request: Request) {
         billing_reason: billingReason,
       },
     });
+
+    // Re-grant after a successful dunning retry, and cover the first cycle of
+    // a subscription created with the add-on already attached. Reconciling
+    // from the live subscription (rather than trusting the invoice lines)
+    // keeps the same single rule: pay for it and it is on, stop and it is off.
+    const subscriptionRef = (invoice as unknown as { subscription?: unknown })
+      .subscription;
+    const subscriptionId =
+      typeof subscriptionRef === "string"
+        ? subscriptionRef
+        : (subscriptionRef as { id?: string } | null | undefined)?.id ?? null;
+
+    if (subscriptionId) {
+      try {
+        const stripe = getStripe();
+        if (stripe) {
+          const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          await reconcileSubscriptionAddon({
+            supabase,
+            subscription: sub,
+            userId: paidUser?.id ?? null,
+            customerId,
+          });
+        }
+      } catch (err) {
+        // Never fail the invoice handler over an add-on reconcile — the next
+        // customer.subscription.updated will converge on the same answer.
+        console.error("[blockid:stripe] addon reconcile on invoice.paid failed", err);
+      }
+    }
 
     console.info(
       `[blockid:stripe] invoice paid for customer ${customerId}, amount: ${amountCents}`,
