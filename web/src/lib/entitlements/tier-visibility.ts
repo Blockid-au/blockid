@@ -16,6 +16,8 @@ import { planTierRank } from "@/lib/segments";
 export type FeatureSlug =
   // FEATURE_GATES (manifest)
   | "share_management"
+  | "data_room.access"
+  | "investor_links.premium"
   | "vesting.write"
   | "esop.manage"
   | "blockchain.sync"
@@ -68,11 +70,29 @@ export const VISIBILITY: Readonly<Record<FeatureSlug, VisibilityRow>> = Object.f
   // does. The prices were the pre-2026-09-08 Scale deltas; the add-on is a flat
   // A$59/month on top of any paid plan.
   share_management: {
+    // No longer says "data room" — the room moved to `data_room.access` at
+    // Starter on 2026-09-09. This slug is the cap table and share register.
     minTier: "growth",
-    discoveryHint: "Cap table, data room and share register",
+    discoveryHint: "Cap table and share register",
     upgradeCTA: "Upgrade to Growth",
     bestAtPhase: 4,
     monthlyDeltaAud: 70,
+  },
+  // The A$29 rung. Both slugs gate what the homepage's Workspace card sells:
+  // the data room, and the live investor link you share instead of a PDF.
+  "data_room.access": {
+    minTier: "starter",
+    discoveryHint: "The data room, filling up in the order investors ask",
+    upgradeCTA: "Upgrade to Starter",
+    bestAtPhase: 3,
+    monthlyDeltaAud: 29,
+  },
+  "investor_links.premium": {
+    minTier: "starter",
+    discoveryHint: "Share a live link with an investor instead of a PDF",
+    upgradeCTA: "Upgrade to Starter",
+    bestAtPhase: 3,
+    monthlyDeltaAud: 29,
   },
   "vesting.write": {
     minTier: "growth",

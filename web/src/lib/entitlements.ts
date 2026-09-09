@@ -122,6 +122,11 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "evidence.upload",
     "report.basic",
     "investor_links",
+    // 2026-09-09: the A$29 rung's data room and live investor link, moved
+    // down from Growth. Kept in step with plans.csv + migration 0131 so a
+    // plans-table miss cannot silently take back what the homepage sells.
+    "data_room.access",
+    "investor_links.premium",
   ],
   founder_growth: [
     "svi.run",

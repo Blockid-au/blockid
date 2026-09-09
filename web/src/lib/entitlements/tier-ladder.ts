@@ -112,18 +112,23 @@ const STARTER_FEATURES: readonly Feature[] = [
   "evidence.upload",
   "report.basic",
   "investor_links",
+  // 2026-09-09: moved down from Growth, paired with plans.csv and migration
+  // 0131. The homepage sells the A$29 rung a data room and a live investor
+  // link; these are the two flags that make that true.
+  "data_room.access",
+  "investor_links.premium",
 ];
 
 const GROWTH_FEATURES: readonly Feature[] = [
   ...STARTER_FEATURES,
+  // `data_room.access` and `investor_links.premium` are no longer listed here
+  // — they arrive by the spread above, now that Starter carries them.
   "report.premium",
   "cap_table.write",
   "cap_table.read",
   "data_room.read",
-  "data_room.access",
   "term_sheet.ai",
   "term_sheet_ai",
-  "investor_links.premium",
   "profile.multi",
   "pdf_branding",
   "equity_offer.request",
@@ -170,7 +175,7 @@ export const FOUNDER_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$29",
     targetPhaseRange: [1, 2],
     headlineUnlock:
-      "Full SVI 8-dimension score, evidence uploads and shareable investor links",
+      "Your score tracked over time, a data room, and a live investor link",
     supportingUnlocks: STARTER_FEATURES,
     hiddenFromPublic: false,
   },
@@ -182,7 +187,7 @@ export const FOUNDER_LADDER: readonly TierLadderEntry[] = Object.freeze([
     monthlyAudBand: "A$69",
     targetPhaseRange: [3, 5],
     headlineUnlock:
-      "Cap-table, Term Sheet AI and data-room read access to run your first raise",
+      "Cap table, share register and Term Sheet AI to run your first raise",
     supportingUnlocks: GROWTH_FEATURES,
     hiddenFromPublic: false,
   },

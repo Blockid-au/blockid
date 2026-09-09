@@ -3,8 +3,10 @@
 exports[`tier-visibility — golden snapshot per tier > tier=accel_ent visible slugs 1`] = `
 [
   "blockchain.sync",
+  "data_room.access",
   "equity_offer.request",
   "esop.manage",
+  "investor_links.premium",
   "pdf_branding",
   "reseller.console",
   "reseller.create_startup",
@@ -18,8 +20,10 @@ exports[`tier-visibility — golden snapshot per tier > tier=accel_ent visible s
 exports[`tier-visibility — golden snapshot per tier > tier=accel_growth visible slugs 1`] = `
 [
   "blockchain.sync",
+  "data_room.access",
   "equity_offer.request",
   "esop.manage",
+  "investor_links.premium",
   "pdf_branding",
   "share_management",
   "startup_package",
@@ -30,8 +34,10 @@ exports[`tier-visibility — golden snapshot per tier > tier=accel_growth visibl
 exports[`tier-visibility — golden snapshot per tier > tier=accel_starter visible slugs 1`] = `
 [
   "blockchain.sync",
+  "data_room.access",
   "equity_offer.request",
   "esop.manage",
+  "investor_links.premium",
   "pdf_branding",
   "share_management",
   "startup_package",
@@ -42,8 +48,10 @@ exports[`tier-visibility — golden snapshot per tier > tier=accel_starter visib
 exports[`tier-visibility — golden snapshot per tier > tier=advisor visible slugs 1`] = `
 [
   "blockchain.sync",
+  "data_room.access",
   "equity_offer.request",
   "esop.manage",
+  "investor_links.premium",
   "pdf_branding",
   "share_management",
   "startup_package",
@@ -53,6 +61,8 @@ exports[`tier-visibility — golden snapshot per tier > tier=advisor visible slu
 
 exports[`tier-visibility — golden snapshot per tier > tier=angel visible slugs 1`] = `
 [
+  "data_room.access",
+  "investor_links.premium",
   "startup_package",
 ]
 `;
@@ -60,8 +70,10 @@ exports[`tier-visibility — golden snapshot per tier > tier=angel visible slugs
 exports[`tier-visibility — golden snapshot per tier > tier=enterprise visible slugs 1`] = `
 [
   "blockchain.sync",
+  "data_room.access",
   "equity_offer.request",
   "esop.manage",
+  "investor_links.premium",
   "pdf_branding",
   "reseller.console",
   "reseller.create_startup",
@@ -81,8 +93,10 @@ exports[`tier-visibility — golden snapshot per tier > tier=free visible slugs 
 exports[`tier-visibility — golden snapshot per tier > tier=growth visible slugs 1`] = `
 [
   "blockchain.sync",
+  "data_room.access",
   "equity_offer.request",
   "esop.manage",
+  "investor_links.premium",
   "pdf_branding",
   "share_management",
   "startup_package",
@@ -93,8 +107,10 @@ exports[`tier-visibility — golden snapshot per tier > tier=growth visible slug
 exports[`tier-visibility — golden snapshot per tier > tier=scale visible slugs 1`] = `
 [
   "blockchain.sync",
+  "data_room.access",
   "equity_offer.request",
   "esop.manage",
+  "investor_links.premium",
   "pdf_branding",
   "share_management",
   "startup_package",
@@ -104,6 +120,8 @@ exports[`tier-visibility — golden snapshot per tier > tier=scale visible slugs
 
 exports[`tier-visibility — golden snapshot per tier > tier=starter visible slugs 1`] = `
 [
+  "data_room.access",
+  "investor_links.premium",
   "startup_package",
 ]
 `;
@@ -111,8 +129,10 @@ exports[`tier-visibility — golden snapshot per tier > tier=starter visible slu
 exports[`tier-visibility — golden snapshot per tier > tier=vc_ent visible slugs 1`] = `
 [
   "blockchain.sync",
+  "data_room.access",
   "equity_offer.request",
   "esop.manage",
+  "investor_links.premium",
   "pdf_branding",
   "reseller.console",
   "reseller.create_startup",
@@ -126,8 +146,10 @@ exports[`tier-visibility — golden snapshot per tier > tier=vc_ent visible slug
 exports[`tier-visibility — golden snapshot per tier > tier=vc_small visible slugs 1`] = `
 [
   "blockchain.sync",
+  "data_room.access",
   "equity_offer.request",
   "esop.manage",
+  "investor_links.premium",
   "pdf_branding",
   "share_management",
   "startup_package",
