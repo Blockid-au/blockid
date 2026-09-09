@@ -47,10 +47,10 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   // (migration 0131); `share_management` stays on the cap table, where the
   // Share Management add-on it is named after actually lives.
   //
-  // Nobody loses: every plan and fallback bundle holding `share_management`
-  // also holds `data_room.access`, and the legacy `growth`/`growth_annual` DB
-  // rows hold `data_room.access` WITHOUT `share_management` — those
-  // subscribers were being 402'd out of their own data room until now.
+  // Nobody loses: every plan row and every LEGACY_FEATURE_FALLBACK bundle that
+  // holds `share_management` also holds `data_room.access`, and the
+  // `entitlements` table (the per-user add-on layer) grants neither flag to
+  // anybody today. The change can only widen.
   { route: "api/data-room/access/route.ts", required_feature: "investor_links.premium", note: "mints the investor share token — this IS the live-link capability the A$29 rung sells" },
   { route: "api/data-room/auto-fill/route.ts", required_feature: "data_room.access" },
   { route: "api/data-room/engage/route.ts", required_feature: "share_management" },
