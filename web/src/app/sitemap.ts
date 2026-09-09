@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getAllArticles, invalidateCache } from "@/lib/insights";
 import { listPublicSlugsForSitemap } from "@/lib/business-id/list-public-slugs";
 import { getPublicListings } from "@/lib/listings/listings-db";
+import { listPublishedForSitemap } from "@/lib/publish/store";
 
 export const dynamic = "force-dynamic";
 
@@ -20,25 +21,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Google discovers both /reports/{ticker} (public trust-report SEO surface)
   // and /listings/{ticker} (public directory row) without waiting for
   // internal links to be crawled.
+  //
+  // /listings/{ticker} no longer serves this data model — the slug namespace
+  // there belongs to published analyses, and a live ticker redirects to
+  // /reports/{ticker}. Only the surviving surface is enumerated.
   const publicListings = await getPublicListings({ limit: 200 });
-  const listingEntries: MetadataRoute.Sitemap = publicListings.flatMap((l) => {
-    const t = encodeURIComponent(l.ticker);
-    const last = new Date(l.updated_at ?? l.listed_at ?? Date.now());
-    return [
-      {
-        url: `${SITE_URL}/listings/${t}`,
-        lastModified: last,
-        changeFrequency: "weekly" as const,
-        priority: 0.7,
-      },
-      {
-        url: `${SITE_URL}/reports/${t}`,
-        lastModified: last,
-        changeFrequency: "weekly" as const,
-        priority: 0.7,
-      },
-    ];
-  });
+  const listingEntries: MetadataRoute.Sitemap = publicListings.map((l) => ({
+    url: `${SITE_URL}/reports/${encodeURIComponent(l.ticker)}`,
+    lastModified: new Date(l.updated_at ?? l.listed_at ?? Date.now()),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  // Published company profiles (migration 0128). This list is derived from
+  // v_published_analysis, which requires analyses.public_visible = true — so
+  // the moment a founder unpublishes, their URL leaves the sitemap on the
+  // next fetch. De-indexing needs both halves: the page 404s AND the sitemap
+  // stops advertising it.
+  const publishedProfiles = await listPublishedForSitemap();
+  const publishedEntries: MetadataRoute.Sitemap = publishedProfiles.map((p) => ({
+    url: `${SITE_URL}/listings/${p.slug}`,
+    lastModified: new Date(p.updatedAt ?? Date.now()),
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
   const businessIdEntries: MetadataRoute.Sitemap = publicSlugs.flatMap((entry) => {
     // L2 = 0.6 baseline, +0.1 per level up to L5 = 0.9
     const priority = Math.min(0.9, 0.6 + (entry.verificationLevel - 2) * 0.1);
@@ -660,8 +666,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...insightEntries,
     // Dynamic public Business ID profiles (§11.1 / §14bis D3)
     ...businessIdEntries,
-    // Per-ticker listing + trust-report SEO surfaces (P1 backlog 2026-08-23)
+    // Per-ticker trust-report SEO surfaces (P1 backlog 2026-08-23)
     ...listingEntries,
+    // Founder-published company profiles at /listings/{slug} (0128)
+    ...publishedEntries,
   ].reduce<MetadataRoute.Sitemap>((acc, entry) => {
     // Deduplicate by URL — manifest can produce the same slug twice
     const e = entry as MetadataRoute.Sitemap[number];
