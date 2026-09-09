@@ -109,7 +109,8 @@ describe("POST — consent", () => {
   });
 
   it("refuses when the confirmation is absent entirely", async () => {
-    const { confirm: _drop, ...noConfirm } = GOOD_BODY;
+    const noConfirm: Record<string, unknown> = { ...GOOD_BODY };
+    delete noConfirm.confirm;
     expect((await post(noConfirm)).status).toBe(400);
     expect(publishMock).not.toHaveBeenCalled();
   });

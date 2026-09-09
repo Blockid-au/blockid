@@ -157,10 +157,10 @@ export function PublishPanel({
   const depth = React.useMemo(() => checkAnalysisDepth(svi), [svi]);
 
   React.useEffect(() => {
-    if (!owned) {
-      setLoaded(true);
-      return;
-    }
+    // Anonymous runs never fetch: the `!owned` branch below returns the
+    // account prompt before `loaded` is ever read, so there is nothing to
+    // wait for and nothing to set here.
+    if (!owned) return;
     let live = true;
     void (async () => {
       try {

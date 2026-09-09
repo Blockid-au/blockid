@@ -27,6 +27,7 @@
 // analyses.public_visible = true, so withdrawal takes effect on the very next
 // request — there is no cache to wait out and no "hidden but reachable" state.
 
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -57,7 +58,12 @@ function normalise(raw: string): string {
   return decodeURIComponent(raw ?? "").trim().toLowerCase();
 }
 
-async function loadProfile(slug: string): Promise<PublicProfile | null> {
+// Wrapped in React's per-request cache: generateMetadata and the page body
+// both need the profile, and the page Google crawls hardest should not cost
+// two round trips to render one document.
+const loadProfile = cache(async function loadProfile(
+  slug: string,
+): Promise<PublicProfile | null> {
   const row = await getPublishedBySlug(slug);
   if (!row || !row.svi) return null;
   return buildPublicProfile({
@@ -71,7 +77,7 @@ async function loadProfile(slug: string): Promise<PublicProfile | null> {
     publishedAt: row.first_published_at,
     updatedAt: row.updated_at,
   });
-}
+});
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const slug = normalise((await params).slug);
