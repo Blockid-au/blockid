@@ -43,8 +43,13 @@ const CARDS: SolutionCard[] = [
   {
     href: "/solutions/investor",
     eyebrow: "For investors",
-    title: "Screen and monitor AU startup deal-flow",
-    body: "Objective SVI scoring, cohort benchmarks, and structured data rooms — so you can compare seed-stage founders on the same rubric and skip the noise.",
+    // 2026-09-09: "cohort benchmarks" and "monitor deal-flow" both described
+    // an investor product we do not ship — the investor SKUs are hidden from
+    // the public ladder and the deal-flow feed has no surface. What an
+    // investor can genuinely do is open a founder's share link without an
+    // account, and run the same analysis themselves.
+    title: "Open a founder's data room, and compare on one rubric",
+    body: "A share link opens a read-only data room in your browser — no account. Every startup here is scored on the same eight dimensions, so a first pass compares like with like.",
   },
   {
     href: "/solutions/accelerator",
@@ -60,8 +65,11 @@ const CARDS: SolutionCard[] = [
   {
     href: "/solutions/vn-sme",
     eyebrow: "For VN SMEs",
-    title: "Formalise a Vietnamese-Australian venture",
-    body: "The bilingual playbook for Vietnamese-Australian founders — from ABN registration through ESIC eligibility to your first AU-facing landing page.",
+    // 2026-09-09: there is no "bilingual playbook", no ABN-registration flow
+    // and no ESIC-eligibility walkthrough behind this card. What exists is a
+    // Vietnamese interface over the same product.
+    title: "The same platform, in Vietnamese",
+    body: "The site and the product's surfaces render in Vietnamese. The analysis is unchanged, and pricing stays in AUD, GST-inclusive, with an ATO tax invoice.",
   },
 ];
 
