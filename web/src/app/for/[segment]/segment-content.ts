@@ -5,7 +5,32 @@
  *
  * Keep each segment under ~250 words total (features + steps + FAQ + hero).
  * No emoji, no marketing fluff — write like a diligence memo.
+ *
+ * PRICES ARE NOT TYPED HERE. Three of the four were wrong on 2026-09-09 —
+ * Founder Growth read A$79 against A$69, Investor Angel A$99 against A$79,
+ * and Accelerator Growth A$499 against A$1,500 — because a literal on a
+ * marketing page cannot follow a price change it does not know about. Each
+ * anchor now names a plan id and `anchorPrice()` reads that plan's cents from
+ * the generated catalogue, which is built from plans.csv.
  */
+
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
+
+/**
+ * "A$69 / month" for a plan id, from the catalogue.
+ *
+ * Throws on an unknown id rather than printing a wrong or empty price: a
+ * marketing page showing the wrong amount is a compliance problem, and this
+ * module is imported at build time, so a bad id fails the build instead of
+ * reaching a visitor. Whole dollars only — every subscription price in the
+ * catalogue is a round dollar amount, and the colocated suite pins that.
+ */
+export function anchorPrice(planId: string): string {
+  const plan = GENERATED_PLANS_BY_ID[planId];
+  if (!plan) throw new Error(`segment planAnchor names unknown plan "${planId}"`);
+  const dollars = plan.price_aud_cents / 100;
+  return `A$${dollars.toLocaleString("en-AU")} / month`;
+}
 
 export interface SegmentContent {
   slug: "founder" | "investor" | "advisor" | "accelerator";
@@ -55,7 +80,7 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
     planAnchor: {
       id: "founder_growth",
       label: "Founder Growth",
-      price: "A$79 / month",
+      price: anchorPrice("founder_growth"),
     },
     faq: [
       {
@@ -64,11 +89,11 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
       },
       {
         q: "Can I import my existing cap table?",
-        a: "Yes. Paste from a spreadsheet or upload a CSV — we detect founders, SAFEs, options and preferred rounds automatically.",
+        a: "You enter holders, share classes and option grants directly in the cap table, and the SAFE and conversion modelling runs off those. There is no CSV importer yet — for a register of any size, expect to spend a few minutes typing it in.",
       },
       {
         q: "Do investors need a BlockID account to view my pack?",
-        a: "No. They receive a signed link; view tracking and NDA gating happen without them creating an account.",
+        a: "No. They receive a signed link that you can expire or revoke, and you see who opened it and when — all without them creating an account. The link is not an NDA: if you need one signed, do that separately before you send it.",
       },
     ],
   },
@@ -86,7 +111,7 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
       "Diligence pack viewer with founder-authored source docs",
       "SVI feed API for syndicate scouts and analysts",
       "Portfolio dashboard with quarterly re-scoring",
-      "Angel and VC modes with per-fund note privacy",
+      "Saved filters and a daily digest of new matches",
     ],
     steps: [
       "Add filters — stage, sector, geo, minimum SVI band.",
@@ -96,7 +121,7 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
     planAnchor: {
       id: "investor_angel",
       label: "Investor Angel",
-      price: "A$99 / month",
+      price: anchorPrice("investor_angel"),
     },
     faq: [
       {
@@ -121,36 +146,46 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
       subhead:
         "One console for every client — track their SVI progress, log engagements, and report progress in your own brand.",
     },
+    // 2026-09-09. Every bullet here described the advisor console as shipped.
+    // It is not: `lib/advisor-portal.ts` reads `advisor_portal` and
+    // `advisor_notes`, neither of which exists in the database, so the roster
+    // and the notes return [] for every advisor, permanently. White-label is
+    // a page that says "Full configuration panel under development", and
+    // retainer billing and the referral pipeline have no code at all.
+    //
+    // What an advisor can genuinely do today is the founder toolset, pointed
+    // at a company they advise. That is what this now says, and the console is
+    // named as in-build rather than sold as finished.
     features: [
-      "Client roster with per-client SVI trend",
-      "Engagement notes tied to the client's timeline",
-      "Per-client score deltas and coaching prompts",
-      "White-label reports with your firm's brand and domain",
-      "Retainer billing metrics and utilisation reporting",
-      "Referral pipeline with founder-consent workflow",
+      "Score a company you advise on the same eight dimensions its investors will",
+      "Track the score over time, so progress between sessions is visible",
+      "Build the data room with them, in the order investors ask for it",
+      "Share a live link with an investor instead of a PDF that goes stale",
+      "Model the cap table, including SAFEs, options and conversion",
+      "Multi-client console — roster, engagement notes and cross-client reporting — in build",
     ],
     steps: [
-      "Add a client — invite by email or import from your CRM.",
-      "Track SVI — quarterly re-score with prompts on stalled signals.",
-      "Report progress — export a white-labelled PDF or share a live link.",
+      "Set up the company you advise — its profile, then its first score.",
+      "Work the gaps — the score names what is missing and what closing it is worth.",
+      "Report progress — share the live link, or send the report as a PDF.",
     ],
     planAnchor: {
       id: "investor_advisor",
       label: "Advisor Practice",
-      price: "A$149 / month",
+      price: anchorPrice("investor_advisor"),
     },
     faq: [
       {
         q: "Can I brand reports as my firm?",
-        a: "Yes. Advisor plans include a white-label domain, logo, and colour theme applied to shared reports and PDFs.",
+        a: "Not yet. Report branding — your logo, colours and cover — is built, but the white-label domain is not; that settings panel is still under development. Ask us where it is up to before you plan around it.",
       },
       {
-        q: "Do my clients see other clients?",
-        a: "Never. Every client workspace is siloed — you are the only account that can see across the roster.",
+        q: "Do my clients see each other?",
+        a: "No. Each company is its own workspace, and access is per-workspace — nothing is shared between two companies you advise unless you share it.",
       },
       {
         q: "How does billing work for clients?",
-        a: "You can either bring your own billing relationship or use the advisor console to invoice clients through BlockID.",
+        a: "You bring your own billing relationship. There is no in-app client invoicing, and we are not planning to sit between you and your fees.",
       },
     ],
   },
@@ -162,36 +197,43 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
       subhead:
         "Run every cohort on one platform — batch-score startups, track progress week over week, and ship LPs a quarterly report they trust.",
     },
+    // 2026-09-09. `/api/accelerator/cohort` describes itself as a "cohort CRUD
+    // stub", and `lib/accelerator-portal.ts` reads a `cohorts` table that does
+    // not exist, so `getCohort()` returns a hard-coded placeholder for every
+    // caller. Batch scoring, the LP quarterly pack and the demo-day export
+    // have no code path at all. Mentor tooling is the exception — the roster,
+    // check-ins and notes at /api/mentor are real — so it stays, described as
+    // what it is rather than as "matching by expertise".
     features: [
-      "Cohort management with batch onboarding",
-      "Batch SVI scoring across the full cohort",
-      "Weekly progress dashboard with signal deltas",
-      "LP-ready quarterly report with portfolio SVI",
-      "Mentor matching by expertise and cohort tag",
-      "Demo day pack export for every graduating startup",
+      "A workspace per startup, each scored on the same eight dimensions",
+      "Score history per startup, so you can see movement across the programme",
+      "Mentor roster with check-ins and shared notes on each founder",
+      "Data room and live investor link for every company you take to Demo Day",
+      "Quarterly report surface for the programme — in build",
+      "Batch scoring across a whole cohort in one run — in build",
     ],
     steps: [
-      "Add a cohort — invite founders in bulk with a signed link.",
-      "Batch-score — kick off SVI for every startup in a single run.",
-      "Export the report — LP quarterly pack in PDF and shareable link.",
+      "Set up each startup — its profile, then its first score.",
+      "Assign mentors — roster, check-ins and notes live alongside the score.",
+      "Review the movement — score history per company, session to session.",
     ],
     planAnchor: {
       id: "accelerator_growth",
       label: "Accelerator Growth",
-      price: "A$499 / month",
+      price: anchorPrice("accelerator_growth"),
     },
     faq: [
       {
-        q: "How many cohorts can I run?",
-        a: "Unlimited cohorts on the Growth plan; per-startup seats scale with your cohort size.",
+        q: "How many startups can I run?",
+        a: "Seats scale with your cohort size — the plan you talk to us about is sized around the number of companies, not the number of programmes.",
       },
       {
         q: "Can LPs see the underlying startups?",
-        a: "Only if you choose. LP reports default to aggregate SVI with per-startup detail behind an opt-in gate.",
+        a: "Only if you choose. Nothing about a startup leaves its workspace unless you or the founder shares it. The packaged LP quarterly report is still in build; today you would assemble it from each company's own report.",
       },
       {
         q: "Do you integrate with our existing CRM?",
-        a: "Yes. Zapier, HubSpot and Airtable integrations ship on the accelerator tier, plus a REST API for custom pipelines.",
+        a: "There is an outbound webhook you can point at Zapier, which is how most teams reach their CRM today. There is no HubSpot or Airtable connector, and no public write API — if you need one, tell us what you would send it.",
       },
     ],
   },

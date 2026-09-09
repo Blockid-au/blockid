@@ -13,9 +13,12 @@
 
 import { describe, expect, it } from "vitest";
 
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
+
 import {
   SEGMENT_CONTENT,
   SEGMENT_SLUGS,
+  anchorPrice,
   isSegmentSlug,
   type SegmentContent,
   type SegmentSlug,
@@ -181,49 +184,57 @@ describe("SEGMENT_CONTENT — required fields populated", () => {
 });
 
 describe("SEGMENT_CONTENT — planAnchor identity per segment", () => {
-  // The (id, label, price) triple is what the pricing anchor scrolls to on
-  // the /pricing page. A silent rename or price drift here would break the
-  // marketing CTA — pin all three per-segment.
-  it("founder → founder_growth / A$79 / month", () => {
-    expect(SEGMENT_CONTENT.founder.planAnchor).toEqual({
-      id: "founder_growth",
-      label: "Founder Growth",
-      price: "A$79 / month",
-    });
+  // The (id, label) pair is what the pricing anchor scrolls to on /pricing;
+  // a rename would break the marketing CTA, so both stay pinned. The price is
+  // NOT pinned to a literal any more. Three of the four literals had drifted
+  // from the catalogue by 2026-09-09 — founder A$79 vs A$69, investor A$99 vs
+  // A$79, accelerator A$499 vs A$1,500 — and a test that pins a literal to a
+  // literal cannot catch that. Each price is asserted against the plan row it
+  // names instead, so the page and Stripe can only ever disagree by way of a
+  // failing test.
+  const expectAnchor = (
+    slug: (typeof SEGMENT_SLUGS)[number],
+    id: string,
+    label: string,
+  ) => {
+    const anchor = SEGMENT_CONTENT[slug].planAnchor;
+    expect(anchor.id).toBe(id);
+    expect(anchor.label).toBe(label);
+    const cents = GENERATED_PLANS_BY_ID[id]?.price_aud_cents;
+    expect(typeof cents).toBe("number");
+    expect(anchor.price).toBe(
+      `A$${(cents! / 100).toLocaleString("en-AU")} / month`,
+    );
+  };
+
+  it("founder → founder_growth, priced from the catalogue", () => {
+    expectAnchor("founder", "founder_growth", "Founder Growth");
   });
 
-  it("investor → investor_angel / A$99 / month", () => {
-    expect(SEGMENT_CONTENT.investor.planAnchor).toEqual({
-      id: "investor_angel",
-      label: "Investor Angel",
-      price: "A$99 / month",
-    });
+  it("investor → investor_angel, priced from the catalogue", () => {
+    expectAnchor("investor", "investor_angel", "Investor Angel");
   });
 
-  it("advisor → investor_advisor / A$149 / month", () => {
+  it("advisor → investor_advisor, priced from the catalogue", () => {
     // Note: filed under investor_* by product taxonomy despite being an
-    // advisor-facing plan. Pinning this catches a rename to "advisor_*".
-    expect(SEGMENT_CONTENT.advisor.planAnchor).toEqual({
-      id: "investor_advisor",
-      label: "Advisor Practice",
-      price: "A$149 / month",
-    });
+    // advisor-facing plan. Pinning the id catches a rename to "advisor_*".
+    expectAnchor("advisor", "investor_advisor", "Advisor Practice");
   });
 
-  it("accelerator → accelerator_growth / A$499 / month", () => {
-    expect(SEGMENT_CONTENT.accelerator.planAnchor).toEqual({
-      id: "accelerator_growth",
-      label: "Accelerator Growth",
-      price: "A$499 / month",
-    });
+  it("accelerator → accelerator_growth, priced from the catalogue", () => {
+    expectAnchor("accelerator", "accelerator_growth", "Accelerator Growth");
   });
 
   it("every planAnchor.price uses the 'A$<amount> / month' shape", () => {
     for (const slug of SEGMENT_SLUGS) {
       expect(SEGMENT_CONTENT[slug].planAnchor.price).toMatch(
-        /^A\$\d+ \/ month$/,
+        /^A\$[\d,]+ \/ month$/,
       );
     }
+  });
+
+  it("anchorPrice refuses a plan id the catalogue does not hold", () => {
+    expect(() => anchorPrice("no_such_plan")).toThrow(/unknown plan/);
   });
 });
 
