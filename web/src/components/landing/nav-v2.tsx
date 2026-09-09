@@ -292,7 +292,7 @@ function DesktopDropdown({
         aria-label={`${group.label} menu`}
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
-        className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+        className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
       >
         {group.label}
         <ChevronDown
@@ -568,7 +568,7 @@ export function NavV2() {
     >
 <nav
         aria-label="Primary"
-        className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6"
+        className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 min-[1440px]:max-w-[92rem]"
       >
         <Link
           href="/"
@@ -590,7 +590,7 @@ export function NavV2() {
         </Link>
 
         {/* Desktop links */}
-        <ul className="hidden items-center gap-1 md:flex">
+        <ul className="hidden items-center gap-1 min-[1440px]:flex">
           {MENU.map((entry) => {
             if (entry.kind === "link") {
               return (
@@ -598,7 +598,7 @@ export function NavV2() {
                   <Link
                     href={entry.href}
                     onClick={() => closeImmediately()}
-                    className="rounded-md px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                    className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
                   >
                     {entry.label}
                   </Link>
@@ -626,23 +626,23 @@ export function NavV2() {
         </ul>
 
         {/* Desktop CTAs */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 min-[1440px]:flex">
           <LocaleSwitcher />
           <Link
             href="/analyze"
-            className="rounded-lg border border-brand-cyan/40 px-3 py-2 text-sm font-medium text-brand-cyan transition-colors duration-200 hover:border-brand-cyan hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+            className="whitespace-nowrap rounded-lg border border-brand-cyan/40 px-3 py-2 text-sm font-medium text-brand-cyan transition-colors duration-200 hover:border-brand-cyan hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
           >
             Analyse my startup
           </Link>
           <Link
             href="/auth/login"
-            className="rounded-lg px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+            className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
           >
             Sign in
           </Link>
           <Link
             href="/onboarding"
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy transition duration-200 hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+            className="whitespace-nowrap inline-flex h-10 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy transition duration-200 hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
           >
             Start free
           </Link>
@@ -651,7 +651,7 @@ export function NavV2() {
         {/* Mobile toggle */}
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-brand-ink md:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-brand-ink min-[1440px]:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
           aria-expanded={mobileOpen}
           aria-controls="nav-v2-mobile-menu"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -669,7 +669,7 @@ export function NavV2() {
       {mobileOpen && (
         <div
           id="nav-v2-mobile-menu"
-          className="border-t border-white/5 bg-brand-navy px-4 pb-4 pt-2 md:hidden"
+          className="border-t border-white/5 bg-brand-navy px-4 pb-4 pt-2 min-[1440px]:hidden"
         >
           <ul className="flex flex-col gap-1">
             {MENU.map((entry) =>
@@ -693,6 +693,12 @@ export function NavV2() {
             )}
           </ul>
           <div className="mt-3 flex flex-col gap-2 border-t border-white/5 pt-3">
+            {/* Language lived only in the desktop CTA row until the nav
+                breakpoint moved to 1440px, which would have taken EN/VI away
+                from every screen below that. */}
+            <div className="flex justify-start pb-1">
+              <LocaleSwitcher />
+            </div>
             <Link
               href="/analyze"
               onClick={() => handleLinkActivate()}
