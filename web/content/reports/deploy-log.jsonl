@@ -9410,3 +9410,4 @@
 {"ts":"2026-09-09T01:21:37.238Z","event":"github-push-master","detail":"Blockid-au: feat(publish): the founder-facing publish control on /analyze/[id] (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T01:21:48.990Z","event":"github-push-master","detail":"Blockid-au: test(email): pin the recovery email's Spam Act surface and its no-dark-patterns rule (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T01:22:07.682Z","event":"github-push-master","detail":"Blockid-au: chore(cron): schedule guest-analysis-reconcile hourly (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T01:24:39.549Z","event":"github-push-master","detail":"Blockid-au: feat(listings): /listings serves real published profiles instead of three fakes (1 commits)","source":"github-webhook"}
