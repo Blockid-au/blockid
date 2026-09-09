@@ -337,3 +337,98 @@ export async function claimAnalyses(params: {
 
   return result;
 }
+
+// ── Free-summary delivery (migration 0130) ───────────────────────────────
+//
+// The free tier emails one 5-page summary per analysis. "Once" is enforced
+// here, in the database, not in the client: `claimSummarySend` is a
+// conditional UPDATE that only matches while `summary_requested_at` is null,
+// so two concurrent requests race and exactly one proceeds. A double-click, a
+// retried fetch, and a second browser tab all collapse to one send.
+//
+// A send that PROVABLY failed releases the claim (`releaseSummaryClaim`) so
+// the founder can try again. A send that succeeded stamps `summary_sent_at`
+// and the claim stands for the life of the row.
+//
+// Suppression is NOT here. An address that unsubscribed is blocked by
+// `canSendEmail(email, "promotions")` over `email_preferences`, which is the
+// one suppression mechanism this codebase has.
+
+/** Everything the delivery route needs to know about a row's send state. */
+export interface SummaryClaim {
+  outcome: "claimed" | "already_claimed" | "unavailable";
+}
+
+/**
+ * Try to become the one caller allowed to send this analysis's summary.
+ *
+ * `already_claimed` means somebody already did (or is doing) it — the caller
+ * must answer "already sent" and send nothing. `unavailable` means the
+ * database could not be reached; the caller must NOT send, because without
+ * the claim there is no protection against a duplicate.
+ */
+export async function claimSummarySend(
+  analysisId: string,
+  email: string,
+): Promise<SummaryClaim> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    console.error("[analyses:summary] supabase not configured — refusing to send unguarded");
+    return { outcome: "unavailable" };
+  }
+  const { data, error } = await supabase
+    .from(ANALYSES_TABLE)
+    .update({
+      summary_email: email,
+      summary_requested_at: new Date().toISOString(),
+      summary_send_error: null,
+    })
+    .eq("id", analysisId)
+    .is("summary_requested_at", null)
+    .select("id");
+  if (error) {
+    console.error("[analyses:summary] claim failed —", error.message);
+    return { outcome: "unavailable" };
+  }
+  const rows = (data as { id?: string }[] | null) ?? [];
+  return { outcome: rows.length === 1 ? "claimed" : "already_claimed" };
+}
+
+/** Stamp a successful send. After this the claim never releases. */
+export async function markSummarySent(analysisId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+  const { error } = await supabase
+    .from(ANALYSES_TABLE)
+    .update({ summary_sent_at: new Date().toISOString(), summary_send_error: null })
+    .eq("id", analysisId);
+  if (error) {
+    // The mail went out; failing to record that is a reporting problem, not a
+    // delivery one. Loud, but not fatal — and the claim still stands, so a
+    // retry is still a no-op.
+    console.error("[analyses:summary] could not stamp sent —", error.message);
+  }
+}
+
+/**
+ * Give the claim back after a send we KNOW did not land, so the founder can
+ * press the button again. Only ever called on a definite failure.
+ */
+export async function releaseSummaryClaim(
+  analysisId: string,
+  reason: string,
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+  const { error } = await supabase
+    .from(ANALYSES_TABLE)
+    .update({
+      summary_requested_at: null,
+      summary_send_error: reason.slice(0, 500),
+    })
+    .eq("id", analysisId)
+    .is("summary_sent_at", null);
+  if (error) {
+    console.error("[analyses:summary] could not release claim —", error.message);
+  }
+}

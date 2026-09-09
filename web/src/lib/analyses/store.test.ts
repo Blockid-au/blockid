@@ -95,6 +95,9 @@ import {
   checkAnalysisWriteLimit,
   checkAnonRunLimit,
   claimAnalyses,
+  claimSummarySend,
+  markSummarySent,
+  releaseSummaryClaim,
   countAnonRunsInWindow,
   getAnalysisForViewer,
   listAnalysesForViewer,
@@ -456,5 +459,97 @@ describe("checkAnonRunLimit", () => {
     expect(checkAnonRunLimit("unknown")).toEqual({ allowed: true });
     expect(checkAnonRunLimit("")).toEqual({ allowed: true });
     expect(rateLimitMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── Free-summary delivery: "once" is a database property ──────────────────
+//
+// The free tier promises one email per analysis. The only thing that can
+// actually guarantee that across a double-click, a retried fetch and a second
+// tab is the conditional UPDATE — `is("summary_requested_at", null)`. If that
+// filter is ever dropped, every caller wins the claim and the founder gets
+// duplicates, so it is asserted directly.
+describe("claimSummarySend", () => {
+  it("claims only while nothing has claimed it yet", async () => {
+    state.list = { data: [{ id: "row-1" }], error: null };
+    const res = await claimSummarySend("row-1", "founder@example.com");
+    expect(res).toEqual({ outcome: "claimed" });
+    const call = state.calls[0];
+    expect(call.table).toBe(ANALYSES_TABLE);
+    expect(opsOf(call)).toContain("update");
+    // THE guard. Without it the "once" promise is client-side wishful thinking.
+    expect(argOf(call, "is")).toEqual(["summary_requested_at", null]);
+    expect(argOf(call, "eq")).toEqual(["id", "row-1"]);
+  });
+
+  it("writes the address and clears any previous error on the claim", async () => {
+    state.list = { data: [{ id: "row-1" }], error: null };
+    await claimSummarySend("row-1", "founder@example.com");
+    const patch = argOf(state.calls[0], "update")[0] as Record<string, unknown>;
+    expect(patch.summary_email).toBe("founder@example.com");
+    expect(typeof patch.summary_requested_at).toBe("string");
+    expect(patch.summary_send_error).toBeNull();
+  });
+
+  it("reports already_claimed when the conditional update matched nothing", async () => {
+    state.list = { data: [], error: null };
+    expect(await claimSummarySend("row-1", "f@e.com")).toEqual({
+      outcome: "already_claimed",
+    });
+  });
+
+  it("refuses to proceed when the database is unreachable", async () => {
+    // No claim means no protection against a duplicate, so the only safe
+    // answer is "do not send" — never "send anyway".
+    state.list = { data: null, error: { message: "connection reset" } };
+    expect(await claimSummarySend("row-1", "f@e.com")).toEqual({
+      outcome: "unavailable",
+    });
+  });
+
+  it("refuses to proceed when Supabase is not configured", async () => {
+    state.client = null;
+    expect(await claimSummarySend("row-1", "f@e.com")).toEqual({
+      outcome: "unavailable",
+    });
+  });
+});
+
+describe("markSummarySent", () => {
+  it("stamps the sent time against the row", async () => {
+    await markSummarySent("row-1");
+    const call = state.calls[0];
+    const patch = argOf(call, "update")[0] as Record<string, unknown>;
+    expect(typeof patch.summary_sent_at).toBe("string");
+    expect(argOf(call, "eq")).toEqual(["id", "row-1"]);
+  });
+
+  it("does nothing at all without a client", async () => {
+    state.client = null;
+    await markSummarySent("row-1");
+    expect(state.calls).toHaveLength(0);
+  });
+});
+
+describe("releaseSummaryClaim", () => {
+  it("gives the claim back so a failed send can be retried", async () => {
+    await releaseSummaryClaim("row-1", "smtp refused");
+    const call = state.calls[0];
+    const patch = argOf(call, "update")[0] as Record<string, unknown>;
+    expect(patch.summary_requested_at).toBeNull();
+    expect(patch.summary_send_error).toBe("smtp refused");
+  });
+
+  it("never releases a row that already sent", async () => {
+    // Guards the one catastrophic case: a late failure path releasing a claim
+    // on a row whose email already landed, which would allow a duplicate.
+    await releaseSummaryClaim("row-1", "late error");
+    expect(argOf(state.calls[0], "is")).toEqual(["summary_sent_at", null]);
+  });
+
+  it("truncates a runaway error string", async () => {
+    await releaseSummaryClaim("row-1", "x".repeat(2000));
+    const patch = argOf(state.calls[0], "update")[0] as Record<string, unknown>;
+    expect((patch.summary_send_error as string).length).toBe(500);
   });
 });
