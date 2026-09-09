@@ -154,8 +154,15 @@ function Divider() {
 /*  Magic-link email form                                                     */
 /* ========================================================================== */
 
-function MagicLinkForm({ nextUrl }: { nextUrl: string | null }) {
-  const [email, setEmail] = useState("");
+function MagicLinkForm({
+  nextUrl,
+  initialEmail = "",
+}: {
+  nextUrl: string | null;
+  /** `?email=` — carried from a prompt that already collected an address. */
+  initialEmail?: string;
+}) {
+  const [email, setEmail] = useState(initialEmail);
   const [state, setState] = useState<EmailState>("idle");
 
   async function onSubmit(e: React.FormEvent) {
@@ -417,11 +424,14 @@ function ForgotPasswordLink() {
 function EmailPasswordForm({
   nextUrl,
   initialMode = "login",
+  initialEmail = "",
 }: {
   nextUrl: string | null;
   initialMode?: "login" | "register";
+  /** `?email=` — carried from a prompt that already collected an address. */
+  initialEmail?: string;
 }) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [mode, setMode] = useState<"login" | "register">(initialMode);
@@ -564,6 +574,10 @@ export function LoginForm() {
   // so open on the register tab rather than making them find it.
   const initialMode =
     searchParams.get("mode") === "register" ? "register" : "login";
+  // `?email=` — arrived from a prompt that already has an address (the free
+  // summary the analyse page just emailed them). Asking for it a second time
+  // is how a single ask starts reading like two.
+  const initialEmail = (searchParams.get("email") ?? "").trim().toLowerCase();
   const [authMethod, setAuthMethod] = useState<"password" | "magic">("password");
 
   // Client-side auth guard — redirects if already signed in.
@@ -625,9 +639,13 @@ export function LoginForm() {
       </div>
 
       {authMethod === "password" ? (
-        <EmailPasswordForm nextUrl={nextUrl} initialMode={initialMode} />
+        <EmailPasswordForm
+          nextUrl={nextUrl}
+          initialMode={initialMode}
+          initialEmail={initialEmail}
+        />
       ) : (
-        <MagicLinkForm nextUrl={nextUrl} />
+        <MagicLinkForm nextUrl={nextUrl} initialEmail={initialEmail} />
       )}
 
       <CouponInput />

@@ -19,6 +19,18 @@
 //   * We promise the input is not lost, so `signupReturnPath` +
 //     `parkIntakeForSignup` must actually keep that promise before this
 //     component is allowed to make it.
+//
+// ONE ASK, NOT TWO
+//
+// From run 1 the site now offers to email a free 5-page summary
+// (`FreeSummaryPanel`). That is an email ask; this is an account ask; and two
+// unrelated asks for the same thing in the same session reads as a site that
+// keeps moving the goalposts. So when we already have an address — the
+// founder handed it over for their summary — this panel says so, prefills it,
+// and asks only for the one new thing an account actually needs: a password.
+// The address is passed down from AnalyzeRoot's session state; it is never
+// read back out of storage, because a browser someone else is sitting at must
+// not display an address they did not type.
 
 import * as React from "react";
 import Link from "next/link";
@@ -47,6 +59,8 @@ export interface SignupGateCopy {
 export function signupGateCopy(input: {
   priorRuns?: number;
   windowDays?: number;
+  /** Address already given for the free summary this session, if any. */
+  summaryEmail?: string | null;
 }): SignupGateCopy {
   const prior = Number.isFinite(input.priorRuns)
     ? Math.max(0, Math.floor(input.priorRuns as number))
@@ -64,6 +78,19 @@ export function signupGateCopy(input: {
       : prior === 1
         ? `You have already run one analysis on this browser${windowPhrase}, without an account.`
         : `You have already run ${prior} analyses on this browser${windowPhrase}, without an account.`;
+  const knownEmail =
+    typeof input.summaryEmail === "string" && input.summaryEmail.includes("@")
+      ? input.summaryEmail
+      : null;
+  if (knownEmail) {
+    // Continuation, not a second toll gate. They have already given us this
+    // address; the only new thing an account needs is a password.
+    return {
+      heading: "Finish the account and run this one",
+      body: `We already have ${knownEmail} from the summary we sent you. Add a password and this run starts — still free, still no card. Your account also keeps every analysis, so you can come back to them from any device.`,
+      history,
+    };
+  }
   return {
     heading: "Create a free account to run this one",
     body: "This analysis is free — there is nothing to pay and no card needed. We just need an email address before it runs, because each run does real work on our side. Your account also keeps every analysis, so you can come back to it from any device.",
@@ -78,6 +105,12 @@ export interface SignupGatePanelProps {
   windowDays?: number;
   /** What the visitor typed, so it survives the trip through signup. */
   submission: SmartIntakeSubmission | null;
+  /**
+   * Address already given for the free summary in this session. When present
+   * the wall reads as a continuation of that ask and prefills the register
+   * form, so the visitor is never asked for the same thing twice.
+   */
+  summaryEmail?: string | null;
   /** Let them change the input instead of signing up. */
   onEdit?: () => void;
   className?: string;
@@ -87,13 +120,18 @@ export function SignupGatePanel({
   priorRuns,
   windowDays,
   submission,
+  summaryEmail,
   onEdit,
   className,
 }: SignupGatePanelProps) {
-  const copy = signupGateCopy({ priorRuns, windowDays });
+  const copy = signupGateCopy({ priorRuns, windowDays, summaryEmail });
   const next = submission ? signupReturnPath(submission) : "/analyze";
-  const registerHref = `/auth/login?mode=register&next=${encodeURIComponent(next)}`;
-  const signInHref = `/auth/login?next=${encodeURIComponent(next)}`;
+  const emailParam =
+    typeof summaryEmail === "string" && summaryEmail.includes("@")
+      ? `&email=${encodeURIComponent(summaryEmail)}`
+      : "";
+  const registerHref = `/auth/login?mode=register&next=${encodeURIComponent(next)}${emailParam}`;
+  const signInHref = `/auth/login?next=${encodeURIComponent(next)}${emailParam}`;
 
   // Write the input down as the panel mounts, not on click: a visitor who
   // reaches for the browser's own back/forward or opens the sign-in link in a
@@ -141,7 +179,7 @@ export function SignupGatePanel({
           className="inline-flex items-center justify-center rounded-lg bg-action px-4 py-2.5 text-sm font-semibold text-on-action transition-opacity hover:opacity-90"
           data-testid="analyze-signup-gate-register"
         >
-          Create a free account
+          {summaryEmail ? "Set a password" : "Create a free account"}
         </Link>
         <Link
           href={signInHref}

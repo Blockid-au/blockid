@@ -23,6 +23,7 @@ import dynamic from "next/dynamic";
 import { SmartIntake, type SmartIntakeSubmission } from "./smart-intake";
 import { AnalyzeCostModal, type CostRow } from "./analyze-cost-modal";
 import { SavedAnalysisPanel } from "./saved-analysis-panel";
+import { FreeSummaryPanel } from "./free-summary-panel";
 import { SignupGatePanel } from "./signup-gate-panel";
 import { ArtefactGatePanel } from "./artefact-gate-panel";
 import {
@@ -244,6 +245,10 @@ export function AnalyzeRoot({
   const [ocrOffered, setOcrOffered] = React.useState(false);
   const [ocrLoading, setOcrLoading] = React.useState(false);
   const [guestCheckoutOpen, setGuestCheckoutOpen] = React.useState(false);
+  // The address the founder gave for their free summary. Held so the
+  // run-2 account wall can read as a continuation of that one ask rather
+  // than a second, competing one — see the note above SignupGatePanel.
+  const [summaryEmail, setSummaryEmail] = React.useState<string | null>(null);
   // Set when /api/intake declines to run because this browser is past its
   // free anonymous run. The numbers come from the API so the prompt states
   // facts rather than invented copy; null means the gate has not fired.
@@ -527,6 +532,7 @@ export function AnalyzeRoot({
           priorRuns={gateInfo?.priorRuns}
           windowDays={gateInfo?.windowDays}
           submission={submission}
+          summaryEmail={summaryEmail}
           onEdit={handleReset}
         />
       </div>
@@ -718,6 +724,14 @@ export function AnalyzeRoot({
                 {claimedNote}
               </div>
             )}
+            {/* The ask, after the answer. Value has already been given —
+                the score and the range are on screen above this line — so
+                the email buys the portable written version, not the result
+                itself. Never rendered before `phase === "results"`. */}
+            <FreeSummaryPanel
+              analysisId={analysisId}
+              onSent={(email) => setSummaryEmail(email)}
+            />
             <SavedAnalysisPanel
               analysisId={analysisId}
               authenticated={authenticated}

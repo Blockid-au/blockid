@@ -133,3 +133,75 @@ describe("SignupGatePanel — no dark patterns", () => {
     expect(out).not.toMatch(/#[0-9a-fA-F]{6}/);
   });
 });
+
+// ── One ask, not two ───────────────────────────────────────────────────────
+//
+// From run 1 the results page offers to email a free 5-page summary. That is
+// an email ask; this panel is an account ask. Two unrelated demands for the
+// same thing in one session reads as a site that keeps moving the goalposts,
+// so when the address is already known the wall becomes a continuation of it.
+describe("signupGateCopy — when the summary address is already known", () => {
+  it("says what we already have and asks only for the new thing", () => {
+    const copy = signupGateCopy({
+      priorRuns: 1,
+      windowDays: 30,
+      summaryEmail: "founder@example.com",
+    });
+    expect(copy.heading).toBe("Finish the account and run this one");
+    expect(copy.body).toContain("founder@example.com");
+    expect(copy.body).toContain("password");
+  });
+
+  it("still says nothing costs money", () => {
+    const copy = signupGateCopy({
+      priorRuns: 1,
+      windowDays: 30,
+      summaryEmail: "founder@example.com",
+    });
+    expect(copy.body).toContain("still free");
+    expect(copy.body).toContain("no card");
+  });
+
+  it("keeps the real history line", () => {
+    const copy = signupGateCopy({
+      priorRuns: 2,
+      windowDays: 30,
+      summaryEmail: "founder@example.com",
+    });
+    expect(copy.history).toContain("2 analyses");
+    expect(copy.history).toContain("30 days");
+  });
+
+  it("falls back to the plain wall for anything that is not an address", () => {
+    for (const value of [null, undefined, "", "   ", "not-an-email"]) {
+      expect(
+        signupGateCopy({ priorRuns: 1, summaryEmail: value }).heading,
+      ).toBe("Create a free account to run this one");
+    }
+  });
+});
+
+describe("SignupGatePanel — carrying the known address through", () => {
+  it("prefills the register link so the address is never typed twice", () => {
+    const html = renderToStaticMarkup(
+      <SignupGatePanel
+        priorRuns={1}
+        windowDays={30}
+        submission={null}
+        summaryEmail="founder@example.com"
+      />,
+    );
+    // `?email=` is read by the login form (see login-form.tsx). If that ever
+    // stops being true this promise becomes a lie, so it is pinned here.
+    expect(html).toContain("email=founder%40example.com");
+    expect(html).toContain("Set a password");
+  });
+
+  it("says create-an-account when we have no address", () => {
+    const html = renderToStaticMarkup(
+      <SignupGatePanel priorRuns={1} windowDays={30} submission={null} />,
+    );
+    expect(html).toContain("Create a free account");
+    expect(html).not.toContain("email=");
+  });
+});
