@@ -75,6 +75,25 @@ describe("extractSignals", () => {
     expect(s.hasCoFounder).toBe(true);
   });
 
+  it.each([
+    ["two founders", "We are two founders in Sydney building an invoice tool"],
+    ["2 founders", "2 founders, bootstrapped"],
+    ["three founders", "Three founders, all ex-Atlassian"],
+    ["two co-founders", "The company has two co-founders"],
+    ["four cofounders", "four cofounders split the equity evenly"],
+    ["both founders", "Both founders work on this full time"],
+    ["founding team", "Our founding team has shipped together before"],
+  ])("counts a team as having a co-founder: %s", (_label, rawText) => {
+    expect(extractSignals({ rawText }).hasCoFounder).toBe(true);
+  });
+
+  it("does not read a solo founder as having a co-founder", () => {
+    const s = extractSignals({
+      rawText: "I am a solo founder building this alone, no team yet",
+    });
+    expect(s.hasCoFounder).toBe(false);
+  });
+
   it("detects serial founder", () => {
     const s = extractSignals({ rawText: "I'm a serial founder who exited my last company" });
     expect(s.founderExperience).toBe("serial");

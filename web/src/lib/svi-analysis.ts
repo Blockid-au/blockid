@@ -389,6 +389,15 @@ export function extractSignals(
 
   const has = (...terms: string[]) => terms.some((t) => text.includes(t));
 
+  // "N founders", digits or words. The literal list this replaced carried
+  // "2 founders" and "three founders" but not "two founders" — so a two-person
+  // team that spelled the number out (much the commoner phrasing) was scored
+  // as a solo founder AND had "co-founder" added to missingSignals, which
+  // pushes evidenceCompleteness down as well. Caught on a live run of
+  // "We are two founders in Sydney...", which came back hasCoFounder: false.
+  const COFOUNDER_COUNT_RE =
+    /\b(?:two|three|four|five|six|[2-9])\s+(?:co-?\s?)?founders\b/;
+
   const isAIWrapper =
     has("gpt", "chatgpt", "openai", "llm wrapper", "ai chatbot", "ai agent") &&
     !has("fine-tun", "custom model", "proprietary data", "training data", "own model", "model fine");
@@ -478,7 +487,9 @@ export function extractSignals(
   const sector = detectSector(text);
 
   const signals: SVIExtractedSignals = {
-    hasCoFounder: has("co-founder", "cofounder", "co founder", "2 founders", "three founders", "team of"),
+    hasCoFounder:
+      has("co-founder", "cofounder", "co founder", "team of", "both founders", "founding team") ||
+      COFOUNDER_COUNT_RE.test(text),
     founderExperience,
     founderSectorFit: has("background in", "worked in", "experience in", "years in", "domain"),
     hasAdvisors: has("advisor", "mentor", "angel", "board member"),
