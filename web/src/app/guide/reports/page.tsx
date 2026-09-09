@@ -11,14 +11,18 @@
  * was linked from nine internal surfaces, so it is likely indexed and
  * bookmarked. /sample is the canonical "show me what a report looks like" hub.
  *
+ * permanentRedirect (308), not redirect (307). A 307 tells a crawler the old
+ * URL is still the canonical one and to keep it indexed, which is the opposite
+ * of what we want for a page that is never coming back.
+ *
  * The download route (/api/guide/reports/[filename]) is deliberately NOT
  * restored in any form — a redirect there would just be a slower 404.
  */
 
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export const dynamic = "force-static";
 
 export default function GuideReportsRedirectPage(): never {
-  redirect("/sample");
+  permanentRedirect("/sample");
 }

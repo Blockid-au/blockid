@@ -7,12 +7,15 @@
  * IDs, server metrics, an internal secrets audit) as public downloads. That
  * surface has been removed; /sample is the canonical "show me what a report
  * looks like" hub.
+ *
+ * permanentRedirect (308), not redirect (307): a 307 keeps the old URL
+ * indexed as canonical, which is wrong for a page that is not coming back.
  */
 
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export const dynamic = "force-static";
 
 export default function ReportSamplesRedirectPage(): never {
-  redirect("/sample");
+  permanentRedirect("/sample");
 }
