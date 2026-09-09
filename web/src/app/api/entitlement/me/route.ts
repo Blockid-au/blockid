@@ -62,7 +62,10 @@ export async function GET(): Promise<NextResponse> {
   };
 
   const [entitlements, trialState, isResellerMember] = await Promise.all([
-    getEntitlements(plan),
+    // user.id makes this add-on-aware: a founder paying for the Equity
+    // add-on gets its features unioned onto their plan bundle here, so the
+    // client hook and the sidebar see the same set the server gates on.
+    getEntitlements(plan, user.id),
     loadTrialState(user.id),
     hasActiveResellerMembership(user.id),
   ]);

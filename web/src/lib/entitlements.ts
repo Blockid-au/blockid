@@ -16,6 +16,7 @@
 import "server-only";
 
 import { getPlanCached } from "@/lib/plans-db";
+import { getUserGrantedFeatures } from "@/lib/entitlements/user-grants";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { shouldFire, recordConversionEvent } from "@/lib/conversion/triggers";
 import { emitEvent } from "@/lib/analytics/server";
@@ -221,24 +222,70 @@ function resolvePlanId(planId: string | null | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
-// getEntitlements — load the effective feature flag set for a user, merging
-// DB row (source of truth) with the legacy fallback table.
-// Exported so `/api/entitlement/me` can return the full list to the client.
+// getEntitlements — the effective feature flag set, in two layers.
+//
+//   plan layer  — plans.feature_flags for the resolved plan id, falling back
+//                 to LEGACY_FEATURE_FALLBACK when the table has not been
+//                 seeded. Unchanged behaviour; this is what every caller got
+//                 before add-ons existed.
+//   user layer  — features granted to this specific user in the `entitlements`
+//                 table: a paid add-on, or a manual support override. Unioned
+//                 on top; it can only ever widen.
+//
+// Why `userId` is an optional second argument rather than a new signature or a
+// parallel `getEntitlementsForUser()`
+// ------------------------------------------------------------------------
+// `can(user, feature)` — which is what all 39+ gate call sites actually reach
+// for, via `requireFeature`, `gateRequireFeature` and `requireTierForPage` —
+// already receives a `UserWithPlan` and therefore already has the user id. It
+// simply was not passing it down. So making entitlement resolution user-aware
+// needs no change at any gate call site at all: `can()` passes `user.id` and
+// every gate becomes add-on-aware at once. The wide mechanical rename the
+// problem statement worried about turns out not to be necessary.
+//
+// A parallel user-aware function was the alternative, and the objection to it
+// is real: two resolvers drift, and the day one of them learns about a new
+// grant source and the other does not is the day a paying customer is denied
+// something they bought. This keeps ONE resolver and ONE union rule. The
+// optional argument is not a second API; it is the same API told who is
+// asking.
+//
+// Omitting `userId` is safe by construction: it yields the plan layer alone,
+// which is narrower. A call site that forgets it under-grants (the user sees
+// an upgrade prompt for something they own — visible, reported, fixable) and
+// can never over-grant.
 // ---------------------------------------------------------------------------
 
-export async function getEntitlements(planId: string | null | undefined): Promise<string[]> {
+export async function getEntitlements(
+  planId: string | null | undefined,
+  userId?: string | null,
+): Promise<string[]> {
   const resolved = resolvePlanId(planId);
 
+  let planFlags: string[] | null = null;
   try {
     const row = await getPlanCached(resolved);
     if (row && Array.isArray(row.feature_flags)) {
-      return row.feature_flags as string[];
+      planFlags = row.feature_flags as string[];
     }
   } catch {
     // fall through to fallback
   }
 
-  return LEGACY_FEATURE_FALLBACK[resolved] ?? LEGACY_FEATURE_FALLBACK.founder_free ?? [];
+  if (planFlags === null) {
+    planFlags = [
+      ...(LEGACY_FEATURE_FALLBACK[resolved] ?? LEGACY_FEATURE_FALLBACK.founder_free ?? []),
+    ];
+  }
+
+  if (!userId) return planFlags;
+
+  // Never throws and returns [] on any failure, so a database outage denies
+  // add-on features and leaves the plan layer intact.
+  const granted = await getUserGrantedFeatures(userId);
+  if (granted.length === 0) return planFlags;
+
+  return Array.from(new Set([...planFlags, ...granted]));
 }
 
 // ---------------------------------------------------------------------------
@@ -248,7 +295,7 @@ export async function getEntitlements(planId: string | null | undefined): Promis
 
 export async function can(user: UserWithPlan | null, feature: Feature): Promise<boolean> {
   if (!user) return false;
-  const flags = await getEntitlements(user.plan);
+  const flags = await getEntitlements(user.plan, user.id);
   const allowed = flags.includes(feature);
   if (!allowed) {
     // Fire-and-forget CRO trigger — analytics must never block feature gate.

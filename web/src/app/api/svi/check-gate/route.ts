@@ -31,6 +31,10 @@ export async function GET(request: Request) {
     // Entitlement gate — a plan with `svi.run` (unlimited SVI) unlocks the
     // analysis without hitting the daily free-tier throttle. Legacy plan ids
     // (growth/founding50) still resolve via LEGACY_PLAN_MAP in entitlements.
+    // Plan-only resolution on purpose. This route identifies an SVI account
+    // by email and has no app_users id to look add-on grants up by, and
+    // `svi.run` is a plan feature that no add-on grants — so the user layer
+    // would be empty anyway.
     const flags = await getEntitlements(account.plan);
     if (flags.includes("svi.run")) {
       return NextResponse.json({ ok: true, canAnalyze: true, reason: "paid_plan", plan: account.plan });

@@ -32,9 +32,11 @@ vi.mock("@/lib/auth", () => ({
   getCurrentUser: () => getCurrentUserMock(),
 }));
 
-const getEntitlementsMock = vi.fn<(plan: string | null | undefined) => Promise<string[]>>();
+const getEntitlementsMock =
+  vi.fn<(plan: string | null | undefined, userId?: string | null) => Promise<string[]>>();
 vi.mock("@/lib/entitlements", () => ({
-  getEntitlements: (p: string | null | undefined) => getEntitlementsMock(p),
+  getEntitlements: (p: string | null | undefined, u?: string | null) =>
+    getEntitlementsMock(p, u),
 }));
 
 const getSupabaseAdminMock = vi.fn<() => unknown | null>();
@@ -190,10 +192,12 @@ describe("GET /api/entitlement/me — anonymous branch", () => {
     expect(res.status).toBe(200);
   });
 
-  it("calls getEntitlements exactly once with the literal 'free' plan", async () => {
+  it("calls getEntitlements exactly once with the literal 'free' plan and no user id", async () => {
     await GET();
     expect(getEntitlementsMock).toHaveBeenCalledTimes(1);
-    expect(getEntitlementsMock).toHaveBeenCalledWith("free");
+    // Second argument is undefined on purpose — an anonymous session has no
+    // user, so it must never pick up anyone's per-user add-on grants.
+    expect(getEntitlementsMock).toHaveBeenCalledWith("free", undefined);
   });
 
   it("body pins the anonymous envelope: user_id=null, plan='free', segment='founder', jurisdiction=null, legal_review_passed=false", async () => {
@@ -283,7 +287,7 @@ describe("GET /api/entitlement/me — authenticated happy path", () => {
       plan: "scale",
     });
     await GET();
-    expect(getEntitlementsMock).toHaveBeenCalledWith("scale");
+    expect(getEntitlementsMock).toHaveBeenCalledWith("scale", "user-1");
   });
 
   it("falls back to 'free' when user.plan is null (no plan claim on the session cookie)", async () => {
@@ -293,7 +297,7 @@ describe("GET /api/entitlement/me — authenticated happy path", () => {
       plan: null,
     });
     await GET();
-    expect(getEntitlementsMock).toHaveBeenCalledWith("free");
+    expect(getEntitlementsMock).toHaveBeenCalledWith("free", "user-1");
     const body = await (await GET()).json();
     expect(body.plan).toBe("free");
   });
