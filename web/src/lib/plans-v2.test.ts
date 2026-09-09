@@ -490,3 +490,54 @@ describe("annualSavingPct()", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Published claim vs. shipped capability (2026-09-09 sweep).
+//
+// These pin the specific phrases that were on the public ladder while nothing
+// in the codebase delivered them. They are not a general copy filter — they
+// are a fence around the four claims we actually had to retract, so a future
+// edit that reinstates one fails here rather than on a customer's screen.
+// ---------------------------------------------------------------------------
+describe("public founder rungs claim only what the product ships", () => {
+  const publicFounder = () =>
+    PLANS_V2.filter((p) => p.segment === "founder" && p.public !== false);
+
+  const bullets = () =>
+    publicFounder()
+      .flatMap((p) => p.features)
+      .join(" ")
+      .toLowerCase();
+
+  it("renders exactly the three-rung ladder", () => {
+    expect(publicFounder().map((p) => p.id)).toEqual([
+      "founder_free",
+      "founder_starter",
+      "founder_growth",
+    ]);
+  });
+
+  it("does not offer a Slack community — there is no invite anywhere in src", () => {
+    expect(bullets()).not.toContain("slack");
+  });
+
+  it("does not promise watermarking — no renderer watermarks a report", () => {
+    expect(bullets()).not.toContain("watermark");
+  });
+
+  it("does not call any export unlimited — docx_export is credit-metered", () => {
+    expect(bullets()).not.toMatch(/unlimited [a-z+ ]*export/);
+  });
+
+  it("does not sell dividends or a shareholder portal on the Equity add-on", () => {
+    // ADDON_FEATURES grants esop.manage, vesting.read, vesting.write and
+    // blockchain.sync — and nothing else.
+    const addOnLines = publicFounder()
+      .flatMap((p) => p.features)
+      .filter((f) => f.toLowerCase().includes("add-on"))
+      .join(" ")
+      .toLowerCase();
+    expect(addOnLines).not.toContain("dividend");
+    expect(addOnLines).not.toContain("shareholder portal");
+  });
+});

@@ -51,12 +51,23 @@ const FOUNDER: Plan[] = [
     trial_days: 0,
     cta_kind: "trial",
     tagline: "Kick the tyres",
+    // 2026-09-09 reconciliation. Three of the five bullets named things the
+    // product does not have:
+    //   • "Community Slack access" — there is no Slack community, and no
+    //     invite link anywhere in the codebase.
+    //   • "Watermarked PDF export" — no renderer watermarks anything. The only
+    //     `watermark` style in lib/pdf is the static "Not financial or legal
+    //     advice." line on the cover, which every tier gets.
+    //   • "Idea validation checklist" — the phrase appears nowhere but here.
+    // "10-page valuation report" also went: `usage_limits.report_pages` has no
+    // reader in src/, and what a free run actually delivers is the five-page
+    // summary that FREE_SUMMARY_PAGE_COUNT pins and svi-summary-pdf renders.
     features: [
-      "SVI basic score (1 startup)",
-      "10-page valuation report",
-      "Community Slack access",
-      "Watermarked PDF export",
-      "Idea validation checklist",
+      "Your SVI score across all eight dimensions",
+      "1 startup workspace",
+      "A five-page written summary, emailed as a PDF",
+      "Valuation range with its low and high",
+      "No card, no expiry",
     ],
   },
   {
@@ -80,10 +91,17 @@ const FOUNDER: Plan[] = [
     // marketing copy must always say "1 startup workspace". Users who need
     // multiple startups upgrade to the Accelerator segment
     // (see /pricing?tab=accelerator).
+    // 2026-09-09: "Unlimited DOCX + PDF export" was not true — `docx_export`
+    // costs 0.50 credits in lib/credits.ts FEATURE_COSTS, so exports are
+    // metered against the same 20-credit monthly grant as everything else.
+    // The data room and the live investor link replace it: those are the two
+    // flags founder_starter actually holds over Free (`data_room.access`,
+    // `investor_links.premium`) and the two the homepage's A$29 rung sells.
     features: [
-      "Full SVI 8-dimension score",
+      "Everything in Free, kept on your account",
       "1 startup workspace",
-      "Unlimited DOCX + PDF export",
+      "Your data room, filling up in the order investors ask",
+      "Share a live link with an investor instead of a PDF",
       "20 AI credits / month",
       "Email support (48h)",
     ],
@@ -104,7 +122,14 @@ const FOUNDER: Plan[] = [
       "45 AI credits / month",
       "Term Sheet AI drafter",
       "Priority support (24h)",
-      "Equity add-on +A$59/mo — ESOP, vesting, dividends, shareholder portal",
+      // The add-on grants exactly four flags — esop.manage, vesting.read,
+      // vesting.write, blockchain.sync (see entitlements/user-grants.ts
+      // ADDON_FEATURES). It does NOT grant dividends or a shareholder portal;
+      // those have no feature gate in the product at all, and inventing one to
+      // make this bullet true would take access away from Growth subscribers
+      // who use /workspace/dividends today. So the bullet loses the two claims
+      // instead.
+      "Equity add-on +A$59/mo — ESOP, vesting schedules, and on-chain sync",
       "Unlimited shareholders + employees on the add-on — never per head",
     ],
   },
