@@ -629,10 +629,10 @@ export function NavV2() {
         <div className="hidden items-center gap-3 md:flex">
           <LocaleSwitcher />
           <Link
-            href="/submit"
+            href="/analyze"
             className="rounded-lg border border-brand-cyan/40 px-3 py-2 text-sm font-medium text-brand-cyan transition-colors duration-200 hover:border-brand-cyan hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
           >
-            Submit startup
+            Analyse my startup
           </Link>
           <Link
             href="/auth/login"
@@ -694,11 +694,11 @@ export function NavV2() {
           </ul>
           <div className="mt-3 flex flex-col gap-2 border-t border-white/5 pt-3">
             <Link
-              href="/submit"
+              href="/analyze"
               onClick={() => handleLinkActivate()}
               className="inline-flex h-11 items-center justify-center rounded-lg border border-brand-cyan/40 px-4 text-sm font-medium text-brand-cyan hover:border-brand-cyan hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
             >
-              Submit your startup
+              Analyse my startup
             </Link>
             <Link
               href="/auth/login"

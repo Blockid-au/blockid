@@ -1451,7 +1451,29 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  console.error(`[nightly-clevel-review] fatal: ${err.message}`);
-  process.exit(1);
-});
+// Only run when executed directly, never on import.
+//
+// This was an unguarded top-level `main()`, so importing the module ran the
+// whole job — git execSync, version.json reads, and the process.exit(1) calls
+// on any failure. The colocated test imports six pure helpers from here (its
+// own comment says it wants to stay "decoupled from the full script's
+// side-effects"), so under vitest that exit killed the worker: the deploy's
+// test gate reported "5 errors" and exit 1 while all 28,340 tests passed, and
+// aborted the release. It reproduced only under parallel load, so it read as a
+// random deploy failure.
+const isDirectRun = (() => {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return fileURLToPath(import.meta.url) === resolve(entry);
+  } catch {
+    return false;
+  }
+})();
+
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error(`[nightly-clevel-review] fatal: ${err.message}`);
+    process.exit(1);
+  });
+}
