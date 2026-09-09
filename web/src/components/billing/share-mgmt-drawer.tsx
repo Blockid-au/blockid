@@ -21,14 +21,20 @@ export type ShareMgmtDrawerLocale = "en" | "vi";
 
 const COPY = {
   en: {
-    title: "Add Share Management",
-    subtitle: "Cap-table, ESOP, vesting, dividends and blockchain sync — all included.",
+    title: "Add Equity",
+    subtitle: "Employee share schemes, vesting and on-chain sync, added to the plan you already have.",
+    // What this list promises is exactly what the add-on grants — see
+    // ADDON_FEATURES in src/lib/entitlements/user-grants.ts. Cap table, share
+    // register and data room are NOT here on purpose: they are the company's
+    // own statutory records and stay on the plan. If you change this list,
+    // change that one, in the same commit.
     benefits: [
-      "Unlimited cap-table rows + share-class rules",
-      "ESOP pool + Div-83A grant checks",
-      "Vesting schedules with cliff + acceleration",
-      "Dividend ledger + investor reporting",
-      "Optional blockchain sync (Anvil chainId 420)",
+      "Issue and track employee share scheme (ESOP) grants",
+      "Set up your option pool and see what is left to grant",
+      "Vesting schedules with cliffs and acceleration",
+      "Division 83A checks before a grant goes out",
+      "Optional on-chain sync of your equity records",
+      "Unlimited shareholders and employees — never charged per person",
     ],
     monthly: "Monthly",
     annual: "Annual",
@@ -41,20 +47,21 @@ const COPY = {
     cta: "Add to my subscription",
     ctaLoading: "Adding…",
     close: "Close",
-    cancelHint: "You can remove this add-on any time from Billing → Manage add-ons.",
+    cancelHint: "Your cap table, share register and data room stay on your current plan — this add-on does not gate them. You can remove it any time from Billing; it keeps running until the end of the period you have paid for.",
     notAvailable: "This add-on is not yet available in your Stripe account. Contact support.",
     genericError: "Something went wrong. Please try again.",
     added: "Add-on added. Refreshing your entitlements…",
   },
   vi: {
-    title: "Thêm Quản lý Cổ phần",
-    subtitle: "Cap-table, ESOP, vesting, cổ tức và đồng bộ blockchain — trọn gói.",
+    title: "Thêm Cổ phần",
+    subtitle: "Chương trình cổ phần cho nhân viên, vesting và đồng bộ on-chain, bổ sung vào gói bạn đang dùng.",
     benefits: [
-      "Cap-table không giới hạn + quy tắc loại cổ phần",
-      "Quỹ ESOP + kiểm tra Div-83A",
-      "Lịch vesting với cliff + tăng tốc",
-      "Sổ cổ tức + báo cáo nhà đầu tư",
-      "Đồng bộ blockchain tuỳ chọn (Anvil chainId 420)",
+      "Cấp và theo dõi quyền chọn cổ phần cho nhân viên (ESOP)",
+      "Thiết lập quỹ quyền chọn và xem còn lại bao nhiêu",
+      "Lịch vesting với cliff và tăng tốc",
+      "Kiểm tra Division 83A trước khi cấp quyền chọn",
+      "Đồng bộ on-chain hồ sơ cổ phần (tuỳ chọn)",
+      "Không giới hạn cổ đông và nhân viên — không tính phí theo đầu người",
     ],
     monthly: "Hàng tháng",
     annual: "Hàng năm",
@@ -67,7 +74,7 @@ const COPY = {
     cta: "Thêm vào gói của tôi",
     ctaLoading: "Đang thêm…",
     close: "Đóng",
-    cancelHint: "Bạn có thể huỷ add-on bất cứ lúc nào trong Billing → Manage add-ons.",
+    cancelHint: "Cap table, sổ cổ đông và data room vẫn thuộc gói hiện tại của bạn — add-on này không khoá chúng. Bạn có thể huỷ bất cứ lúc nào trong Billing; add-on chạy đến hết chu kỳ bạn đã thanh toán.",
     notAvailable: "Add-on chưa khả dụng trong tài khoản Stripe của bạn. Liên hệ hỗ trợ.",
     genericError: "Đã xảy ra lỗi. Vui lòng thử lại.",
     added: "Đã thêm add-on. Đang làm mới…",

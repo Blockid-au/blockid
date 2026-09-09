@@ -82,26 +82,37 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
  * A missing env var yields `null` so callers can detect "not-yet-provisioned"
  * without a runtime crash.
  */
-// SAFETY GATE — 2026-09-08.
-// The A$59 Equity add-on price exists and is active in Stripe, but nothing
-// grants entitlements when it is purchased: `getEntitlements()` takes a plan
-// id and returns that plan's `feature_flags`, so it cannot see a per-user
-// add-on subscription, and the webhook has no branch for
-// `isShareMgmtAddonPrice`. Selling it would charge a founder A$59/month and
-// grant them nothing.
+// SAFETY GATE — opened 2026-09-09.
 //
-// So the *purchase* path is closed until add-on -> entitlement resolution
-// exists, while *recognition* stays open: ADDON_PRICE_IDS (what the billing
-// drawer offers) resolves to null, but isShareMgmtAddonPrice still reads the
-// raw env so any add-on subscription item that does exist is still identified
-// correctly by change-plan and the webhook. Callers already treat null as
-// "not-yet-provisioned" and render the drawer inert rather than crashing.
+// This was false from 2026-09-08 because buying the A$59 Equity add-on granted
+// nothing: `getEntitlements()` took a plan id and could not see a per-user
+// add-on subscription, and the webhook had no branch for
+// `isShareMgmtAddonPrice`. Charging a founder A$59/month for that would have
+// been indefensible, so the purchase path was closed while recognition stayed
+// open.
 //
-// To re-enable selling: make entitlement resolution user-aware (webhook
-// records the add-on subscription; `getEntitlements` unions the add-on's
-// features on top of the plan's), then flip ADDON_ENTITLEMENTS_WIRED and
-// update the pins in stripe.test.ts.
-const ADDON_ENTITLEMENTS_WIRED = false;
+// All three legs now exist and were proven end to end against production
+// before this flipped:
+//
+//   resolution  `getEntitlements(planId, userId)` unions the plan's flags with
+//               the user's rows in `entitlements`
+//               (src/lib/entitlements/user-grants.ts, migration 0306).
+//               `can()` passes the user id, so every gate is add-on-aware.
+//   purchase    the Stripe webhook reconciles the add-on from the subscription
+//               on customer.subscription.updated / .deleted,
+//               invoice.payment_failed and invoice.paid
+//               (src/lib/stripe/addon-entitlements.ts).
+//   revocation  cancellation, lapse and non-payment all delete the grant; a
+//               failed lookup resolves to no entitlement, never to access.
+//
+// Recognition was always open and stays that way: ADDON_PRICE_IDS is what the
+// billing drawer may OFFER, while isShareMgmtAddonPrice reads the raw env so an
+// add-on subscription that exists is identified even when selling is shut. Keep
+// that asymmetry — closing the gate again must never orphan a live subscriber.
+//
+// To suspend selling again: set this to false and update the pins in
+// stripe.test.ts. Existing subscribers keep their entitlements.
+const ADDON_ENTITLEMENTS_WIRED = true;
 
 /** Raw env values — used for *recognising* an existing add-on subscription. */
 const ADDON_PRICE_IDS_RAW: Record<string, string | null> = {

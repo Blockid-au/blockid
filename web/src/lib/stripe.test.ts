@@ -266,27 +266,28 @@ describe("ADDON_PRICE_IDS", () => {
     expect(mod.ADDON_PRICE_IDS.share_management_annual).toBeNull();
   });
 
-  // SAFETY GATE (2026-09-08): ADDON_ENTITLEMENTS_WIRED is false, so the ids
-  // stay null even when the env vars are populated. The A$59 Equity add-on is
-  // live and active in Stripe, but `getEntitlements()` resolves features from
-  // a plan id and cannot see a per-user add-on subscription, and the webhook
-  // has no `isShareMgmtAddonPrice` branch — so a purchase would charge A$59/mo
-  // and grant nothing. Suppressing the ids keeps the billing drawer inert.
+  // SAFETY GATE OPENED 2026-09-09. ADDON_ENTITLEMENTS_WIRED is now true, so a
+  // populated env var passes through and the billing drawer can offer the
+  // A$59 Equity add-on. These cases moved with the flag: buying it now records
+  // a grant in `entitlements` (webhook -> src/lib/stripe/addon-entitlements.ts)
+  // that `getEntitlements(planId, userId)` unions onto the plan's flags.
   //
-  // When add-on -> entitlement resolution lands, flip the flag and restore
-  // these two cases to assert the env values pass through.
-  it("stays null even with both env vars set, while the entitlement gate is closed", async () => {
+  // If selling is ever suspended again, flip the flag and flip these back —
+  // they are the tripwire that stops the drawer going live by accident.
+  it("passes the env values through now that the entitlement gate is open", async () => {
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY = "price_share_m_env";
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL = "price_share_y_env";
     const mod = await loadStripeMod();
-    expect(mod.ADDON_PRICE_IDS.share_management_monthly).toBeNull();
-    expect(mod.ADDON_PRICE_IDS.share_management_annual).toBeNull();
+    expect(mod.ADDON_PRICE_IDS.share_management_monthly).toBe("price_share_m_env");
+    expect(mod.ADDON_PRICE_IDS.share_management_annual).toBe("price_share_y_env");
   });
 
-  it("keeps getShareMgmtAddonPrice null for both cadences while gated", async () => {
+  it("offers only the cadence that is actually provisioned", async () => {
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY = "price_share_m_only";
     const mod = await loadStripeMod();
-    expect(mod.getShareMgmtAddonPrice("monthly")).toBeNull();
+    expect(mod.getShareMgmtAddonPrice("monthly")).toBe("price_share_m_only");
+    // The annual price was never created — the drawer hides its cadence
+    // toggle on null rather than offering a price that does not exist.
     expect(mod.getShareMgmtAddonPrice("annual")).toBeNull();
   });
 });
@@ -294,20 +295,18 @@ describe("ADDON_PRICE_IDS", () => {
 // ─── getShareMgmtAddonPrice ──────────────────────────────────────────────────
 
 describe("getShareMgmtAddonPrice", () => {
-  // SAFETY GATE (2026-09-08): selling is closed, so both cadences resolve to
-  // null regardless of env. Recognition is unaffected — see isShareMgmtAddonPrice.
-  it("returns null for cadence='monthly' while the entitlement gate is closed", async () => {
+  it("returns the monthly price id when provisioned", async () => {
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY = "price_m_ok";
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL = "price_y_ok";
     const mod = await loadStripeMod();
-    expect(mod.getShareMgmtAddonPrice("monthly")).toBeNull();
+    expect(mod.getShareMgmtAddonPrice("monthly")).toBe("price_m_ok");
   });
 
-  it("returns null for cadence='annual' while the entitlement gate is closed", async () => {
+  it("returns the annual price id when provisioned", async () => {
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY = "price_m_ok";
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL = "price_y_ok";
     const mod = await loadStripeMod();
-    expect(mod.getShareMgmtAddonPrice("annual")).toBeNull();
+    expect(mod.getShareMgmtAddonPrice("annual")).toBe("price_y_ok");
   });
 
   it("returns null when the cadence env var is unset — callers must detect the not-yet-provisioned path", async () => {
@@ -316,10 +315,10 @@ describe("getShareMgmtAddonPrice", () => {
     expect(mod.getShareMgmtAddonPrice("annual")).toBeNull();
   });
 
-  it("returns null for both cadences even with only one env var set", async () => {
+  it("resolves each cadence independently — one provisioned price never stands in for the other", async () => {
     process.env.STRIPE_PRICE_ADDON_SHARE_MGMT_ANNUAL = "price_y_only";
     const mod = await loadStripeMod();
-    expect(mod.getShareMgmtAddonPrice("annual")).toBeNull();
+    expect(mod.getShareMgmtAddonPrice("annual")).toBe("price_y_only");
     expect(mod.getShareMgmtAddonPrice("monthly")).toBeNull();
   });
 });
