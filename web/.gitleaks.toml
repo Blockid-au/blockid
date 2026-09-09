@@ -37,6 +37,12 @@ keywords = ["key","api","token","secret","client","passwd","password","auth","ac
     # Browser storage keys and feature-flag constants, not credentials.
     '''bid_sticky_cta_dismissed''',
     '''blockid_(anon|theme)''',
+    # `key: "<snake_case>"` object literals in form/metric definitions — the
+    # rule fires on the word "key", not on anything secret.
+    '''expects_2plus_venture_rounds''',
+    '''attributed_churn_30d''',
+    # ElevenLabs voice IDs are public catalogue identifiers.
+    '''onwK4e9ZLuTAKqWW03F9''',
   ]
 
 [[allowlists]]
@@ -55,6 +61,9 @@ paths = [
   '''(^|/)playwright-report/''',
   # Reseller digest is an append-only metrics log; its keys are metric names.
   '''web/content/reports/.*\.jsonl$''',
+  # .env.example holds placeholder names and public identifiers only. The
+  # real .env is gitignored and never scanned.
+  '''(^|/)\.env\.example$''',
   # Vendored / generated / immutable release output.
   '''(^|/)node_modules/''',
   '''(^|/)\.next/''',
@@ -99,4 +108,14 @@ commits = [
   "96479ee3ab1c655056cc38cb37c96a0c713f66b8",
   "3e397df106e1b09c8aad9a7d5201fe7a58a479c7",
   "04db9520c8de732224f8299eef64021a816212ed",
+  # 75503ac67 committed the live CRON_SECRET in scripts/crontab.production as a
+  # plaintext assignment. The same 64-char value was reused for IP_HASH_SALT
+  # and HISTORY_INGEST_KEY, so one leaked string compromised three secrets:
+  # every /api/cron/* endpoint, the salt that makes stored IP hashes
+  # irreversible, and the history-ingest key.
+  #
+  # Unlike the four above, this one needed no third party, so all three were
+  # rotated on 2026-09-09 and are now distinct. The commit is allowlisted
+  # because the value it contains is dead.
+  "75503ac67fb83609a4eddac5e9903c71e2ecdffd",
 ]
