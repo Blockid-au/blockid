@@ -358,6 +358,26 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Lifecycle mailer (day0/3/5/6/7/14/winback drip) — every 15 min
 */15 * * * * bash $RUN lifecycle-mailer --timeout 90
 
+# CCSO onboarding drip + D30 NPS pulse — the email_drips queue.
+# NOT the same job as lifecycle-mailer above: that one reads app_users /
+# subscription_trial_state and can never drain email_drips. This worker was
+# written but never scheduled, so the queue sat at 60 pending rows, none ever
+# sent, the oldest 50 days past its scheduled_for.
+#
+# Hourly at :25, not */15, on purpose:
+#   * scheduled_for is day-granular (+1/+3/+7/+14/+30 days from the first SVI
+#     report), so an hour of latency is invisible to the recipient;
+#   * BATCH_LIMIT=50 means hourly bounds the send rate at 50/hour, which keeps
+#     the shared Gmail relay — the same relay that carries the A$3 report and
+#     the free summary — well clear of a burst that would dent deliverability;
+#   * :25 keeps it off lifecycle-mailer's :00/:15/:30/:45 ticks so two mailers
+#     never contend for that relay on the same minute.
+# Each run expires rows >14 days past scheduled_for BEFORE sending anything,
+# checks canSendEmail/email_preferences before claiming, and claims each row
+# with a conditional UPDATE ... WHERE sent_at IS NULL so a retry cannot
+# double-send. --timeout 90 covers a full 50-row batch of SMTP sends.
+25 * * * * bash $RUN email-drip --timeout 90
+
 # Weekly retention snapshots per segment (Mon 09:15 UTC / 19:15 AEST)
 15 9 * * 1 bash $RUN weekly-retention --timeout 90
 
