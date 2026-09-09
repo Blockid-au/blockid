@@ -75,7 +75,7 @@ export default function TbrDemoPage() {
         title="What a Trusted Business Report looks like"
         subtitle="A fully-populated sample TBR so investors can see the depth of evidence before asking a founder to mint one. Every number below is illustrative — no real company data is disclosed on this page."
         primaryCta={{ href: "/showcase/atlassian?step=1", label: "Open interactive showcase" }}
-        secondaryCta={{ href: "/guide/reports", label: "Browse sample gallery" }}
+        secondaryCta={{ href: "/sample", label: "Browse sample gallery" }}
       />
 
       <MarketingSection kicker="Section 1" title="8 SVI dimensions with completeness">
@@ -172,7 +172,7 @@ export default function TbrDemoPage() {
             </p>
           </Link>
           <Link
-            href="/guide/reports"
+            href="/sample"
             className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50"
           >
             <p className="text-sm font-semibold text-secondary">

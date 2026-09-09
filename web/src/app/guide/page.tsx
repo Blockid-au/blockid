@@ -70,7 +70,7 @@ export default function GuideIndexPage() {
           </p>
           <div className="mt-6 flex justify-center gap-3 text-sm">
             <Link
-              href="/guide/reports"
+              href="/sample"
               className="rounded-full border border-slate-300 px-4 py-2 hover:border-brand-500 dark:border-slate-700"
             >
               Report library

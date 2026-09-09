@@ -123,7 +123,7 @@ const FOUNDER_FEATURES: Feature[] = [
     anchor: "guided-journey",
     title: "12-chapter guided journey",
     copy: "A step-by-step operator's manual — 12 chapters from ideation to your first Series A.",
-    href: "/guide/reports",
+    href: "/sample",
     linkLabel: "Start the guide",
     Icon: BookOpen,
   },

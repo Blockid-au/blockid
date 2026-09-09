@@ -1,10 +1,12 @@
 /**
- * /reports/samples — permanent redirect to /guide/reports.
+ * /reports/samples — permanent redirect to /sample.
  *
  * The fintech hero and the founding-band CTA link to `/reports/samples` as the
- * sample-report gallery. The canonical gallery already lives at /guide/reports
- * (Track B B5 report template library), so this page redirects there to avoid
- * a visible 404 and to preserve inbound links.
+ * sample-report gallery. This used to redirect to /guide/reports, which served
+ * BlockID's own internal C-Level agent briefs (security posture, open task
+ * IDs, server metrics, an internal secrets audit) as public downloads. That
+ * surface has been removed; /sample is the canonical "show me what a report
+ * looks like" hub.
  */
 
 import { redirect } from "next/navigation";
@@ -12,5 +14,5 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-static";
 
 export default function ReportSamplesRedirectPage(): never {
-  redirect("/guide/reports");
+  redirect("/sample");
 }

@@ -341,7 +341,7 @@ export default function StartupCompassPrimerPage() {
             </p>
           </Link>
           <Link
-            href="/guide/reports"
+            href="/sample"
             className="rounded-lg border border-slate-200 p-4 text-right transition hover:border-emerald-400 dark:border-slate-800"
           >
             <span className="text-xs uppercase tracking-wide text-slate-400">

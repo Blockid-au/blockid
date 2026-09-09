@@ -60,7 +60,7 @@ const SAMPLES: ReadonlyArray<{
     cta: "Open TBR demo",
   },
   {
-    href: "/guide/reports",
+    href: "/sample",
     title: "Sample report gallery",
     body:
       "Compare BlockID report variants across sectors, stages and evidence depth — pick the closest to your startup before you run one.",

@@ -29,7 +29,7 @@ description = "Generic API key"
 regex = '''(?i)(?:key|api|token|secret|client|passwd|password|auth|access)(?:[0-9a-z\-_\t .]{0,20})(?:[\s|']|[\s|"]){0,3}(?:=|>|:{1,3}=|\|\||:|<=|=>|:=)(?:'|\"|\s|=|\x60){0,5}([0-9a-z\-_.=]{10,150})(?:['|\"|\n|\r|\s|\x60|;]|$)'''
 keywords = ["key","api","token","secret","client","passwd","password","auth","access"]
 
-  [rules.allowlist]
+  [[rules.allowlists]]
   regexTarget = "match"
   regexes = [
     # Anvil / Hardhat default deployment address — public and deterministic.
@@ -39,7 +39,7 @@ keywords = ["key","api","token","secret","client","passwd","password","auth","ac
     '''blockid_(anon|theme)''',
   ]
 
-[allowlist]
+[[allowlists]]
 description = "Test fixtures, documentation examples, and build output"
 paths = [
   # Fixtures deliberately containing fake credentials.
@@ -49,6 +49,12 @@ paths = [
   '''(^|/)tests?/''',
   # Documentation showing auth header shapes.
   '''web/src/app/developers/api-docs\.tsx$''',
+  # Playwright trace artefacts — recorded HTTP responses from test runs, not
+  # source. Bearer/session strings inside are test-fixture values.
+  '''(^|/)test-results/''',
+  '''(^|/)playwright-report/''',
+  # Reseller digest is an append-only metrics log; its keys are metric names.
+  '''web/content/reports/.*\.jsonl$''',
   # Vendored / generated / immutable release output.
   '''(^|/)node_modules/''',
   '''(^|/)\.next/''',
@@ -56,4 +62,41 @@ paths = [
   '''(^|/)chain/(artifacts|cache|out)/''',
   '''\.lock$''',
   '''package-lock\.json$''',
+]
+
+# ---------------------------------------------------------------------------
+# Historical exposure — allowlisted by commit, NOT forgiven.
+#
+# `gitleaks detect` scans git history, not just the working tree. Four commits
+# that are ancestors of origin/master committed real credentials. The files are
+# clean today, but the blobs remain reachable in a PUBLIC repository
+# (Blockid-au/blockid, isPrivate: false), so they are readable by anyone.
+#
+#   58b29ce864a0  web/src/app/api/cron/telegram-report/route.ts  telegram bot token
+#   96479ee3ab1c  web/scripts/git-sync-deploy.sh                 telegram bot token
+#   3e397df106e1  web/scripts/cron-runner.sh                     telegram bot token
+#   04db9520c8de  .claude/goals/deployment-runbook.md            GitLab PAT
+#
+# These are allowlisted because blocking deploys does not reduce the exposure
+# by one bit — the leak already happened, and only rotation fixes it. Keeping
+# the gate red here would cost us every future deploy while buying no safety,
+# and would train us to bypass the gate wholesale.
+#
+# REQUIRED REMEDIATION (owner: admin@blockid.au):
+#   1. Revoke and reissue the 3 Telegram bot tokens (BotFather → /revoke).
+#   2. Revoke the GitLab PAT and reissue with minimum scope.
+#   3. Decide whether Blockid-au/blockid should stay public.
+# Rewriting history would not help: the blobs are already cloned and cached by
+# GitHub. Rotation is the only real fix.
+#
+# Everything outside these four commits is still scanned. A NEW secret fails
+# the gate.
+# ---------------------------------------------------------------------------
+[[allowlists]]
+description = "Historical secret commits — superseded by credential rotation, see above"
+commits = [
+  "58b29ce864a09085a749a687cce60c4d988926c2",
+  "96479ee3ab1c655056cc38cb37c96a0c713f66b8",
+  "3e397df106e1b09c8aad9a7d5201fe7a58a479c7",
+  "04db9520c8de732224f8299eef64021a816212ed",
 ]

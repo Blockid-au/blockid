@@ -180,7 +180,7 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
             {locale === "vi" ? "Xem showcase" : "View the showcase"}
           </Link>
           <Link
-            href="/guide/reports"
+            href="/sample"
             className="rounded-md border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:text-emerald-300"
           >
             {locale === "vi" ? "Thư viện báo cáo" : "Browse the report library"}

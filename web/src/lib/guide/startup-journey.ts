@@ -279,8 +279,8 @@ const CHAPTERS: Chapter[] = [
       ],
     },
     showcaseExample: {
-      en: "BlockID.au's Chapter 3 pack lives in the /guide/reports gallery under Phase 3 — three CMO deep-research memos, one competitor matrix, one AU-raises benchmark. Notice the matrix leaves two cells red: 'brand recognition' and 'existing accelerator relationships'. That admission became the reseller strategy (Track A).",
-      vi: "Gói Chương 3 của BlockID.au nằm trong thư viện /guide/reports mục Phase 3 — ba ghi chú nghiên cứu sâu CMO, một ma trận đối thủ, một benchmark AU. Chú ý ma trận để đỏ hai ô: 'nhận diện thương hiệu' và 'quan hệ với accelerator'. Sự thừa nhận đó trở thành chiến lược đại lý (Track A).",
+      en: "BlockID.au's Chapter 3 pack is summarised in the /sample report hub — three CMO deep-research memos, one competitor matrix, one AU-raises benchmark. Notice the matrix leaves two cells red: 'brand recognition' and 'existing accelerator relationships'. That admission became the reseller strategy (Track A).",
+      vi: "Gói Chương 3 của BlockID.au được tóm tắt trong trang mẫu /sample — ba ghi chú nghiên cứu sâu CMO, một ma trận đối thủ, một benchmark AU. Chú ý ma trận để đỏ hai ô: 'nhận diện thương hiệu' và 'quan hệ với accelerator'. Sự thừa nhận đó trở thành chiến lược đại lý (Track A).",
     },
     cta: {
       en: "Book five customer calls this week. Feed the transcripts into the CMO persona agent — that combination beats any purely synthetic research.",
@@ -536,8 +536,8 @@ const CHAPTERS: Chapter[] = [
       ],
     },
     showcaseExample: {
-      en: "BlockID.au's Chapter 6 pack — financial-model.xlsx, pricing-memo.md, gst-readiness.md — is in the /guide/reports gallery under Phase 6. Notice the pricing memo recommends a reseller-wholesale tier (40% margin share) that the CFO ran once for the base scenario and once assuming the accelerator partner didn't sign. Both scenarios flow into the same milestone `financials_v1`.",
-      vi: "Gói Chương 6 của BlockID.au — financial-model.xlsx, pricing-memo.md, gst-readiness.md — nằm trong thư viện /guide/reports mục Phase 6. Chú ý memo giá đề xuất một bậc wholesale cho đại lý (chia biên 40%) mà CFO chạy một lần cho kịch bản cơ sở và một lần giả định đối tác accelerator không ký. Cả hai đổ về cùng milestone `financials_v1`.",
+      en: "BlockID.au's Chapter 6 pack — financial-model.xlsx, pricing-memo.md, gst-readiness.md — is summarised in the /sample report hub. Notice the pricing memo recommends a reseller-wholesale tier (40% margin share) that the CFO ran once for the base scenario and once assuming the accelerator partner didn't sign. Both scenarios flow into the same milestone `financials_v1`.",
+      vi: "Gói Chương 6 của BlockID.au — financial-model.xlsx, pricing-memo.md, gst-readiness.md — được tóm tắt trong trang mẫu /sample. Chú ý memo giá đề xuất một bậc wholesale cho đại lý (chia biên 40%) mà CFO chạy một lần cho kịch bản cơ sở và một lần giả định đối tác accelerator không ký. Cả hai đổ về cùng milestone `financials_v1`.",
     },
     cta: {
       en: "Book two hours this week to sit with the CFO assumption cards. Override at least three; approve the rest. The projection is only as strong as your willingness to push back on the defaults.",
@@ -650,8 +650,8 @@ const CHAPTERS: Chapter[] = [
       ],
     },
     showcaseExample: {
-      en: "BlockID.au's own weekly SVI cron fires Sunday 03:15 UTC (13:15 AEST). Look at /showcase/blockid — the growth strip shows the three-week trailing SVI slope, and the /guide/reports Phase 7 bucket carries the last four growth-playbook revisions. Notice the playbook was rewritten at week five when the accelerator channel out-performed content by 3x.",
-      vi: "Cron SVI hàng tuần của chính BlockID.au chạy Chủ Nhật 03:15 UTC (13:15 AEST). Xem /showcase/blockid — dải tăng trưởng hiển thị độ dốc SVI ba tuần trailing, và mục Phase 7 của /guide/reports mang bốn phiên bản playbook tăng trưởng gần nhất. Chú ý playbook được viết lại ở tuần thứ năm khi kênh accelerator vượt content gấp 3 lần.",
+      en: "BlockID.au's own weekly SVI cron fires Sunday 03:15 UTC (13:15 AEST). Look at /showcase/blockid — the growth strip shows the three-week trailing SVI slope, and the /sample hub carries the matching growth-playbook excerpts. Notice the playbook was rewritten at week five when the accelerator channel out-performed content by 3x.",
+      vi: "Cron SVI hàng tuần của chính BlockID.au chạy Chủ Nhật 03:15 UTC (13:15 AEST). Xem /showcase/blockid — dải tăng trưởng hiển thị độ dốc SVI ba tuần trailing, và trang /sample mang các trích đoạn playbook tăng trưởng tương ứng. Chú ý playbook được viết lại ở tuần thứ năm khi kênh accelerator vượt content gấp 3 lần.",
     },
     cta: {
       en: "Block a 90-minute Chapter 7 session: wire GA4, flip Stripe live, set the SVI cron day. Then commit to reading the first three weekly deltas out loud with a co-founder — the first three are where the pattern shows.",
@@ -765,8 +765,8 @@ const CHAPTERS: Chapter[] = [
       ],
     },
     showcaseExample: {
-      en: "BlockID.au's Chapter 8 milestone `team_v1` and its ESOP scheme doc live in the /guide/reports Phase 8 bucket. The Div83A check flagged one early grant amber (grant date pre-dated the first valuation by three weeks); the fix — a re-grant at the first-valuation date — is documented in the follow-up note. Investors read that trail and take it as evidence of good governance, not as a red flag.",
-      vi: "Milestone `team_v1` Chương 8 của BlockID.au và tài liệu scheme ESOP nằm trong mục Phase 8 của /guide/reports. Bộ kiểm tra Div83A đánh dấu một grant sớm màu vàng (ngày grant sớm hơn định giá đầu tiên ba tuần); cách sửa — phát hành lại vào ngày định giá đầu tiên — được ghi trong ghi chú tiếp theo. Nhà đầu tư đọc dấu vết đó như bằng chứng quản trị tốt, không phải cờ đỏ.",
+      en: "BlockID.au's Chapter 8 milestone `team_v1` and its ESOP scheme doc are summarised in the /sample report hub. The Div83A check flagged one early grant amber (grant date pre-dated the first valuation by three weeks); the fix — a re-grant at the first-valuation date — is documented in the follow-up note. Investors read that trail and take it as evidence of good governance, not as a red flag.",
+      vi: "Milestone `team_v1` Chương 8 của BlockID.au và tài liệu scheme ESOP được tóm tắt trong trang mẫu /sample. Bộ kiểm tra Div83A đánh dấu một grant sớm màu vàng (ngày grant sớm hơn định giá đầu tiên ba tuần); cách sửa — phát hành lại vào ngày định giá đầu tiên — được ghi trong ghi chú tiếp theo. Nhà đầu tư đọc dấu vết đó như bằng chứng quản trị tốt, không phải cờ đỏ.",
     },
     cta: {
       en: "Draft the ESOP scheme this week; run the Div83A checker on any grants already made. If you have the Share Management add-on, walk the CHRO's cap-table draft with a co-founder before approving each row — three eyes catch what two miss.",
@@ -801,7 +801,7 @@ const CHAPTERS: Chapter[] = [
             "When to start the ritual: earliest at team_v1 milestone (this chapter) once you have three or more people. Below three people it is just a hackathon on a normal Saturday. Above three people the cadence stops slipping if you protect it with a recurring calendar block owned by the CEO — not the CHRO — so it survives when hiring gets busy.",
             "How to record it in the workspace: create a workspace project 'shipit-{quarter}' at the start of each quarter; the CHRO agent will draft the pitch-log template, the CEO agent will draft a one-page retrospective the following Monday summarising which entries the team wants to keep building. Both docs land in data-room folder 6 (Team & Advisors) under 'Culture rituals' — a small but visible cultural artefact when a Chapter 9 investor asks how the team spends its slack time.",
             "AU nuance: ShipIt hours worked by permanent staff count as ordinary hours under the Fair Work Act 2009 National Employment Standards, not as unpaid overtime — pay staff for the day, pay any casual at their base rate. Contractors who join ShipIt do so under their existing services agreement; do NOT extend the deed for a one-day sprint without a variation letter or the ownership of any output can be contested later.",
-            "How BlockID.au surfaces this: the Chapter 8 CTA (`team_v1`) now links out to /guide/reports Phase 8 with a ShipIt template kit — pitch log, retro template, and a one-page 'why we picked this ritual' brief drafted by the CHRO agent for anyone who needs to sell the block-time to a founding team that has never run one.",
+            "How BlockID.au surfaces this: the Chapter 8 CTA (`team_v1`) now links out to /sample with a ShipIt template kit — pitch log, retro template, and a one-page 'why we picked this ritual' brief drafted by the CHRO agent for anyone who needs to sell the block-time to a founding team that has never run one.",
           ],
           vi: [
             "ShipIt là gì: hackathon 24 giờ nội bộ của Atlassian, khởi động năm 2005 (ban đầu tên 'FedEx Day' — giao hàng trong 24 giờ). Bất kỳ nhân viên nào cũng có thể lập đội, đề xuất ý tưởng trong phạm vi công ty, và demo sản phẩm hoạt động sau 24 giờ. Người thắng do đồng nghiệp bình chọn, không phải quản lý. Chạy hàng quý; mỗi quý, không ngoại lệ, hơn 20 năm.",
@@ -811,7 +811,7 @@ const CHAPTERS: Chapter[] = [
             "Khi nào bắt đầu nghi thức: sớm nhất tại mốc team_v1 (chương này) khi đã có ba người trở lên. Dưới ba người chỉ là hackathon trên một Thứ Bảy bình thường. Trên ba người, cadence sẽ ngừng trôi nếu bạn bảo vệ nó bằng một block lịch định kỳ do CEO sở hữu — không phải CHRO — để nó tồn tại khi tuyển dụng bận rộn.",
             "Cách ghi lại trong workspace: tạo project workspace 'shipit-{quý}' vào đầu mỗi quý; đại lý CHRO sẽ soạn mẫu nhật ký pitch, đại lý CEO sẽ soạn tóm tắt hồi cứu một trang vào thứ Hai kế tiếp về những bài đội muốn xây tiếp. Cả hai tài liệu vào data-room folder 6 (Team & Advisors) dưới 'Culture rituals' — một artefact văn hoá nhỏ nhưng nhìn thấy được khi nhà đầu tư Chương 9 hỏi đội dùng thời gian rảnh như thế nào.",
             "Điều đặc thù AU: giờ ShipIt của nhân viên chính thức tính là giờ thường theo National Employment Standards của Fair Work Act 2009, không phải overtime không lương — trả lương cho ngày đó, trả nhân viên casual theo mức cơ bản. Nhà thầu tham gia ShipIt theo hợp đồng dịch vụ hiện có; KHÔNG mở rộng deed cho một sprint một ngày mà không có variation letter, nếu không quyền sở hữu bất kỳ output nào có thể bị tranh chấp sau này.",
-            "BlockID.au bề mặt hoá thế nào: CTA Chương 8 (`team_v1`) giờ liên kết ra /guide/reports Phase 8 kèm bộ mẫu ShipIt — nhật ký pitch, mẫu retro, và bản tóm tắt một trang 'tại sao chúng tôi chọn nghi thức này' do đại lý CHRO soạn cho ai cần thuyết phục đội sáng lập chưa từng chạy chưa quen với việc chặn khối thời gian này.",
+            "BlockID.au bề mặt hoá thế nào: CTA Chương 8 (`team_v1`) giờ liên kết ra /sample kèm bộ mẫu ShipIt — nhật ký pitch, mẫu retro, và bản tóm tắt một trang 'tại sao chúng tôi chọn nghi thức này' do đại lý CHRO soạn cho ai cần thuyết phục đội sáng lập chưa từng chạy chưa quen với việc chặn khối thời gian này.",
           ],
         },
       },
@@ -919,8 +919,8 @@ const CHAPTERS: Chapter[] = [
       ],
     },
     showcaseExample: {
-      en: "BlockID.au's Chapter 9 pack is live in /guide/reports Phase 9. Notice the audit report flagged the projection's Bear-scenario CAC at $180 while the pricing memo assumed $120 — the fix (a footnote reconciling the two) is documented, and the milestone `investor_ready` only flipped after that inconsistency landed a green check. That kind of visible trail is what investors read as governance maturity.",
-      vi: "Gói Chương 9 của BlockID.au đang chạy tại /guide/reports Phase 9. Chú ý audit report đánh dấu CAC kịch bản Bear là $180 trong khi memo giá giả định $120 — cách sửa (footnote hoà giải hai con số) đã được ghi, và milestone `investor_ready` chỉ bật sau khi bất nhất đó nhận dấu xanh. Loại dấu vết nhìn thấy được đó chính là điều nhà đầu tư đọc như sự chín chắn quản trị.",
+      en: "BlockID.au's Chapter 9 pack is summarised in the /sample report hub. Notice the audit report flagged the projection's Bear-scenario CAC at $180 while the pricing memo assumed $120 — the fix (a footnote reconciling the two) is documented, and the milestone `investor_ready` only flipped after that inconsistency landed a green check. That kind of visible trail is what investors read as governance maturity.",
+      vi: "Gói Chương 9 của BlockID.au được tóm tắt trong trang mẫu /sample. Chú ý audit report đánh dấu CAC kịch bản Bear là $180 trong khi memo giá giả định $120 — cách sửa (footnote hoà giải hai con số) đã được ghi, và milestone `investor_ready` chỉ bật sau khi bất nhất đó nhận dấu xanh. Loại dấu vết nhìn thấy được đó chính là điều nhà đầu tư đọc như sự chín chắn quản trị.",
     },
     cta: {
       en: "Set aside one full afternoon this week for the auditor pass. Read every red-flag out loud with a co-founder — reading aloud surfaces the awkward phrasings that will blow up in an investor Q&A.",
@@ -997,8 +997,8 @@ const CHAPTERS: Chapter[] = [
       ],
     },
     showcaseExample: {
-      en: "BlockID.au itself is pre-revenue at Phase 10 for now, so the /showcase/blockid page renders the milestone as 'planned, not yet triggered' with a link back to the /guide/reports Phase 10 sample pack that shows the artefacts a real Phase-10 team produces. When BlockID.au closes its own first round, the milestone will flip live automatically — that is the point of dogfooding.",
-      vi: "Bản thân BlockID.au ở Phase 10 hiện chưa có doanh thu, nên trang /showcase/blockid hiển thị milestone là 'dự kiến, chưa kích hoạt' với liên kết về gói mẫu Phase 10 trong /guide/reports cho thấy các sản phẩm mà đội Phase-10 thực sự tạo ra. Khi BlockID.au đóng vòng đầu, milestone sẽ tự động bật — đó chính là điểm của việc dogfood chính mình.",
+      en: "BlockID.au itself is pre-revenue at Phase 10 for now, so the /showcase/blockid page renders the milestone as 'planned, not yet triggered' with a link back to the /sample report hub that shows the artefacts a real Phase-10 team produces. When BlockID.au closes its own first round, the milestone will flip live automatically — that is the point of dogfooding.",
+      vi: "Bản thân BlockID.au ở Phase 10 hiện chưa có doanh thu, nên trang /showcase/blockid hiển thị milestone là 'dự kiến, chưa kích hoạt' với liên kết về trang mẫu /sample cho thấy các sản phẩm mà đội Phase-10 thực sự tạo ra. Khi BlockID.au đóng vòng đầu, milestone sẽ tự động bật — đó chính là điểm của việc dogfood chính mình.",
     },
     cta: {
       en: "Do not accept the first term sheet in the room. Run the AI + CLO review, read the AU-comparable-raises benchmark, and come back with a counter that adjusts at least two clauses — investors expect this and respect founders who negotiate calmly with data.",

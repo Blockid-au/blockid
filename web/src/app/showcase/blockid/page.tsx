@@ -365,7 +365,7 @@ export default async function ShowcaseBlockidPage() {
               Score my startup
             </Link>
             <Link
-              href="/guide/reports"
+              href="/sample"
               className="rounded-md border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:text-emerald-300"
             >
               Browse report templates
