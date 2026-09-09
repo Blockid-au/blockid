@@ -168,9 +168,15 @@ const DATA_ROOM_ITEMS: DataRoomItemDef[] = [
 const CATEGORIES = Array.from(new Set(DATA_ROOM_ITEMS.map((i) => i.category)));
 
 export default async function DataRoomPage() {
+  // No minTier. `data_room.access` is the authority — the "growth" floor that
+  // used to sit here was a restatement of which plans carried the flag, and it
+  // was checked FIRST, so it redirected a Starter subscriber to /pricing before
+  // can() was ever consulted. That is how the flag drifted from the behaviour:
+  // moving `data_room.access` down to founder_starter (A$29, migration 0131)
+  // would have changed nothing at all while this floor stood, and the homepage
+  // sells the A$29 rung this exact page. Same reasoning as /workspace/esop.
   await requireTierForPage({
     feature: "data_room.access",
-    minTier: "growth",
     fromPath: "/workspace/data-room",
   });
 

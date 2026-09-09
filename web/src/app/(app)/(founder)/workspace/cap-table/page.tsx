@@ -15,11 +15,20 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function CapTablePage() {
-  // Server-side tier gate — redirects unauthenticated to /auth/login and
-  // sub-tier users to /pricing?feature=... before we touch the DB.
+  // Server-side gate — redirects unauthenticated to /auth/login and users
+  // without the flag to /pricing?feature=... before we touch the DB.
+  //
+  // No minTier. `cap_table.write` sits on exactly founder_growth and above
+  // (plans.csv), so the "growth" floor that used to sit alongside it granted
+  // and denied precisely the same set — it was a restatement, not a second
+  // check. What it did add was a failure mode: requireTierForPage evaluates
+  // the tier FIRST and redirects before can() runs, so any per-user grant of
+  // `cap_table.write` (an add-on, a support override) would have been
+  // invisible here while the matching /api/cap-table routes, which have no
+  // tier notion, let the same user straight through. That mismatch has
+  // already bitten once on /workspace/esop. One authority: the flag.
   await requireTierForPage({
     feature: "cap_table.write",
-    minTier: "growth",
     fromPath: "/workspace/cap-table",
   });
 
