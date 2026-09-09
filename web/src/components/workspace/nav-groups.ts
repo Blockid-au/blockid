@@ -311,12 +311,17 @@ const BUILD_SUBGROUPS: NavSubgroup[] = [
       // base subscription. Without the key a locked row links to
       // /workspace/billing, which is the truth: this needs a plan.
       //
-      // minPlan is left as it was. It is arguably too low (cap_table.write is
-      // a Growth flag) but that predates the add-on and changing it here would
-      // hide rows from starter users as a side effect of a pricing fix.
+      // minPlan stays at "starter" so nobody is hidden from a row they can
+      // see today. What changed on 2026-09-09 is the Cap Table row: its page
+      // gates on `cap_table.write`, which founder_starter does not hold, so a
+      // A$29 subscriber saw an ordinary, unlocked link and was bounced to
+      // /pricing on click. `lockedWithoutFeature` renders that row dimmed with
+      // a lock and points it at /workspace/billing — the same truth the page
+      // gate tells, told before the click instead of after it. No addOnKey:
+      // the A$59 Equity add-on does not grant cap_table.write, a plan does.
       { href: "/workspace/equity-setup", label: "Equity Setup", icon: Wand2, minPlan: "starter", minTier: "starter", growthPhase: 2 },
       { href: "/workspace/equity", label: "Equity Split", icon: PieChart, minPlan: "starter", minTier: "starter", growthPhase: 2 },
-      { href: "/workspace/cap-table", label: "Cap Table", icon: Table2, minPlan: "starter", minTier: "starter", growthPhase: 2 },
+      { href: "/workspace/cap-table", label: "Cap Table", icon: Table2, minPlan: "starter", minTier: "starter", lockedWithoutFeature: "cap_table.write", growthPhase: 2 },
       { href: "/workspace/shareholders", label: "Shareholders", icon: Shield, minPlan: "starter", minTier: "starter", growthPhase: 2 },
     ],
   },
@@ -428,7 +433,12 @@ const SCALE_EXIT_SUBGROUPS: NavSubgroup[] = [
     items: [
       { href: "/workspace/exit", label: "Exit Modeling", icon: DoorOpen, minPlan: "growth", minTier: "growth", growthPhase: 5 },
       { href: "/workspace/exit-strategy", label: "Exit Strategy Builder", icon: TrendingUp, minPlan: "growth", minTier: "growth", growthPhase: 5 },
-      { href: "/dashboard/exit-readiness", label: "Exit Benchmark", icon: BarChart3, minPlan: "starter", minTier: "starter", growthPhase: 5 },
+      // The page behind this row calls requireTierForPage({ minTier: "growth" }).
+      // At "starter" the row rendered unlocked and dead-ended on /pricing; the
+      // floor here now restates the floor the page enforces, so a Starter sees
+      // it dimmed with a lock instead of being bounced. Nobody loses a row:
+      // under-plan items render locked, not hidden.
+      { href: "/dashboard/exit-readiness", label: "Exit Benchmark", icon: BarChart3, minPlan: "growth", minTier: "growth", growthPhase: 5 },
     ],
   },
 ];

@@ -413,6 +413,33 @@ describe("NAV_GROUPS — group-specific pins", () => {
     ).toBe("vesting.read");
   });
 
+  // 2026-09-09 nav/gate reconciliation. Each row below is visible to a tier
+  // whose plan does not grant what the page behind it enforces. The sidebar
+  // must say so before the click — a lock, or a floor — never an ordinary
+  // link that dead-ends on /pricing.
+  it("marks Cap Table locked on the flag its page enforces, not on tier alone", () => {
+    const build = NAV_GROUPS.find((g) => g.id === "build")!;
+    const capTable = build
+      .subgroups!.flatMap((sg) => sg.items)
+      .find((l) => l.href === "/workspace/cap-table")!;
+    // The page calls requireTierForPage({ feature: "cap_table.write" }).
+    expect(capTable.lockedWithoutFeature).toBe("cap_table.write");
+    // Still visible to a Starter — locked, not hidden — and pointed at a plan
+    // rather than the Equity add-on, which does not grant this flag.
+    expect(capTable.minTier).toBe("starter");
+    expect(capTable.addOnKey).toBeUndefined();
+  });
+
+  it("floors Exit Benchmark at the tier its page enforces", () => {
+    const scaleExit = NAV_GROUPS.find((g) => g.id === "scale-exit")!;
+    const bench = scaleExit
+      .subgroups!.flatMap((sg) => sg.items)
+      .find((l) => l.href === "/dashboard/exit-readiness")!;
+    // The page calls requireTierForPage({ minTier: "growth" }).
+    expect(bench.minTier).toBe("growth");
+    expect(bench.minPlan).toBe("growth");
+  });
+
   it("gates every Roles subgroup on a segments filter or a required-feature", () => {
     const roles = NAV_GROUPS.find((g) => g.id === "roles")!;
     for (const sg of roles.subgroups!) {
