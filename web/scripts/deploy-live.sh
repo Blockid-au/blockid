@@ -70,6 +70,15 @@ PROD_PORT=4001
 GATE_PASSED=0
 GATE_TOTAL=0
 LKG_FILE="$WEB_DIR/content/reports/last-good-build.json"
+DEPLOY_LOG="$WEB_DIR/content/reports/deploy-log.jsonl"
+GATE_SKIPPED=0
+GITLEAKS_STATUS="ok"        # "skipped" when the binary is absent — recorded in the JSONL
+# SWAPPED flips to 1 the instant Gate 8 takes the old process off $PROD_PORT.
+# Before that, a failure really is harmless ("old build still running").
+# After it, the new build IS live, so fail() must roll back instead of lying.
+SWAPPED=0
+ROLLBACK_STATUS="n/a"
+ROLLBACK_HTTP=""
 
 cd "$WEB_DIR"
 
@@ -114,14 +123,109 @@ pass() {
   echo "  ✅ $1"
 }
 
+skip() {
+  GATE_SKIPPED=$((GATE_SKIPPED + 1))
+  echo "  ⏭  SKIPPED: $1"
+}
+
+# Append one line to the deploy JSONL. Called on BOTH the success and the
+# failure path — the log must never claim success for a run that failed.
+write_deploy_log() {
+  local status="$1" reason="${2:-}"
+  local ts note_json reason_json
+  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  note_json=$(printf '%s' "${DEPLOY_NOTE:-Triển khai từ src lên public}" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo '"deploy"')
+  reason_json=$(printf '%s' "$reason" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo '""')
+  mkdir -p "$(dirname "$DEPLOY_LOG")" 2>/dev/null || true
+  printf '{"ts":"%s","status":"%s","gates":"%s/%s","skipped":%s,"gitleaks":"%s","swapped":%s,"rollback":"%s","pid":"%s","reason":%s,"note":%s}\n' \
+    "$ts" "$status" "$GATE_PASSED" "$GATE_TOTAL" "$GATE_SKIPPED" "$GITLEAKS_STATUS" "$SWAPPED" "$ROLLBACK_STATUS" \
+    "$(cat "$PID_FILE" 2>/dev/null)" "$reason_json" "$note_json" >> "$DEPLOY_LOG" 2>/dev/null || true
+}
+
+# Post-swap rollback. Once Gate 8 has swapped, the broken build is serving
+# production, so an abort MUST put the previous release back rather than just
+# print. Restores $PREV_LINK, restarts it on $PROD_PORT and re-verifies 200.
+# Sets ROLLBACK_STATUS = success | failed | unavailable, ROLLBACK_HTTP = code.
+rollback_after_swap() {
+  local prev http i
+  prev="$(readlink -f "$PREV_LINK" 2>/dev/null || true)"
+  if [ -z "$prev" ] || [ ! -f "$prev/server.js" ]; then
+    ROLLBACK_STATUS="unavailable"
+    ROLLBACK_HTTP="000"
+    echo "  ❌ No previous release to roll back to ($PREV_LINK)"
+    rollback_log "failed" "auto-post-swap:none" "000" "0"
+    return 1
+  fi
+  echo "  ↩  Rolling back to previous release: $(basename "$prev")"
+  if [ -f "$PID_FILE" ]; then kill "$(cat "$PID_FILE")" 2>/dev/null || true; fi
+  fuser -k $PROD_PORT/tcp 2>/dev/null || true
+  sleep 2
+  export PORT=$PROD_PORT
+  if ! cd "$prev"; then
+    ROLLBACK_STATUS="failed"; ROLLBACK_HTTP="000"
+    rollback_log "failed" "auto-post-swap:$(basename "$prev")" "000" "0"
+    return 1
+  fi
+  nohup node server.js > "$LOG" 2>&1 9>&- 200>&- &
+  echo $! > "$PID_FILE"
+  cd "$WEB_DIR" || true
+  # The restored release is live again; it is no longer the rollback target.
+  ln -sfn "$prev" "$CURRENT_LINK"
+  http="000"
+  for i in $(seq 1 20); do
+    sleep 1
+    http=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$PROD_PORT/" 2>/dev/null || echo "000")
+    [ "$http" = "200" ] && break
+  done
+  ROLLBACK_HTTP="$http"
+  if [ "$http" = "200" ]; then
+    ROLLBACK_STATUS="success"
+    rollback_log "success" "auto-post-swap:$(basename "$prev")" "$http" "$(cat "$PID_FILE" 2>/dev/null)"
+    return 0
+  fi
+  ROLLBACK_STATUS="failed"
+  rollback_log "failed" "auto-post-swap:$(basename "$prev")" "$http" "$(cat "$PID_FILE" 2>/dev/null)"
+  return 1
+}
+
 fail() {
-  echo "  ❌ GATE FAILED: $1"
+  local reason="$1"
+  echo "  ❌ GATE FAILED: $reason"
   echo ""
-  echo "════════════════════════════════════════════"
-  echo "  DEPLOY ABORTED ($GATE_PASSED/$GATE_TOTAL gates passed)"
-  echo "  Old build is still running. No damage."
-  echo "  Fix the issue and try again."
-  echo "════════════════════════════════════════════"
+  if [ "$SWAPPED" = "1" ]; then
+    # Gate 8 already swapped: the failing build IS production right now.
+    echo "════════════════════════════════════════════"
+    echo "  DEPLOY FAILED AFTER SWAP ($GATE_PASSED/$GATE_TOTAL gates passed)"
+    echo "  ⚠ The NEW build is ALREADY LIVE on port $PROD_PORT — 'no damage' does NOT apply."
+    echo "  Rolling back to the previous release now..."
+    echo "════════════════════════════════════════════"
+    if rollback_after_swap; then
+      echo ""
+      echo "════════════════════════════════════════════"
+      echo "  ✅ ROLLBACK SUCCEEDED"
+      echo "  Live again: release $(basename "$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo unknown)") — HTTP $ROLLBACK_HTTP, PID $(cat "$PID_FILE" 2>/dev/null)"
+      echo "  The broken build (${BUILD_ID:-unknown}) is NOT serving traffic."
+      echo "  Fix the issue and try again."
+      echo "════════════════════════════════════════════"
+    else
+      echo ""
+      echo "🔥🔥🔥════════════════════════════════════════════🔥🔥🔥"
+      echo "  ROLLBACK FAILED ($ROLLBACK_STATUS) — PRODUCTION IS NOT HEALTHY"
+      echo "  Port $PROD_PORT last answered HTTP ${ROLLBACK_HTTP:-000}."
+      echo "  The site is DOWN or serving a broken build. Act now:"
+      echo "    bash scripts/deploy-live.sh --rollback"
+      echo "    tail -50 $LOG"
+      echo "🔥🔥🔥════════════════════════════════════════════🔥🔥🔥"
+    fi
+  else
+    # Nothing has been swapped yet — today's message is accurate here.
+    echo "════════════════════════════════════════════"
+    echo "  DEPLOY ABORTED ($GATE_PASSED/$GATE_TOTAL gates passed)"
+    echo "  Old build is still running. No damage."
+    echo "  Fix the issue and try again."
+    echo "════════════════════════════════════════════"
+  fi
+  write_deploy_log "failed" "$reason"
   exit 1
 }
 
@@ -268,8 +372,9 @@ fi
 gate "Secret scan (gitleaks)"
 
 if ! command -v gitleaks >/dev/null 2>&1; then
-  echo "  ⚠ gitleaks not installed — skipping secret scan (pre-commit hook still enforces)"
-  pass "Secret scan skipped (binary missing)"
+  echo "  ⚠ gitleaks not installed — secret scan did NOT run (pre-commit hook still enforces)"
+  GITLEAKS_STATUS="skipped"
+  skip "Secret scan (gitleaks binary missing) — not counted as a pass"
 else
   GITLEAKS_CONFIG=""
   if [ -f "$WEB_DIR/.gitleaks.toml" ]; then
@@ -390,12 +495,17 @@ if [ "${1:-}" != "--skip-build" ] && [ "${1:-}" != "--quick" ]; then
 # ══════════════════════════════════════════════════════════════════════
   gate "ESLint"
 
-  LINT_EXIT=0
-  timeout 30 npm run lint 2>&1 | tail -5 || LINT_EXIT=$?
-  # Exit code 124 = timeout; treat as non-fatal (linter bug, not code issue)
+  LINT_TIMEOUT="${LINT_TIMEOUT:-30}"
+  # PIPESTATUS[0], not `$?` — piping to tail otherwise masks the real exit
+  # code (the same false-pass bug Gate 4b and Gate 11 already document).
+  set +e
+  timeout "$LINT_TIMEOUT" npm run lint 2>&1 | tail -5
+  LINT_EXIT=${PIPESTATUS[0]}
+  set -e
+  # Exit code 124 = timeout. A lint that timed out did not run, so it cannot
+  # be a pass: it is exactly as unverified as a lint that errored. Fail.
   if [ "$LINT_EXIT" -eq 124 ]; then
-    echo "  ⚠ ESLint timeout (>30s) — likely Node.js memory issue, skipping"
-    LINT_EXIT=0
+    fail "ESLint timed out after ${LINT_TIMEOUT}s — the lint did not run, so this deploy is unverified. Re-run, or raise LINT_TIMEOUT."
   fi
   if [ "$LINT_EXIT" -ne 0 ]; then
     fail "ESLint found errors. Fix before deploy."
@@ -709,7 +819,11 @@ echo "  ✅ Temp server healthy"
 # /analyze?tier=paid orphaned it, because /analyze never called that API.
 # Asserting a redirect here would re-break the sale. It must serve 200.
 SMOKE_FAIL=0
-for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/analyze" "/tools/idea-valuation" "/one-click-report"; do
+# Counts below are derived from these arrays so the summary line can never
+# drift from what is actually probed (it used to claim "6" while checking 8+1).
+SMOKE_PATHS=("/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/analyze" "/tools/idea-valuation" "/one-click-report")
+SMOKE_REDIRECTS=("/score")
+for path in "${SMOKE_PATHS[@]}"; do
   SC=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$TEMP_PORT$path" 2>/dev/null)
   if [ "$SC" = "200" ]; then
     echo "  ✅ $path → $SC"
@@ -718,7 +832,7 @@ for path in "/" "/auth/login" "/pricing" "/api/auth/me" "/index" "/analyze" "/to
     SMOKE_FAIL=$((SMOKE_FAIL + 1))
   fi
 done
-for legacy in "/score"; do
+for legacy in "${SMOKE_REDIRECTS[@]}"; do
   SC=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$TEMP_PORT$legacy" 2>/dev/null)
   if [ "$SC" = "301" ] || [ "$SC" = "308" ]; then
     echo "  ✅ $legacy → $SC (redirect to /analyze)"
@@ -757,7 +871,7 @@ if [ "$SMOKE_FAIL" -gt 0 ]; then
   fi
   fail "$SMOKE_FAIL endpoints returned non-200"
 fi
-pass "All 6 smoke test endpoints healthy"
+pass "All ${#SMOKE_PATHS[@]} smoke endpoints (200) + ${#SMOKE_REDIRECTS[@]} redirect healthy"
 
 # ══════════════════════════════════════════════════════════════════════
 # GATE 7: Supabase Query Test from New Build
@@ -826,6 +940,10 @@ if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/n
 fi
 fuser -k $PROD_PORT/tcp 2>/dev/null || true
 sleep 2
+# ── POINT OF NO RETURN ────────────────────────────────────────────────
+# The old process is gone. From here a failure cannot be shrugged off with
+# "old build still running" — fail() must roll back. See fail() above.
+SWAPPED=1
 
 # Start new on production port — from the immutable release dir.
 export PORT=$PROD_PORT
@@ -858,8 +976,9 @@ echo "  Errors: $ERRORS in startup logs"
 if [ "$LOCAL" = "200" ] && [ "$AUTH" = "ok" ]; then
   pass "Production verified"
 else
-  echo "  ⚠ Verification issues detected. Check logs: $LOG"
-  echo "  Rollback: bash scripts/deploy-live.sh --rollback"
+  echo "  Last 20 lines of $LOG:"
+  tail -20 "$LOG" || true
+  fail "Post-deploy verification failed (local HTTP $LOCAL, auth $AUTH) — the swapped-in build is not serving correctly"
 fi
 
 # ══════════════════════════════════════════════════════════════════════
@@ -973,7 +1092,7 @@ pass "Post-deploy hydrated smoke passed against $PLAYWRIGHT_BASE_URL"
 echo ""
 echo "════════════════════════════════════════════"
 echo "  ✅ DEPLOY COMPLETE"
-echo "  Gates: $GATE_PASSED/$GATE_TOTAL passed"
+echo "  Gates: $GATE_PASSED/$GATE_TOTAL passed$([ "$GATE_SKIPPED" -gt 0 ] && echo " ($GATE_SKIPPED skipped — see \"gitleaks\" in deploy-log.jsonl)")"
 echo "  PID:   $(cat "$PID_FILE")"
 echo "  Release: ${BUILD_ID:-?} (releases/${BUILD_ID:-?})"
 echo "  Local: HTTP $LOCAL"
@@ -987,12 +1106,11 @@ echo "════════════════════════�
 # The daily Telegram report reads THIS as "work shipped today" — NOT git.
 # Describe the release with:  DEPLOY_NOTE="what shipped" bash scripts/deploy-live.sh
 # ══════════════════════════════════════════════════════════════════════
-DEPLOY_LOG="$WEB_DIR/content/reports/deploy-log.jsonl"
-mkdir -p "$(dirname "$DEPLOY_LOG")"
 DEPLOY_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 DEPLOY_NOTE_JSON=$(printf '%s' "${DEPLOY_NOTE:-Triển khai từ src lên public}" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo '"Trien khai tu src len public"')
-printf '{"ts":"%s","status":"success","gates":"%s/%s","pid":"%s","note":%s}\n' \
-  "$DEPLOY_TS" "$GATE_PASSED" "$GATE_TOTAL" "$(cat "$PID_FILE" 2>/dev/null)" "$DEPLOY_NOTE_JSON" >> "$DEPLOY_LOG"
+# Only reachable when every gate passed and nothing called fail(); every
+# failure path logs "failed" from write_deploy_log() inside fail().
+write_deploy_log "success" ""
 echo "  📝 Deploy event logged → content/reports/deploy-log.jsonl"
 
 # ══════════════════════════════════════════════════════════════════════
