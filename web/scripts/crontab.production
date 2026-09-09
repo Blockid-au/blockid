@@ -102,13 +102,13 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # quota-match error text), Telegram alert on new degradations.
 # Both blockid.au (in-process) and startupvalueindex.com (via /api/ai/registry)
 # consume the registry.
-*/30 * * * * curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/ai-health-check >> /var/log/blockid/ai-health-check.log 2>&1
+*/30 * * * * bash $RUN ai-health-check
 
 # Weekly Sunday 04:00 UTC: crawl OpenRouter/Groq/SambaNova/Cerebras catalogues,
 # rank by (context length, known-good family, prior-check latency), write top-10
 # candidates to content/ai-model-candidates.json, auto-inject top-3 into the
 # active chain. Falls back to prior candidates on OpenRouter 500.
-0 4 * * 0 curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/ai-model-discovery >> /var/log/blockid/ai-model-discovery.log 2>&1
+0 4 * * 0 bash $RUN ai-model-discovery
 30 21 * * * bash $RUN publish-insight --timeout 120
 
 # ── Phase 5: QA + Security + Performance (8:00am AEST) ────────
@@ -464,14 +464,14 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # window since Sydney sits between UTC+10 and UTC+11 — target the 23:00 UTC
 # slot so the email lands between 09:00 AEST and 10:00 AEDT). POST-only,
 # CRON_SECRET-guarded. Skips silent weeks (no views + no leads + no SVI move).
-0 23 * * 0 curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/founder-digest-weekly >> /var/log/blockid/founder-digest.log 2>&1
+0 23 * * 0 bash $RUN founder-digest-weekly
 
 # Wave 31c — Investor Lead Drip Sequence (Steps 2 + 3).
 # Step 1 fires inline from POST /api/tbr/[token]/lead. This cron advances
 # eligible leads to Step 2 (T+2 days, warm+) and Step 3 (T+7 days, all).
 # 4-hourly cadence keeps drift < 4h from the target send window without
 # hammering SMTP or Supabase.
-0 */4 * * * curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" https://blockid.au/api/cron/tbr-lead-drip >> /var/log/blockid/tbr-lead-drip.log 2>&1
+0 */4 * * * bash $RUN tbr-lead-drip
 
 # Abandoned A$3 guest checkout reconcile + single recovery email.
 # The A$3 One-Click Report is the only self-serve purchase on the site, so a
