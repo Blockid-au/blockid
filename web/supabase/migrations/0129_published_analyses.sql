@@ -1,4 +1,4 @@
--- 0128_published_analyses.sql
+-- 0129_published_analyses.sql
 -- ---------------------------------------------------------------------------
 -- Turn a completed /analyze run into a public, indexable company profile —
 -- but only when the founder deliberately asks for it.
@@ -32,7 +32,7 @@
 -- bottom for the reasoning.
 --
 -- Apply:
---   docker exec -i supabase-db psql -U postgres -d postgres < 0128_published_analyses.sql
+--   docker exec -i supabase-db psql -U postgres -d postgres < 0129_published_analyses.sql
 -- ---------------------------------------------------------------------------
 
 begin;
