@@ -26,14 +26,16 @@ import {
 const SITE_URL = "https://blockid.au";
 
 // 2026-09-07: /pricing dropped the persona `?segment=` query param in
-// favour of the Universal 3-rung ladder (Free / Growth / Pro) + a
-// contact-sales row. Persona pages now deep-link to the specific card
-// via `#tier-<slug>` fragments defined by <PricingMatrix />. Founder
-// lands on Growth (the raise-ready card); investor / advisor /
-// accelerator all point at Pro because their upgrade path runs through
-// the full-featured tier before contact-sales.
+// favour of a three-rung ladder plus a contact-sales row.
+//
+// 2026-09-09: every segment now lands on `#tier-growth`. The non-founder
+// branch used to point at `#tier-pro`, which was the A$299 Pro card — retired
+// on 2026-09-08 and now only a hidden screen-reader alias on the Growth card.
+// An advisor following "See full pricing matrix" was being scrolled to a tier
+// that no longer sells, on a page that no longer shows their segment at all.
 function pricingFragmentFor(slug: SegmentSlug): string {
-  return slug === "founder" ? "/pricing#tier-growth" : "/pricing#tier-pro";
+  void slug;
+  return "/pricing#tier-growth";
 }
 
 export function generateStaticParams(): { segment: SegmentSlug }[] {

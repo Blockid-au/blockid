@@ -169,10 +169,25 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
       "Work the gaps — the score names what is missing and what closing it is worth.",
       "Report progress — share the live link, or send the report as a PDF.",
     ],
+    // 2026-09-09. This anchored `investor_advisor` — "Advisor Practice",
+    // A$149/month — and the CTA under it linked to /pricing, where that plan
+    // has not been on the ladder since the 2026-09-08 rework. So the page
+    // recommended a price the pricing page does not offer.
+    //
+    // Worse, the only thing A$149 buys over A$69 is `advisor.clients`, and
+    // `advisor.clients` is the flag behind the console this very page now
+    // describes as in build: `lib/advisor-portal.ts` reads `advisor_portal`
+    // and `advisor_notes`, and neither table exists. Charging A$80 a month
+    // more for a dead flag is not a packaging question.
+    //
+    // The features listed above are the founder toolset — cap table, data
+    // room, investor links, score history — and `founder_growth` is the plan
+    // that grants every one of them. That is what an advisor should be sent to
+    // until the console is real.
     planAnchor: {
-      id: "investor_advisor",
-      label: "Advisor Practice",
-      price: anchorPrice("investor_advisor"),
+      id: "founder_growth",
+      label: "Growth",
+      price: anchorPrice("founder_growth"),
     },
     faq: [
       {

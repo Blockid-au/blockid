@@ -14,6 +14,7 @@
 import { describe, expect, it } from "vitest";
 
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
+import { PUBLIC_HIDDEN_PLAN_IDS } from "@/lib/plans-v2";
 
 import {
   SEGMENT_CONTENT,
@@ -215,10 +216,22 @@ describe("SEGMENT_CONTENT — planAnchor identity per segment", () => {
     expectAnchor("investor", "investor_angel", "Investor Angel");
   });
 
-  it("advisor → investor_advisor, priced from the catalogue", () => {
-    // Note: filed under investor_* by product taxonomy despite being an
-    // advisor-facing plan. Pinning the id catches a rename to "advisor_*".
-    expectAnchor("advisor", "investor_advisor", "Advisor Practice");
+  it("advisor → founder_growth, priced from the catalogue", () => {
+    // Not investor_advisor (A$149). That plan is off the public /pricing
+    // ladder, and its only delta over Growth is `advisor.clients` — the flag
+    // behind a console whose tables do not exist. The advisor page describes
+    // the founder toolset, so it anchors the plan that grants it.
+    expectAnchor("advisor", "founder_growth", "Growth");
+  });
+
+  it("does not recommend a plan the public pricing ladder cannot show", () => {
+    // Every anchor a visitor can actually reach must exist on /pricing.
+    // /for/founder, /for/investor and /for/accelerator all 301 to
+    // /solutions/*; /for/advisor is the only one that renders.
+    expect(SEGMENT_CONTENT.advisor.planAnchor.id).toBe("founder_growth");
+    expect(PUBLIC_HIDDEN_PLAN_IDS).not.toContain(
+      SEGMENT_CONTENT.advisor.planAnchor.id,
+    );
   });
 
   it("accelerator → accelerator_growth, priced from the catalogue", () => {
