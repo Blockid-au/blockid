@@ -1,11 +1,15 @@
 /**
- * /vi/solutions/investor — Vietnamese mirror of the Investor persona page (P-03).
+ * /vi/solutions/investor — Vietnamese mirror of the investor and analyst persona page.
  *
- * Master Upgrade Plan §7.7 bilingual rule + D4 pre-empt. All strings resolve
- * against the `vi.json` catalog (with EN fallback for any missing key).
+ * Every visible string resolves through `t()` against the shared catalogue, so
+ * the English mirror at /solutions/investor renders the same page from the
+ * same shell. Amounts are never strings: the copy carries `{growthPrice}`-style
+ * tokens and `SolutionsPageShell` substitutes them from the pricing catalogue,
+ * which is why a price change in plans.csv reaches both languages at once.
  *
  * Server component. No client state, no data fetch.
  */
+
 
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
@@ -53,10 +57,11 @@ export default async function ViSolutionsInvestorPage() {
       eyebrow={t(m, "solutions.investor.eyebrow")}
       headline={t(m, "solutions.investor.headline")}
       personaLine={t(m, "solutions.investor.persona")}
-      emotionalLine={t(m, "hero.v3.emotional")}
-      outcomeLine={t(m, "hero.v3.outcome")}
-      primaryCtaLabel={t(m, "hero.v3.cta.primary.signedOut")}
-      secondaryCtaLabel={t(m, "hero.v3.cta.secondary")}
+      emotionalLine={t(m, "solutions.investor.lede")}
+      outcomeLine={t(m, "solutions.investor.support")}
+      primaryCtaLabel={t(m, "solutions.investor.cta")}
+      secondaryCtaLabel={t(m, "solutions.cta.secondary.report")}
+      secondaryCtaHref="/one-click-report"
       benefitsTitle={t(m, "solutions.investor.benefits.title")}
       benefits={[
         {
@@ -72,36 +77,9 @@ export default async function ViSolutionsInvestorPage() {
           body: t(m, "solutions.investor.benefit3.body"),
         },
       ]}
-      journeyTitle={t(m, "solutions.investor.journey.title")}
-      journey={[
-        {
-          window: t(m, "solutions.investor.journey.window1"),
-          headline: t(m, "solutions.investor.journey.step1.head"),
-          bullets: [
-            t(m, "solutions.investor.journey.step1.b1"),
-            t(m, "solutions.investor.journey.step1.b2"),
-            t(m, "solutions.investor.journey.step1.b3"),
-          ],
-        },
-        {
-          window: t(m, "solutions.investor.journey.window2"),
-          headline: t(m, "solutions.investor.journey.step2.head"),
-          bullets: [
-            t(m, "solutions.investor.journey.step2.b1"),
-            t(m, "solutions.investor.journey.step2.b2"),
-            t(m, "solutions.investor.journey.step2.b3"),
-          ],
-        },
-        {
-          window: t(m, "solutions.investor.journey.window3"),
-          headline: t(m, "solutions.investor.journey.step3.head"),
-          bullets: [
-            t(m, "solutions.investor.journey.step3.b1"),
-            t(m, "solutions.investor.journey.step3.b2"),
-            t(m, "solutions.investor.journey.step3.b3"),
-          ],
-        },
-      ]}
+      // No 30/60/90 arc: this persona has no honest three-stage
+      // programme to describe, and the one that used to sit here was
+      // built from capabilities that do not exist.
       faqTitle={t(m, "solutions.investor.faq.title")}
       faqs={[
         { q: t(m, "solutions.investor.faq.q1"), a: t(m, "solutions.investor.faq.a1") },
@@ -109,6 +87,17 @@ export default async function ViSolutionsInvestorPage() {
         { q: t(m, "solutions.investor.faq.q3"), a: t(m, "solutions.investor.faq.a3") },
       ]}
       disclaimer={t(m, "solutions.investor.disclaimer")}
+      // Regulatory facts about Auschain PTY LTD that we can point at, not
+      // capability claims — hard-coded rather than translated for that reason.
+      // The Privacy Act and Essential Eight lines are the same two already
+      // published in the sitewide marketing JSON-LD.
+      trustBadges={[
+        { label: "ASIC ABN 79 659 615 111", sub: "Auschain PTY LTD" },
+        { label: "Privacy Act 1988", sub: "APP 1-13 controls" },
+        { label: "Essential Eight — ML1", sub: "ACSC-aligned baseline" },
+        { label: "Stripe verified merchant", sub: "PCI DSS via Stripe" },
+        { label: "GST-registered", sub: "ATO tax invoice on every charge" },
+      ]}
     />
   );
 }

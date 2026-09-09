@@ -1,9 +1,15 @@
 /**
- * /vi/solutions/accelerator — Vietnamese mirror of the Accelerator persona
- * page (P-04). Master Upgrade Plan §7.7 bilingual rule + D4 pre-empt.
+ * /vi/solutions/accelerator — Vietnamese mirror of the accelerator and programme persona page.
+ *
+ * Every visible string resolves through `t()` against the shared catalogue, so
+ * the English mirror at /solutions/accelerator renders the same page from the
+ * same shell. Amounts are never strings: the copy carries `{growthPrice}`-style
+ * tokens and `SolutionsPageShell` substitutes them from the pricing catalogue,
+ * which is why a price change in plans.csv reaches both languages at once.
  *
  * Server component. No client state, no data fetch.
  */
+
 
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
@@ -51,10 +57,11 @@ export default async function ViSolutionsAcceleratorPage() {
       eyebrow={t(m, "solutions.accelerator.eyebrow")}
       headline={t(m, "solutions.accelerator.headline")}
       personaLine={t(m, "solutions.accelerator.persona")}
-      emotionalLine={t(m, "hero.v3.emotional")}
-      outcomeLine={t(m, "hero.v3.outcome")}
-      primaryCtaLabel={t(m, "hero.v3.cta.primary.signedOut")}
-      secondaryCtaLabel={t(m, "hero.v3.cta.secondary")}
+      emotionalLine={t(m, "solutions.accelerator.lede")}
+      outcomeLine={t(m, "solutions.accelerator.support")}
+      primaryCtaLabel={t(m, "solutions.accelerator.cta")}
+      secondaryCtaLabel={t(m, "solutions.cta.secondary.score")}
+      secondaryCtaHref="/svi"
       benefitsTitle={t(m, "solutions.accelerator.benefits.title")}
       benefits={[
         {

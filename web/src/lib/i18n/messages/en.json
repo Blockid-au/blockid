@@ -273,5 +273,6 @@
   "solutions.accelerator.cta": "Talk to us about a cohort",
   "solutions.vnSme.lede": "Nothing about the analysis changes with the language you read it in.",
   "solutions.vnSme.support": "Vietnamese interface. Australian pricing, Australian tax invoice.",
-  "solutions.vnSme.cta": "Score your startup free"
+  "solutions.vnSme.cta": "Score your startup free",
+  "solutions.cta.secondary.score": "Score a startup free"
 }

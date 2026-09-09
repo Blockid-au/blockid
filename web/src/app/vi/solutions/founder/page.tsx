@@ -1,12 +1,15 @@
 /**
- * /vi/solutions/founder — Vietnamese mirror of the Founder persona page (P-01).
+ * /vi/solutions/founder — Vietnamese mirror of the founder persona page.
  *
- * Master Upgrade Plan §7.7 bilingual rule + user-locked decision D4 (pre-empt).
- * All strings resolve via `t()` against the `vi.json` catalog (with EN fallback
- * for any missing key).
+ * Every visible string resolves through `t()` against the shared catalogue, so
+ * the English mirror at /solutions/founder renders the same page from the
+ * same shell. Amounts are never strings: the copy carries `{growthPrice}`-style
+ * tokens and `SolutionsPageShell` substitutes them from the pricing catalogue,
+ * which is why a price change in plans.csv reaches both languages at once.
  *
  * Server component. No client state, no data fetch.
  */
+
 
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
@@ -54,10 +57,11 @@ export default async function ViSolutionsFounderPage() {
       eyebrow={t(m, "solutions.founder.eyebrow")}
       headline={t(m, "solutions.founder.headline")}
       personaLine={t(m, "solutions.founder.persona")}
-      emotionalLine={t(m, "hero.v3.emotional")}
-      outcomeLine={t(m, "hero.v3.outcome")}
-      primaryCtaLabel={t(m, "hero.v3.cta.primary.signedOut")}
-      secondaryCtaLabel={t(m, "hero.v3.cta.secondary")}
+      emotionalLine={t(m, "solutions.founder.lede")}
+      outcomeLine={t(m, "solutions.founder.support")}
+      primaryCtaLabel={t(m, "solutions.founder.cta")}
+      secondaryCtaLabel={t(m, "solutions.cta.secondary.report")}
+      secondaryCtaHref="/one-click-report"
       benefitsTitle={t(m, "solutions.founder.benefits.title")}
       benefits={[
         {

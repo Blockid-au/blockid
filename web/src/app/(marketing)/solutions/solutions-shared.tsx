@@ -74,13 +74,7 @@ export interface SolutionPageProps {
   /** A short supporting line under the lede. */
   outcomeLine: string;
   primaryCtaLabel: string;
-  /**
-   * Override the persona's default primary-CTA href. Defaults per slug via
-   * `primaryCtaHrefForSlug()` — founder -> /pricing#tier-growth, investor +
-   * advisor -> /pricing#tier-pro, accelerator -> /pricing#contact-sales,
-   * vn-sme -> /pricing#tier-growth (2026-09-07 Phase 3b: was hard-coded to
-   * the deleted /founding-50 route).
-   */
+  /** Override the persona's default target from `primaryCtaHrefForSlug()`. */
   primaryCtaHref?: string;
   secondaryCtaLabel: string;
   /** Defaults to {@link SECONDARY_CTA_FALLBACK_HREF}. */
@@ -129,10 +123,16 @@ export interface SolutionPageProps {
 const SECONDARY_CTA_FALLBACK_HREF = "/pricing";
 
 /**
- * Resolve the persona's default primary-CTA target on /pricing. Each persona
- * lands on the correct card via the `#tier-*` (or `#contact-sales`) fragment
- * defined on the /pricing page. The founding-50 route was deleted on
- * 2026-09-07 (Phase 3b) so no persona should link there any more.
+ * Where a persona's primary CTA goes.
+ *
+ * Founder, VN-SME and investor all land on `/svi` — the analysis itself. The
+ * first run is free and asks for nothing, so sending a first-time visitor to a
+ * pricing card asked them to choose a plan before they had seen the product.
+ * (It also deep-linked `#tier-pro`, a A$299 tier retired on 2026-09-08 and
+ * only reachable now through a hidden alias on the Growth card.)
+ *
+ * Accelerator is the exception: programme pricing is genuinely a conversation,
+ * so it goes to the contact-sales row.
  */
 export function primaryCtaHrefForSlug(
   slug: SolutionPageProps["slug"],
@@ -140,9 +140,8 @@ export function primaryCtaHrefForSlug(
   switch (slug) {
     case "founder":
     case "vn-sme":
-      return "/pricing#tier-growth";
     case "investor":
-      return "/pricing#tier-pro";
+      return "/svi";
     case "accelerator":
       return "/pricing#contact-sales";
   }

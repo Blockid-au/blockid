@@ -1,12 +1,15 @@
 /**
- * /solutions/founder — Founder persona landing (P-01).
+ * /solutions/founder — the founder persona page.
  *
- * Master Upgrade Plan §7.1 sitemap + §7.2 persona surface + §7.7 bilingual
- * rules. All copy resolves through `t()` against the shared catalog so the
- * Vietnamese mirror at `/vi/solutions/founder` re-uses the same shell.
+ * Every visible string resolves through `t()` against the shared catalogue, so
+ * the Vietnamese mirror at /vi/solutions/founder renders the same page from the
+ * same shell. Amounts are never strings: the copy carries `{growthPrice}`-style
+ * tokens and `SolutionsPageShell` substitutes them from the pricing catalogue,
+ * which is why a price change in plans.csv reaches both languages at once.
  *
  * Server component. No client state, no data fetch.
  */
+
 
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
@@ -54,10 +57,11 @@ export default async function SolutionsFounderPage() {
       eyebrow={t(m, "solutions.founder.eyebrow")}
       headline={t(m, "solutions.founder.headline")}
       personaLine={t(m, "solutions.founder.persona")}
-      emotionalLine={t(m, "hero.v3.emotional")}
-      outcomeLine={t(m, "hero.v3.outcome")}
-      primaryCtaLabel={t(m, "hero.v3.cta.primary.signedOut")}
-      secondaryCtaLabel={t(m, "hero.v3.cta.secondary")}
+      emotionalLine={t(m, "solutions.founder.lede")}
+      outcomeLine={t(m, "solutions.founder.support")}
+      primaryCtaLabel={t(m, "solutions.founder.cta")}
+      secondaryCtaLabel={t(m, "solutions.cta.secondary.report")}
+      secondaryCtaHref="/one-click-report"
       benefitsTitle={t(m, "solutions.founder.benefits.title")}
       benefits={[
         {
