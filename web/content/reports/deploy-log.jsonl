@@ -9413,3 +9413,23 @@
 {"ts":"2026-09-09T01:24:39.549Z","event":"github-push-master","detail":"Blockid-au: feat(listings): /listings serves real published profiles instead of three fakes (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T01:31:04.970Z","event":"github-push-master","detail":"Blockid-au: test(publish): colocated suites for the gates, store, API and public body (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T01:35:55Z","status":"success","gates":"12/12","pid":"2388576","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-09T01:36:24.649Z","event":"github-push-master","detail":"Blockid-au: refactor(publish): drop a dead setState, dedupe the profile read per request (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T01:48:27Z","status":"success","gates":"12/12","pid":"2440253","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-09T02:05:39.918Z","event":"github-push-master","detail":"Blockid-au: chore(migrations): renumber the second 0128 to 0129 (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T02:16:04.454Z","event":"github-push-master","detail":"Blockid-au: feat(free-tier): migration 0130 — once-only delivery marker for the free summary (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T02:20:05.386Z","event":"github-push-master","detail":"Blockid-au: feat(free-tier): define the five pages once, so the promise cannot drift (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T02:26:59.622Z","event":"github-push-master","detail":"Blockid-au: refactor(pdf): export the report primitives so the free tier is a cut, not a clone (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T02:38:55.080Z","event":"github-push-master","detail":"Blockid-au: feat(free-tier): the five-page summary, composed from the paid renderer's parts (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T02:41:37.617Z","event":"github-push-master","detail":"Blockid-au: feat(free-tier): sendFreeSummary — one email, Spam Act clean, offer not nag (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T02:42:55.775Z","event":"github-push-master","detail":"Blockid-au: feat(free-tier): make \"send once\" a database property, not client-side hope (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T02:48:30.088Z","event":"github-push-master","detail":"Blockid-au: feat(free-tier): POST /api/analyses/[id]/free-summary (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T02:55:20.587Z","event":"github-push-master","detail":"Blockid-au: feat(free-tier): the email ask, placed after the answer — and reconciled with the wall (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T03:06:03.686Z","event":"github-push-master","detail":"Blockid-au: feat(homepage): make the three tiers legible, and cut 1,000px of prose to do it (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T03:18:43Z","status":"success","gates":"12/12","pid":"2741262","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-09T03:30:46.812Z","event":"github-push-master","detail":"Blockid-au: refactor(homepage): a second tightening pass over the tallest bands (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T03:41:33Z","status":"success","gates":"12/12","pid":"2824303","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-09T03:41:55.865Z","event":"github-push-master","detail":"Blockid-au: fix(a11y): the free-summary placeholder was on the decorative ink token (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T03:57:22Z","status":"success","gates":"12/12","pid":"2885589","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-09T04:06:19.192Z","event":"github-push-master","detail":"Blockid-au: fix(analyze): name the reader's business areas, not our org chart (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T04:18:13Z","status":"success","gates":"12/12","pid":"2970653","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-09T04:22:03.049Z","event":"github-push-master","detail":"Blockid-au: fix: guard nightly-review's main(), and point the nav CTA at the path that works (1 commits)","source":"github-webhook"}

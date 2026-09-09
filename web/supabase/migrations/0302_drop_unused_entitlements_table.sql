@@ -1,30 +1,23 @@
 -- 0302_drop_unused_entitlements_table.sql
--- Drop the unused `entitlements` table introduced by 0075.
+-- SUPERSEDED 2026-09-09 — NO-OP. DO NOT RESTORE THE DROP.
 --
--- Context (2026-08-06 ops audit):
---   - 0075 created `entitlements` as a materialised feature-grant table.
---   - 0098 did a one-time backfill INSERTing share_management grandfather rows.
---   - No runtime code ever reads from `entitlements`. Grep across web/src for
---     `.from('entitlements')` / `INSERT INTO entitlements` returns zero
---     production callers. `useEntitlement` uses a computed JSON payload, not
---     this table. Grandfather status is read from
---     `app_users.grandfathered_share_management` directly.
---   - The table is therefore write-only dead weight; the grandfather backfill
---     data lives redundantly on `app_users`.
+-- This migration proposed `drop table if exists entitlements` on the grounds
+-- that the table had no runtime readers. That was true at the time and is no
+-- longer true.
 --
--- DESTRUCTIVE. Safe because:
---   * No SELECT/UPDATE/DELETE against `entitlements` exists in the app.
---   * The grandfather flag is preserved on `app_users.grandfathered_share_management`.
---   * RLS policies and indexes drop together with the table (CASCADE not needed
---     since nothing FKs INTO entitlements; drop plain).
+-- It was never applied (the table is still present in production). Running it
+-- now would delete every per-user add-on grant, silently stripping ESOP,
+-- vesting and on-chain access from founders paying A$59/month for it — the
+-- table is the runtime store for those grants as of
+-- 0306_addon_entitlements.sql, read by
+-- web/src/lib/entitlements/user-grants.ts and unioned into getEntitlements().
 --
--- Rollback: re-run 0075's table + 0098's insert. Data can be reconstructed
--- from `app_users.grandfathered_share_management = true`.
+-- The body is left as an intentional no-op rather than deleted so the
+-- migration sequence stays contiguous and anyone replaying the folder in
+-- order lands on this explanation instead of a missing file.
 
 begin;
 
-drop table if exists entitlements;
+-- Deliberately empty. See 0306_addon_entitlements.sql.
 
 commit;
-
--- notify pgrst, 'reload schema';
