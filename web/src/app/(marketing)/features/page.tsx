@@ -100,15 +100,21 @@ const FOUNDER_FEATURES: Feature[] = [
   {
     anchor: "dividend-engine",
     title: "Dividend engine with franking credits",
-    copy: "Pay dividends on-platform with franking-credit calculation baked in — off-chain by default, on-chain optional.",
+    // "on-chain optional" dropped 2026-09-09: the on-chain leg runs through
+    // executeOnChainTx in lib/blockchain-sync.ts, which is a stub that returns
+    // a fabricated hash. The franking-credit calculation itself is real
+    // (lib/dividends.ts, /api/dividends, /workspace/dividends).
+    copy: "Work out a dividend and its franking credits on-platform, with the imputation arithmetic done for you.",
     href: "/tools",
     linkLabel: "Explore the toolset",
     Icon: Coins,
   },
   {
     anchor: "free-tools",
-    title: "17 free tools",
-    copy: "From SAFE calculator to R&D-tax checker to ESOP eligibility — 17 focused tools, all free, no login required.",
+    // 16, not 17 — /tools renders ALL_TOOLS.length and there are 16 routes
+    // under app/tools/. The features-page test counts the directories.
+    title: "16 free tools",
+    copy: "From SAFE calculator to R&D-tax checker to ESOP eligibility — 16 focused tools, all free, no login required.",
     href: "/tools",
     linkLabel: "Open the tools hub",
     Icon: Wrench,
@@ -220,7 +226,7 @@ export default function FeaturesPage() {
             The eight things you didn&apos;t know we ship
           </>
         }
-        subtitle="BlockID quietly does more than the homepage lets on. Cohort percentile scoring, per-investor tracked share links, ATO-compliant tax invoicing, a franking-credit dividend engine and more — every capability below is live today."
+        subtitle="BlockID quietly does more than the homepage lets on. Cohort percentile scoring, per-investor tracked share links, ATO-compliant tax invoicing, a franking-credit dividend engine and more."
         primaryCta={{ href: "/pricing", label: "See prices" }}
         secondaryCta={{ href: "/tbr/demo", label: "See a trust report" }}
       />
