@@ -37,17 +37,30 @@ export const FEATURE_GATES: readonly FeatureGate[] = Object.freeze([
   { route: "api/cap-table/restrictions/route.ts", required_feature: "share_management" },
   { route: "api/cap-table/sync/route.ts", required_feature: "share_management" },
 
-  // Data room — write side (read side handled elsewhere)
-  { route: "api/data-room/access/route.ts", required_feature: "share_management" },
-  { route: "api/data-room/auto-fill/route.ts", required_feature: "share_management" },
+  // Data room — write side (read side handled elsewhere).
+  //
+  // 2026-09-09: these gated on `share_management`, which sits at founder_growth
+  // (A$69) and above. The data-room *page* gated on `data_room.access`. Two
+  // different flags for one product is how the homepage came to sell A$29 a
+  // data room that 402'd on every write. `data_room.access` is now the single
+  // authority for the data room and it reaches down to founder_starter
+  // (migration 0131); `share_management` stays on the cap table, where the
+  // Share Management add-on it is named after actually lives.
+  //
+  // Nobody loses: every plan and fallback bundle holding `share_management`
+  // also holds `data_room.access`, and the legacy `growth`/`growth_annual` DB
+  // rows hold `data_room.access` WITHOUT `share_management` — those
+  // subscribers were being 402'd out of their own data room until now.
+  { route: "api/data-room/access/route.ts", required_feature: "investor_links.premium", note: "mints the investor share token — this IS the live-link capability the A$29 rung sells" },
+  { route: "api/data-room/auto-fill/route.ts", required_feature: "data_room.access" },
   { route: "api/data-room/engage/route.ts", required_feature: "share_management" },
-  { route: "api/data-room/generate/route.ts", required_feature: "share_management" },
-  { route: "api/data-room/goals/route.ts", required_feature: "share_management" },
-  { route: "api/data-room/initialize/route.ts", required_feature: "share_management", note: "RETIRED 2026-09-08 — 410s; /api/data-room/generate is the single data-room writer" },
-  { route: "api/dataroom/clone/route.ts", required_feature: "share_management", note: "reconcile data-room vs dataroom folder split — P8 CTO call" },
-  { route: "api/dataroom/setup/route.ts", required_feature: "share_management", note: "reconcile data-room vs dataroom folder split — P8 CTO call" },
-  { route: "api/dataroom/populate-from-template/route.ts", required_feature: "share_management", note: "round 5.4c added rate-limit wiring; keep manifest complete" },
-  { route: "api/dataroom/reseed-templates/route.ts", required_feature: "share_management", note: "mega batch 2026-07-24 — Day-0 dataroom template retry endpoint" },
+  { route: "api/data-room/generate/route.ts", required_feature: "data_room.access" },
+  { route: "api/data-room/goals/route.ts", required_feature: "data_room.access" },
+  { route: "api/data-room/initialize/route.ts", required_feature: "data_room.access", note: "RETIRED 2026-09-08 — 410s; /api/data-room/generate is the single data-room writer" },
+  { route: "api/dataroom/clone/route.ts", required_feature: "data_room.access", note: "reconcile data-room vs dataroom folder split — P8 CTO call" },
+  { route: "api/dataroom/setup/route.ts", required_feature: "data_room.access", note: "reconcile data-room vs dataroom folder split — P8 CTO call" },
+  { route: "api/dataroom/populate-from-template/route.ts", required_feature: "data_room.access", note: "round 5.4c added rate-limit wiring; keep manifest complete" },
+  { route: "api/dataroom/reseed-templates/route.ts", required_feature: "data_room.access", note: "mega batch 2026-07-24 — Day-0 dataroom template retry endpoint" },
 
   // Vesting
   { route: "api/vesting/route.ts", required_feature: "vesting.write" },

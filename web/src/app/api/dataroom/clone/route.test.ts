@@ -162,10 +162,10 @@ describe("POST /api/dataroom/clone — guard branches", () => {
     expect(fromMock).not.toHaveBeenCalled();
   });
 
-  it("passes the feature key 'share_management' to the gate", async () => {
+  it("passes the feature key 'data_room.access' to the gate", async () => {
     gateMock.mockResolvedValue(gateFail(402, "feature_locked"));
     await POST(postReq({}));
-    expect(gateMock).toHaveBeenCalledWith("share_management");
+    expect(gateMock).toHaveBeenCalledWith("data_room.access");
   });
 
   it("402 feature_locked passes through with the gate's own response body", async () => {

@@ -247,10 +247,10 @@ describe("POST /api/dataroom/reseed-templates", () => {
     expect(seedMock).not.toHaveBeenCalled();
   });
 
-  it("passes the feature key 'share_management' to the gate", async () => {
+  it("passes the feature key 'data_room.access' to the gate", async () => {
     gateMock.mockResolvedValue(gateFail(402, "feature_locked"));
     await POST();
-    expect(gateMock).toHaveBeenCalledWith("share_management");
+    expect(gateMock).toHaveBeenCalledWith("data_room.access");
   });
 
   it("402 feature_locked short-circuits before rate-limit + project lookup", async () => {

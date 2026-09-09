@@ -2,7 +2,7 @@
 //
 // The setup route is the P1_dataroom_map "auto-provision the founder's
 // Google Drive with the shipped taxonomy" surface. It gates on
-// `share_management`, then dynamic-imports googleapis, verifies the two
+// `data_room.access`, then dynamic-imports googleapis, verifies the two
 // service-account env vars, creates (or reuses) a "Data Room" subfolder
 // under the founder's root folder, iterates DATA_ROOM_STRUCTURE and creates
 // (or reuses) each section subfolder + uploads any template body that
@@ -29,7 +29,7 @@
 //      not called, supabase is not called.
 //   3. POST 402 when the feature gate flags feature_locked — same short
 //      circuit.
-//   4. Feature key is "share_management" (matches route.ts:18).
+//   4. Feature key is "data_room.access" (matches route.ts:18).
 //   5. POST 503 when GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL is missing.
 //   6. POST 503 when GOOGLE_DRIVE_PRIVATE_KEY is missing.
 //   7. GoogleAuth is constructed with the env client_email + normalised
@@ -385,10 +385,10 @@ describe("POST /api/dataroom/setup", () => {
     expect(filesListMock).not.toHaveBeenCalled();
   });
 
-  it("passes the feature key 'share_management' to the gate", async () => {
+  it("passes the feature key 'data_room.access' to the gate", async () => {
     gateMock.mockResolvedValue(gateFail(401, "nope"));
     await POST();
-    expect(gateMock).toHaveBeenCalledWith("share_management");
+    expect(gateMock).toHaveBeenCalledWith("data_room.access");
   });
 
   it("503s when GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL is missing", async () => {

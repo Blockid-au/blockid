@@ -57,7 +57,7 @@ const SVI_DATAROOM_STRUCTURE: Record<string, { label: string; description: strin
  * Creates the folder structure in the user's BlockID Drive folder.
  */
 export async function POST(request: Request) {
-  const gate = await gateRequireFeature("share_management");
+  const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
 

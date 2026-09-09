@@ -6,7 +6,7 @@
 // the auto-fill loop depends on to keep a founder's data-room advancing.
 //
 // Silent regressions this pins against:
-//   - dropping the "share_management" gate on POST (would leak paid auto-fill
+//   - dropping the "data_room.access" gate on POST (would leak paid auto-fill
 //     to anonymous / unpaid callers — 0.25 credits per fill);
 //   - flipping the isSupabaseConfigured guard order (would 500 in the DB call
 //     instead of 503-ing cleanly on an unconfigured deploy);
@@ -26,7 +26,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
-// ── Feature-gate mock (share_management) ───────────────────────────────
+// ── Feature-gate mock (data_room.access) ───────────────────────────────
 const gateMock = vi.fn();
 vi.mock("@/lib/feature-gate", () => ({
   gateRequireFeature: (feature: string) => gateMock(feature),
@@ -212,10 +212,10 @@ describe("POST /api/data-room/auto-fill — auth + config guards", () => {
     expect(anthropicCreateMock).not.toHaveBeenCalled();
   });
 
-  it("calls gateRequireFeature with the 'share_management' feature key", async () => {
+  it("calls gateRequireFeature with the 'data_room.access' feature key", async () => {
     gateMock.mockResolvedValue(gateFail(402, "Feature locked"));
     await POST(jsonReq({ documentId: "doc-1" }));
-    expect(gateMock).toHaveBeenCalledWith("share_management");
+    expect(gateMock).toHaveBeenCalledWith("data_room.access");
   });
 
   it("503s when the Supabase project is unconfigured (guard fires before JSON parse)", async () => {

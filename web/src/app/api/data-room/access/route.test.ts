@@ -7,7 +7,7 @@
 // shareable link, and lists all previously-issued tokens on GET.
 //
 // Silent regressions this pins:
-//   - dropping the `share_management` feature gate on POST so an anonymous /
+//   - dropping the `investor_links.premium` feature gate on POST so an anonymous /
 //     free-tier caller could mint investor share links against another
 //     founder's data room.
 //   - dropping the .eq("user_id", user.id) filter on the data_rooms lookup
@@ -268,10 +268,10 @@ describe("POST /api/data-room/access", () => {
     expect(getSupabaseAdminMock).not.toHaveBeenCalled();
   });
 
-  it("passes the feature key 'share_management' to the gate", async () => {
+  it("passes the feature key 'investor_links.premium' to the gate", async () => {
     gateMock.mockResolvedValue(gateFail(401, "Authentication required"));
     await POST(jsonReq({}));
-    expect(gateMock).toHaveBeenCalledWith("share_management");
+    expect(gateMock).toHaveBeenCalledWith("investor_links.premium");
   });
 
   it("503s when getSupabaseAdmin returns null (db not configured)", async () => {

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 // ---------------------------------------------------------------------------
 
 export async function POST(req: NextRequest) {
-  const gate = await gateRequireFeature("share_management");
+  const gate = await gateRequireFeature("investor_links.premium");
   if (!gate.ok) return gate.response;
   const user = gate.user;
 

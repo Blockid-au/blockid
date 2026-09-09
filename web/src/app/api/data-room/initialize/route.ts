@@ -43,13 +43,13 @@ const GONE = {
 } as const;
 
 export async function POST() {
-  const gate = await gateRequireFeature("share_management");
+  const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   return NextResponse.json(GONE, { status: 410 });
 }
 
 export async function GET() {
-  const gate = await gateRequireFeature("share_management");
+  const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   return NextResponse.json(GONE, { status: 410 });
 }

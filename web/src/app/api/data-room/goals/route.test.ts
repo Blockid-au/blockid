@@ -28,7 +28,7 @@
 //     so the /workspace donut renders 33.333333333% ("NaN%" on zero).
 //   - flipping `p0Score` off the `priority === "P0"` filter so a founder can
 //     game the score by ticking P2 goals.
-//   - dropping the `share_management` feature gate on POST so free-tier
+//   - dropping the `data_room.access` feature gate on POST so free-tier
 //     callers seed progress rows against another founder's data room.
 //   - dropping the 503 branch when `isSupabaseConfigured()` returns false so
 //     the founder sees a 500 NPE instead of a graceful "database not
@@ -636,10 +636,10 @@ describe("POST /api/data-room/goals (action=init)", () => {
     expect(body.error).toBe("feature_locked");
   });
 
-  it("passes the feature key 'share_management' to the gate", async () => {
+  it("passes the feature key 'data_room.access' to the gate", async () => {
     gateMock.mockResolvedValue(gateFail(401, "Authentication required"));
     await POST(postReq({}));
-    expect(gateMock).toHaveBeenCalledWith("share_management");
+    expect(gateMock).toHaveBeenCalledWith("data_room.access");
   });
 
   it("503s when isSupabaseConfigured() returns false", async () => {

@@ -66,10 +66,10 @@ describe("/api/data-room/initialize — retired", () => {
     expect(getSupabaseAdminMock).not.toHaveBeenCalled();
   });
 
-  it("still runs the share_management gate first, so the manifest entry stays true", async () => {
+  it("still runs the data_room.access gate first, so the manifest entry stays true", async () => {
     gateMock.mockResolvedValue(gateFail(402, "feature_locked"));
     const res = await POST();
-    expect(gateMock).toHaveBeenCalledWith("share_management");
+    expect(gateMock).toHaveBeenCalledWith("data_room.access");
     expect(res.status).toBe(402);
   });
 });

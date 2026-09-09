@@ -8,7 +8,7 @@
 // wrong section shape, drop the credit charge, or leak cross-tenant reads.
 //
 // Silent regressions this pins against:
-//   - dropping the "share_management" gate on POST (would leak paid generate
+//   - dropping the "data_room.access" gate on POST (would leak paid generate
 //     to anonymous / unpaid callers — 3.00 credits per call);
 //   - dropping the 503 branch on unconfigured Supabase (would 500 mid-chain);
 //   - dropping the spendCredits call — the generate would be free;
@@ -283,10 +283,10 @@ describe("POST /api/data-room/generate — auth + config guards", () => {
     expect(generateDataRoomMock).not.toHaveBeenCalled();
   });
 
-  it("calls the gate with the 'share_management' feature key", async () => {
+  it("calls the gate with the 'data_room.access' feature key", async () => {
     gateMock.mockResolvedValue(gateFail(401, "Authentication required"));
     await POST();
-    expect(gateMock).toHaveBeenCalledWith("share_management");
+    expect(gateMock).toHaveBeenCalledWith("data_room.access");
   });
 
   it("503s when getSupabaseAdmin() returns null — never charges credits on a broken deploy", async () => {

@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  * Idempotent — if folders already exist they are reused.
  */
 export async function POST() {
-  const gate = await gateRequireFeature("share_management");
+  const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
 

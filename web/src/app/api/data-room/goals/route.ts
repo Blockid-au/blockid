@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
 // body: { dataRoomId, templateId, status, evidence? } — update single goal
 // ---------------------------------------------------------------------------
 export async function POST(request: NextRequest) {
-  const gate = await gateRequireFeature("share_management");
+  const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
 

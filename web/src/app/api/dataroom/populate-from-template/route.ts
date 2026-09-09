@@ -49,7 +49,7 @@ const RATE_LIMIT = 5;
 const WINDOW_SECONDS = 60 * 60;
 
 export async function POST(request: NextRequest) {
-  const gate = await gateRequireFeature("share_management");
+  const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
 

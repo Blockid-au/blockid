@@ -28,7 +28,7 @@ const AUTO_FILL_COST = 0.25;
 // POST /api/data-room/auto-fill
 // ---------------------------------------------------------------------------
 export async function POST(request: NextRequest) {
-  const gate = await gateRequireFeature("share_management");
+  const gate = await gateRequireFeature("data_room.access");
   if (!gate.ok) return gate.response;
   const user = gate.user;
 
