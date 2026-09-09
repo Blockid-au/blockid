@@ -854,8 +854,8 @@ export async function sendSVIReport(args: {
             <p style="margin:8px 0 0 0;color:#94A3B8;font-size:11px;font-style:italic;">${isVi ? "Moi hanh buoc nho deu nang gia tri startup cua ban." : "Every small step raises your startup's value. We're with you."}</p>
           </div>
           <div style="background:#1F2A44;border-radius:10px;padding:14px;margin:12px 0 0 0;text-align:center;">
-            <p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#FBBF24;">${isVi ? "Mo Khoa Bao Cao Day Du" : "Unlock Your Full Report"}</p>
-            <p style="margin:0;font-size:11px;color:#94A3B8;line-height:1.5;">${isVi ? "Ban cao day du khong gioi han trang, phan tich chi tiet, doi thu canh tranh va ke hoach hanh dong 90 ngay." : "This is a 10-page preview. The full report includes unlimited depth, detailed competitor profiles, financial projections, and a 90-day action plan tailored to your stage."}</p>
+            <p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#FBBF24;">${isVi ? "Theo Doi Diem So Cua Ban" : "Track Your Score Over Time"}</p>
+            <p style="margin:0;font-size:11px;color:#94A3B8;line-height:1.5;">${isVi ? "Dang nhap vao workspace de theo doi diem so theo thoi gian, tai len bang chung va chay lai phan tich." : "Sign in to your workspace to track this score over time, upload evidence against each dimension, and re-run the analysis as things change."}</p>
           </div>
           <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
           <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
@@ -2635,6 +2635,15 @@ export async function sendGuestReport(params: {
 
   const signupUrl = `${siteUrl()}/signup`;
 
+  // The homepage promises "one-click unsubscribe on every email we send".
+  // This send path was the exception: no footer link, and no List-Unsubscribe
+  // header (sendEmail only sets it when `unsubscribeUrl` is passed). It also
+  // carries a "Create Free Account" CTA, so it is not a bare receipt. Nothing
+  // is taken away by adding the link — sendEmail does not suppress on
+  // subscription state, so the report still reaches a customer who has
+  // unsubscribed from everything else.
+  const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(to);
+
   const html = shell(`
     <div style="padding:32px 0 0;">
       <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">One-Click Investor Snapshot</p>
@@ -2671,7 +2680,7 @@ export async function sendGuestReport(params: {
 
       <div style="background:#0B1220;border:1px solid #2563EB;border-radius:12px;padding:20px;margin:24px 0 0;text-align:center;">
         <p style="margin:0 0 8px;color:#F8FAFC;font-size:15px;font-weight:600;">Want to track your score over time?</p>
-        <p style="margin:0 0 16px;color:#94A3B8;font-size:14px;">Create a free BlockID account and get 5 analysis credits, evidence vault, and investor-ready PDF reports.</p>
+        <p style="margin:0 0 16px;color:#94A3B8;font-size:14px;">Create a free BlockID account to keep your score history, upload evidence to your vault, and re-run the analysis as things change.</p>
         <a href="${signupUrl}" style="display:inline-block;background:#2563EB;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Create Free Account</a>
       </div>
 
@@ -2682,7 +2691,7 @@ export async function sendGuestReport(params: {
         Tax invoice · Auschain Pty Ltd trading as BlockID.au · ABN 79 659 615 111 · A$3.00 inc. GST
       </p>
     </div>
-  `);
+  `) + unsubFooter(unsubscribeUrl, preferencesUrl);
 
   let attachment: { filename: string; content: Buffer; contentType: string } | undefined;
   if (pdfUrl && pdfUrl.startsWith("http")) {
@@ -2701,6 +2710,7 @@ export async function sendGuestReport(params: {
     to,
     subject: `Your Startup Investor Snapshot${totalScore !== null ? ` — SVI ${Math.round(totalScore)}` : ""}`,
     html,
+    unsubscribeUrl,
     attachments: attachment ? [attachment] : undefined,
   });
 

@@ -1169,3 +1169,25 @@ describe("claimDrip", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// 2026-09-09 sweep: the Day-14 upsell sold A$29 on cap table, vesting and ESOP
+// tools, and on "unlimited" reports. founder_starter holds none of
+// cap_table.write / vesting.* / esop.manage, and its 20 monthly credits are a
+// hard meter. The rung now lists what it actually grants.
+// ---------------------------------------------------------------------------
+describe("day-14 upsell describes what A$29 grants", () => {
+  const render = () => renderDripBody("onboarding_d14", "founder@example.com", {});
+
+  it("does not promise cap table, vesting or ESOP at A$29", () => {
+    const body = `${render().html} ${render().text}`.toLowerCase();
+    expect(body).not.toContain("cap table");
+    expect(body).not.toContain("vesting");
+    expect(body).not.toContain("esop");
+  });
+
+  it("does not call the report allowance unlimited", () => {
+    const body = `${render().html} ${render().text}`.toLowerCase();
+    expect(body).not.toContain("unlimited");
+  });
+});

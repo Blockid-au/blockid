@@ -447,14 +447,14 @@ function d14Copy(email: string): RenderedEmail {
     <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">The full report unlocks the next 90 days</h1>
     <p>You have been on the free tier for two weeks. The Founder plan (A$29/mo, GST included) unlocks:</p>
     <ul style="padding-left:20px;margin:0 0 16px 0;">
-      <li style="margin-bottom:6px;">Full, unlimited SVI reports with a 90-day action plan tailored to your stage.</li>
-      <li style="margin-bottom:6px;">Deep competitor profiles and market EBITDA benchmarks for your sector.</li>
-      <li style="margin-bottom:6px;">Cap table, vesting and ESOP tools you can share with your lawyer.</li>
+      <li style="margin-bottom:6px;">Your score tracked over time, with 20 AI credits a month to re-run it.</li>
+      <li style="margin-bottom:6px;">A data room that fills up in the order investors ask.</li>
+      <li style="margin-bottom:6px;">A live link you share with an investor instead of a PDF.</li>
     </ul>
     <p>No lock-in. Cancel from the billing page any time.</p>
     ${ctaButton(pricingUrl, "See plans")}
     ${footer(email)}`);
-  const text = `The Founder plan is A$29/mo (GST included) and unlocks the full SVI report, competitor profiles, EBITDA benchmarks and cap table tools.\n\nSee plans: ${pricingUrl}${footerText(email)}`;
+  const text = `The Founder plan is A$29/mo (GST included): your score tracked over time with 20 AI credits a month, a data room, and a live investor link.\n\nSee plans: ${pricingUrl}${footerText(email)}`;
   return { subject, html, text };
 }
 
