@@ -6,8 +6,7 @@ import { NavV2 } from "@/components/landing/nav-v2";
 import { HeroSection } from "@/components/marketing/hero-section";
 import { LogoBand } from "@/components/marketing/logo-band";
 import { FinalCTA } from "@/components/marketing/final-cta";
-import { EquityBand } from "@/components/marketing/equity-band";
-import { AudienceSplit } from "@/components/marketing/audience-split";
+import { TierLadder } from "@/components/marketing/homepage/tier-ladder";
 import {
   DimensionRadar,
   DimensionTable,
@@ -57,27 +56,56 @@ import {
 // published anonymised runs or a shipped product module. Its colocated
 // suite pins the figures.
 //
-// THE THREE QUESTIONS are the page's spine — the hero links into them and
-// each owns a section: #worth, #state, #next.
+// THE THREE QUESTIONS are the page's spine — each owns a section: #worth,
+// #state, #next.
+//
+// ── FUNNEL PASS (2026-09-09) ────────────────────────────────────────────
+//
+// v5 showed the output, which was the right call and stays. What it did not
+// do was make the three rungs legible or the next action obvious at any
+// scroll depth: the only prices on the whole page were the words "A$3" in a
+// hero bullet and a subordinate /pricing link at the bottom, so a visitor
+// could read six thousand pixels without learning what free gets them.
+//
+// PATTERN (ui-ux-pro-max): the v5 "Product Demo + Features" spine with the
+// "Pricing-Focused Landing" pattern grafted on — hero value proposition,
+// then the product's own output, then a three-tier ladder, then the close.
+// Style stays "Data-Dense Dashboard", which is what the page already is.
+// CTA placement follows that pattern: in the hero, on each tier card, and at
+// the bottom.
+//
+// WHAT CHANGED, AND WHY
+//
+//   * Hero: the question-anchor row and the trust-point row — two rows, no
+//     price between them — became ONE row carrying the three rungs with
+//     their prices. Concise but complete: what it is, what you get, what it
+//     costs, above the fold.
+//   * NEW #tiers section, the funnel's spine, after the proof and before the
+//     close. It is where the hero strip points.
+//   * REMOVED EquityBand and AudienceSplit (≈1,060px of prose between the
+//     proof and the close). Equity is not dropped — it is the third rung's
+//     own content, stated as a thing you get for A$29 rather than as a
+//     section arguing for itself. The investor path keeps its entry in the
+//     final CTA.
+//   * Every band tightened by one step of vertical padding.
 //
 // LIGHT/DARK RHYTHM — light-dominant, ONE dark punctuation band plus the
 // dark footer edge:
 //
-//   1. Hero            LIGHT  (bg.base)    H1 + omnibox + a real run.
+//   1. Hero            LIGHT  (bg.base)    H1 + omnibox + ladder + a real run.
 //   2. #worth          LIGHT  (bg.sunken)  valuation intervals.
 //   3. #state          LIGHT  (bg.base)    the eight-dimension radar.
 //   4. journey         DARK   punctuation  twelve phases, three marks.
 //   5. #next           LIGHT  (bg.sunken)  the data room filling up.
 //   6. Three runs      LIGHT  (bg.base)    small multiples.
-//   7. EquityBand      LIGHT  (bg.sunken)  issue, not just model.
-//   8. AudienceSplit   LIGHT  (bg.base)    founders | investors.
-//   9. LogoBand        LIGHT  (bg.sunken)  where it is built and how it runs.
-//  10. FinalCTA        LIGHT  (bg.base)    one primary button.
-//  11. Entity strip    DARK   footer edge  PPL Food PTY LTD.
+//   7. #tiers          LIGHT  (bg.sunken)  the three rungs.
+//   8. LogoBand        LIGHT  (bg.base)    where it is built and how it runs.
+//   9. FinalCTA        LIGHT  (bg.sunken)  one primary button.
+//  10. Entity strip    DARK   footer edge  PPL Food PTY LTD.
 export const metadata = {
   title: "See your company the way an investor will · BlockID.au",
   description:
-    "Give it a pitch deck, a website, or a few sentences. Get a score across eight dimensions, one valuation range settled between five methods, your position on a twelve-phase journey, and a data room an investor can open. Issue and administer equity when you are ready.",
+    "Give it a pitch deck, a website, or a few sentences. Your score and valuation range appear on screen free, then a five-page summary by email. The full written report is A$3. The workspace, with cap table and data room, is A$29 a month.",
   alternates: {
     canonical: "https://blockid.au",
   },
@@ -144,10 +172,10 @@ export default async function HomePage() {
         <section
           id="worth"
           aria-labelledby="worth-heading"
-          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-14 sm:py-16"
+          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-12 sm:py-14"
         >
           <div className="mx-auto max-w-6xl px-6">
-            <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-14">
+            <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-12">
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
                   What is it worth
@@ -185,7 +213,7 @@ export default async function HomePage() {
         <section
           id="state"
           aria-labelledby="state-heading"
-          className="scroll-mt-20 border-t border-line-subtle bg-surface py-14 sm:py-16"
+          className="scroll-mt-20 border-t border-line-subtle bg-surface py-12 sm:py-14"
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
@@ -206,7 +234,7 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="mt-10 grid gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:items-center lg:gap-14">
+            <div className="mt-8 grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center lg:gap-12">
               <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-xs sm:p-6">
                 <DimensionRadar run={radarRun} />
               </div>
@@ -244,7 +272,7 @@ export default async function HomePage() {
         <section
           aria-labelledby="journey-heading"
           data-theme="dark"
-          className="border-y border-line-subtle bg-surface py-14 sm:py-16"
+          className="border-y border-line-subtle bg-surface py-12 sm:py-14"
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
@@ -280,7 +308,7 @@ export default async function HomePage() {
         <section
           id="next"
           aria-labelledby="next-heading"
-          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-14 sm:py-16"
+          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-12 sm:py-14"
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-2xl">
@@ -301,7 +329,7 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="mt-10 rounded-2xl border border-line-subtle bg-surface p-6 shadow-xs sm:p-8">
+            <div className="mt-8 rounded-2xl border border-line-subtle bg-surface p-5 shadow-xs sm:p-7">
               <DataRoomBuild />
             </div>
           </div>
@@ -310,7 +338,7 @@ export default async function HomePage() {
         {/* 6. Three anonymised runs, so a visitor can locate themselves. */}
         <section
           aria-labelledby="runs-heading"
-          className="border-t border-line-subtle bg-surface py-14 sm:py-16"
+          className="border-t border-line-subtle bg-surface py-12 sm:py-14"
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="mx-auto max-w-2xl text-center">
@@ -328,7 +356,7 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="mt-10">
+            <div className="mt-8">
               <RunComparison />
             </div>
             <div className="mt-8">
@@ -337,16 +365,52 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 7. The equity half — deliberately the smaller half. */}
-        <EquityBand />
+        {/* 7. THE THREE RUNGS. The funnel's spine, and where the hero strip
+            points. It sits AFTER the proof deliberately: a price is a
+            question about value, and the four sections above it are the
+            answer. Form is a KPI row of stat tiles, not a chart — see the
+            note in tier-ladder.tsx. */}
+        <section
+          id="tiers"
+          aria-labelledby="tiers-heading"
+          className="scroll-mt-20 border-t border-line-subtle bg-surface-sunken py-12 sm:py-14"
+        >
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="max-w-2xl">
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+                What it costs
+              </p>
+              <h2
+                id="tiers-heading"
+                className="mt-3 font-display text-2xl font-bold tracking-tight text-primary sm:text-3xl"
+              >
+                Three steps, and the first one is free.
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-secondary sm:text-base">
+                Each step asks for one more thing than the last, and gives you
+                something the last one could not. You never pay to find out
+                whether it works.
+              </p>
+            </div>
 
-        {/* 8. Founders and investors, one question each. */}
-        <AudienceSplit />
+            <div className="mt-8">
+              <TierLadder />
+            </div>
 
-        {/* 9. Where it is built and how it is run. */}
-        <LogoBand />
+            <p className="mt-6 text-xs leading-relaxed text-muted">
+              Prices in Australian dollars, inclusive of GST. The Startup Value
+              Index is a directional analysis, not a financial valuation or an
+              investment recommendation.
+            </p>
+          </div>
+        </section>
 
-        {/* 10. Final CTA — one primary button, pricing as a text link. */}
+        {/* 8. Where it is built and how it is run. Forced to the base
+            surface: #tiers above it is sunken, and two sunken bands in a row
+            lose the boundary between them. */}
+        <LogoBand className="bg-surface" />
+
+        {/* 9. Final CTA — one primary button, pricing as a text link. */}
         <FinalCTA />
 
         {/* 11. Entity strip — the page's second and last dark region, at
