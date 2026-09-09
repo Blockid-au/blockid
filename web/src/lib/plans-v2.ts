@@ -40,6 +40,23 @@ export interface Plan {
   public?: boolean;
 }
 
+/**
+ * The Equity add-on, in AUD per month, GST-inclusive.
+ *
+ * Sold as a flat monthly item attached to an existing paid subscription (see
+ * `STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY` in lib/stripe.ts). It grants exactly
+ * the four flags in `ADDON_FEATURES` — esop.manage, vesting.read,
+ * vesting.write, blockchain.sync — and nothing else.
+ *
+ * It lives here because this module is the marketing-surface catalogue, and
+ * because until 2026-09-09 the figure was typed by hand into the Growth
+ * feature bullet AND into the persona pages under /solutions. A price typed
+ * into a page cannot follow a price change it does not know about, which is
+ * how three /for/* pages came to advertise amounts we do not charge. Every
+ * marketing surface that names the add-on now reads it from here.
+ */
+export const EQUITY_ADDON_MONTHLY_AUD = 59;
+
 // ─── Founder ──────────────────────────────────────────────────────────────
 const FOUNDER: Plan[] = [
   {
@@ -129,7 +146,7 @@ const FOUNDER: Plan[] = [
       // make this bullet true would take access away from Growth subscribers
       // who use /workspace/dividends today. So the bullet loses the two claims
       // instead.
-      "Equity add-on +A$59/mo — ESOP, vesting schedules, and on-chain sync",
+      `Equity add-on +A$${EQUITY_ADDON_MONTHLY_AUD}/mo — ESOP, vesting schedules, and on-chain sync`,
       "Unlimited shareholders + employees on the add-on — never per head",
     ],
   },

@@ -1,6 +1,6 @@
 {
   "version": "3.9.0",
-  "updatedAt": "2026-09-08T16:00:02.111Z",
+  "updatedAt": "2026-09-09T12:04:02.418Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-31T14:00:01.953Z",
@@ -38,7 +38,7 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-09-08T12:04:04.648Z",
+    "decidedAt": "2026-09-09T12:04:02.418Z",
     "decidedBy": "ceo",
     "tasks": [
       {
@@ -1544,6 +1544,24 @@
         "versionImpact": "patch",
         "status": "pending",
         "createdAt": "2026-09-08T12:04:04.648Z"
+      },
+      {
+        "id": "T0211",
+        "agent": "cro",
+        "title": "Startup Ecosystem Data & Grants",
+        "rationale": "Collect and analyze data on emerging grants, accelerators, funding rounds, and ESIC/R&D Tax changes for the Startup Navigation System. Implement a dashboard to track key startup metrics.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-09-09T12:04:02.418Z"
+      },
+      {
+        "id": "T0212",
+        "agent": "cro",
+        "title": "Startup Ecosystem Reports & Trends",
+        "rationale": "Expand the Startup Navigation System by incorporating global startup ecosystem trends and reports for founders, investors, and industry insiders.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-09-09T12:04:02.418Z"
       }
     ]
   },

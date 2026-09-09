@@ -1,6 +1,11 @@
 {
-  "updatedAt": "2026-09-08T21:05:02.607Z",
+  "updatedAt": "2026-09-09T14:00:03.272Z",
   "openrouter": [
+    "liquid/lfm-2.5-2.6b:free",
+    "google/lyria-3-pro-preview",
+    "google/lyria-3-clip-preview",
+    "thinkingmachines/inkling-small:free",
+    "nex-agi/nex-n2.5-mini:free",
     "nvidia/nemotron-3-ultra-550b-a55b:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
     "google/gemma-4-31b-it:free",
@@ -10,9 +15,7 @@
     "nvidia/nemotron-3.5-lightning:free",
     "dots-studio/dots-3-note-preview:free",
     "nex-agi/nex-n2.5-pro:free",
-    "inclusionai/ling-3.0-flash-sante:free",
-    "inclusionai/ling-3.0-flash-fin:free",
-    "poolside/laguna-s-2.1:free"
+    "inclusionai/ling-3.0-flash-sante:free"
   ],
   "groq": [
     "qwen/qwen3.8-27b",
