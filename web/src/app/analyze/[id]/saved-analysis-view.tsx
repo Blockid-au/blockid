@@ -20,12 +20,18 @@ import dynamic from "next/dynamic";
 import { AlertCircle, ArrowLeft, Calendar, FileText } from "lucide-react";
 
 import type { IntakeResult } from "@/lib/intake/analyze-input";
+import type { CompactSvi } from "@/lib/analyses/payload";
 import {
   claimedMessage,
   describeInput,
   formatRunDateTime,
   inputKindLabel,
 } from "@/lib/analyses/summary";
+
+const PublishPanel = dynamic(
+  () => import("@/components/publish/publish-panel").then((m) => m.PublishPanel),
+  { ssr: false },
+);
 
 const AnalyzeResults = dynamic(
   () =>
@@ -45,6 +51,13 @@ export interface SavedAnalysisPayload {
     truncated: boolean;
   };
   intake: IntakeResult;
+  /**
+   * The compact score summary the API already returns alongside `intake`.
+   * The publish panel needs it to run the thinness gate and to build the
+   * preview locally, so the founder sees the finished page before anything
+   * is sent anywhere.
+   */
+  svi?: CompactSvi | null;
 }
 
 type LoadState =
@@ -215,6 +228,18 @@ export function SavedAnalysisView({ id, claimed = 0 }: SavedAnalysisViewProps) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Publishing sits ABOVE the results, not buried under them: it is a
+          decision about this run, and a founder who scrolls past the whole
+          analysis has already stopped reading. Default state is "private". */}
+      <div className="mx-auto mt-6 max-w-6xl px-4">
+        <PublishPanel
+          analysisId={analysis.id}
+          svi={analysis.svi ?? null}
+          analysedAt={analysis.createdAt}
+          owned={analysis.owned}
+        />
       </div>
 
       <div className="mt-6">

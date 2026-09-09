@@ -9405,3 +9405,5 @@
 {"ts":"2026-09-09T01:01:59.454Z","event":"github-push-master","detail":"Blockid-au: docs(version): record what v3.10.0 actually shipped (2 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T01:17:49Z","status":"success","gates":"12/12","pid":"2304970","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-09-09T01:18:05.450Z","event":"github-push-master","detail":"Blockid-au: feat(guest-analysis): migration 0128 — abandoned-checkout reconcile + recovery (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T01:19:19.113Z","event":"github-push-master","detail":"Blockid-au: feat(publish): opt-in publishing for a completed analysis — schema, gates, store, API (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T01:21:16.120Z","event":"github-push-master","detail":"Blockid-au: feat(guest-analysis): reconcile abandoned A$3 checkouts and recover them once (1 commits)","source":"github-webhook"}
