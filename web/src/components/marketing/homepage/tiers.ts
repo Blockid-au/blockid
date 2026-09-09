@@ -22,7 +22,7 @@
 //   1. Nothing at all → the score and the valuation range, on screen.
 //   2. An email       → the same thing written down, five pages, forwardable.
 //   3. A$3            → the working behind it, ten pages or more.
-//   4. A$29/month     → an account, the workspace, and equity you can issue.
+//   4. A$29/month     → an account, the score over time, a data room, a link.
 //
 // Rungs 1 and 2 are one card on the page: the visitor does not experience
 // "run it" and "have it emailed" as two products, and splitting them into two
@@ -129,12 +129,23 @@ export const HOMEPAGE_TIERS: readonly HomepageTier[] = [
     price: audLabel(requireCents(STARTER.price_aud_cents, "workspace")),
     priceSuffix: "a month",
     ask: "An account. Cancel whenever you like",
-    gist: "Track the score over time, and issue equity when you are ready",
+    gist: "Track the score over time, and share a data room with investors",
+    // EVERY LINE HERE IS AN ENFORCED CAPABILITY OF `founder_starter`.
+    //
+    // Until 2026-09-09 this list also promised "cap table, vesting and an ESOP
+    // you can actually issue" — none of which A$29 grants. `cap_table.write`,
+    // `share_management` and `esop.manage` all sit at A$69 or above, and the
+    // pages behind them redirect a Starter subscriber to /pricing. The bullet
+    // is gone rather than softened: the rung sells what it enforces.
+    //
+    // The remaining four map to flags founder_starter holds (plans.csv,
+    // migration 0131): the run allowance to `usage_limits.svi_per_month`,
+    // score history to any authenticated account, the data room to
+    // `data_room.access`, the investor link to `investor_links.premium`.
     includes: [
       `Up to ${STARTER.usage_limits.svi_per_month} analyses a month, kept on your account`,
       "Your score tracked over time, not one snapshot",
       "The data room, filling up in the order investors ask",
-      "Cap table, vesting and an ESOP you can actually issue",
       "Share a live link with an investor instead of a PDF",
     ],
     cta: { label: "See plans and pricing", href: "/pricing" },

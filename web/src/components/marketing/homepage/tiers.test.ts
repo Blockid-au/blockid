@@ -76,6 +76,33 @@ describe("HOMEPAGE_TIERS", () => {
     );
   });
 
+  // The rung may only promise things the plan behind it actually grants.
+  // This is the guard that would have caught the ESOP bullet: A$29 sold
+  // "cap table, vesting and an ESOP you can actually issue" while
+  // `founder_starter` held neither `cap_table.write` nor `esop.manage`, so
+  // four of its five bullets redirected the subscriber to /pricing.
+  it("promises the workspace rung nothing its plan does not grant", () => {
+    const workspace = HOMEPAGE_TIERS.find((t) => t.id === "workspace")!;
+    const flags = GENERATED_PLANS_BY_ID.founder_starter.feature_flags;
+    const text = workspace.includes.join(" | ").toLowerCase();
+
+    // The data room and the investor link are sold, so they must be granted.
+    expect(text).toContain("data room");
+    expect(flags).toContain("data_room.access");
+    expect(text).toContain("live link");
+    expect(flags).toContain("investor_links.premium");
+
+    // Equity lives one rung up. If it is ever granted to Starter this
+    // assertion is the place to change, and the copy follows.
+    expect(flags).not.toContain("cap_table.write");
+    expect(flags).not.toContain("share_management");
+    expect(flags).not.toContain("esop.manage");
+    for (const equityWord of ["cap table", "esop", "vesting", "issue equity"]) {
+      expect(text).not.toContain(equityWord);
+    }
+    expect(workspace.gist.toLowerCase()).not.toContain("equity");
+  });
+
   it("says the free rung costs nothing", () => {
     const free = HOMEPAGE_TIERS.find((t) => t.id === "free")!;
     expect(free.price).toBe("A$0");
