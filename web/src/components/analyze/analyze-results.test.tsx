@@ -6,6 +6,7 @@
 // what we need to pin: the results panel always shows the banner and
 // score ring, regardless of which agent findings arrived first.
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AnalyzeResults } from "./analyze-results";
@@ -71,5 +72,28 @@ describe("AnalyzeResults", () => {
     );
     expect(out).toContain('data-testid="analyze-pdf-link"');
     expect(out).toContain("/tmp/report.pdf");
+  });
+});
+
+describe("AnalyzeResults — customer-facing labels", () => {
+  // Findings used to be headed "Agent findings" and tagged CHRO / CDO / CTO —
+  // our org chart, shown to a founder reading about their own company. The
+  // labels now name the area of *their* business the finding came from.
+  it("names business areas, never internal role acronyms", () => {
+    const src = readFileSync(
+      new URL("./analyze-results.tsx", import.meta.url),
+      "utf8",
+    );
+    const labelBlock = src.slice(
+      src.indexOf("const AGENT_LABEL"),
+      src.indexOf("const SEVERITY_STYLE"),
+    );
+    for (const acronym of ["CHRO", "CDO", "CISO", "CMO", "CRO", "CLO", "CPO", "COO"]) {
+      expect(labelBlock, `AGENT_LABEL must not surface "${acronym}"`).not.toContain(
+        `"${acronym}"`,
+      );
+    }
+    expect(labelBlock).toContain("Team & people");
+    expect(labelBlock).toContain("Finances & valuation");
   });
 });

@@ -101,18 +101,22 @@ const DIM_LABEL: Record<string, string> = {
   svm: "Strategic Vision & Moat",
 };
 
+// The area of the reader's business each finding came from — not our internal
+// role names. A founder reading "CHRO" or "CDO" is being shown our org chart;
+// "Team & people" tells them which lens produced the finding, which is the part
+// they can act on.
 const AGENT_LABEL: Record<AgentRole, string> = {
-  ceo: "CEO",
-  cto: "CTO",
-  cfo: "CFO",
-  cpo: "CPO",
-  cmo: "CMO",
-  cro: "CRO",
-  clo: "CLO",
-  chro: "CHRO",
-  ciso: "CISO",
-  cdo: "CDO",
-  coo: "COO",
+  ceo: "Strategy",
+  cto: "Technology",
+  cfo: "Finances & valuation",
+  cpo: "Product",
+  cmo: "Market & customers",
+  cro: "Revenue & growth",
+  clo: "Legal & compliance",
+  chro: "Team & people",
+  ciso: "Security",
+  cdo: "Data",
+  coo: "Operations",
 };
 
 const SEVERITY_STYLE: Record<GapItem["severity"], string> = {
@@ -234,11 +238,11 @@ function AgentFindings({ findings }: { findings: AgentFinding[] }) {
         id="analyze-findings-heading"
         className="mb-3 text-sm font-semibold text-primary"
       >
-        Agent findings
+        What we looked at
       </h3>
       {findings.length === 0 ? (
         <p className="text-xs italic text-muted">
-          Findings will populate as each agent finishes.
+          Findings appear as each area is assessed.
         </p>
       ) : (
         <ul className="divide-y divide-line-subtle">
