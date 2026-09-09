@@ -94,6 +94,31 @@ describe("extractSignals", () => {
     expect(s.hasCoFounder).toBe(false);
   });
 
+  it("does not read an explicit customer denial as having customers", () => {
+    const s = extractSignals({
+      rawText: "Pre-revenue, no paying customers yet, launched a private beta",
+    });
+    expect(s.hasCustomers).toBe(false);
+    expect(s.hasRevenue).toBe(false);
+  });
+
+  it("still detects customers when they are actually claimed", () => {
+    const s = extractSignals({ rawText: "We have 40 paying customers on annual plans" });
+    expect(s.hasCustomers).toBe(true);
+  });
+
+  it("does not read 'no external funding' as a raise", () => {
+    const s = extractSignals({ rawText: "Bootstrapped, no external funding to date" });
+    expect(s.targetRaiseMentioned).toBe(false);
+  });
+
+  it("an explicit raise still wins over a bootstrapped history", () => {
+    const s = extractSignals({
+      rawText: "Bootstrapped so far with no external funding, now raising a seed round",
+    });
+    expect(s.targetRaiseMentioned).toBe(true);
+  });
+
   it("detects serial founder", () => {
     const s = extractSignals({ rawText: "I'm a serial founder who exited my last company" });
     expect(s.founderExperience).toBe("serial");

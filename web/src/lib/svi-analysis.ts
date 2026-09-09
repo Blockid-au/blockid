@@ -455,6 +455,21 @@ export function extractSignals(
     "haven't monetis", "havent monetis", "yet to monetis",
   );
 
+  // "no paying customers yet" contains both "customer" and "paying", so the
+  // flat keyword list below read an explicit denial as a positive. Found by
+  // running the live free path with "Pre-revenue, no paying customers yet",
+  // which came back hasCustomers: true — the product rewarding a founder's
+  // honesty with a wrong answer, which is the worst error a valuation can make.
+  //
+  // Deliberately does NOT treat "no revenue" as denying customers: a free
+  // product can have plenty of users and no revenue at all.
+  const deniesCustomers = has(
+    "no customer", "no paying customer", "zero customer", "zero paying",
+    "no client", "no user", "no paying user", "without customer",
+    "not have customer", "not have any customer", "yet to get customer",
+    "haven't landed", "havent landed", "no one is using", "nobody is using",
+  );
+
   const revenueBand: SVIExtractedSignals["revenueBand"] = deniesRevenue
     ? "pre-revenue"
     : has("mrr", "arr", "monthly revenue", "revenue", "paying", "$1m", "$500k", "1m arr")
@@ -482,7 +497,25 @@ export function extractSignals(
     evidenceLevel = "third_party_verified";
   }
 
-  const targetRaiseMentioned = has("raising", "raise", "funding", "investment", "seed round", "series");
+  // Same negation trap as revenue, one field over: "Bootstrapped, no external
+  // funding" contains "funding", so the old flat list read a company that had
+  // just told us it is not raising as a company that is.
+  //
+  // An explicit raise verb still wins over the denial, because "bootstrapped
+  // so far, now raising a seed round" is one of the commonest things a founder
+  // writes and both halves are true. Only a bare mention of funding or
+  // investment defers to the denial.
+  const deniesRaise = has(
+    "no external funding", "no outside funding", "no funding",
+    "no external investment", "no investment", "without funding",
+    "not raising", "not fundraising", "self-funded", "self funded",
+  );
+  const assertsRaise = has(
+    "raising", "raise", "seed round", "pre-seed round", "series a", "series b",
+    "looking to raise", "open round",
+  );
+  const targetRaiseMentioned =
+    assertsRaise || (!deniesRaise && has("funding", "investment", "series"));
 
   const sector = detectSector(text);
 
@@ -509,7 +542,8 @@ export function extractSignals(
     hasApp: has("ios", "android", "app store", "play store", "mobile app"),
     hasRevenue: revenueBand !== "pre-revenue",
     revenueBand,
-    hasCustomers: has("customer", "client", "user", "paying", "subscriber", "member"),
+    hasCustomers: !deniesCustomers &&
+      has("customer", "client", "user", "paying", "subscriber", "member"),
     hasSocialProof: has("linkedin", "twitter", "instagram", "facebook", "tiktok", "youtube",
                        "social", "followers", "community", "discord", "telegram"),
     hasAnalytics: has("analytics", "search console", "ga4", "mixpanel", "amplitude", "data"),
