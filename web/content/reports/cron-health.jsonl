@@ -1185,3 +1185,5 @@
 {"ts":"2026-09-09T14:05:01Z","endpoint":"trial-end-reminder","status":"ok","duration_ms":165,"detail":"{\"count\": 0, \"skipped\": 0}"}
 {"ts":"2026-09-09T14:07:01Z","endpoint":"guest-analysis-reconcile","status":"ok","duration_ms":191,"detail":"{\"dry\": false, \"reconciled\": [], \"recovery\": [], \"counts\": {\"scanned\": 0, \"abandoned\": 0, \"expired\": 0, \"paid_recovered\": 0, \"emails_sent\": 0}}"}
 {"ts":"2026-09-09T14:10:01Z","endpoint":"agent-guardian","status":"ok","duration_ms":4729,"detail":"{\"status\": \"HEALTHY\", \"metrics\": {\"disk\": {\"value\": 18, \"raw\": \"18% used (228394500 free)\", \"level\": \"ok\"}, \"data_disk\": {\"value\": 8, \"raw\": \"8% used (269774480 free, 300GB)\", \"level\": \"ok\"}, \"memory\""}
+{"ts":"2026-09-09T14:15:01Z","endpoint":"lifecycle-mailer","status":"ok","duration_ms":161,"detail":"{\"processed\": 0, \"results\": []}"}
+{"ts":"2026-09-09T14:17:01Z","endpoint":"milestone-report","status":"ok","duration_ms":118,"detail":"{\"milestonesReported\": 0, \"sent\": [], \"totalReported\": 15}"}

@@ -83,7 +83,7 @@ export interface SolutionPageProps {
    */
   primaryCtaHref?: string;
   secondaryCtaLabel: string;
-  /** Defaults to the sample gallery at {@link SAMPLE_REPORT_HREF}. */
+  /** Defaults to {@link SECONDARY_CTA_FALLBACK_HREF}. */
   secondaryCtaHref?: string;
   benefitsTitle: string;
   /**
@@ -117,10 +117,16 @@ export interface SolutionPageProps {
 }
 
 /**
- * The sample gallery. `/reports/samples` is a permanent redirect to this, so
- * link the destination and save every persona page a hop.
+ * Where the secondary CTA goes when a persona does not name its own.
+ *
+ * It used to be `/reports/samples`, labelled "See a sample Trust Report
+ * (A$5.50)". That route redirects to `/guide/reports`, which is the internal
+ * report library — cards labelled by C-Level agent, not an anonymised customer
+ * report — so the button promised a sample of the paid deliverable and
+ * delivered a jargon-labelled index of our own artefacts. /pricing is a page
+ * that says what each rung actually includes.
  */
-const SAMPLE_REPORT_HREF = "/guide/reports";
+const SECONDARY_CTA_FALLBACK_HREF = "/pricing";
 
 /**
  * Resolve the persona's default primary-CTA target on /pricing. Each persona
@@ -206,7 +212,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Link>
             <Link
-              href={secondaryCtaHref ?? SAMPLE_REPORT_HREF}
+              href={secondaryCtaHref ?? SECONDARY_CTA_FALLBACK_HREF}
               className="inline-flex h-12 items-center justify-center rounded-xl border border-line px-6 text-sm font-medium text-primary transition-colors duration-200 hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               {fillPrices(secondaryCtaLabel)}

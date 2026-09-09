@@ -9472,3 +9472,4 @@
 {"ts":"2026-09-09T13:46:16.467Z","event":"github-push-master","detail":"Blockid-au: fix(marketing): a white-label dashboard that is a placeholder page, and two counts that disagree (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T14:05:06Z","status":"success","gates":"10/12","skipped":2,"gitleaks":"skipped","lint":"errors","swapped":1,"rollback":"n/a","pid":"739599","reason":"","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-09-09T14:12:17.688Z","event":"github-push-master","detail":"Blockid-au: feat(solutions): give the persona pages a price they cannot get wrong (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T14:13:43.823Z","event":"github-push-master","detail":"Blockid-au: refactor(solutions): let a persona page be as short as its truth (1 commits)","source":"github-webhook"}
