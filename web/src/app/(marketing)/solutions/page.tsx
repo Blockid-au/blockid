@@ -49,8 +49,13 @@ const CARDS: SolutionCard[] = [
   {
     href: "/solutions/accelerator",
     eyebrow: "For accelerators",
-    title: "Run a cohort with white-label dashboards",
-    body: "Give every founder in your program a workspace, track cohort-level SVI progress, and generate quarterly LP reports without a data engineer.",
+    // 2026-09-09: "white-label dashboards" and "quarterly LP reports" both
+    // pointed at surfaces that do not exist — /workspace/white-label reads
+    // "Full configuration panel under development", and the LP pack has no
+    // generator. What ships is a workspace and a score per founder, plus the
+    // mentor roster, so that is what this promises.
+    title: "Run a cohort on one scoring rubric",
+    body: "Give every founder in your program a workspace, score them all on the same eight dimensions, and follow the movement company by company with a mentor roster alongside it.",
   },
   {
     href: "/solutions/vn-sme",

@@ -100,8 +100,8 @@ export const HOW_IT_WORKS_COPY: HowItWorksCopy = {
         vi: "Chấm điểm mức độ sẵn sàng",
       },
       body: {
-        en: "See your Startup Value Index — a rating across 13 investor questions, each linked to source evidence.",
-        vi: "Xem Chỉ số Giá trị Khởi nghiệp — đánh giá qua 13 câu hỏi của nhà đầu tư, mỗi câu đều có dẫn chứng.",
+        en: "See your Startup Value Index — a rating across the eight dimensions below, each linked to source evidence.",
+        vi: "Xem Chỉ số Giá trị Khởi nghiệp — đánh giá qua tám khía cạnh bên dưới, mỗi khía cạnh đều có dẫn chứng.",
       },
     },
     {
