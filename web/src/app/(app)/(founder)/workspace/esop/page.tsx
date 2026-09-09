@@ -16,9 +16,16 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function EsopPage() {
+  // No minTier. `esop.manage` is now reachable two ways — a Scale/Enterprise
+  // plan, or the A$59 Equity add-on on top of any paid plan — and
+  // requireTierForPage checks the tier FIRST and redirects before it ever
+  // consults can(). A "scale" floor here would have sent every founder who
+  // bought the add-on to /pricing for the page they had just paid to unlock,
+  // while the matching API routes let them through (gateRequireFeature has no
+  // tier notion). The feature flag is the authority; the floor was only ever
+  // a restatement of which plans carried it.
   await requireTierForPage({
     feature: "esop.manage",
-    minTier: "scale",
     fromPath: "/workspace/esop",
   });
 

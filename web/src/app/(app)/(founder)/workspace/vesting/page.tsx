@@ -16,9 +16,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function VestingPage() {
+  // Same reasoning as /workspace/esop: `vesting.read` is granted by the Equity
+  // add-on, and a tier floor short-circuits ahead of the feature check. No
+  // plan bundle carries vesting.read, so the flag alone is what decides.
   await requireTierForPage({
     feature: "vesting.read",
-    minTier: "growth",
     fromPath: "/workspace/vesting",
   });
 
