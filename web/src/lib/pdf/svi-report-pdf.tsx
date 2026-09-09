@@ -30,7 +30,7 @@ const LOGO_SRC = fs.existsSync(LOGO_PATH)
  * renderer falls back to this default `C` palette + built-in logo.
  * See web/src/lib/branding/gate.ts (canUsePdfBranding). */
 /* ─── Brand Palette ─────────────────────────────────────────────────────── */
-const C = {
+export const C = {
   brand700: "#1d4ed8",
   brand600: "#2563eb",
   brand500: "#3b82f6",
@@ -68,7 +68,7 @@ const C = {
 };
 
 /* ─── Dimension metadata ────────────────────────────────────────────────── */
-const DIM_LABELS: Record<string, string> = {
+export const DIM_LABELS: Record<string, string> = {
   ftv: "Founder & Team Value",
   mpc: "Market & Problem Clarity",
   ptd: "Product & Technical Depth",
@@ -114,7 +114,7 @@ const SECTION_TITLES: Record<string, string> = {
 };
 
 /* ─── Styles ────────────────────────────────────────────────────────────── */
-const s = StyleSheet.create({
+export const s = StyleSheet.create({
   page: {
     paddingTop: 52,
     paddingBottom: 56,
@@ -291,14 +291,14 @@ const s = StyleSheet.create({
 });
 
 /* ─── Helpers ───────────────────────────────────────────────────────────── */
-function barColor(score: number): string {
+export function barColor(score: number): string {
   if (score >= 70) return C.emerald600;
   if (score >= 50) return C.brand600;
   if (score >= 35) return C.amber600;
   return C.red600;
 }
 
-function sviLabel(svi: number): string {
+export function sviLabel(svi: number): string {
   if (svi >= 300) return "Exceptional";
   if (svi >= 200) return "Elite";
   if (svi >= 170) return "Outstanding";
@@ -323,7 +323,7 @@ function riskBorderColor(points: number): string {
   return C.ink300;
 }
 
-function scoreColor(score: number): string {
+export function scoreColor(score: number): string {
   if (score >= 70) return C.emerald600;
   if (score >= 50) return C.brand600;
   if (score >= 35) return C.amber600;
@@ -342,16 +342,28 @@ function getSectionTitle(id: string): string {
   return id;
 }
 
-/* ─── Shared Components ─────────────────────────────────────────────────── */
+/* ─── Shared Components ───────────────────────────────────────────────────
+ *
+ * These primitives — and the `C` palette, the `s` stylesheet, and the small
+ * scale helpers above — are EXPORTED so the free 5-page summary
+ * (`svi-summary-pdf.tsx`) can be composed from them instead of becoming a
+ * third report renderer with its own typography, colours and page furniture.
+ * The free tier is meant to look like a smaller cut of the same document,
+ * because it is one.
+ *
+ * Nothing here changed behaviour when the `export` keywords went on; the paid
+ * document still renders exactly as before. Treat them as a public surface
+ * now: their props are pinned by `svi-report-pdf.test.ts`.
+ * ────────────────────────────────────────────────────────────────────────── */
 
-function HeaderBar({ color }: { color?: string } = {}) {
+export function HeaderBar({ color }: { color?: string } = {}) {
   // Palette override lands as an inline background — s.headerBar's default is
   // still C.brand600, but the inline style wins when `color` is supplied.
   const override = color ? { backgroundColor: color } : {};
   return <View style={[s.headerBar, override]} fixed />;
 }
 
-function Footer({
+export function Footer({
   logoSrc,
   brandText,
 }: {
@@ -379,7 +391,7 @@ function Footer({
   );
 }
 
-function PageTitle({
+export function PageTitle({
   title,
   subtitle,
 }: {
@@ -403,7 +415,7 @@ function SectionNumberBadge({ num }: { num: string }) {
   );
 }
 
-function MetricCard({
+export function MetricCard({
   label,
   value,
   sub,
@@ -425,7 +437,7 @@ function MetricCard({
   );
 }
 
-function ScoreGauge({ score, size = 64 }: { score: number; size?: number }) {
+export function ScoreGauge({ score, size = 64 }: { score: number; size?: number }) {
   const color = scoreColor(score);
   const borderW = size * 0.08;
   return (
@@ -465,7 +477,7 @@ function ScoreGauge({ score, size = 64 }: { score: number; size?: number }) {
   );
 }
 
-function InsightBox({ text, label }: { text: string; label?: string }) {
+export function InsightBox({ text, label }: { text: string; label?: string }) {
   return (
     <View style={s.insightBox}>
       <Text style={s.insightLabel}>{label || "KEY INSIGHT"}</Text>
@@ -474,7 +486,7 @@ function InsightBox({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function ActionItem({ num, text, detail }: { num: number; text: string; detail?: string }) {
+export function ActionItem({ num, text, detail }: { num: number; text: string; detail?: string }) {
   return (
     <View style={s.actionRow}>
       <View style={s.actionNum}>
@@ -490,7 +502,7 @@ function ActionItem({ num, text, detail }: { num: number; text: string; detail?:
   );
 }
 
-function DimensionBar({
+export function DimensionBar({
   label,
   score,
   weight,
@@ -524,7 +536,7 @@ function DimensionBar({
   );
 }
 
-function Bullet({ text, color }: { text: string; color?: string }) {
+export function Bullet({ text, color }: { text: string; color?: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 4 }}>
       <View
@@ -592,7 +604,7 @@ function ScnBanner({
 }
 
 /* 8-axis radar / spider chart of the SVI dimensions. */
-function RadarChartSVG({ subs, size = 230 }: { subs: SVIAnalysis["subs"]; size?: number }) {
+export function RadarChartSVG({ subs, size = 230 }: { subs: SVIAnalysis["subs"]; size?: number }) {
   const cx = size / 2;
   const cy = size / 2;
   const R = size * 0.34;
@@ -643,7 +655,7 @@ function RadarChartSVG({ subs, size = 230 }: { subs: SVIAnalysis["subs"]; size?:
 }
 
 /* Percentile-position band — where you sit vs AU peers at your stage. */
-function PercentileBandSVG({ percentile, width = 460, height = 34 }: { percentile: number; width?: number; height?: number }) {
+export function PercentileBandSVG({ percentile, width = 460, height = 34 }: { percentile: number; width?: number; height?: number }) {
   const pct = clampN(percentile, 2, 98);
   const x0 = 6;
   const x1 = width - 6;
@@ -680,7 +692,7 @@ function PercentileBandSVG({ percentile, width = 460, height = 34 }: { percentil
 }
 
 /* Indicative valuation range bar (low → mid → high), AUD. */
-function ValuationRangeSVG({ low, mid, high, width = 460, height = 30 }: { low: number; mid: number; high: number; width?: number; height?: number }) {
+export function ValuationRangeSVG({ low, mid, high, width = 460, height = 30 }: { low: number; mid: number; high: number; width?: number; height?: number }) {
   const x0 = 6;
   const x1 = width - 6;
   const trackW = x1 - x0;
@@ -740,7 +752,7 @@ function RouteMapSVG({ count, width = 500, height = 64 }: { count: number; width
  *  DEEP ANALYSIS PAGE (v2.3) — Input summary + 4-perspective valuation
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-function formatAud(v: number): string {
+export function formatAud(v: number): string {
   if (v >= 1_000_000_000) return `A$${(v / 1_000_000_000).toFixed(2)}B`;
   if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
   if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
