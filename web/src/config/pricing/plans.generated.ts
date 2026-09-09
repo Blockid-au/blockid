@@ -48,7 +48,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "stripe_env_var": "STRIPE_PRICE_FOUNDER_STARTER",
     "feature_flags": [
       "profile.multi",
-      "svi.premium"
+      "svi.premium",
+      "data_room.access",
+      "investor_links.premium"
     ],
     "usage_limits": {
       "profiles": 1,
