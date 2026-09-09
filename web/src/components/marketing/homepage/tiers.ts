@@ -139,11 +139,21 @@ export const HOMEPAGE_TIERS: readonly HomepageTier[] = [
     // is gone rather than softened: the rung sells what it enforces.
     //
     // The remaining four map to flags founder_starter holds (plans.csv,
-    // migration 0131): the run allowance to `usage_limits.svi_per_month`,
-    // score history to any authenticated account, the data room to
-    // `data_room.access`, the investor link to `investor_links.premium`.
+    // migration 0131): score history to any authenticated account, the data
+    // room to `data_room.access`, the investor link to
+    // `investor_links.premium`.
+    //
+    // 2026-09-09: the first line used to read "Up to N analyses a month" from
+    // `usage_limits.svi_per_month`. That number is not a limit — it is a field.
+    // `usageRemaining()` in lib/entitlements.ts can compute it but has no call
+    // site anywhere in src/, so nothing counts an analysis and nothing stops
+    // an eleventh. The allowance that IS enforced is credits: 33 API routes
+    // call `spendCredits`, and the monthly grant lands through the Stripe
+    // webhook (PLAN_CREDITS). So the rung quotes the meter that exists rather
+    // than the one that does not. Adding svi_per_month enforcement to make the
+    // old line true would take runs away from subscribers who have them today.
     includes: [
-      `Up to ${STARTER.usage_limits.svi_per_month} analyses a month, kept on your account`,
+      `${STARTER.usage_limits.monthly_credits} AI credits a month, to re-run it as things change`,
       "Your score tracked over time, not one snapshot",
       "The data room, filling up in the order investors ask",
       "Share a live link with an investor instead of a PDF",

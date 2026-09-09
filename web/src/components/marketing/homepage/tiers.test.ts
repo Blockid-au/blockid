@@ -70,10 +70,14 @@ describe("HOMEPAGE_TIERS", () => {
       audLabel(requireCents(plan.price_aud_cents, "workspace")),
     );
     expect(workspace.priceSuffix).toBe("a month");
-    // The run allowance is quoted, so it has to be the real one.
+    // The allowance is quoted, so it has to be the real one — and it has to
+    // be the enforced one. `svi_per_month` has no reader in src/;
+    // `monthly_credits` is granted by the Stripe webhook and spent by 33 API
+    // routes, so that is the number the rung may print.
     expect(workspace.includes[0]).toContain(
-      String(plan.usage_limits.svi_per_month),
+      String(plan.usage_limits.monthly_credits),
     );
+    expect(workspace.includes.join(" ")).not.toContain("analyses a month");
   });
 
   // The rung may only promise things the plan behind it actually grants.
