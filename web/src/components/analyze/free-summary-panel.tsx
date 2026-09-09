@@ -240,7 +240,7 @@ export function FreeSummaryPanel({
                   ? "free-summary-status"
                   : undefined
               }
-              className="w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-primary placeholder:text-faint focus:border-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface-raised disabled:opacity-50"
+              className="w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-primary placeholder:text-tertiary focus:border-action focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface-raised disabled:opacity-50"
               data-testid="analyze-free-summary-input"
             />
           </div>

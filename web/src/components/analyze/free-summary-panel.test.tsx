@@ -130,3 +130,14 @@ describe("parseSummaryResponse", () => {
     expect(parseSummaryResponse({ outcome: "sent", maskedEmail: 7 }).maskedEmail).toBeNull();
   });
 });
+
+describe("contrast", () => {
+  it("uses a readable placeholder token, not the decorative one", () => {
+    // `text-faint` (#9ca3af) is ~2.5:1 on the card surface — the tokens file
+    // marks it DECORATIVE ONLY. A placeholder is read, so it takes
+    // `text-tertiary` (5.74:1, AA), the same token the hero omnibox uses.
+    const html = renderToStaticMarkup(<FreeSummaryPanel analysisId="abc-123" />);
+    expect(html).toContain("placeholder:text-tertiary");
+    expect(html).not.toContain("text-faint");
+  });
+});
