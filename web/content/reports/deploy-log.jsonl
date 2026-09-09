@@ -9438,3 +9438,5 @@
 {"ts":"2026-09-09T04:35:57.186Z","event":"github-push-master","detail":"Blockid-au: feat(stripe): record the Equity add-on on purchase and take it back on cancel (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T04:41:45.564Z","event":"github-push-master","detail":"Blockid-au: feat(billing): open the gate — the A$59 Equity add-on can now be sold (1 commits)","source":"github-webhook"}
 {"ts":"2026-09-09T04:52:42Z","status":"success","gates":"12/12","pid":"3099484","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-09T04:55:37.781Z","event":"github-push-master","detail":"Blockid-au: fix(entitlements): a tier floor was hiding the page the add-on had just paid for (1 commits)","source":"github-webhook"}
+{"ts":"2026-09-09T05:06:59Z","status":"success","gates":"12/12","pid":"3164836","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}

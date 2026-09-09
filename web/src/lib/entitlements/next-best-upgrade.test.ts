@@ -300,17 +300,51 @@ describe("nextBestUpgrade — phase-input hygiene", () => {
 });
 
 describe("nextBestUpgrade — return shape fidelity", () => {
-  it("propagates addOnKey when the winning candidate defines one", () => {
-    // share_management is phase-match at free/phase 10 but loses alphabetically
-    // to data_room.access. Force it via ownership exclusion of the alpha winner.
-    const out = nextBestUpgrade({
-      currentTier: "free",
-      currentPhase: 10,
-      ownedFeatures: ["data_room.access"],
-    });
-    expect(out).not.toBeNull();
-    expect(out!.feature).toBe("share_management");
-    expect(out!.addOnKey).toBe("share_management");
+  // Rewritten 2026-09-09: this used share_management as the addOnKey-bearing
+  // candidate, which it no longer is — the A$59 Equity add-on does not grant
+  // share_management (cap table, data room and the register come with Growth),
+  // so routing that CTA to the add-on drawer sold something it would not
+  // deliver. esop.manage is a feature the add-on genuinely unlocks.
+  // Asserted over a sweep rather than one hand-picked scenario: the previous
+  // version pinned share_management as *the* addOnKey-bearing candidate, and
+  // when that stopped being true the test only said "expected sso". Sweeping
+  // states the contract itself — whatever wins, its addOnKey is echoed
+  // verbatim from the catalogue — and cannot rot when the ranking shifts.
+  it("propagates the winning candidate's addOnKey verbatim, whichever candidate wins", () => {
+    const byFeature = new Map(UPGRADE_CATALOGUE.map((c) => [c.feature, c]));
+    let sawAddOnWinner = false;
+
+    for (const tier of ["free", "starter", "growth", "scale"] as const) {
+      for (let phase = 0; phase <= 12; phase++) {
+        const out = nextBestUpgrade({ currentTier: tier, currentPhase: phase, ownedFeatures: [] });
+        if (!out) continue;
+        const source = byFeature.get(out.feature)!;
+        expect(out.addOnKey).toBe(source.addOnKey);
+        if (out.addOnKey !== undefined) sawAddOnWinner = true;
+      }
+    }
+    // Guard against the sweep passing vacuously by never hitting an add-on row.
+    expect(sawAddOnWinner).toBe(true);
+  });
+
+  it("never routes a plan-only feature at the add-on drawer", () => {
+    // The drawer can only sell the Equity add-on. A candidate that carries
+    // addOnKey but is not granted by that add-on would take a founder's A$59
+    // and leave the feature locked.
+    const ADDON_GRANTED = new Set([
+      "esop.manage",
+      "vesting.read",
+      "vesting.write",
+      "blockchain.sync",
+    ]);
+    for (const c of UPGRADE_CATALOGUE) {
+      if (c.addOnKey !== undefined) {
+        expect(
+          ADDON_GRANTED.has(c.feature),
+          `${c.feature} offers the add-on drawer but the add-on does not grant it`,
+        ).toBe(true);
+      }
+    }
   });
 
   it("leaves addOnKey undefined when the winning candidate has none", () => {

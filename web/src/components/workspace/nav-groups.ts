@@ -95,6 +95,17 @@ export interface NavItem {
   /** Preferred alias for `feature`. */
   requiredFeature?: string;
   /**
+   * Entitlement flag that renders the row LOCKED rather than hidden.
+   *
+   * `feature` hides the row outright, which is right for a capability the
+   * viewer has no way to buy. It is wrong for one they can: hiding ESOP from a
+   * Growth founder means they never discover the Equity add-on that unlocks
+   * it. This keeps the row visible and dimmed, with the "Add-on — click to
+   * purchase" pill that `addOnKey` already renders, linking to the billing
+   * drawer instead of a page that would only bounce them to /pricing.
+   */
+  lockedWithoutFeature?: string;
+  /**
    * Add-on identifier. When the item is locked and this is set, the sidebar
    * keeps the item visible with an "Add-on" pill and links to
    * `/workspace/billing?openAddon=<key>` so the purchase drawer opens
@@ -290,18 +301,35 @@ const BUILD_SUBGROUPS: NavSubgroup[] = [
     id: "build.equity-setup",
     label: "Equity Setup",
     items: [
-      { href: "/workspace/equity-setup", label: "Equity Setup", icon: Wand2, minPlan: "starter", minTier: "starter", addOnKey: "share_management", growthPhase: 2 },
-      { href: "/workspace/equity", label: "Equity Split", icon: PieChart, minPlan: "starter", minTier: "starter", addOnKey: "share_management", growthPhase: 2 },
-      { href: "/workspace/cap-table", label: "Cap Table", icon: Table2, minPlan: "starter", minTier: "starter", addOnKey: "share_management", growthPhase: 2 },
-      { href: "/workspace/shareholders", label: "Shareholders", icon: Shield, minPlan: "starter", minTier: "starter", addOnKey: "share_management", growthPhase: 2 },
+      // No addOnKey on this subgroup. The cap table and the share register are
+      // the company's own statutory records; they come with the plan, and the
+      // A$59 Equity add-on does not grant `cap_table.write`. While the add-on
+      // was unsellable the "Add-on — click to purchase" pill on these rows was
+      // a harmless dead end. Now that the drawer works it would have walked a
+      // founder into buying an add-on that does not unlock the page they
+      // clicked, and a free user into a drawer that refuses them for having no
+      // base subscription. Without the key a locked row links to
+      // /workspace/billing, which is the truth: this needs a plan.
+      //
+      // minPlan is left as it was. It is arguably too low (cap_table.write is
+      // a Growth flag) but that predates the add-on and changing it here would
+      // hide rows from starter users as a side effect of a pricing fix.
+      { href: "/workspace/equity-setup", label: "Equity Setup", icon: Wand2, minPlan: "starter", minTier: "starter", growthPhase: 2 },
+      { href: "/workspace/equity", label: "Equity Split", icon: PieChart, minPlan: "starter", minTier: "starter", growthPhase: 2 },
+      { href: "/workspace/cap-table", label: "Cap Table", icon: Table2, minPlan: "starter", minTier: "starter", growthPhase: 2 },
+      { href: "/workspace/shareholders", label: "Shareholders", icon: Shield, minPlan: "starter", minTier: "starter", growthPhase: 2 },
     ],
   },
   {
     id: "build.people",
     label: "People",
     items: [
-      { href: "/workspace/esop", label: "ESOP Setup", icon: Users, minPlan: "starter", minTier: "starter", addOnKey: "share_management", growthPhase: 2 },
-      { href: "/workspace/vesting", label: "Vesting", icon: Calendar, minPlan: "starter", minTier: "starter", addOnKey: "share_management", growthPhase: 2 },
+      // These two ARE the add-on's surfaces, so they keep addOnKey — and now
+      // carry the flag the add-on actually grants, so the sidebar and the page
+      // gate give one answer. Locked, never hidden: a founder who cannot yet
+      // open ESOP is exactly the founder who should be able to find the add-on.
+      { href: "/workspace/esop", label: "ESOP Setup", icon: Users, minPlan: "starter", minTier: "starter", addOnKey: "share_management", lockedWithoutFeature: "esop.manage", growthPhase: 2 },
+      { href: "/workspace/vesting", label: "Vesting", icon: Calendar, minPlan: "starter", minTier: "starter", addOnKey: "share_management", lockedWithoutFeature: "vesting.read", growthPhase: 2 },
       { href: "/workspace/equity-esop", label: "ESOP Manage", icon: PieChart, minPlan: "growth", minTier: "growth", growthPhase: 2 },
       {
         href: "/workspace/equity-offer",

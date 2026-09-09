@@ -52,6 +52,11 @@ export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
     discoveryHint: "Investor-ready premium report with DOCX + PDF",
     upgradeCTA: "Upgrade to Growth",
   },
+  // No addOnKey on either row. `addOnKey` sends the CTA to the add-on purchase
+  // drawer, and the A$59 Equity add-on grants neither `cap_table.write` nor
+  // `share_management` — both come with Growth. The CTA already said "Upgrade
+  // to Growth" while the key pointed at the add-on drawer; harmless while the
+  // drawer was inert, a mis-sale now that it is live.
   {
     feature: "cap_table.write",
     minTier: "growth",
@@ -59,16 +64,14 @@ export const UPGRADE_CATALOGUE: readonly UpgradeCandidate[] = Object.freeze([
     monthlyDeltaAud: 40,
     discoveryHint: "Manage share classes and ESOP pool",
     upgradeCTA: "Upgrade to Growth",
-    addOnKey: "share_management",
   },
   {
     feature: "share_management",
     minTier: "growth",
     bestAtPhase: 10,
     monthlyDeltaAud: 40,
-    discoveryHint: "Cap table, data room, vesting & tokenisation bundle",
-    upgradeCTA: "Add Share Management",
-    addOnKey: "share_management",
+    discoveryHint: "Cap table, data room and share register",
+    upgradeCTA: "Upgrade to Growth",
   },
   {
     feature: "data_room.access",

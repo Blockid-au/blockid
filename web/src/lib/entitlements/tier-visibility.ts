@@ -60,35 +60,43 @@ export interface VisibilityRow {
  * ships a diff to docs/plans/tier-menu-2026-07-24/tier-boundary-matrix.md.
  */
 export const VISIBILITY: Readonly<Record<FeatureSlug, VisibilityRow>> = Object.freeze({
+  // `addOnKey` opens /workspace/billing?openAddon=<key>. It belongs on exactly
+  // the flags the A$59 Equity add-on grants — esop.manage, vesting.*,
+  // blockchain.sync — and on none of the others. It was on `share_management`,
+  // which the add-on does NOT grant (cap table, data room and the register come
+  // with Growth), and missing from vesting.write and blockchain.sync, which it
+  // does. The prices were the pre-2026-09-08 Scale deltas; the add-on is a flat
+  // A$59/month on top of any paid plan.
   share_management: {
     minTier: "growth",
-    discoveryHint: "Cap table, ESOP and data-room in one place",
-    upgradeCTA: "Add Share Management",
+    discoveryHint: "Cap table, data room and share register",
+    upgradeCTA: "Upgrade to Growth",
     bestAtPhase: 4,
     monthlyDeltaAud: 70,
-    addOnKey: "share_management",
   },
   "vesting.write": {
     minTier: "growth",
     discoveryHint: "Draft founder + advisor vesting schedules with AI review",
-    upgradeCTA: "Unlock Vesting",
+    upgradeCTA: "Add the Equity add-on",
     bestAtPhase: 5,
-    monthlyDeltaAud: 70,
+    monthlyDeltaAud: 59,
+    addOnKey: "share_management",
   },
   "esop.manage": {
-    minTier: "scale",
+    minTier: "growth",
     discoveryHint: "Manage ESOP pool, grants and Div83A tax checks",
-    upgradeCTA: "Unlock ESOP",
+    upgradeCTA: "Add the Equity add-on",
     bestAtPhase: 8,
-    monthlyDeltaAud: 200,
+    monthlyDeltaAud: 59,
     addOnKey: "share_management",
   },
   "blockchain.sync": {
-    minTier: "scale",
+    minTier: "growth",
     discoveryHint: "Mirror your cap table on-chain for token-holders",
-    upgradeCTA: "Unlock Blockchain Sync",
+    upgradeCTA: "Add the Equity add-on",
     bestAtPhase: 9,
-    monthlyDeltaAud: 200,
+    monthlyDeltaAud: 59,
+    addOnKey: "share_management",
   },
   pdf_branding: {
     minTier: "growth",

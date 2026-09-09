@@ -230,7 +230,17 @@ function resolveGroup(
 
     // (b) minPlan — under-plan renders locked (upgrade opportunity).
     const meetsPlan = item.minPlan ? meetsMinPlan(ctx.planId, item.minPlan) : true;
-    resolved.push({ item, locked: !meetsPlan });
+
+    // (e) lockedWithoutFeature — a capability the viewer CAN buy. Locked, not
+    // hidden, so the add-on pill and its billing-drawer link stay reachable.
+    // `hasFeature` reads /api/entitlement/me, which unions the user's add-on
+    // grants onto their plan, so this flips when the purchase lands rather
+    // than waiting on a plan change.
+    const missingAddOn = Boolean(
+      item.lockedWithoutFeature && !ctx.hasFeature(item.lockedWithoutFeature),
+    );
+
+    resolved.push({ item, locked: !meetsPlan || missingAddOn });
   }
   return resolved;
 }

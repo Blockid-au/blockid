@@ -374,12 +374,43 @@ describe("NAV_GROUPS — group-specific pins", () => {
     expect(pkg.journeyGroup).toBe("onboarding");
   });
 
-  it("marks every Build → Equity Setup row with addOnKey=share_management", () => {
+  // Changed 2026-09-09 with the A$59 Equity add-on going on sale. This used to
+  // assert the opposite. `addOnKey` makes a locked row link to the add-on
+  // purchase drawer, and the add-on does not grant `cap_table.write` — the cap
+  // table and share register come with the plan. While the drawer was inert
+  // the mislabel was harmless; live, it would have sold a founder an add-on
+  // that does not unlock the row they clicked. Only rows the add-on genuinely
+  // unlocks may carry the key.
+  it("keeps addOnKey off Build → Equity Setup — those rows need a plan, not the add-on", () => {
     const build = NAV_GROUPS.find((g) => g.id === "build")!;
     const equity = build.subgroups!.find((sg) => sg.id === "build.equity-setup")!;
+    expect(equity.items.length).toBeGreaterThan(0);
     for (const leaf of equity.items) {
-      expect(leaf.addOnKey).toBe("share_management");
+      expect(leaf.addOnKey).toBeUndefined();
     }
+  });
+
+  it("puts addOnKey only on rows the Equity add-on actually unlocks, each naming its flag", () => {
+    const build = NAV_GROUPS.find((g) => g.id === "build")!;
+    const withKey = build.subgroups!
+      .flatMap((sg) => sg.items)
+      .filter((leaf) => leaf.addOnKey !== undefined);
+
+    expect(withKey.map((l) => l.href).sort()).toEqual([
+      "/workspace/esop",
+      "/workspace/vesting",
+    ]);
+    // A row that offers the add-on must say which flag it is waiting on,
+    // otherwise the sidebar can never un-dim it after the purchase.
+    for (const leaf of withKey) {
+      expect(typeof leaf.lockedWithoutFeature).toBe("string");
+    }
+    expect(
+      withKey.find((l) => l.href === "/workspace/esop")!.lockedWithoutFeature,
+    ).toBe("esop.manage");
+    expect(
+      withKey.find((l) => l.href === "/workspace/vesting")!.lockedWithoutFeature,
+    ).toBe("vesting.read");
   });
 
   it("gates every Roles subgroup on a segments filter or a required-feature", () => {

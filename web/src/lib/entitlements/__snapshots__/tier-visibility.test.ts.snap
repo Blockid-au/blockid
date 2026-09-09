@@ -29,7 +29,9 @@ exports[`tier-visibility — golden snapshot per tier > tier=accel_growth visibl
 
 exports[`tier-visibility — golden snapshot per tier > tier=accel_starter visible slugs 1`] = `
 [
+  "blockchain.sync",
   "equity_offer.request",
+  "esop.manage",
   "pdf_branding",
   "share_management",
   "startup_package",
@@ -39,7 +41,9 @@ exports[`tier-visibility — golden snapshot per tier > tier=accel_starter visib
 
 exports[`tier-visibility — golden snapshot per tier > tier=advisor visible slugs 1`] = `
 [
+  "blockchain.sync",
   "equity_offer.request",
+  "esop.manage",
   "pdf_branding",
   "share_management",
   "startup_package",
@@ -76,7 +80,9 @@ exports[`tier-visibility — golden snapshot per tier > tier=free visible slugs 
 
 exports[`tier-visibility — golden snapshot per tier > tier=growth visible slugs 1`] = `
 [
+  "blockchain.sync",
   "equity_offer.request",
+  "esop.manage",
   "pdf_branding",
   "share_management",
   "startup_package",
