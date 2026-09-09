@@ -428,11 +428,31 @@ if [ "$SUPA_HTTP" != "200" ]; then
 fi
 echo "  ✅ Supabase: HTTP $SUPA_HTTP"
 
-REDIS_OK=$(redis-cli -h 127.0.0.1 -p 6379 ping 2>/dev/null || echo "FAIL")
+# Redis backs rate limiting. redis-cli is NOT installed on this host, so the
+# old one-liner printed "FAIL" every single deploy against a Redis that was
+# healthy the whole time — a missing tool was indistinguishable from a dead
+# service. That is the same failure Gate 1 had while gitleaks was missing, and
+# it is worse than no check: an operator who sees FAIL on every run stops
+# reading it, so the day Redis really does die the line looks identical.
+#
+# Ask docker when redis-cli is absent, and say "UNKNOWN" when neither tool can
+# answer rather than asserting a failure we did not observe.
+redis_ping() {
+  if command -v redis-cli >/dev/null 2>&1; then
+    redis-cli -h 127.0.0.1 -p 6379 ping 2>/dev/null && return 0
+  fi
+  if command -v docker >/dev/null 2>&1; then
+    docker exec blockid-redis redis-cli ping 2>/dev/null && return 0
+  fi
+  return 1
+}
+REDIS_OK=$(redis_ping | tr -d '\r' | tail -1)
 if [ "$REDIS_OK" = "PONG" ]; then
   echo "  ✅ Redis: PONG"
+elif ! command -v redis-cli >/dev/null 2>&1 && ! command -v docker >/dev/null 2>&1; then
+  echo "  ⚠ Redis: UNKNOWN — no redis-cli and no docker to ask with (not a failure verdict)"
 else
-  echo "  ⚠ Redis: $REDIS_OK (non-fatal, rate limiting may use in-memory fallback)"
+  echo "  ⚠ Redis: unreachable (non-fatal, rate limiting falls back to in-memory)"
 fi
 pass "Database connectivity verified"
 
