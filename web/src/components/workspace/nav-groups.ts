@@ -458,6 +458,17 @@ const ROLES_SUBGROUPS: NavSubgroup[] = [
     label: "Investor",
     segments: ["investor_angel", "investor_vc"],
     items: [
+      // T0270 — the evaluator's own object: startups they entered, one rubric.
+      // minPlan/minTier "free" so a trialling Scout (plan row may still be
+      // syncing) is never locked out of the page that holds their data.
+      {
+        href: "/workspace/evaluations",
+        label: "Startups I'm evaluating",
+        icon: ClipboardList,
+        segments: ["investor_angel", "investor_vc"],
+        minPlan: "free",
+        minTier: "free",
+      },
       { href: "/workspace/deal-flow", label: "Deal Flow", icon: Layers, segments: ["investor_angel", "investor_vc"] },
       { href: "/workspace/watchlist", label: "Watchlist", icon: Eye, segments: ["investor_angel", "investor_vc"] },
       {
