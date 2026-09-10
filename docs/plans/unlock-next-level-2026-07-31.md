@@ -216,9 +216,10 @@ Translating by ordinal instead would have put R&D at `mentor_review` and GST at 
 - This is what would have prevented the current 70-page drift.
 - Owner: `test-master`.
 
-### P8 — Docs & founder walkthrough
-- Refresh [`docs/user/menu-walkthrough.md`](../user/menu-walkthrough.md) with the phase×tier visibility matrix.
-- Publish the §2c criteria table founder-facing so unlocks are predictable, not mysterious.
+### P8 — Docs & founder walkthrough — ✅ **shipped**
+- ✅ [`docs/user/menu-walkthrough.md`](../user/menu-walkthrough.md) refreshed: the phase×tier visibility matrix (12 growth phases × Free / Starter / Growth / Package / Evaluator Scout / Firm / Program) and the §2c criteria table are **generated from code** by `web/scripts/docs/render-unlock-matrix.mjs` (builder `unlock-matrix.mts` reads `nav-groups.ts`, `hide-when-locked.ts`, `role-menu-overlay.ts`, `segments.ts`, `phase-gate.ts`, `phase-taxonomy.ts`, `evaluation-criteria.ts`, `plans.generated.ts`) into two marked blocks; `unlock-matrix.test.ts` re-renders and diffs, so a nav / gate change without a docs refresh fails `npm test`.
+- ✅ Founder-facing page [`/docs/unlocks`](../../web/src/app/(marketing)/docs/unlocks/page.tsx) ("What unlocks when") renders the same two tables from `web/content/generated/unlock-matrix.json`, opens with the advisory-gate sentence, and is linked from `/docs` and the dashboard Next-unlock card ("How unlocks work"); sitemap entry added.
+- ✅ Documented seam (not fixed here): the sidebar gates on the coarse 0–5 `currentPhase` that `/dashboard` derives from the SVI band, while the Next-unlock card reads `growth_phase_current`; the matrix maps the 12 phases onto the six workflow steps per `workflow-steps.ts` `currentPhaseToStep()` (1–2 validate, 3–5 build, 6–8 fundraise, 9–11 grow, 12 exit). Wiring `growth_phase_current` into `WorkspaceLayout.currentPhase` is the follow-up.
 - Owner: `code-documenter` + `cpo`.
 
 ---
@@ -247,7 +248,7 @@ P0→P4 and P5→P7 are independent and can run in parallel. **P0 blocks everyth
 | G8-P5 | shell-matrix | shipped | nextjs-developer | `56dd31a6b` |
 | G8-P6 | chrome-backfill | shipped | nextjs-developer | `56dd31a6b` |
 | G8-P7 | CI-guard | shipped | test-master | `dccdbe8` |
-| G8-P8 | docs | open | code-documenter | — |
+| G8-P8 | docs | shipped | code-documenter | (this commit) — generated phase×tier matrix + unlock criteria in `docs/user/menu-walkthrough.md`, `/docs/unlocks` page, drift test `web/scripts/docs/unlock-matrix.test.ts` |
 
 ---
 

@@ -1,0 +1,3989 @@
+{
+  "generatedBy": "web/scripts/docs/render-unlock-matrix.mjs",
+  "sources": [
+    "web/src/components/workspace/nav-groups.ts",
+    "web/src/components/workspace/workspace-layout.tsx",
+    "web/src/lib/nav/hide-when-locked.ts",
+    "web/src/lib/nav/role-menu-overlay.ts",
+    "web/src/lib/nav/workflow-steps.ts",
+    "web/src/lib/segments.ts",
+    "web/src/lib/growth/phase-gate.ts",
+    "web/src/lib/growth/phase-taxonomy.ts",
+    "web/src/lib/evaluation-criteria.ts",
+    "web/src/config/pricing/plans.generated.ts"
+  ],
+  "columns": [
+    {
+      "id": "founder_free",
+      "label": "Free",
+      "planName": "Free (anonymous)",
+      "tier": "free",
+      "segment": "founder",
+      "features": [
+        "svi.public"
+      ],
+      "lockedRows": [
+        {
+          "group": "Validate",
+          "label": "Market Size",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Knowledge Base",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Evaluation (13)",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Evidence Vault",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Evidence Completeness",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Business Report (TBR)",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "SVI Trend",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Metrics",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Build",
+          "label": "Equity Setup",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Equity Split",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Cap Table",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Shareholders",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "ESOP Setup",
+          "reason": "add-on",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Vesting",
+          "reason": "add-on",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "ESOP Manage",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Build",
+          "label": "Wallet",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Build",
+          "label": "Blockchain Sync",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Build",
+          "label": "Competitors",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Tech Analysis",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "GTM Strategy",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Pricing Tiers",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Roadmap",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Team Planner",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "VC Valuation",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "CFO Advisor",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Finance P&L",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "ESOP Manager",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Team & Salaries",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Data Room",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Documents",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "ESIC Self-Assessment",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Compliance Panel",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Compliance Calendar",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Accelerator Tracker",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Accelerator Criteria",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Financial Forecast",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Fundraise Readiness",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Raise Capital",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Revenue",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Tax Invoice Checker",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Growth Journal",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Dividends",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Exit Modeling",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Exit Strategy Builder",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Exit Benchmark",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Account",
+          "label": "Custom Branding",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "Advisor Portal",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Account",
+          "label": "API Keys",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "SSO",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "White-label",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        }
+      ]
+    },
+    {
+      "id": "founder_starter",
+      "label": "Starter",
+      "planName": "Starter",
+      "tier": "starter",
+      "segment": "founder",
+      "features": [
+        "profile.multi",
+        "svi.premium",
+        "data_room.access",
+        "investor_links.premium",
+        "grant_finder",
+        "money_radar"
+      ],
+      "lockedRows": [
+        {
+          "group": "Validate",
+          "label": "Metrics",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Build",
+          "label": "Cap Table",
+          "reason": "upgrade"
+        },
+        {
+          "group": "Build",
+          "label": "ESOP Setup",
+          "reason": "add-on"
+        },
+        {
+          "group": "Build",
+          "label": "Vesting",
+          "reason": "add-on"
+        },
+        {
+          "group": "Build",
+          "label": "ESOP Manage",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Build",
+          "label": "Wallet",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Build",
+          "label": "Blockchain Sync",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Accelerator Tracker",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Accelerator Criteria",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Revenue",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Growth Journal",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Dividends",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Exit Modeling",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Exit Strategy Builder",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Exit Benchmark",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Account",
+          "label": "Custom Branding",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "Advisor Portal",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Account",
+          "label": "API Keys",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "SSO",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "White-label",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        }
+      ]
+    },
+    {
+      "id": "founder_growth",
+      "label": "Growth",
+      "planName": "Growth",
+      "tier": "growth",
+      "segment": "founder",
+      "features": [
+        "profile.multi",
+        "svi.premium",
+        "cap_table.write",
+        "data_room.access",
+        "investor_links.premium",
+        "term_sheet_ai",
+        "share_management",
+        "investor_pack",
+        "per_investor_share_links",
+        "grant_finder",
+        "money_radar"
+      ],
+      "lockedRows": [
+        {
+          "group": "Build",
+          "label": "ESOP Setup",
+          "reason": "add-on"
+        },
+        {
+          "group": "Build",
+          "label": "Vesting",
+          "reason": "add-on"
+        },
+        {
+          "group": "Build",
+          "label": "Wallet",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Build",
+          "label": "Blockchain Sync",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Growth Journal",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Account",
+          "label": "Custom Branding",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "API Keys",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "SSO",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "White-label",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        }
+      ]
+    },
+    {
+      "id": "founder_package",
+      "label": "Package",
+      "planName": "Startup Package",
+      "tier": "free",
+      "segment": "founder",
+      "features": [
+        "startup_package",
+        "pdf_branding",
+        "grant_finder",
+        "money_radar"
+      ],
+      "lockedRows": [
+        {
+          "group": "Validate",
+          "label": "Market Size",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Knowledge Base",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Evaluation (13)",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Evidence Vault",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Evidence Completeness",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Business Report (TBR)",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "SVI Trend",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Validate",
+          "label": "Metrics",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Build",
+          "label": "Equity Setup",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Equity Split",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Cap Table",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Shareholders",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "ESOP Setup",
+          "reason": "add-on",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Vesting",
+          "reason": "add-on",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "ESOP Manage",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Build",
+          "label": "Wallet",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Build",
+          "label": "Blockchain Sync",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Build",
+          "label": "Competitors",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Tech Analysis",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "GTM Strategy",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Pricing Tiers",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Roadmap",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Build",
+          "label": "Team Planner",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "VC Valuation",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "CFO Advisor",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Finance P&L",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "ESOP Manager",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Team & Salaries",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Data Room",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Documents",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "ESIC Self-Assessment",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Compliance Panel",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Compliance Calendar",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Accelerator Tracker",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Accelerator Criteria",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Financial Forecast",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Fundraise Readiness",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Raise Capital",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Revenue",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Tax Invoice Checker",
+          "reason": "upgrade",
+          "minPlan": "starter"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Growth Journal",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Dividends",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Exit Modeling",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Exit Strategy Builder",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Scale & Exit",
+          "label": "Exit Benchmark",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Account",
+          "label": "Custom Branding",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "Advisor Portal",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Account",
+          "label": "API Keys",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "SSO",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "White-label",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        }
+      ]
+    },
+    {
+      "id": "investor_angel",
+      "label": "Evaluator Scout",
+      "planName": "Scout",
+      "tier": "angel",
+      "segment": "investor_angel",
+      "features": [
+        "watchlist",
+        "svi.feed",
+        "investor.dealflow",
+        "grant_finder",
+        "money_radar"
+      ],
+      "lockedRows": [
+        {
+          "group": "Fundraise",
+          "label": "Accelerator Tracker",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Fundraise",
+          "label": "Accelerator Criteria",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Roles",
+          "label": "Portfolio",
+          "reason": "upgrade",
+          "minPlan": "vc_small"
+        },
+        {
+          "group": "Account",
+          "label": "Custom Branding",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "Advisor Portal",
+          "reason": "upgrade",
+          "minPlan": "growth"
+        },
+        {
+          "group": "Account",
+          "label": "API Keys",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "SSO",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "White-label",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        }
+      ]
+    },
+    {
+      "id": "investor_advisor",
+      "label": "Evaluator Firm",
+      "planName": "Firm",
+      "tier": "advisor",
+      "segment": "advisor",
+      "features": [
+        "watchlist",
+        "svi.feed",
+        "investor.dealflow",
+        "advisory_equity",
+        "advisor_portal",
+        "advisor.cohort",
+        "white_label",
+        "grant_finder",
+        "money_radar"
+      ],
+      "lockedRows": [
+        {
+          "group": "Build",
+          "label": "Cap Table",
+          "reason": "upgrade"
+        },
+        {
+          "group": "Build",
+          "label": "ESOP Setup",
+          "reason": "add-on"
+        },
+        {
+          "group": "Build",
+          "label": "Vesting",
+          "reason": "add-on"
+        },
+        {
+          "group": "Build",
+          "label": "Wallet",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Build",
+          "label": "Blockchain Sync",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        },
+        {
+          "group": "Account",
+          "label": "Custom Branding",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "API Keys",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "SSO",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "White-label",
+          "reason": "upgrade",
+          "minPlan": "scale"
+        }
+      ]
+    },
+    {
+      "id": "investor_vc_small",
+      "label": "Evaluator Program",
+      "planName": "Program",
+      "tier": "vc_small",
+      "segment": "investor_vc",
+      "features": [
+        "watchlist",
+        "svi.feed",
+        "investor.dealflow",
+        "advisory_equity",
+        "advisor_portal",
+        "advisor.cohort",
+        "white_label",
+        "portfolio",
+        "diligence_pack",
+        "api",
+        "api.access",
+        "lp_export",
+        "lp_report",
+        "grant_finder",
+        "money_radar"
+      ],
+      "lockedRows": [
+        {
+          "group": "Account",
+          "label": "Custom Branding",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "API Keys",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        },
+        {
+          "group": "Account",
+          "label": "SSO",
+          "reason": "upgrade",
+          "minPlan": "enterprise"
+        }
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "id": "vision",
+      "order": 1,
+      "labelEn": "Vision & Mission",
+      "labelVi": "Tầm nhìn & Sứ mệnh",
+      "workflowStep": "validate",
+      "sidebarPhase": 1
+    },
+    {
+      "id": "customer_dev",
+      "order": 2,
+      "labelEn": "Customer Development",
+      "labelVi": "Phát triển khách hàng",
+      "workflowStep": "validate",
+      "sidebarPhase": 1
+    },
+    {
+      "id": "revenue_model",
+      "order": 3,
+      "labelEn": "Revenue & Business Models",
+      "labelVi": "Mô hình doanh thu",
+      "workflowStep": "build",
+      "sidebarPhase": 2
+    },
+    {
+      "id": "pitch",
+      "order": 4,
+      "labelEn": "Pitch Mastery",
+      "labelVi": "Kỹ năng thuyết trình",
+      "workflowStep": "build",
+      "sidebarPhase": 2
+    },
+    {
+      "id": "mentor_review",
+      "order": 5,
+      "labelEn": "Mentor Idea Review",
+      "labelVi": "Cố vấn đánh giá ý tưởng",
+      "workflowStep": "build",
+      "sidebarPhase": 2
+    },
+    {
+      "id": "legal_equity",
+      "order": 6,
+      "labelEn": "Legal & Equity",
+      "labelVi": "Pháp lý & Cổ phần",
+      "workflowStep": "fundraise",
+      "sidebarPhase": 3
+    },
+    {
+      "id": "go_to_market",
+      "order": 7,
+      "labelEn": "Go-to-Market & Scale",
+      "labelVi": "Ra thị trường & Mở rộng",
+      "workflowStep": "fundraise",
+      "sidebarPhase": 3
+    },
+    {
+      "id": "product_dev",
+      "order": 8,
+      "labelEn": "Product Development",
+      "labelVi": "Phát triển sản phẩm",
+      "workflowStep": "fundraise",
+      "sidebarPhase": 3
+    },
+    {
+      "id": "investor_review",
+      "order": 9,
+      "labelEn": "Investor Progress Review",
+      "labelVi": "Nhà đầu tư đánh giá tiến độ",
+      "workflowStep": "grow",
+      "sidebarPhase": 4
+    },
+    {
+      "id": "team",
+      "order": 10,
+      "labelEn": "Co-Founders & Team",
+      "labelVi": "Đồng sáng lập & Đội ngũ",
+      "workflowStep": "grow",
+      "sidebarPhase": 4
+    },
+    {
+      "id": "growth",
+      "order": 11,
+      "labelEn": "Growth",
+      "labelVi": "Tăng trưởng",
+      "workflowStep": "grow",
+      "sidebarPhase": 4
+    },
+    {
+      "id": "funding",
+      "order": 12,
+      "labelEn": "Funding",
+      "labelVi": "Gọi vốn",
+      "workflowStep": "exit",
+      "sidebarPhase": 5
+    }
+  ],
+  "steps": {
+    "0": {
+      "founder_free": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "later_preview",
+          "visibleItems": 7,
+          "upgradeItems": 7,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_starter": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "later_preview",
+          "visibleItems": 7,
+          "upgradeItems": 6,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_growth": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "later_preview",
+          "visibleItems": 7,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        }
+      ],
+      "founder_package": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "later_preview",
+          "visibleItems": 7,
+          "upgradeItems": 7,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "investor_angel": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_advisor": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 4,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_vc_small": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 3,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ]
+    },
+    "1": {
+      "founder_free": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_starter": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_growth": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        }
+      ],
+      "founder_package": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "investor_angel": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_advisor": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 4,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_vc_small": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 3,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ]
+    },
+    "2": {
+      "founder_free": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 13,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_starter": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 4,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_growth": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 2,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        }
+      ],
+      "founder_package": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 13,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "investor_angel": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_advisor": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 4,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 3,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_vc_small": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 3,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ]
+    },
+    "3": {
+      "founder_free": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 13,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 15,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_starter": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 4,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 2,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_growth": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 2,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        }
+      ],
+      "founder_package": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 13,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 15,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_phase",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "investor_angel": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 2,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_advisor": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 4,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 3,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_vc_small": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 3,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ]
+    },
+    "4": {
+      "founder_free": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 13,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 15,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 7,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_starter": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 4,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 2,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 6,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_growth": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 2,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        }
+      ],
+      "founder_package": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 13,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 15,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 7,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "investor_angel": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 2,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_advisor": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 4,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 3,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_vc_small": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 3,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ]
+    },
+    "5": {
+      "founder_free": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 13,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 15,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 7,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_starter": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 4,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 2,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 6,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "founder_growth": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 11,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 2,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        }
+      ],
+      "founder_package": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 8,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 13,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 15,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 7,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        }
+      ],
+      "investor_angel": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 1,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 2,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 5,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_advisor": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 4,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "visible",
+          "visibleItems": 16,
+          "upgradeItems": 3,
+          "addOnItems": 2
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 4,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ],
+      "investor_vc_small": [
+        {
+          "id": "home",
+          "label": "Home",
+          "state": "visible",
+          "visibleItems": 7,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "roles",
+          "label": "Roles",
+          "state": "visible",
+          "visibleItems": 5,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "fundraise",
+          "label": "Fundraise",
+          "state": "visible",
+          "visibleItems": 15,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "account",
+          "label": "Account",
+          "state": "visible",
+          "visibleItems": 12,
+          "upgradeItems": 3,
+          "addOnItems": 0
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "build",
+          "label": "Build",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        },
+        {
+          "id": "scale-exit",
+          "label": "Scale & Exit",
+          "state": "hidden_segment",
+          "visibleItems": 0,
+          "upgradeItems": 0,
+          "addOnItems": 0
+        }
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "vision",
+      "order": 1,
+      "labelEn": "Vision & Mission",
+      "labelVi": "Tầm nhìn & Sứ mệnh",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "idea",
+          "title": "Idea & Innovation",
+          "titleVi": "Y tuong & Doi moi sang tao"
+        },
+        {
+          "key": "founder_profile",
+          "title": "Founder Profile",
+          "titleVi": "Ho so Nha sang lap"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "mpc",
+          "label": "Market & Problem",
+          "floor": 40
+        }
+      ],
+      "nextPhase": "customer_dev",
+      "nextPhaseLabelEn": "Customer Development",
+      "groupsUnlockedOnExit": []
+    },
+    {
+      "id": "customer_dev",
+      "order": 2,
+      "labelEn": "Customer Development",
+      "labelVi": "Phát triển khách hàng",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "market",
+          "title": "Market Opportunity",
+          "titleVi": "Co hoi thi truong"
+        },
+        {
+          "key": "customer_size",
+          "title": "Customer Base & Traction",
+          "titleVi": "Khach hang & Suc keo"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "mpc",
+          "label": "Market & Problem",
+          "floor": 55
+        }
+      ],
+      "nextPhase": "revenue_model",
+      "nextPhaseLabelEn": "Revenue & Business Models",
+      "groupsUnlockedOnExit": [
+        "Build"
+      ]
+    },
+    {
+      "id": "revenue_model",
+      "order": 3,
+      "labelEn": "Revenue & Business Models",
+      "labelVi": "Mô hình doanh thu",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "revenue",
+          "title": "Revenue & Unit Economics",
+          "titleVi": "Doanh thu & Kinh te don vi"
+        },
+        {
+          "key": "gtm_strategy",
+          "title": "Go-to-Market Strategy",
+          "titleVi": "Chien luoc tham nhap thi truong"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "tre",
+          "label": "Traction & Revenue",
+          "floor": 40
+        }
+      ],
+      "nextPhase": "pitch",
+      "nextPhaseLabelEn": "Pitch Mastery",
+      "groupsUnlockedOnExit": []
+    },
+    {
+      "id": "pitch",
+      "order": 4,
+      "labelEn": "Pitch Mastery",
+      "labelVi": "Kỹ năng thuyết trình",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "documents",
+          "title": "Key Documents",
+          "titleVi": "Tai lieu quan trong"
+        },
+        {
+          "key": "website",
+          "title": "Website & Digital Presence",
+          "titleVi": "Website & Hien dien so"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "iri",
+          "label": "Investor Readiness",
+          "floor": 45
+        }
+      ],
+      "nextPhase": "mentor_review",
+      "nextPhaseLabelEn": "Mentor Idea Review",
+      "groupsUnlockedOnExit": []
+    },
+    {
+      "id": "mentor_review",
+      "order": 5,
+      "labelEn": "Mentor Idea Review",
+      "labelVi": "Cố vấn đánh giá ý tưởng",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "roadmap",
+          "title": "Product Roadmap",
+          "titleVi": "Lo trinh san pham"
+        }
+      ],
+      "dimensionFloors": [],
+      "nextPhase": "legal_equity",
+      "nextPhaseLabelEn": "Legal & Equity",
+      "groupsUnlockedOnExit": [
+        "Fundraise"
+      ]
+    },
+    {
+      "id": "legal_equity",
+      "order": 6,
+      "labelEn": "Legal & Equity",
+      "labelVi": "Pháp lý & Cổ phần",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "team_structure",
+          "title": "Team Structure & Governance",
+          "titleVi": "Co cau doi ngu & Quan tri"
+        },
+        {
+          "key": "documents",
+          "title": "Key Documents",
+          "titleVi": "Tai lieu quan trong"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "cgh",
+          "label": "Cap Table & Governance",
+          "floor": 50
+        },
+        {
+          "dimension": "lco",
+          "label": "Legal & Compliance",
+          "floor": 45
+        }
+      ],
+      "nextPhase": "go_to_market",
+      "nextPhaseLabelEn": "Go-to-Market & Scale",
+      "groupsUnlockedOnExit": []
+    },
+    {
+      "id": "go_to_market",
+      "order": 7,
+      "labelEn": "Go-to-Market & Scale",
+      "labelVi": "Ra thị trường & Mở rộng",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "gtm_strategy",
+          "title": "Go-to-Market Strategy",
+          "titleVi": "Chien luoc tham nhap thi truong"
+        },
+        {
+          "key": "customer_size",
+          "title": "Customer Base & Traction",
+          "titleVi": "Khach hang & Suc keo"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "tre",
+          "label": "Traction & Revenue",
+          "floor": 55
+        }
+      ],
+      "nextPhase": "product_dev",
+      "nextPhaseLabelEn": "Product Development",
+      "groupsUnlockedOnExit": []
+    },
+    {
+      "id": "product_dev",
+      "order": 8,
+      "labelEn": "Product Development",
+      "labelVi": "Phát triển sản phẩm",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "code_git",
+          "title": "Code & Git Repository",
+          "titleVi": "Ma nguon & Git"
+        },
+        {
+          "key": "website",
+          "title": "Website & Digital Presence",
+          "titleVi": "Website & Hien dien so"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "ptd",
+          "label": "Product & Technical",
+          "floor": 55
+        }
+      ],
+      "nextPhase": "investor_review",
+      "nextPhaseLabelEn": "Investor Progress Review",
+      "groupsUnlockedOnExit": [
+        "Scale & Exit"
+      ]
+    },
+    {
+      "id": "investor_review",
+      "order": 9,
+      "labelEn": "Investor Progress Review",
+      "labelVi": "Nhà đầu tư đánh giá tiến độ",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "dataroom",
+          "title": "Data Room",
+          "titleVi": "Phong du lieu"
+        },
+        {
+          "key": "documents",
+          "title": "Key Documents",
+          "titleVi": "Tai lieu quan trong"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "iri",
+          "label": "Investor Readiness",
+          "floor": 65
+        }
+      ],
+      "nextPhase": "team",
+      "nextPhaseLabelEn": "Co-Founders & Team",
+      "groupsUnlockedOnExit": []
+    },
+    {
+      "id": "team",
+      "order": 10,
+      "labelEn": "Co-Founders & Team",
+      "labelVi": "Đồng sáng lập & Đội ngũ",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "team",
+          "title": "Team Composition",
+          "titleVi": "Thanh phan doi ngu"
+        },
+        {
+          "key": "team_structure",
+          "title": "Team Structure & Governance",
+          "titleVi": "Co cau doi ngu & Quan tri"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "ftv",
+          "label": "Founder & Team",
+          "floor": 60
+        }
+      ],
+      "nextPhase": "growth",
+      "nextPhaseLabelEn": "Growth",
+      "groupsUnlockedOnExit": []
+    },
+    {
+      "id": "growth",
+      "order": 11,
+      "labelEn": "Growth",
+      "labelVi": "Tăng trưởng",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "revenue",
+          "title": "Revenue & Unit Economics",
+          "titleVi": "Doanh thu & Kinh te don vi"
+        },
+        {
+          "key": "customer_size",
+          "title": "Customer Base & Traction",
+          "titleVi": "Khach hang & Suc keo"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "tre",
+          "label": "Traction & Revenue",
+          "floor": 70
+        }
+      ],
+      "nextPhase": "funding",
+      "nextPhaseLabelEn": "Funding",
+      "groupsUnlockedOnExit": []
+    },
+    {
+      "id": "funding",
+      "order": 12,
+      "labelEn": "Funding",
+      "labelVi": "Gọi vốn",
+      "requiredQuality": "good",
+      "requiredCriteria": [
+        {
+          "key": "idea",
+          "title": "Idea & Innovation",
+          "titleVi": "Y tuong & Doi moi sang tao"
+        },
+        {
+          "key": "market",
+          "title": "Market Opportunity",
+          "titleVi": "Co hoi thi truong"
+        },
+        {
+          "key": "founder_profile",
+          "title": "Founder Profile",
+          "titleVi": "Ho so Nha sang lap"
+        },
+        {
+          "key": "code_git",
+          "title": "Code & Git Repository",
+          "titleVi": "Ma nguon & Git"
+        },
+        {
+          "key": "website",
+          "title": "Website & Digital Presence",
+          "titleVi": "Website & Hien dien so"
+        },
+        {
+          "key": "team",
+          "title": "Team Composition",
+          "titleVi": "Thanh phan doi ngu"
+        },
+        {
+          "key": "customer_size",
+          "title": "Customer Base & Traction",
+          "titleVi": "Khach hang & Suc keo"
+        },
+        {
+          "key": "gtm_strategy",
+          "title": "Go-to-Market Strategy",
+          "titleVi": "Chien luoc tham nhap thi truong"
+        },
+        {
+          "key": "documents",
+          "title": "Key Documents",
+          "titleVi": "Tai lieu quan trong"
+        },
+        {
+          "key": "dataroom",
+          "title": "Data Room",
+          "titleVi": "Phong du lieu"
+        },
+        {
+          "key": "team_structure",
+          "title": "Team Structure & Governance",
+          "titleVi": "Co cau doi ngu & Quan tri"
+        },
+        {
+          "key": "roadmap",
+          "title": "Product Roadmap",
+          "titleVi": "Lo trinh san pham"
+        },
+        {
+          "key": "revenue",
+          "title": "Revenue & Unit Economics",
+          "titleVi": "Doanh thu & Kinh te don vi"
+        }
+      ],
+      "dimensionFloors": [
+        {
+          "dimension": "iri",
+          "label": "Investor Readiness",
+          "floor": 75
+        },
+        {
+          "dimension": "cgh",
+          "label": "Cap Table & Governance",
+          "floor": 65
+        }
+      ],
+      "nextPhase": null,
+      "nextPhaseLabelEn": null,
+      "groupsUnlockedOnExit": []
+    }
+  ]
+}

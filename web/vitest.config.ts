@@ -10,10 +10,14 @@ export default defineConfig({
     // (shell-coverage, etc.) that walk the filesystem — they live in tests/
     // because they are integration-level checks, not unit tests colocated
     // with source files.
+    // `scripts/docs/**/*.test.ts` pins the generated docs (G8-P8 unlock
+    // matrix) against the committed markdown + JSON so a nav / gate change
+    // without `node scripts/docs/render-unlock-matrix.mjs` fails here.
     include: [
       "src/**/*.test.ts",
       "src/**/*.test.tsx",
       "tests/chrome/**/*.test.ts",
+      "scripts/docs/**/*.test.ts",
       "../scripts/**/*.test.mjs",
     ],
     exclude: ["**/node_modules/**", "**/.next/**"],

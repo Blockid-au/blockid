@@ -580,6 +580,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.6,
     },
+    // G8-P8 — founder-facing "What unlocks when" (phase × plan matrix +
+    // phase exit criteria, generated from the nav catalogue + gate engine).
+    {
+      url: `${SITE_URL}/docs/unlocks`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
     {
       url: `${SITE_URL}/status`,
       lastModified,
