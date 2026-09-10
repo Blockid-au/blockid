@@ -416,7 +416,7 @@ describe("createSupabaseRadarStore.listSubscribers", () => {
         calls.push(call);
         const chain: Record<string, unknown> = {};
         const self = () => chain;
-        for (const op of ["select", "in", "eq", "not", "gte", "limit", "order", "is"]) {
+        for (const op of ["select", "in", "eq", "not", "gte", "gt", "limit", "order", "is"]) {
           chain[op] = (...args: unknown[]) => {
             call.ops.push(`${op}(${args.map((a) => JSON.stringify(a)).join(",")})`);
             return self();
@@ -456,5 +456,63 @@ describe("createSupabaseRadarStore.listSubscribers", () => {
     expect(reportsCall.ops).toContain('eq("status","ready")');
     const planUsers = db.calls.find((c) => c.table === "app_users")!;
     expect(planUsers.ops).toContain('in("plan",["founder_starter"])');
+  });
+
+  // Review 2026-09-10 #5: a Startup Package buyer on the Free plan holds
+  // `money_radar` only through `app_users.money_radar_until` (timed grant) —
+  // no plan flag, no entitlements row, and no A$3 report. The sweep must
+  // still target them, with the full channel set, for the 90-day window.
+  it("adds app_users with a live money_radar_until as a third source with inapp+email+ics, deduped and expired excluded", async () => {
+    // Query-builder fake that understands enough of the chain to route the
+    // app_users query by its filters (plan-flag `.in("plan")`, id `.in("id")`,
+    // timed `.gt("money_radar_until")`).
+    const openUntil = new Date(TODAY.getTime() + 60 * 86_400_000).toISOString();
+    const closedUntil = new Date(TODAY.getTime() - 86_400_000).toISOString();
+    const users = [
+      { id: "u-plan", email: "p@x.au", plan: "founder_starter", money_radar_until: null },
+      { id: "u-pkg-free", email: "pkg@x.au", plan: "founder_free", money_radar_until: openUntil },
+      { id: "u-pkg-expired", email: "old@x.au", plan: "founder_free", money_radar_until: closedUntil },
+      { id: "u-plan-and-pkg", email: "both@x.au", plan: "founder_starter", money_radar_until: openUntil },
+    ];
+    const calls: Array<{ table: string; ops: string[] }> = [];
+    const db = {
+      from(table: string) {
+        const call = { table, ops: [] as string[] };
+        calls.push(call);
+        const filters: Array<[string, string, unknown]> = [];
+        const chain: Record<string, unknown> = {};
+        for (const op of ["select", "in", "eq", "not", "gte", "gt", "limit", "order", "is"]) {
+          chain[op] = (...args: unknown[]) => {
+            call.ops.push(`${op}(${args.map((a) => JSON.stringify(a)).join(",")})`);
+            if (op === "in" || op === "gt") filters.push([op, String(args[0]), args[1]]);
+            return chain;
+          };
+        }
+        chain.then = (resolve: (v: unknown) => void) => {
+          if (table === "plans") return resolve({ data: [{ id: "founder_starter", feature_flags: ["money_radar"] }], error: null });
+          if (table !== "app_users") return resolve({ data: [], error: null });
+          const data = users.filter((u) =>
+            filters.every(([op, col, v]) => {
+              const cell = (u as Record<string, unknown>)[col];
+              if (op === "in") return (v as unknown[]).includes(cell);
+              return typeof cell === "string" && cell > String(v);
+            }),
+          );
+          return resolve({ data, error: null });
+        };
+        return chain;
+      },
+    };
+    const store = createSupabaseRadarStore(db);
+    const subs = await store.listSubscribers(TODAY);
+    const byId = new Map(subs.map((s) => [s.userId, s]));
+    expect(byId.get("u-pkg-free")?.channels).toEqual(["inapp", "email", "ics"]);
+    expect(byId.get("u-pkg-free")?.email).toBe("pkg@x.au");
+    expect(byId.has("u-pkg-expired")).toBe(false);
+    expect(subs.filter((s) => s.userId === "u-plan-and-pkg")).toHaveLength(1);
+    expect(subs.filter((s) => s.userId === "u-plan")).toHaveLength(1);
+    const timedCall = calls.find((c) => c.table === "app_users" && c.ops.some((o) => o.startsWith('gt("money_radar_until"')));
+    expect(timedCall, "timed-grant query").toBeTruthy();
+    expect(timedCall!.ops).toContain(`gt("money_radar_until",${JSON.stringify(TODAY.toISOString())})`);
   });
 });

@@ -18,6 +18,13 @@
 //   • Fail closed. No service-role client, a query error, a thrown driver, a
 //     malformed timestamp — all resolve to the empty set. An outage denies the
 //     timed grant and leaves the plan layer intact; nothing here throws.
+//
+// Re-purchase is ADDITIVE (review 2026-09-10 #12). A second Startup Package
+// bought on day 30 of a 90-day window ends on day 180, not day 120: the
+// webhook writes `extendTimedGrant(existing, 90)` =
+// `max(existing, now) + 90 days`. An expired or NULL stamp starts a fresh
+// window from now; a live one is extended from its current end. Support can
+// still hand-edit the column — the webhook never shortens what it finds.
 
 import "server-only";
 
@@ -61,9 +68,24 @@ export function liveTimedGrants(
   return out;
 }
 
-/** ISO stamp `days` from `from` — what the webhook writes. */
+/** ISO stamp `days` from `from` — a fresh window. */
 export function timedGrantUntil(days: number, from: number = Date.now()): string {
   return new Date(from + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+/**
+ * Additive window: `max(existing, now) + days` as an ISO stamp — what the
+ * Startup Package webhook writes so a re-purchase EXTENDS the current window
+ * instead of restarting it (#12). A NULL, past or unparseable `existing`
+ * behaves like a fresh purchase from `now`.
+ */
+export function extendTimedGrant(existing: unknown, days: number, now: number = Date.now()): string {
+  let base = now;
+  if (typeof existing === "string" && existing.length > 0) {
+    const t = Date.parse(existing);
+    if (Number.isFinite(t) && t > now) base = t;
+  }
+  return timedGrantUntil(days, base);
 }
 
 // ---------------------------------------------------------------------------

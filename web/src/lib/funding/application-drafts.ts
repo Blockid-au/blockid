@@ -16,7 +16,13 @@ import type { ApplicationPrompt } from "./application-prompts";
 import { parseApplicationPrompts } from "./application-prompts";
 import { latestFundingReportForUser, stageFromNumeric } from "./workspace";
 
-export type GrantDraftStatus = "draft" | "final";
+/**
+ * `draft` / `final` are the editor states. `spend_failed` (migration 0324)
+ * quarantines a row whose credit spend did not land — the route no longer
+ * inserts before spending, so it only exists for rows written before that
+ * fix; `getGrantDraft` / `latestGrantDraft` never return it.
+ */
+export type GrantDraftStatus = "draft" | "final" | "spend_failed";
 
 /** Mirror of `grant_application_drafts`. */
 export interface GrantDraftRow {
@@ -51,7 +57,7 @@ export function rowFromDb(raw: Record<string, unknown>): GrantDraftRow {
     answers: answersOf(raw.answers),
     prompts: parseApplicationPrompts(raw.prompts),
     credits_cost: Number(raw.credits_cost ?? 0) || 0,
-    status: raw.status === "final" ? "final" : "draft",
+    status: raw.status === "final" || raw.status === "spend_failed" ? raw.status : "draft",
     meta: raw.meta && typeof raw.meta === "object" ? (raw.meta as Record<string, unknown>) : {},
     created_at: String(raw.created_at ?? ""),
     updated_at: String(raw.updated_at ?? ""),
@@ -192,7 +198,13 @@ export async function getGrantDraft(id: string, userId: string, deps: { db?: Db 
   const db = deps.db ?? getSupabaseAdmin();
   if (!db) return null;
   try {
-    const { data } = await db.from("grant_application_drafts").select("*").eq("id", id).eq("user_id", userId).maybeSingle();
+    const { data } = await db
+      .from("grant_application_drafts")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .neq("status", "spend_failed")
+      .maybeSingle();
     return data ? rowFromDb(data as Record<string, unknown>) : null;
   } catch {
     return null;
@@ -209,7 +221,7 @@ export async function latestGrantDraft(
   const db = deps.db ?? getSupabaseAdmin();
   if (!db) return null;
   try {
-    let q = db.from("grant_application_drafts").select("*").eq("user_id", userId).eq("grant_id", grantId);
+    let q = db.from("grant_application_drafts").select("*").eq("user_id", userId).eq("grant_id", grantId).neq("status", "spend_failed");
     q = projectId ? q.eq("project_id", projectId) : q.is("project_id", null);
     const { data } = await q.order("updated_at", { ascending: false }).limit(1).maybeSingle();
     return data ? rowFromDb(data as Record<string, unknown>) : null;

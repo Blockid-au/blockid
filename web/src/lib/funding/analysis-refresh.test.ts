@@ -10,6 +10,7 @@ import {
   REFRESH_HREF,
   buildAnalysisRefresh,
   composeRefresh,
+  createSupabaseRefreshStore,
   growthPlanIds,
   nextRefreshDate,
   previousQuarter,
@@ -50,6 +51,61 @@ describe("quarter maths", () => {
     expect(ids).toEqual(expect.arrayContaining(["founder_growth", "founder_scale", "founder_enterprise", "growth", "growth_annual"]));
     expect(ids).not.toContain("founder_starter");
     expect(ids.some((id) => id.startsWith("investor") || id.startsWith("accel"))).toBe(false);
+  });
+});
+
+// Review 2026-09-10 #4: package buyers reach the quarterly refresh through
+// the purchase signal (growth-extras.ts), never the `startup_package`
+// entitlement row that nothing writes.
+describe("createSupabaseRefreshStore.listGrowthUsers", () => {
+  const NOW = new Date("2026-09-10T00:00:00Z");
+  function fakeDb() {
+    const tables: Record<string, Array<Record<string, unknown>>> = {
+      app_users: [
+        { id: "u-growth", plan: "founder_growth", money_radar_until: null },
+        { id: "u-pkg", plan: "founder_free", money_radar_until: "2026-12-01T00:00:00Z" },
+        { id: "u-starter", plan: "founder_starter", money_radar_until: null },
+        { id: "u-support", plan: "founder_starter", money_radar_until: "2026-12-01T00:00:00Z" },
+      ],
+      startup_package_purchases: [{ user_id: "u-pkg", status: "active" }],
+      credit_transactions: [],
+      entitlements: [{ user_id: "u-entitlement-only", expires_at: null }],
+    };
+    const calls: string[] = [];
+    return {
+      calls,
+      from(table: string) {
+        calls.push(table);
+        const filters: Array<[string, string, unknown]> = [];
+        const c: Record<string, unknown> = {};
+        for (const op of ["select", "in", "eq", "gt", "limit"]) {
+          c[op] = (...args: unknown[]) => {
+            if (op === "in" || op === "eq" || op === "gt") filters.push([op, String(args[0]), args[1]]);
+            return c;
+          };
+        }
+        c.then = (resolve: (v: unknown) => unknown) =>
+          resolve({
+            data: (tables[table] ?? []).filter((r) =>
+              filters.every(([op, col, v]) => {
+                if (op === "in") return (v as unknown[]).includes(r[col]);
+                if (op === "eq") return r[col] === v;
+                return typeof r[col] === "string" && String(r[col]) > String(v);
+              }),
+            ),
+            error: null,
+          });
+        return c;
+      },
+    };
+  }
+
+  it("unions Growth-plan founders with active Startup Package buyers; Starter / support-only radar / entitlement rows do not qualify", async () => {
+    const db = fakeDb();
+    const users = await createSupabaseRefreshStore(db).listGrowthUsers(NOW);
+    expect(users.map((u) => u.userId).sort()).toEqual(["u-growth", "u-pkg"]);
+    expect(users.find((u) => u.userId === "u-pkg")?.plan).toBe("founder_free");
+    expect(db.calls).not.toContain("entitlements");
   });
 });
 

@@ -2,13 +2,18 @@
  * POST /api/funding/report — signed-in Money Finder report (T0242, §4e).
  *
  * Pipeline (accelerator-apply pattern): auth → rate-limit → entitlement /
- * credit pre-flight → generate → insert `funding_reports` → spend credits
- * AFTER success. Two rails:
+ * credit pre-flight → generate → insert `funding_reports` as `generating`
+ * → spend credits → flip the row to `ready`. Two rails:
  *   • plan-included — `can(user, "grant_finder")` (Starter+, Startup Package,
- *     evaluator rungs): `paid_via = 'plan'`, no credit spend.
+ *     evaluator rungs): `paid_via = 'plan'`, no credit spend, row inserted
+ *     `ready` directly.
  *   • credits — `canAfford(user.id, "grant_match")` (3 credits, §4g) → 402
- *     `insufficient_credits` when short; `spendCredits` only after the row
- *     is written so a failed generation never charges.
+ *     `insufficient_credits` when short; `spendCredits` runs only after the
+ *     generation succeeded (a failed generation never charges) but BEFORE the
+ *     row becomes `ready`: a spend that loses the race (`ok:false`) leaves the
+ *     row `spend_failed`, which `publicFundingReport` serves without any
+ *     matches / narrative (review 2026-09-10 #2 — two concurrent POSTs on a
+ *     balance of 3 used to give the second caller a full report for free).
  *
  * Body: `{ ...FundingIntake, project_id?: string }`. When a project the user
  * owns is given, the intake is persisted to `project_grant_profiles` (§4b)
@@ -119,7 +124,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "generation_failed" }, { status: 500 });
   }
 
-  // 7. Persist the row
+  // 7. Persist the row — `generating` on the credits rail until the spend
+  //    lands (step 9), `ready` straight away when the plan includes it.
   const accessToken = newAccessToken();
   const { data: inserted, error: insertErr } = await supabase
     .from("funding_reports")
@@ -131,6 +137,7 @@ export async function POST(request: Request) {
       paid_via: included ? "plan" : "credits",
       access_token: accessToken,
       ...reportColumns(report),
+      ...(included ? {} : { status: "generating" }),
     })
     .select("id")
     .single();
@@ -148,17 +155,19 @@ export async function POST(request: Request) {
     if (profErr) console.warn("[funding:report] project_grant_profiles upsert failed", profErr.message);
   }
 
-  // 9. Spend credits AFTER success
+  // 9. Spend credits (atomic RPC, credits.ts) BEFORE the row is readable.
   let creditsCharged = 0;
   if (!included) {
     const spend = await spendCredits(user.id, FEATURE_KEY, { funding_report_id: reportId, project_id: projectId });
     if (!spend.ok) {
       await supabase.from("funding_reports").update({ status: "spend_failed" }).eq("id", reportId);
+      const creditsNeeded = FEATURE_COSTS[FEATURE_KEY] ?? cost;
       return NextResponse.json(
         {
           ok: false,
           error: "credit_spend_failed",
-          creditsRequired: FEATURE_COSTS[FEATURE_KEY] ?? 0,
+          creditsRequired: creditsNeeded,
+          credits_needed: creditsNeeded,
           balance: spend.balance,
           reportId,
         },
@@ -166,6 +175,12 @@ export async function POST(request: Request) {
       );
     }
     creditsCharged = cost;
+    const { error: readyErr } = await supabase.from("funding_reports").update({ status: "ready" }).eq("id", reportId).eq("status", "generating");
+    if (readyErr) {
+      // Credits are spent and the content is stored; return the id anyway so
+      // the founder is not charged for nothing — support flips the status.
+      console.error("[funding:report] ready flip failed", { reportId, message: readyErr.message });
+    }
   }
 
   return NextResponse.json({

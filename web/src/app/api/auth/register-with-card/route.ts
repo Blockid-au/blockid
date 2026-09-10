@@ -53,6 +53,7 @@ import { formatAud } from "@/lib/plans/trial-copy";
 import {
   SIGNUP_ACCOUNT_TYPES,
   SIGNUP_ALLOWED_PLAN_IDS,
+  isSelfServePlan,
   resolveTrialDays,
   segmentForAccountType,
 } from "@/lib/plans/signup-plans";
@@ -156,6 +157,14 @@ export async function POST(request: Request) {
   const plan = await getPlanCached(body.plan_id);
   if (!plan) {
     return NextResponse.json({ ok: false, error: "unknown_plan" }, { status: 400 });
+  }
+  // Negotiated / unpriced tiers (interval = custom, e.g. founder_enterprise)
+  // are never self-serve — review 2026-09-10 #17.
+  if (!isSelfServePlan(plan)) {
+    return NextResponse.json(
+      { ok: false, error: "plan_not_self_serve", plan_id: plan.id },
+      { status: 400 },
+    );
   }
   const stripePriceId = plan.stripe_price_id;
   if (!stripePriceId) {

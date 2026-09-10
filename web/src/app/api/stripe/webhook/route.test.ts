@@ -399,6 +399,32 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
     expect(grantCreditsMock).toHaveBeenCalledTimes(1);
   });
 
+  // Review 2026-09-10 #12: a second package EXTENDS the live window —
+  // max(existing, now) + 90d — instead of restarting it from now.
+  it("founder_package re-purchase: a live money_radar_until is extended by 90 days from its current end", async () => {
+    const existing = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(); // 60 days left
+    selectResponses.set("app_users:select", { data: { money_radar_until: existing }, error: null });
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({
+        id: "evt_founder_pkg_radar_again",
+        metadata: { plan: "founder_package", blockid_user_id: "user-1", project_id: "proj-1" },
+        amountTotal: 14900,
+      }),
+    );
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    const stamp = updateCalls.find(
+      (c) => c.table === "app_users" && typeof (c.row as Row).money_radar_until === "string",
+    );
+    expect(stamp).toBeTruthy();
+    const until = Date.parse((stamp!.row as Row).money_radar_until as string);
+    const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+    // 60 days left + 90 = 150 days out, not 90.
+    expect(until).toBe(Date.parse(existing) + ninetyDays);
+    expect(until).toBeGreaterThan(Date.now() + ninetyDays + 30 * 24 * 60 * 60 * 1000);
+    selectResponses.delete("app_users:select");
+  });
+
   it("founder_package: skips the radar stamp (and everything else) when blockid_user_id is missing", async () => {
     verifyWebhookSignature.mockReturnValue(
       buildCheckoutEvent({

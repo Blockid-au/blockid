@@ -7,8 +7,10 @@
 //      no spendCredits, draft stored with credits_cost 0, no confirm needed.
 //   3. Starter → transparent pricing: confirm !== true returns 200 preview
 //      { cost: 2, prompts } and generates NOTHING; confirm:true → generate →
-//      insert → spendCredits(…, "grant_application_draft") AFTER the insert,
-//      tagged with the draft id; canAfford false → 402 with creditsRequired.
+//      spendCredits(…, "grant_application_draft") → insert (review
+//      2026-09-10 #3: spend BEFORE insert so a lost race stores nothing);
+//      canAfford false → 402 with creditsRequired; insert failure after a
+//      spend refunds via grantCredits.
 //   4. AI failure → 200 with empty answers, ai_ok:false, and NOT charged.
 //   5. PATCH → owner update of answers / status; 404 when not owned.
 
@@ -22,8 +24,9 @@ vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
 const enforceRateLimitMock = vi.hoisted(() => vi.fn<(...a: unknown[]) => Response | null>());
 vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => enforceRateLimitMock(...a) }));
 
-const { canAffordMock, spendCreditsMock } = vi.hoisted(() => ({ canAffordMock: vi.fn(), spendCreditsMock: vi.fn() }));
+const { canAffordMock, spendCreditsMock, grantCreditsMock } = vi.hoisted(() => ({ canAffordMock: vi.fn(), spendCreditsMock: vi.fn(), grantCreditsMock: vi.fn() }));
 vi.mock("@/lib/credits", () => ({
+  grantCredits: (...a: unknown[]) => grantCreditsMock(...a),
   canAfford: (u: string, f: string) => canAffordMock(u, f),
   spendCredits: (u: string, f: string, m?: unknown) => spendCreditsMock(u, f, m),
   FEATURE_COSTS: { grant_application_draft: 2 },
@@ -78,6 +81,7 @@ beforeEach(() => {
   enforceRateLimitMock.mockReset().mockReturnValue(null);
   canAffordMock.mockReset().mockResolvedValue({ allowed: true, balance: 10, cost: 2 });
   spendCreditsMock.mockReset().mockResolvedValue({ ok: true, balance: 8 });
+  grantCreditsMock.mockReset().mockResolvedValue({ ok: true, balance: 10 });
   canMock.mockReset().mockResolvedValue(true);
   growthMock.mockReset().mockResolvedValue(false);
   getProjectByIdMock.mockReset().mockResolvedValue(PROJECT);
@@ -144,7 +148,7 @@ describe("POST — Starter credits rail (transparent pricing)", () => {
     expect(spendCreditsMock).not.toHaveBeenCalled();
   });
 
-  it("confirm:true → generate, insert, THEN spend 2 credits tagged with the draft id", async () => {
+  it("confirm:true → generate, spend 2 credits, THEN insert (spend before insert, #3)", async () => {
     const order: string[] = [];
     insertMock.mockImplementation(async (row: Record<string, unknown>) => { order.push("insert"); return { id: "d-1", ...row, created_at: "", updated_at: "" }; });
     spendCreditsMock.mockImplementation(async () => { order.push("spend"); return { ok: true, balance: 8 }; });
@@ -152,9 +156,10 @@ describe("POST — Starter credits rail (transparent pricing)", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ ok: true, cost: 2, creditsCharged: 2, balance: 8, ai_ok: true });
-    expect(order).toEqual(["insert", "spend"]);
-    expect(spendCreditsMock).toHaveBeenCalledWith("u-1", "grant_application_draft", { project_id: "proj-1", grant_id: GRANT.id, draft_id: "d-1" });
-    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ credits_cost: 2 }));
+    expect(order).toEqual(["spend", "insert"]);
+    expect(spendCreditsMock).toHaveBeenCalledWith("u-1", "grant_application_draft", { project_id: "proj-1", grant_id: GRANT.id });
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ credits_cost: 2, status: "draft" }));
+    expect(grantCreditsMock).not.toHaveBeenCalled();
   });
 
   it("canAfford false → 402 with creditsRequired + balance, nothing generated", async () => {
@@ -165,11 +170,22 @@ describe("POST — Starter credits rail (transparent pricing)", () => {
     expect(draftMock).not.toHaveBeenCalled();
   });
 
-  it("spend failure after insert → 402 credit_spend_failed carrying the draft id", async () => {
+  it("spend failure → 402 credit_spend_failed with credits_needed and NOTHING inserted (#3)", async () => {
     spendCreditsMock.mockResolvedValueOnce({ ok: false, balance: 0 });
     const res = await post({ grant_id: GRANT.id, confirm: true });
     expect(res.status).toBe(402);
-    expect(await res.json()).toMatchObject({ error: "credit_spend_failed", draftId: "d-1" });
+    expect(await res.json()).toMatchObject({ error: "credit_spend_failed", creditsRequired: 2, credits_needed: 2, balance: 0 });
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(grantCreditsMock).not.toHaveBeenCalled();
+  });
+
+  it("insert failure after a successful spend → 500 and the 2 credits are refunded", async () => {
+    insertMock.mockResolvedValueOnce(null);
+    const res = await post({ grant_id: GRANT.id, confirm: true });
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ error: "draft_insert_failed" });
+    expect(spendCreditsMock).toHaveBeenCalledTimes(1);
+    expect(grantCreditsMock).toHaveBeenCalledWith("u-1", 2, "refund", expect.objectContaining({ feature: "grant_application_draft", grant_id: GRANT.id }));
   });
 });
 

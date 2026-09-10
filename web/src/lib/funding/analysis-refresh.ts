@@ -26,6 +26,7 @@ import type { NotificationKind } from "@/lib/notification-kinds";
 import { PLAN_ID_TO_TIER_MAP } from "@/lib/segments";
 import { fill, FUNDING_COPY } from "./copy";
 import { sectorTokensFor } from "./investor-match";
+import { listActiveStartupPackageUserIds } from "./growth-extras";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -396,11 +397,15 @@ export function createSupabaseRefreshStore(db: SupabaseLike): RefreshStore {
       const out = new Map<string, { userId: string; plan: string | null }>();
       const { data: users } = await db.from("app_users").select("id, plan").in("plan", growthPlanIds()).limit(10_000);
       for (const u of (users ?? []) as Array<{ id: string; plan: string | null }>) out.set(u.id, { userId: u.id, plan: u.plan });
-      // Startup Package grant (timed entitlement) counts as Growth extras.
-      const { data: grants } = await db.from("entitlements").select("user_id, expires_at").eq("feature", "startup_package").eq("allowed", true);
-      for (const g of (grants ?? []) as Array<{ user_id: string; expires_at: string | null }>) {
-        if (g.expires_at && new Date(g.expires_at).getTime() <= now.getTime()) continue;
-        if (!out.has(g.user_id)) out.set(g.user_id, { userId: g.user_id, plan: null });
+      // An active Startup Package purchase counts as Growth extras (review
+      // 2026-09-10 #4: the `startup_package` entitlement is never granted to
+      // buyers — the purchase signal lives in growth-extras.ts).
+      const packageIds = await listActiveStartupPackageUserIds(db, { now });
+      if (packageIds.size > 0) {
+        const { data: buyers } = await db.from("app_users").select("id, plan").in("id", [...packageIds]);
+        for (const u of (buyers ?? []) as Array<{ id: string; plan: string | null }>) {
+          if (!out.has(u.id)) out.set(u.id, { userId: u.id, plan: u.plan });
+        }
       }
       return [...out.values()];
     },

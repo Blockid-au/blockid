@@ -248,16 +248,63 @@ export async function handleFundingReportCompleted(
   const report = await generateAndStoreFundingReport(reportId, { withNarrative: true });
   const to = existing.guest_email ?? session.customer_email ?? session.metadata?.email ?? null;
   if (to) {
-    const url = reportUrl(reportId, existing.access_token ?? null);
-    sendEmail({
-      to,
-      subject: report
-        ? `Your Money Finder report — ${report.summary.grant_count} grants, ${report.summary.program_count} programs`
-        : "Your Money Finder report is being prepared",
-      html: fundingReportEmailHtml({ url, report }),
-    }).catch((err) => console.error("[funding/reports] email failed", { reportId, err: String(err) }));
+    if (report) {
+      // Stamps meta.email_sent_at so the retry sweep never sends it twice.
+      await sendFundingReportReadyEmail({ reportId, to, report, accessToken: existing.access_token ?? null });
+    } else {
+      // Generation failed: a holding note, NOT stamped — the
+      // funding-report-retry cron regenerates and sends the real one.
+      const url = reportUrl(reportId, existing.access_token ?? null);
+      sendEmail({
+        to,
+        subject: "Your Money Finder report is being prepared",
+        html: fundingReportEmailHtml({ url, report: null }),
+      }).catch((err) => console.error("[funding/reports] email failed", { reportId, err: String(err) }));
+    }
   }
   return { ok: true, reportId };
+}
+
+/** `meta` key stamped once the "report ready" email has been delivered. */
+export const EMAIL_SENT_AT_KEY = "email_sent_at";
+
+/**
+ * Send the "your report is ready" email at most once per row. Re-reads the
+ * row so the stamp merges with whatever the generator just wrote; a row that
+ * already carries `meta.email_sent_at` is skipped. Shared by the Stripe
+ * webhook and /api/cron/funding-report-retry (review 2026-09-10 #11).
+ */
+export async function sendFundingReportReadyEmail(args: {
+  reportId: string;
+  to: string;
+  report: FundingReport;
+  accessToken: string | null;
+}): Promise<"sent" | "already_sent" | "failed" | "no_db"> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return "no_db";
+  const fresh = await getFundingReport(args.reportId);
+  if (fresh?.meta && typeof fresh.meta[EMAIL_SENT_AT_KEY] === "string") return "already_sent";
+  const url = reportUrl(args.reportId, args.accessToken);
+  try {
+    const res = await sendEmail({
+      to: args.to,
+      subject: `Your Money Finder report — ${args.report.summary.grant_count} grants, ${args.report.summary.program_count} programs`,
+      html: fundingReportEmailHtml({ url, report: args.report }),
+    });
+    if (!res.ok) {
+      console.error("[funding/reports] email not sent", { reportId: args.reportId, reason: res.reason });
+      return "failed";
+    }
+  } catch (err) {
+    console.error("[funding/reports] email failed", { reportId: args.reportId, err: String(err) });
+    return "failed";
+  }
+  const { error } = await supabase
+    .from("funding_reports")
+    .update({ meta: { ...(fresh?.meta ?? {}), [EMAIL_SENT_AT_KEY]: new Date().toISOString() } })
+    .eq("id", args.reportId);
+  if (error) console.warn("[funding/reports] email_sent_at stamp failed", { reportId: args.reportId, message: error.message });
+  return "sent";
 }
 
 export function fundingReportEmailHtml(args: { url: string; report: FundingReport | null }): string {
@@ -366,21 +413,52 @@ export interface PublicFundingReport {
   project_id: string | null;
 }
 
-/** Strip secrets (token, email, Stripe ids) before the row leaves the server. */
+/**
+ * Keys of `meta` the page / PDF read. Everything else the row carries —
+ * `stripe_payment_intent`, `stripe_event_id`, `paid_amount_cents`, `paid_at`,
+ * `amount_cents`, `email_sent_at` — is server bookkeeping and never leaves
+ * (review 2026-09-10 #10: the route header promises "Stripe ids never leave
+ * the server").
+ */
+export const PUBLIC_META_KEYS = ["today", "generated_at", "tax", "narrative_source", "excluded", "disclaimer", "summary", "actions"] as const;
+
+export function publicFundingMeta(meta: Record<string, unknown> | null | undefined): FundingReportMeta | null {
+  if (!meta || typeof meta !== "object") return null;
+  const out: Record<string, unknown> = {};
+  for (const key of PUBLIC_META_KEYS) if (key in meta) out[key] = meta[key];
+  return Object.keys(out).length ? (out as unknown as FundingReportMeta) : null;
+}
+
+/**
+ * Strip secrets (token, email, Stripe ids) before the row leaves the server.
+ *
+ * The matches, timeline, narrative and summary are only released once the
+ * row is `ready`. A `spend_failed` / `failed` / `generating` row already
+ * holds the generated content (the signed-in route generates before it
+ * charges) — returning it would hand out the paid product for free
+ * (review 2026-09-10 #2). Non-ready rows keep `today` / `generated_at` so the
+ * page can still render its "not ready" state.
+ */
 export function publicFundingReport(row: FundingReportRow, viewer: ViewerContext): PublicFundingReport {
   const parsed = parseFundingIntake(row.intake);
   const isOwner = Boolean(viewer.userId && row.user_id && viewer.userId === row.user_id);
+  const ready = row.status === "ready";
+  const meta = publicFundingMeta(row.meta);
   return {
     id: row.id,
     status: row.status,
     created_at: row.created_at,
     paid_via: row.paid_via,
     intake: parsed.ok ? parsed.intake : null,
-    grants: Array.isArray(row.grant_matches) ? row.grant_matches : [],
-    programs: Array.isArray(row.program_matches) ? row.program_matches : [],
-    timeline: Array.isArray(row.timeline) ? row.timeline : [],
-    narrative_md: row.narrative_md ?? null,
-    meta: (row.meta as FundingReportMeta | null) ?? null,
+    grants: ready && Array.isArray(row.grant_matches) ? row.grant_matches : [],
+    programs: ready && Array.isArray(row.program_matches) ? row.program_matches : [],
+    timeline: ready && Array.isArray(row.timeline) ? row.timeline : [],
+    narrative_md: ready ? (row.narrative_md ?? null) : null,
+    meta: ready
+      ? meta
+      : meta
+        ? ({ today: meta.today, generated_at: meta.generated_at, summary: null } as unknown as FundingReportMeta)
+        : null,
     disclaimer: FUNDING_DISCLAIMER,
     is_owner: isOwner,
     project_id: isOwner ? (row.project_id ?? null) : null,

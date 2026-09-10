@@ -110,6 +110,7 @@ import {
   newAccessToken,
   publicFundingReport,
   reportUrl,
+  sendFundingReportReadyEmail,
   type FundingReportRow,
 } from "./reports";
 
@@ -184,6 +185,10 @@ describe("handleFundingReportCompleted", () => {
     expect(mail.subject).toMatch(/1 grants, 1 programs/);
     expect(mail.html).toContain("/funding/report/fr_guest?t=tok_abc");
     expect(mail.html).toMatch(/Grant information is free from government/);
+    // #11: the ready email is stamped so the retry sweep never re-sends it;
+    // the Stripe ids the paid update wrote survive the merge.
+    expect(typeof (row.meta as Row).email_sent_at).toBe("string");
+    expect((row.meta as Row).stripe_payment_intent).toBe("pi_1");
   });
 
   it("is idempotent — a replay on a ready row does not regenerate or email", async () => {
@@ -219,6 +224,36 @@ describe("handleFundingReportCompleted", () => {
     expect(row.error_message).toBe("LLM down");
     const mail = sendEmailMock.mock.calls[0][0] as unknown as { subject: string };
     expect(mail.subject).toMatch(/being prepared/);
+    // Not stamped — the holding note is not the report email, so the retry
+    // sweep (#11) still sends the real one once it regenerates.
+    expect((row.meta as Row).email_sent_at).toBeUndefined();
+  });
+});
+
+// Review 2026-09-10 #11 — shared by the webhook and the retry cron.
+describe("sendFundingReportReadyEmail", () => {
+  it("sends once: stamps meta.email_sent_at (merging existing meta) and returns already_sent on the next call", async () => {
+    seedPending("fr_r", { status: "ready", meta: { paid_at: "2026-09-10T00:00:00Z", stripe_event_id: "evt_9" } });
+    const report = fakeReport() as unknown as Parameters<typeof sendFundingReportReadyEmail>[0]["report"];
+    expect(await sendFundingReportReadyEmail({ reportId: "fr_r", to: "founder@example.com", report, accessToken: "tok_abc" })).toBe("sent");
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    const mail = sendEmailMock.mock.calls[0][0] as unknown as { subject: string; html: string };
+    expect(mail.subject).toMatch(/1 grants, 1 programs/);
+    expect(mail.html).toContain("/funding/report/fr_r?t=tok_abc");
+    const meta = rows.get("fr_r")!.meta as Row;
+    expect(typeof meta.email_sent_at).toBe("string");
+    expect(meta.stripe_event_id).toBe("evt_9");
+
+    expect(await sendFundingReportReadyEmail({ reportId: "fr_r", to: "founder@example.com", report, accessToken: "tok_abc" })).toBe("already_sent");
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("a failed send is reported and NOT stamped, so it can be retried", async () => {
+    seedPending("fr_f", { status: "ready" });
+    sendEmailMock.mockResolvedValueOnce({ ok: false, reason: "send_error" } as never);
+    const report = fakeReport() as unknown as Parameters<typeof sendFundingReportReadyEmail>[0]["report"];
+    expect(await sendFundingReportReadyEmail({ reportId: "fr_f", to: "founder@example.com", report, accessToken: null })).toBe("failed");
+    expect((rows.get("fr_f")!.meta as Row).email_sent_at).toBeUndefined();
   });
 });
 
@@ -263,6 +298,68 @@ describe("access", () => {
     expect(pub.intake?.state).toBe("NSW");
     expect(pub.is_owner).toBe(false);
     expect(pub.disclaimer).toMatch(/General information only/);
+  });
+
+  // Review 2026-09-10 #2: the signed-in route generates before it charges, so
+  // a `spend_failed` row already holds the paid content. Only `ready` rows
+  // may release matches / timeline / narrative / summary through the API.
+  it.each(["spend_failed", "failed", "generating", "paid", "pending_payment"])(
+    "publicFundingReport blanks grants/programs/timeline/narrative/summary for a %s row",
+    (status) => {
+      const loaded = {
+        ...row,
+        status,
+        grant_matches: [{ ref_id: "g1", name: "Grant One" }],
+        program_matches: [{ ref_id: "p1", name: "Program One" }],
+        timeline: [{ month: "2026-10", ref_id: "g1" }],
+        narrative_md: "## Secret plan",
+        meta: { today: "2026-09-10", generated_at: "2026-09-10T00:00:00Z", summary: { grant_count: 1 }, actions: ["Lodge"], tax: {} },
+      } as unknown as FundingReportRow;
+      const pub = publicFundingReport(loaded, { userId: "user_a" });
+      expect(pub.status).toBe(status);
+      expect(pub.grants).toEqual([]);
+      expect(pub.programs).toEqual([]);
+      expect(pub.timeline).toEqual([]);
+      expect(pub.narrative_md).toBeNull();
+      expect(pub.meta).toEqual({ today: "2026-09-10", generated_at: "2026-09-10T00:00:00Z", summary: null });
+      expect(JSON.stringify(pub)).not.toContain("Secret plan");
+      expect(JSON.stringify(pub)).not.toContain("Grant One");
+    },
+  );
+
+  it("a ready row releases everything, and only the allow-listed meta keys", () => {
+    const loaded = {
+      ...row,
+      grant_matches: [{ ref_id: "g1", name: "Grant One" }],
+      narrative_md: "## Plan",
+      meta: {
+        today: "2026-09-10",
+        generated_at: "2026-09-10T00:00:00Z",
+        summary: { grant_count: 1 },
+        actions: ["Lodge"],
+        tax: { rd: true },
+        narrative_source: "llm",
+        excluded: { grants: 2, programs: 0 },
+        disclaimer: "d",
+        // Server bookkeeping the webhook stamps — must never leave (#10).
+        stripe_payment_intent: "pi_secret",
+        stripe_event_id: "evt_secret",
+        paid_amount_cents: 300,
+        paid_at: "2026-09-10T00:00:00Z",
+        amount_cents: 300,
+        email_sent_at: "2026-09-10T00:01:00Z",
+      },
+    } as unknown as FundingReportRow;
+    const pub = publicFundingReport(loaded, { userId: "user_a" });
+    expect(pub.grants).toHaveLength(1);
+    expect(pub.narrative_md).toBe("## Plan");
+    expect(Object.keys(pub.meta ?? {}).sort()).toEqual(
+      ["actions", "disclaimer", "excluded", "generated_at", "narrative_source", "summary", "tax", "today"],
+    );
+    const json = JSON.stringify(pub);
+    for (const leak of ["pi_secret", "evt_secret", "paid_amount_cents", "paid_at", "email_sent_at", "amount_cents"]) {
+      expect(json, leak).not.toContain(leak);
+    }
   });
 
   it("access tokens are 32 url-safe chars and reportUrl carries them", () => {

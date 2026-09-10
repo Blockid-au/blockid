@@ -4,7 +4,7 @@
 // skipped, stable UIDs, and a VCALENDAR that parses block-by-block.
 
 import { describe, expect, it } from "vitest";
-import { renderIcs } from "@/lib/compliance/calendar";
+import { escapeIcsText, renderIcs } from "@/lib/compliance/calendar";
 import {
   FUNDING_CALENDAR_NAME,
   FUNDING_CALENDAR_PRODID,
@@ -97,5 +97,20 @@ describe("buildFundingCalendar", () => {
     for (const lead of FUNDING_REMINDER_LEAD_DAYS) expect(ics).toContain(`TRIGGER:-P${lead}D`);
     // Every line is CRLF-terminated and ≤ 75 octets after folding.
     for (const line of ics.split("\r\n")) expect(Buffer.byteLength(line, "utf8")).toBeLessThanOrEqual(75);
+  });
+
+  // Review 2026-09-10 #19: a CR / CRLF inside a grant name would end the
+  // content line and inject iCalendar properties into the subscriber's feed.
+  it("escapes CR and CRLF in text values so a catalogue string cannot inject ICS lines", () => {
+    expect(escapeIcsText("a\r\nb")).toBe("a\\nb");
+    expect(escapeIcsText("a\rb")).toBe("a\\nb");
+    expect(escapeIcsText("a\nb")).toBe("a\\nb");
+    expect(escapeIcsText("x; y, z\\")).toBe("x\\; y\\, z\\\\");
+    const events = buildFundingCalendar([row({ name: "Evil\r\nATTENDEE:mailto:x@example.com\r\nX:" })], { now: NOW });
+    const ics = renderIcs(events, { now: NOW, calendarName: FUNDING_CALENDAR_NAME, prodId: FUNDING_CALENDAR_PRODID });
+    const lines = ics.split("\r\n");
+    expect(lines.some((l) => l.startsWith("ATTENDEE:"))).toBe(false);
+    expect(lines.some((l) => l.startsWith("X:"))).toBe(false);
+    expect(ics).not.toMatch(/\r(?!\n)/);
   });
 });

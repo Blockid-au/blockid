@@ -6,9 +6,10 @@
 //      creditsRequired + balance, and NOTHING is generated or spent.
 //   3. Plan rail — can(user, "grant_finder") true bypasses canAfford and
 //      spendCredits entirely; row is paid_via='plan', credits_cost 0.
-//   4. Spend-after-success — spendCredits runs only AFTER the row insert and
-//      is tagged with the funding_report_id; spend failure → 402 + row
-//      marked spend_failed.
+//   4. Spend-before-ready (review 2026-09-10 #2) — the credits-rail row is
+//      inserted `generating`, spendCredits runs tagged with the
+//      funding_report_id, and only a successful spend flips it to `ready`;
+//      spend failure → 402 + row marked spend_failed and NEVER ready.
 //   5. project_id → ownership check (403) and project_grant_profiles upsert.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -57,7 +58,10 @@ vi.mock("@/lib/supabase", () => ({
         return c;
       };
       c.select = () => c;
-      c.eq = () => c;
+      c.eq = (col: string, val: unknown) => {
+        if (op === "update") calls[calls.length - 1].row = { ...(calls[calls.length - 1].row as object), [`__eq_${col}`]: val };
+        return c;
+      };
       c.single = () => c;
       c.then = (r: (v: unknown) => unknown) =>
         r(op === "insert" && table === "funding_reports" ? { data: { id: "rep-1" }, error: null } : { data: null, error: null });
@@ -139,7 +143,7 @@ describe("POST /api/funding/report — gates", () => {
 });
 
 describe("POST /api/funding/report — rails", () => {
-  it("credits rail: generates with narrative, inserts the row, THEN spends 3 credits tagged with the report id", async () => {
+  it("credits rail: generates with narrative, inserts the row as `generating`, spends 3 credits tagged with the report id, THEN flips it to ready", async () => {
     const res = await POST(req(GOOD));
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -149,8 +153,9 @@ describe("POST /api/funding/report — rails", () => {
     expect(ops.indexOf("-:generate")).toBeLessThan(ops.indexOf("funding_reports:insert"));
     expect((calls.find((c) => c.op === "generate")!.row as { withNarrative: boolean }).withNarrative).toBe(true);
 
+    // #2: the row must not be readable (`ready`) before the spend has landed.
     const inserted = calls.find((c) => c.table === "funding_reports" && c.op === "insert")!.row as Record<string, unknown>;
-    expect(inserted).toMatchObject({ user_id: "user-1", project_id: null, paid_via: "credits", credits_cost: 3, access_token: "tok_test", status: "ready" });
+    expect(inserted).toMatchObject({ user_id: "user-1", project_id: null, paid_via: "credits", credits_cost: 3, access_token: "tok_test", status: "generating" });
     expect(inserted.intake).toMatchObject({ state: "NSW", stage: "mvp" });
 
     // Spend happens after the insert and carries the row id.
@@ -159,6 +164,11 @@ describe("POST /api/funding/report — rails", () => {
     expect(spendCreditsMock.mock.calls[0][1]).toBe("grant_match");
     expect(spendCreditsMock.mock.calls[0][2]).toMatchObject({ funding_report_id: "rep-1" });
     expect(spendCreditsMock.mock.invocationCallOrder[0]).toBeGreaterThan(buildReportMock.mock.invocationCallOrder[0]);
+
+    // The `ready` flip is the LAST write, scoped to this row while still `generating`.
+    const readyIdx = calls.findIndex((c) => c.table === "funding_reports" && c.op === "update" && (c.row as { status: string }).status === "ready");
+    expect(readyIdx).toBeGreaterThan(calls.findIndex((c) => c.table === "funding_reports" && c.op === "insert"));
+    expect(calls[readyIdx].row).toMatchObject({ status: "ready", __eq_id: "rep-1", __eq_status: "generating" });
   });
 
   it("plan rail: grant_finder entitlement bypasses canAfford + spendCredits; row is paid_via=plan", async () => {
@@ -170,15 +180,19 @@ describe("POST /api/funding/report — rails", () => {
     expect(canAffordMock).not.toHaveBeenCalled();
     expect(spendCreditsMock).not.toHaveBeenCalled();
     const inserted = calls.find((c) => c.table === "funding_reports" && c.op === "insert")!.row as Record<string, unknown>;
-    expect(inserted).toMatchObject({ paid_via: "plan", credits_cost: 0 });
+    expect(inserted).toMatchObject({ paid_via: "plan", credits_cost: 0, status: "ready" });
+    expect(calls.filter((c) => c.table === "funding_reports" && c.op === "update")).toHaveLength(0);
   });
 
-  it("spend failure after generation → 402 and the row is marked spend_failed", async () => {
+  it("spend failure after generation → 402 with credits_needed; the row goes spend_failed and is NEVER flipped to ready", async () => {
     spendCreditsMock.mockResolvedValueOnce({ ok: false, balance: 0 });
     const res = await POST(req(GOOD));
     expect(res.status).toBe(402);
-    expect(await res.json()).toMatchObject({ error: "credit_spend_failed", reportId: "rep-1" });
-    expect(calls).toContainEqual({ table: "funding_reports", op: "update", row: { status: "spend_failed" } });
+    expect(await res.json()).toMatchObject({ error: "credit_spend_failed", reportId: "rep-1", creditsRequired: 3, credits_needed: 3, balance: 0 });
+    const updates = calls.filter((c) => c.table === "funding_reports" && c.op === "update").map((c) => (c.row as { status: string }).status);
+    expect(updates).toEqual(["spend_failed"]);
+    const inserted = calls.find((c) => c.table === "funding_reports" && c.op === "insert")!.row as Record<string, unknown>;
+    expect(inserted.status).not.toBe("ready");
   });
 
   it("with an owned project_id the intake is persisted to project_grant_profiles", async () => {

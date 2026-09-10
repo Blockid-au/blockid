@@ -428,9 +428,16 @@ function foldLine(line: string): string {
   return parts.join("\r\n");
 }
 
-function escapeIcsText(text: string): string {
+/**
+ * RFC 5545 §3.3.11 TEXT escaping. A bare CR (or CRLF) inside a value would
+ * otherwise terminate the content line and let user-supplied text (grant
+ * names, program descriptions) inject arbitrary iCalendar properties —
+ * review 2026-09-10 #19. CRLF / CR are folded into the escaped `\n`.
+ */
+export function escapeIcsText(text: string): string {
   return text
     .replace(/\\/g, "\\\\")
+    .replace(/\r\n?/g, "\n")
     .replace(/\n/g, "\\n")
     .replace(/;/g, "\\;")
     .replace(/,/g, "\\,");

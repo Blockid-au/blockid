@@ -25,6 +25,7 @@ import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, formatAud } from "@/lib/p
 import {
   accountTypeOptionsForSegment,
   evaluatorPlanLabel,
+  isSelfServePlan,
   resolvePreferredPlan,
   resolveSignupSegment,
   resolveTrialDays,
@@ -57,7 +58,8 @@ export default async function SignupPage({
   const plans = await getPlansCached();
   const trialPlans: SignupPlanChoice[] = trialPlanIdsForSegment(segment)
     .map((id) => plans.find((p) => p.id === id))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p) && p!.active)
+    // Negotiated tiers (interval = custom) never show as a trial (#17).
+    .filter((p): p is NonNullable<typeof p> => Boolean(p) && p!.active && isSelfServePlan(p))
     .map((p) => ({
       id: p.id,
       name: evaluatorPlanLabel(p.id) ?? p.name,
