@@ -119,9 +119,6 @@ export function HeroSection() {
           className="animate-fade-in-up w-full max-w-3xl"
           style={{ animationDelay: "120ms" }}
         >
-          {/* Hidden legacy input — kept so any existing test that hooks on
-              #hero-search-input still finds a node. */}
-          <input id="hero-search-input" type="hidden" defaultValue="" />
           <SmartIntake onSubmit={handleSmartSubmit} />
         </div>
 

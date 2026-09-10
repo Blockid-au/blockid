@@ -151,7 +151,7 @@ export default async function InsightPage({
 
       {/* Article body */}
       <article className="mx-auto max-w-3xl px-6 py-12 md:py-16">
-        <InsightBody content={content} />
+        <InsightBody content={content} title={article.title} />
       </article>
 
       {/* CTA Section */}

@@ -4,8 +4,12 @@
  * Renders markdown content as HTML with proper styling.
  * Uses a simple markdown-to-HTML approach without external dependencies.
  */
-export function InsightBody({ content }: { content: string }) {
-  const html = markdownToHtml(content);
+function normaliseHeading(s: string): string {
+  return s.replace(/[*_`]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+export function InsightBody({ content, title }: { content: string; title?: string }) {
+  const html = markdownToHtml(content, title);
 
   return (
     <div
@@ -33,7 +37,7 @@ export function InsightBody({ content }: { content: string }) {
 }
 
 /** Lightweight markdown -> HTML (covers common patterns, no external deps) */
-function markdownToHtml(md: string): string {
+function markdownToHtml(md: string, title?: string): string {
   let html = md;
 
   // Preserve raw HTML blocks (SVG, div, figure, section) -- extract them before processing
@@ -63,10 +67,16 @@ function markdownToHtml(md: string): string {
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
 
-  // Headings
+  // Headings. The body never emits <h1>: the page header already renders the
+  // article title as the page's one H1, and seven articles open with the same
+  // title as a "# " line, which produced two H1s per page — an accessibility
+  // and SEO defect that the e2e smoke caught as a strict-mode locator clash.
+  // A "# " line that repeats the title is dropped; any other is demoted to h2.
   html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
   html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
-  html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+  html = html.replace(/^# (.+)$/gm, (_m, text: string) =>
+    title && normaliseHeading(text) === normaliseHeading(title) ? "" : `<h2>${text}</h2>`,
+  );
 
   // Blockquotes
   html = html.replace(/^> (.+)$/gm, "<blockquote><p>$1</p></blockquote>");
