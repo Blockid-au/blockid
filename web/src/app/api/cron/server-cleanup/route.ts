@@ -133,3 +133,10 @@ export async function GET(request: Request) {
     stderr_tail: result.stderr.slice(-1000),
   });
 }
+
+// cron-runner.sh sends POST. Without this the route answers 405 and the job
+// is dead — silently, because a 405 body is empty and the health log records
+// an empty detail. Five scheduled jobs were failing this way, including
+// dunning-retry (failed-payment retries) and refresh-sector-benchmarks.
+// The GET handler is CRON_SECRET-guarded, so this adds no new access.
+export { GET as POST };

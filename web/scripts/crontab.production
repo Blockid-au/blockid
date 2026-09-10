@@ -393,8 +393,13 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Server cleanup (docker/npm/logs/reports) — every 4h
 0 */4 * * * bash /home/dovanlong/blockid.au/web/scripts/server-cleanup.sh --disk-only >> /tmp/blockid-cleanup.log 2>&1
 
-# Performance audit (Lighthouse CI on 5 routes) — hourly
-30 * * * * bash $RUN performance-audit --timeout 300 || true
+# Performance audit — REMOVED 2026-09-10.
+# /api/cron/performance-audit has never existed: no route directory, and no
+# git history for one at any commit. The job called it every 30 minutes,
+# took a 404 HTML page, and logged a failure — ~48 fabricated failures a day
+# in cron-health.jsonl, which is most of what was in there. A log that is
+# mostly false alarms is a log nobody reads.
+# If Lighthouse CI is wanted, build the route first, then schedule it.
 
 # Audit-chain verification (append-only hash chain integrity) — nightly 01:00
 0 1 * * * node /home/dovanlong/blockid.au/web/scripts/verify-audit-chain.ts >> /tmp/blockid-audit-verify.log 2>&1
