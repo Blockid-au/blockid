@@ -2,8 +2,8 @@
  * ProShell — shared "Pro Template" layout wrapper.
  *
  * Minimalist, professional nav + footer applied consistently across
- * public/marketing surfaces (home, pricing, login, /index landing,
- * founding-50). Two variants:
+ * public/marketing surfaces (home, pricing, login, /index landing).
+ * Two variants:
  *
  *   - variant="landing"  → transparent nav over hero, spacious footer
  *   - variant="app"      → solid nav, compact footer
@@ -22,7 +22,7 @@ interface ProShellProps {
 
 const NAV_LINKS = [
   { href: "/index", label: "Startup Index" },
-  { href: "/founding-50", label: "Founding 100" },
+  { href: "/funding", label: "Get funding" },
   { href: "/pricing", label: "Pricing" },
   { href: "/auth/login", label: "Login" },
 ] as const;
@@ -127,9 +127,10 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
         }
       >
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 md:flex-row">
+          {/* Entity per founder decision Q-A (money-finder plan, 2026-09-10):
+              PPL Food PTY LTD site-wide, no ABN/ACN in copy. */}
           <p className="text-[12px]">
-            © {new Date().getUTCFullYear()} BlockID · Auschain PTY LTD · ACN
-            659&nbsp;615&nbsp;111
+            © {new Date().getUTCFullYear()} BlockID · PPL Food PTY LTD
           </p>
           <div className="flex items-center gap-4 text-[12px]">
             <Link href="/legal/privacy" className="hover:text-white">
@@ -141,8 +142,8 @@ export function ProShell({ children, variant = "landing" }: ProShellProps) {
             <Link href="/index" className="hover:text-white">
               Startup Index™
             </Link>
-            <Link href="/founding-50" className="hover:text-white">
-              Founding 100
+            <Link href="/funding" className="hover:text-white">
+              Get funding
             </Link>
           </div>
         </div>

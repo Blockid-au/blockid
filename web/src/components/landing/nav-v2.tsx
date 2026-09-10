@@ -15,6 +15,10 @@
  *    the trigger; ArrowUp/ArrowDown navigates menu items.
  *  - Mobile: disclosure with collapsible sub-lists per dropdown.
  *  - Only ONE dropdown open at a time; clicking a link closes it.
+ *  - Auth-aware (T0238): `useAuthUser()` asks /api/auth/me after hydration,
+ *    so the header stays mountable on statically generated pages. Signed
+ *    out → "Sign in" + the "Do you need money?" CTA; signed in → "My
+ *    workspace" + the account menu; a neutral skeleton while resolving.
  */
 
 import {
@@ -24,11 +28,27 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
 } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronDown, Menu, X } from "lucide-react";
+import {
+  BarChart3,
+  ChevronDown,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  TrendingUp,
+  X,
+} from "lucide-react";
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import {
+  useAuthUser,
+  userInitials,
+  userShortName,
+  type AuthUser,
+} from "@/hooks/useAuthUser";
+import { trackEvent } from "@/lib/analytics";
 import { LocaleSwitcher } from "./locale-switcher";
 
 // ---------------------------------------------------------------------------
@@ -54,9 +74,9 @@ export interface MenuGroup {
   /**
    * Optional sub-heading structure. When present, `items` is ignored for
    * rendering and each `sections[].items` is rendered under a sub-heading
-   * label. Used by the Free Tools dropdown to group the 16 tools into 5
-   * discoverable buckets (Idea / Cap Table / Fundraise / AU compliance /
-   * Reports) without inflating the primary nav.
+   * label. Used by the Free tools dropdown to group its eight tools by
+   * journey stage (Idea / Cap Table / Fundraise & AU compliance) with a
+   * final "All 16 tools →" row, without inflating the primary nav.
    */
   sections?: MenuGroupSection[];
 }
@@ -76,52 +96,44 @@ export type MenuEntry = MenuGroup | MenuLink;
  * two bars cannot drift again. They had: the legacy copy was still offering
  * "Trust Reports" and "Browse startups" after both were retired everywhere
  * else.
+ *
+ * G11 T0238 (2026-09-10, docs/plans/money-finder-2026-09-10.md §3a): five
+ * entries, ordered the way a founder reads the site — score, money, tools,
+ * price, proof. Product / For / Startup Index / Docs / Team / Features moved
+ * to the footers (marketing-footer.tsx, site/footer.tsx). The top level is
+ * capped at seven by tests/e2e/nav/menu-structure.spec.ts, which also pins
+ * "Demo" as a dropdown BUTTON whose first item is the Atlassian journey.
  */
 export const MENU: MenuEntry[] = [
+  { kind: "link", key: "score", label: "Get my score", href: "/analyze" },
   {
+    // The money rail. /funding* pages ship under T0241/T0242 — link only.
     kind: "group",
-    key: "product",
-    label: "Product",
+    key: "funding",
+    label: "Get funding",
     width: "w-64",
     items: [
-      { label: "All features", href: "/features" },
-      // B1 Task 3 — /for/founder is now a 301 to /solutions/founder.
-      { label: "Investor-ready score", href: "/solutions/founder#svi" },
-      { label: "Cap table + ESOP", href: "/solutions/founder#captable" },
-      { label: "Data room", href: "/solutions/founder#dataroom" },
-      { label: "Valuation", href: "/solutions/founder#valuation" },
-      { label: "Investor pack", href: "/solutions/founder#pack" },
+      { label: "Grants for my startup", href: "/funding/grants" },
+      { label: "Startup programs by city", href: "/funding/programs" },
+      { label: "Do you need money?", href: "/funding" },
+      { label: "Investor readiness", href: "/tools/funding-plan" },
+      { label: "R&D Tax & ESIC", href: "/tools/rnd-tax" },
     ],
   },
   {
-    kind: "group",
-    key: "for",
-    label: "For",
-    width: "w-56",
-    items: [
-      // Every persona lives at /solutions/*; /solutions/advisor became a real
-      // page on 2026-09-10 (T0274) and /for/advisor now 301s to it.
-      { label: "Founders", href: "/solutions/founder" },
-      { label: "Investors", href: "/solutions/investor" },
-      { label: "Advisors", href: "/solutions/advisor" },
-      { label: "Accelerators", href: "/solutions/accelerator" },
-    ],
-  },
-  {
-    // Workstream A7 — surface the 16 /tools/* routes in the primary nav,
-    // grouped by founder journey stage so the dropdown stays scannable.
+    // Workstream A7 surfaced all 16 /tools/* routes here; T0238 trims the
+    // dropdown to the eight most used and points at /tools for the rest.
     kind: "group",
     key: "tools",
-    label: "Free Tools",
+    label: "Free tools",
     width: "w-80",
     items: [],
     sections: [
       {
         heading: "Idea",
         items: [
-          { label: "Idea Lab", href: "/tools/idea-lab" },
-          { label: "Idea Clarify", href: "/tools/idea-clarify" },
           { label: "Idea Valuation", href: "/tools/idea-valuation" },
+          { label: "Idea Lab", href: "/tools/idea-lab" },
           { label: "SAFE Calculator", href: "/tools/safe-calculator" },
         ],
       },
@@ -130,41 +142,23 @@ export const MENU: MenuEntry[] = [
         items: [
           { label: "Cap Table", href: "/tools/cap-table" },
           { label: "Dilution", href: "/tools/dilution" },
-          { label: "Equity Split", href: "/tools/equity-split" },
-          { label: "ESOP Checklist", href: "/tools/esop-checklist" },
         ],
       },
       {
-        heading: "Fundraise",
+        heading: "Fundraise & AU compliance",
         items: [
           { label: "Funding Plan", href: "/tools/funding-plan" },
-          { label: "Term Sheet", href: "/tools/term-sheet" },
-          { label: "Co-founder Match", href: "/tools/cofounder-match" },
-        ],
-      },
-      {
-        heading: "AU compliance",
-        items: [
-          { label: "ASIC", href: "/tools/asic" },
           { label: "ESIC", href: "/tools/esic" },
           { label: "R&D Tax", href: "/tools/rnd-tax" },
-          { label: "Data Room", href: "/tools/data-room" },
         ],
       },
       {
-        heading: "Reports",
-        items: [
-          { label: "Financial Projections", href: "/tools/financial-projections" },
-        ],
+        heading: "Everything",
+        items: [{ label: "All 16 tools →", href: "/tools" }],
       },
     ],
   },
-  // Top level is capped at seven entries (tests/e2e/nav/menu-structure.spec.ts,
-  // set 2026-07-24 at six). It had grown to nine — which is also why the bar
-  // wrapped mid-label at every desktop width. Features now lives under
-  // Product ("All features") and Team under Docs; both pages are unchanged.
   { kind: "link", key: "pricing", label: "Pricing", href: "/pricing" },
-  { kind: "link", key: "index",   label: "Startup Index", href: "/index" },
   {
     // ux-ia-startup-flow-v1 §C.1 + §C.7 — global Demo entry-point so a
     // visitor can always see the platform end-to-end before signup. First
@@ -187,20 +181,22 @@ export const MENU: MenuEntry[] = [
   // /vs/<slug> pages don't exist yet, and the old entries just funnelled
   // into /pricing?compare= which measured intent without delivering it.
   // Restore once real comparison pages ship.
-  {
-    kind: "group",
-    key: "docs",
-    label: "Docs",
-    width: "w-56",
-    items: [
-      { label: "Changelog", href: "/changelog" },
-      { label: "Roadmap", href: "/roadmap" },
-      { label: "Team", href: "/team" },
-      { label: "Status", href: "/status" },
-      { label: "Security audit", href: "/security-audit" },
-    ],
-  },
 ];
+
+/**
+ * Primary CTA (G11 §3a). Replaces "Start free" → /onboarding, which bounced
+ * every anonymous visitor to the login page. The href carries the intent so
+ * the /funding landing can open on the right step; the click is reported as
+ * `cta_clicked { cta_id: "need_money", location }`.
+ */
+export const NEED_MONEY_CTA = {
+  label: "Do you need money?",
+  href: "/funding?intent=money",
+  ctaId: "need_money",
+} as const;
+
+/** Signed-in replacement for the Sign in / money pair. */
+export const WORKSPACE_LINK = { label: "My workspace", href: "/dashboard" } as const;
 
 // ---------------------------------------------------------------------------
 // Desktop dropdown
@@ -232,23 +228,25 @@ function DesktopDropdown({
 
   // When the menu opens via keyboard, focus the first item. On mouse-open
   // (hover) we keep focus on the trigger so the cursor drives selection.
-  const [openedByKeyboard, setOpenedByKeyboard] = useState(false);
+  // A ref rather than state: the flag only steers the focus side effect and
+  // must not schedule a second render (react-hooks/set-state-in-effect).
+  const openedByKeyboardRef = useRef(false);
   useEffect(() => {
-    if (isOpen && openedByKeyboard) {
+    if (isOpen && openedByKeyboardRef.current) {
       itemRefs.current[0]?.focus();
-      setOpenedByKeyboard(false);
+      openedByKeyboardRef.current = false;
     }
-  }, [isOpen, openedByKeyboard]);
+  }, [isOpen]);
 
   const handleTriggerKeyDown = useCallback(
     (e: ReactKeyboardEvent<HTMLButtonElement>) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        setOpenedByKeyboard(true);
+        openedByKeyboardRef.current = true;
         onOpen();
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        setOpenedByKeyboard(true);
+        openedByKeyboardRef.current = true;
         onOpen();
       } else if (e.key === "Escape" && isOpen) {
         e.preventDefault();
@@ -478,11 +476,127 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Signed-in user menu (ported from site/navbar.tsx, restyled for the dark bar)
+// ---------------------------------------------------------------------------
+
+const USER_MENU_ITEMS = [
+  { href: "/score", label: "New analysis", Icon: BarChart3 },
+  { href: "/dashboard/svi", label: "My SVI score", Icon: TrendingUp },
+  { href: "/workspace/reports", label: "My reports", Icon: FileText },
+  { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
+] as const;
+
+function UserMenu({ user }: { user: AuthUser }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const panelId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const shortName = userShortName(user);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+      >
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-cyan text-xs font-bold text-brand-navy">
+          {userInitials(user)}
+        </span>
+        <span className="hidden max-w-[120px] truncate text-sm font-medium text-brand-ink lg:block">
+          {shortName}
+        </span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-brand-ink-muted transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+
+      {open && (
+        <div
+          id={panelId}
+          role="menu"
+          aria-label="Account"
+          className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-brand-navy/40 bg-brand-navy shadow-2xl nav-v2-panel-enter"
+        >
+          <div className="border-b border-white/5 px-4 py-3">
+            <p className="truncate text-sm font-medium text-brand-ink">{shortName}</p>
+            <p className="truncate text-xs text-brand-ink-muted">{user.email}</p>
+            {user.plan && user.plan !== "free" && (
+              <span className="mt-1 inline-block rounded-full bg-brand-cyan/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-cyan">
+                {user.plan}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center justify-between border-b border-white/5 px-4 py-2">
+            <span className="text-xs text-brand-ink-muted">Credits</span>
+            <Link
+              href="/workspace/billing"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="text-xs font-semibold text-brand-cyan hover:underline"
+            >
+              View billing →
+            </Link>
+          </div>
+          <ul className="py-1">
+            {USER_MENU_ITEMS.map(({ href, label, Icon }) => (
+              <li key={href} role="none">
+                <Link
+                  href={href}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none"
+                >
+                  <Icon className="h-4 w-4 text-brand-ink-muted" aria-hidden="true" />
+                  {label}
+                </Link>
+              </li>
+            ))}
+            <li role="none">
+              <LogoutButton className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-2.5 text-left text-sm text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10 focus:outline-none">
+                <LogOut className="h-4 w-4 text-brand-ink-muted" aria-hidden="true" />
+                Sign out
+              </LogoutButton>
+            </li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Top-level NavV2
 // ---------------------------------------------------------------------------
 
+function trackNeedMoney(location: "nav" | "nav_mobile") {
+  trackEvent("cta_clicked", { cta_id: NEED_MONEY_CTA.ctaId, location });
+}
+
 export function NavV2() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // undefined = resolving (skeleton), null = signed out, object = signed in.
+  const user = useAuthUser();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -558,13 +672,10 @@ export function NavV2() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [openKey, closeImmediately]);
 
-  const handleLinkActivate = useCallback(
-    (_e?: ReactMouseEvent) => {
-      closeImmediately();
-      setMobileOpen(false);
-    },
-    [closeImmediately],
-  );
+  const handleLinkActivate = useCallback(() => {
+    closeImmediately();
+    setMobileOpen(false);
+  }, [closeImmediately]);
 
   return (
     <header
@@ -636,27 +747,45 @@ export function NavV2() {
           })}
         </ul>
 
-        {/* Desktop CTAs */}
+        {/* Desktop CTAs — auth-aware. The header is rendered on static
+            pages, so auth state arrives client-side via /api/auth/me; a
+            neutral skeleton holds the width until it resolves. */}
         <div className="hidden items-center gap-3 xl:flex">
           <LocaleSwitcher />
-          <Link
-            href="/analyze"
-            className="whitespace-nowrap rounded-lg border border-brand-cyan/40 px-3 py-2 text-sm font-medium text-brand-cyan transition-colors duration-200 hover:border-brand-cyan hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
-          >
-            Analyse my startup
-          </Link>
-          <Link
-            href="/auth/login"
-            className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/onboarding"
-            className="whitespace-nowrap inline-flex h-10 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy transition duration-200 hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
-          >
-            Start free
-          </Link>
+          {user === undefined ? (
+            <div
+              className="h-10 w-48 animate-pulse rounded-lg bg-white/5"
+              aria-hidden="true"
+              data-testid="nav-v2-auth-skeleton"
+            />
+          ) : user ? (
+            <>
+              <Link
+                href={WORKSPACE_LINK.href}
+                className="whitespace-nowrap inline-flex h-10 items-center justify-center rounded-lg border border-brand-cyan/40 px-4 text-sm font-semibold text-brand-cyan transition-colors duration-200 hover:border-brand-cyan hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+              >
+                {WORKSPACE_LINK.label}
+              </Link>
+              <UserMenu user={user} />
+            </>
+          ) : (
+            <>
+              <Link
+                href="/auth/login"
+                className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+              >
+                Sign in
+              </Link>
+              <Link
+                href={NEED_MONEY_CTA.href}
+                data-cta-id={NEED_MONEY_CTA.ctaId}
+                onClick={() => trackNeedMoney("nav")}
+                className="whitespace-nowrap inline-flex h-10 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy transition duration-200 hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+              >
+                {NEED_MONEY_CTA.label}
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -710,27 +839,50 @@ export function NavV2() {
             <div className="flex justify-start pb-1">
               <LocaleSwitcher />
             </div>
-            <Link
-              href="/analyze"
-              onClick={() => handleLinkActivate()}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-brand-cyan/40 px-4 text-sm font-medium text-brand-cyan hover:border-brand-cyan hover:bg-brand-cyan/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
-            >
-              Analyse my startup
-            </Link>
-            <Link
-              href="/auth/login"
-              onClick={() => handleLinkActivate()}
-              className="rounded-lg px-3 py-2.5 text-center text-sm font-medium text-brand-ink-muted hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/onboarding"
-              onClick={() => handleLinkActivate()}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
-            >
-              Start free
-            </Link>
+            {user ? (
+              <>
+                <div className="flex items-center gap-3 px-3 py-2">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-cyan text-xs font-bold text-brand-navy">
+                    {userInitials(user)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-brand-ink">{userShortName(user)}</p>
+                    <p className="truncate text-xs text-brand-ink-muted">{user.email}</p>
+                  </div>
+                </div>
+                <Link
+                  href={WORKSPACE_LINK.href}
+                  onClick={() => handleLinkActivate()}
+                  className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                >
+                  {WORKSPACE_LINK.label}
+                </Link>
+                <LogoutButton className="rounded-lg px-3 py-2.5 text-center text-sm font-medium text-brand-ink-muted hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan">
+                  Sign out
+                </LogoutButton>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={NEED_MONEY_CTA.href}
+                  data-cta-id={NEED_MONEY_CTA.ctaId}
+                  onClick={() => {
+                    trackNeedMoney("nav_mobile");
+                    handleLinkActivate();
+                  }}
+                  className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-cyan px-4 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                >
+                  {NEED_MONEY_CTA.label}
+                </Link>
+                <Link
+                  href="/auth/login"
+                  onClick={() => handleLinkActivate()}
+                  className="rounded-lg px-3 py-2.5 text-center text-sm font-medium text-brand-ink-muted hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                >
+                  Sign in
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

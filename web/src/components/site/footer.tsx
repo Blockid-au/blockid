@@ -2,56 +2,21 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { ShieldCheck, MapPin, Users, BarChart3 } from "lucide-react";
 import { PartnerFooterRow } from "@/components/marketing/partner-footer-row";
+import { FOOTER_COLUMNS } from "@/components/marketing/footer-columns";
 
+// T0238 — mirrors MarketingFooter (Funding · Product · For · Case Studies ·
+// Docs · Legal) from the shared column list; the previous copy linked the
+// protected /workspace/data-room, which bounced anonymous visitors to login.
+// A Company column is kept for the pages only this legacy shell reaches.
 const columns = [
-  {
-    title: "Product",
-    items: [
-      { href: "/score", label: "Investor-Ready Score" },
-      { href: "/tools/cap-table", label: "Cap Table" },
-      { href: "/tools/term-sheet", label: "Term Sheet AI" },
-      { href: "/workspace/data-room", label: "Data Room" },
-    ],
-  },
-  {
-    title: "Tools",
-    items: [
-      { href: "/tools/dilution", label: "Dilution Calculator" },
-      { href: "/tools/cap-table", label: "Cap Table Diff" },
-      { href: "/tools/term-sheet", label: "Term Sheet AI" },
-      { href: "/tools/data-room", label: "Data Room Checklist" },
-      { href: "/score", label: "Free Score" },
-    ],
-  },
-  // ux-ia-startup-flow-v1 §C.7 — Case Studies footer column so the Demo
-  // walkthrough is discoverable even without the top-nav.
-  {
-    title: "Case Studies",
-    items: [
-      { href: "/showcase/atlassian?step=1", label: "Atlassian (live demo)" },
-      { href: "/showcase/canva", label: "Canva" },
-      { href: "/showcase/xero", label: "Xero" },
-      { href: "/showcase/safetyculture", label: "SafetyCulture" },
-      { href: "/showcase", label: "All case studies" },
-    ],
-  },
+  ...FOOTER_COLUMNS,
   {
     title: "Company",
     items: [
       { href: "/about", label: "About" },
-      { href: "/team", label: "Team" },
       { href: "/benchmarks", label: "AU Benchmarks" },
       { href: "/insights", label: "Insights" },
-      { href: "/investors", label: "Investors" },
       { href: "/contact", label: "Contact" },
-    ],
-  },
-  {
-    title: "Legal",
-    items: [
-      { href: "/legal/privacy", label: "Privacy" },
-      { href: "/terms", label: "Terms" },
-      { href: "/legal/privacy#security", label: "Security" },
     ],
   },
 ];
@@ -80,7 +45,7 @@ export function Footer() {
       {/* Main footer links */}
       <div className="border-t border-ink-700 bg-gradient-to-b from-ink-900 to-ink-950">
         <div className="mx-auto max-w-7xl px-6 py-20">
-          <div className="grid grid-cols-2 gap-10 md:grid-cols-7">
+          <div className="grid grid-cols-2 gap-10 md:grid-cols-4 xl:grid-cols-9">
             <div className="col-span-2">
               <Logo variant="dark" />
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-300">
@@ -94,7 +59,10 @@ export function Footer() {
                 </p>
                 <p className="flex items-center gap-2">
                   <MapPin strokeWidth={1.75} className="h-4 w-4 text-brand-400" />
-                  <span>AU data residency. SOC2 Type II in progress.</span>
+                  {/* T0238 — dropped "SOC2 Type II in progress": SOT lists
+                      SOC2-lite as an open backlog item, not an audit under
+                      way. Keep footer claims to what is true today. */}
+                  <span>AU data residency. AU Privacy Act 1988 compliant.</span>
                 </p>
               </div>
             </div>

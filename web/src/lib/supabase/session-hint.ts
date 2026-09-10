@@ -20,7 +20,7 @@
  *     marketing render.
  *
  * Cookies we treat as a signed-in signal (both new and legacy names,
- * matching the sniff in [web/middleware.ts]):
+ * matching the sniff in the edge proxy, `web/src/proxy.ts`):
  *   - sb-access-token
  *   - sb:token
  *   - anything matching /^sb-.*-auth-token$/  (Supabase SSR helper style)
