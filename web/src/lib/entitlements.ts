@@ -17,6 +17,7 @@ import "server-only";
 
 import { getPlanCached } from "@/lib/plans-db";
 import { getUserGrantedFeatures } from "@/lib/entitlements/user-grants";
+import { getUserTimedGrants } from "@/lib/entitlements/timed-grants";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { shouldFire, recordConversionEvent } from "@/lib/conversion/triggers";
 import { emitEvent } from "@/lib/analytics/server";
@@ -291,6 +292,9 @@ function resolvePlanId(planId: string | null | undefined): string {
 //   user layer  — features granted to this specific user in the `entitlements`
 //                 table: a paid add-on, or a manual support override. Unioned
 //                 on top; it can only ever widen.
+//   timed layer — features a one-off purchase grants for a window, read off
+//                 `app_users` timestamp columns (entitlements/timed-grants.ts;
+//                 today only `money_radar_until`). Same union-only rule.
 //
 // Why `userId` is an optional second argument rather than a new signature or a
 // parallel `getEntitlementsForUser()`
@@ -341,11 +345,16 @@ export async function getEntitlements(
   if (!userId) return planFlags;
 
   // Never throws and returns [] on any failure, so a database outage denies
-  // add-on features and leaves the plan layer intact.
-  const granted = await getUserGrantedFeatures(userId);
-  if (granted.length === 0) return planFlags;
+  // add-on features and leaves the plan layer intact. The timed layer
+  // (`app_users.money_radar_until`, 0319 — the Startup Package's 90 days of
+  // Founder Radar, T0247) follows the same union-only / fail-closed contract.
+  const [granted, timed] = await Promise.all([
+    getUserGrantedFeatures(userId),
+    getUserTimedGrants(userId),
+  ]);
+  if (granted.length === 0 && timed.length === 0) return planFlags;
 
-  return Array.from(new Set([...planFlags, ...granted]));
+  return Array.from(new Set([...planFlags, ...granted, ...timed]));
 }
 
 // ---------------------------------------------------------------------------

@@ -413,7 +413,17 @@ function PlanCard({
       )}
 
       <header className="mb-6">
-        <h3 className="text-xl font-semibold text-primary">{plan.name}</h3>
+        <h3 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-primary">
+          {plan.name}
+          {plan.badge && (
+            <span
+              data-testid="plan-badge"
+              className="inline-flex items-center rounded-full border border-action/30 bg-action/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-action"
+            >
+              {plan.badge}
+            </span>
+          )}
+        </h3>
         {plan.tagline && (
           <p className="mt-1 text-xs uppercase tracking-wide text-tertiary">
             {plan.tagline}

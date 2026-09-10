@@ -66,17 +66,18 @@ vi.mock("@/lib/supabase", () => ({
   }),
 }));
 
-const buildReportMock = vi.hoisted(() => vi.fn());
+const { buildReportMock, countPaidMock } = vi.hoisted(() => ({ buildReportMock: vi.fn(), countPaidMock: vi.fn() }));
 vi.mock("@/lib/funding/reports", () => ({
   buildReportFromIntake: (i: unknown, o: unknown) => {
     calls.push({ table: "-", op: "generate", row: o });
     return buildReportMock(i, o);
   },
+  countPaidFundingReports: (u: string) => countPaidMock(u),
   newAccessToken: () => "tok_test",
   reportColumns: (r: { grants: unknown[] }) => ({ grant_matches: r.grants, status: "ready" }),
 }));
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
 const USER = { id: "user-1", plan: "free", email: "f@example.com" };
 const GOOD = { description: "Soil sensors for grain farmers in regional NSW", state: "NSW", stage: "mvp" };
@@ -97,6 +98,7 @@ beforeEach(() => {
   canAffordMock.mockReset().mockResolvedValue({ allowed: true, balance: 10, cost: 3 });
   spendCreditsMock.mockReset().mockResolvedValue({ ok: true, balance: 7 });
   getProjectByIdMock.mockReset();
+  countPaidMock.mockReset().mockResolvedValue(0);
   buildReportMock.mockReset().mockResolvedValue({
     grants: [{ ref_id: "g1" }],
     programs: [],
@@ -187,5 +189,24 @@ describe("POST /api/funding/report — rails", () => {
     expect(upsert).toMatchObject({ project_id: "p1", state: "NSW", entity_type: "pty_ltd", founder_demographics: ["women_led"] });
     const inserted = calls.find((c) => c.table === "funding_reports" && c.op === "insert")!.row as Record<string, unknown>;
     expect(inserted.project_id).toBe("p1");
+  });
+});
+
+// T0247 — the /funding paywall asks how many reports the user has paid for
+// before showing the Founder Radar card after the third one.
+describe("GET /api/funding/report — paid count", () => {
+  it("401 without a session", async () => {
+    getCurrentUserMock.mockResolvedValueOnce(null);
+    expect((await GET()).status).toBe(401);
+    expect(countPaidMock).not.toHaveBeenCalled();
+  });
+
+  it("returns the signed-in user's paid_count, private and uncached", async () => {
+    countPaidMock.mockResolvedValueOnce(3);
+    const res = await GET();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, paid_count: 3 });
+    expect(res.headers.get("cache-control")).toBe("private, no-store");
+    expect(countPaidMock).toHaveBeenCalledWith("user-1");
   });
 });

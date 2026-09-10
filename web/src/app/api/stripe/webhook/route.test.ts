@@ -74,7 +74,7 @@ function makeChain(table: string): unknown {
   };
   for (const m of [
     "select", "insert", "update", "upsert", "delete",
-    "eq", "in", "gte", "lt", "lte", "gt", "neq", "is", "contains",
+    "eq", "in", "gte", "lt", "lte", "gt", "neq", "is", "contains", "or",
     "order", "limit", "range", "single", "maybeSingle", "head",
   ]) {
     chain[m] = terminal(m);
@@ -363,6 +363,53 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
     );
     expect(rev).toBeTruthy();
     expect((rev!.row as Row).plan_id).toBe("founder_package");
+  });
+
+  // T0247 — the Package's "3 months Founder Radar": app_users.money_radar_until
+  // (migration 0319) is stamped now()+90d so can(user, "money_radar") holds
+  // for the window via entitlements/timed-grants.
+  it("founder_package: stamps app_users.money_radar_until = now() + 90 days", async () => {
+    const before = Date.now();
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({
+        id: "evt_founder_pkg_radar",
+        metadata: {
+          plan: "founder_package",
+          blockid_user_id: "user-1",
+          project_id: "proj-1",
+          blockid_email: "founder@example.com",
+        },
+        amountTotal: 14900,
+      }),
+    );
+
+    const res = await invoke();
+    expect(res.status).toBe(200);
+
+    const stamp = updateCalls.find(
+      (c) => c.table === "app_users" && typeof (c.row as Row).money_radar_until === "string",
+    );
+    expect(stamp).toBeTruthy();
+    const until = Date.parse((stamp!.row as Row).money_radar_until as string);
+    const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+    expect(until).toBeGreaterThanOrEqual(before + ninetyDays);
+    expect(until).toBeLessThanOrEqual(Date.now() + ninetyDays + 1000);
+    // It is only ever widened — the stamp is written next to the seed credits
+    // and the purchase row, never instead of them.
+    expect(grantCreditsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("founder_package: skips the radar stamp (and everything else) when blockid_user_id is missing", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({
+        id: "evt_founder_pkg_nouser",
+        metadata: { plan: "founder_package", project_id: "proj-1" },
+        amountTotal: 14900,
+      }),
+    );
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(updateCalls.find((c) => c.table === "app_users")).toBeUndefined();
   });
 
   it("trust_report (report_order): inserts report_orders + revenue_events(trust_report_5aud)", async () => {

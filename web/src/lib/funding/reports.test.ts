@@ -21,15 +21,22 @@ const updates: Array<{ id: string | null; patch: Row; filters: Array<[string, un
 const inserts: Row[] = [];
 
 function chain(table: string) {
-  const state: { op: "select" | "insert" | "update" | null; patch: Row | null; filters: Array<[string, unknown]> } = {
+  const state: { op: "select" | "insert" | "update" | null; patch: Row | null; filters: Array<[string, unknown]>; count: boolean } = {
     op: null,
     patch: null,
     filters: [],
+    count: false,
   };
   const c: Record<string, unknown> = {};
   const self = () => c;
-  c.select = () => {
+  c.select = (_cols?: string, opts?: { count?: string; head?: boolean }) => {
     if (!state.op) state.op = "select";
+    if (opts?.count) state.count = true;
+    return c;
+  };
+  // `.in(col, values)` — used by countPaidFundingReports (T0247).
+  c.in = (col: string, vals: unknown[]) => {
+    state.filters.push([col, vals]);
     return c;
   };
   c.insert = (row: Row) => {
@@ -51,6 +58,12 @@ function chain(table: string) {
   c.then = (resolve: (v: unknown) => unknown) => {
     if (table !== "funding_reports") return resolve({ data: null, error: null });
     const id = state.filters.find(([k]) => k === "id")?.[1] as string | undefined;
+    if (state.op === "select" && state.count) {
+      const matches = Array.from(rows.values()).filter((r) =>
+        state.filters.every(([k, v]) => (Array.isArray(v) ? v.includes(r[k]) : r[k] === v)),
+      );
+      return resolve({ count: matches.length, error: null });
+    }
     if (state.op === "select") return resolve({ data: id ? (rows.get(id) ?? null) : null, error: null });
     if (state.op === "insert") {
       const newId = `fr_${inserts.length + 1}`;
@@ -92,6 +105,7 @@ vi.mock("@/lib/agents/grant-advisor", async (importOriginal) => {
 
 import {
   canViewFundingReport,
+  countPaidFundingReports,
   handleFundingReportCompleted,
   newAccessToken,
   publicFundingReport,
@@ -256,5 +270,23 @@ describe("access", () => {
     expect(t).toMatch(/^[A-Za-z0-9_-]{32}$/);
     expect(reportUrl("abc", t)).toMatch(new RegExp(`/funding/report/abc\\?t=${t}$`));
     expect(reportUrl("abc")).toMatch(/\/funding\/report\/abc$/);
+  });
+});
+
+// T0247 — the "3rd A$3 report" Radar upsell counts what the user PAID for.
+describe("countPaidFundingReports", () => {
+  it("counts one_off + credits rows in a paid state for that user only; plan runs and failures excluded", async () => {
+    const base = { intake: INTAKE, grant_matches: [], program_matches: [], timeline: [], credits_cost: 0 };
+    rows.set("a1", { id: "a1", user_id: "user_a", paid_via: "one_off", status: "ready", ...base });
+    rows.set("a2", { id: "a2", user_id: "user_a", paid_via: "credits", status: "ready", ...base });
+    rows.set("a3", { id: "a3", user_id: "user_a", paid_via: "credits", status: "generating", ...base });
+    rows.set("a4", { id: "a4", user_id: "user_a", paid_via: "plan", status: "ready", ...base });
+    rows.set("a5", { id: "a5", user_id: "user_a", paid_via: "one_off", status: "pending_payment", ...base });
+    rows.set("a6", { id: "a6", user_id: "user_a", paid_via: "credits", status: "failed", ...base });
+    rows.set("b1", { id: "b1", user_id: "user_b", paid_via: "one_off", status: "ready", ...base });
+    expect(await countPaidFundingReports("user_a")).toBe(3);
+    expect(await countPaidFundingReports("user_b")).toBe(1);
+    expect(await countPaidFundingReports("user_c")).toBe(0);
+    expect(await countPaidFundingReports("")).toBe(0);
   });
 });

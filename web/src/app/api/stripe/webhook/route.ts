@@ -22,6 +22,8 @@ import {
   reconcileSubscriptionAddon,
   revokeAddonForCustomer,
 } from "@/lib/stripe/addon-entitlements";
+import { invalidateTimedGrants, timedGrantUntil } from "@/lib/entitlements/timed-grants";
+import { STARTUP_PACKAGE_RADAR_DAYS } from "@/lib/plans-v2";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -1319,6 +1321,33 @@ export async function POST(request: Request) {
         "[blockid:stripe] founder_package grantCredits failed",
         err,
       );
+    }
+
+    // (a2) Three months of Founder Radar (G11 §4h, T0247): stamp
+    //      app_users.money_radar_until = now() + 90d (migration 0319).
+    //      `can(user, "money_radar")` reads it through entitlements/timed-grants.
+    //      Never shortens a window a later purchase or support grant already
+    //      extended (the `or` keeps NULL and earlier stamps only). Non-fatal.
+    try {
+      const radarUntil = timedGrantUntil(STARTUP_PACKAGE_RADAR_DAYS);
+      const { error: radarErr } = await supabase
+        .from("app_users")
+        .update({ money_radar_until: radarUntil })
+        .eq("id", userId)
+        .or(`money_radar_until.is.null,money_radar_until.lt.${radarUntil}`);
+      if (radarErr) {
+        console.warn(
+          "[blockid:stripe] founder_package money_radar_until update failed",
+          radarErr,
+        );
+      }
+    } catch (err) {
+      console.warn(
+        "[blockid:stripe] founder_package money_radar_until threw",
+        err,
+      );
+    } finally {
+      invalidateTimedGrants(userId);
     }
 
     // (b) Insert purchase row. UNIQUE(stripe_session_id) makes this idempotent.

@@ -18,10 +18,21 @@ vi.mock("./entitlements/user-grants", () => ({
     getUserGrantedFeaturesMock(u),
 }));
 
+// The timed layer (app_users.money_radar_until — the Startup Package's 90
+// days of Founder Radar, T0247) is likewise exercised by its own suite
+// (entitlements/timed-grants.test.ts); here it is the third input to the
+// same union rule.
+const getUserTimedGrantsMock =
+  vi.fn<(userId: string | null | undefined) => Promise<readonly string[]>>();
+vi.mock("./entitlements/timed-grants", () => ({
+  getUserTimedGrants: (u: string | null | undefined) => getUserTimedGrantsMock(u),
+}));
+
 import { getEntitlements, can } from "./entitlements";
 
 beforeEach(() => {
   getUserGrantedFeaturesMock.mockReset().mockResolvedValue([]);
+  getUserTimedGrantsMock.mockReset().mockResolvedValue([]);
 });
 
 describe("LEGACY_FEATURE_FALLBACK — reseller_admin bundle", () => {
@@ -196,5 +207,45 @@ describe("can() — add-on awareness at the gate", () => {
   it("still denies everything for an anonymous caller", async () => {
     getUserGrantedFeaturesMock.mockResolvedValue(["esop.manage"]);
     expect(await can(null, "esop.manage")).toBe(false);
+  });
+});
+
+describe('can("money_radar") — the Startup Package\'s timed grant (T0247)', () => {
+  // A Package buyer stays on the free plan row; only the stamp widens it.
+  const packageBuyer = { id: "u-pkg", plan: "free", segment: "founder" };
+
+  beforeEach(() => {
+    getPlanCachedMock.mockReset();
+    getPlanCachedMock.mockResolvedValue({ id: "founder_free", feature_flags: ["svi.run.limited"] });
+  });
+
+  it("is true while money_radar_until is in the future", async () => {
+    getUserTimedGrantsMock.mockResolvedValue(["money_radar"]);
+    expect(await can(packageBuyer, "money_radar")).toBe(true);
+    expect(getUserTimedGrantsMock).toHaveBeenCalledWith("u-pkg");
+  });
+
+  it("is false once the window has passed (timed layer resolves empty)", async () => {
+    getUserTimedGrantsMock.mockResolvedValue([]);
+    expect(await can(packageBuyer, "money_radar")).toBe(false);
+  });
+
+  it("only ever widens — the plan row is untouched and nothing else is granted", async () => {
+    getUserTimedGrantsMock.mockResolvedValue(["money_radar"]);
+    const flags = await getEntitlements("free", "u-pkg");
+    expect(flags).toEqual(["svi.run.limited", "money_radar"]);
+    expect(await can(packageBuyer, "grant_finder")).toBe(false);
+  });
+
+  it("unions all three layers without duplicates", async () => {
+    getUserGrantedFeaturesMock.mockResolvedValue(["esop.manage", "money_radar"]);
+    getUserTimedGrantsMock.mockResolvedValue(["money_radar"]);
+    const flags = await getEntitlements("free", "u-pkg");
+    expect(flags).toEqual(["svi.run.limited", "esop.manage", "money_radar"]);
+  });
+
+  it("is not consulted without a user id", async () => {
+    await getEntitlements("free");
+    expect(getUserTimedGrantsMock).not.toHaveBeenCalled();
   });
 });

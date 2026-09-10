@@ -128,9 +128,42 @@ describe("/funding/report/[id] (T0242 minimal view)", () => {
     expect(out).toContain("a match is not an approval");
     expect(out).toContain('data-surface="funding_directory"');
     expect(out).toContain("Deadlines move — Founder Radar A$29/mo");
-    expect(out).toContain('href="/pricing"');
     // Secrets never reach the page.
     expect(out).not.toMatch(/tok_secret|g@example.com/);
+  });
+
+  // T0247 — the upsell block reads the report's own timeline (meta.today =
+  // 2026-09-10; MVP Ventures closes 2026-11-30 = 81 days; Plus Eight is next
+  // February so no other round this quarter).
+  it("computes the Radar upsell copy from the timeline and links the Starter trial", async () => {
+    const out = await html({ s: "cs_live_1" });
+    expect(out).toContain('data-radar-upsell="true"');
+    expect(out).toContain('data-variant="timeline"');
+    expect(out).toContain('data-viewer="guest"');
+    expect(out).toContain("<strong class=\"text-primary\">MVP Ventures</strong> closes in 81 days. Founder Radar watches them for you");
+    expect(out).toContain('href="/signup?plan=founder_starter&amp;trial=1&amp;from=funding_report"');
+    expect(out).not.toContain("Scout A$79");
+  });
+
+  it("offers the Scout secondary CTA to an evaluator viewer", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "inv-1", plan: "investor_angel", email: "x@y.z" });
+    getFundingReportMock.mockResolvedValue({ ...ROW, user_id: "inv-1" });
+    const out = await html();
+    expect(out).toContain('data-viewer="evaluator"');
+    expect(out).toContain("Scout A$79");
+  });
+
+  it("hides the upsell when the plan already paid for the report", async () => {
+    getFundingReportMock.mockResolvedValue({ ...ROW, paid_via: "plan" });
+    const out = await html({ t: "tok_secret" });
+    expect(out).not.toContain("data-radar-upsell");
+  });
+
+  it("falls back to generic copy when the timeline has no dated deadline", async () => {
+    getFundingReportMock.mockResolvedValue({ ...ROW, timeline: [] });
+    const out = await html({ t: "tok_secret" });
+    expect(out).toContain('data-variant="generic"');
+    expect(out).toContain("Deadlines move and new rounds open through the year.");
   });
 
   it("shows the 'being prepared' state while the webhook is still generating", async () => {
