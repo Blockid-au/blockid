@@ -205,6 +205,8 @@ Each `TimelineItem = {month, kind:grant|program|tax|milestone, ref_id, action, l
 
 ## 4h. Part C — Value ladder after A$3: "Money Radar" subscription benefits (founder request, 2026-09-10)
 
+> **G12 link (2026-09-10):** the same grant-deadline / program-intake / event signals feed the **Evaluator Progress Radar** for investors, accelerators and advisory firms tracking founders' startups — see [`evaluator-traction-2026-09-10.md`](./evaluator-traction-2026-09-10.md) §3b (Scout/Firm/Program) and ledger T0273 (depends on G11 T0245).
+
 **Goal:** a founder who paid A$3 sees a clear, attractive reason to subscribe; a subscriber gets continuous money-finding + next-step value, not a one-off PDF.
 
 ### Ladder (what each rung gets)

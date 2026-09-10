@@ -99,6 +99,7 @@ Pulled from [`svi-exchange-tasks.json`](./web/content/reports/svi-exchange-tasks
 | **G11-P1** Public nav → 5 items + "Do you need money?" CTA | — | P1 | planned (founder go pending) | Goal doc [`docs/plans/money-finder-2026-09-10.md`](./docs/plans/money-finder-2026-09-10.md); SOT G11. Legacy navbar mirrors; E2E `menu-structure.spec.ts` updated same commit. |
 | **G11-P2** Migration 0308 `au_grants`/`au_programs` + seed from `web/content/data/*.seed.json` | — | P1 | planned | 56 grants + 199 programs (8 capitals) seeded 2026-09-10; weekly refresh cron in P7. |
 | **G11-P3..P14** Grant-advisor agent, `/funding` A$3 report, Founder Radar (Starter) alerts/digest, dashboard tile | — | P2 | planned | Full phase table in SOT §2 rows G11-P0..P14 (P14 = speakable hero one-liners, founder + investor view). |
+| **G12 T0268–T0275** Evaluator Traction: Scout A$79 / Firm A$149 / Program A$349 public, card-required 7-day trial, A$3 Trust BizReport per startup entered, batch scoring, Progress Radar, solutions + ChatGPT comparison pages | — | P1 | planned (founder go pending; Stripe prices needed) | Goal doc [`docs/plans/evaluator-traction-2026-09-10.md`](./docs/plans/evaluator-traction-2026-09-10.md); SOT G12. |
 
 ### Recently shipped (this session, 2026-08-13)
 - **T0094–T0101 Antler / Series A knowledge pack DONE** (7 of 8 tasks — T0097 UI deferred to next sprint). Full detail in [`WORK_SUMMARY_T0094_T0101.md`](./WORK_SUMMARY_T0094_T0101.md).

@@ -1,6 +1,6 @@
 {
   "version": "3.10.0",
-  "updatedAt": "2026-09-10T03:19:36.044Z",
+  "updatedAt": "2026-09-10T04:22:55.846Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-31T14:00:01.953Z",
@@ -1760,6 +1760,86 @@
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0268",
+        "agent": "cro",
+        "title": "Evaluator ladder: plans.csv public Scout/Firm/Program (investor_angel/advisor/vc_small) + profiles/reports_per_month/seats limits + plans-v2 sync + /pricing Evaluator tab + retire A$5.50 SKU (A$3 = full Trust BizReport)",
+        "rationale": "G12 Wave A · evaluator-traction-2026-09-10.md §3. SOT §6 rule 5 bundle (plans.csv + pricing plan + SOT). Human-blocked: mint STRIPE_PRICE_INVESTOR_ANGEL/ADVISOR/VC_SMALL (+annual).",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T04:22:55.026Z",
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+      },
+      {
+        "id": "T0269",
+        "agent": "cto",
+        "title": "Evaluator signup: card-required 7-day Stripe trial on Scout/Firm/Program, account_type extension (investor, accelerator, incubator, advisor, service_provider), /signup?segment=evaluator, allow-lists, evaluator TrialBanner copy",
+        "rationale": "G12 Wave A · §3c.3. Reuses register-with-card + checkout trial_period_days + trial-end-reminder/trial-charge-warning. Depends T0268.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T04:22:55.026Z",
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+      },
+      {
+        "id": "T0270",
+        "agent": "cto",
+        "title": "Evaluations object: \"Startups I am evaluating\" — generalise reseller create-startup to POST /api/evaluations (owner_kind evaluator, attribution, invite-the-founder magic link, consent tiers) + missing migrations investor_portfolio, watchlist_digest, advisor_client_roster, evaluations",
+        "rationale": "G12 Wave B · §3c.4-5. Depends T0269.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T04:22:55.026Z",
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+      },
+      {
+        "id": "T0271",
+        "agent": "cfo",
+        "title": "In-workspace Trust BizReport purchase for evaluators: POST /api/evaluations/[id]/report (3 credits or plan quota) + re-score A$1 + PDF/TBR token",
+        "rationale": "G12 Wave B · §3c.6. Uses orchestrateReport (13-criteria) + canAfford/spendCredits. Depends T0270.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T04:22:55.026Z",
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+      },
+      {
+        "id": "T0272",
+        "agent": "cpo",
+        "title": "Program batch scoring: queue N startups off-peak, cohort table + CSV, sponsor/LP report export (extend /api/reports/quarterly), custom rubric weights",
+        "rationale": "G12 Wave C · §3c.7. Depends T0271.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T04:22:55.026Z",
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+      },
+      {
+        "id": "T0273",
+        "agent": "cmo",
+        "title": "Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups",
+        "rationale": "G12 Wave C · §3c.8. Depends T0270 and G11 T0245.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T04:22:55.026Z",
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+      },
+      {
+        "id": "T0274",
+        "agent": "cmo",
+        "title": "/solutions/advisor (new) + /solutions/investor|accelerator rewrite + \"BlockID vs ChatGPT vs a valuer\" comparison page + evaluator messaging keys EN/VI + GA4 evaluator_signup/evaluation_added/report_purchased/evaluator_upgrade + contact form reads ?plan= and posts Telegram",
+        "rationale": "G12 Wave A/B · §4 differentiators + §4c messaging. Every claim maps to §4a proof row. Depends T0268.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-09-10T04:22:55.026Z",
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+      },
+      {
+        "id": "T0275",
+        "agent": "clo",
+        "title": "Compliance for evaluator surface: provider data-handling sentence (CISO/CLO), general-advice/AFSL disclaimer on evaluator reports, doctoral-research wording sign-off (never \"PhD\"), CC BY attribution where AU data reused",
+        "rationale": "G12 Wave A · §4b guardrails. Human-blocked: founder approves the doctoral-research sentence.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-09-10T04:22:55.026Z",
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
       }
     ]
   },
@@ -2137,6 +2217,12 @@
       "action": "plan",
       "version": "3.10.0",
       "note": "G11 Money Finder ledger: +15 tasks T0237–T0251; 16 pending duplicates merged into G11 (T0211, T0213, T0134, T0169, T0170, T0173, T0176, T0185, T0186, T0189, T0194, T0198) + T0257/T0264/T0266/T0267 (ex T0202/T0209/T0211/T0212); 16 duplicate IDs re-numbered; version 3.9.0→3.10.0 synced to package.json."
+    },
+    {
+      "ts": "2026-09-10T04:22:55.026Z",
+      "action": "plan",
+      "version": "3.10.0",
+      "note": "G12 Evaluator Traction ledger: +8 tasks T0268–T0275 (Scout/Firm/Program ladder, card-required trial, evaluations object, in-workspace A$3 report, batch scoring, Progress Radar, solutions pages + ChatGPT comparison, compliance)."
     }
   ],
   "shipped_this_session": {

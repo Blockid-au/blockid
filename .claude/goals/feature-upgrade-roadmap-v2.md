@@ -64,6 +64,17 @@
 - [ ] P13 dashboard `MoneyRadarTile` (5 states) + `/workspace/funding` tabs + messaging copy EN/VI
 - [ ] P14 hero one-liners (founder / investor / general, EN+VI) — truth check, 5-second + say-it-back tests, A/B via `cta-variants.ts`; winners → hero, `/solutions/*`, og, i18n, directory bios; recorded in G9
 
+### Evaluator Traction — G12 (CRO + CTO + CFO + CPO + CMO + CLO) · plan [`docs/plans/evaluator-traction-2026-09-10.md`](../../docs/plans/evaluator-traction-2026-09-10.md)
+- [x] P0 goal doc + research (54 competitors, JTBD, ChatGPT evidence, AU sizing) — 2026-09-10, plan-only
+- [ ] T0268 Scout A$79 / Firm A$149 / Program A$349 public in `plans.csv` + limits + `/pricing` Evaluator tab + retire A$5.50 SKU (A$3 = full Trust BizReport)
+- [ ] T0269 evaluator signup with card-required 7-day Stripe trial; `account_type` investor/accelerator/incubator/advisor/service_provider
+- [ ] T0270 "Startups I'm evaluating" object + consent tiers + missing migrations (investor_portfolio, watchlist_digest, advisor_client_roster)
+- [ ] T0271 in-workspace Trust BizReport A$3 (3 credits / plan quota) + re-score A$1
+- [ ] T0272 Program batch scoring + cohort table + sponsor/LP report
+- [ ] T0273 Evaluator Progress Radar digest (merges G11 Money Radar signals)
+- [ ] T0274 `/solutions/advisor` + investor/accelerator rewrite + "BlockID vs ChatGPT vs a valuer" page + messaging EN/VI + GA4 funnel
+- [ ] T0275 compliance: data-handling sentence, general-advice disclaimer, doctoral-research wording sign-off
+
 ### Multi-Project System Enhancement (CTO)
 - [ ] Portfolio dashboard (all startups side-by-side)
 - [ ] Cross-project comparison charts

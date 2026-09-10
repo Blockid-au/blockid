@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.10.0  ·  **Updated:** 2026-09-10T03:19:36.044Z  ·  **Decided by:** ceo+founder (G11 plan session) (2026-09-10T03:19:21.933Z)
+**Version:** v3.10.0  ·  **Updated:** 2026-09-10T04:22:55.846Z  ·  **Decided by:** ceo+founder (G11 plan session) (2026-09-10T03:19:21.933Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -50,6 +50,14 @@
 | T0249 | CMO | /pricing matrix row, insight cross-links, AnalyticsEventMap funding_* events, sync-stripe-pricing credit-pack drift fix, /features card, docs | patch | ⬜ pending |
 | T0250 | CMO | Hero one-liners: lib/marketing/hero-variants.ts (F1/F2/F3 arms) + GA4 hero_variant + hero-section + layout SITE_DESCRIPTION + messages hero.* (EN/VI) + 5-second test protocol | patch | ⬜ pending |
 | T0251 | IR | Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh | minor | ⬜ pending |
+| T0268 | CRO | Evaluator ladder: plans.csv public Scout/Firm/Program (investor_angel/advisor/vc_small) + profiles/reports_per_month/seats limits + plans-v2 sync + /pricing Evaluator tab + retire A$5.50 SKU (A$3 = full Trust BizReport) | minor | ⬜ pending |
+| T0269 | CTO | Evaluator signup: card-required 7-day Stripe trial on Scout/Firm/Program, account_type extension (investor, accelerator, incubator, advisor, service_provider), /signup?segment=evaluator, allow-lists, evaluator TrialBanner copy | minor | ⬜ pending |
+| T0270 | CTO | Evaluations object: "Startups I am evaluating" — generalise reseller create-startup to POST /api/evaluations (owner_kind evaluator, attribution, invite-the-founder magic link, consent tiers) + missing migrations investor_portfolio, watchlist_digest, advisor_client_roster, evaluations | minor | ⬜ pending |
+| T0271 | CFO | In-workspace Trust BizReport purchase for evaluators: POST /api/evaluations/[id]/report (3 credits or plan quota) + re-score A$1 + PDF/TBR token | minor | ⬜ pending |
+| T0272 | CPO | Program batch scoring: queue N startups off-peak, cohort table + CSV, sponsor/LP report export (extend /api/reports/quarterly), custom rubric weights | minor | ⬜ pending |
+| T0273 | CMO | Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups | minor | ⬜ pending |
+| T0274 | CMO | /solutions/advisor (new) + /solutions/investor|accelerator rewrite + "BlockID vs ChatGPT vs a valuer" comparison page + evaluator messaging keys EN/VI + GA4 evaluator_signup/evaluation_added/report_purchased/evaluator_upgrade + contact form reads ?plan= and posts Telegram | patch | ⬜ pending |
+| T0275 | CLO | Compliance for evaluator surface: provider data-handling sentence (CISO/CLO), general-advice/AFSL disclaimer on evaluator reports, doctoral-research wording sign-off (never "PhD"), CC BY attribution where AU data reused | patch | ⬜ pending |
 
 ## Recently shipped
 - ✅ `T0193` **CFO** — Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator (`557222041`)

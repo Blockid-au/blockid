@@ -154,6 +154,16 @@
 - **Next action:** founder "go" → Wave 0 **T0237** (nextTaskId max+1, stagePlan `content` select, `TaskStatus` merged, self-upgrade priority list) → Wave 1 **T0238** (nav) ∥ **T0239** (migration 0308 + seed) → Wave 2 T0240 agent ∥ T0241 directories ∥ T0250 hero → Wave 3 T0242 `/funding` + A$3 ∥ T0243 refresh cron → Wave 4 T0244 report ∥ T0245 Radar data → Wave 5 T0246 drips ∥ T0247 packaging ∥ T0248 tile ∥ T0249 (night loop) → Wave 6 T0251. Critical path ≈ 6 sessions (~8–10 working days).
 - **Blocker:** none for Wave 0–1. Human-blocked before Wave 3/5: mint `STRIPE_PRICE_FUNDING_REPORT` (T0242); Q1 Starter label (T0247); Q2 free-tier in-app alerts (T0245); GA4 `hero_variant` dimension (T0250); `ABR_GUID` env (T0244) — see §5.
 
+### G12 — Evaluator Traction: pricing + positioning for investors, accelerators, incubators, consulting & service firms
+- **Source:** [`docs/plans/evaluator-traction-2026-09-10.md`](./evaluator-traction-2026-09-10.md) · companion of G11 (Evaluator Progress Radar consumes G11 signals)
+- **Status:** **plan approved 2026-09-10** (plan-only); ledger tasks **T0268–T0275** pending in `project-state.json`; **no code lane started**.
+- **Founder decisions (2026-09-10):** evaluator trial = 7 days **card required** (same Stripe mechanism as founders) · public rungs **Scout A$79 · Firm A$149 · Program A$349** re-using `investor_angel / investor_advisor / investor_vc_small` (accelerator A$500+/1,500/3,500 + VC Enterprise stay Contact Sales; consulting firms also via reseller 0–40 %) · **A$3 = full Trust BizReport** for founders and evaluators, A$5.50 `TRUST_REPORT_5AUD` retired, re-score A$1 · founder ladder unchanged (Free → A$3 → Starter A$29 / Growth A$69).
+- **Finding:** the B2B ladder already exists (`plans.csv` rows 7–13, entitlements, investor/accelerator/advisor workspaces, reseller module, partner API) but is `public:false`, has no Stripe prices, cannot self-serve trial, and every CTA lands on a contact form that drops `?plan=`. Missing: "startups I'm evaluating" object, migrations for `investor_portfolio` / `watchlist_digest` / `advisor_client_roster`, `/solutions/advisor`, batch scoring.
+- **Positioning (6 proofs):** one rubric 8 dim × 13 criteria × 12 phases · 11 C-Level agents + auditor · the startup's own accumulating evidence (weekly snapshots) · AU-native (AUD methods, ESIC/R&DTI/s708, 500+ comps, grants) · A$3 vs A$2,985+ valuer / Equidam A$635 / Kruncher US$499 floor · documented method + founder's doctoral (DBA) research — **wording pending founder sign-off, never "PhD"**. "Why not ChatGPT" paragraph + cited evidence in goal doc §4b / Appendix C.
+- **Traction (90 days):** T1 angel groups + First Believers alumni → T2 three accelerator pilots (batch scoring on a live intake, from our own programs seed) → T3 advisory firms via reseller → T4 solutions pages, comparison page, 3 case studies. KPIs: trial→Scout ≥ 15 %, ≥ 4 reports/evaluator/mo, pilot→paid ≥ 50 %.
+- **Next action:** Wave A **T0268** (ladder public + A$5.50 retired; needs Stripe prices) ∥ **T0269** (evaluator signup/trial) ∥ **T0275** (compliance wording) ∥ **T0274** (solutions + comparison page) → Wave B T0270 → T0271 → Wave C T0272 ∥ T0273 (after G11 T0245).
+- **Blocker:** human-blocked — mint `STRIPE_PRICE_INVESTOR_ANGEL|ADVISOR|VC_SMALL` (+annual); founder sign-off on doctoral-research sentence; CISO/CLO provider data-handling sentence (see §5).
+
 ---
 
 ## 2. Requirements Register
@@ -227,6 +237,14 @@
 | G11-P13 (T0248) | money-finder-2026-09-10 | MoneyRadarTile + /workspace/funding tabs + messaging copy EN/VI | open | react-expert + cmo + conversion-optimizer | — |
 | G11-P14 (T0250) | money-finder-2026-09-10 | hero one-liners (founder/investor/general, EN+VI) + 5-second test + A/B | open | cmo + cro + conversion-optimizer | — |
 | G11-W0 (T0237) | money-finder-2026-09-10 §8 | loop hygiene: nextTaskId max+1, stagePlan content, TaskStatus merged, self-upgrade priority list | open | cto | — |
+| G12-P1 (T0268) | evaluator-traction-2026-09-10 | Scout/Firm/Program public + limits + A$5.50 retired | open | cro + stripe-saas-billing | — (needs Stripe prices) |
+| G12-P2 (T0269) | evaluator-traction-2026-09-10 | evaluator signup, card-required 7-day trial, account_type | open | cto | — |
+| G12-P3 (T0270) | evaluator-traction-2026-09-10 | evaluations object + missing migrations | open | cto + db-migrate | — |
+| G12-P4 (T0271) | evaluator-traction-2026-09-10 | in-workspace A$3 Trust BizReport + re-score A$1 | open | cfo + fullstack-guardian | — |
+| G12-P5 (T0272) | evaluator-traction-2026-09-10 | batch scoring + sponsor/LP report | open | cpo | — |
+| G12-P6 (T0273) | evaluator-traction-2026-09-10 | Evaluator Progress Radar digest (G11 signals) | open | cmo | — (after T0245) |
+| G12-P7 (T0274) | evaluator-traction-2026-09-10 | /solutions/advisor + rewrites + ChatGPT comparison + messaging + GA4 | open | cmo + seo-content-au | — |
+| G12-P8 (T0275) | evaluator-traction-2026-09-10 | compliance wording, disclaimers, doctoral-research sign-off | open | clo + au-compliance | — (founder wording) |
 
 ---
 
@@ -329,6 +347,9 @@
 | Free-tier in-app deadline alerts (G11 Q2, T0245) | Radar sweep fan-out rules | Yes/no for A$3 buyers (in-app only, no email) | Founder |
 | GA4 `hero_variant` custom dimension (G11 T0250) | Hero one-liner A/B measurement | Create dimension in GA4 property | Founder (GA4 admin) |
 | `ABR_GUID` env present? (G11 T0244) | ABN lookup for `project_grant_profiles` | Confirm ABR web-services GUID in `web/.env` | Founder |
+| Stripe prices for evaluator rungs (G12 T0268) | Scout/Firm/Program self-serve checkout | Mint `STRIPE_PRICE_INVESTOR_ANGEL`, `_ADVISOR`, `_VC_SMALL` (+ annual) in Stripe dashboard; add env | Founder (Stripe owner) |
+| Doctoral-research sentence (G12 D4, T0275) | Positioning claim #6 on /solutions/* and comparison page | Approve exact wording ("grounded in the founder's doctoral research (DBA) on startup valuation"); never "PhD" | Founder |
+| Provider data-handling sentence (G12 T0275) | "confidential" claim in the ChatGPT comparison | CISO/CLO confirm what the free-model provider chain does with report inputs before publishing | Founder + CISO/CLO agents |
 
 ---
 
@@ -361,7 +382,7 @@ Live markers for downstream update agents. Consume by grepping this section for 
 - `[MARKER: update-status agent should consume §3 shipped-log commit count 294 for this cycle]`.
 - `[MARKER: update-roadmap agent should consume §1 Top-5 open Q3 items list].`
 - `[MARKER: update /roadmap when T0238 or T0239 closes]` (G11 Wave 1) — Money Finder lanes; `feature-upgrade-roadmap-v2.md` Q4 checklist + `ROADMAP.md` §4 rows mirror SOT §2 G11-P0..P13.
-- `[MARKER: update /pricing when G11-P11 ships]` — Starter gains Founder Radar (`money_radar` flag), A$3 `FUNDING_REPORT_3AUD` SKU; also touch `docs/pricing-upgrade-plan-2026-07-16.md` (amendment note already present).
+- `[MARKER: update /pricing when T0268 (G12 Evaluator tab) or G11-P11 ships]` — Starter gains Founder Radar (`money_radar` flag), A$3 `FUNDING_REPORT_3AUD` SKU; also touch `docs/pricing-upgrade-plan-2026-07-16.md` (amendment note already present).
 - `[MARKER: phase-close]` — G11-P0 (plan-only) closed 2026-09-10.
 - `[MARKER: security-fix]` — `fd4a1eb3` (Stripe portal wholesale gate).
 
@@ -395,6 +416,7 @@ the sentinels is overwritten._
 | When | Who | What |
 |---|---|---|
 | 2026-07-23 | loop agent (SOT consolidation task) | Initial consolidation. §1–§7 authored; back-links applied to reseller-plan + unicorn-masterplan; memory pointer added. |
+| 2026-09-10 | CEO + Claude (plan session, 3rd pass) | G12 Evaluator Traction opened (plan-only): goal doc `evaluator-traction-2026-09-10.md` (ladder Scout/Firm/Program, A$3 per startup report, 6 differentiators + ChatGPT comparison, 90-day traction, appendices: 54 competitors, JTBD, ChatGPT evidence, AU sizing); ledger T0268–T0275; §2 rows G12-P1..P8; §5 +3 human-blocked; roadmaps + pricing plan + G11 cross-link merged. |
 | 2026-09-10 | CEO + Claude (plan session, 2nd pass) | G11 execution plan approved: source/loop review findings (goal loops removed, auto-improve frozen, nextTaskId collision, version drift) → 6-wave founder-driven session model; ledger tasks T0237–T0251 added to `project-state.json`, 16 overlapping pending tasks merged, 16 duplicate IDs re-numbered (T0252–T0267), version 3.9.0→3.10.0; goal doc §8 rewritten; §2 rows carry T-ids; §5 gains 5 human-blocked rows; stale goal-loop notes fixed in `web/AGENTS.md` + `docs/ops/crontab-setup.md`. |
 | 2026-09-10 | CEO + Claude (plan session) | G11 Money Finder opened (P0 shipped, plan-only): goal doc `money-finder-2026-09-10.md`, §2 rows G11-P0..P14, §7 markers; amendments recorded in G7/G9 goal docs, `feature-upgrade-roadmap-v2.md` Q4, `ROADMAP.md` §4, `pricing-upgrade-plan-2026-07-16.md`, `GOALS.md` Goal 3, `role-based-2026-07-25/founder.md` gap #8; seed data `web/content/data/grants-au.seed.json` + `programs-au.seed.json`. |
 | 2026-07-23 | qa/regression sweep | Iteration 5-9 sync: G1 tick 290 → 317; G2 audit #1/2/3/4/5/8/9 flipped to shipped with commit SHAs (#6/7/10 remain founder-review-blocked); G4 Top-5 #3 PDF branding flipped to shipped; requirements register rows added for AUD-R1/2/3/4/5/8/9 + Q3-PDF-BRAND; §3 shipped-log expanded with audit-remediation, product/branding, QA/infra subsections. |
