@@ -135,3 +135,38 @@ describe("recommendConferences", () => {
     expect(out.length).toBeLessThanOrEqual(5);
   });
 });
+
+// T0246 — au_programs event rows (lib/funding/events.ts) arrive with an
+// empty `sectors` list when the festival is general-purpose. An empty list
+// must read as "any sector", the same way an empty `stages` already does,
+// or a founder with a sector set would never see Spark / West Tech Fest.
+describe("recommendConferences — sector-agnostic entries", () => {
+  const general: Conference = {
+    slug: "general-fest",
+    name: "General Fest",
+    date: "2026-07-15",
+    city: "Perth",
+    country: "AU",
+    url: "https://example.com/g",
+    audience: ["founder"],
+    stages: [],
+    sectors: [],
+    cost: "free",
+    pitchCompetition: false,
+  };
+
+  it("an entry with no sectors matches any sector filter; sector entries still filter", async () => {
+    const out = await recommendConferences({ source: [...SEED, general], now: NOW, sector: "fintech", limit: 10 });
+    expect(out.map((c) => c.slug)).toEqual(["general-fest", "sg-fintech"]);
+  });
+
+  it("loadConferenceSeed returns the same cached list the default path uses", async () => {
+    const { loadConferenceSeed } = await import("./conferences");
+    const seed = await loadConferenceSeed();
+    expect(Array.isArray(seed)).toBe(true);
+    expect(seed.length).toBeGreaterThan(0);
+    const viaDefault = await recommendConferences({ now: new Date("2026-01-01T00:00:00Z"), limit: 50 });
+    const viaSource = await recommendConferences({ source: seed, now: new Date("2026-01-01T00:00:00Z"), limit: 50 });
+    expect(viaSource).toEqual(viaDefault);
+  });
+});

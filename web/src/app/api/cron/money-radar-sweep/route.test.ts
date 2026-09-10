@@ -2,15 +2,21 @@
 // Pins: Bearer CRON_SECRET gate (401 when unset or mismatched), 503 when the
 // sweep reports supabase_unavailable, 500 on other failures, `?dry=1` →
 // dryRun:true + the event list in the body, counts-only otherwise, and that
-// GET and POST are the same handler (cron-runner.sh POSTs).
+// GET and POST are the same handler (cron-runner.sh POSTs). T0246: after a
+// successful sweep the radar-drip enqueuer runs once with the same dryRun,
+// its summary rides the body as `drips`, and a throw there never fails the
+// sweep response.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const { sweepMock } = vi.hoisted(() => ({ sweepMock: vi.fn() }));
+const { sweepMock, dripsMock } = vi.hoisted(() => ({ sweepMock: vi.fn(), dripsMock: vi.fn() }));
 vi.mock("@/lib/funding/radar-sweep", () => ({
   runMoneyRadarSweep: (opts: unknown) => sweepMock(opts),
+}));
+vi.mock("@/lib/funding/radar-drips", () => ({
+  enqueueRadarDripsFromMatches: (opts: unknown) => dripsMock(opts),
 }));
 
 import { GET, POST, dynamic, maxDuration } from "./route";
@@ -40,6 +46,8 @@ describe("money-radar-sweep route", () => {
     process.env.CRON_SECRET = "s3cret";
     sweepMock.mockReset();
     sweepMock.mockResolvedValue({ ...OK });
+    dripsMock.mockReset();
+    dripsMock.mockResolvedValue({ ok: true, dryRun: false, rows: 1, pending: 1, queued: 1, duplicate: 0, unsubscribed: 0, ignored: 0, cleared: 1, errors: 0 });
   });
   afterEach(() => {
     if (origSecret === undefined) delete process.env.CRON_SECRET;
@@ -68,6 +76,28 @@ describe("money-radar-sweep route", () => {
     expect(body.events).toBeUndefined();
     expect(typeof body.duration_ms).toBe("number");
     expect(sweepMock).toHaveBeenCalledWith({ dryRun: false });
+    expect(dripsMock).toHaveBeenCalledWith({ dryRun: false });
+    expect(body.drips).toMatchObject({ ok: true, queued: 1 });
+  });
+
+  it("drips run with the same dryRun flag, and a drip-side throw is reported, not fatal", async () => {
+    sweepMock.mockResolvedValue({ ...OK, dryRun: true });
+    await GET(req("http://localhost/api/cron/money-radar-sweep?dry=1", "Bearer s3cret"));
+    expect(dripsMock).toHaveBeenCalledWith({ dryRun: true });
+
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    dripsMock.mockRejectedValue(new Error("drip boom"));
+    const r = await POST(req(undefined, "Bearer s3cret"));
+    expect(r.status).toBe(200);
+    const body = await r.json();
+    expect(body.ok).toBe(true);
+    expect(body.drips).toEqual({ ok: false, error: "drip boom" });
+  });
+
+  it("does not run the drip enqueuer when the sweep failed", async () => {
+    sweepMock.mockResolvedValue({ ...OK, ok: false, error: "empty_catalogue" });
+    await GET(req(undefined, "Bearer s3cret"));
+    expect(dripsMock).not.toHaveBeenCalled();
   });
 
   it("?dry=1 passes dryRun and includes the events", async () => {

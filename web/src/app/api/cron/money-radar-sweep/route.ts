@@ -6,9 +6,11 @@
 // against the refreshed `au_grants` / `au_programs`, upserts
 // `funding_matches`, diffs against last week and fans the events out as
 // in-app notifications (`new_matches`, `grant_deadline`, `program_intake`,
-// `event_match`). Email is T0246's drip worker, fed by the
-// `last_notified.pending_email` contract documented in
-// `@/lib/funding/radar-sweep`.
+// `event_match`). Email is the drip worker: after the sweep, T0246's
+// `enqueueRadarDripsFromMatches` turns every `last_notified.pending_email`
+// entry (contract in `@/lib/funding/radar-sweep`) into a `radar_t30/t14/t3`
+// email_drips row that the hourly /api/cron/email-drip sends. That call is
+// guarded — a drip failure never fails the sweep — and reported as `drips`.
 //
 // Auth: `Authorization: Bearer ${CRON_SECRET}` (pattern: refresh-funding-sources).
 // `?dry=1` computes everything, writes nothing and returns the full event list.
@@ -18,6 +20,7 @@
 
 import { NextResponse } from "next/server";
 import { runMoneyRadarSweep } from "@/lib/funding/radar-sweep";
+import { enqueueRadarDripsFromMatches, type RadarDripsSummary } from "@/lib/funding/radar-drips";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,11 +54,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ ...rest, ok: false, error: summary.error ?? "sweep_failed" }, { status: 500 });
   }
 
+  // T0246 — hand pending deadline tiers to the drip worker. Guarded: the
+  // sweep already committed; a drip-side failure is reported, not fatal.
+  let drips: RadarDripsSummary | { ok: false; error: string };
+  try {
+    drips = await enqueueRadarDripsFromMatches({ dryRun });
+  } catch (err) {
+    drips = { ok: false, error: err instanceof Error ? err.message : String(err) };
+    console.warn("[money-radar-sweep] radar drips failed", drips.error);
+  }
+
   const { events, ...rest } = summary;
   return NextResponse.json({
     ...rest,
     ok: true,
     duration_ms: Date.now() - startedAt,
+    drips,
     ...(dryRun ? { events } : {}),
   });
 }

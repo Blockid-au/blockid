@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { computeSVIIndex } from "@/lib/svi-index";
+import { maybeWriteSviTrendAlert } from "@/lib/svi-trend-alert";
 
 export const dynamic = "force-dynamic";
 
@@ -43,12 +44,13 @@ export async function GET(request: Request) {
     // Get all accounts with recent svi_analyses (each row is a unique email+project pair)
     const { data: accounts, error } = await supabase
       .from("svi_accounts")
-      .select("id, email, current_svi, current_stage, project_id, index_base_date, index_base_svi");
+      .select("id, email, user_id, current_svi, current_stage, project_id, index_base_date, index_base_svi");
 
     if (error) throw error;
 
     const today = new Date().toISOString().split("T")[0];
     let processed = 0;
+    let trendAlerts = 0;
 
     for (const account of accounts ?? []) {
       // Get the most recent analysis for THIS account's project (not all projects!)
@@ -152,10 +154,22 @@ export async function GET(request: Request) {
         last_active_at: new Date().toISOString(),
       }).eq("id", account.id);
 
+      // T0246 — svi_trend_alert when the week's move is ≥ SVI_TREND_ALERT_THRESHOLD.
+      // Dedupe key = svi_trend:<project>:<snapshot_date>; a re-run today is a no-op.
+      const alerted = await maybeWriteSviTrendAlert({
+        userId: (acctRaw.user_id as string | null | undefined) ?? null,
+        projectId: account.project_id ?? null,
+        accountId: account.id,
+        delta,
+        sviTotal: analysis.total_svi,
+        snapshotDate: today,
+      });
+      if (alerted) trendAlerts++;
+
       processed++;
     }
 
-    return NextResponse.json({ ok: true, processed, date: today });
+    return NextResponse.json({ ok: true, processed, trend_alerts: trendAlerts, date: today });
   } catch (err) {
     console.error("[blockid:svi-snapshot] snapshot cron failed", err);
     return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });

@@ -116,8 +116,14 @@ export function describeNotification(row: FounderNotificationRow): string {
       return "Report share link minted";
     case "analysis_done":
       return p.fromCache === true ? "Analysis complete (from cache)" : "Analysis complete";
-    case "svi_trend_alert":
-      return "SVI trend alert";
+    case "svi_trend_alert": {
+      // T0246 writer payload: { delta, svi_total, snapshot_date, direction }.
+      const delta = n(p.delta);
+      const total = n(p.svi_total);
+      if (delta === null) return "SVI trend alert";
+      const sign = delta > 0 ? "+" : "";
+      return `Your SVI moved ${sign}${delta} points this week${total !== null ? ` (now ${total})` : ""}`;
+    }
     case "grant_deadline":
     case "program_intake":
     case "event_match": {

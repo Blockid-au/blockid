@@ -136,6 +136,9 @@ function resultFor(key: string): ChainResult {
 const canSendEmailMock = vi.fn();
 vi.mock("@/lib/email-preferences", () => ({
   canSendEmail: (...args: unknown[]) => canSendEmailMock(...args),
+  // Real builder shape: /unsubscribe?token=…&category=… — radar drips use it.
+  getUnsubscribeUrl: (token: string, category?: string) =>
+    `${(process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au").replace(/\/$/, "")}/unsubscribe?token=${token}${category ? `&category=${category}` : ""}`,
 }));
 
 vi.mock("@/lib/supabase", () => ({
@@ -234,9 +237,16 @@ vi.mock("@/lib/supabase", () => ({
 // render helper.
 const ORIGINAL_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   renderDripBody,
   enqueueOnboardingDrip,
+  enqueueRadarDrip,
+  ALL_DRIP_CAMPAIGNS,
+  RADAR_CAMPAIGNS,
+  RADAR_DRIP_DEDUPE_DAYS,
+  isRadarCampaign,
   dueDrips,
   markSent,
   markFailed,
@@ -1189,5 +1199,229 @@ describe("day-14 upsell describes what A$29 grants", () => {
   it("does not call the report allowance unlimited", () => {
     const body = `${render().html} ${render().text}`.toLowerCase();
     expect(body).not.toContain("unlimited");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T0246 — Money Radar drips: radar_t30 / radar_t14 / radar_t3 /
+// radar_status_changed. Subjects are the approved D-3 strings; every body
+// names the program, the A$ ceiling when known, the official link, the
+// "Draft application" CTA to /workspace/funding, and a working unsubscribe
+// (category-scoped when a token is on the payload).
+// ---------------------------------------------------------------------------
+
+const RADAR_PAYLOAD = {
+  ref_kind: "grant" as const,
+  ref_id: "nsw-mvp-ventures",
+  ref_name: "MVP Ventures",
+  closes_at: "2026-10-10",
+  amount_max_aud: 50_000,
+  official_url: "https://www.investment.nsw.gov.au/mvp",
+  report_url: "https://blockid.au/funding/report/r1",
+};
+
+describe("renderDripBody — radar_t30", () => {
+  it("uses the approved subject and carries every required piece", () => {
+    const out = renderDripBody("radar_t30", "f@x.co", RADAR_PAYLOAD);
+    expect(out.subject).toBe("30 days to MVP Ventures: your eligibility checklist");
+    expect(out.html).toContain("MVP Ventures");
+    expect(out.html).toContain("up to A$50,000");
+    expect(out.html).toContain('href="https://www.investment.nsw.gov.au/mvp"');
+    expect(out.html).toContain("https://blockid.au/workspace/funding");
+    expect(out.html).toContain("Draft application");
+    expect(out.html).toContain("Closes 2026-10-10");
+    expect(out.html).toContain("https://blockid.au/funding/report/r1");
+    expect(out.html).toContain("https://blockid.au/unsubscribe?email=f%40x.co");
+    expect(out.text).toContain("Draft application: https://blockid.au/workspace/funding");
+    expect(out.text).toContain("Official page: https://www.investment.nsw.gov.au/mvp");
+    expect(out.text).toContain("up to A$50,000");
+  });
+
+  it("never invents an amount when none is known and says 'Applications close' for programs", () => {
+    const out = renderDripBody("radar_t30", "f@x.co", {
+      ...RADAR_PAYLOAD,
+      ref_kind: "program",
+      amount_max_aud: null,
+      official_url: null,
+    });
+    expect(out.html).not.toContain("A$");
+    expect(out.html).toContain("Applications close 2026-10-10");
+    expect(out.html).not.toContain("Official page");
+  });
+
+  it("escapes an attacker-controlled program name", () => {
+    const out = renderDripBody("radar_t30", "f@x.co", { ...RADAR_PAYLOAD, ref_name: "<img src=x onerror=1>" });
+    expect(out.html).toContain("&lt;img src=x onerror=1&gt;");
+    expect(out.html).not.toContain("<img src=x onerror=1>");
+  });
+
+  it("prefers the category-scoped token unsubscribe when the payload carries one", () => {
+    const out = renderDripBody("radar_t30", "f@x.co", { ...RADAR_PAYLOAD, unsubscribe_token: "tok-1" });
+    expect(out.html).toContain("https://blockid.au/unsubscribe?token=tok-1&amp;category=money_radar");
+    expect(out.text).toContain("Unsubscribe: https://blockid.au/unsubscribe?token=tok-1&category=money_radar");
+    expect(out.html).not.toContain("unsubscribe?email=");
+  });
+});
+
+describe("renderDripBody — radar_t14", () => {
+  it("subject + required pieces", () => {
+    const out = renderDripBody("radar_t14", "f@x.co", RADAR_PAYLOAD);
+    expect(out.subject).toBe("MVP Ventures closes in 2 weeks — draft ready?");
+    expect(out.html).toContain("up to A$50,000");
+    expect(out.html).toContain('href="https://www.investment.nsw.gov.au/mvp"');
+    expect(out.html).toContain("https://blockid.au/workspace/funding");
+    expect(out.html).toContain("Auschain PTY LTD &middot; ACN 659 615 111 &middot; ABN 79 659 615 111");
+    expect(out.html).toContain("Founder Radar is watching this deadline");
+  });
+});
+
+describe("renderDripBody — radar_t3", () => {
+  it("subject + required pieces", () => {
+    const out = renderDripBody("radar_t3", "f@x.co", RADAR_PAYLOAD);
+    expect(out.subject).toBe("Final 72 hours for MVP Ventures");
+    expect(out.html).toContain("up to A$50,000");
+    expect(out.html).toContain('href="https://www.investment.nsw.gov.au/mvp"');
+    expect(out.html).toContain("Draft application");
+    expect(out.text).toContain("Final 72 hours for MVP Ventures");
+  });
+});
+
+describe("renderDripBody — radar_status_changed", () => {
+  it("names the paused program and lists the two alternatives by score", () => {
+    const out = renderDripBody("radar_status_changed", "f@x.co", {
+      ...RADAR_PAYLOAD,
+      status: "paused",
+      alternatives: [
+        { ref_kind: "grant", ref_id: "g2", name: "Ignite Ideas", amount_max_aud: 200_000, official_url: "https://ignite.example", closes_at: "2026-11-01" },
+        { ref_kind: "program", ref_id: "p1", name: "Startmate", amount_max_aud: null, official_url: null, closes_at: null },
+      ],
+    });
+    expect(out.subject).toBe("MVP Ventures paused — here are 2 alternatives");
+    expect(out.html).toContain("Ignite Ideas");
+    expect(out.html).toContain("up to A$200,000");
+    expect(out.html).toContain('href="https://ignite.example"');
+    expect(out.html).toContain("Startmate");
+    expect(out.html).toContain("https://blockid.au/workspace/funding");
+    expect(out.text).toContain("1. Ignite Ideas — up to A$200,000 · closes 2026-11-01 · https://ignite.example");
+    expect(out.text).toContain("2. Startmate");
+  });
+
+  it("says 'closed' for a closed flip and degrades gracefully with no alternatives", () => {
+    const out = renderDripBody("radar_status_changed", "f@x.co", { ...RADAR_PAYLOAD, status: "closed", alternatives: [] });
+    expect(out.subject).toBe("MVP Ventures closed — here are 2 alternatives");
+    expect(out.html).toContain("No other match is open this week");
+  });
+});
+
+describe("radar campaigns → money_radar category", () => {
+  it("dripCategory maps every radar campaign to money_radar and leaves onboarding alone", () => {
+    for (const c of RADAR_CAMPAIGNS) expect(dripCategory(c)).toBe("money_radar");
+    expect(dripCategory("onboarding_d1")).toBe("product_updates");
+    expect(dripCategory("onboarding_d14")).toBe("promotions");
+    expect(isRadarCampaign("radar_t3")).toBe(true);
+    expect(isRadarCampaign("nps_d30")).toBe(false);
+  });
+
+  it("canSendDrip asks canSendEmail for money_radar on a radar campaign", async () => {
+    canSendEmailMock.mockResolvedValue(false);
+    expect(await canSendDrip("f@x.co", "radar_t14")).toBe(false);
+    expect(canSendEmailMock).toHaveBeenCalledWith("f@x.co", "money_radar");
+  });
+});
+
+// The DB CHECK is the last line of defence against a campaign id the worker
+// cannot render. This pins migration 0320's list to the TS union (via the
+// runtime ALL_DRIP_CAMPAIGNS mirror) so neither can drift alone.
+describe("migration 0320 campaign CHECK matches the DripCampaign union", () => {
+  it("lists exactly ALL_DRIP_CAMPAIGNS", () => {
+    const sql = readFileSync(resolve(__dirname, "../../supabase/migrations/0320_radar_drips.sql"), "utf8");
+    const block = sql.match(/add constraint email_drips_campaign_check[\s\S]*?\]\)\);/i)?.[0] ?? "";
+    expect(block).not.toBe("");
+    const listed = Array.from(block.matchAll(/'([a-z0-9_]+)'::text/g)).map((m) => m[1]);
+    expect([...listed].sort()).toEqual([...ALL_DRIP_CAMPAIGNS].sort());
+    expect(sql).toMatch(/drop constraint if exists email_drips_campaign_check/i);
+  });
+
+  it("0088's original inline CHECK is a strict subset (nothing was dropped)", () => {
+    const sql = readFileSync(resolve(__dirname, "../../supabase/migrations/0088_email_drips_and_nps.sql"), "utf8");
+    const block = sql.match(/campaign\s+text not null check \(campaign in \(([\s\S]*?)\)\)/i)?.[1] ?? "";
+    const original = Array.from(block.matchAll(/'([a-z0-9_]+)'/g)).map((m) => m[1]);
+    expect(original.length).toBe(5);
+    for (const c of original) expect(ALL_DRIP_CAMPAIGNS).toContain(c);
+  });
+});
+
+describe("enqueueRadarDrip", () => {
+  const NOW = new Date("2026-09-13T05:10:00.000Z");
+
+  it("inserts one due-now row keyed on the ref and returns 'queued'", async () => {
+    const r = await enqueueRadarDrip("F@X.co ", "u1", "radar_t14", RADAR_PAYLOAD, { now: NOW });
+    expect(r).toBe("queued");
+    // Dedupe lookup shape: email + campaign + payload->>ref_id inside the window.
+    const eqs = state.captured.eqs.filter((e) => e.table === "email_drips" && e.op === "select");
+    expect(eqs.map((e) => [e.col, e.val])).toEqual([
+      ["email", "f@x.co"],
+      ["campaign", "radar_t14"],
+      ["payload->>ref_id", "nsw-mvp-ventures"],
+    ]);
+    const gt = state.captured.gts.find((g) => g.table === "email_drips");
+    expect(gt?.col).toBe("scheduled_for");
+    expect(gt?.val).toBe(new Date(NOW.getTime() - RADAR_DRIP_DEDUPE_DAYS * 86_400_000).toISOString());
+    const ins = state.captured.inserts.find((i) => i.table === "email_drips");
+    expect(ins?.rows).toEqual([
+      {
+        email: "f@x.co",
+        user_id: "u1",
+        campaign: "radar_t14",
+        scheduled_for: NOW.toISOString(),
+        payload: RADAR_PAYLOAD,
+      },
+    ]);
+  });
+
+  it("returns 'duplicate' and inserts nothing when the (email, campaign, ref_id) row exists", async () => {
+    state.results["email_drips:select"] = { data: [{ id: "existing" }], error: null };
+    const r = await enqueueRadarDrip("f@x.co", "u1", "radar_t14", RADAR_PAYLOAD, { now: NOW });
+    expect(r).toBe("duplicate");
+    expect(state.captured.inserts).toHaveLength(0);
+  });
+
+  it("rejects a bad address, a missing ref_id and a non-radar campaign without touching the DB", async () => {
+    expect(await enqueueRadarDrip("nope", "u1", "radar_t3", RADAR_PAYLOAD)).toBe("invalid");
+    expect(await enqueueRadarDrip("f@x.co", "u1", "radar_t3", { ...RADAR_PAYLOAD, ref_id: " " })).toBe("invalid");
+    expect(await enqueueRadarDrip("f@x.co", "u1", "onboarding_d1" as never, RADAR_PAYLOAD)).toBe("invalid");
+    expect(state.captured.from).toHaveLength(0);
+  });
+
+  it("returns 'error' on a null admin, a dedupe error, or an insert error", async () => {
+    state.adminNull = true;
+    expect(await enqueueRadarDrip("f@x.co", "u1", "radar_t3", RADAR_PAYLOAD)).toBe("error");
+    state.adminNull = false;
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    state.results["email_drips:select"] = { data: null, error: { message: "boom" } };
+    expect(await enqueueRadarDrip("f@x.co", "u1", "radar_t3", RADAR_PAYLOAD)).toBe("error");
+    state.results["email_drips:select"] = { data: [], error: null };
+    state.results["email_drips:insert"] = { data: null, error: { message: "boom" } };
+    expect(await enqueueRadarDrip("f@x.co", "u1", "radar_t3", RADAR_PAYLOAD)).toBe("error");
+  });
+
+  it("accepts an injected db (the sweep's client) instead of getSupabaseAdmin", async () => {
+    state.adminNull = true;
+    const calls: string[] = [];
+    const db = {
+      from(table: string) {
+        calls.push(table);
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          gt: () => chain,
+          limit: () => Promise.resolve({ data: [], error: null }),
+          insert: () => Promise.resolve({ error: null }),
+        };
+        return chain;
+      },
+    };
+    expect(await enqueueRadarDrip("f@x.co", "u1", "radar_t30", RADAR_PAYLOAD, { db })).toBe("queued");
+    expect(calls).toEqual(["email_drips", "email_drips"]);
   });
 });

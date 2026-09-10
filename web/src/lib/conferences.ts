@@ -55,6 +55,16 @@ const APAC_COUNTRIES = new Set(["AU", "NZ", "SG", "HK", "MO", "MY", "ID", "TH", 
 
 let cache: Conference[] | null = null;
 
+/**
+ * The curated seed list from `content/conferences.json` (cached per
+ * process). Exported so callers that merge other sources (T0246:
+ * `au_programs` event rows via lib/funding/events.ts) can pass one combined
+ * `source` to `recommendConferences` without re-reading the file.
+ */
+export async function loadConferenceSeed(): Promise<Conference[]> {
+  return loadSeed();
+}
+
 async function loadSeed(): Promise<Conference[]> {
   if (cache) return cache;
   const candidates = [
@@ -98,6 +108,10 @@ function sectorMatch(conf: Conference, sector: string | null | undefined): boole
   if (!sector) return true;
   const needle = sector.toLowerCase().trim();
   if (!needle) return true;
+  // No sectors listed = sector-agnostic (general founder festivals such as
+  // Spark or West Tech Fest from au_programs), mirroring how empty `stages`
+  // already means "any stage".
+  if (!Array.isArray(conf.sectors) || conf.sectors.length === 0) return true;
   return conf.sectors.some((s) => s.toLowerCase() === needle);
 }
 

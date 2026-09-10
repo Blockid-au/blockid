@@ -76,3 +76,17 @@ describe("describeNotification / notificationAction — Money Radar payloads", (
     expect(daysLeftPhrase(30)).toBe("in 30 days");
   });
 });
+
+// T0246 — svi_trend_alert finally has a writer (svi-snapshot cron via
+// lib/svi-trend-alert.ts). The summary reads its payload; a legacy row with
+// no delta keeps the generic label.
+describe("describeNotification — svi_trend_alert (T0246 writer payload)", () => {
+  it("reads delta + total, signed", () => {
+    expect(describeNotification(row("svi_trend_alert", { delta: 6, svi_total: 66, snapshot_date: "2026-09-13", direction: "up" }))).toBe(
+      "Your SVI moved +6 points this week (now 66)",
+    );
+    expect(describeNotification(row("svi_trend_alert", { delta: -5.5 }))).toBe("Your SVI moved -5.5 points this week");
+    expect(describeNotification(row("svi_trend_alert", {}))).toBe("SVI trend alert");
+    expect(notificationAction(row("svi_trend_alert", { delta: 6 }))).toEqual({ href: "/workspace/svi-trend", label: "Open SVI trend" });
+  });
+});

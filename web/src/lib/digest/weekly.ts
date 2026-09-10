@@ -13,6 +13,8 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAllStartupSummaries, type StartupAISummary } from "@/lib/analysis/aggregate-startup-summary";
+import { can } from "@/lib/entitlements";
+import { buildDigestMoney, type DigestMoneyMatch, type DigestMoneySection } from "@/lib/funding/digest-money";
 
 export interface DigestActionRecommendation {
   /** Dimension key (ftv/mpc/ptd/tre/cgh/iri/lco/svm). */
@@ -68,7 +70,16 @@ export interface DigestPayload {
   aiSummary: StartupAISummary | null;
   shareUrl: string | null;
   notificationsUrl: string;
+  /**
+   * T0246 — "Money this week" block from `funding_matches`. `radar: true`
+   * (founder holds `money_radar`) carries the next deadline, new-match
+   * count and this week's step; `radar: false` is the one-line teaser with
+   * the upgrade link. Optional so older stored payloads still render.
+   */
+  money?: DigestMoneySection;
 }
+
+export type { DigestMoneySection } from "@/lib/funding/digest-money";
 
 // ---- Dimension metadata (kept local so this file has no other deps). --------
 
@@ -174,6 +185,76 @@ function weakestDim(dimScores: DimScore[]): DimScore | null {
   return dimScores.reduce((min, d) => (d.score < min.score ? d : min), dimScores[0]);
 }
 
+// ---- Money block (T0246) ----------------------------------------------------
+
+interface MatchRow {
+  ref_kind: "grant" | "program";
+  ref_id: string;
+  score: number | null;
+  status_at_match: string | null;
+  closes_at: string | null;
+  first_seen_at: string;
+}
+
+/**
+ * The founder's `funding_matches` joined (in memory) to the catalogue name,
+ * URL and A$ ceiling. Same join the ICS feed does; kept local so this file
+ * stays the digest's single query surface. Fail-safe: any error → [].
+ */
+async function loadMoneyMatches(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  userId: string,
+): Promise<DigestMoneyMatch[]> {
+  try {
+    const { data, error } = await supabase
+      .from("funding_matches")
+      .select("ref_kind, ref_id, score, status_at_match, closes_at, first_seen_at")
+      .eq("user_id", userId)
+      .limit(500);
+    if (error || !data) return [];
+    const matches = (data as MatchRow[]).filter((m) => m.ref_id && (m.ref_kind === "grant" || m.ref_kind === "program"));
+    if (matches.length === 0) return [];
+
+    const grantIds = Array.from(new Set(matches.filter((m) => m.ref_kind === "grant").map((m) => m.ref_id)));
+    const programIds = Array.from(new Set(matches.filter((m) => m.ref_kind === "program").map((m) => m.ref_id)));
+    const [g, p] = await Promise.all([
+      grantIds.length
+        ? supabase.from("au_grants").select("id, name, official_url, amount_max_aud").in("id", grantIds)
+        : Promise.resolve({ data: [] as unknown[] }),
+      programIds.length
+        ? supabase.from("au_programs").select("id, name, official_url, funding_aud").in("id", programIds)
+        : Promise.resolve({ data: [] as unknown[] }),
+    ]);
+    const names = new Map<string, { name: string; official_url: string | null; amount_max_aud: number | null }>();
+    for (const r of (g.data ?? []) as Array<{ id: string; name: string; official_url: string | null; amount_max_aud: number | null }>) {
+      names.set(`grant:${r.id}`, { name: r.name, official_url: r.official_url, amount_max_aud: r.amount_max_aud });
+    }
+    for (const r of (p.data ?? []) as Array<{ id: string; name: string; official_url: string | null; funding_aud: number | null }>) {
+      names.set(`program:${r.id}`, { name: r.name, official_url: r.official_url, amount_max_aud: r.funding_aud && r.funding_aud > 0 ? r.funding_aud : null });
+    }
+
+    const out: DigestMoneyMatch[] = [];
+    for (const m of matches) {
+      const ref = names.get(`${m.ref_kind}:${m.ref_id}`);
+      if (!ref) continue;
+      out.push({
+        ref_kind: m.ref_kind,
+        ref_id: m.ref_id,
+        name: ref.name,
+        score: Number(m.score ?? 0),
+        status_at_match: m.status_at_match ?? "open",
+        closes_at: m.closes_at,
+        first_seen_at: m.first_seen_at,
+        official_url: ref.official_url,
+        amount_max_aud: ref.amount_max_aud,
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 // ---- Main builder ----------------------------------------------------------
 
 export async function buildFounderDigest(
@@ -190,7 +271,7 @@ export async function buildFounderDigest(
   // Founder identity + display name.
   const { data: userRow } = await supabase
     .from("app_users")
-    .select("id, email, display_name")
+    .select("id, email, display_name, plan, segment")
     .eq("id", userId)
     .maybeSingle();
   if (!userRow) return null;
@@ -325,10 +406,29 @@ export async function buildFounderDigest(
     }
   }
 
+  // --- Section 5 (T0246): Money this week. Full block only for Founder
+  // Radar holders (`can(user, "money_radar")`); everyone else gets the
+  // one-line teaser. `can` never throws, but the matches read is wrapped
+  // so a missing table (0318 not applied) degrades to "0 new matches".
+  const radar = await can(
+    { id: userId, plan: String(userRow.plan ?? "founder_free"), segment: String(userRow.segment ?? "founder") },
+    "money_radar",
+  );
+  const matchRows = radar ? await loadMoneyMatches(supabase, userId) : [];
+  const money: DigestMoneySection = buildDigestMoney(matchRows, radar, {
+    now: periodEnd,
+    periodStart,
+    siteBase: siteBase(),
+  });
+  // A deadline inside the T-30 window or a fresh match is a reason to send
+  // even on a quiet report week — that is the point of the money lane.
+  const hasMoneySignal =
+    money.radar && (money.new_matches > 0 || (money.next_deadline !== undefined && money.next_deadline.days <= 30));
+
   // Skip decision — no signal, no email.
   const hasSviMovement =
     svi !== null && (svi.newSnapshot || (svi.delta !== null && svi.delta !== 0));
-  if (views.count === 0 && leads.count === 0 && !hasSviMovement) {
+  if (views.count === 0 && leads.count === 0 && !hasSviMovement && !hasMoneySignal) {
     return null;
   }
 
@@ -350,5 +450,6 @@ export async function buildFounderDigest(
     aiSummary,
     shareUrl,
     notificationsUrl: `${siteBase()}/workspace/notifications`,
+    money,
   };
 }

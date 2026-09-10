@@ -1,6 +1,10 @@
 // GET|POST /api/cron/email-drip
 //
-// CCSO onboarding drip worker. Each run, in order:
+// CCSO onboarding drip worker — also sends the Money Radar deadline drips
+// (`radar_t30/t14/t3`, `radar_status_changed`) that
+// lib/funding/radar-drips.ts queues after the weekly sweep (T0246); those
+// ride the `money_radar` preference through the same canSendDrip gate.
+// Each run, in order:
 //
 //   1. expireStaleDrips() — pending rows more than DRIP_EXPIRY_DAYS past
 //      their scheduled_for become `expired` and are never sent. This runs
