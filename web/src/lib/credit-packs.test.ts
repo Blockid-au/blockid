@@ -17,6 +17,8 @@
 // The module is pure data; there is nothing to mock. Every check here is a
 // structural / regression pin.
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CREDIT_PACKS, type CreditPack } from "./credit-packs";
 
@@ -292,5 +294,32 @@ describe("CREDIT_PACKS — immutability & isomorphism", () => {
     // so a diff on any tier is obvious in test output.
     const prices = CREDIT_PACKS.map((p) => p.priceAudCents);
     expect(prices).toEqual([500, 900, 2000, 3500, 6000]);
+  });
+});
+
+// ── Stripe sync script drift guard (T0249) ────────────────────────────────
+// `scripts/sync-stripe-pricing.mjs` is a stand-alone CLI with top-level side
+// effects (exits when STRIPE_SECRET_KEY is missing, then talks to Stripe), so
+// it cannot import this module. Until 2026-09-10 its PLANS[] still said
+// A$15/A$25 for the 50/100 packs after B8 moved them to A$35/A$60 — `--fix`
+// would have minted the wrong Stripe prices. This test greps the script's
+// `credits_<n>` rows and pins them to CREDIT_PACKS.
+describe("scripts/sync-stripe-pricing.mjs — credit-pack rows match CREDIT_PACKS", () => {
+  const scriptPath = resolve(__dirname, "../../scripts/sync-stripe-pricing.mjs");
+  const source = readFileSync(scriptPath, "utf8");
+  const rowRe = /planId:\s*"credits_(\d+)"[^\n]*?configCents:\s*(\d+)/g;
+  const scriptRows = Array.from(source.matchAll(rowRe)).map((m) => ({
+    credits: Number(m[1]),
+    priceAudCents: Number(m[2]),
+  }));
+
+  it("declares one row per credit pack, in ladder order", () => {
+    expect(scriptRows.map((r) => r.credits)).toEqual(CREDIT_PACKS.map((p) => p.credits));
+  });
+
+  it("configCents equals CREDIT_PACKS[].priceAudCents for every pack", () => {
+    expect(scriptRows).toEqual(
+      CREDIT_PACKS.map((p) => ({ credits: p.credits, priceAudCents: p.priceAudCents })),
+    );
   });
 });

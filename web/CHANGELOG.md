@@ -1,5 +1,9 @@
 # BlockID.au Changelog
 
+## Unreleased — 2026-09-10: Money Finder + Evaluator ladder (G11 / G12, sprints S0–S4)
+
+- **feat(money-finder + evaluators)** The public nav is five entries with a "Do you need money?" CTA into `/funding`, where three questions return a free grant-and-program preview and a ranked Money Finder report costs A$3 as a guest, 3 credits signed in, or nothing on Starter, the Startup Package and every evaluator plan; free SEO directories `/funding/grants` and `/funding/programs/[capital]` list every open Australian grant and every program in the eight capitals with official links and last-verified dates, refreshed weekly. Founder Radar (deadline alerts, monthly re-match, weekly next step) is bundled into Starter A$29 rather than sold as a fourth tier. `/pricing` gained a Founder / Evaluator switch: Scout A$79, Firm A$149 and Program A$349 with a card-required 7-day trial, plus the A$3 Trust BizReport per startup without a subscription; `/solutions/advisor` is a real page, `/compare` sets BlockID against ChatGPT and a valuer, and the privacy policy is one document at `/legal/privacy` (v2.1, effective 10 September 2026). This release also adds the Money Finder FAQ row and consultant anchor on `/pricing`, "See which of these you qualify for" callouts on the nine funding guides with a return strip on `/funding`, the `funding_directory_viewed` GA4 event, and a fix to `sync-stripe-pricing.mjs`, which still expected A$15 / A$25 for the 50- and 100-credit packs after they moved to A$35 / A$60 (T0249).
+
 ## 2026-09-09 — v3.10.0 (continued): persistence, the investor data room, and one visual system
 
 The 2026-09-08 entry below was written mid-release. This records what landed after it.

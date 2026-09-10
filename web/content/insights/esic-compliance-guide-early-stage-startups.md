@@ -403,3 +403,5 @@ To navigate the ESIC landscape effectively, founders should adopt a structured a
 > **Step 8: Issue Shares & Claim** → Issue new shares to investors, lodge with ATO, and provide ESIC confirmation to investors for their tax returns
 
 This checklist should be
+
+> **See which of these you qualify for →** [Run the free Money Finder preview](/funding) — Australian grants, programs and events matched to your startup, top 3 named, no sign-up.

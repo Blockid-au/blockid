@@ -13,6 +13,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
 import { CapitalPicker } from "@/components/funding/capital-picker";
@@ -98,6 +99,7 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
 
   return (
     <MarketingShell>
+      <PageViewTracker event="funding_directory_viewed" params={{ kind: "programs", capital }} />
       <BreadcrumbListJsonLd
         items={[
           { name: "Home", href: "/" },

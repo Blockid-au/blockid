@@ -40,6 +40,12 @@ const FAQS: FAQItem[] = [
     q: "Founder or Evaluator — which plans do I see?",
     a: "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime. Without a subscription, every full Trust BizReport is A$3 per startup. Need more than Program (5+ seats, multi-cohort, SSO)? Contact sales.",
   },
+  {
+    // G11 (2026-09-10, T0249): Money Finder ladder. Keep in sync with
+    // FAQ_JSONLD in app/(marketing)/pricing/page.tsx.
+    q: "What is the Grant & Program Finder (Money Finder)?",
+    a: "A ranked scan of Australian grants, programs and events your startup qualifies for. Free = the preview (how many you match, top 3 named) and the open-grants directory · A$3 = the full Money Finder report per startup — ranked matches, eligibility checklist, 12-month timeline, PDF · Starter A$29 = Founder Radar deadline alerts and monthly re-match, with full reports included · Growth A$69 = the same, with 45 credits a month for application drafts. A grants consultant charges A$500–2,000 for this scan.",
+  },
 ];
 
 export const FAQV2: FC = () => {

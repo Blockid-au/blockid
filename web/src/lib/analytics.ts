@@ -226,6 +226,11 @@ export interface AnalyticsEventMap {
   funding_preview: { state: string; stage: string; grant_count: number; program_count: number };
   funding_paywall_hit: { state: string; stage: string; rail: "guest" | "credits" | "plan" | "anonymous" };
   funding_report_paid: { paid_via: "one_off" | "credits" | "plan"; report_id: string };
+  //   funding_directory_viewed — the free directory list pages (T0249):
+  //   `/funding/grants` (kind "grants"), `/funding/programs` (kind
+  //   "programs", no capital) and `/funding/programs/[capital]` (kind
+  //   "programs", `capital` = display name, e.g. "Sydney" / "Remote").
+  funding_directory_viewed: { kind: "grants" | "programs"; capital?: string };
   //   radar_upsell_view / _click — the A$3 → Founder Radar (Starter) card
   //   (T0247). `surface` = where it rendered; `variant` = whether the copy
   //   had a real next deadline ("timeline") or fell back ("generic");

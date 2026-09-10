@@ -257,8 +257,8 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
           price_credits_5: { unit_amount: 500, currency: "aud", active: true },
           price_credits_10: { unit_amount: 900, currency: "aud", active: true },
           price_credits_25: { unit_amount: 2000, currency: "aud", active: true },
-          price_credits_50: { unit_amount: 1500, currency: "aud", active: true },
-          price_credits_100: { unit_amount: 2500, currency: "aud", active: true },
+          price_credits_50: { unit_amount: 3500, currency: "aud", active: true },
+          price_credits_100: { unit_amount: 6000, currency: "aud", active: true },
         },
       }).stripe,
     );
@@ -274,8 +274,8 @@ describe("stripe-pricing-audit — runStripePricingAudit", () => {
       ["credits_5", 500],
       ["credits_10", 900],
       ["credits_25", 2000],
-      ["credits_50", 1500],
-      ["credits_100", 2500],
+      ["credits_50", 3500],
+      ["credits_100", 6000],
     ] as const) {
       const r = rowFor(rows, id);
       expect(r.expectedCents).toBe(cents);
@@ -540,7 +540,7 @@ describe("stripe-pricing-audit — createFreshStripePrice", () => {
 
     await createFreshStripePrice("credits_50");
     expect(state.priceCreateCalls[0].recurring).toBeUndefined();
-    expect(state.priceCreateCalls[0].unit_amount).toBe(1500);
+    expect(state.priceCreateCalls[0].unit_amount).toBe(3500);
     expect(state.priceCreateCalls[0].metadata).toEqual({
       blockid_plan_id: "credits_50",
       created_by: "stripe-pricing-audit",

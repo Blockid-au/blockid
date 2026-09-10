@@ -222,3 +222,5 @@ No. Our [ESIC](/tools/esic) and [R&D tax](/tools/rnd-tax) tools produce a first-
 **Next steps:** Run your startup through the free [ESIC eligibility tool](/tools/esic) and the [R&D Tax Incentive tool](/tools/rnd-tax) to see which activities qualify. The [Startup Value Index](/svi) reports incorporate ESIC + RDTI status into your investor-readiness score. See [pricing](/pricing) for the professional reports that support ATO rulings.
 
 *General information only. Not financial or legal advice. Consult a qualified adviser before making decisions.*
+
+> **See which of these you qualify for →** [Run the free Money Finder preview](/funding) — Australian grants, programs and events matched to your startup, top 3 named, no sign-up.

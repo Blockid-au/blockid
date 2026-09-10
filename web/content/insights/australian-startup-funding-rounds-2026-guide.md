@@ -199,3 +199,5 @@ Use the [BlockID Investor Readiness Score](/score) to check all five pillars bef
 **Series B:** Ignoring governance. By Series B, Australian institutional investors require independent directors, audited financials, and a properly constituted board. Do not wait until the term sheet to build these structures.
 
 > **Model your funding round today.** Use the [BlockID Startup Valuation Engine](/score) to see your current pre-money range, run dilution scenarios, and understand exactly how much to raise at each stage.
+
+> **See which of these you qualify for →** [Run the free Money Finder preview](/funding) — Australian grants, programs and events matched to your startup, top 3 named, no sign-up.
