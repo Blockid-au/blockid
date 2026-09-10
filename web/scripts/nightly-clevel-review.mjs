@@ -115,7 +115,7 @@ const MANIFEST_PATH = join(__dirname, "lib", "clevel-review-manifest.json");
 // ─── Telegram ────────────────────────────────────────────────────────────────
 // Bot token is published in the codebase (same as telegram-report/route.ts).
 const TELEGRAM_BOT_TOKEN =
-  process.env.TELEGRAM_BOT_TOKEN ?? "***REMOVED***";
+  process.env.TELEGRAM_BOT_TOKEN ?? ""; // no literal fallback — see lib/telegram.ts
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID ?? "";
 
 // ─── Model + pricing ─────────────────────────────────────────────────────────

@@ -73,62 +73,6 @@ paths = [
   '''package-lock\.json$''',
 ]
 
-# ---------------------------------------------------------------------------
-# Historical exposure — allowlisted by commit, NOT forgiven.
-#
-# `gitleaks detect` scans git history, not just the working tree. Four commits
-# that are ancestors of origin/master committed real credentials. The files are
-# clean today, but the blobs remain reachable in a PUBLIC repository
-# (Blockid-au/blockid, isPrivate: false), so they are readable by anyone.
-#
-#   58b29ce864a0  web/src/app/api/cron/telegram-report/route.ts  telegram bot token
-#   96479ee3ab1c  web/scripts/git-sync-deploy.sh                 telegram bot token
-#   3e397df106e1  web/scripts/cron-runner.sh                     telegram bot token
-#   04db9520c8de  .claude/goals/deployment-runbook.md            GitLab PAT
-#
-# These are allowlisted because blocking deploys does not reduce the exposure
-# by one bit — the leak already happened, and only rotation fixes it. Keeping
-# the gate red here would cost us every future deploy while buying no safety,
-# and would train us to bypass the gate wholesale.
-#
-# REQUIRED REMEDIATION (owner: admin@blockid.au):
-#   1. Revoke and reissue the 3 Telegram bot tokens (BotFather → /revoke).
-#   2. Revoke the GitLab PAT and reissue with minimum scope.
-#   3. Decide whether Blockid-au/blockid should stay public.
-# Rewriting history would not help: the blobs are already cloned and cached by
-# GitHub. Rotation is the only real fix.
-#
-# Everything outside these four commits is still scanned. A NEW secret fails
-# the gate.
-# ---------------------------------------------------------------------------
-[[allowlists]]
-description = "Historical secret commits — superseded by credential rotation, see above"
-commits = [
-  "58b29ce864a09085a749a687cce60c4d988926c2",
-  "96479ee3ab1c655056cc38cb37c96a0c713f66b8",
-  "3e397df106e1b09c8aad9a7d5201fe7a58a479c7",
-  "04db9520c8de732224f8299eef64021a816212ed",
-  # 75503ac67 committed the live CRON_SECRET in scripts/crontab.production as a
-  # plaintext assignment. The same 64-char value was reused for IP_HASH_SALT
-  # and HISTORY_INGEST_KEY, so one leaked string compromised three secrets:
-  # every /api/cron/* endpoint, the salt that makes stored IP hashes
-  # irreversible, and the history-ingest key.
-  #
-  # Unlike the four above, this one needed no third party, so all three were
-  # rotated on 2026-09-09 and are now distinct. The commit is allowlisted
-  # because the value it contains is dead.
-  "75503ac67fb83609a4eddac5e9903c71e2ecdffd",
-  # 698b8b9bc committed scripts/qa/post-deploy-checks.sh with the ALREADY-DEAD
-  # CRON_SECRET as a literal, to assert that the leaked value still gets a 401.
-  # Well-intentioned and still wrong: a dead credential in the repo is the same
-  # habit that produced 75503ac67, and this gate caught it and aborted a deploy,
-  # which is exactly right.
-  #
-  # The script now compares a SHA-256 instead, so nothing is stored and the
-  # check is stronger (it also fails if the secret ever reverts). The commit is
-  # allowlisted because git history cannot be edited and the value is dead.
-  "698b8b9bc21bfbc3f68f2418df359fb56ea4d119",
-]
 
 # ---------------------------------------------------------------------------
 # Deliberately-wrong tokens in QA scripts.
@@ -148,3 +92,27 @@ regexes = [
   '''not-the-real-secret-0+''',
   '''deliberately-invalid''',
 ]
+
+# ---------------------------------------------------------------------------
+# Telegram bot token by SHAPE, no keyword gate.
+#
+# The default telegram-bot-api-token rule only runs on files containing the
+# word "telegram". Five live copies of the real token sat at HEAD in lines like
+#     TG_BOT="123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# and were never flagged, because "TG_BOT" is not "telegram". They surfaced
+# only when a history rewrite for the *historical* copies changed HEAD's tree.
+# This rule has no keywords, so it runs on every file.
+# ---------------------------------------------------------------------------
+[[rules]]
+id = "telegram-bot-token-shape"
+description = "Telegram bot token by shape (no keyword gate)"
+regex = '''(?:^|[^0-9A-Za-z])([0-9]{8,10}:A[A-Za-z0-9_-]{34})(?:$|[^A-Za-z0-9_-])'''
+secretGroup = 1
+entropy = 3.0
+
+  [[rules.allowlists]]
+  regexTarget = "match"
+  regexes = [
+    # The one fake this repo's own tests inject (telegram.test.ts).
+    '''000000000:FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK''',
+  ]

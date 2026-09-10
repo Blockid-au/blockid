@@ -20,7 +20,10 @@ WEB_DIR="$REPO/web"
 LOG="/tmp/blockid-self-upgrade.log"
 DEPLOY_LOG="/tmp/blockid-self-upgrade-deploy.log"
 LOCK="/tmp/blockid-deploy.lock"
-TG_BOT="***REMOVED***"
+# Telegram bot token comes from the gitignored .env — never a literal here.
+# This line used to carry the real token, which is how it reached a public
+# repo. Mirrors env_val() in cron-runner.sh.
+TG_BOT="${TELEGRAM_BOT_TOKEN:-$(grep -E '^TELEGRAM_BOT_TOKEN=' "$(dirname "$0")/../.env" 2>/dev/null | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')}"
 TG_CHAT="${TELEGRAM_CHAT_ID:-539796782}"
 DRY_RUN="${1:-}"
 TIMEOUT_S=1500   # 25 min cap for the Claude session

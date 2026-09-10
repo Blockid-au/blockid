@@ -283,10 +283,13 @@ function DesktopDropdown({
     [onClose],
   );
 
+  // Open only. Hover opens this panel after an intent delay, so a click that
+  // lands after the delay used to toggle it shut — and one that landed before
+  // opened it. Whether clicking "Demo" showed or hid the menu depended on how
+  // fast the mouse arrived. Closing is mouseleave, click-outside and Escape.
   const handleTriggerClick = useCallback(() => {
-    if (isOpen) onClose();
-    else onOpen();
-  }, [isOpen, onOpen, onClose]);
+    if (!isOpen) onOpen();
+  }, [isOpen, onOpen]);
 
   return (
     <li
@@ -300,7 +303,6 @@ function DesktopDropdown({
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls={panelId}
-        aria-label={`${group.label} menu`}
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
         className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
@@ -409,7 +411,6 @@ function MobileGroup({ group, onLinkActivate }: MobileGroupProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label={`${group.label} menu`}
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium text-brand-ink-muted hover:bg-white/5 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
       >

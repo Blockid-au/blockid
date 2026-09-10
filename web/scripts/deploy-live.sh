@@ -904,6 +904,32 @@ else
   echo "  ⚠  no CSS href found in homepage — cannot verify static asset serving"
 fi
 
+# ── Hydrated smoke tier, pre-swap ────────────────────────────────────
+# tests/e2e/smoke.*.spec.ts: five anonymous specs, ~40s. Until 2026-09-10 the
+# pipeline ran only smoke/post-deploy.spec.ts (Gate 12, post-swap), and this
+# tier never ran anywhere. Running it here, against the temp port, means a
+# failure discards the release before the swap instead of triggering a
+# rollback after it. It went unrun long enough to miss: article pages
+# rendering two <h1>s, a hero test asserting a retired contract, and the
+# primary nav growing past its own seven-entry cap.
+#
+# Non-fatal when Playwright itself is unavailable (Gate 12 makes that fatal);
+# a missing test runner reports SKIPPED, never a pass — see Gate 0.5.
+if npx --no-install playwright --version >/dev/null 2>&1; then
+  echo "  ▶ Running e2e smoke tier against :$TEMP_PORT ..."
+  if PLAYWRIGHT_BASE_URL="http://127.0.0.1:$TEMP_PORT" \
+     npx --no-install playwright test tests/e2e/smoke.*.spec.ts \
+       --reporter=list --retries=1 --workers=2 > /tmp/blockid-deploy-smoke-tier.log 2>&1; then
+    echo "  ✅ e2e smoke tier passed ($(grep -cE '^\s+✓' /tmp/blockid-deploy-smoke-tier.log) tests)"
+  else
+    echo "  ❌ e2e smoke tier FAILED — /tmp/blockid-deploy-smoke-tier.log"
+    grep -E '^\s+✘|Error:' /tmp/blockid-deploy-smoke-tier.log | head -12 | sed 's/^/     /'
+    SMOKE_FAIL=$((SMOKE_FAIL + 1))
+  fi
+else
+  echo "  ⏭  e2e smoke tier SKIPPED — Playwright not installed (not counted as a pass)"
+fi
+
 # Kill temp process
 kill $NEW_PID 2>/dev/null || true
 fuser -k $TEMP_PORT/tcp 2>/dev/null || true

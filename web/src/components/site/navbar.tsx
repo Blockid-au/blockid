@@ -466,7 +466,12 @@ function ToolsDropdown({ entry }: { entry: NavDropdown }) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        // Open only. onMouseEnter has already opened the panel by the time a
+        // mouse click lands, so a toggle here snapped it shut — the user hovers,
+        // sees the menu, clicks to commit, and it vanishes. Touch has no hover,
+        // so the click still opens there. Closing is mouseleave, click-outside
+        // and Escape, which is the standard hover-menu contract.
+        onClick={() => setOpen(true)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();

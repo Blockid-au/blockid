@@ -43,7 +43,7 @@ describe("scanContent", () => {
 
   it("flags gitlab PATs (the exposure pattern in .claude/settings.local.json)", () => {
     const src =
-      "PRIVATE-TOKEN: ***REMOVED***.01.0w07d02zv line two";
+      "PRIVATE-TOKEN: glpat-FAKEFIXTURE0000000000.01.0w07d02zv line two" // fake — the old fixture was the real PAT;
     const hits = scanContent(F, src);
     expect(hits).toHaveLength(1);
     expect(hits[0].pattern).toBe("gitlab-pat");

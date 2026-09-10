@@ -41,11 +41,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 //   • Handles all four delimiters in a single call and preserves order +
 //     surrounding characters.
 //
-// TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID are read at module-load time (top-
-// level const with `?? default`). Tests import the module once and rely on
-// the compiled-in defaults; per-test env overrides would need
-// vi.resetModules(), which is not needed for the surface under test.
+// TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID are read at module-load time. This
+// suite used to "rely on the compiled-in defaults" — and the compiled-in
+// default for the token was the real bot token, which is how it reached a
+// public repo. There is no default any more: an unset token makes
+// sendTelegram() return false before touching fetch. So the fake token is
+// set here, hoisted above the import, and the URL assertion below checks
+// for this exact fake — a real token can never satisfy it again.
 // ---------------------------------------------------------------------------
+
+const FAKE_TOKEN = vi.hoisted(() => {
+  const t = "000000000:FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAK";
+  process.env.TELEGRAM_BOT_TOKEN = t;
+  return t;
+});
 
 import { mdEscape, sendTelegram } from "./telegram";
 
@@ -127,7 +136,25 @@ describe("sendTelegram — URL + envelope contract", () => {
     await sendTelegram("hello");
     expect(fetchCalls).toHaveLength(1);
     const [url] = fetchCalls[0];
-    expect(String(url)).toMatch(/^https:\/\/api\.telegram\.org\/bot[^/]+\/sendMessage$/);
+    // Exact fake, not [^/]+ — so this can only ever pass with the token the
+    // test injected, never with a literal that crept back into the module.
+    expect(String(url)).toBe(`https://api.telegram.org/bot${FAKE_TOKEN}/sendMessage`);
+  });
+
+  it("returns false without calling the API when no token is configured", async () => {
+    // Pinned so the "no fallback" contract cannot be quietly reversed.
+    vi.resetModules();
+    const saved = process.env.TELEGRAM_BOT_TOKEN;
+    delete process.env.TELEGRAM_BOT_TOKEN;
+    try {
+      const fresh = await import("./telegram");
+      stubFetch(async () => new Response('{"ok":true}', { status: 200 }));
+      expect(await fresh.sendTelegram("hello")).toBe(false);
+      expect(fetchCalls).toHaveLength(0);
+    } finally {
+      process.env.TELEGRAM_BOT_TOKEN = saved;
+      vi.resetModules();
+    }
   });
 
   it("sets method=POST and Content-Type: application/json", async () => {
