@@ -31,7 +31,7 @@
 
 ### User Experience (CPO + CRO)
 - [x] Onboarding wizard (3-step: profile→SVI→evidence with AIThinkingStatus)
-- [ ] Dashboard personalization (pin widgets, reorder cards)
+- [x] Dashboard personalization (pin widgets, reorder cards) (server-synced 2026-09-11)
 - [x] Dark mode toggle (ThemeToggle component + CSS custom properties + localStorage)
 - [x] Vietnamese: full report translation (page titles + AI prompt + deep dive) full translation)
 - [x] PWA setup (manifest, theme-color, apple-web-app, installable)
