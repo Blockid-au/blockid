@@ -98,6 +98,7 @@ describe("getMenuOverlayForRole — role precedence", () => {
       advisor: "Advisor",
       accelerator: "Accelerator",
       incubator: "Incubator",
+      service_provider: "Service provider",
       reseller: "Reseller",
       mentor: "Program Mentor",
       innovator: "Corporate Innovator",
@@ -182,6 +183,16 @@ describe("getMenuOverlayForRole — audience-specific shapes", () => {
     );
     expect(o.sidebarOrder).toEqual(["Home", "Account"]);
     expect(o.topNavExtras).toEqual([]);
+  });
+
+  it("service_provider aliases the advisor layout (T0269 — segment advisor)", () => {
+    const a = getMenuOverlayForRole({ accountType: "advisor" });
+    const s = getMenuOverlayForRole({ accountType: "service_provider" });
+    expect(s.hiddenGroups).toEqual(a.hiddenGroups);
+    expect(s.sidebarOrder).toEqual(a.sidebarOrder);
+    expect(s.defaultCollapsedGroups).toEqual(a.defaultCollapsedGroups);
+    // Registration writes segment=advisor, which wins over accountType.
+    expect(getMenuOverlayForRole({ segment: "advisor", accountType: "service_provider" }).roleLabel).toBe("Advisor");
   });
 
   it("accelerator + incubator share the same shape (aliased)", () => {
@@ -437,6 +448,7 @@ describe("ROLE_OVERLAY_TABLE — data-quality invariants", () => {
     "advisor",
     "accelerator",
     "incubator",
+    "service_provider",
     "reseller",
     "mentor",
     "innovator",

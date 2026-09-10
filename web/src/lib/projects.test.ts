@@ -69,6 +69,21 @@ describe("getProjectLimit — plans.usage_limits.profiles lookup", () => {
     expect(await getProjectLimit("founding50")).toBe(1);
   });
 
+  // T0269 / G12-7 — evaluators create the startups they evaluate, so the
+  // Scout / Firm / Program rungs must not collapse to the founder default of
+  // 1 when the plans row is missing (fresh DB before 0309 is applied).
+  it("evaluator rungs fall back to 25 / 50 / 200 (plans.csv usage_limits.profiles)", async () => {
+    getPlanCachedMock.mockResolvedValue(null);
+    expect(await getProjectLimit("investor_angel")).toBe(25);
+    expect(await getProjectLimit("investor_advisor")).toBe(50);
+    expect(await getProjectLimit("investor_vc_small")).toBe(200);
+  });
+
+  it("evaluator rungs prefer the DB row's profiles over the fallback", async () => {
+    getPlanCachedMock.mockResolvedValue({ id: "investor_angel", usage_limits: { profiles: 30 } });
+    expect(await getProjectLimit("investor_angel")).toBe(30);
+  });
+
   it("unknown plan id defaults to 1", async () => {
     getPlanCachedMock.mockResolvedValue(null);
     expect(await getProjectLimit("mystery_tier")).toBe(1);

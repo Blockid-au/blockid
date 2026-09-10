@@ -1,7 +1,12 @@
 // POST /api/auth/register-with-card — card-required signup endpoint.
 //
 // Enforces the 2026-07-24 "every new signup gets a 7-day trial with card
-// upfront" model (see `web/src/lib/plans/trial-copy.ts`).
+// upfront" model (see `web/src/lib/plans/trial-copy.ts`). T0269 (G12 S1)
+// opened the same mechanism to evaluators — investors, accelerators /
+// incubators, advisors / consulting firms, service providers — on the
+// Scout / Firm / Program rungs (`investor_angel` / `investor_advisor` /
+// `investor_vc_small`). Allow-lists, account types and the account_type →
+// segment mapping live in `@/lib/plans/signup-plans` (shared with /signup).
 //
 // Body: {
 //   email, password, display_name?, account_type?,
@@ -15,8 +20,10 @@
 //   4. Bcrypt-hash password (cost = 12, matches /api/auth/register).
 //   5. Create Stripe Customer + attach PaymentMethod as default.
 //   6. Create Subscription in trial mode with
-//      `trial_settings.end_behavior.missing_payment_method = 'cancel'`.
-//   7. INSERT app_users row + stamp trial_started_at / trial_end_at.
+//      `trial_settings.end_behavior.missing_payment_method = 'cancel'`;
+//      `trial_period_days` = the plan row's `trial_days` (fallback 7).
+//   7. INSERT app_users row + stamp trial_started_at / trial_end_at +
+//      `segment` derived from account_type (so segment-filtered digests fire).
 //   8. Log the user in (setSessionCookie).
 //   9. Fire welcome email (best-effort — non-fatal).
 //
@@ -42,8 +49,13 @@ import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getPlanCached } from "@/lib/plans-db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
-import { NEW_SIGNUP_TIER_IDS } from "@/lib/pricing-data";
-import { TRIAL_DAYS, formatAud } from "@/lib/plans/trial-copy";
+import { formatAud } from "@/lib/plans/trial-copy";
+import {
+  SIGNUP_ACCOUNT_TYPES,
+  SIGNUP_ALLOWED_PLAN_IDS,
+  resolveTrialDays,
+  segmentForAccountType,
+} from "@/lib/plans/signup-plans";
 import { initializeCredits } from "@/lib/credits";
 import { sendPaymentConfirmation } from "@/lib/email";
 
@@ -52,23 +64,23 @@ export const runtime = "nodejs";
 
 const BCRYPT_ROUNDS = 12;
 
-// Superset of new-signup tiers + all founder_* SKUs from plans.csv so the
-// endpoint keeps working after tier IDs change without a redeploy.
+// Superset of legacy new-signup tiers + founder_* + evaluator SKUs — see
+// `SIGNUP_ALLOWED_PLAN_IDS` (`@/lib/plans/signup-plans`), which /signup shares.
 // founder_scale (Pro, A$299) retired 2026-09-08 — its Stripe price is archived
 // and plans.csv marks it active=false, so accepting it here would register a
 // card against a subscription that can never be charged.
-const ALLOWED_PLAN_IDS = new Set<string>([
-  ...NEW_SIGNUP_TIER_IDS,
-  "founder_starter",
-  "founder_growth",
-  "founder_enterprise",
-]);
+const ALLOWED_PLAN_IDS = SIGNUP_ALLOWED_PLAN_IDS;
+
+// The zod enum must stay in lock-step with `SIGNUP_ACCOUNT_TYPES`,
+// `ACCOUNT_TYPE_VALUES` (segments.ts) and the `app_users_account_type_check`
+// CHECK (migration 0310). Pinned by `./signup-rules.test.ts`.
+const ACCOUNT_TYPE_ENUM = z.enum(SIGNUP_ACCOUNT_TYPES);
 
 const BodySchema = z.object({
   email: z.string().trim().min(3).max(320),
   password: z.string().min(8).max(200),
   display_name: z.string().trim().max(100).optional(),
-  account_type: z.enum(["founder", "investor", "journalist"]).optional().default("founder"),
+  account_type: ACCOUNT_TYPE_ENUM.optional().default("founder"),
   plan_id: z.string().min(1).max(64),
   payment_method_id: z.string().min(4).max(128),
   terms_accepted: z.literal(true),
@@ -162,9 +174,14 @@ export async function POST(request: Request) {
   const passwordHash = await bcrypt.hash(body.password, BCRYPT_ROUNDS);
   const role: "user" | "admin" = email === ADMIN_EMAIL ? "admin" : "user";
   const nowIso = new Date().toISOString();
+  // Trial length comes from the plan row (plans.csv `trial_days` → plans
+  // table), not a constant — accelerator rows carry 14, everything else 7.
+  const trialDays = resolveTrialDays(plan);
   const trialEndIso = new Date(
-    Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000,
+    Date.now() + trialDays * 24 * 60 * 60 * 1000,
   ).toISOString();
+  // Audience bucket for segment-filtered jobs (investor-weekly-digest etc.).
+  const segment = segmentForAccountType(body.account_type, plan.id);
 
   // 1. Insert the app_users row FIRST so we always have a rollback anchor
   //    if Stripe fails mid-flow. Stripe customer id is filled in after
@@ -177,6 +194,7 @@ export async function POST(request: Request) {
       display_name: displayName ?? null,
       role,
       account_type: body.account_type,
+      segment,
       plan: plan.id,
       trial_started_at: nowIso,
       trial_end_at: trialEndIso,
@@ -235,7 +253,7 @@ export async function POST(request: Request) {
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: stripePriceId }],
-      trial_period_days: TRIAL_DAYS,
+      trial_period_days: trialDays,
       default_payment_method: body.payment_method_id,
       trial_settings: {
         end_behavior: { missing_payment_method: "cancel" },
@@ -335,7 +353,7 @@ export async function POST(request: Request) {
     trial: {
       end_at: trialEndIso,
       started_at: nowIso,
-      days: TRIAL_DAYS,
+      days: trialDays,
       subscription_id: subscriptionId,
       plan_name: plan.name,
       price_display: formatAud(plan.price_aud_cents),

@@ -17,6 +17,7 @@ import * as React from "react";
 import Link from "next/link";
 
 import { PLANS_V2 } from "@/lib/plans-v2";
+import { evaluatorPlanLabel } from "@/lib/plans/signup-plans";
 
 interface TrialStatusResponse {
   ok?: boolean;
@@ -58,6 +59,35 @@ function lookupMonthlyPrice(planId: string | null | undefined): number | null {
   }
 }
 
+/**
+ * Banner message for a trialing user. Exported for the colocated test.
+ *
+ * Evaluator rungs (investor_angel / investor_advisor / investor_vc_small)
+ * name the plan under its public label (Scout / Firm / Program) so an
+ * evaluator sees "Card will be charged A$79 for Scout on …"; founder plans
+ * keep the original wording. Price comes from PLANS_V2 (monthly_aud).
+ */
+export function buildTrialBannerMessage(args: {
+  daysLeft: number;
+  planId: string | null | undefined;
+  endDate: string;
+  monthlyPrice?: number | null;
+}): string {
+  const monthlyPrice =
+    args.monthlyPrice === undefined ? lookupMonthlyPrice(args.planId) : args.monthlyPrice;
+  const daysLabel = args.daysLeft === 1 ? "1 day left" : args.daysLeft + " days left";
+  const evaluatorName = evaluatorPlanLabel(args.planId);
+  const forPlan = evaluatorName ? " for " + evaluatorName : "";
+  const trialLabel = evaluatorName
+    ? " in your free " + evaluatorName + " trial."
+    : " in your free trial.";
+  const priceCopy =
+    monthlyPrice != null
+      ? " Card will be charged A$" + monthlyPrice + forPlan + " on " + args.endDate + "."
+      : " Your" + (evaluatorName ? " " + evaluatorName : "") + " subscription will begin on " + args.endDate + ".";
+  return daysLabel + trialLabel + priceCopy;
+}
+
 export function TrialBanner(): React.ReactElement | null {
   const [status, setStatus] = React.useState<TrialStatusResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -95,6 +125,7 @@ export function TrialBanner(): React.ReactElement | null {
     try {
       if (typeof window === "undefined") return;
       const flag = window.localStorage.getItem(todayKey());
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- read per-day dismiss flag from localStorage after mount (SSR-safe)
       if (flag === "1") setDismissed(true);
     } catch {
       // localStorage blocked (private mode / SSR) — treat as not dismissed.
@@ -108,7 +139,6 @@ export function TrialBanner(): React.ReactElement | null {
   if (daysLeft <= 0) return null;
   if (dismissed) return null;
 
-  const monthlyPrice = lookupMonthlyPrice(status.planId);
   const endDate = formatEndDate(status.trialEnd);
 
   // Escalate the visual tone as trial-end approaches.
@@ -119,13 +149,7 @@ export function TrialBanner(): React.ReactElement | null {
     toneClass = "bg-amber-100/70 border-amber-400 text-amber-900 dark:bg-amber-900/40 dark:border-amber-600 dark:text-amber-100";
   }
 
-  const daysLabel = daysLeft === 1 ? "1 day left" : daysLeft + " days left";
-  const priceCopy =
-    monthlyPrice != null
-      ? " Card will be charged A$" + monthlyPrice + " on " + endDate + "."
-      : " Your subscription will begin on " + endDate + ".";
-
-  const message = daysLabel + " in your free trial." + priceCopy;
+  const message = buildTrialBannerMessage({ daysLeft, planId: status.planId, endDate });
 
   async function handleDismiss(): Promise<void> {
     try {

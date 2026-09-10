@@ -6,6 +6,12 @@
 // lib/email, best-effort Telegram ping, then appends the event to
 // lifecycle_state.history.
 //
+// Every trial on this platform is card-required (founder + evaluator alike,
+// D1 2026-09-10), so the copy is "your card will be charged A$X on <date>;
+// cancel any time before then" — never "add a payment method / downgrade to
+// free" (G12-6). Plan name + price resolve from the plans table; evaluator
+// rungs show their public names (Scout / Firm / Program).
+//
 // Auth: x-cron-secret header must match CRON_SECRET (or Authorization
 // Bearer). Schedule: hourly.
 
@@ -14,6 +20,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
 import { sendTelegram } from "@/lib/telegram";
 import { redactPii } from "@/lib/log-redact";
+import { renderReminder, reminderSubject, resolvePlanDisplay } from "./reminder-copy";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -118,11 +125,13 @@ export async function GET(request: Request) {
         })
       : "in 3 days";
 
-    const subject = "Your BlockID trial ends in 3 days";
+    const plan = await resolvePlanDisplay(row.plan_id);
+    const subject = reminderSubject(plan, trialEndFmt);
     const html = renderReminder({
       name: user.display_name ?? "there",
       trialEndFmt,
-      planId: row.plan_id ?? "your plan",
+      planName: plan.name,
+      price: plan.price,
     });
 
     const result = await sendEmail({ to: user.email, subject, html }).catch((err: unknown) => {
@@ -169,21 +178,4 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ ok: true, count: sent, skipped });
-}
-
-function renderReminder(args: {
-  name: string;
-  trialEndFmt: string;
-  planId: string;
-}): string {
-  const esc = (s: string) =>
-    s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
-  return `<!DOCTYPE html><html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#1e293b;">
-  <div style="max-width:560px;margin:24px auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;">
-    <h1 style="margin:0 0 12px;font-size:20px;">Your trial ends ${esc(args.trialEndFmt)}</h1>
-    <p>Hi ${esc(args.name)},</p>
-    <p>Your BlockID <strong>${esc(args.planId)}</strong> trial ends in 3 days. Add a payment method now to keep every feature live without interruption.</p>
-    <p><a href="https://blockid.au/dashboard/billing" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;">Manage billing →</a></p>
-    <p style="color:#64748b;font-size:12px;">If you don't add a payment method, your workspace will downgrade to the free plan automatically — no charge.</p>
-  </div></body></html>`;
 }

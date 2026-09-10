@@ -41,14 +41,19 @@ export interface Project {
 const UNLIMITED_PROJECTS = Number.MAX_SAFE_INTEGER;
 
 // Static fallback in case the plans row is missing (fresh dev DB / migration
-// gap). Values mirror plans.csv → usage_limits.profiles for the founder tiers,
-// keyed by both legacy and v2 IDs.
+// gap). Values mirror plans.csv → usage_limits.profiles for the founder tiers
+// and the three evaluator rungs (Scout / Firm / Program — T0269, G12-7: an
+// evaluator creates the startups they evaluate, so 25 / 50 / 200), keyed by
+// both legacy and v2 IDs.
 const FALLBACK_PROJECT_LIMITS: Record<string, number> = {
   founder_free: 1,
   founder_starter: 1,
   founder_growth: 3,
   founder_scale: 10,
   founder_enterprise: UNLIMITED_PROJECTS,
+  investor_angel: 25,
+  investor_advisor: 50,
+  investor_vc_small: 200,
   free: 1,
   founding50: 1,
   founder: 3,

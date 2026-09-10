@@ -145,6 +145,17 @@ const ROLE_OVERLAY_TABLE: Record<RoleKey, RoleMenuOverlay> = {
     sidebarOrder: ["Home", "Roles", "Build", "Fundraise", "Account"],
     defaultCollapsedGroups: ["Build", "Fundraise", "Account"],
   },
+  // Service providers (T0269 evaluator persona, migration 0310) register
+  // with segment `advisor`, so the overlay aliases the advisor layout — the
+  // segment key wins in getMenuOverlayForRole; this entry covers the
+  // accountType fallback path.
+  service_provider: {
+    roleLabel: "Service provider",
+    hiddenGroups: ["Validate", "Scale & Exit"],
+    topNavExtras: [],
+    sidebarOrder: ["Home", "Roles", "Build", "Fundraise", "Account"],
+    defaultCollapsedGroups: ["Build", "Fundraise", "Account"],
+  },
 
   accelerator: {
     roleLabel: "Accelerator",

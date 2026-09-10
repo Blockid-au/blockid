@@ -7,7 +7,7 @@ import {
 } from "./segments";
 
 describe("account_type enum (P12.1)", () => {
-  it("carries the seven P12 persona buckets alongside the legacy 0067 trio", () => {
+  it("carries the seven P12 persona buckets alongside the legacy 0067 trio + T0269 service_provider", () => {
     expect(ACCOUNT_TYPE_VALUES).toEqual([
       "founder",
       "investor",
@@ -19,7 +19,13 @@ describe("account_type enum (P12.1)", () => {
       "incubator",
       "reseller",
       "affiliate",
+      "service_provider",
     ]);
+  });
+
+  it("service_provider (migration 0310) is a valid account type with a label", () => {
+    expect(isAccountType("service_provider")).toBe(true);
+    expect(accountTypeLabel("service_provider")).toBe("Service provider");
   });
 
   it("isAccountType narrows valid strings", () => {
