@@ -6,6 +6,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Autonomous loop guard rails
 
+> **Status 2026-09-10:** the goal-loop driver (`scripts/cron/goal-loop*.mjs` and its wrappers) was **removed** in `fd7bb0b03` (2026-08-13). The guards below (`scripts/cron/truncation-guard.mjs`, `test-gate.mjs`) still exist with tests but are **no longer invoked by any cron** (`self-upgrade-agent.sh` relies on `deploy-live.sh` gates + `git reset --hard` on failure instead); re-wire them if a loop returns. The implementation ledger is now `web/content/reports/project-state.json` (rendered to `implementing-plan.md`); a task closes when its `T0xxx` id appears in a commit subject. See `docs/plans/money-finder-2026-09-10.md` §8 for the current execution model.
+
 `scripts/cron/goal-loop.mjs` runs a Claude CLI subprocess each tick, then does
 `git add -A` + commit + push as a safety net (the server runs a periodic
 `git reset --hard`, so uncommitted edits are lost). That safety net has

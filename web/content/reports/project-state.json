@@ -1,6 +1,6 @@
 {
-  "version": "3.9.0",
-  "updatedAt": "2026-09-09T12:04:02.418Z",
+  "version": "3.10.0",
+  "updatedAt": "2026-09-10T03:19:36.044Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-31T14:00:01.953Z",
@@ -38,8 +38,8 @@
     ]
   },
   "plan": {
-    "decidedAt": "2026-09-09T12:04:02.418Z",
-    "decidedBy": "ceo",
+    "decidedAt": "2026-09-10T03:19:21.933Z",
+    "decidedBy": "ceo+founder (G11 plan session)",
     "tasks": [
       {
         "id": "T0001",
@@ -588,14 +588,15 @@
         "commit": "ab11688"
       },
       {
-        "id": "T0109",
+        "id": "T0252",
         "agent": "CLO",
         "title": "ESOP Legal Checklist Tool (/tools/esop-checklist) — Interactive client component",
         "rationale": "Rebuilt /tools/esop-checklist as interactive client component (EsopChecklistClient) with 30 checklist items across 6 categories: pre-implementation, plan documentation, ESS tax compliance, regulatory, employee communication, ongoing obligations. localStorage persistence, progress bar, category navigation, SEO metadata.",
         "versionImpact": "minor",
         "status": "done",
         "createdAt": "2026-06-14T03:00:00.000Z",
-        "completedAt": "2026-06-14T03:00:00.000Z"
+        "completedAt": "2026-06-14T03:00:00.000Z",
+        "notes": "[re-id from duplicate T0109 on 2026-09-10]"
       },
       {
         "id": "T0114",
@@ -618,33 +619,36 @@
         "completedAt": "2026-06-14T06:00:00.000Z"
       },
       {
-        "id": "T0101",
+        "id": "T0253",
         "agent": "cfo",
         "title": "Financial projection norms calculator enhancements",
         "rationale": "Integrate growth, churn, gross margin, Rule of 40, NRR, CAC payback, LTV/CAC by stage into financial projections",
         "versionImpact": "minor",
         "status": "done",
         "createdAt": "2026-06-14T12:04:02.438Z",
-        "completedAt": "2026-06-16T10:25:05Z"
+        "completedAt": "2026-06-16T10:25:05Z",
+        "notes": "[re-id from duplicate T0101 on 2026-09-10]"
       },
       {
-        "id": "T0102",
+        "id": "T0254",
         "agent": "cmo",
         "title": "AU startup percentile/positioning model integration",
         "rationale": "Develop 'Top X% of AU startups' ranking feature for founders",
         "versionImpact": "minor",
         "status": "pending",
-        "createdAt": "2026-06-14T12:04:02.438Z"
+        "createdAt": "2026-06-14T12:04:02.438Z",
+        "notes": "[re-id from duplicate T0102 on 2026-09-10]"
       },
       {
-        "id": "T0103",
+        "id": "T0255",
         "agent": "cto",
         "title": "Next-Best-Action engine prototype",
         "rationale": "Develop a basic 'You-are-here → Next → Then' engine for founder navigation",
         "versionImpact": "major",
         "status": "done",
         "createdAt": "2026-06-14T12:04:02.438Z",
-        "completedAt": "2026-06-16T10:24:19Z"
+        "completedAt": "2026-06-16T10:24:19Z",
+        "notes": "[re-id from duplicate T0103 on 2026-09-10]"
       },
       {
         "id": "T0200",
@@ -710,7 +714,7 @@
         "commit": "abcb7e1"
       },
       {
-        "id": "T0110",
+        "id": "T0256",
         "agent": "cfo",
         "title": "R&D Tax Incentive and ESIC data integration",
         "rationale": "Integrate R&D Tax Incentive and ESIC data to provide founders with accurate and relevant information for valuation and funding purposes",
@@ -718,7 +722,8 @@
         "status": "done",
         "createdAt": "2026-06-15T12:04:03.185Z",
         "completedAt": "2026-07-19T14:00:02.233Z",
-        "commit": "ebda143"
+        "commit": "ebda143",
+        "notes": "[re-id from duplicate T0110 on 2026-09-10]"
       },
       {
         "id": "T0111",
@@ -789,8 +794,10 @@
         "title": "LinkedIn page launch — Startup Value Index (linkedin.com/company/startup-value-index)",
         "rationale": "Sub-brand page targeting 'startup valuation Australia' search intent. Owner: CMO. Playbook: .claude/goals/linkedin-svi-page-launch.md. Content queue: web/content/linkedin-svi-page-content-pack.json (14 posts pre-written, 7 pillars). After page creation, founder pastes LINKEDIN_PAGE_ID + LINKEDIN_PAGE_ACCESS_TOKEN into web/.env; existing /api/cron/linkedin-page-post auto-drains queue Mon/Wed/Fri 09:00 AEST. KPI: 100 LinkedIn leads, 12 posts in 30 days. [DEFERRED 2026-06-15: page live (id 129624133) + content pack ready, blocked on LINKEDIN_PAGE_ACCESS_TOKEN manual OAuth — resume when token written to web/.env via scripts/linkedin-token-helper.sh]",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-15T13:18:12Z"
+        "status": "merged",
+        "createdAt": "2026-06-15T13:18:12Z",
+        "commit": "→ T0243",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0212",
@@ -808,8 +815,10 @@
         "title": "SVI brand landing page at startupvalueindex.com",
         "rationale": "Standalone SVI landing reusing blockid.au /svi components: hero ('What's your startup worth?'), 13-dimension explainer, free assessment CTA → /assessment (proxied to blockid.au), social proof (testimonials when ready), benchmarks teaser. Mobile-first. Slate brand palette consistent with LinkedIn page banner. KPI: free assessment conversion ≥ 8% of unique visitors.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-06-15T14:30:22Z"
+        "status": "merged",
+        "createdAt": "2026-06-15T14:30:22Z",
+        "commit": "→ T0250",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0120",
@@ -941,8 +950,10 @@
         "title": "Build 'Next-Best-Action' Analytics Engine",
         "rationale": "Translate CEO's SCN framework (Validation → Position → Value) into a data-driven routing system for founder progression.",
         "versionImpact": "major",
-        "status": "pending",
-        "createdAt": "2026-07-20T12:04:02.950Z"
+        "status": "merged",
+        "createdAt": "2026-07-20T12:04:02.950Z",
+        "commit": "→ T0182",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0135",
@@ -1210,8 +1221,10 @@
         "title": "Integrate Australian R&D Tax Incentive data into the Multi-Method Valuation Engine",
         "rationale": "Incorporating R&D tax credits improves valuation accuracy for founders leveraging government incentives, a gap not covered by existing valuation modules.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-07-23T12:04:03.207Z"
+        "status": "merged",
+        "createdAt": "2026-07-23T12:04:03.207Z",
+        "commit": "→ T0240",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0170",
@@ -1219,8 +1232,10 @@
         "title": "Implement Funding Readiness Scoring (CAPITAL framework) with automated recommendations",
         "rationale": "Provides founders a clear, data‑driven readiness score and next steps, enabling the CRO to drive higher conversion and investor engagement.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-07-23T12:04:03.207Z"
+        "status": "merged",
+        "createdAt": "2026-07-23T12:04:03.207Z",
+        "commit": "→ T0244",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0171",
@@ -1246,8 +1261,10 @@
         "title": "Develop and integrate the Next-Best-Action/DIRECTION engine to sequence founder actions by weakest SCN layer and stage",
         "rationale": "Recent research on Next-Best-Action/DIRECTION engine and funding readiness scoring can improve the effectiveness of the Startup Navigation System",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-07-24T12:04:07.811Z"
+        "status": "merged",
+        "createdAt": "2026-07-24T12:04:07.811Z",
+        "commit": "→ T0182",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0174",
@@ -1275,8 +1292,10 @@
         "title": "Implement Pricing Psychology Engine for subscription tier optimization",
         "rationale": "Applies CRO research on pricing psychology to dynamically recommend tier pricing and discounts, improving conversion and revenue without altering core valuation logic.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-07-25T12:04:02.737Z"
+        "status": "merged",
+        "createdAt": "2026-07-25T12:04:02.737Z",
+        "commit": "→ T0247",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0177",
@@ -1360,8 +1379,10 @@
         "title": "Implement AU R&D Tax Incentive & ESIC logic into Valuation Engine",
         "rationale": "Translates CFO's recent research on AU-specific tax incentives into a concrete valuation uplift, providing unique local value over global competitors like Carta.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-08-06T12:04:02.588Z"
+        "status": "merged",
+        "createdAt": "2026-08-06T12:04:02.588Z",
+        "commit": "→ T0240",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0186",
@@ -1369,8 +1390,10 @@
         "title": "Implement DIRECTION engine for SCN layer sequencing",
         "rationale": "Moves the 'Next-Best-Action' research into a shippable module that tells founders exactly which SCN layer to fix first based on their current stage.",
         "versionImpact": "major",
-        "status": "pending",
-        "createdAt": "2026-08-06T12:04:02.588Z"
+        "status": "merged",
+        "createdAt": "2026-08-06T12:04:02.588Z",
+        "commit": "→ T0182",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0187",
@@ -1396,8 +1419,10 @@
         "title": "Develop DIRECTION Engine for SCN Layer Sequencing",
         "rationale": "Implements the CEO's 'Next-Best-Action' vision, turning the SCN framework (Validation → Position → Value → Direction → Capital) into a programmable sequence that guides founders based on their weakest layer.",
         "versionImpact": "major",
-        "status": "pending",
-        "createdAt": "2026-08-11T12:04:02.560Z"
+        "status": "merged",
+        "createdAt": "2026-08-11T12:04:02.560Z",
+        "commit": "→ T0182",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0190",
@@ -1443,8 +1468,10 @@
         "title": "Implement Funding Readiness Scoring (CAPITAL framework)",
         "rationale": "Bridging the gap between valuation (CFO) and action; provides a diagnostic score that tells founders if they are actually ready to raise based on the CAPITAL research.",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-08-13T12:04:02.832Z"
+        "status": "merged",
+        "createdAt": "2026-08-13T12:04:02.832Z",
+        "commit": "→ T0244",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0198",
@@ -1452,8 +1479,10 @@
         "title": "Integrate AU R&D Tax Incentive & ESIC logic into Valuation Engine",
         "rationale": "CFO research specifically flagged R&D Tax Incentive and ESIC data. Existing open tasks ask for the full Multi-Method engine, but isolating the AU-specific tax/incentive logic is a high-leverage, discrete patch that adds immediate credibility and utility for Australian founders without waiting for th",
         "versionImpact": "minor",
-        "status": "pending",
-        "createdAt": "2026-08-31T12:04:02.325Z"
+        "status": "merged",
+        "createdAt": "2026-08-31T12:04:02.325Z",
+        "commit": "→ T0240",
+        "completedAt": "2026-09-10T03:19:21.933Z"
       },
       {
         "id": "T0199",
@@ -1465,103 +1494,272 @@
         "createdAt": "2026-08-31T12:04:02.325Z"
       },
       {
-        "id": "T0202",
+        "id": "T0257",
         "agent": "cmo",
         "title": "AU Startup Ecosystem Analysis",
         "rationale": "",
         "versionImpact": "major",
-        "status": "pending",
-        "createdAt": "2026-09-05T12:04:03.149Z"
+        "status": "merged",
+        "createdAt": "2026-09-05T12:04:03.149Z",
+        "notes": "[re-id from duplicate T0202 on 2026-09-10]",
+        "commit": "→ T0243",
+        "completedAt": "2026-09-10T03:19:35.113Z"
       },
       {
-        "id": "T0203",
+        "id": "T0258",
         "agent": "cto",
         "title": "First-Principles Redesign",
         "rationale": "",
         "versionImpact": "minor",
         "status": "pending",
-        "createdAt": "2026-09-05T12:04:03.149Z"
+        "createdAt": "2026-09-05T12:04:03.149Z",
+        "notes": "[re-id from duplicate T0203 on 2026-09-10]"
       },
       {
-        "id": "T0204",
+        "id": "T0259",
         "agent": "clo",
         "title": "SCN Report + PDF Redesign",
         "rationale": "",
         "versionImpact": "major",
         "status": "pending",
-        "createdAt": "2026-09-05T12:04:03.149Z"
+        "createdAt": "2026-09-05T12:04:03.149Z",
+        "notes": "[re-id from duplicate T0204 on 2026-09-10]"
       },
       {
-        "id": "T0205",
+        "id": "T0260",
         "agent": "cro",
         "title": "Implement VC Method Valuation & Pricing Strategy",
         "rationale": "Research suggests that incorporating VC Method and pricing strategy will improve the valuation engine accuracy and provide a competitive advantage over other SCN systems.",
         "versionImpact": "minor",
         "status": "pending",
-        "createdAt": "2026-09-07T12:04:02.971Z"
+        "createdAt": "2026-09-07T12:04:02.971Z",
+        "notes": "[re-id from duplicate T0205 on 2026-09-10]"
       },
       {
-        "id": "T0206",
+        "id": "T0261",
         "agent": "cto",
         "title": "Update Essential Eight Vulnerabilities to reflect ACSC alerts",
         "rationale": "Recent ACSC alerts require an update to the Essential Eight Vulnerability categories. This will ensure that BlockID stays secure and relevant in the startup ecosystem.",
         "versionImpact": "minor",
         "status": "pending",
-        "createdAt": "2026-09-07T12:04:02.971Z"
+        "createdAt": "2026-09-07T12:04:02.971Z",
+        "notes": "[re-id from duplicate T0206 on 2026-09-10]"
       },
       {
-        "id": "T0207",
+        "id": "T0262",
         "agent": "cfo",
         "title": "Refine Startup Valuation Engine for PitchBook benchmark comparison",
         "rationale": "By refining the valuation engine for PitchBook benchmark comparison, BlockID can gain a better understanding of the Australian startup ecosystem and improve positioning in Startup Navigation System.",
         "versionImpact": "minor",
         "status": "pending",
-        "createdAt": "2026-09-07T12:04:02.971Z"
+        "createdAt": "2026-09-07T12:04:02.971Z",
+        "notes": "[re-id from duplicate T0207 on 2026-09-10]"
       },
       {
-        "id": "T0208",
+        "id": "T0263",
         "agent": "cro",
         "title": "ACSC alerts integration",
         "rationale": "Integrating the latest ACSC alerts will provide timely security updates and maintain BlockID as a reliable source for founders in the Australian startup ecosystem.",
         "versionImpact": "patch",
         "status": "pending",
-        "createdAt": "2026-09-08T12:04:04.647Z"
+        "createdAt": "2026-09-08T12:04:04.647Z",
+        "notes": "[re-id from duplicate T0208 on 2026-09-10]"
       },
       {
-        "id": "T0209",
+        "id": "T0264",
         "agent": "cto",
         "title": "Startup ecosystem data & grant trends",
         "rationale": "Updating startup ecosystem data and grant trends will enhance the accuracy and relevance of the CTO's recommendations.",
         "versionImpact": "major",
-        "status": "pending",
-        "createdAt": "2026-09-08T12:04:04.648Z"
+        "status": "merged",
+        "createdAt": "2026-09-08T12:04:04.648Z",
+        "notes": "[re-id from duplicate T0209 on 2026-09-10]",
+        "commit": "→ T0243",
+        "completedAt": "2026-09-10T03:19:35.113Z"
       },
       {
-        "id": "T0210",
+        "id": "T0265",
         "agent": "cro",
         "title": "CISA alerts integration",
         "rationale": "Integrating CISA alerts will ensure BlockID remains up-to-date with the latest cybersecurity threats affecting Australian startups.",
         "versionImpact": "patch",
         "status": "pending",
-        "createdAt": "2026-09-08T12:04:04.648Z"
+        "createdAt": "2026-09-08T12:04:04.648Z",
+        "notes": "[re-id from duplicate T0210 on 2026-09-10]"
       },
       {
-        "id": "T0211",
+        "id": "T0266",
         "agent": "cro",
         "title": "Startup Ecosystem Data & Grants",
         "rationale": "Collect and analyze data on emerging grants, accelerators, funding rounds, and ESIC/R&D Tax changes for the Startup Navigation System. Implement a dashboard to track key startup metrics.",
         "versionImpact": "patch",
-        "status": "pending",
-        "createdAt": "2026-09-09T12:04:02.418Z"
+        "status": "merged",
+        "createdAt": "2026-09-09T12:04:02.418Z",
+        "notes": "[re-id from duplicate T0211 on 2026-09-10]",
+        "commit": "→ T0243",
+        "completedAt": "2026-09-10T03:19:35.113Z"
       },
       {
-        "id": "T0212",
+        "id": "T0267",
         "agent": "cro",
         "title": "Startup Ecosystem Reports & Trends",
         "rationale": "Expand the Startup Navigation System by incorporating global startup ecosystem trends and reports for founders, investors, and industry insiders.",
         "versionImpact": "patch",
+        "status": "merged",
+        "createdAt": "2026-09-09T12:04:02.418Z",
+        "notes": "[re-id from duplicate T0212 on 2026-09-10]",
+        "commit": "→ T0243",
+        "completedAt": "2026-09-10T03:19:35.113Z"
+      },
+      {
+        "id": "T0237",
+        "agent": "cto",
+        "title": "Loop hygiene: nextTaskId max+1, stagePlan select content, TaskStatus merged, self-upgrade-agent priority list → G11, T-id-in-commit rule",
+        "rationale": "Wave 0 · money-finder-2026-09-10.md §8. Unblocks the CEO loop (ID collisions at T0213, empty research summaries) before G11 waves start.",
+        "versionImpact": "patch",
         "status": "pending",
-        "createdAt": "2026-09-09T12:04:02.418Z"
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0238",
+        "agent": "cpo",
+        "title": "Public nav → 5 items + \"Do you need money?\" CTA; shared lib/nav/public-menu.ts; NavV2 useAuthUser; legacy navbar mirrors; footer Funding column; unlock-preview strip",
+        "rationale": "Wave 1a · G11-P1 · money-finder-2026-09-10.md §3. Update tests/e2e/nav/menu-structure.spec.ts in the same commit. Depends T0237.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0239",
+        "agent": "cto",
+        "title": "Migration 0308_au_funding.sql (au_grants, au_programs, funding_reports, project_grant_profiles, public-read RLS) + web/scripts/seed-au-funding.mjs + /admin/funding review page",
+        "rationale": "Wave 1b · G11-P2 · §4b. Seeds from web/content/data/{grants-au,programs-au}.seed.json. Apply via docker exec psql + NOTIFY pgrst. Depends T0237.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0240",
+        "agent": "cfo",
+        "title": "lib/agents/grant-advisor.ts — matchGrants/matchPrograms/buildTimeline (pure) + narrative via callAI with llm-auditor; reuses estimateRdti/evaluateEsic; colocated tests",
+        "rationale": "Wave 2a · G11-P3 · §4c. Absorbs T0169/T0185/T0198 (RDTI/ESIC logic). Depends T0239.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0241",
+        "agent": "cmo",
+        "title": "Public SEO directories /funding/grants, /funding/programs/[city] + JSON-LD + sitemap (server-rendered from au_* tables)",
+        "rationale": "Wave 2b · G11-P6 · §4f. Free list + official links (business.gov.au \"don't pay for grant info\" rule). Depends T0239.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0242",
+        "agent": "cro",
+        "title": "/funding landing + 3-question intake + POST /api/funding/preview + A$3 guest SKU FUNDING_REPORT_3AUD + webhook scope funding_report + POST /api/funding/report (credits grant_match / flag grant_finder)",
+        "rationale": "Wave 3a · G11-P4 · §4e. Human-blocked: mint STRIPE_PRICE_FUNDING_REPORT. plans.feature_flags + entitlements Feature union + tier-ladder.test. Depends T0240.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0243",
+        "agent": "cto",
+        "title": "lib/funding/fetch-source.ts + api/cron/refresh-funding-sources (GrantConnect RSS, Qld CKAN, state portals) + crontab line + goal-tree research topics + gitignored review queue",
+        "rationale": "Wave 3b · G11-P7 · §4d. Absorbs T0209/T0211/T0212/T0202 (ecosystem & grant trends). Depends T0239.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0244",
+        "agent": "cpo",
+        "title": "/funding/report/[id] (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + lib/dataroom/save-deliverable.ts + /workspace/funding + nav leaf validate.discover + recommender secondary money lane",
+        "rationale": "Wave 4a · G11-P5 · §4f. Absorbs T0170/T0194 (CAPITAL readiness → capital map tab) and the founder-facing NBA piece. Depends T0242.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0245",
+        "agent": "cto",
+        "title": "funding_matches + api/cron/money-radar-sweep + notification kinds (grant_deadline, program_intake, event_match, weekly_next_step, new_matches, analysis_refresh) + bell repoint + money_radar email category + /api/funding/calendar.ics",
+        "rationale": "Wave 4b · G11-P9 · §4h. Depends T0240, T0243.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0246",
+        "agent": "cmo",
+        "title": "Radar drips radar_t30/t14/t3 + weekly digest money block (founder-digest-weekly) + events via recommendConferences({source}) + svi_trend_alert writer",
+        "rationale": "Wave 5a · G11-P10 · §4h. Depends T0245.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0247",
+        "agent": "cro",
+        "title": "Founder Radar packaging: plans.csv flags money_radar/grant_finder (Starter, Growth, Package), pricing matrix row, A$3→subscribe upsell card, GA4 radar_upsell_*",
+        "rationale": "Wave 5b · G11-P11 · §4h D10. Absorbs T0176 (pricing psychology). SOT §6 rule 5 bundle (plans.csv + pricing plan + SOT). Depends T0242, T0245.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0248",
+        "agent": "cpo",
+        "title": "MoneyRadarTile (5 states) on /dashboard + /workspace/funding tabs + lib/funding/copy.ts messaging keys + VI review",
+        "rationale": "Wave 5c · G11-P13 · §4i D-2/D-3. Depends T0244, T0245.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0249",
+        "agent": "cmo",
+        "title": "/pricing matrix row, insight cross-links, AnalyticsEventMap funding_* events, sync-stripe-pricing credit-pack drift fix, /features card, docs",
+        "rationale": "Wave 5d · G11-P8 · §4g. Night-loop eligible (1–3 files). Depends T0242.",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0250",
+        "agent": "cmo",
+        "title": "Hero one-liners: lib/marketing/hero-variants.ts (F1/F2/F3 arms) + GA4 hero_variant + hero-section + layout SITE_DESCRIPTION + messages hero.* (EN/VI) + 5-second test protocol",
+        "rationale": "Wave 2c · G11-P14 · §4i D-5. Absorbs T0213 (SVI landing hero copy). Winner recorded in value-first-hero-goal.md (G9).",
+        "versionImpact": "patch",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+      },
+      {
+        "id": "T0251",
+        "agent": "ir",
+        "title": "Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh",
+        "rationale": "Wave 6 · G11-P12 · §4h. v2 lane after MRR signal. Depends T0245.",
+        "versionImpact": "minor",
+        "status": "pending",
+        "createdAt": "2026-09-10T03:19:21.933Z",
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
       }
     ]
   },
@@ -1933,6 +2131,12 @@
       "action": "release",
       "version": "3.9.0",
       "note": "2 task(s), minor bump (v3.8.1→v3.9.0)"
+    },
+    {
+      "ts": "2026-09-10T03:19:21.933Z",
+      "action": "plan",
+      "version": "3.10.0",
+      "note": "G11 Money Finder ledger: +15 tasks T0237–T0251; 16 pending duplicates merged into G11 (T0211, T0213, T0134, T0169, T0170, T0173, T0176, T0185, T0186, T0189, T0194, T0198) + T0257/T0264/T0266/T0267 (ex T0202/T0209/T0211/T0212); 16 duplicate IDs re-numbered; version 3.9.0→3.10.0 synced to package.json."
     }
   ],
   "shipped_this_session": {

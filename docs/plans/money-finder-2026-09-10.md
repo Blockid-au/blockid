@@ -1,7 +1,7 @@
 # Money Finder — Simple Public Menu + "Do you need money?" — Goal Doc
 
 > **Back-link:** [`docs/plans/SOURCE-OF-TRUTH.md`](./SOURCE-OF-TRUTH.md) — consult that file first.
-> **Goal ID:** G11 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** P0 shipped (this doc + seed data); P1–P14 open, **no code yet**.
+> **Goal ID:** G11 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** P0 shipped (this doc + seed data); execution plan approved 2026-09-10 (§8); ledger tasks T0237–T0251 pending; **no code yet** — Wave 0 (T0237) starts on founder "go".
 > **Amends:** G7 [`ux-ia-startup-flow-goal.md`](./ux-ia-startup-flow-goal.md) public-nav file boundary (`nav-v2.tsx`, `site/navbar.tsx`) and G9 "do not touch nav-v2" note — G11-P1 owns the **public** nav; G7/G8 keep the logged-in sidebar.
 > **Seed data:** [`web/content/data/grants-au.seed.json`](../../web/content/data/grants-au.seed.json) · [`web/content/data/programs-au.seed.json`](../../web/content/data/programs-au.seed.json)
 > **Entity:** Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW.
@@ -573,7 +573,105 @@ Startmate · Antler · Google for Startups Accelerator AI First AU (10 wks hybri
 
 Remaining founder-review (non-blocking, recorded in goal doc §Q): Q1 whether to rename Starter's public label to "Founder Radar" on `/pricing` or keep "Starter" with a Radar badge · Q2 free-tier in-app deadline alerts (all buyers) vs Radar-only · Q3 whether Growth's "Request intro" ships as a mailto to support until the reverse-match engine exists.
 
-## 8. Phased tracks (for SOT §2)
+## 8. Execution plan (approved 2026-09-10 — ledger in `web/content/reports/project-state.json`, rendered to `implementing-plan.md`)
+
+**Decision:** G11 ships through founder-driven Claude Code sessions in dependency-ordered waves, with `project-state.json` as the ledger (every commit subject carries its `T02xx` so the orchestrator closes the task and bumps version/milestone). No new goal loop is built. Task IDs **T0237–T0251** ↔ phases P1–P14 (map in §8.3). Founder scope on approval: ledger + docs only; Wave 0 code runs on "go".
+
+### 8.0 Why this execution model (source + loop review, 2026-09-10)
+
+**The autonomous code channel is effectively off.** Three findings change how G11 must be executed:
+
+| # | Finding | Evidence | Consequence |
+|---|---|---|---|
+| 1 | Goal-loop driver deleted 2026-08-13 | commit `fd7bb0b03` removed `scripts/cron/goal-loop*.mjs`, wrappers, crontab lines; `web/AGENTS.md` + `docs/ops/crontab-setup.md` still describe them (stale) | No "register a goal doc and let it grind" path exists |
+| 2 | `agent-auto-improve` ships nothing | all 8 agents in `FROZEN_AGENTS` ([`agent-auto-improve/route.ts:57-66`](../../web/src/app/api/cron/agent-auto-improve/route.ts#L57-L66)); history "0 modules deployed" | Orchestrator `code` stage is a no-op |
+| 3 | The only implementer is `web/scripts/self-upgrade-agent.sh` (04:30 AEST) | 1 task/night, "1–3 files" rule, **stale priority list T0010/T0012/T0011/T0003** (L65-69), commits without T-ids, `git reset --hard` on failure (L115) | Fine for S-size follow-ups, unusable for P2/P3/P4/P5/P9 (M/L) |
+| 4 | CEO `plan` stage is blind | reads only `agent_knowledge_base` rows (and never selects `content`, so summaries are empty — [`agent-orchestrator/route.ts:202,212`](../../web/src/app/api/cron/agent-orchestrator/route.ts#L202)); never reads `docs/plans/*`/SOT | It keeps re-minting the same tasks: 44 pending, 16 duplicate IDs, 4 clusters of dupes overlapping G11 |
+| 5 | `nextTaskId()` is count-based | [`project-state.ts:125-128`](../../web/src/lib/project-state.ts#L125-L128) returns **T0213 (already taken)** | Hand-added G11 tasks must use IDs ≥ **T0237**; fix to `max+1` is Wave 0 |
+| 6 | Version drift | project-state `3.9.0` vs `package.json` `3.10.0` | Next auto-release would write package.json backwards → set project-state to `3.10.0` in the ledger edit |
+| 7 | Task closure = T-id in commit message | [`stageUpdateArtifacts`](../../web/src/app/api/cron/agent-orchestrator/route.ts#L382-L482) regex `\bT0\d{3,4}\b`, bumps version + milestone + architecture note automatically | Every G11 commit subject must carry its `T02xx` → free version/milestone bookkeeping |
+| 8 | Deploy = `deploy-live.sh` (11 gates) or `agent-deploy --quick`; `agent-deploy` cannot write `supabase/`, `scripts/`, `package.json` | [`agent-deploy/route.ts:212-213`](../../web/src/app/api/cron/agent-deploy/route.ts#L212-L213) | Migrations + crontab + seed script are session-only work |
+
+**Decision:** G11 ships through **founder-driven Claude Code sessions in dependency-ordered waves** (worktree per lane, off-peak deploys), with **`project-state.json` as the ledger** so the existing orchestrator closes tasks and bumps versions for free, and the night loop (`self-upgrade-agent.sh`) restricted to the S-size G11 follow-ups. No new loop is built.
+
+---
+
+### 8.1 Corrections to the goal doc (from source verification 2026-09-10 — these override the corresponding lines in §3–§4 above)
+
+| # | Section | Wrong | Correct |
+|---|---|---|---|
+| 1 | §4f nav leaf | `growthPhase: "validation"` | numeric `0` (type `GrowthPhase = 0..5`, [`workflow-steps.ts:31`](../../web/src/lib/nav/workflow-steps.ts#L31)); subgroup id `validate.discover` ([`nav-groups.ts:264-270`](../../web/src/components/workspace/nav-groups.ts#L264-L270)); `/workspace/funding` must be unique catalogue-wide (`nav-groups.test.ts:497`) |
+| 2 | §4e plan flag | `plans.features` migration | column is `plans.feature_flags` (`0131_…sql:40`) |
+| 3 | §4c/§4f | "test-gate requires colocated test" | `scripts/cron/test-gate.mjs` only runs *existing* colocated tests; new files without tests are skipped — tests are still policy per `web/AGENTS.md` |
+| 4 | §4b seed script | `scripts/seed/seed-au-funding.mjs` | `web/scripts/seed-au-funding.mjs` (template: `web/scripts/seed-knowledge-base.mjs`, service-role client, idempotent) |
+| 5 | §4h digest | `founder-weekly-digest` | crontab `0 23 * * 0 founder-digest-weekly` (`crontab.production:472`) → `lib/digest/weekly.ts`; do not touch `lib/email/founder-digest.ts` |
+| 6 | §4h drips | "enqueue like `enqueue…`" | only `enqueueOnboardingDrip` exists ([`email-drip.ts:91`](../../web/src/lib/email-drip.ts#L91)); add `enqueueRadarDrip` + extend `DripPayload` (`:48-53`) with `ref_id`, `closes_at`; CHECK constraint lives inline in `0088_…sql:26-32` (copy `0307` drop/add pattern) |
+| 7 | §4i D-5 A/B | "register F1/F2/F3 in `cta-variants.ts`" | `cta-variants.ts` is keyed `phase:surface` with **no arm dimension** and exhaustive tests (`allCtaKeys().length === phases × surfaces`) → put hero arms in a new `lib/marketing/hero-variants.ts` + GA4 `hero_variant` param; do not add a surface |
+| 8 | §4i D-5 og | "`og:description` in `(marketing)/page.tsx`" | homepage `metadata` has no `openGraph`; og text inherits `SITE_DESCRIPTION` in [`app/layout.tsx:85-92`](../../web/src/app/layout.tsx#L85-L92) — change both |
+| 9 | §4h calendar | reuse `ComplianceEvent` as-is | `kind` is a 5-member union (`calendar.ts:55-60`) → widen with `funding_deadline` / `program_intake` / `event` or add a generic `IcsEvent` input to `renderIcs` |
+| — | line drifts | `sync-stripe-pricing.mjs:62` → `:53-63`; `notifications-client.tsx:6-33` → `:15-40` (`CATEGORY_META`); `menu-structure.spec.ts:41` → `:42-43`; `next-step-recommender` map is 12 phases (use phases 1–3 of 12) | |
+
+Also confirmed for sizing: `NotificationKind` column has no CHECK (new kinds need no migration); `KNOWN_KINDS` allow-list in `api/founder-notifications/route.ts:22-29`; `recommendConferences({source})` accepts an injected list (merge `au_programs` events without touching `conferences.json`); `AnalyticsEventMap` at `analytics.ts:17-222`; `SkuId` + `tier` unions in `v3-skus.ts:18-44` (new SKU needs a new tier member); `guest-analysis/create-order` + webhook `scope` branch confirmed.
+
+---
+
+### 8.2 Merge the pending duplicates into G11 (ledger hygiene)
+
+`project-state.json` has 44 pending tasks; these overlap G11 and are superseded by it. Mark them `merged` (new `TaskStatus` member, Wave 0) with `commit: "→ T02xx"`, so the CEO stage stops re-minting them and `/team/[agent]` stops listing them:
+
+| Cluster | Pending IDs | Absorbed by |
+|---|---|---|
+| Grants / ecosystem data & trends | T0209 (cto), T0211 (cro), T0212 (cro), T0202 (cmo) | **T0243** P7 refresh cron + agent research topics |
+| R&DTI / ESIC into valuation | T0169, T0185, T0198 (cfo) — keep T0188/T0191 (valuation engine proper) | **T0239** P3 grant-advisor reuses `estimateRdti`/`evaluateEsic`; valuation-side integration stays T0188 |
+| Funding Readiness (CAPITAL) | T0170, T0194 (cro) — `cro-funding-readiness.ts` already ships `scoreFundingReadiness()` | **T0241** P5 capital map tab consumes it; close T0170/T0194 as merged |
+| Next-Best-Action / DIRECTION | T0134 (cdo), T0173, T0182, T0186, T0189 (cro) | **T0241** recommender `secondary` (money lane) covers the founder-facing piece; keep **one** engine task (T0182) open, merge the other four into it |
+| Pricing psychology | T0176 (cro) | **T0247** P11 Founder Radar packaging + A$3→subscribe upsell |
+| SVI landing hero copy | T0213 (cpo, dup ID) | **T0250** P14 hero one-liners (re-id as part of the dedupe) |
+
+Net: 44 → ~31 pending, 16 duplicate IDs re-numbered (`T0101-0103, 0109, 0110, 0202-0212` second copies → next free IDs) in the same ledger edit.
+
+---
+
+### 8.3 Execution waves (dependency-ordered; each wave = one or two parallel Claude Code sessions in worktrees; deploy off-peak AEST 22:00–06:00 = UTC 12:00–20:00)
+
+| Wave | Task (ledger ID) | Goal-doc phase | Agent | Impact | Size | Channel | Depends | Deploy |
+|---|---|---|---|---|---|---|---|---|
+| **0** | **T0237** Loop hygiene: `nextTaskId` → max+1; `stagePlan` select `content`; `TaskStatus` + `merged`; render `merged` in `renderPlanMarkdown`; `self-upgrade-agent.sh` priority list → G11 S-tasks + rule "commit subject must contain the T-id"; project-state version → 3.10.0 | — | cto | patch | S | session | — | content + 2 small `src`/`scripts` files → `deploy-live.sh --quick` |
+| 1a | **T0238** Public nav 5 items + "Do you need money?" CTA; shared `lib/nav/public-menu.ts`; `NavV2` `useAuthUser` port; legacy `site/navbar.tsx` mirrors; footer Funding column; unlock-preview strip; ProShell fix; `menu-structure.spec.ts` updated same commit | P1 | cpo | minor | M | session (worktree A) | T0237 | off-peak |
+| 1b | **T0239** Migration `0308_au_funding.sql` (`au_grants`, `au_programs`, `funding_reports`, `project_grant_profiles`, public-read RLS per `0076`) + `web/scripts/seed-au-funding.mjs` + `/admin/funding` review page | P2 | cto | minor | M | session (worktree B) | T0237 | migration via `docker exec psql` + `NOTIFY pgrst` (not auto-applied); deploy off-peak |
+| 2a | **T0240** `lib/agents/grant-advisor.ts` (matchGrants/matchPrograms/buildTimeline pure + narrative via `callAI` → `callAIToModelCaller` audit) + colocated tests | P3 | cfo | minor | L | session | T0239 | off-peak |
+| 2b | **T0241** Public directories `/funding/grants`, `/funding/programs/[city]` + JSON-LD + sitemap (server-rendered from `au_*`) | P6 | cmo | minor | M | session | T0239 | off-peak |
+| 2c | **T0250** Hero one-liners: `lib/marketing/hero-variants.ts` (F1/F2/F3 arms), GA4 `hero_variant`, `hero-section.tsx` + `app/layout.tsx` SITE_DESCRIPTION + `messages/en|vi.json` `hero.*`; 5-second/say-it-back test protocol doc | P14 | cmo | patch | S | session or night loop | — | off-peak |
+| 3a | **T0242** `/funding` landing + 3-question intake + `POST /api/funding/preview` (`enforceRateLimit`) + A$3 guest SKU (`FUNDING_REPORT_3AUD` + tier, `STRIPE_PRICE_FUNDING_REPORT`, `sync-stripe-pricing.mjs:53-63`) + webhook `scope==="funding_report"` + `POST /api/funding/report` (credits `grant_match` / flag `grant_finder`: `entitlements.ts` union + `LEGACY_FEATURE_FALLBACK`, `plans.csv` `feature_flags`, `tier-ladder.test.ts`) | P4 | cro | minor | L | session | T0240 | off-peak; **human-blocked: mint Stripe price** |
+| 3b | **T0243** `lib/funding/fetch-source.ts` (browser UA, retry, 403→agent fallback) + `api/cron/refresh-funding-sources` + crontab line + goal-tree research topics (CFO grants daily, IR programs weekly) + gitignored review queue + IR daily brief hook | P7 | cto | minor | M | session | T0239 | off-peak (crontab edit is session-only) |
+| 4a | **T0244** `/funding/report/[id]` (cards, SVG Gantt, actions, disclaimers) + PDF via `@react-pdf` pattern + `lib/dataroom/save-deliverable.ts` + `/workspace/funding` + nav leaf (`validate.discover`, `growthPhase: 0`) + recommender `secondary` | P5 | cpo | minor | M | session | T0242 | off-peak |
+| 4b | **T0245** `funding_matches` table + `api/cron/money-radar-sweep` + notification kinds (`grant_deadline`, `program_intake`, `event_match`, `weekly_next_step`, `new_matches`, `analysis_refresh`) + `KNOWN_KINDS` + `KIND_META` + bell repoint to `/api/founder-notifications?count_only=1` + `money_radar` email category (ALTER + `EmailCategory` + `CATEGORY_META`) + `GET /api/funding/calendar.ics` (widen `ComplianceEventKind`) | P9 | cto | minor | L | session | T0240, T0243 | off-peak |
+| 5a | **T0246** Radar drips `radar_t30/t14/t3` (`DripCampaign` + CHECK migration + `renderDripBody` + `dripCategory` + `enqueueRadarDrip`) + digest money block (`DigestPayload.money`, `renderActionBlock`) + events merged via `recommendConferences({source})` + `svi_trend_alert` writer in `svi-snapshot` cron | P10 | cmo | minor | M | session | T0245 | off-peak |
+| 5b | **T0247** Packaging: `plans.csv` flags `money_radar`/`grant_finder` (Starter, Growth, Package) → `npx tsx scripts/build-plans.ts`; pricing matrix "Founder Radar" row; A$3-report → subscribe upsell card; Startup Package inclusion; GA4 `radar_upsell_*` | P11 | cro | minor | S | session (SOT §6 rule 5 bundle) | T0242, T0245 | off-peak |
+| 5c | **T0248** `MoneyRadarTile` (5 states) on `/dashboard` + `/workspace/funding` tabs + `lib/funding/copy.ts` messaging keys + VI review | P13 | cpo | minor | M | session | T0244, T0245 | off-peak |
+| 5d | **T0249** `/pricing` matrix row, insight cross-links, `AnalyticsEventMap` (`funding_preview`, `funding_paywall_hit`, `funding_report_paid`), `sync-stripe-pricing.mjs` credit-pack drift (1500/2500→3500/6000), `/features` card, docs | P8 | cmo | patch | S | **night loop** (`self-upgrade-agent.sh`, 1–3 files) | T0242 | auto (loop runs deploy-live) |
+| 6 | **T0251** Growth extras: investor reverse-match (`getDealFlow` inverted), per-grant `application_prompts` drafts, quarterly analysis refresh | P12 | ir | minor | L | session (v2 lane, after MRR signal) | T0245 | off-peak |
+
+**Parallelism:** Wave 1a ∥ 1b (independent files), Wave 2a ∥ 2b ∥ 2c, Wave 3a ∥ 3b, Wave 4a ∥ 4b, Wave 5a ∥ 5b ∥ 5c. Critical path: 0 → 1b → 2a → 3a → 4a → 5c (≈ 6 sessions). With one session per day ≈ **8–10 working days**; deploys: one per wave (6), all in the off-peak window or left to `git-sync-deploy 18:00 UTC`.
+
+**Session protocol (every task):** `EnterWorktree` → implement + colocated tests → `npm test` → commit subject `feat(funding): … (T02xx)` → push immediately (nightly `git reset --hard`) → deploy off-peak with `deploy-live.sh` (full gates; `--quick` only for content/tiny src) → orchestrator `update_artifacts` closes the task, bumps version, records milestone/architecture; append SOT §3 shipped-log row.
+
+---
+
+### 8.4 Human-blocked items (add to SOT §5)
+
+| Item | Needed for | Owner |
+|---|---|---|
+| Mint Stripe price `STRIPE_PRICE_FUNDING_REPORT` (A$3.00 inc GST, one-off) | T0242 | Founder (Stripe owner) |
+| Confirm Starter public label ("Founder Radar" vs "Starter + Radar badge") — Q1 | T0247 | Founder |
+| Free-tier in-app deadline alerts for A$3 buyers (yes/no) — Q2 | T0245 | Founder |
+| GA4 custom dimension `hero_variant` in property | T0250 | Founder (GA4 admin) |
+| `ABR_GUID` present in env? (ABN lookup for `project_grant_profiles`) | T0244 | Founder |
+
+---
+
+
+### 8.6 Original phase table (P-ids; superseded by the wave table — kept for the P↔T map)
 
 | ID | Track | Owner skill | Size | Depends |
 |---|---|---|---|---|

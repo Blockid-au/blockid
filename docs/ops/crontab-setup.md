@@ -117,6 +117,8 @@ environments.
 
 ## Autonomous goal loops
 
+> **Removed 2026-08-13** (`fd7bb0b03`): the three loops below and their crontab lines no longer exist; this section is kept for history. Autonomous implementation now = orchestrator (`agent-orchestrator`, 12/14/16/18 UTC) + `self-upgrade-agent.sh` (18:30 UTC) reading `web/content/reports/project-state.json`. Larger goals ship via founder-driven sessions (see `docs/plans/money-finder-2026-09-10.md` §8).
+
 Three long-running goal loops grind unblocked phases from machine-readable
 goal files. All three share the reusable driver in
 `scripts/cron/goal-loop.mjs` (each wrapper is ~25 lines of parameters).

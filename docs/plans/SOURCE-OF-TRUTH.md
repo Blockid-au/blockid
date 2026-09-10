@@ -145,13 +145,14 @@
 
 ### G11 — Money Finder: simple public menu + "Do you need money?" (AU grants, programs, Founder Radar)
 - **Source:** [`docs/plans/money-finder-2026-09-10.md`](./money-finder-2026-09-10.md) · seed data `web/content/data/grants-au.seed.json` (56 rows) + `web/content/data/programs-au.seed.json` (8 capitals + national)
-- **Status:** **P0 shipped 2026-09-10** (goal doc + seed data, plan-only). P1–P14 `open` — **no code lane started**; implementation gated on founder "go".
+- **Status:** **P0 shipped 2026-09-10** (goal doc + seed data, plan-only). **Execution plan approved 2026-09-10** (goal doc §8): ledger tasks **T0237–T0251** in `web/content/reports/project-state.json` (rendered to `implementing-plan.md`), 16 overlapping pending tasks merged into G11, version synced 3.9.0→3.10.0. **No code lane started**; Wave 0 (T0237 loop hygiene) starts on founder "go".
 - **Founder decisions (2026-09-10):** public nav = 5 items (Get my score · Get funding ▾ · Free tools ▾ · Pricing · Demo ▾) + CTA "Do you need money?" · gate = A$3 one-off (guest SKU, same pattern as One-Click Report) + 3 credits + plan-included · programs = all 8 capitals in v1 · "Founder Radar" alerts/re-match/digest bundled into **Starter A$29** (no new tier, no add-on).
 - **Parts:** A public-menu simplification (legacy `site/navbar.tsx` mirrors, not retired — 52 importers, shell swap stays in G8-P6) · B Money Finder (`au_grants`/`au_programs`/`funding_reports`/`project_grant_profiles`, `lib/agents/grant-advisor.ts`, `/funding*`, A$3 SKU) · C Founder Radar (deadline drips T-30/14/3, monthly re-match, weekly digest money block, ICS, capital map, application drafts) · D weekly refresh cron + dashboard `MoneyRadarTile` + messaging pack + **D-5 hero one-liners** (founder view F1 "See your startup the way an investor will — your score, what it's worth, and where the money is, in 60 seconds." · investor view I1 "One score across 8 investor dimensions, backed by evidence — screen an Australian startup in minutes, not weeks." · tagline "A credit score for startups."; winners recorded back in G9).
 - **Amendments:** G7 public-nav file boundary and G9 "do not touch `nav-v2.tsx`" are superseded by G11-P1 for the **public** nav only; G7 "never hide a feature" continues to govern the logged-in sidebar (G8).
 - **Positioning constraint:** business.gov.au says "don't pay for government grant information" — lists + official links stay free; A$3/plan buys eligibility analysis, ranking, A$ estimate, timeline, drafts. CC BY 3.0 AU attribution on reused Commonwealth text.
-- **Next action:** founder "go" → G11-P1 (nav) and G11-P2 (migration `0308_au_funding.sql` + seed script) can run in parallel; P3 agent after P2.
-- **Blocker:** none for P0–P2. Q1–Q3 in goal doc §7 are founder-review, non-blocking.
+- **Execution model (2026-09-10 review):** the autonomous code channel is effectively off — goal-loop driver removed `fd7bb0b03` (2026-08-13), `agent-auto-improve` ships 0 (all agents FROZEN), only `self-upgrade-agent.sh` implements (1 task/night, 1–3 files, stale priority list). G11 therefore ships via **founder-driven Claude Code sessions in 6 waves** (worktrees, off-peak deploys), `project-state.json` as ledger, T-id in every commit subject so `stageUpdateArtifacts` closes tasks + bumps version. Night loop takes only S-size follow-ups (T0249).
+- **Next action:** founder "go" → Wave 0 **T0237** (nextTaskId max+1, stagePlan `content` select, `TaskStatus` merged, self-upgrade priority list) → Wave 1 **T0238** (nav) ∥ **T0239** (migration 0308 + seed) → Wave 2 T0240 agent ∥ T0241 directories ∥ T0250 hero → Wave 3 T0242 `/funding` + A$3 ∥ T0243 refresh cron → Wave 4 T0244 report ∥ T0245 Radar data → Wave 5 T0246 drips ∥ T0247 packaging ∥ T0248 tile ∥ T0249 (night loop) → Wave 6 T0251. Critical path ≈ 6 sessions (~8–10 working days).
+- **Blocker:** none for Wave 0–1. Human-blocked before Wave 3/5: mint `STRIPE_PRICE_FUNDING_REPORT` (T0242); Q1 Starter label (T0247); Q2 free-tier in-app alerts (T0245); GA4 `hero_variant` dimension (T0250); `ABR_GUID` env (T0244) — see §5.
 
 ---
 
@@ -211,20 +212,21 @@
 | G8-P8 | unlock-next-level-2026-07-31 | docs | open | code-documenter | — |
 | DR-SBOM-01 | dataroom license-risk review | licence-classifier | shipped | typescript-pro | `563a3124` |
 | G11-P0 | money-finder-2026-09-10 | goal-doc + seed data | shipped | senior-pm | (this commit) |
-| G11-P1 | money-finder-2026-09-10 | public-nav 5 items + CTA | open | react-expert + nextjs-developer | — |
-| G11-P2 | money-finder-2026-09-10 | migration 0308 + seed script + /admin/funding | open | db-migrate + fullstack-guardian | — |
-| G11-P3 | money-finder-2026-09-10 | grant-advisor agent + tests | open | cfo-advisor + clo-advisor + typescript-pro | — |
-| G11-P4 | money-finder-2026-09-10 | /funding landing + preview + A$3 SKU + report API + grant_finder flag | open | fullstack-guardian + stripe-saas-billing | — |
-| G11-P5 | money-finder-2026-09-10 | paid report page + PDF + dataroom save + workspace leaf | open | react-expert + nextjs-developer | — |
-| G11-P6 | money-finder-2026-09-10 | public directories /funding/grants, /funding/programs/[city] | open | seo-content-au + nextjs-developer | — |
-| G11-P7 | money-finder-2026-09-10 | refresh-funding-sources cron + fetch helper + research topics | open | cto + rnd | — |
-| G11-P8 | money-finder-2026-09-10 | pricing row, insight links, GA4 events, stripe sync drift | open | cmo + code-documenter | — |
-| G11-P9 | money-finder-2026-09-10 | funding_matches + money-radar-sweep + notification kinds + email category + ICS | open | fullstack-guardian + db-migrate | — |
-| G11-P10 | money-finder-2026-09-10 | radar drips T-30/14/3 + digest money block + events + svi_trend_alert writer | open | cto + cmo | — |
-| G11-P11 | money-finder-2026-09-10 | Founder Radar packaging in Starter + upsell card | open | cro + stripe-saas-billing | — |
-| G11-P12 | money-finder-2026-09-10 | Growth extras: investor reverse-match, per-grant drafts, quarterly refresh (v2) | open | investor-relations + cfo-advisor | — |
-| G11-P13 | money-finder-2026-09-10 | MoneyRadarTile + /workspace/funding tabs + messaging copy EN/VI | open | react-expert + cmo + conversion-optimizer | — |
-| G11-P14 | money-finder-2026-09-10 | hero one-liners (founder/investor/general, EN+VI) + 5-second test + A/B | open | cmo + cro + conversion-optimizer | — |
+| G11-P1 (T0238) | money-finder-2026-09-10 | public-nav 5 items + CTA | open | react-expert + nextjs-developer | — |
+| G11-P2 (T0239) | money-finder-2026-09-10 | migration 0308 + seed script + /admin/funding | open | db-migrate + fullstack-guardian | — |
+| G11-P3 (T0240) | money-finder-2026-09-10 | grant-advisor agent + tests | open | cfo-advisor + clo-advisor + typescript-pro | — |
+| G11-P4 (T0242) | money-finder-2026-09-10 | /funding landing + preview + A$3 SKU + report API + grant_finder flag | open | fullstack-guardian + stripe-saas-billing | — |
+| G11-P5 (T0244) | money-finder-2026-09-10 | paid report page + PDF + dataroom save + workspace leaf | open | react-expert + nextjs-developer | — |
+| G11-P6 (T0241) | money-finder-2026-09-10 | public directories /funding/grants, /funding/programs/[city] | open | seo-content-au + nextjs-developer | — |
+| G11-P7 (T0243) | money-finder-2026-09-10 | refresh-funding-sources cron + fetch helper + research topics | open | cto + rnd | — |
+| G11-P8 (T0249, night loop) | money-finder-2026-09-10 | pricing row, insight links, GA4 events, stripe sync drift | open | cmo + code-documenter | — |
+| G11-P9 (T0245) | money-finder-2026-09-10 | funding_matches + money-radar-sweep + notification kinds + email category + ICS | open | fullstack-guardian + db-migrate | — |
+| G11-P10 (T0246) | money-finder-2026-09-10 | radar drips T-30/14/3 + digest money block + events + svi_trend_alert writer | open | cto + cmo | — |
+| G11-P11 (T0247) | money-finder-2026-09-10 | Founder Radar packaging in Starter + upsell card | open | cro + stripe-saas-billing | — |
+| G11-P12 (T0251) | money-finder-2026-09-10 | Growth extras: investor reverse-match, per-grant drafts, quarterly refresh (v2) | open | investor-relations + cfo-advisor | — |
+| G11-P13 (T0248) | money-finder-2026-09-10 | MoneyRadarTile + /workspace/funding tabs + messaging copy EN/VI | open | react-expert + cmo + conversion-optimizer | — |
+| G11-P14 (T0250) | money-finder-2026-09-10 | hero one-liners (founder/investor/general, EN+VI) + 5-second test + A/B | open | cmo + cro + conversion-optimizer | — |
+| G11-W0 (T0237) | money-finder-2026-09-10 §8 | loop hygiene: nextTaskId max+1, stagePlan content, TaskStatus merged, self-upgrade priority list | open | cto | — |
 
 ---
 
@@ -322,6 +324,11 @@
 | Equity-for-solution (PRC-EQ) | Pricing plan Phase 3 lane | `legal_review_passed=true` flag flip on jurisdiction gate | Founder + CLO agent + human counsel |
 | Audit remediation #3/#6/#7/#10 | Real-world audit ship-list | Founder sign-off on wording/tone/vocabulary | Founder |
 | Founder tier labels (audit #1) | Canonical 8-stage vocab publication | Founder to approve final EN+VI labels for 8 stages | Founder |
+| Stripe price `STRIPE_PRICE_FUNDING_REPORT` (G11 T0242) | A$3 Money Finder guest checkout | Mint one-off A$3.00 inc-GST price in Stripe dashboard; add env | Founder (Stripe owner) |
+| Starter public label (G11 Q1, T0247) | Founder Radar packaging copy on `/pricing` | Decide "Founder Radar" rename vs "Starter + Radar badge" | Founder |
+| Free-tier in-app deadline alerts (G11 Q2, T0245) | Radar sweep fan-out rules | Yes/no for A$3 buyers (in-app only, no email) | Founder |
+| GA4 `hero_variant` custom dimension (G11 T0250) | Hero one-liner A/B measurement | Create dimension in GA4 property | Founder (GA4 admin) |
+| `ABR_GUID` env present? (G11 T0244) | ABN lookup for `project_grant_profiles` | Confirm ABR web-services GUID in `web/.env` | Founder |
 
 ---
 
@@ -353,7 +360,7 @@ Live markers for downstream update agents. Consume by grepping this section for 
 - `[MARKER: update /guide when a chapter callout ships]` — audit #10, 12-chapter arc.
 - `[MARKER: update-status agent should consume §3 shipped-log commit count 294 for this cycle]`.
 - `[MARKER: update-roadmap agent should consume §1 Top-5 open Q3 items list].`
-- `[MARKER: update /roadmap when G11-P1 or G11-P2 closes]` — Money Finder lanes; `feature-upgrade-roadmap-v2.md` Q4 checklist + `ROADMAP.md` §4 rows mirror SOT §2 G11-P0..P13.
+- `[MARKER: update /roadmap when T0238 or T0239 closes]` (G11 Wave 1) — Money Finder lanes; `feature-upgrade-roadmap-v2.md` Q4 checklist + `ROADMAP.md` §4 rows mirror SOT §2 G11-P0..P13.
 - `[MARKER: update /pricing when G11-P11 ships]` — Starter gains Founder Radar (`money_radar` flag), A$3 `FUNDING_REPORT_3AUD` SKU; also touch `docs/pricing-upgrade-plan-2026-07-16.md` (amendment note already present).
 - `[MARKER: phase-close]` — G11-P0 (plan-only) closed 2026-09-10.
 - `[MARKER: security-fix]` — `fd4a1eb3` (Stripe portal wholesale gate).
@@ -388,6 +395,7 @@ the sentinels is overwritten._
 | When | Who | What |
 |---|---|---|
 | 2026-07-23 | loop agent (SOT consolidation task) | Initial consolidation. §1–§7 authored; back-links applied to reseller-plan + unicorn-masterplan; memory pointer added. |
+| 2026-09-10 | CEO + Claude (plan session, 2nd pass) | G11 execution plan approved: source/loop review findings (goal loops removed, auto-improve frozen, nextTaskId collision, version drift) → 6-wave founder-driven session model; ledger tasks T0237–T0251 added to `project-state.json`, 16 overlapping pending tasks merged, 16 duplicate IDs re-numbered (T0252–T0267), version 3.9.0→3.10.0; goal doc §8 rewritten; §2 rows carry T-ids; §5 gains 5 human-blocked rows; stale goal-loop notes fixed in `web/AGENTS.md` + `docs/ops/crontab-setup.md`. |
 | 2026-09-10 | CEO + Claude (plan session) | G11 Money Finder opened (P0 shipped, plan-only): goal doc `money-finder-2026-09-10.md`, §2 rows G11-P0..P14, §7 markers; amendments recorded in G7/G9 goal docs, `feature-upgrade-roadmap-v2.md` Q4, `ROADMAP.md` §4, `pricing-upgrade-plan-2026-07-16.md`, `GOALS.md` Goal 3, `role-based-2026-07-25/founder.md` gap #8; seed data `web/content/data/grants-au.seed.json` + `programs-au.seed.json`. |
 | 2026-07-23 | qa/regression sweep | Iteration 5-9 sync: G1 tick 290 → 317; G2 audit #1/2/3/4/5/8/9 flipped to shipped with commit SHAs (#6/7/10 remain founder-review-blocked); G4 Top-5 #3 PDF branding flipped to shipped; requirements register rows added for AUD-R1/2/3/4/5/8/9 + Q3-PDF-BRAND; §3 shipped-log expanded with audit-remediation, product/branding, QA/infra subsections. |
 
