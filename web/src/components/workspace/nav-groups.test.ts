@@ -463,12 +463,25 @@ describe("NAV_GROUPS — group-specific pins", () => {
     }
   });
 
-  it("gates the Investor subgroup on the two investor segments", () => {
+  // T0273 deliberately loosened this assertion. Before: the subgroup AND every
+  // leaf were pinned to ["investor_angel", "investor_vc"]. The Evaluator
+  // Progress Radar (plan §3b Scout / Firm / Program) makes
+  // `/workspace/evaluations` the surface for advisors (Firm) and accelerators
+  // (Program) too, and filterNavForUser hides a subgroup before it looks at
+  // its leaves — so the subgroup gate had to widen to the evaluator set for
+  // that one leaf to be reachable. The investor-only tools (Deal Flow,
+  // Watchlist, Portfolio, Preferences) keep the narrower pair, which this
+  // test still pins per leaf.
+  it("gates the Investor subgroup on every evaluator segment, with only the evaluations leaf open to advisor / accelerator", () => {
     const roles = NAV_GROUPS.find((g) => g.id === "roles")!;
     const investor = roles.subgroups!.find((sg) => sg.id === "roles.investor")!;
-    expect(investor.segments).toEqual(["investor_angel", "investor_vc"]);
+    expect(investor.segments).toEqual(["investor_angel", "investor_vc", "advisor", "accelerator"]);
     for (const leaf of investor.items) {
-      expect(leaf.segments).toEqual(["investor_angel", "investor_vc"]);
+      if (leaf.href === "/workspace/evaluations") {
+        expect(leaf.segments).toEqual(["investor_angel", "investor_vc", "advisor", "accelerator"]);
+      } else {
+        expect(leaf.segments).toEqual(["investor_angel", "investor_vc"]);
+      }
     }
   });
 
