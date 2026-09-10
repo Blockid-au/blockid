@@ -412,6 +412,34 @@ describe("email-preferences — canSendEmail", () => {
     });
     expect(await canSendEmail("a@b.co", "product_updates")).toBe(true);
   });
+
+  // T0245 — `money_radar` (migration 0318). Opt-in by default: a row read
+  // without the column (undefined) sends; explicit false stops; global
+  // unsubscribe still wins.
+  it("money_radar: undefined → true, false → false, unsubscribed_all → false", async () => {
+    const base = {
+      email: "a@b.co",
+      weekly_reports: true,
+      product_updates: true,
+      promotions: true,
+      svi_alerts: true,
+      payment_receipts: true,
+      unsubscribed_all: false,
+      unsubscribe_token: "t",
+    };
+    const { canSendEmail } = await import("./email-preferences");
+    state.queue.push({ data: { ...base } });
+    expect(await canSendEmail("a@b.co", "money_radar")).toBe(true);
+    state.queue.push({ data: { ...base, money_radar: false } });
+    expect(await canSendEmail("a@b.co", "money_radar")).toBe(false);
+    state.queue.push({ data: { ...base, money_radar: true } });
+    expect(await canSendEmail("a@b.co", "money_radar")).toBe(true);
+    state.queue.push({ data: { ...base, money_radar: true, unsubscribed_all: true } });
+    expect(await canSendEmail("a@b.co", "money_radar")).toBe(false);
+    // The column is part of the prefs projection so the toggle round-trips.
+    const call = state.calls[state.calls.length - 1];
+    expect(call.selectCols).toContain("money_radar");
+  });
 });
 
 // ---------------------------------------------------------------------------

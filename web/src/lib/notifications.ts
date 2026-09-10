@@ -5,14 +5,13 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "./supabase";
+import type { NotificationKind } from "./notification-kinds";
 
-export type NotificationKind =
-  | "tbr_view"
-  | "tbr_qa_asked"
-  | "tbr_lead"
-  | "report_shared"
-  | "analysis_done"
-  | "svi_trend_alert";
+// The kind union lives in ./notification-kinds.ts (client-safe) so the API
+// allow-list, the feed and the bell all derive from the same array. T0245
+// added grant_deadline · program_intake · event_match · weekly_next_step ·
+// new_matches · analysis_refresh (Money Radar, plan §4h).
+export type { NotificationKind } from "./notification-kinds";
 
 interface InsertArgs {
   userId: string;

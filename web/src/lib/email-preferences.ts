@@ -6,7 +6,9 @@ export type EmailCategory =
   | "product_updates"
   | "promotions"
   | "svi_alerts"
-  | "payment_receipts";
+  | "payment_receipts"
+  /** T0245 Money Radar — grant deadlines, program intakes, new matches (G11 §4h). */
+  | "money_radar";
 
 export interface EmailPreferences {
   email: string;
@@ -22,6 +24,12 @@ export interface EmailPreferences {
    * call site until every row has been backfilled.
    */
   digest_weekly?: boolean;
+  /**
+   * T0245 — Money Radar emails (deadline drips, new-match nudges). Defaults
+   * TRUE at the DB layer (migration 0318_funding_matches.sql); undefined on
+   * rows read before the column existed → treat as TRUE.
+   */
+  money_radar?: boolean;
   unsubscribed_all: boolean;
   unsubscribe_token: string;
 }
@@ -37,7 +45,7 @@ export async function getEmailPreferences(
   const { data, error } = await sb
     .from("email_preferences")
     .select(
-      "email, weekly_reports, product_updates, promotions, svi_alerts, payment_receipts, digest_weekly, unsubscribed_all, unsubscribe_token",
+      "email, weekly_reports, product_updates, promotions, svi_alerts, payment_receipts, digest_weekly, money_radar, unsubscribed_all, unsubscribe_token",
     )
     .eq("email", email.toLowerCase().trim())
     .maybeSingle();
@@ -112,6 +120,10 @@ export async function canSendEmail(
 
   // Check global unsubscribe first
   if (prefs.unsubscribed_all) return false;
+
+  // money_radar column arrived with migration 0318 — a row without it
+  // (undefined) is opted in, matching the column default. Explicit false wins.
+  if (category === "money_radar") return prefs.money_radar !== false;
 
   // Check specific category
   return prefs[category] === true;
@@ -209,7 +221,7 @@ export async function getPreferencesByToken(
   const { data, error } = await sb
     .from("email_preferences")
     .select(
-      "email, weekly_reports, product_updates, promotions, svi_alerts, payment_receipts, digest_weekly, unsubscribed_all, unsubscribe_token",
+      "email, weekly_reports, product_updates, promotions, svi_alerts, payment_receipts, digest_weekly, money_radar, unsubscribed_all, unsubscribe_token",
     )
     .eq("unsubscribe_token", token)
     .maybeSingle();
