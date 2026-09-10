@@ -19,7 +19,8 @@ export interface AnalyticsEventMap {
   svi_form_started: { method: "text" | "voice" | "file" | "example" };
   svi_voice_input: Record<string, never>;
   svi_file_uploaded: { file_type: string };
-  svi_submitted: { method: "text" | "file"; has_file: boolean };
+  /** `arm` = the homepage hero one-liner shown (T0250) when the submit came from the hero omnibox. */
+  svi_submitted: { method: "text" | "file"; has_file: boolean; arm?: string };
   svi_analysis_complete: { svi_score: number; slug: string };
   svi_result_reset: Record<string, never>;
   svi_paywall_shown: Record<string, never>;
@@ -126,6 +127,8 @@ export interface AnalyticsEventMap {
   startup_listing_contact_submitted: { slug: string };
 
   // ── Hero / Search ──
+  /** T0250 (G11 §4i D-5): which hero one-liner arm the homepage H1 rendered — F1 default, F2/F3 via `?hero=`. */
+  hero_variant_shown: { arm: string };
   signup_cta: { location: string };
   search_analyse: { query: string };
   quick_tag_click: { tag: string };
