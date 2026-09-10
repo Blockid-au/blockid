@@ -349,7 +349,7 @@
 | `ABR_GUID` env present? (G11 T0244) | ABN lookup for `project_grant_profiles` | Confirm ABR web-services GUID in `web/.env` | Founder |
 | Stripe prices for evaluator rungs (G12 T0268) | Scout/Firm/Program self-serve checkout | Mint `STRIPE_PRICE_INVESTOR_ANGEL`, `_ADVISOR`, `_VC_SMALL` (+ annual) in Stripe dashboard; add env | Founder (Stripe owner) |
 | Doctoral-research sentence (G12 D4, T0275) | Positioning claim #6 on /solutions/* and comparison page | **APPROVED by founder 2026-09-10:** "grounded in the founder's doctoral research (DBA) on startup valuation"; never "PhD" | Founder ✅ |
-| Provider data-handling sentence (G12 T0275) | "confidential" claim in the ChatGPT comparison | **APPROVED by founder 2026-09-10 (data principle):** "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case — not to train models for anyone else. Founder-consented access tiers control who sees what." T0275 publishes it on /solutions/*, comparison page and privacy policy, and verifies each provider's policy in the free-model chain so the claim holds end-to-end. | Founder ✅ (CISO verification at T0275) |
+| Provider data-handling sentence (G12 T0275) | "confidential" claim in the ChatGPT comparison | **APPROVED by founder 2026-09-10 (data principle):** "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what." T0275 publishes it on /solutions/*, comparison page and privacy policy, and verifies each provider's policy in the free-model chain so the claim holds end-to-end. | Founder ✅ (CISO verification at T0275) |
 
 ---
 
