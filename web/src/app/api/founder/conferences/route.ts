@@ -4,7 +4,8 @@
  * Returns a curated shortlist of upcoming conferences for the authenticated
  * founder's active startup. Reads `projects.industry` (as `sector`) and
  * `projects.growth_phase_current` (mapped to a stage index) so the founder
- * doesn't have to hand-tune filters.
+ * doesn't have to hand-tune filters. Sources: `content/conferences.json`
+ * merged with `au_programs` rows of `program_type=event` (T0246).
  *
  * Query params (all optional, override the DB-derived defaults):
  *   ?sector=saas
@@ -17,10 +18,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectIdFromRequest } from "@/lib/projects";
-import {
-  recommendConferences,
-  type ConferenceCost,
-} from "@/lib/conferences";
+import { type ConferenceCost } from "@/lib/conferences";
+import { recommendConferencesWithProgramEvents } from "@/lib/funding/events";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +92,9 @@ export async function GET(req: NextRequest) {
   const region = overrideRegion ?? "AU";
 
   try {
-    const conferences = await recommendConferences({
+    // T0246: seed list + live `au_programs` event rows (Spark, West Tech
+    // Fest, …) through the same recommender.
+    const conferences = await recommendConferencesWithProgramEvents({
       sector,
       stage: stage === null || Number.isNaN(stage) ? null : stage,
       region,
