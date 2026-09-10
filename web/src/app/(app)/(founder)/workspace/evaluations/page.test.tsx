@@ -12,6 +12,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // T0273: the Progress column (Δ with ▲/▼ + inline SVG sparkline, stage change,
 // deadline badge from funding_matches), the Progress Radar panel (movers +
 // next deadlines) for money_radar plans, and the Scout-trial teaser without.
+// T0272: the Program gate (lp_export / accelerator.cohort from getEntitlements)
+// turns on the row checkboxes + "Batch score" button and the Cohorts section
+// (batches with progress + cohort / CSV / LP links); Scout / Firm get neither.
 
 vi.mock("@/components/workspace/workspace-layout", () => ({
   WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
@@ -51,8 +54,17 @@ const buildProgressMock = vi.fn();
 vi.mock("@/lib/evaluations/progress-radar", () => ({
   buildEvaluatorProgress: (o: unknown) => buildProgressMock(o),
 }));
-const canMock = vi.fn();
-vi.mock("@/lib/entitlements", () => ({ can: (u: unknown, f: string) => canMock(u, f) }));
+const getEntitlementsMock = vi.fn();
+vi.mock("@/lib/entitlements", () => ({ getEntitlements: (plan: string, id: string) => getEntitlementsMock(plan, id) }));
+const listBatchesMock = vi.fn();
+vi.mock("@/lib/evaluations/batch", () => ({ listBatches: (id: string) => listBatchesMock(id) }));
+
+const SCOUT_FLAGS = ["watchlist", "svi.feed", "investor.dealflow", "grant_finder", "money_radar"];
+const PROGRAM_FLAGS = [...SCOUT_FLAGS, "advisor.cohort", "portfolio", "api.access", "lp_export", "lp_report"];
+const BATCHES = [
+  { id: "b-1", userId: "u-1", name: "Cohort 4 intake", rubricWeights: {}, status: "running", total: 12, doneCount: 5, failedCount: 1, createdAt: "2026-09-10T00:00:00Z", startedAt: "2026-09-10T12:00:00Z", finishedAt: null },
+  { id: "b-0", userId: "u-1", name: "Spring round", rubricWeights: {}, status: "done", total: 3, doneCount: 3, failedCount: 0, createdAt: "2026-09-01T00:00:00Z", startedAt: null, finishedAt: "2026-09-01T13:00:00Z" },
+];
 
 const PROGRESS = {
   userId: "u-1",
@@ -138,9 +150,11 @@ beforeEach(() => {
   });
   getReportQuotaMock.mockResolvedValue({ limit: 10, used: 3, remaining: 7, unlimited: false });
   buildProgressMock.mockReset();
-  canMock.mockReset();
+  getEntitlementsMock.mockReset();
+  listBatchesMock.mockReset();
   buildProgressMock.mockResolvedValue(PROGRESS);
-  canMock.mockResolvedValue(true);
+  getEntitlementsMock.mockResolvedValue(SCOUT_FLAGS);
+  listBatchesMock.mockResolvedValue([]);
 });
 
 describe("/workspace/evaluations", () => {
@@ -246,7 +260,7 @@ describe("/workspace/evaluations", () => {
     expect((out.match(/data-testid="sparkline"/g) ?? []).length).toBe(2); // row + panel mover
     expect((out.match(/data-testid="deadline-badge"/g) ?? []).length).toBe(1);
     expect(buildProgressMock).toHaveBeenCalledWith({ userId: "u-1" });
-    expect(canMock).toHaveBeenCalledWith({ id: "u-1", plan: "investor_angel", segment: "investor" }, "money_radar");
+    expect(getEntitlementsMock).toHaveBeenCalledWith("investor_angel", "u-1");
   });
 
   it("T0273: Progress Radar panel lists movers + next deadlines for money_radar plans", async () => {
@@ -263,7 +277,7 @@ describe("/workspace/evaluations", () => {
   });
 
   it("T0273: without money_radar the panel is the Scout 7-day trial teaser → /pricing?segment=evaluator", async () => {
-    canMock.mockResolvedValue(false);
+    getEntitlementsMock.mockResolvedValue(SCOUT_FLAGS.filter((f) => f !== "money_radar"));
     const out = await html();
     expect(out).toContain('data-testid="progress-radar-teaser"');
     expect(out).not.toContain('data-testid="progress-radar-panel"');
@@ -280,6 +294,42 @@ describe("/workspace/evaluations", () => {
     expect(out).toContain('data-testid="progress-radar-panel"');
     expect(out).toContain("0 of 0 startups moved this week");
     expect(out).not.toContain('data-testid="sparkline"');
+  });
+
+  it("T0272: Scout / Firm get no checkboxes, no Batch score button and no Cohorts section", async () => {
+    const out = await html();
+    expect(out).not.toContain('data-testid="batch-score-button"');
+    expect(out).not.toContain("Select all startups");
+    expect(out).not.toContain('data-testid="cohorts-section"');
+    expect(listBatchesMock).toHaveBeenCalledWith("u-1");
+  });
+
+  it("T0272: Program gets row multi-select + Batch score and the Cohorts section with progress + links", async () => {
+    getEntitlementsMock.mockResolvedValue(PROGRAM_FLAGS);
+    listBatchesMock.mockResolvedValue(BATCHES);
+    const out = await html();
+    expect(out).toContain('data-testid="batch-score-button"');
+    expect(out).toContain("Batch score");
+    expect(out).toContain("Select all startups");
+    expect(out).toContain("Select Acme Robotics for batch scoring");
+    expect(out).toContain('data-testid="cohorts-section"');
+    expect((out.match(/data-testid="cohort-batch"/g) ?? []).length).toBe(2);
+    expect(out).toContain("Cohort 4 intake");
+    expect(out).toContain("Scoring…");
+    expect(out).toContain("5 of 12 scored · 1 failed");
+    expect(out).toContain("Spring round");
+    expect(out).toContain("3 of 3 scored");
+    expect(out).toContain("/workspace/evaluations/cohort/b-1");
+    expect(out).toContain("/api/evaluations/batch/b-1/export.csv");
+    expect(out).toContain("/api/reports/quarterly?batch=b-1");
+    expect(out).toContain("width:50%");
+  });
+
+  it("T0272: Program with no batches yet still sees the Cohorts section with its empty hint", async () => {
+    getEntitlementsMock.mockResolvedValue(PROGRAM_FLAGS);
+    const out = await html();
+    expect(out).toContain('data-testid="cohorts-section"');
+    expect(out).toContain("No batches yet");
   });
 
   it("does not load data for a non-evaluator and shows the claiming state when ?claim= is present", async () => {

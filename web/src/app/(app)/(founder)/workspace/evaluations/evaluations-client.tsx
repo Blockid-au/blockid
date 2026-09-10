@@ -4,15 +4,20 @@
 // for /workspace/evaluations (T0270). All writes go through /api/evaluations.
 // T0273 adds the Progress column (Δ since last week + sparkline), the
 // per-startup deadline badge and the Progress Radar panel / Scout teaser.
+// T0272 (Program) adds row multi-select → "Batch score" (BatchDialog →
+// POST /api/evaluations/batch) and the Cohorts section listing batches with
+// progress + links to the cohort table / CSV / sponsor-LP report.
 
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail, FileText, RefreshCw, FileDown, Radar, CalendarClock } from "lucide-react";
+import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail, FileText, RefreshCw, FileDown, Radar, CalendarClock, Layers } from "lucide-react";
 import type { EvaluationListRow, EvaluationConsentTier } from "@/lib/evaluations";
 import type { LastEvaluationReport, ReportQuota } from "@/lib/evaluations/report-quota";
 import { formatDelta, type EvaluatorProgress, type EvaluatorProgressItem, type ProgressDeadline } from "@/lib/evaluations/progress-shared";
 import { ReportDialog, type ReportKind, type ReportRunResult } from "./report-dialog";
+import { BatchDialog, type BatchQueuedResult } from "./batch-dialog";
+import { batchProgressPct, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
 
 // ---------------------------------------------------------------------------
 // Props + local constants
@@ -34,6 +39,10 @@ export interface EvaluationsClientProps {
   progress?: EvaluatorProgress | null;
   /** Plan has `money_radar` (Scout / Firm / Program) → Progress Radar panel; else the trial teaser. */
   hasMoneyRadar?: boolean;
+  /** T0272 — plan has lp_export / accelerator.cohort (Program) → multi-select + Batch score. */
+  canBatch?: boolean;
+  /** T0272 — batches this user queued, newest first (Cohorts section). */
+  batches?: EvaluationBatch[];
 }
 
 const AU_STATE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -241,6 +250,64 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
 }
 
 // ---------------------------------------------------------------------------
+// Cohorts (T0272) — batches with progress + cohort / CSV / LP links
+// ---------------------------------------------------------------------------
+
+const BATCH_STATUS_CHIP: Record<EvaluationBatch["status"], { label: string; className: string }> = {
+  queued: { label: "Queued · off-peak", className: "border-surface-300 bg-surface-100 text-ink-600" },
+  running: { label: "Scoring…", className: "border-brand-300 bg-brand-50 text-brand-700" },
+  done: { label: "Scored", className: "border-emerald-300 bg-emerald-50 text-emerald-700" },
+  failed: { label: "Failed", className: "border-red-300 bg-red-50 text-red-700" },
+};
+
+export function CohortsSection({ batches, canBatch }: { batches: EvaluationBatch[]; canBatch: boolean }) {
+  if (!canBatch && batches.length === 0) return null;
+  return (
+    <section data-testid="cohorts-section" aria-label="Cohorts" className="rounded-2xl border border-surface-200 bg-white px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+          <Layers strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
+          Cohorts
+          <span className="text-xs font-normal text-ink-500">— batch scores on one rubric, scored off-peak</span>
+        </h2>
+        {canBatch ? <span className="text-[11px] text-ink-400">Select startups below → Batch score</span> : null}
+      </div>
+      {batches.length === 0 ? (
+        <p className="mt-2 text-xs text-ink-500">No batches yet. Tick the startups to score together and choose Batch score.</p>
+      ) : (
+        <ul className="mt-3 divide-y divide-surface-100">
+          {batches.map((b) => {
+            const chip = BATCH_STATUS_CHIP[b.status];
+            const pct = batchProgressPct(b);
+            return (
+              <li key={b.id} data-testid="cohort-batch" className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Link href={`/workspace/evaluations/cohort/${encodeURIComponent(b.id)}`} className="truncate font-medium text-ink-900 hover:underline">{b.name}</Link>
+                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chip.className}`}>{chip.label}</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-ink-500">
+                    <span className="h-1.5 w-32 overflow-hidden rounded-full bg-surface-100" aria-hidden="true">
+                      <span className="block h-full bg-brand-600" style={{ width: `${pct}%` }} />
+                    </span>
+                    <span>{b.doneCount} of {b.total} scored{b.failedCount > 0 ? ` · ${b.failedCount} failed` : ""} · {formatDate(b.createdAt)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 whitespace-nowrap text-xs">
+                  <Link href={`/workspace/evaluations/cohort/${encodeURIComponent(b.id)}`} className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">Cohort table</Link>
+                  <a href={`/api/evaluations/batch/${encodeURIComponent(b.id)}/export.csv`} className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">CSV</a>
+                  <a href={`/api/reports/quarterly?batch=${encodeURIComponent(b.id)}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">LP report</a>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -255,6 +322,8 @@ export function EvaluationsClient({
   reportQuota = null,
   progress = null,
   hasMoneyRadar = false,
+  canBatch = false,
+  batches: initialBatches = [],
 }: EvaluationsClientProps) {
   const progressByEval = React.useMemo(() => {
     const m = new Map<string, EvaluatorProgressItem>();
@@ -285,6 +354,33 @@ export function EvaluationsClient({
     }));
     setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, latestSvi: result.svi, latestSviAt: new Date().toISOString() } : r)));
     if (result.via === "quota") setQuotaRemaining(result.remaining_quota);
+    router.refresh();
+  }
+
+  // --- Batch score (T0272) ---
+  const [batches, setBatches] = React.useState<EvaluationBatch[]>(initialBatches);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
+  const [showBatch, setShowBatch] = React.useState(false);
+  const selectedRows = React.useMemo(() => rows.filter((r) => selectedIds.has(r.id)), [rows, selectedIds]);
+  const allSelected = rows.length > 0 && selectedRows.length === rows.length;
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAll() {
+    setSelectedIds(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
+  }
+  function handleBatchQueued(result: BatchQueuedResult) {
+    setBatches((prev) => [result.batch, ...prev]);
+    setSelectedIds(new Set());
+    setShowBatch(false);
+    if (Number.isFinite(result.quota_left) && result.quota_left < Number.MAX_SAFE_INTEGER) setQuotaRemaining(result.quota_left);
+    setNotice(`Queued ${result.queued} startup${result.queued === 1 ? "" : "s"} in "${result.batch.name}" — scored off-peak tonight; you'll be notified when the cohort table is ready.`);
     router.refresh();
   }
 
@@ -475,6 +571,19 @@ export function EvaluationsClient({
             One rubric across every startup you track — 8 dimensions, the same evidence standard, AUD valuation range on demand.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+        {canBatch && isEvaluator && rows.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setShowBatch(true)}
+            disabled={selectedRows.length === 0}
+            data-testid="batch-score-button"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Layers strokeWidth={1.75} className="h-4 w-4" />
+            Batch score{selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
+          </button>
+        ) : null}
         {canAdd ? (
           <button
             type="button"
@@ -492,6 +601,7 @@ export function EvaluationsClient({
             Upgrade to track more
           </Link>
         ) : null}
+        </div>
       </header>
 
       {/* Founder claim outcome */}
@@ -553,6 +663,9 @@ export function EvaluationsClient({
       {/* Progress Radar (T0273) — panel for money_radar plans, Scout teaser otherwise */}
       {isEvaluator && rows.length > 0 ? <ProgressRadarPanel progress={progress} hasMoneyRadar={hasMoneyRadar} /> : null}
 
+      {/* Cohorts (T0272) — Program batch scoring */}
+      {isEvaluator ? <CohortsSection batches={batches} canBatch={canBatch} /> : null}
+
       {!isEvaluator && claimState.status === "idle" && (
         <div className="rounded-xl border border-surface-200 bg-white px-5 py-6 text-sm text-ink-600">
           <p className="font-medium text-ink-900">This workspace is for evaluators.</p>
@@ -596,6 +709,17 @@ export function EvaluationsClient({
           <table className="min-w-full text-sm">
             <thead className="bg-surface-50 text-left text-xs uppercase tracking-wider text-ink-500">
               <tr>
+                {canBatch ? (
+                  <th scope="col" className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all startups"
+                      checked={allSelected}
+                      onChange={toggleAll}
+                      className="h-4 w-4 rounded border-surface-300 accent-brand-600"
+                    />
+                  </th>
+                ) : null}
                 <th scope="col" className="px-4 py-3 font-semibold">Startup</th>
                 <th scope="col" className="px-4 py-3 font-semibold">Stage / SVI</th>
                 <th scope="col" className="px-4 py-3 font-semibold">Progress</th>
@@ -610,6 +734,17 @@ export function EvaluationsClient({
                 const editing = editingId === row.id;
                 return (
                   <tr key={row.id} data-testid="evaluation-row" className="align-top">
+                    {canBatch ? (
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${row.projectName} for batch scoring`}
+                          checked={selectedIds.has(row.id)}
+                          onChange={() => toggleSelected(row.id)}
+                          className="h-4 w-4 rounded border-surface-300 accent-brand-600"
+                        />
+                      </td>
+                    ) : null}
                     <td className="px-4 py-3">
                       <div className="font-medium text-ink-900">{row.projectName}</div>
                       {editing ? (
@@ -764,6 +899,17 @@ export function EvaluationsClient({
           kind={reportDialog.kind}
           onClose={() => setReportDialog(null)}
           onSuccess={(result) => handleReportSuccess(reportDialog.row, result)}
+        />
+      )}
+
+      {/* Batch score dialog (T0272) */}
+      {showBatch && selectedRows.length > 0 && (
+        <BatchDialog
+          selected={selectedRows}
+          quotaRemaining={reportQuota && !reportQuota.unlimited ? (quotaRemaining ?? reportQuota.remaining) : null}
+          quotaLimit={reportQuota && !reportQuota.unlimited ? reportQuota.limit : null}
+          onClose={() => setShowBatch(false)}
+          onQueued={handleBatchQueued}
         />
       )}
 
