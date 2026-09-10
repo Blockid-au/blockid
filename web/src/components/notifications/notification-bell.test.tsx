@@ -40,8 +40,8 @@ describe("loadBell", () => {
     expect(s.source).toBe("founder");
     expect(s.unreadCount).toBe(2);
     expect(s.items).toEqual([
-      { id: "11", source: "founder", type: "grant_deadline", title: "Grant deadline", body: "MVP Ventures closes in 14 days (2026-09-27)", href: "https://mvp", read: false, created_at: "2026-09-13T05:00:00Z" },
-      { id: "10", source: "founder", type: "new_matches", title: "New matches", body: "2 grants and 1 program now match Acme", href: "/funding/report/r1", read: true, created_at: "2026-09-13T05:00:00Z" },
+      { id: "11", source: "founder", type: "grant_deadline", title: "Grant deadline", body: "14 days left: MVP Ventures", href: "https://mvp", read: false, created_at: "2026-09-13T05:00:00Z" },
+      { id: "10", source: "founder", type: "new_matches", title: "New matches", body: "3 new matches for Acme this week", href: "/funding/report/r1", read: true, created_at: "2026-09-13T05:00:00Z" },
     ]);
   });
 
