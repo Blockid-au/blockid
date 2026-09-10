@@ -91,6 +91,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/funding`, lastModified, changeFrequency: "daily" as const, priority: 0.9 },
     { url: `${SITE_URL}/funding/grants`, lastModified, changeFrequency: "daily" as const, priority: 0.8 },
     { url: `${SITE_URL}/funding/programs`, lastModified, changeFrequency: "daily" as const, priority: 0.8 },
+    // S7-B — public sample of the A$3 report (static, built from the seeds).
+    { url: `${SITE_URL}/funding/report/demo`, lastModified, changeFrequency: "monthly" as const, priority: 0.6 },
     ...CAPITALS.map((c) => ({
       url: `${SITE_URL}/funding/programs/${capitalSlug(c)}`,
       lastModified,
