@@ -33,9 +33,15 @@ export interface Plan {
    * Whether this plan surfaces on the public /pricing ladder. Defaults to
    * `true` when omitted. `false` = hidden from the ladder but kept in the
    * catalogue for legacy renewals and contact-sales flows. Set false on
-   * founder_scale (retired A$299 Pro), founder_enterprise, investor_* and
-   * accelerator_* per the 2026-09-08 pricing ladder
+   * founder_scale (retired A$299 Pro), founder_enterprise, investor_vc_ent
+   * and accelerator_* per the 2026-09-08 pricing ladder
    * (Free / Founder A$29 / Growth A$69 + A$59 equity add-on).
+   *
+   * 2026-09-10 (G12 / T0268): the three self-serve Evaluator rungs —
+   * investor_angel "Scout" A$79, investor_advisor "Firm" A$149 and
+   * investor_vc_small "Program" A$349 — are public again and render under
+   * the Evaluator tab of /pricing. Their copy is synced to plans.csv
+   * (`reports_per_month` 10/30/100, `profiles` 25/50/200, `seats` 1/3/5).
    */
   public?: boolean;
 }
@@ -198,62 +204,72 @@ const FOUNDER: Plan[] = [
   },
 ];
 
-// ─── Investor ─────────────────────────────────────────────────────────────
+// ─── Investor / Evaluator ─────────────────────────────────────────────────
+//
+// 2026-09-10 (G12 §3b, T0268): the investor catalogue is sold as the
+// "Evaluator" ladder — Scout / Firm / Program — to angels, syndicates,
+// advisory firms, VC teams, accelerators, incubators and university
+// programs. The plan ids are unchanged (plans.csv rows 7–9, migration 0309,
+// Stripe env vars STRIPE_PRICE_INVESTOR_ANGEL|ADVISOR|VC_SMALL); only the
+// labels and the feature copy moved. Numbers below are read off plans.csv
+// `usage_limits` (reports_per_month / profiles / seats) and `feature_flags`
+// — keep them in lock-step, plans-v2.test.ts pins the anchors.
 const INVESTOR: Plan[] = [
   {
     id: "investor_angel",
     segment: "investor",
-    name: "Angel",
+    name: "Scout",
     monthly_aud: 79,
     annual_aud: 790,
     trial_days: 7,
     cta_kind: "trial",
     most_popular: true,
-    tagline: "Solo angel",
-    public: false,
+    tagline: "Angels, syndicate members, mentors",
+    public: true,
     features: [
-      "Curated deal flow feed",
-      "5-startup watchlist",
-      "SVI Pro comparison view",
-      "400 AI credits / month",
-      "Weekly market digest",
+      "10 Trust BizReports a month included (A$30 value)",
+      "25 tracked startups, 1 seat",
+      "Weekly Progress Radar — score deltas, stage changes, new evidence",
+      "Deal-flow feed + watchlist",
+      "ICS calendar and share-link tracking",
     ],
   },
   {
     id: "investor_advisor",
     segment: "investor",
-    name: "Advisor",
+    name: "Firm",
     monthly_aud: 149,
     annual_aud: 1490,
     trial_days: 7,
     cta_kind: "trial",
-    tagline: "Angel + syndicate lead",
-    public: false,
+    tagline: "Advisory, accounting and legal firms",
+    public: true,
     features: [
-      "Everything in Angel",
-      "10-startup portfolio tracking",
-      "Warm intro engine",
-      "1,000 AI credits / month",
-      "Advisor equity calculator",
+      "Everything in Scout",
+      "30 Trust BizReports a month included",
+      "50 tracked startups, 3 seats",
+      "White-label PDF reports + client roster",
+      "Full mentor access to each client's workspace (founder-approved)",
+      "R&DTI / ESIC / s708 checks per client",
     ],
   },
   {
     id: "investor_vc_small",
     segment: "investor",
-    name: "VC Small",
+    name: "Program",
     monthly_aud: 349,
     annual_aud: 3490,
     trial_days: 7,
     cta_kind: "trial",
-    tagline: "5 seats included",
-    public: false,
+    tagline: "VC teams, accelerators, incubators, university programs",
+    public: true,
     features: [
-      "Everything in Advisor",
-      "50-startup portfolio",
+      "Everything in Firm",
+      "100 Trust BizReports a month included",
+      "200 tracked startups, 5 seats",
+      "Batch scoring — one rubric across a whole application round",
+      "Cohort dashboard + quarterly LP / sponsor report export",
       "Read-only API access",
-      "3,500 AI credits / month",
-      "Team seats + shared notes",
-      "Priority DD reports",
     ],
   },
   {
@@ -267,7 +283,7 @@ const INVESTOR: Plan[] = [
     tagline: "Fund-grade",
     public: false,
     features: [
-      "Everything in VC Small",
+      "Everything in Program",
       "LP reporting suite",
       "Full data room access",
       "SSO / SAML + audit log",
@@ -340,17 +356,17 @@ const ACCELERATOR: Plan[] = [
 export const PLANS_V2: Plan[] = [...FOUNDER, ...INVESTOR, ...ACCELERATOR];
 
 /**
- * Advisor tab reuses the investor catalogue with the Advisor SKU highlighted.
- * When the dedicated advisor SKU family lands (post-W1), replace this map.
+ * Advisor segment reuses the investor (Evaluator) catalogue with the Firm
+ * SKU highlighted. When the dedicated advisor SKU family lands, replace
+ * this map.
  *
  * NOTE: Full catalogue for entitlements resolution + admin surfaces. Public
  * marketing pricing surfaces MUST route through `publicPlansForSegment()`
- * below — which drops every SKU marked `public: false` per the 2026-09-07
- * Universal 3-rung ladder decision (Free / Growth / Pro).
+ * below — which drops every SKU marked `public: false`.
  */
 export function plansForSegment(segment: Segment): Plan[] {
   if (segment === "advisor") {
-    // Highlight the Advisor SKU on this tab.
+    // Highlight the Firm (investor_advisor) SKU for the advisor segment.
     return INVESTOR.map((p) => ({
       ...p,
       most_popular: p.id === "investor_advisor",
@@ -364,10 +380,13 @@ export function plansForSegment(segment: Segment): Plan[] {
  * Derived from `plan.public === false` on the catalogue itself so a new
  * hidden SKU is a one-line change in the plan definition.
  *
- * Post-2026-09-08 ladder: the public ladder is founder_free (Free) +
- * founder_starter (Founder A$29) + founder_growth (Growth A$69), with the
- * A$59/mo Equity add-on sold on top of Growth. Everything else is
- * contact-sales / legacy-renewal only.
+ * Post-2026-09-10 ladder (G12): two public ladders, one per /pricing tab.
+ *   Founder   — founder_free (Free) + founder_starter (Founder A$29) +
+ *               founder_growth (Growth A$69), A$59/mo Equity add-on on top.
+ *   Evaluator — investor_angel (Scout A$79) + investor_advisor (Firm A$149)
+ *               + investor_vc_small (Program A$349).
+ * Everything else (retired Pro, founder_enterprise, investor_vc_ent, the
+ * accelerator_* cohort SKUs) is contact-sales / legacy-renewal only.
  */
 export const PUBLIC_HIDDEN_PLAN_IDS: readonly string[] = PLANS_V2
   .filter((p) => p.public === false)

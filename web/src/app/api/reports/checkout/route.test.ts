@@ -123,7 +123,7 @@ vi.mock("next/headers", () => ({
 }));
 
 vi.mock("@/lib/pricing/v3-skus", () => ({
-  TRUST_REPORT_5AUD: { id: "trust_report_5aud", unit_amount_incl_gst_cents: 550 },
+  TRUST_REPORT_5AUD: { id: "trust_report_5aud", unit_amount_incl_gst_cents: 300 },
 }));
 
 process.env.STRIPE_PRICE_TRUST_REPORT_5AUD = "price_trust_report";

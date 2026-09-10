@@ -161,7 +161,7 @@ describe("refundFailedOrder — Stripe path", () => {
     });
 
     // Stripe called against the stored payment intent — full refund, no
-    // amount override (the whole A$5.50 goes back).
+    // amount override (the whole A$3 goes back).
     expect(create).toHaveBeenCalledTimes(1);
     const params = create.mock.calls[0]?.[0];
     expect(params?.payment_intent).toBe("pi_test_123");

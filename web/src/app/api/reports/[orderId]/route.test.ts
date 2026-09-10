@@ -139,7 +139,7 @@ function seedOrder(overrides: Row = {}): void {
       user_id: OWNER.id,
       business_id: SECRETS.businessId,
       product_sku: "sku_trust_report_5aud",
-      amount_aud: 550,
+      amount_aud: 300,
       credits_used: 0,
       stripe_session_id: SECRETS.stripeSession,
       stripe_payment_intent_id: SECRETS.stripePaymentIntent,
@@ -435,7 +435,7 @@ describe("READY payload", () => {
     expect(body.order.status).toBe("READY");
     expect(body.order.paidAt).toBe("2026-07-01T00:01:00.000Z");
     expect(body.order.expiresAt).toBe("2026-09-29T00:01:00.000Z");
-    expect(body.order.amountAud).toBe(550);
+    expect(body.order.amountAud).toBe(300);
     expect(body.order.creditsUsed).toBe(0);
   });
 

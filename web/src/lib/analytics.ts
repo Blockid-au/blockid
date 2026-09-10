@@ -66,6 +66,8 @@ export interface AnalyticsEventMap {
 
   // ── Pricing & Checkout ──
   pricing_viewed: Record<string, never>;
+  /** G12 (T0268): the Evaluator tab (Scout / Firm / Program) was shown on /pricing. */
+  evaluator_pricing_viewed: { via: "tab" | "deep_link" };
   pricing_toggle_billing: { annual: boolean };
   plan_cta_clicked: { plan: string; label: string };
   checkout_started: { plan: string };

@@ -41,9 +41,10 @@ const marketingProductJsonLd = {
   "@type": "Product",
   name: "BlockID SVI One-Click Report",
   // 2026-09-09: this described the A$3 guest report as an "Investor Trust
-  // Report" containing a "cap-table snapshot". The Trust Report is the retired
-  // A$5.50 SKU that has never taken a payment, and a guest checkout has no
-  // account and therefore no cap table to snapshot. Structured data is what
+  // Report" containing a "cap-table snapshot". The Trust BizReport is the
+  // A$3 SKU (re-priced from A$5.50 on 2026-09-10) that has never taken a
+  // payment, and a guest checkout has no account and therefore no cap table
+  // to snapshot. Structured data is what
   // Google reads, so a stale claim here outlives the page copy that carried
   // it. This now lists what the report actually contains.
   description:

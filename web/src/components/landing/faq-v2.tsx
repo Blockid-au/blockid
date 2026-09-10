@@ -35,8 +35,10 @@ const FAQS: FAQItem[] = [
     a: "Every price on this page is GST-inclusive — the amount you see is the amount you pay, with the 10% GST component already inside it. Auschain PTY LTD (ABN 79 659 615 111) is GST-registered, so Stripe splits the GST line automatically and emails you an ATO-compliant tax invoice for every charge.",
   },
   {
-    q: "Can I switch segment (e.g., from Founder to Investor)?",
-    a: "Yes. Switching segment triggers a short re-onboarding step to configure the right dashboards and workflows. For enterprise multi-tenant setups (running multiple segments in one account), contact support.",
+    // G12 (2026-09-10, T0268): describes the Founder / Evaluator switch that
+    // sits above the plans on /pricing — not the retired four persona tabs.
+    q: "Founder or Evaluator — which plans do I see?",
+    a: "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime. Without a subscription, every full Trust BizReport is A$3 per startup. Need more than Program (5+ seats, multi-cohort, SSO)? Contact sales.",
   },
 ];
 

@@ -69,6 +69,24 @@ describe("getProjectLimit — plans.usage_limits.profiles lookup", () => {
     expect(await getProjectLimit("founding50")).toBe(1);
   });
 
+  // G12-7 (2026-09-10, T0268): evaluator + accelerator SKUs mirror plans.csv
+  // usage_limits.profiles so a missing plans row never caps a paying Scout /
+  // Firm / Program customer at one startup.
+  it("evaluator rungs fall back to plans.csv profiles (Scout 25 / Firm 50 / Program 200)", async () => {
+    getPlanCachedMock.mockResolvedValue(null);
+    expect(await getProjectLimit("investor_angel")).toBe(25);
+    expect(await getProjectLimit("investor_advisor")).toBe(50);
+    expect(await getProjectLimit("investor_vc_small")).toBe(200);
+    expect(await getProjectLimit("investor_vc_ent")).toBe(UNLIMITED);
+  });
+
+  it("accelerator cohort SKUs fall back to plans.csv profiles (25 / 100 / unlimited)", async () => {
+    getPlanCachedMock.mockResolvedValue(null);
+    expect(await getProjectLimit("accelerator_starter")).toBe(25);
+    expect(await getProjectLimit("accelerator_growth")).toBe(100);
+    expect(await getProjectLimit("accelerator_enterprise")).toBe(UNLIMITED);
+  });
+
   it("unknown plan id defaults to 1", async () => {
     getPlanCachedMock.mockResolvedValue(null);
     expect(await getProjectLimit("mystery_tier")).toBe(1);

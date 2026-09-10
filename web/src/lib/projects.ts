@@ -41,14 +41,23 @@ export interface Project {
 const UNLIMITED_PROJECTS = Number.MAX_SAFE_INTEGER;
 
 // Static fallback in case the plans row is missing (fresh dev DB / migration
-// gap). Values mirror plans.csv → usage_limits.profiles for the founder tiers,
-// keyed by both legacy and v2 IDs.
+// gap). Values mirror plans.csv → usage_limits.profiles, keyed by both legacy
+// and v2 IDs. G12-7 (2026-09-10, T0268): the Evaluator rungs (Scout / Firm /
+// Program) and the accelerator cohort SKUs are listed too — before this an
+// evaluator whose plans row failed to load was capped at 1 startup.
 const FALLBACK_PROJECT_LIMITS: Record<string, number> = {
   founder_free: 1,
   founder_starter: 1,
   founder_growth: 3,
   founder_scale: 10,
   founder_enterprise: UNLIMITED_PROJECTS,
+  investor_angel: 25,
+  investor_advisor: 50,
+  investor_vc_small: 200,
+  investor_vc_ent: UNLIMITED_PROJECTS,
+  accelerator_starter: 25,
+  accelerator_growth: 100,
+  accelerator_enterprise: UNLIMITED_PROJECTS,
   free: 1,
   founding50: 1,
   founder: 3,

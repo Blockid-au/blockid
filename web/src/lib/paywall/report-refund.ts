@@ -3,7 +3,7 @@
  *
  * Master Upgrade Plan §8.8: "if generation fails after the retries, the
  * money is returned". Before this module the worker left the order in
- * FAILED and the customer's A$5.50 (or 200 credits) simply evaporated.
+ * FAILED and the customer's A$3 (or 200 credits) simply evaporated.
  *
  * Two payment paths converge on report_orders, so two reversals:
  *

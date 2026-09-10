@@ -266,36 +266,39 @@ const VC_ENT_FEATURES: readonly Feature[] = [
 export const INVESTOR_LADDER: readonly TierLadderEntry[] = Object.freeze([
   {
     id: "investor_angel",
+    // G12 (2026-09-10, T0268): sold as the Evaluator ladder — Scout / Firm /
+    // Program. Ids frozen; labels + headlineUnlock mirror plans-v2.ts.
     segment: "investor",
-    label: "Angel",
+    label: "Scout",
     rank: 10,
     monthlyAudBand: "A$79",
     targetPhaseRange: [0, 3],
-    headlineUnlock: "Curated deal-flow feed and 5-startup watchlist for solo angels",
+    headlineUnlock:
+      "10 Trust BizReports a month, 25 tracked startups and a weekly Progress Radar for angels and mentors",
     supportingUnlocks: ANGEL_FEATURES,
     hiddenFromPublic: false,
   },
   {
     id: "investor_advisor",
     segment: "investor",
-    label: "Advisor",
+    label: "Firm",
     rank: 20,
     monthlyAudBand: "A$149",
     targetPhaseRange: [2, 5],
     headlineUnlock:
-      "Warm-intro engine and advisor equity calculator for syndicate leads",
+      "30 Trust BizReports a month, 50 tracked startups, 3 seats and white-label client reports for advisory firms",
     supportingUnlocks: ADVISOR_FEATURES,
     hiddenFromPublic: false,
   },
   {
     id: "investor_vc_small",
     segment: "investor",
-    label: "VC Small",
+    label: "Program",
     rank: 30,
     monthlyAudBand: "A$349",
     targetPhaseRange: [4, 8],
     headlineUnlock:
-      "50-startup portfolio, read-only API and shared team seats for small VCs",
+      "100 Trust BizReports a month, batch scoring, LP / sponsor export and read-only API for VC teams and programs",
     supportingUnlocks: VC_SM_FEATURES,
     hiddenFromPublic: false,
   },

@@ -1,10 +1,13 @@
 "use client";
 
 /**
- * PricingMatrix — Homepage v2 pricing block, consumes the active segment
- * from <SegmentTabs> (via context) and renders the matching 3–5 SKU cards
- * from `plans-v2.ts` (placeholder catalogue; swapped for plans-db import
- * once the W1 backend track lands).
+ * PricingMatrix — Homepage v2 pricing block. Renders the public SKU cards
+ * for one segment from `plans-v2.ts`: the Founder ladder (Free / Starter
+ * A$29 / Growth A$69) or, since G12 (2026-09-10, T0268), the Evaluator
+ * ladder (Scout A$79 / Firm A$149 / Program A$349) when `segment` is
+ * "investor". <PricingSegmentSwitch /> on /pricing owns the tab state and
+ * passes the segment down as a prop; the legacy <SegmentTabs> context is
+ * still honoured for any older embed.
  *
  * Includes a monthly ↔ annual toggle (annual saves ~17% vs 12× monthly).
  * "Most Popular" ribbon is driven by `plan.most_popular` from the catalogue.
@@ -23,6 +26,8 @@ import {
   type Segment,
 } from "@/lib/plans-v2";
 import { TRIAL_COPY } from "@/lib/plans/trial-copy";
+import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 
 // pricing-anchor-2026-07 (T0121/T0123). Anchor-tier + pricing_anchor_order
 // A/B experiments were retired 2026-09-07 (Workstream B8) to keep the
@@ -49,15 +54,15 @@ const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; roleFit: s
     roleFit: "How this fits your role: build your startup profile, model your cap-table, and get investor-ready — from Day 0 to a signed term sheet.",
   },
   investor: {
-    headline: "Pricing for investors",
-    sub: "From solo angels to fund-grade DD workflows.",
-    roleFit: "How this fits your role: evaluate incoming deals with SVI Pro, track your watchlist and portfolio, and export LP-grade reports.",
+    headline: "Pricing for evaluators",
+    sub: "Scout A$79 · Firm A$149 · Program A$349. 7-day free trial · card required · cancel anytime.",
+    roleFit: "How this fits your role: add the startups you are evaluating, score every one of them on the same rubric, and watch their progress week to week — as an angel, an advisory firm, a VC team or a program.",
   },
   advisor: {
     headline: "Pricing for advisors",
-    sub: "Same plans as investors — the Advisor tier ships the warm-intro engine and equity calculator you actually use.",
-    roleFit: "How this fits your role: guide founders, back them with time (not just capital), and track advisor equity + vesting on-chain.",
-    note: "Advisor-specific features live in the Advisor plan: warm intro engine, advisor equity/vesting calculator, and portfolio tracking of the founders you back with time (not just capital).",
+    sub: "Same Evaluator ladder — Firm is the rung built for firms with clients.",
+    roleFit: "How this fits your role: guide founders, run every client on one rubric, and hand them white-label reports with your name on the cover.",
+    note: "Firm adds the client roster, white-label PDF reports, founder-approved full mentor access and per-client R&DTI / ESIC / s708 checks.",
   },
   accelerator: {
     headline: "Pricing for accelerators",
@@ -68,11 +73,21 @@ const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; roleFit: s
 
 /**
  * Founder plans keep the /onboarding trial flow (Stripe env vars wired for
- * the Founder Stripe products). Investor / Advisor / Accelerator plans route
- * to the contact form until the P8.5 Stripe env vars land for those SKUs.
- * See docs/pricing-upgrade-plan-2026-07-16.md § Tier Matrix.
+ * the Founder Stripe products). Since G12 (2026-09-10, T0268) the investor
+ * / advisor catalogue is the self-serve Evaluator ladder and routes to
+ * `/signup?segment=evaluator&plan=<id>` (7-day Stripe trial, card required —
+ * the route itself ships under T0269). Only the accelerator cohort SKUs are
+ * still contact-sales, and none of them is public anyway.
  */
-const CONTACT_SALES_SEGMENTS: readonly Segment[] = ["investor", "advisor", "accelerator"];
+const CONTACT_SALES_SEGMENTS: readonly Segment[] = ["accelerator"];
+
+/** Segments whose public cards are sold on the Evaluator tab. */
+const EVALUATOR_SEGMENTS: readonly Segment[] = ["investor", "advisor"];
+
+/** CTA target for an Evaluator rung — built by T0269, link-only here. */
+export function evaluatorSignupHref(planId: string): string {
+  return `/signup?segment=evaluator&plan=${encodeURIComponent(planId)}`;
+}
 
 export interface PricingMatrixProps {
   /** Optional override; by default the active <SegmentTabs> segment wins. */
@@ -87,6 +102,7 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
   const [interval, setInterval] = useState<Interval>("monthly");
 
   const intro = SEGMENT_INTRO[segment];
+  const isEvaluator = EVALUATOR_SEGMENTS.includes(segment);
   // Round 5.11: consume `publicPlansForSegment()` so the retired `founder_free`
   // tier is stripped from every public pricing render. `plansForSegment()` is
   // still exported for entitlement/back-office code that needs the full list.
@@ -159,9 +175,6 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
       aria-labelledby="pricing-matrix-heading"
     >
       <div className="mb-10 flex flex-col items-center text-center">
-        <span className="mb-3 inline-flex items-center rounded-full border border-action/40 bg-action/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-action">
-          Beta pricing
-        </span>
         <h2
           id="pricing-matrix-heading"
           className="text-3xl font-semibold text-primary sm:text-4xl"
@@ -185,7 +198,10 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
+      <div
+        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]"
+        data-testid={isEvaluator ? "evaluator-ladder" : "founder-ladder"}
+      >
         {plans.map((plan) => (
           <PlanCard
             key={plan.id}
@@ -197,6 +213,8 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
         ))}
       </div>
 
+      {isEvaluator && <PayAsYouGoNote />}
+
       <p className="mt-10 text-center text-xs text-tertiary">
         AUD pricing, GST-inclusive. Every charge produces an ATO tax invoice.
         {" "}{TRIAL_COPY.fine_print}
@@ -207,6 +225,32 @@ export function PricingMatrix({ segment: overrideSegment }: PricingMatrixProps =
         independent advice before subscribing.
       </p>
     </section>
+  );
+}
+
+// ─── Pay-as-you-go note (Evaluator tab) ──────────────────────────────────
+
+/**
+ * Evaluators do not need a subscription to read a report: every Trust
+ * BizReport is A$3 per startup (G12 §3b "Pay-as-you-go"). Prices are read
+ * off the SKU and the credit-pack ladder so this line can never drift from
+ * what checkout books.
+ */
+function PayAsYouGoNote() {
+  const reportPrice = `A$${(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300) / 100}`;
+  const smallest = CREDIT_PACKS[0];
+  const largest = CREDIT_PACKS[CREDIT_PACKS.length - 1];
+  return (
+    <p
+      data-testid="evaluator-payg"
+      className="mx-auto mt-8 max-w-3xl rounded-lg border border-action/20 bg-action/5 px-4 py-3 text-center text-sm text-secondary"
+    >
+      No subscription? Every full Trust BizReport is{" "}
+      <strong className="text-primary">{reportPrice} per startup</strong>,
+      pay-as-you-go — the same report founders buy. Credit packs run from{" "}
+      {smallest ? `A$${smallest.price} (${smallest.credits} credits)` : "A$5"} to{" "}
+      {largest ? `A$${largest.price} (${largest.credits} credits)` : "A$60"}.
+    </p>
   );
 }
 
@@ -283,6 +327,22 @@ function ToggleButton({
 
 // ─── Plan card ───────────────────────────────────────────────────────────
 
+/**
+ * Deep-link fragment ids for persona → pricing card jumps. Founder rungs
+ * keep the `#tier-free` / `#tier-starter` / `#tier-growth` ids the
+ * /solutions pages link to; the Evaluator rungs get `#tier-scout` /
+ * `#tier-firm` / `#tier-program` (pair with `?segment=evaluator`).
+ */
+const TIER_ANCHORS: Record<string, string> = {
+  founder_free: "tier-free",
+  founder_starter: "tier-starter",
+  founder_growth: "tier-growth",
+  founder_scale: "tier-pro",
+  investor_angel: "tier-scout",
+  investor_advisor: "tier-firm",
+  investor_vc_small: "tier-program",
+};
+
 function PlanCard({
   plan,
   interval,
@@ -301,10 +361,17 @@ function PlanCard({
   const saving = annualSavingPct(plan);
   const isContact = forceContactSales || plan.cta_kind === "contact" || isCustom;
 
+  const isEvaluatorPlan = EVALUATOR_SEGMENTS.includes(plan.segment);
   const ctaHref = isContact
     ? `/contact?plan=${plan.id}`
-    : `/onboarding?trial=1&plan=${plan.id}`;
-  const ctaLabel = isContact ? "Contact sales" : "Start trial";
+    : isEvaluatorPlan
+      ? evaluatorSignupHref(plan.id)
+      : `/onboarding?trial=1&plan=${plan.id}`;
+  const ctaLabel = isContact
+    ? "Contact sales"
+    : isEvaluatorPlan
+      ? "Start 7-day free trial"
+      : "Start trial";
   const handleCtaClick = () => {
     if (!onSelect) return;
     // Report the monthly AUD price as the conversion value. `null` (contact
@@ -317,16 +384,7 @@ function PlanCard({
   // public-ladder SKUs to `#tier-free` / `#tier-starter` / `#tier-growth`;
   // other SKUs fall back to their plan id so hidden cards still get a
   // deterministic anchor.
-  const anchorId =
-    plan.id === "founder_free"
-      ? "tier-free"
-      : plan.id === "founder_starter"
-        ? "tier-starter"
-        : plan.id === "founder_growth"
-          ? "tier-growth"
-          : plan.id === "founder_scale"
-            ? "tier-pro"
-            : `tier-${plan.id}`;
+  const anchorId = TIER_ANCHORS[plan.id] ?? `tier-${plan.id}`;
 
   // `#tier-pro` is deep-linked from the persona/solutions pages, but the Pro
   // (founder_scale, A$299) card was retired from the public ladder on
@@ -389,6 +447,7 @@ function PlanCard({
       {plan.trial_days > 0 && (
         <span className="mb-5 inline-flex w-fit items-center rounded-full border border-action/30 bg-action/10 px-2.5 py-0.5 text-[11px] font-medium text-action">
           {plan.trial_days}-day free trial
+          {isEvaluatorPlan && !isContact ? " · card required · cancel anytime" : ""}
         </span>
       )}
 

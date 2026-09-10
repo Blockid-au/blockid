@@ -10,7 +10,7 @@
  * the server returned — no client-side arithmetic games the debit.
  *
  * Two buttons:
- *   1. "Confirm & Pay A$5.50" → POST /api/reports/checkout → Stripe URL.
+ *   1. "Confirm & Pay A$3" → POST /api/reports/checkout → Stripe URL.
  *   2. "Confirm & Use N credits" → POST /api/reports/redeem → immediate
  *      PAID + orderId; parent navigates to the report.
  *
@@ -29,6 +29,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
+import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 
 export interface ReportPaywallQuote {
   credits: number;
@@ -59,7 +60,10 @@ export interface ReportPaywallGateProps {
   onRedeemed?(orderId: string): void;
 }
 
-const PATH_A_LABEL = "A$5.50";
+// Trust BizReport re-priced A$5.50 → A$3 in place on 2026-09-10 (founder
+// decision D3). Read off the SKU so the modal can never drift from what
+// /api/reports/checkout actually books.
+const PATH_A_LABEL = `A$${(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300) / 100}`;
 const HUMAN_MODEL_LABEL: Record<ReportPaywallQuote["model"], string> = {
   haiku: "Claude Haiku 4.5",
   sonnet: "Claude Sonnet 5",

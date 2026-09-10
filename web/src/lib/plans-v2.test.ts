@@ -170,11 +170,57 @@ describe("PLANS_V2 catalogue", () => {
     expect(byId.get("founder_scale")!.public).toBe(false);
   });
 
-  it("investor pricing anchors (angel=A$79, advisor=A$149, vc_sm=A$349) are stable", () => {
+  it("evaluator pricing anchors (Scout=A$79, Firm=A$149, Program=A$349) are stable", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
     expect(byId.get("investor_angel")!.monthly_aud).toBe(79);
+    expect(byId.get("investor_angel")!.annual_aud).toBe(790);
     expect(byId.get("investor_advisor")!.monthly_aud).toBe(149);
+    expect(byId.get("investor_advisor")!.annual_aud).toBe(1490);
     expect(byId.get("investor_vc_small")!.monthly_aud).toBe(349);
+    expect(byId.get("investor_vc_small")!.annual_aud).toBe(3490);
+  });
+
+  // G12 (2026-09-10, T0268): the three self-serve investor SKUs are sold as
+  // the Evaluator ladder. Ids are frozen (plans.csv / Stripe env vars /
+  // migration 0309 all key on them) — only the public label moved.
+  it("evaluator rungs are labelled Scout / Firm / Program and carry a 7-day card-required trial", () => {
+    const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
+    expect(byId.get("investor_angel")!.name).toBe("Scout");
+    expect(byId.get("investor_advisor")!.name).toBe("Firm");
+    expect(byId.get("investor_vc_small")!.name).toBe("Program");
+    for (const id of ["investor_angel", "investor_advisor", "investor_vc_small"]) {
+      expect(byId.get(id)!.trial_days).toBe(7);
+      expect(byId.get(id)!.cta_kind).toBe("trial");
+      expect(byId.get(id)!.public).toBe(true);
+    }
+  });
+
+  it("evaluator feature copy matches plans.csv usage_limits (reports 10/30/100, startups 25/50/200, seats 1/3/5)", () => {
+    const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
+    const bullets = (id: string) => byId.get(id)!.features.join(" ");
+    expect(bullets("investor_angel")).toMatch(/10 Trust BizReports a month/);
+    expect(bullets("investor_angel")).toMatch(/25 tracked startups, 1 seat\b/);
+    expect(bullets("investor_advisor")).toMatch(/30 Trust BizReports a month/);
+    expect(bullets("investor_advisor")).toMatch(/50 tracked startups, 3 seats/);
+    expect(bullets("investor_advisor").toLowerCase()).toContain("white-label");
+    expect(bullets("investor_vc_small")).toMatch(/100 Trust BizReports a month/);
+    expect(bullets("investor_vc_small")).toMatch(/200 tracked startups, 5 seats/);
+    const program = bullets("investor_vc_small").toLowerCase();
+    expect(program).toContain("batch scoring");
+    expect(program).toMatch(/lp \/ sponsor report/);
+    expect(program).toContain("read-only api");
+  });
+
+  it("investor_vc_ent and the accelerator_* cohort SKUs stay contact-sales (public:false)", () => {
+    const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
+    for (const id of [
+      "investor_vc_ent",
+      "accelerator_starter",
+      "accelerator_growth",
+      "accelerator_enterprise",
+    ]) {
+      expect(byId.get(id)!.public).toBe(false);
+    }
   });
 
   it("accelerator pricing anchors (starter=A$500, growth=A$1500, enterprise=A$3500) are stable", () => {
@@ -302,17 +348,14 @@ describe("plansForSegment()", () => {
 // ---------------------------------------------------------------------------
 
 describe("PUBLIC_HIDDEN_PLAN_IDS", () => {
-  it("hides the 2026-09-08 ladder off-list SKUs (retired Pro + enterprise + all investor + all accelerator)", () => {
+  it("hides the off-list SKUs (retired Pro + enterprise + VC Enterprise + all accelerator)", () => {
     expect([...PUBLIC_HIDDEN_PLAN_IDS].sort()).toEqual([
       "accelerator_enterprise",
       "accelerator_growth",
       "accelerator_starter",
       "founder_enterprise",
       "founder_scale",
-      "investor_advisor",
-      "investor_angel",
       "investor_vc_ent",
-      "investor_vc_small",
     ]);
   });
 
@@ -323,8 +366,14 @@ describe("PUBLIC_HIDDEN_PLAN_IDS", () => {
     }
   });
 
-  it("does NOT hide founder_free / founder_starter / founder_growth (the public ladder)", () => {
+  it("does NOT hide founder_free / founder_starter / founder_growth (the Founder ladder)", () => {
     for (const id of ["founder_free", "founder_starter", "founder_growth"]) {
+      expect(PUBLIC_HIDDEN_PLAN_IDS).not.toContain(id);
+    }
+  });
+
+  it("does NOT hide Scout / Firm / Program (the Evaluator ladder, G12 T0268)", () => {
+    for (const id of ["investor_angel", "investor_advisor", "investor_vc_small"]) {
       expect(PUBLIC_HIDDEN_PLAN_IDS).not.toContain(id);
     }
   });
@@ -340,16 +389,29 @@ describe("publicPlansForSegment()", () => {
     ]);
   });
 
-  it("investor segment collapses to empty (all investor SKUs are contact-sales row)", () => {
-    expect(publicPlansForSegment("investor")).toEqual([]);
+  it("investor segment returns exactly the Evaluator ladder (Scout → Firm → Program), VC Enterprise stays contact-sales", () => {
+    const investor = publicPlansForSegment("investor");
+    expect(investor.map((p) => p.id)).toEqual([
+      "investor_angel",
+      "investor_advisor",
+      "investor_vc_small",
+    ]);
+    expect(investor.map((p) => p.name)).toEqual(["Scout", "Firm", "Program"]);
+    expect(investor.map((p) => p.monthly_aud)).toEqual([79, 149, 349]);
   });
 
   it("accelerator segment collapses to empty (all accelerator SKUs are contact-sales row)", () => {
     expect(publicPlansForSegment("accelerator")).toEqual([]);
   });
 
-  it("advisor segment collapses to empty (advisor tier lives in contact-sales row)", () => {
-    expect(publicPlansForSegment("advisor")).toEqual([]);
+  it("advisor segment mirrors the Evaluator ladder with Firm highlighted", () => {
+    const advisor = publicPlansForSegment("advisor");
+    expect(advisor.map((p) => p.id)).toEqual([
+      "investor_angel",
+      "investor_advisor",
+      "investor_vc_small",
+    ]);
+    expect(advisor.find((p) => p.most_popular)!.id).toBe("investor_advisor");
   });
 
   it("founder segment retains ladder order (free → founder → growth)", () => {

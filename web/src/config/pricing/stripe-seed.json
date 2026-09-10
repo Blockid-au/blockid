@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-10T11:46:35.173Z",
+  "generated_at": "2026-09-10T12:05:39.168Z",
   "plans": [
     {
       "plan_id": "founder_starter",
@@ -36,7 +36,7 @@
     },
     {
       "plan_id": "investor_angel",
-      "product_name": "Angel",
+      "product_name": "Scout",
       "segment": "investor_angel",
       "stripe_env_var": "STRIPE_PRICE_INVESTOR_ANGEL",
       "currency": "aud",
@@ -47,7 +47,7 @@
     },
     {
       "plan_id": "investor_advisor",
-      "product_name": "Advisor",
+      "product_name": "Firm",
       "segment": "advisor",
       "stripe_env_var": "STRIPE_PRICE_INVESTOR_ADVISOR",
       "currency": "aud",
@@ -58,7 +58,7 @@
     },
     {
       "plan_id": "investor_vc_small",
-      "product_name": "VC Small (5-seat min)",
+      "product_name": "Program",
       "segment": "investor_vc",
       "stripe_env_var": "STRIPE_PRICE_INVESTOR_VC_SMALL",
       "currency": "aud",

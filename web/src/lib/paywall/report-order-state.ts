@@ -15,7 +15,7 @@
  * Legal transitions (mirrors 0270 header comment):
  *
  *   NOT_PURCHASED        → CHECKOUT_INITIATED (user hits Confirm on the
- *                          A$5.50 Path A modal)
+ *                          A$3 Path A modal)
  *                        → PAID              (Path B credit debit succeeds)
  *
  *   CHECKOUT_INITIATED   → PAYMENT_PENDING   (Stripe returned a session but

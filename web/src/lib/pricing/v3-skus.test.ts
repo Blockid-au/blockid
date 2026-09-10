@@ -2,7 +2,8 @@
  * Colocated tests for v3-skus canonical catalogue.
  *
  * Pins the four load-bearing invariants of the Master Upgrade Plan §8.5:
- *   1. Trust Report is exactly A$5.50 GST-inclusive (§14bis D1).
+ *   1. Trust BizReport is exactly A$3.00 GST-inclusive (§14bis D1, re-priced
+ *      in place 2026-09-10 per founder decision D3 — id frozen).
  *   2. Every SKU id is unique and comes from the SkuId union.
  *   3. Stripe-managed SKUs all carry a concrete unit_amount and cadence.
  *   4. The Professional monthly SKU stays anchored on the legacy A$149
@@ -27,13 +28,19 @@ import {
 } from "./v3-skus";
 
 describe("V3 SKU catalogue", () => {
-  it("Trust Report is A$5.50 GST-inclusive one-off (D1)", () => {
+  it("Trust BizReport is A$3.00 GST-inclusive one-off (D1 → D3 re-price, id frozen)", () => {
+    // The id is a historical identifier shared with revenue_events.kind and
+    // the report_orders.product_sku CHECK — the re-price must never touch it.
     expect(TRUST_REPORT_5AUD.id).toBe("sku_trust_report_5aud");
-    expect(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents).toBe(550);
+    expect(TRUST_REPORT_5AUD.name).toBe("Trust BizReport");
+    expect(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents).toBe(300);
     expect(TRUST_REPORT_5AUD.cadence).toBe("one_off");
     expect(TRUST_REPORT_5AUD.credits_per_cycle).toBe(0);
     expect(TRUST_REPORT_5AUD.stripe_managed).toBe(true);
-    expect(TRUST_REPORT_5AUD.display_price_label).toContain("A$5.50");
+    expect(TRUST_REPORT_5AUD.display_price_label).toBe("A$3.00 inc-GST");
+    expect(TRUST_REPORT_5AUD.display_price_label).not.toContain("5.50");
+    expect(TRUST_REPORT_5AUD.description).toMatch(/13-area/);
+    expect(TRUST_REPORT_5AUD.description).toMatch(/valid 90 days/);
   });
 
   it("Professional monthly stays anchored on A$149 net (D2 auto-migrate target)", () => {

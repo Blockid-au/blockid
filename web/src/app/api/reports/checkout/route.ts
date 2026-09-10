@@ -2,7 +2,8 @@
  * POST /api/reports/checkout — Trust Business Report paywall Path A.
  *
  * Master Upgrade Plan §8.4 Path A: creates a Stripe Checkout Session for
- * the A$5.50 inc-GST one-off SKU (§14bis D1), inserts a report_orders row
+ * the A$3 inc-GST one-off SKU (§14bis D1; re-priced from A$5.50 in place
+ * 2026-09-10, D3), inserts a report_orders row
  * in CHECKOUT_INITIATED status, and returns the hosted-checkout URL for
  * the client to redirect to.
  *
@@ -276,7 +277,7 @@ export async function POST(request: Request) {
       business_id: businessId,
       user_id: user.id,
       product_sku: TRUST_REPORT_5AUD.id,
-      amount_aud: TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 550,
+      amount_aud: TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300,
       credits_used: 0,
       stripe_session_id: session.id,
       status: "CHECKOUT_INITIATED",

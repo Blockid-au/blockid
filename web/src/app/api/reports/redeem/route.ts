@@ -3,7 +3,7 @@
  *
  * Master Upgrade Plan §8.4 Path B: an active subscriber redeems the full
  * Trust Business Report by debiting credits from their wallet instead of
- * paying A$5.50 via Stripe. The server re-computes the credit cost (200
+ * paying A$3 via Stripe. The server re-computes the credit cost (200
  * for the default Sonnet × Standard × 10 sections) and refuses if the
  * balance is short — the client never gets to name the price.
  *
