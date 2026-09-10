@@ -1,6 +1,6 @@
 # Implementing Plan — BlockID.au
 
-**Version:** v3.10.0  ·  **Updated:** 2026-09-10T14:17:36.105Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
+**Version:** v3.11.0  ·  **Updated:** 2026-09-10T16:00:02.533Z  ·  **Decided by:** ceo (2026-09-10T12:04:03.482Z)
 
 > CEO-led self-upgrade loop: C-Level research → CEO decision → implementation → version/milestone/architecture update. Heavy/deploy work runs off-peak (AEST 22:00–06:00) to keep blockid.au available 24/7.
 
@@ -35,30 +35,22 @@
 | T0262 | CFO | Refine Startup Valuation Engine for PitchBook benchmark comparison | minor | ⬜ pending |
 | T0263 | CRO | ACSC alerts integration | patch | ⬜ pending |
 | T0265 | CRO | CISA alerts integration | patch | ⬜ pending |
-| T0244 | CPO | /funding/report/[id] (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + lib/dataroom/save-deliverable.ts + /workspace/funding + nav leaf validate.discover + recommender secondary money lane | minor | ⬜ pending |
-| T0245 | CTO | funding_matches + api/cron/money-radar-sweep + notification kinds (grant_deadline, program_intake, event_match, weekly_next_step, new_matches, analysis_refresh) + bell repoint + money_radar email category + /api/funding/calendar.ics | minor | ⬜ pending |
-| T0246 | CMO | Radar drips radar_t30/t14/t3 + weekly digest money block (founder-digest-weekly) + events via recommendConferences({source}) + svi_trend_alert writer | minor | ⬜ pending |
-| T0247 | CRO | Founder Radar packaging: plans.csv flags money_radar/grant_finder (Starter, Growth, Package), pricing matrix row, A$3→subscribe upsell card, GA4 radar_upsell_* | minor | ⬜ pending |
-| T0248 | CPO | MoneyRadarTile (5 states) on /dashboard + /workspace/funding tabs + lib/funding/copy.ts messaging keys + VI review | minor | ⬜ pending |
-| T0249 | CMO | /pricing matrix row, insight cross-links, AnalyticsEventMap funding_* events, sync-stripe-pricing credit-pack drift fix, /features card, docs | patch | ⬜ pending |
-| T0251 | IR | Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh | minor | ⬜ pending |
 | T0272 | CPO | Program batch scoring: queue N startups off-peak, cohort table + CSV, sponsor/LP report export (extend /api/reports/quarterly), custom rubric weights | minor | ⬜ pending |
-| T0273 | CMO | Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups | minor | ⬜ pending |
-| T0274 | CMO | S1/S4 Solutions + comparison: real /solutions/advisor (Firm A$149) + /for/advisor 301, /solutions/investor|accelerator rewrite (6 differentiators), /investors + /docs stale pricing copy removed, "BlockID vs ChatGPT vs a valuer" page (S4), evaluator messaging EN/VI, GA4 evaluator funnel, contact form reads ?plan= + Telegram | patch | 🔄 in_progress |
 
 ## Recently shipped
 - ✅ `T0275` **CLO** — S1 Compliance: one privacy policy (/legal/privacy canonical, /privacy 301), AI provider list = actual chain (groq/cerebras/sambanova/deepinfra/anthropic/openrouter/ollama), approved data sentence (no training claim either way), general-advice disclaimer on evaluator reports, doctoral-research sentence, PPL Food PTY LTD entity (`95b7033ef`)
+- ✅ `T0274` **CMO** — S1/S4 Solutions + comparison: real /solutions/advisor (Firm A$149) + /for/advisor 301, /solutions/investor|accelerator rewrite (6 differentiators), /investors + /docs stale pricing copy removed, "BlockID vs ChatGPT vs a valuer" page (S4), evaluator messaging EN/VI, GA4 evaluator funnel, contact form reads ?plan= + Telegram (`448b17784`)
+- ✅ `T0273` **CMO** — Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups (`25dd6b1b0`)
 - ✅ `T0271` **CFO** — In-workspace Trust BizReport purchase for evaluators: POST /api/evaluations/[id]/report (3 credits or plan quota) + re-score A$1 + PDF/TBR token (`333219b1c`)
 - ✅ `T0270` **CTO** — S3 Evaluations object: "Startups I am evaluating" — POST /api/evaluations (owner_kind evaluator, attribution, invite-the-founder magic link, consent tiers) + migrations for investor_portfolio, watchlist_digest, advisor_client_roster, engagement_notes, advisor_notes, advisor_portal, evaluations (`7cf6e564d`)
 - ✅ `T0269` **CTO** — S1 Evaluator signup: account_type enum + DB CHECKs (investor, accelerator, incubator, advisor, service_provider→advisor segment), app_users.segment set from account_type, trial_days from plan, card-required 7-day Stripe trial on Scout/Firm/Program, trial-end-reminder copy fixed, evaluator TrialBanner copy (`dcd9e5603`)
 - ✅ `T0268` **CRO** — S1 Evaluator ladder public: plans.csv flags → gate vocabulary (investor.dealflow, watchlist, portfolio, lp_export, advisor_portal, advisor.cohort, white_label, accelerator.cohort, lp_report, api.access), profiles 25/50/200, reports_per_month 10/30/100, public:true, 2-tab /pricing (Founder/Evaluator), A$5.50 SKU re-priced in place to A$3 Trust BizReport, tier-visibility snapshot regenerated (`af0e05644`)
+- ✅ `T0251` **IR** — Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh (`59255c9a1`)
 - ✅ `T0250` **CMO** — Hero one-liners: lib/marketing/hero-variants.ts (F1/F2/F3 arms) + GA4 hero_variant + hero-section + layout SITE_DESCRIPTION + messages hero.* (EN/VI) + 5-second test protocol (`f04879155`)
-- ✅ `T0243` **CTO** — lib/funding/fetch-source.ts + api/cron/refresh-funding-sources (GrantConnect RSS, Qld CKAN, state portals) + crontab line + goal-tree research topics + gitignored review queue (`b4d6bc411`)
-- ✅ `T0242` **CRO** — /funding landing + 3-question intake + POST /api/funding/preview + A$3 guest SKU FUNDING_REPORT_3AUD + webhook scope funding_report + POST /api/funding/report (credits grant_match / flag grant_finder) (`8fd7e10d1`)
-- ✅ `T0241` **CMO** — Public SEO directories /funding/grants, /funding/programs/[city] + JSON-LD + sitemap (server-rendered from au_* tables) (`181bc4ce2`)
-- ✅ `T0240` **CFO** — lib/agents/grant-advisor.ts — matchGrants/matchPrograms/buildTimeline (pure) + narrative via callAI with llm-auditor; reuses estimateRdti/evaluateEsic; colocated tests (`596d614df`)
+- ✅ `T0249` **CMO** — /pricing matrix row, insight cross-links, AnalyticsEventMap funding_* events, sync-stripe-pricing credit-pack drift fix, /features card, docs (`25dd6b1b0`)
 
 ## Milestones
+- **M021** v3.11.0 — CPO: /funding/report/[id] (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + lib/dataroom/save-deliverable.ts + /workspace/funding + nav leaf validate.discover + recommender secondary money lan (2026-09-10, 9 tasks)
 - **M020** v3.9.0 — CFO: Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator; CFO: Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator (2026-08-31, 2 tasks)
 - **M019** v3.8.1 — CFO: Sector-Specific Revenue Multiple Library (2026-08-30, 1 tasks)
 - **M018** v3.8.0 — CFO: Implement Cap Table Dilution & Round Sizing Simulator (2026-08-29, 1 tasks)
@@ -70,4 +62,3 @@
 - **M020** v2.2.0 — T0102-T0110 Batch 9: ESOP scoring engine, governance API, knowledge base API, SVI roadmap widget, ESOP checklist SEO tool, data room readiness API (2026-06-14, 7 tasks)
 - **M019** v2.1.0 — T0094–T0101 ESOP + SVI + Data Room + Knowledge Base — investor-ready documents, ESOP Manager UI live (2026-06-14, 8 tasks)
 - **M018** v2.0.0 — Feature Batch 8 (T0086–T0090): Financial Projection Norms calculator, Term Sheet AI v2 persistence, Fundraising Report v2, Google Analytics evidence connector, SVI Cohort Benchmark page (2026-06-13, 6 tasks)
-- **M017** v1.9.0 — T0084 — C-Level blended valuation engine + BlockID self-analysis financial model (2026-06-13, 1 tasks)

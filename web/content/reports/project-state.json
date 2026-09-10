@@ -1,9 +1,9 @@
 {
-  "version": "3.10.0",
-  "updatedAt": "2026-09-10T14:17:36.105Z",
+  "version": "3.11.0",
+  "updatedAt": "2026-09-10T16:00:02.533Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
-    "lastReviewedAt": "2026-08-31T14:00:01.953Z",
+    "lastReviewedAt": "2026-09-10T16:00:02.533Z",
     "notes": [
       "v0.2.0 — CEO implementing-plan loop (research → CEO plan → code → version/milestone/architecture), off-peak deploy gating.",
       "v0.3.0 — CFO VC-grade valuation engine (src/lib/agents/cfo-valuation.ts): market sizing (TAM/SAM/SOM), 4 valuation methods, projections, unit economics, break-even, payback, financial injection.",
@@ -34,7 +34,14 @@
       "v3.7.0 — CMO: Create Competitor Feature Release Tracker module",
       "v3.8.0 — CFO: Implement Cap Table Dilution & Round Sizing Simulator",
       "v3.9.0 — CFO: Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator",
-      "v3.9.0 — CFO: Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator"
+      "v3.9.0 — CFO: Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator",
+      "v3.11.0 — CPO: /funding/report/[id] (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + lib/dataroom/save-deliverable.ts + /workspace/funding + nav leaf validate.discover + recommender secondary money lane",
+      "v3.11.0 — CTO: funding_matches + api/cron/money-radar-sweep + notification kinds (grant_deadline, program_intake, event_match, weekly_next_step, new_matches, analysis_refresh) + bell repoint + money_radar email category + /api/funding/calendar.ics",
+      "v3.11.0 — CMO: Radar drips radar_t30/t14/t3 + weekly digest money block (founder-digest-weekly) + events via recommendConferences({source}) + svi_trend_alert writer",
+      "v3.11.0 — CRO: Founder Radar packaging: plans.csv flags money_radar/grant_finder (Starter, Growth, Package), pricing matrix row, A$3→subscribe upsell card, GA4 radar_upsell_*",
+      "v3.11.0 — CPO: MoneyRadarTile (5 states) on /dashboard + /workspace/funding tabs + lib/funding/copy.ts messaging keys + VI review",
+      "v3.11.0 — IR: Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh",
+      "v3.11.0 — CMO: Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups"
     ]
   },
   "plan": {
@@ -1717,11 +1724,13 @@
         "title": "/funding/report/[id] (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + lib/dataroom/save-deliverable.ts + /workspace/funding + nav leaf validate.discover + recommender secondary money lane",
         "rationale": "Wave 4a · G11-P5 · §4f. Absorbs T0170/T0194 (CAPITAL readiness → capital map tab) and the founder-facing NBA piece. Depends T0242.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S4",
-        "priority": "P2"
+        "priority": "P2",
+        "completedAt": "2026-09-10T16:00:02.532Z",
+        "commit": "8e3893bd1"
       },
       {
         "id": "T0245",
@@ -1729,11 +1738,13 @@
         "title": "funding_matches + api/cron/money-radar-sweep + notification kinds (grant_deadline, program_intake, event_match, weekly_next_step, new_matches, analysis_refresh) + bell repoint + money_radar email category + /api/funding/calendar.ics",
         "rationale": "Wave 4b · G11-P9 · §4h. Depends T0240, T0243.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S4",
-        "priority": "P2"
+        "priority": "P2",
+        "completedAt": "2026-09-10T16:00:02.533Z",
+        "commit": "66fa25c89"
       },
       {
         "id": "T0246",
@@ -1741,11 +1752,13 @@
         "title": "Radar drips radar_t30/t14/t3 + weekly digest money block (founder-digest-weekly) + events via recommendConferences({source}) + svi_trend_alert writer",
         "rationale": "Wave 5a · G11-P10 · §4h. Depends T0245.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S4",
-        "priority": "P2"
+        "priority": "P2",
+        "completedAt": "2026-09-10T16:00:02.533Z",
+        "commit": "f8fc1a7d5"
       },
       {
         "id": "T0247",
@@ -1753,11 +1766,13 @@
         "title": "Founder Radar packaging: plans.csv flags money_radar/grant_finder (Starter, Growth, Package), pricing matrix row, A$3→subscribe upsell card, GA4 radar_upsell_*",
         "rationale": "Wave 5b · G11-P11 · §4h D10. Absorbs T0176 (pricing psychology). SOT §6 rule 5 bundle (plans.csv + pricing plan + SOT). Depends T0242, T0245.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S4",
-        "priority": "P2"
+        "priority": "P2",
+        "completedAt": "2026-09-10T16:00:02.533Z",
+        "commit": "8e3893bd1"
       },
       {
         "id": "T0248",
@@ -1765,11 +1780,13 @@
         "title": "MoneyRadarTile (5 states) on /dashboard + /workspace/funding tabs + lib/funding/copy.ts messaging keys + VI review",
         "rationale": "Wave 5c · G11-P13 · §4i D-2/D-3. Depends T0244, T0245.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S4",
-        "priority": "P2"
+        "priority": "P2",
+        "completedAt": "2026-09-10T16:00:02.533Z",
+        "commit": "b119b8627"
       },
       {
         "id": "T0249",
@@ -1777,11 +1794,13 @@
         "title": "/pricing matrix row, insight cross-links, AnalyticsEventMap funding_* events, sync-stripe-pricing credit-pack drift fix, /features card, docs",
         "rationale": "Wave 5d · G11-P8 · §4g. Night-loop eligible (1–3 files). Depends T0242.",
         "versionImpact": "patch",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S4",
-        "priority": "P2"
+        "priority": "P2",
+        "completedAt": "2026-09-10T16:00:02.533Z",
+        "commit": "25dd6b1b0"
       },
       {
         "id": "T0250",
@@ -1803,11 +1822,13 @@
         "title": "Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh",
         "rationale": "Wave 6 · G11-P12 · §4h. v2 lane after MRR signal. Depends T0245.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S5",
-        "priority": "P3"
+        "priority": "P3",
+        "completedAt": "2026-09-10T16:00:02.533Z",
+        "commit": "59255c9a1"
       },
       {
         "id": "T0268",
@@ -1886,11 +1907,13 @@
         "title": "Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups",
         "rationale": "G12 Wave C · §3c.8. Depends T0270 and G11 T0245.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T04:22:55.026Z",
         "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
         "sprint": "S4",
-        "priority": "P2"
+        "priority": "P2",
+        "completedAt": "2026-09-10T16:00:02.533Z",
+        "commit": "25dd6b1b0"
       },
       {
         "id": "T0274",
@@ -1898,12 +1921,14 @@
         "title": "S1/S4 Solutions + comparison: real /solutions/advisor (Firm A$149) + /for/advisor 301, /solutions/investor|accelerator rewrite (6 differentiators), /investors + /docs stale pricing copy removed, \"BlockID vs ChatGPT vs a valuer\" page (S4), evaluator messaging EN/VI, GA4 evaluator funnel, contact form reads ?plan= + Telegram",
         "rationale": "S1 part 1 (pages + stale copy) · S4 part 2 (comparison page). §4 + G12-5 + live review §3. Depends T0268.",
         "versionImpact": "patch",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T04:22:55.026Z",
         "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md · part 1 (solutions pages, privacy, stale copy) merged 2026-09-10; part 2 (ChatGPT comparison page) pending",
         "sprint": "S1",
         "priority": "P1",
-        "updatedAt": "2026-09-10T11:37:00.023Z"
+        "updatedAt": "2026-09-10T11:37:00.023Z",
+        "completedAt": "2026-09-10T16:00:02.533Z",
+        "commit": "448b17784"
       },
       {
         "id": "T0275",
@@ -2144,6 +2169,23 @@
         "T0178",
         "T0193"
       ]
+    },
+    {
+      "id": "M021",
+      "title": "CPO: /funding/report/[id] (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + lib/dataroom/save-deliverable.ts + /workspace/funding + nav leaf validate.discover + recommender secondary money lan",
+      "version": "3.11.0",
+      "completedAt": "2026-09-10T16:00:02.533Z",
+      "taskIds": [
+        "T0244",
+        "T0245",
+        "T0246",
+        "T0247",
+        "T0248",
+        "T0249",
+        "T0251",
+        "T0273",
+        "T0274"
+      ]
     }
   ],
   "history": [
@@ -2326,6 +2368,12 @@
       "action": "deploy",
       "version": "3.10.0",
       "note": "S3 live 2026-09-10 ~14:20 UTC (12/12 gates): grant-advisor, /funding intake + preview + A$3 guest report + credits/plan report API, weekly refresh-funding-sources cron (installed), evaluations object + investor/advisor migrations 0314, in-workspace Trust BizReport quota/credits 0317, hero one-liners F1/F3/G1. Stripe prices synced/minted (evaluator rungs, Trust BizReport A$3, Money Finder A$3). Gate-7 lesson: client components must not import modules that reach ai-client/supabase — static import-graph test added."
+    },
+    {
+      "ts": "2026-09-10T16:00:02.533Z",
+      "action": "release",
+      "version": "3.11.0",
+      "note": "9 task(s), minor bump (v3.10.0→v3.11.0)"
     }
   ],
   "shipped_this_session": {

@@ -1,11 +1,18 @@
 # Architecture — BlockID.au (living)
 
-**Version:** v3.10.0  ·  **Last reviewed:** 2026-08-31T14:00:01.953Z
+**Version:** v3.11.0  ·  **Last reviewed:** 2026-09-10T16:00:02.533Z
 
 ## Summary
 BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.
 
 ## Change notes
+- v3.11.0 — CMO: Evaluator Progress Radar digest: extend watchlist-digest to evaluator-owned projects, merge G11 Money Radar signals (grant deadlines, program intakes) for tracked startups
+- v3.11.0 — IR: Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh
+- v3.11.0 — CPO: MoneyRadarTile (5 states) on /dashboard + /workspace/funding tabs + lib/funding/copy.ts messaging keys + VI review
+- v3.11.0 — CRO: Founder Radar packaging: plans.csv flags money_radar/grant_finder (Starter, Growth, Package), pricing matrix row, A$3→subscribe upsell card, GA4 radar_upsell_*
+- v3.11.0 — CMO: Radar drips radar_t30/t14/t3 + weekly digest money block (founder-digest-weekly) + events via recommendConferences({source}) + svi_trend_alert writer
+- v3.11.0 — CTO: funding_matches + api/cron/money-radar-sweep + notification kinds (grant_deadline, program_intake, event_match, weekly_next_step, new_matches, analysis_refresh) + bell repoint + money_radar email category + /api/funding/calendar.ics
+- v3.11.0 — CPO: /funding/report/[id] (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + lib/dataroom/save-deliverable.ts + /workspace/funding + nav leaf validate.discover + recommender secondary money lane
 - v3.9.0 — CFO: Build Top-Down/Bottom-Up TAM/SAM/SOM Calculator
 - v3.9.0 — CFO: Implement Top-Down/Bottom-Up TAM/SAM/SOM Calculator
 - v3.8.0 — CFO: Implement Cap Table Dilution & Round Sizing Simulator
@@ -19,10 +26,3 @@ BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → S
 - v3.0.0 — RND: Conversion/CTA experiment ideas & A/B test hypotheses
 - v3.0.0 — CSO: Pricing & segment A/B test infra (/admin/pricing-test)
 - v3.0.0 — RND: New AI tools & capabilities for startup tooling
-- v3.0.0 — CFO: Fundraising Readiness Report v2 — checklist + AU comparable raises
-- v3.0.0 — CLO: Term Sheet AI v2 — persist analyses, Lawyer Questions, SVI link
-- v3.0.0 — RND: Evidence Vault Phase 2 — OAuth connectors (GitHub, Stripe, Google Analytics)
-- v2.7.0 — CFO: R&D Tax Incentive and ESIC data integration
-- v2.6.0 — CFO: Integrate sector ARR/revenue multiples for valuation benchmarking
-- v2.4.3 — T0201 (CRO sales pipeline /admin/sales), T0202 (CCSO NPS widget + testimonials /admin/ccso), T0210 (CPO funnel heatmap /admin/funnel). 3 P0 30-day-MVP tasks shipped.
-- v2.3.0 — SVI sub-brand split: startupvalueindex.com is the primary SVI brand site (landing + benchmarks); startupindex.au is the AU mirror; blockid.au remains the parent platform (auth, assessment engine, dashboard, payments). LinkedIn page Startup Value Index (org_id=129624133) launched 2026-06-15.
