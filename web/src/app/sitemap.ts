@@ -306,9 +306,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // B1 Task 4 — legacy `/for/{founder,investor,accelerator}` entries removed.
     // Those URLs now emit a 301 (see next.config.ts) to `/solutions/*`, so we
     // don't advertise the source in the sitemap (avoids duplicate-content
-    // signals and keeps Google's canonical clean). `/for/advisor` also
-    // dropped — it's a soft-deprecated dynamic-route slug with no
-    // `/solutions/advisor` twin and no traffic.
+    // signals and keeps Google's canonical clean). `/for/advisor` 301s to
+    // `/solutions/advisor` since 2026-09-10 (T0274).
     // v3 persona landings under /solutions/* — Master Upgrade Plan §7.1
     // (Stage-3 sub-B3). Legacy /for/founder now 301s to /solutions/founder
     // via next.config.ts; we keep the sitemap entry to give Google a fresh
@@ -415,6 +414,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           en: `${SITE_URL}/solutions/accelerator`,
           vi: `${SITE_URL}/vi/solutions/accelerator`,
           "x-default": `${SITE_URL}/solutions/accelerator`,
+        },
+      },
+    },
+    // T0274 (2026-09-10) — /solutions/advisor is a real page now (Firm A$149);
+    // /for/advisor 301s here.
+    {
+      url: `${SITE_URL}/solutions/advisor`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/advisor`,
+          vi: `${SITE_URL}/vi/solutions/advisor`,
+          "x-default": `${SITE_URL}/solutions/advisor`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/vi/solutions/advisor`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/solutions/advisor`,
+          vi: `${SITE_URL}/vi/solutions/advisor`,
+          "x-default": `${SITE_URL}/solutions/advisor`,
         },
       },
     },
@@ -575,12 +602,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.4,
     },
-    {
-      url: `${SITE_URL}/privacy`,
-      lastModified,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
+    // T0275 (2026-09-10) — `/privacy` now 301s to `/legal/privacy`, which is
+    // already listed above; advertising the source would be a duplicate.
     {
       url: `${SITE_URL}/terms`,
       lastModified,

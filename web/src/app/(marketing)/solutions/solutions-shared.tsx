@@ -1,7 +1,7 @@
 /**
- * SolutionsPageShell — the shell behind the four persona pages at
- * `/solutions/{founder,vn-sme,investor,accelerator}` and their Vietnamese
- * mirrors under `/vi/solutions/*`.
+ * SolutionsPageShell — the shell behind the five persona pages at
+ * `/solutions/{founder,vn-sme,investor,advisor,accelerator}` and their
+ * Vietnamese mirrors under `/vi/solutions/*`.
  *
  * WHAT THIS SHELL IS FOR, AFTER 2026-09-09
  *
@@ -63,8 +63,35 @@ export interface SolutionFaq {
   a: string;
 }
 
+/**
+ * The persona pages. `advisor` joined on 2026-09-10 (T0274): until then
+ * `/solutions/advisor` was a 301 to `/for/advisor`, which sold advisory firms
+ * the founder Growth plan.
+ */
+export type SolutionSlug =
+  | "founder"
+  | "vn-sme"
+  | "investor"
+  | "accelerator"
+  | "advisor";
+
+/**
+ * Where an evaluator persona's primary CTA lands (G12 §3c.3): the signup
+ * form reads `segment=evaluator&plan=<row>` and starts the 7-day card-required
+ * Stripe trial on that rung. One place, so the three pages and their
+ * Vietnamese mirrors cannot drift.
+ */
+export const EVALUATOR_SIGNUP_HREF = {
+  investor: "/signup?segment=evaluator&plan=investor_angel",
+  advisor: "/signup?segment=evaluator&plan=investor_advisor",
+  accelerator: "/signup?segment=evaluator&plan=investor_vc_small",
+} as const;
+
+/** The pricing page's evaluator view, for the evaluator pages' secondary CTA. */
+export const EVALUATOR_PRICING_HREF = "/pricing?segment=evaluator";
+
 export interface SolutionPageProps {
-  slug: "founder" | "vn-sme" | "investor" | "accelerator";
+  slug: SolutionSlug;
   lang?: "en" | "vi";
   eyebrow: string;
   headline: string;
@@ -131,19 +158,21 @@ const SECONDARY_CTA_FALLBACK_HREF = "/pricing";
  * (It also deep-linked `#tier-pro`, a A$299 tier retired on 2026-09-08 and
  * only reachable now through a hidden alias on the Growth card.)
  *
- * Accelerator is the exception: programme pricing is genuinely a conversation,
- * so it goes to the contact-sales row.
+ * The three evaluator personas (investor, advisor, accelerator) land on the
+ * evaluator signup with their recommended rung pre-selected — Scout, Firm,
+ * Program — because for them the product *is* the workspace plus the trial
+ * (G12 D1: 7 days, card required). Accelerator used to go to contact-sales;
+ * that row is still the secondary CTA for multi-cohort programs.
  */
-export function primaryCtaHrefForSlug(
-  slug: SolutionPageProps["slug"],
-): string {
+export function primaryCtaHrefForSlug(slug: SolutionSlug): string {
   switch (slug) {
     case "founder":
     case "vn-sme":
-    case "investor":
       return "/svi";
+    case "investor":
+    case "advisor":
     case "accelerator":
-      return "/pricing#contact-sales";
+      return EVALUATOR_SIGNUP_HREF[slug];
   }
 }
 

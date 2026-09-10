@@ -33,7 +33,7 @@ export function anchorPrice(planId: string): string {
 }
 
 export interface SegmentContent {
-  slug: "founder" | "investor" | "advisor" | "accelerator";
+  slug: "founder" | "investor" | "accelerator";
   label: string;
   hero: { headline: string; subhead: string };
   features: string[];
@@ -42,10 +42,15 @@ export interface SegmentContent {
   faq: Array<{ q: string; a: string }>;
 }
 
+/**
+ * 2026-09-10 (T0274): `advisor` removed. Every `/for/*` slug now 301s to its
+ * `/solutions/*` twin in next.config.ts — `/for/advisor` was the last one
+ * that still rendered, and it recommended the founder Growth plan to
+ * advisory firms. `/solutions/advisor` (Firm A$149) is the real page.
+ */
 export const SEGMENT_SLUGS = [
   "founder",
   "investor",
-  "advisor",
   "accelerator",
 ] as const;
 
@@ -135,77 +140,6 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
       {
         q: "Can my analysts share a watchlist?",
         a: "Yes. Investor plans include team seats with role-scoped access to watchlists and notes.",
-      },
-    ],
-  },
-  advisor: {
-    slug: "advisor",
-    label: "Advisors",
-    hero: {
-      headline: "BlockID for Advisors",
-      // 2026-09-09: the subhead sold the multi-client console, engagement
-      // logging and own-brand reporting — the three things the feature list
-      // directly below it marks as in build or not built. A hero that
-      // contradicts its own scope list four lines later is worse than a plain
-      // one, so it now says what an advisor can do today.
-      subhead:
-        "Score a company you advise on the same eight dimensions its investors will, and follow the number between sessions.",
-    },
-    // 2026-09-09. Every bullet here described the advisor console as shipped.
-    // It is not: `lib/advisor-portal.ts` reads `advisor_portal` and
-    // `advisor_notes`, neither of which exists in the database, so the roster
-    // and the notes return [] for every advisor, permanently. White-label is
-    // a page that says "Full configuration panel under development", and
-    // retainer billing and the referral pipeline have no code at all.
-    //
-    // What an advisor can genuinely do today is the founder toolset, pointed
-    // at a company they advise. That is what this now says, and the console is
-    // named as in-build rather than sold as finished.
-    features: [
-      "Score a company you advise on the same eight dimensions its investors will",
-      "Track the score over time, so progress between sessions is visible",
-      "Build the data room with them, in the order investors ask for it",
-      "Share a live link with an investor instead of a PDF that goes stale",
-      "Model the cap table, including SAFEs, options and conversion",
-      "Multi-client console — roster, engagement notes and cross-client reporting — in build",
-    ],
-    steps: [
-      "Set up the company you advise — its profile, then its first score.",
-      "Work the gaps — the score names what is missing and what closing it is worth.",
-      "Report progress — share the live link, or send the report as a PDF.",
-    ],
-    // 2026-09-09. This anchored `investor_advisor` — "Advisor Practice",
-    // A$149/month — and the CTA under it linked to /pricing, where that plan
-    // has not been on the ladder since the 2026-09-08 rework. So the page
-    // recommended a price the pricing page does not offer.
-    //
-    // Worse, the only thing A$149 buys over A$69 is `advisor.clients`, and
-    // `advisor.clients` is the flag behind the console this very page now
-    // describes as in build: `lib/advisor-portal.ts` reads `advisor_portal`
-    // and `advisor_notes`, and neither table exists. Charging A$80 a month
-    // more for a dead flag is not a packaging question.
-    //
-    // The features listed above are the founder toolset — cap table, data
-    // room, investor links, score history — and `founder_growth` is the plan
-    // that grants every one of them. That is what an advisor should be sent to
-    // until the console is real.
-    planAnchor: {
-      id: "founder_growth",
-      label: "Growth",
-      price: anchorPrice("founder_growth"),
-    },
-    faq: [
-      {
-        q: "Can I brand reports as my firm?",
-        a: "Not yet. Report branding — your logo, colours and cover — is built, but the white-label domain is not; that settings panel is still under development. Ask us where it is up to before you plan around it.",
-      },
-      {
-        q: "Do my clients see each other?",
-        a: "No. Each company is its own workspace, and access is per-workspace — nothing is shared between two companies you advise unless you share it.",
-      },
-      {
-        q: "How does billing work for clients?",
-        a: "You bring your own billing relationship. There is no in-app client invoicing, and we are not planning to sit between you and your fees.",
       },
     ],
   },

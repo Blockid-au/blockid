@@ -1,19 +1,20 @@
 /**
- * /vi/solutions/accelerator — Vietnamese mirror of the accelerator and programme persona page.
+ * /vi/solutions/accelerator — Vietnamese mirror of the accelerator, incubator and programme persona page (Program
+ * A$349 recommended; Contact Sales for multi-cohort programs)
  *
- * Every visible string resolves through `t()` against the shared catalogue, so
- * the English mirror at /solutions/accelerator renders the same page from the
- * same shell. Amounts are never strings: the copy carries `{growthPrice}`-style
- * tokens and `SolutionsPageShell` substitutes them from the pricing catalogue,
- * which is why a price change in plans.csv reaches both languages at once.
+ * Every visible string resolves through `t()` against the shared catalogue
+ * and the props come from `buildAcceleratorProps()` in `evaluator-page-props.ts`, so
+ * this page and its English twin render the same page by construction.
+ * Amounts are never strings: the copy carries `{reportPrice}`-style tokens
+ * and `SolutionsPageShell` substitutes them from the pricing catalogue.
  *
  * Server component. No client state, no data fetch.
  */
 
-
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
 import { SolutionsPageShell } from "../../../(marketing)/solutions/solutions-shared";
+import { buildAcceleratorProps } from "../../../(marketing)/solutions/evaluator-page-props";
 
 const SITE_URL = "https://blockid.au";
 const CANONICAL_EN = `${SITE_URL}/solutions/accelerator`;
@@ -49,71 +50,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ViSolutionsAcceleratorPage() {
   const m = await getMessages("vi");
-
-  return (
-    <SolutionsPageShell
-      slug="accelerator"
-      lang="vi"
-      eyebrow={t(m, "solutions.accelerator.eyebrow")}
-      headline={t(m, "solutions.accelerator.headline")}
-      personaLine={t(m, "solutions.accelerator.persona")}
-      emotionalLine={t(m, "solutions.accelerator.lede")}
-      outcomeLine={t(m, "solutions.accelerator.support")}
-      primaryCtaLabel={t(m, "solutions.accelerator.cta")}
-      secondaryCtaLabel={t(m, "solutions.cta.secondary.score")}
-      secondaryCtaHref="/svi"
-      benefitsTitle={t(m, "solutions.accelerator.benefits.title")}
-      benefits={[
-        {
-          title: t(m, "solutions.accelerator.benefit1.title"),
-          body: t(m, "solutions.accelerator.benefit1.body"),
-        },
-        {
-          title: t(m, "solutions.accelerator.benefit2.title"),
-          body: t(m, "solutions.accelerator.benefit2.body"),
-        },
-        {
-          title: t(m, "solutions.accelerator.benefit3.title"),
-          body: t(m, "solutions.accelerator.benefit3.body"),
-        },
-      ]}
-      journeyTitle={t(m, "solutions.accelerator.journey.title")}
-      journey={[
-        {
-          window: t(m, "solutions.accelerator.journey.window1"),
-          headline: t(m, "solutions.accelerator.journey.step1.head"),
-          bullets: [
-            t(m, "solutions.accelerator.journey.step1.b1"),
-            t(m, "solutions.accelerator.journey.step1.b2"),
-            t(m, "solutions.accelerator.journey.step1.b3"),
-          ],
-        },
-        {
-          window: t(m, "solutions.accelerator.journey.window2"),
-          headline: t(m, "solutions.accelerator.journey.step2.head"),
-          bullets: [
-            t(m, "solutions.accelerator.journey.step2.b1"),
-            t(m, "solutions.accelerator.journey.step2.b2"),
-            t(m, "solutions.accelerator.journey.step2.b3"),
-          ],
-        },
-        {
-          window: t(m, "solutions.accelerator.journey.window3"),
-          headline: t(m, "solutions.accelerator.journey.step3.head"),
-          bullets: [
-            t(m, "solutions.accelerator.journey.step3.b1"),
-            t(m, "solutions.accelerator.journey.step3.b2"),
-            t(m, "solutions.accelerator.journey.step3.b3"),
-          ],
-        },
-      ]}
-      faqTitle={t(m, "solutions.accelerator.faq.title")}
-      faqs={[
-        { q: t(m, "solutions.accelerator.faq.q1"), a: t(m, "solutions.accelerator.faq.a1") },
-        { q: t(m, "solutions.accelerator.faq.q2"), a: t(m, "solutions.accelerator.faq.a2") },
-        { q: t(m, "solutions.accelerator.faq.q3"), a: t(m, "solutions.accelerator.faq.a3") },
-      ]}
-      disclaimer={t(m, "solutions.accelerator.disclaimer")}
-    />
-  );
+  return <SolutionsPageShell {...buildAcceleratorProps(m, "vi")} />;
 }

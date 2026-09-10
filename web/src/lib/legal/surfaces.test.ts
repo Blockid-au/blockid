@@ -16,6 +16,7 @@ const CANONICAL_SURFACE_IDS = [
   "valuation_output",
   "equity_offer_page",
   "tokenised_share_view",
+  "evaluator_report",
   "general_all",
 ] as const;
 
@@ -133,6 +134,42 @@ describe("tokenised_share_view surface", () => {
     expect(surface.body_md).toMatch(/read-only/i);
     expect(surface.body_md).toMatch(/not.*security token/i);
     expect(surface.body_md).toMatch(/Legal title.*share register/i);
+  });
+});
+
+describe("evaluator_report surface (T0275)", () => {
+  const surface = DISCLAIMER_SURFACES.evaluator_report;
+
+  it("is a global not_financial_advice surface", () => {
+    expect(surface.kind).toBe("not_financial_advice");
+    expect(surface.jurisdictions).toEqual(["*"]);
+  });
+
+  it("carries every phrase the evaluator footer must say", () => {
+    expect(surface.body_md).toMatch(/general information/i);
+    expect(surface.body_md).toMatch(/not financial, investment, or legal advice/i);
+    expect(surface.body_md).toMatch(/indicative/i);
+    expect(surface.body_md).toMatch(/eligibility/i);
+    expect(surface.body_md).toMatch(/valuation/i);
+    expect(surface.body_md).toMatch(/not.*an approval/i);
+    expect(surface.body_md).toMatch(/AFSL/);
+    expect(surface.body_md).toContain("Corporations Act 2001 (Cth)");
+  });
+
+  it("names the AU programs an evaluator report checks, so the caveat is specific", () => {
+    expect(surface.body_md).toContain("ESIC");
+    expect(surface.body_md).toContain("R&D Tax Incentive");
+    expect(surface.body_md).toContain("s708");
+  });
+
+  it("cites the billing/legal entity verbatim (legal surface, not marketing)", () => {
+    expect(surface.body_md).toContain("Auschain PTY LTD");
+    expect(surface.body_md).toContain("ACN 659 615 111");
+    expect(surface.body_md).toContain("ABN 79 659 615 111");
+  });
+
+  it("says nothing about model training either way", () => {
+    expect(surface.body_md).not.toMatch(/train/i);
   });
 });
 

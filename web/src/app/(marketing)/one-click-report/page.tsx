@@ -321,7 +321,9 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
                 },
                 {
                   q: "How is my data used?",
-                  a: "Your inputs power your report and are stored in Australia. We never sell your data, never train third-party models on it, and never expose it to other users. You can request full deletion any time.",
+                  // T0275 (2026-09-10): founder-approved data principle,
+                  // verbatim. Says nothing about model training either way.
+                  a: "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what. Your inputs are stored in Australia, never sold, and never shown to other users; you can request full deletion at any time. See /legal/privacy for the AI providers that may process a request.",
                 },
                 {
                   q: "Do you keep my pitch deck?",

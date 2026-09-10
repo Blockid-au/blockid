@@ -23,7 +23,12 @@ export type DisclaimerKind =
 
 export const DISCLAIMER_VERSIONS: Record<DisclaimerKind, string> = {
   tos: "v2.0-2026-07-16",
-  privacy: "v2.0-2026-07-16",
+  // v2.1 (T0275, 2026-09-10): one canonical policy at /legal/privacy; AI
+  // provider chain listed as actually run (groq → cerebras → sambanova →
+  // deepinfra → anthropic → ollama → openrouter); founder-approved data
+  // principle added; the "never train third-party models" sentence removed.
+  // Registry row: supabase/migrations/0310_privacy_v2_1_registry.sql.
+  privacy: "v2.1-2026-09-10",
   general_advice_warning: "v1.0-2026-07-16",
   wholesale_certification: "v1.0-2026-07-16",
   equity_offer_disclaimer: "v1.0-2026-07-16",

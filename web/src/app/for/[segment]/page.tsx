@@ -1,8 +1,9 @@
 /**
  * /for/[segment] — per-audience landing pages.
  *
- * Server component. One dynamic route handling four segment slugs
- * (founder / investor / advisor / accelerator). Invalid slugs 404.
+ * Server component. One dynamic route handling three segment slugs
+ * (founder / investor / accelerator — `advisor` left on 2026-09-10, T0274; every
+ * slug now 301s to /solutions/* via next.config.ts). Invalid slugs 404.
  *
  * Everything on this page is server-rendered from the SEGMENT_CONTENT
  * map — no data fetching, no client-side state.

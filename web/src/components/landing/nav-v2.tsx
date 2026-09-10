@@ -99,9 +99,8 @@ export const MENU: MenuEntry[] = [
     label: "For",
     width: "w-56",
     items: [
-      // B1 Task 3 — persona pages migrated to /solutions/*. Advisor now
-      // uses /solutions/advisor (301 alias to /for/advisor lives in
-      // next.config.ts) so the persona URL surface stays unified.
+      // Every persona lives at /solutions/*; /solutions/advisor became a real
+      // page on 2026-09-10 (T0274) and /for/advisor now 301s to it.
       { label: "Founders", href: "/solutions/founder" },
       { label: "Investors", href: "/solutions/investor" },
       { label: "Advisors", href: "/solutions/advisor" },

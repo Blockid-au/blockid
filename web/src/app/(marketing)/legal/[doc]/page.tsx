@@ -8,7 +8,8 @@
  *
  * Supported slugs:
  *   - /legal/terms         → content/legal/terms-v2.mdx
- *   - /legal/privacy       → content/legal/privacy-v2.mdx
+ *   - /legal/privacy       → content/legal/privacy-v2.mdx (the ONE privacy
+ *                            policy — `/privacy` 301s here since 2026-09-10)
  *   - /legal/disclaimers   → all files under content/legal/disclaimers/*-en.mdx,
  *                            concatenated in a stable order.
  */
@@ -186,6 +187,24 @@ function renderInline(input: string): string {
   return s;
 }
 
+/**
+ * `## Heading {#anchor}` → `<h2 id="anchor">Heading</h2>`.
+ *
+ * The site footer deep-links `/legal/privacy#security`, and the MDX has no
+ * other way to name an anchor; a heading without a suffix renders with no id.
+ */
+function splitHeadingAnchor(text: string): { text: string; id: string | null } {
+  const m = /^(.*?)\s*\{#([a-z0-9-]+)\}\s*$/.exec(text);
+  if (!m) return { text, id: null };
+  return { text: m[1]!, id: m[2]! };
+}
+
+function headingTag(level: 1 | 2 | 3, raw: string, className: string): string {
+  const { text, id } = splitHeadingAnchor(raw);
+  const idAttr = id ? ` id="${id}"` : "";
+  return `<h${level}${idAttr} class="${className}">${renderInline(text)}</h${level}>`;
+}
+
 function renderMarkdown(md: string): string {
   const lines = md.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
@@ -229,9 +248,11 @@ function renderMarkdown(md: string): string {
       flushPara();
       flushList();
       out.push(
-        `<h3 class="mt-8 text-lg font-semibold tracking-tight text-primary">${renderInline(
+        headingTag(
+          3,
           trimmed.slice(4),
-        )}</h3>`,
+          "mt-8 text-lg font-semibold tracking-tight text-primary",
+        ),
       );
       continue;
     }
@@ -239,9 +260,11 @@ function renderMarkdown(md: string): string {
       flushPara();
       flushList();
       out.push(
-        `<h2 class="mt-12 text-2xl font-bold tracking-tight text-primary sm:text-3xl">${renderInline(
+        headingTag(
+          2,
           trimmed.slice(3),
-        )}</h2>`,
+          "mt-12 text-2xl font-bold tracking-tight text-primary sm:text-3xl",
+        ),
       );
       continue;
     }
@@ -249,9 +272,11 @@ function renderMarkdown(md: string): string {
       flushPara();
       flushList();
       out.push(
-        `<h1 class="mt-6 text-3xl font-bold tracking-tight text-primary sm:text-4xl">${renderInline(
+        headingTag(
+          1,
           trimmed.slice(2),
-        )}</h1>`,
+          "mt-6 text-3xl font-bold tracking-tight text-primary sm:text-4xl",
+        ),
       );
       continue;
     }

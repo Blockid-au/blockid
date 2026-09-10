@@ -49,9 +49,9 @@ const columns = [
   {
     title: "Legal",
     items: [
-      { href: "/privacy", label: "Privacy" },
+      { href: "/legal/privacy", label: "Privacy" },
       { href: "/terms", label: "Terms" },
-      { href: "/privacy#security", label: "Security" },
+      { href: "/legal/privacy#security", label: "Security" },
     ],
   },
 ];

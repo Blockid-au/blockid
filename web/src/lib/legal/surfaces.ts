@@ -58,6 +58,22 @@ export const DISCLAIMER_SURFACES: Record<string, DisclaimerSurface> = {
     body_md_vi: `[TODO-VI] **Chỉ hiển thị — không giao dịch được.** Cổ phần được token hóa chỉ là bản mô phỏng để kiểm toán; quyền sở hữu pháp lý vẫn do sổ đăng ký cổ đông của công ty quyết định.`,
   },
 
+  /**
+   * T0275 (G12, 2026-09-10) — footer for every report an evaluator (investor,
+   * accelerator, incubator, advisor, service provider) runs on a startup they
+   * entered themselves: the A$3 Trust BizReport, a Scout/Firm/Program quota
+   * report, a batch/cohort row, or a sponsor/LP export. Mounted by
+   * `EvaluatorReportDisclaimer` (components/legal). The text is the source of
+   * truth; the component only renders it.
+   */
+  evaluator_report: {
+    kind: "not_financial_advice",
+    jurisdictions: ["*"],
+    label: "Evaluator Report Footer",
+    body_md: `**General information only — not financial, investment, or legal advice.** This report was produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111) for the person or organisation who entered this startup, from the evidence that startup has supplied together with publicly available information. Scores, valuation ranges, and any statement of eligibility for a grant, program, tax incentive, or investor exemption (including ESIC, the R&D Tax Incentive, and s708 offers) are **indicative** — they are estimates on the evidence available at the time, not a determination by any authority and not a guarantee of an outcome. A match to a grant, program, or investor profile is **not** an approval, an offer, or a commitment of funds by anyone. Nothing here is financial product advice under the Corporations Act 2001 (Cth); BlockID.au does not hold an Australian Financial Services Licence (AFSL). Obtain independent professional advice from a licensed adviser, accountant, or lawyer before making any investment, funding, or eligibility decision. All figures in AUD unless otherwise noted.`,
+    body_md_vi: `[TODO-VI] **Chỉ là thông tin chung — không phải tư vấn tài chính, đầu tư hay pháp lý.** Điểm số, khoảng định giá và mọi nhận định về điều kiện tài trợ, chương trình hay ưu đãi thuế chỉ mang tính tham khảo; một kết quả khớp không phải là phê duyệt hay đề nghị cấp vốn.`,
+  },
+
   general_all: {
     kind: "not_financial_advice",
     jurisdictions: ["*"],

@@ -62,31 +62,41 @@ const INVESTOR_FEATURES = [
   },
 ];
 
+// 2026-09-10 (T0274): re-synced to the live ladder. The previous list —
+// Per-Analysis A$0.50, Founding 100 A$5, Growth A$99, Enterprise A$499 —
+// described SKUs that were retired or re-priced months ago. Founder ladder
+// per G11/G12: Free → A$3 Trust BizReport → Starter A$29 → Growth A$69.
+// Evaluator ladder per G12 D2: Scout A$79 · Firm A$149 · Program A$349.
 const REVENUE_TIERS = [
   {
     tier: "Free",
-    price: "$0",
-    detail: "1st SVI analysis free, no signup",
+    price: "A$0",
+    detail: "First SVI analysis free, no signup",
   },
   {
-    tier: "Per-Analysis",
-    price: "A$0.50",
-    detail: "Pay-per-report with credit packs",
+    tier: "Trust BizReport",
+    price: "A$3",
+    detail: "Full 8-dimension, 13-criteria report on any startup — founders and evaluators alike",
   },
   {
-    tier: "Founding 100",
-    price: "A$5",
-    detail: "Lifetime access, 50 credits included (50 full-page analyses)",
+    tier: "Founder Starter",
+    price: "A$29/mo",
+    detail: "Workspace that keeps the score, data room, investor links, Founder Radar",
   },
   {
-    tier: "Growth Plan",
-    price: "A$99/mo",
-    detail: "Unlimited analyses, full platform access",
+    tier: "Founder Growth",
+    price: "A$69/mo",
+    detail: "Cap table, term sheets, evidence vault, weekly SVI snapshots",
   },
   {
-    tier: "Enterprise",
-    price: "A$499/mo",
-    detail: "White-label, API access, accelerator tools",
+    tier: "Evaluator — Scout / Firm / Program",
+    price: "A$79 · A$149 · A$349/mo",
+    detail: "Investors, advisory firms, accelerators: reports included, tracked startups, seats, white-label — 7-day free trial, card required",
+  },
+  {
+    tier: "Contact Sales",
+    price: "Custom",
+    detail: "Multi-cohort accelerators, VC enterprise, reseller / wholesale",
   },
 ];
 
@@ -286,10 +296,16 @@ export default function InvestorsPage() {
             <h2 className="text-2xl font-bold text-ink-800 mb-4">Traction</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               {[
-                { num: "19", label: "Days to build" },
-                { num: "57", label: "Pages shipped" },
-                { num: "10", label: "Free tools live" },
-                { num: "70", label: "API endpoints" },
+                // 2026-09-10 (T0274): "19 days to build", "57 pages" and
+                // "10 free tools" were the June 2026 launch numbers. Each
+                // figure below has a source in the repo: /tools lists 16
+                // free tools; content/team-roster.json holds 11 C-Level
+                // agents; evaluation-criteria.ts scores 13 criteria over
+                // 8 dimensions; growth/phase-taxonomy.ts has 12 phases.
+                { num: "11", label: "C-Level AI agents" },
+                { num: "8 × 13", label: "Dimensions × criteria" },
+                { num: "16", label: "Free tools live" },
+                { num: "12", label: "Growth phases mapped" },
               ].map(({ num, label }) => (
                 <div
                   key={label}
@@ -304,12 +320,12 @@ export default function InvestorsPage() {
             </div>
             <ul className="space-y-2.5">
               {[
-                "Full platform built and deployed in 19 days using AI-native development",
-                "Complete Stripe integration with payment flows, credit packs, and subscriptions",
-                "10 free startup tools driving organic traffic and lead generation",
-                "SVI analysis engine with 8-dimension scoring and R&D deep dive agent",
+                "Platform built and deployed with AI-native development by a solo founder and 11 C-Level agents",
+                "Complete Stripe integration with the A$3 Trust BizReport, credit packs, and subscriptions",
+                "16 free startup tools driving organic traffic and lead generation",
+                "SVI analysis engine: 8 dimensions, 13 criteria, 12 growth phases, C-suite review with an auditor",
                 "Cap table management, dilution modelling, term sheet generator, data rooms",
-                "Admin panel with accelerator dashboard and portfolio management",
+                "Evaluator workspace for investors, advisory firms and accelerators — Scout, Firm and Program",
               ].map((item) => (
                 <li
                   key={item}
@@ -339,17 +355,20 @@ export default function InvestorsPage() {
                   </span>
                   <span className="text-lg text-ink-400">+</span>
                   <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-50 border border-brand-200 px-3 text-sm font-semibold text-brand-700">
-                    <Bot strokeWidth={1.75} className="h-4 w-4" /> 8 AI Agents
+                    <Bot strokeWidth={1.75} className="h-4 w-4" /> 11 C-Level agents
                   </span>
                 </div>
               </div>
               <p className="text-sm text-ink-600 leading-relaxed">
                 An experienced founder who has raised capital, negotiated term
-                sheets, and built cap tables from scratch — supported by 8
-                specialized AI agents for valuation, competitive research, R&D
-                eligibility, financial modelling, compliance, content, and more.
-                This AI-native approach delivers the output of a 20+ person team
-                at a fraction of the cost and time.
+                sheets, and built cap tables from scratch — supported by 11
+                C-Level AI agents (CEO, COO, CTO, CFO, CPO, CMO, CRO, CLO, CHRO,
+                CDO, CISO) for valuation, market research, R&D eligibility,
+                financial modelling, compliance, content, and more, with an
+                auditor agent checking their claims. The scoring method is
+                grounded in the founder&apos;s doctoral research (DBA) on startup
+                valuation. This AI-native approach delivers the output of a
+                20+ person team at a fraction of the cost and time.
               </p>
             </div>
           </section>

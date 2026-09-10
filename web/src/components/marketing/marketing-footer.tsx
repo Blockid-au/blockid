@@ -48,7 +48,7 @@ const COLUMNS: FooterColumn[] = [
       // B1 Task 3/4 — /for/{founder,investor,accelerator} now 301 → /solutions/*.
       { href: "/solutions/founder", label: "Founders" },
       { href: "/solutions/investor", label: "Investors" },
-      { href: "/for/advisor", label: "Advisors" },
+      { href: "/solutions/advisor", label: "Advisors" },
       { href: "/solutions/accelerator", label: "Accelerators" },
     ],
   },
