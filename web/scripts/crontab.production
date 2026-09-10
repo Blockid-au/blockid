@@ -214,6 +214,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # auto-closes or deletes a row. `?dry=1` on the route previews without writes.
 0 4 * * 0 bash $RUN refresh-funding-sources --timeout 300
 
+# 3:00pm AEST Sunday (05:00 UTC) — Money Radar sweep (T0245, G11 §4h/§4i D-1).
+# One hour after the catalogue refresh: re-matches every money_radar
+# subscriber + every A$3/credit report buyer of the last 90 days, upserts
+# funding_matches, diffs vs last week (new_match · deadline t30/t14/t3 ·
+# status_changed · new_round_opened) and writes in-app notifications.
+# Email fan-out is the radar drips (T0246) reading last_notified.pending_email.
+# `?dry=1` on the route previews without writes.
+0 5 * * 0 bash $RUN money-radar-sweep --timeout 300
+
 # ═══════════════════════════════════════════════════════════════
 # PIPELINE FLOW DIAGRAM
 # ═══════════════════════════════════════════════════════════════

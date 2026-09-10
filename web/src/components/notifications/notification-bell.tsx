@@ -1,10 +1,44 @@
 "use client";
 
+// Nav bell. T0245 repointed it from the legacy `notifications` table
+// (/api/notifications — email/toast messages) to the founder activity feed
+// (`founder_notifications`, /api/founder-notifications) so Money Radar
+// alerts (grant_deadline · program_intake · event_match · new_matches …)
+// show where founders look. The legacy endpoint stays as a fallback when
+// the founder feed is unavailable (404 / 5xx / network), so nothing that
+// still writes to `notifications` goes dark.
+//
+//   badge : GET /api/founder-notifications?count_only=1   → { unread_count }
+//   list  : GET /api/founder-notifications?limit=20       → { notifications, unread_count }
+//   read  : POST /api/founder-notifications/read { ids | all }
+//
+// Pure helpers (`normaliseFounderRows`, `normaliseLegacyRows`, `loadBell`)
+// are exported for the colocated test.
+
 import * as React from "react";
 import { Bell, X, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  KIND_LABELS,
+  describeNotification,
+  notificationAction,
+  isNotificationKind,
+  type FounderNotificationRow,
+} from "@/lib/notification-kinds";
 
-interface Notification {
+export interface BellItem {
+  id: string;
+  /** "founder" rows mark read via /api/founder-notifications/read; "legacy" via /api/notifications/:id/read. */
+  source: "founder" | "legacy";
+  type: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+interface LegacyRow {
   id: string;
   type: string;
   title: string;
@@ -13,20 +47,91 @@ interface Notification {
   created_at: string;
 }
 
+export function normaliseFounderRows(rows: FounderNotificationRow[]): BellItem[] {
+  return rows.map((n) => ({
+    id: String(n.id),
+    source: "founder",
+    type: n.kind,
+    title: isNotificationKind(n.kind) ? KIND_LABELS[n.kind] : n.kind,
+    body: describeNotification(n),
+    href: notificationAction(n)?.href ?? null,
+    read: Boolean(n.read_at),
+    created_at: n.created_at,
+  }));
+}
+
+export function normaliseLegacyRows(rows: LegacyRow[]): BellItem[] {
+  return rows.map((n) => ({
+    id: String(n.id),
+    source: "legacy",
+    type: n.type,
+    title: n.title,
+    body: n.body ?? null,
+    href: null,
+    read: Boolean(n.read),
+    created_at: n.created_at,
+  }));
+}
+
+export interface BellState {
+  items: BellItem[];
+  unreadCount: number;
+  source: "founder" | "legacy" | "none";
+}
+
+type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+/**
+ * Founder feed first (badge + list in one round-trip), legacy on failure.
+ * Never throws — an empty bell is the failure mode.
+ */
+export async function loadBell(fetchFn: FetchLike = fetch): Promise<BellState> {
+  try {
+    const res = await fetchFn("/api/founder-notifications?limit=20", { credentials: "same-origin" });
+    if (res.ok) {
+      const d = (await res.json()) as { notifications?: FounderNotificationRow[]; unread_count?: number };
+      return {
+        items: normaliseFounderRows(d.notifications ?? []),
+        unreadCount: typeof d.unread_count === "number" ? d.unread_count : 0,
+        source: "founder",
+      };
+    }
+    if (res.status === 401) return { items: [], unreadCount: 0, source: "none" };
+  } catch {
+    /* fall through to legacy */
+  }
+  try {
+    const res = await fetchFn("/api/notifications", { credentials: "same-origin" });
+    if (!res.ok) return { items: [], unreadCount: 0, source: "none" };
+    const d = (await res.json()) as { notifications?: LegacyRow[]; unreadCount?: number };
+    return {
+      items: normaliseLegacyRows(d.notifications ?? []),
+      unreadCount: typeof d.unreadCount === "number" ? d.unreadCount : 0,
+      source: "legacy",
+    };
+  } catch {
+    return { items: [], unreadCount: 0, source: "none" };
+  }
+}
+
 export function NotificationBell() {
   const [open, setOpen] = React.useState(false);
-  const [notifications, setNotifications] = React.useState<Notification[]>([]);
+  const [notifications, setNotifications] = React.useState<BellItem[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
+  const [source, setSource] = React.useState<BellState["source"]>("none");
   const panelRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    fetch("/api/notifications")
-      .then((r) => r.json())
-      .then((d) => {
-        setNotifications(d.notifications ?? []);
-        setUnreadCount(d.unreadCount ?? 0);
-      })
-      .catch(() => {});
+    let cancelled = false;
+    void loadBell().then((s) => {
+      if (cancelled) return;
+      setNotifications(s.items);
+      setUnreadCount(s.unreadCount);
+      setSource(s.source);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   React.useEffect(() => {
@@ -40,14 +145,40 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  async function markRead(id: string) {
-    await fetch(`/api/notifications/${id}/read`, { method: "POST" });
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  async function markRead(item: BellItem) {
+    try {
+      if (item.source === "founder") {
+        await fetch("/api/founder-notifications/read", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ids: [Number(item.id)] }),
+          credentials: "same-origin",
+        });
+      } else {
+        await fetch(`/api/notifications/${item.id}/read`, { method: "POST" });
+      }
+    } catch {
+      /* optimistic below */
+    }
+    setNotifications((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
     setUnreadCount((c) => Math.max(0, c - 1));
   }
 
   async function markAllRead() {
-    await fetch("/api/notifications/read-all", { method: "POST" });
+    try {
+      if (source === "founder") {
+        await fetch("/api/founder-notifications/read", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ all: true }),
+          credentials: "same-origin",
+        });
+      } else {
+        await fetch("/api/notifications/read-all", { method: "POST" });
+      }
+    } catch {
+      /* optimistic below */
+    }
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
   }
@@ -99,12 +230,12 @@ export function NotificationBell() {
             ) : (
               notifications.map((n) => (
                 <div
-                  key={n.id}
+                  key={`${n.source}:${n.id}`}
                   className={cn(
                     "px-4 py-3 cursor-pointer hover:bg-surface-50 transition-colors",
                     !n.read && "bg-brand-50 hover:bg-brand-50/80",
                   )}
-                  onClick={() => !n.read && markRead(n.id)}
+                  onClick={() => !n.read && markRead(n)}
                 >
                   <div className="flex items-start gap-2">
                     {!n.read && (
@@ -115,15 +246,35 @@ export function NotificationBell() {
                       {n.body && (
                         <p className="text-xs text-ink-500 mt-0.5 leading-snug">{n.body}</p>
                       )}
-                      <p className="text-[10px] text-ink-400 mt-1">
-                        {new Date(n.created_at).toLocaleDateString()}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[10px] text-ink-400">
+                          {new Date(n.created_at).toLocaleDateString()}
+                        </p>
+                        {n.href && (
+                          <a
+                            href={n.href}
+                            target={n.href.startsWith("http") ? "_blank" : undefined}
+                            rel={n.href.startsWith("http") ? "noreferrer" : undefined}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] font-semibold text-brand-600 hover:underline"
+                          >
+                            Open →
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               ))
             )}
           </div>
+          {source === "founder" && (
+            <div className="border-t border-surface-100 bg-surface-50 px-4 py-2 text-center">
+              <a href="/workspace/notifications" className="text-[11px] font-semibold text-brand-600 hover:underline">
+                All notifications
+              </a>
+            </div>
+          )}
         </div>
       )}
     </div>

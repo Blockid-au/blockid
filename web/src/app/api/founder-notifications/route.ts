@@ -15,18 +15,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { NOTIFICATION_KINDS } from "@/lib/notification-kinds";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const KNOWN_KINDS = new Set([
-  "tbr_view",
-  "tbr_qa_asked",
-  "tbr_lead",
-  "report_shared",
-  "analysis_done",
-  "svi_trend_alert",
-]);
+// Allow-list for `?kind=` — derived from the shared kind array so a kind
+// added for a new writer (T0245 Money Radar: grant_deadline, program_intake,
+// event_match, weekly_next_step, new_matches, analysis_refresh) is filterable
+// without editing this file.
+const KNOWN_KINDS = new Set<string>(NOTIFICATION_KINDS);
 
 interface Row {
   id: number;

@@ -14,6 +14,7 @@ const VALID_CATEGORIES: EmailCategory[] = [
   "promotions",
   "svi_alerts",
   "payment_receipts",
+  "money_radar",
 ];
 
 function isValidCategory(v: unknown): v is EmailCategory {

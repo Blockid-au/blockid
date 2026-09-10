@@ -15,6 +15,7 @@ import {
   renderIcs,
   CALENDAR_DISCLAIMER,
   CALENDAR_PRODID,
+  type IcsEvent,
 } from "./calendar";
 import type { RDCalendarEntry } from "./rd-calendar";
 import type { WGEAResult } from "./wgea-threshold";
@@ -316,5 +317,41 @@ describe("renderIcs — RFC 5545 shape", () => {
     const first = buildComplianceCalendar({ now: NOW, gstRegistered: true });
     const second = buildComplianceCalendar({ now: NOW, gstRegistered: true });
     expect(first.map((e) => e.uid)).toEqual(second.map((e) => e.uid));
+  });
+
+  // T0245 — generic IcsEvent input (Money Radar feed) alongside ComplianceEvent.
+  it("accepts generic IcsEvents: multiple VALARM lead days, default DTEND, CATEGORIES, custom PRODID/name", () => {
+    const generic: IcsEvent = {
+      uid: "radar-grant-mvp-2026-10-03@blockid.au",
+      summary: "Grant closes: MVP Ventures",
+      description: "Matched by Money Radar, score 80/100.",
+      date_start: "2026-10-03",
+      reminder_lead_days: [30, 14, 3],
+      url: "https://www.investment.nsw.gov.au/mvp",
+      category: "funding_deadline",
+    };
+    const compliance = buildComplianceCalendar({ now: NOW, gstRegistered: true }).slice(0, 1);
+    const ics = renderIcs([generic, ...compliance], {
+      now: NOW,
+      calendarName: "BlockID.au — Money Radar",
+      calendarDescription: "Radar dates",
+      prodId: "-//BlockID.au//Money Radar//EN",
+    });
+    expect(ics).toContain("PRODID:-//BlockID.au//Money Radar//EN");
+    expect(ics).toContain("X-WR-CALNAME:BlockID.au — Money Radar");
+    expect(ics).toContain("X-WR-CALDESC:Radar dates");
+    const block = ics.slice(ics.indexOf("BEGIN:VEVENT"), ics.indexOf("END:VEVENT"));
+    expect(block).toContain("DTSTART;VALUE=DATE:20261003");
+    expect(block).toContain("DTEND;VALUE=DATE:20261004");
+    expect(block).toContain("URL:https://www.investment.nsw.gov.au/mvp");
+    expect(block).toContain("CATEGORIES:funding_deadline");
+    expect(block.match(/BEGIN:VALARM/g)).toHaveLength(3);
+    expect(block).toContain("TRIGGER:-P30D");
+    expect(block).toContain("TRIGGER:-P14D");
+    expect(block).toContain("TRIGGER:-P3D");
+    // The compliance event after it is unchanged: one 14-day alarm, no CATEGORIES.
+    const rest = ics.slice(ics.indexOf("END:VEVENT") + 10);
+    expect(rest.match(/BEGIN:VALARM/g)).toHaveLength(1);
+    expect(rest).not.toContain("CATEGORIES:");
   });
 });

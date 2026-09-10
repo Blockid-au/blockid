@@ -50,6 +50,7 @@ export default async function NotificationsPage() {
                   svi_alerts: prefs.svi_alerts,
                   payment_receipts: prefs.payment_receipts,
                   digest_weekly: prefs.digest_weekly !== false, // wave 28A: undefined → TRUE
+                  money_radar: prefs.money_radar !== false, // T0245: undefined → TRUE
                   unsubscribed_all: prefs.unsubscribed_all,
                 }
               : {
@@ -59,6 +60,7 @@ export default async function NotificationsPage() {
                   svi_alerts: true,
                   payment_receipts: true,
                   digest_weekly: true,
+                  money_radar: true,
                   unsubscribed_all: false,
                 }
           }

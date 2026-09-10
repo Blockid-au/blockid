@@ -9,10 +9,13 @@ interface Prefs {
   svi_alerts: boolean;
   payment_receipts: boolean;
   digest_weekly: boolean;
+  money_radar: boolean;
   unsubscribed_all: boolean;
 }
 
-const CATEGORY_META: Record<string, { label: string; description: string }> = {
+// Keys must be `EmailCategory` members (or digest_weekly) — the POST
+// /api/unsubscribe allow-list drops anything else. `money_radar` = T0245.
+export const CATEGORY_META: Record<string, { label: string; description: string }> = {
   weekly_reports: {
     label: "Weekly Reports",
     description: "Your weekly SVI progress summary and score changes",
@@ -33,6 +36,10 @@ const CATEGORY_META: Record<string, { label: string; description: string }> = {
   svi_alerts: {
     label: "SVI Alerts",
     description: "Score changes, evidence reminders, and milestone notifications",
+  },
+  money_radar: {
+    label: "Money Radar",
+    description: "Grant deadlines, program intakes, new matches",
   },
   payment_receipts: {
     label: "Payment Receipts",
@@ -83,6 +90,7 @@ export function NotificationsClient({
       promotions: true,
       svi_alerts: true,
       digest_weekly: true,
+      money_radar: true,
       unsubscribed_all: false,
     });
   }
@@ -172,7 +180,7 @@ export function NotificationsClient({
       {!prefs.unsubscribed_all && prefs.digest_weekly && (
         <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
           <p className="text-sm font-medium text-ink-800">
-            Want to see what next Monday's digest will look like?
+            Want to see what next Monday&apos;s digest will look like?
           </p>
           <p className="text-xs text-ink-500 mt-1 mb-3">
             Preview aggregates the last 7 days of views, leads, and SVI movement

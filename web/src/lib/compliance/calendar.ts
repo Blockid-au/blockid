@@ -75,6 +75,33 @@ export interface ComplianceEvent {
   source_url: string;
 }
 
+/**
+ * Generic all-day event accepted by `renderIcs()` alongside `ComplianceEvent`
+ * (T0245 — the Money Radar feed at /api/funding/calendar.ics renders grant
+ * closes / program intakes / event dates through the same renderer).
+ * `reminder_lead_days` may list several lead times → one VALARM each
+ * (Money Radar uses 30 / 14 / 3 to mirror the in-app tiers).
+ */
+export interface IcsEvent {
+  uid: string;
+  summary: string;
+  description: string;
+  /** All-day start (YYYY-MM-DD, inclusive). */
+  date_start: string;
+  /** All-day end (YYYY-MM-DD, exclusive). Defaults to `date_start + 1 day`. */
+  date_end?: string;
+  reminder_lead_days: number | readonly number[];
+  url: string;
+  /** Free-form tag surfaced as CATEGORIES (e.g. "funding_deadline"). */
+  category?: string;
+}
+
+export type IcsInput = ComplianceEvent | IcsEvent;
+
+function isComplianceEvent(ev: IcsInput): ev is ComplianceEvent {
+  return "source_url" in ev && "kind" in ev;
+}
+
 export interface BuildComplianceCalendarOptions {
   /** Anchor "now" — controls the 12-month emission window. */
   now?: Date;
@@ -373,20 +400,31 @@ export function buildComplianceCalendar(
 // --- ICS serialisation ---
 
 /**
- * Fold a single logical line to <= 75 octets per RFC 5545 §3.1. We treat
- * input as ASCII (all our summaries/descriptions are ASCII); non-ASCII
- * callers should widen this.
+ * Fold a single logical line to <= 75 octets per RFC 5545 §3.1. Counts UTF-8
+ * octets (not characters) and never splits inside a multi-byte character —
+ * T0245 widened this from the ASCII-only original because Money Radar
+ * summaries carry em dashes and grant names with non-ASCII letters. ASCII
+ * input folds exactly as before.
  */
 function foldLine(line: string): string {
-  if (line.length <= 75) return line;
+  const MAX = 75;
+  if (Buffer.byteLength(line, "utf8") <= MAX) return line;
   const parts: string[] = [];
-  let i = 0;
-  while (i < line.length) {
-    const chunkSize = i === 0 ? 75 : 74; // continuation lines start with 1 space
-    const chunk = line.slice(i, i + chunkSize);
-    parts.push(i === 0 ? chunk : ` ${chunk}`);
-    i += chunkSize;
+  let current = "";
+  let currentBytes = 0;
+  let limit = MAX; // continuation lines start with 1 space → 74 payload octets
+  for (const ch of line) {
+    const b = Buffer.byteLength(ch, "utf8");
+    if (currentBytes + b > limit) {
+      parts.push(parts.length === 0 ? current : ` ${current}`);
+      current = "";
+      currentBytes = 0;
+      limit = MAX - 1;
+    }
+    current += ch;
+    currentBytes += b;
   }
+  if (current) parts.push(parts.length === 0 ? current : ` ${current}`);
   return parts.join("\r\n");
 }
 
@@ -412,40 +450,57 @@ function toDtStamp(now: Date): string {
 export interface RenderIcsOptions {
   now?: Date;
   calendarName?: string;
+  /** X-WR-CALDESC; defaults to the compliance disclaimer. */
+  calendarDescription?: string;
+  /** PRODID; defaults to the compliance one. */
+  prodId?: string;
 }
 
 export function renderIcs(
-  events: readonly ComplianceEvent[],
+  events: readonly IcsInput[],
   opts: RenderIcsOptions = {},
 ): string {
   const now = opts.now ?? new Date();
   const calName = opts.calendarName ?? CALENDAR_NAME;
+  const calDesc = opts.calendarDescription ?? CALENDAR_DISCLAIMER;
   const dtstamp = toDtStamp(now);
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    `PRODID:${CALENDAR_PRODID}`,
+    `PRODID:${opts.prodId ?? CALENDAR_PRODID}`,
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${escapeIcsText(calName)}`,
-    `X-WR-CALDESC:${escapeIcsText(CALENDAR_DISCLAIMER)}`,
+    `X-WR-CALDESC:${escapeIcsText(calDesc)}`,
   ];
 
   for (const ev of events) {
+    const compliance = isComplianceEvent(ev);
+    const url = compliance ? ev.source_url : ev.url;
+    const dateEnd = compliance ? ev.date_end : (ev.date_end ?? addDaysIso(ev.date_start, 1));
+    const leads = (Array.isArray(ev.reminder_lead_days) ? ev.reminder_lead_days : [ev.reminder_lead_days as number])
+      .filter((d) => Number.isInteger(d) && d >= 0)
+      .sort((a, b) => b - a);
+    // Compliance output is unchanged (no CATEGORIES) so existing subscribers see no diff.
+    const category = compliance ? undefined : ev.category;
+
     lines.push("BEGIN:VEVENT");
     lines.push(`UID:${ev.uid}`);
     lines.push(`DTSTAMP:${dtstamp}`);
     lines.push(`DTSTART;VALUE=DATE:${toIcsDate(ev.date_start)}`);
-    lines.push(`DTEND;VALUE=DATE:${toIcsDate(ev.date_end)}`);
+    lines.push(`DTEND;VALUE=DATE:${toIcsDate(dateEnd)}`);
     lines.push(`SUMMARY:${escapeIcsText(ev.summary)}`);
     lines.push(`DESCRIPTION:${escapeIcsText(ev.description)}`);
-    lines.push(`URL:${ev.source_url}`);
-    lines.push("BEGIN:VALARM");
-    lines.push("ACTION:DISPLAY");
-    lines.push(`TRIGGER:-P${ev.reminder_lead_days}D`);
-    lines.push(`DESCRIPTION:${escapeIcsText(ev.summary)} in ${ev.reminder_lead_days} days`);
-    lines.push("END:VALARM");
+    if (url) lines.push(`URL:${url}`);
+    if (category) lines.push(`CATEGORIES:${escapeIcsText(category)}`);
+    for (const lead of leads) {
+      lines.push("BEGIN:VALARM");
+      lines.push("ACTION:DISPLAY");
+      lines.push(`TRIGGER:-P${lead}D`);
+      lines.push(`DESCRIPTION:${escapeIcsText(ev.summary)} in ${lead} days`);
+      lines.push("END:VALARM");
+    }
     lines.push("END:VEVENT");
   }
 
