@@ -1,7 +1,7 @@
 # Money Finder — Simple Public Menu + "Do you need money?" — Goal Doc
 
 > **Back-link:** [`docs/plans/SOURCE-OF-TRUTH.md`](./SOURCE-OF-TRUTH.md) — consult that file first.
-> **Goal ID:** G11 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** P0 shipped (this doc + seed data); execution plan approved 2026-09-10 (§8); ledger tasks T0237–T0251 pending; **no code yet** — Wave 0 (T0237) starts on founder "go".
+> **Goal ID:** G11 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** **S0–S4 live** (2026-09-10, release `b119b8627`); S5 T0251 in progress — see §9 and SOT.
 > **Amends:** G7 [`ux-ia-startup-flow-goal.md`](./ux-ia-startup-flow-goal.md) public-nav file boundary (`nav-v2.tsx`, `site/navbar.tsx`) and G9 "do not touch nav-v2" note — G11-P1 owns the **public** nav; G7/G8 keep the logged-in sidebar.
 > **Seed data:** [`web/content/data/grants-au.seed.json`](../../web/content/data/grants-au.seed.json) · [`web/content/data/programs-au.seed.json`](../../web/content/data/programs-au.seed.json)
 > **Entity:** PPL Food PTY LTD · Sydney NSW (founder decision 2026-09-10; no ABN/ACN shown in copy).

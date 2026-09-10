@@ -1,7 +1,7 @@
 # Evaluator Traction — pricing + positioning for investors, accelerators, incubators, consulting & service firms — Goal Doc
 
 > **Back-link:** [`docs/plans/SOURCE-OF-TRUTH.md`](./SOURCE-OF-TRUTH.md) — consult that file first.
-> **Goal ID:** G12 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** plan approved 2026-09-10; ledger tasks T0268–T0275 pending; **no code yet**.
+> **Goal ID:** G12 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** **S1–S4 live** (2026-09-10, release `b119b8627`): T0268–T0271, T0273–T0275 done; S5 T0272 in progress — see §9 and SOT.
 > **Companion:** [`money-finder-2026-09-10.md`](./money-finder-2026-09-10.md) (G11 — Money Finder / Founder Radar; the Evaluator Progress Radar consumes G11 signals).
 > **Founder decisions (2026-09-10):** D1 evaluator trial = 7 days, **card required** (same Stripe mechanism as founders) · D2 public rungs = **Scout A$79 · Firm A$149 · Program A$349** (re-using `investor_angel / investor_advisor / investor_vc_small`) · D3 **A$3 = full Trust BizReport** for founders and evaluators, A$5.50 SKU retired · D4 doctoral-research wording **approved** (never "PhD") · data principle **approved**: "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what." (provider check at T0275).
 > **Entity:** PPL Food PTY LTD · Sydney NSW (founder decision 2026-09-10; no ABN/ACN shown in copy).
