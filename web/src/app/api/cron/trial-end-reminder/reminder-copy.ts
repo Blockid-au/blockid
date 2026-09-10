@@ -47,6 +47,18 @@ export function reminderSubject(plan: ReminderPlanDisplay, trialEndFmt: string):
 }
 
 /**
+ * One extra line for evaluator trials (G12 §3b, S7-C): the trial includes
+ * TRIAL_REPORT_ALLOWANCE Trust BizReports; say how many are still unused.
+ * Null when none are left (or the trial has no such allowance) — the line
+ * is simply omitted, cadence unchanged.
+ */
+export function includedReportLine(left: number | null | undefined): string | null {
+  if (typeof left !== "number" || !Number.isFinite(left) || left <= 0) return null;
+  const n = Math.floor(left);
+  return `You have ${n} included Trust BizReport${n === 1 ? "" : "s"} left — run it from Startups I'm evaluating before your trial ends.`;
+}
+
+/**
  * T-3d reminder body. The copy MUST read as a card-on-file trial ("your card
  * will be charged … cancel before …").
  */
@@ -55,6 +67,8 @@ export function renderReminder(args: {
   trialEndFmt: string;
   planName: string;
   price: string | null;
+  /** Unused included trial reports (evaluator trials only); omitted when 0 / null. */
+  includedReportsLeft?: number | null;
 }): string {
   const esc = (s: string) =>
     s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
@@ -64,11 +78,12 @@ export function renderReminder(args: {
     dateStr: args.trialEndFmt,
   });
   const footnote = TRIAL_COPY.reminder_footnote(args.trialEndFmt);
+  const reportLine = includedReportLine(args.includedReportsLeft);
   return `<!DOCTYPE html><html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#1e293b;">
   <div style="max-width:560px;margin:24px auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;">
     <h1 style="margin:0 0 12px;font-size:20px;">Your trial ends ${esc(args.trialEndFmt)}</h1>
     <p>Hi ${esc(args.name)},</p>
-    <p>${esc(body)}</p>
+    <p>${esc(body)}</p>${reportLine ? `\n    <p>${esc(reportLine)}</p>` : ""}
     <p><a href="https://blockid.au/workspace/billing" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;">Manage billing →</a></p>
     <p style="color:#64748b;font-size:12px;">${esc(footnote)}</p>
   </div></body></html>`;

@@ -4,7 +4,10 @@
 //   Body    { kind: "full" | "rescore", confirm?: boolean, idempotency_key?: uuid }
 //   Preview (confirm !== true) → 200
 //           { ok:true, preview:true, cost:{ via:"quota"|"credits"|"none", credits,
-//             list_credits, balance, remaining_quota, quota:{limit,used,remaining} } }
+//             list_credits, balance, remaining_quota, quota:{limit,used,remaining},
+//             trial:{active,ends_at,allowance,used} } }
+//           While the subscription is `trialing` the quota is the 1 included
+//           trial report (G12 §3b, S7-C), then credits — see report-quota.ts.
 //   Run     (confirm === true) → 200
 //           { ok:true, report_url, pdf_url, via, credits_spent, remaining_quota,
 //             svi, report_ref, kind, reused:false }
@@ -152,6 +155,8 @@ export async function POST(request: Request, { params }: Ctx) {
     balance: cost.balance,
     remaining_quota: cost.remaining_quota,
     quota: { limit: cost.quota.limit, used: cost.quota.used, remaining: cost.quota.remaining, unlimited: cost.quota.unlimited },
+    // S7-C: the dialog reads this to say "Included in your trial" vs credits.
+    trial: cost.quota.trial ?? null,
   };
   if (!confirmed) {
     return NextResponse.json({ ok: true, preview: true, kind, cost: costPayload });
@@ -288,6 +293,7 @@ export async function POST(request: Request, { params }: Ctx) {
     credits_spent: creditsSpent,
     balance,
     remaining_quota: cost.remaining_quota,
+    trial: costPayload.trial,
     svi,
     report_ref: reportRef,
     share_token: shareToken,

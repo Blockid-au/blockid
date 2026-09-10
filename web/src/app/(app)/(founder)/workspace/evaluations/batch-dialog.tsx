@@ -32,11 +32,13 @@ export interface BatchDialogProps {
   /** Included reports left this month (null = unknown / unlimited). */
   quotaRemaining: number | null;
   quotaLimit: number | null;
+  /** S7-C: subscription still trialing → the quota is the 1 included trial report. */
+  trialActive?: boolean;
   onClose: () => void;
   onQueued: (result: BatchQueuedResult) => void;
 }
 
-export function BatchDialog({ selected, quotaRemaining, quotaLimit, onClose, onQueued }: BatchDialogProps) {
+export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive = false, onClose, onQueued }: BatchDialogProps) {
   const n = selected.length;
   const [name, setName] = React.useState(`Batch ${new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}`);
   const [weights, setWeights] = React.useState<RubricWeights>(equalWeights());
@@ -136,9 +138,13 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, onClose, onQ
           </div>
 
           <div data-testid="batch-cost" className={`rounded-xl px-4 py-3 text-sm ${insufficient ? "border border-amber-300 bg-amber-50 text-amber-800" : "border border-surface-200 bg-surface-50 text-ink-700"}`}>
-            <strong>{n}</strong> of your included Trust BizReports this month
+            <strong>{n}</strong> of your included Trust BizReports {trialActive ? "in your trial" : "this month"}
             {quotaRemaining != null ? <> ({quotaRemaining}{quotaLimit != null ? ` of ${quotaLimit}` : ""} left)</> : null}.
-            {insufficient ? " Not enough included reports left — select fewer startups or wait for the monthly reset." : " No credits are charged."}
+            {insufficient
+              ? trialActive
+                ? " Your trial includes 1 report — select 1 startup now, or batch the rest once your plan starts."
+                : " Not enough included reports left — select fewer startups or wait for the monthly reset."
+              : " No credits are charged."}
           </div>
 
           {error ? <p className="text-sm text-red-600 font-medium" role="alert">{error}</p> : null}

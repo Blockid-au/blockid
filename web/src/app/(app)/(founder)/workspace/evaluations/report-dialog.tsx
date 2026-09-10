@@ -24,6 +24,14 @@ import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-d
 
 export type ReportKind = "full" | "rescore";
 
+/** Mirrors ReportTrial in lib/evaluations/report-quota.ts (S7-C). */
+export interface ReportTrialPreview {
+  active: boolean;
+  ends_at: string | null;
+  allowance: number;
+  used: number;
+}
+
 export interface ReportCostPreview {
   via: "quota" | "credits" | "none";
   credits: number;
@@ -31,6 +39,8 @@ export interface ReportCostPreview {
   balance: number;
   remaining_quota: number;
   quota: { limit: number; used: number; remaining: number; unlimited: boolean };
+  /** Absent on older servers → treated as not trialing. */
+  trial?: ReportTrialPreview | null;
 }
 
 export interface ReportRunResult {
@@ -45,6 +55,7 @@ export interface ReportRunResult {
   share_token: string | null;
   /** True when the server answered from an existing row (retry / poll). */
   reused?: boolean;
+  trial?: ReportTrialPreview | null;
 }
 
 /** Client fetch budget for the confirmed POST (Cloudflare's origin cap is 100 s). */
@@ -163,9 +174,17 @@ function bigNumber(n: number): boolean {
   return n >= Number.MAX_SAFE_INTEGER || n >= 1_000_000;
 }
 
-/** Sentence the dialog shows for a preview — exported so the test can pin it. */
+/**
+ * Sentence the dialog shows for a preview — exported so the test can pin it.
+ * While the subscription is trialing (S7-C) the wording is "Included in your
+ * trial" for the 1 allowance, then "charged to credits" — never a block.
+ */
 export function describeCost(kind: ReportKind, cost: ReportCostPreview): string {
   const unit = cost.list_credits === 1 ? "credit" : "credits";
+  const trial = cost.trial?.active ? cost.trial : null;
+  if (cost.via === "quota" && trial) {
+    return `Included in your trial — ${trial.allowance} full Trust BizReport${trial.allowance === 1 ? "" : "s"} free, ${cost.remaining_quota} left after this. No credits will be charged.`;
+  }
   if (cost.via === "quota") {
     if (cost.quota.unlimited || bigNumber(cost.quota.limit)) {
       return "Included in your plan — unlimited reports this month. No credits will be charged.";
@@ -175,13 +194,27 @@ export function describeCost(kind: ReportKind, cost: ReportCostPreview): string 
   if (cost.via === "credits") {
     const why =
       kind === "full"
-        ? cost.quota.limit > 0
-          ? "Your included reports for this month are used up, so this run is charged to credits: "
-          : "Charged to credits: "
+        ? trial
+          ? `Your trial's ${trial.allowance} included report${trial.allowance === 1 ? " is" : "s are"} used, so this run is charged to credits: `
+          : cost.quota.limit > 0
+            ? "Your included reports for this month are used up, so this run is charged to credits: "
+            : "Charged to credits: "
         : "Re-scores are always pay-as-you-go: ";
     return `${why}${cost.list_credits} ${unit} (A$${cost.list_credits.toFixed(2)}). Balance ${cost.balance.toFixed(2)} → ${(cost.balance - cost.list_credits).toFixed(2)} after.`;
   }
-  return `This needs ${cost.list_credits} ${unit} (A$${cost.list_credits.toFixed(2)}); your balance is ${cost.balance.toFixed(2)} and your plan has no included reports left this month.`;
+  return `This needs ${cost.list_credits} ${unit} (A$${cost.list_credits.toFixed(2)}); your balance is ${cost.balance.toFixed(2)} and ${trial ? "your trial's included report is used" : "your plan has no included reports left this month"}.`;
+}
+
+/** Line under "Done — SVI n." after a run — exported so the test can pin it. */
+export function describeResult(result: ReportRunResult): string {
+  if (result.reused) return "This report was already generated for this run — nothing more was charged.";
+  if (result.via === "quota") {
+    if (result.trial?.active) {
+      return `Used your included trial report${result.remaining_quota > 0 ? ` (${result.remaining_quota} left)` : " — further reports cost 3 credits (A$3) each"}.`;
+    }
+    return `Used 1 included report (${bigNumber(result.remaining_quota) ? "unlimited" : result.remaining_quota} left this month).`;
+  }
+  return `${result.credits_spent} credit${result.credits_spent === 1 ? "" : "s"} charged (balance ${result.balance.toFixed(2)}).`;
 }
 
 export function ReportDialog({ evaluationId, startupName, kind, onClose, onSuccess }: ReportDialogProps) {
@@ -294,12 +327,7 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
           {result ? (
             <div role="status" data-testid="report-result" className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-emerald-900 space-y-2">
               <p>
-                Done — SVI <strong>{Math.round(result.svi)}</strong>.{" "}
-                {result.reused
-                  ? "This report was already generated for this run — nothing more was charged."
-                  : result.via === "quota"
-                    ? `Used 1 included report (${bigNumber(result.remaining_quota) ? "unlimited" : result.remaining_quota} left this month).`
-                    : `${result.credits_spent} credit${result.credits_spent === 1 ? "" : "s"} charged (balance ${result.balance.toFixed(2)}).`}
+                Done — SVI <strong>{Math.round(result.svi)}</strong>. {describeResult(result)}
               </p>
               {result.report_url ? (
                 <div className="flex flex-wrap gap-3">

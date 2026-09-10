@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail, FileText, RefreshCw, FileDown, Radar, CalendarClock, Layers } from "lucide-react";
 import type { EvaluationListRow, EvaluationConsentTier } from "@/lib/evaluations";
 import type { LastEvaluationReport, ReportQuota } from "@/lib/evaluations/report-quota";
+import { TrialReportBanner } from "./trial-report-banner";
 import { formatDelta, type EvaluatorProgress, type EvaluatorProgressItem, type ProgressDeadline } from "@/lib/evaluations/progress-shared";
 import { ReportDialog, type ReportKind, type ReportRunResult } from "./report-dialog";
 import { BatchDialog, type BatchQueuedResult } from "./batch-dialog";
@@ -338,6 +339,9 @@ export function EvaluationsClient({
   const [lastReports, setLastReports] = React.useState<Record<string, LastEvaluationReport>>(initialLastReports);
   const [reportDialog, setReportDialog] = React.useState<{ row: EvaluationListRow; kind: ReportKind } | null>(null);
   const [quotaRemaining, setQuotaRemaining] = React.useState<number | null>(reportQuota ? reportQuota.remaining : null);
+  // S7-C: while trialing the quota IS the 1 included trial report.
+  const trial = reportQuota?.trial?.active ? reportQuota.trial : null;
+  const trialUsed = trial ? Math.max(0, trial.allowance - (quotaRemaining ?? reportQuota?.remaining ?? 0)) : null;
 
   function handleReportSuccess(row: EvaluationListRow, result: ReportRunResult) {
     setLastReports((prev) => ({
@@ -622,6 +626,9 @@ export function EvaluationsClient({
         </div>
       )}
 
+      {/* Trial strip (S7-C) — 1 included Trust BizReport, then credits */}
+      {isEvaluator && trial ? <TrialReportBanner trial={trial} used={trialUsed} /> : null}
+
       {/* Plan-limit banner */}
       {isEvaluator && (
         <div
@@ -642,7 +649,9 @@ export function EvaluationsClient({
                 <span data-testid="report-quota">
                   {reportQuota.unlimited || isUnlimited(reportQuota.limit)
                     ? "Unlimited Trust BizReports"
-                    : `${quotaRemaining ?? reportQuota.remaining} of ${reportQuota.limit} included Trust BizReports left this month`}
+                    : trial
+                      ? `${quotaRemaining ?? reportQuota.remaining} of ${reportQuota.limit} included Trust BizReport${reportQuota.limit === 1 ? "" : "s"} left in your trial, then 3 credits each`
+                      : `${quotaRemaining ?? reportQuota.remaining} of ${reportQuota.limit} included Trust BizReports left this month`}
                 </span>
               </>
             ) : reportQuota ? (
@@ -908,6 +917,7 @@ export function EvaluationsClient({
           selected={selectedRows}
           quotaRemaining={reportQuota && !reportQuota.unlimited ? (quotaRemaining ?? reportQuota.remaining) : null}
           quotaLimit={reportQuota && !reportQuota.unlimited ? reportQuota.limit : null}
+          trialActive={Boolean(trial)}
           onClose={() => setShowBatch(false)}
           onQueued={handleBatchQueued}
         />
