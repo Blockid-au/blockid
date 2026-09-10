@@ -49,6 +49,16 @@ const FEATURE_INFO: Record<string, { label: string; description: string; costLab
     description: "Custom AI report with your chosen sections.",
     costLabel: "Varies",
   },
+  trust_report: {
+    label: "Trust BizReport",
+    description: "Trust BizReport — 8 dimensions, 13 criteria, AUD valuation range, ≈2,500 words",
+    costLabel: "A$3.00",
+  },
+  trust_report_rescore: {
+    label: "Re-score",
+    description: "Re-score an existing startup",
+    costLabel: "A$1.00",
+  },
 };
 
 function getFeatureInfo(feature: string) {

@@ -6,6 +6,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Pins: the table (name / stage+SVI / consent chip / added date / actions),
 // the "x of N used" plan banner, the empty-state copy, the founder-claim
 // branch for a non-evaluator arriving via ?claim=, and the login redirect.
+// T0271: the "Run Trust BizReport" button per row, "Re-score" only when a
+// report exists, "Last report: <date> · SVI n" + tbr/PDF links, the included
+// reports counter in the banner, and the confirm dialog's cost copy.
 
 vi.mock("@/components/workspace/workspace-layout", () => ({
   WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
@@ -32,6 +35,13 @@ vi.mock("@/lib/evaluations", () => ({
   isEvaluatorUser: (u: unknown) => isEvaluatorUserMock(u),
   listEvaluations: (id: string) => listEvaluationsMock(id),
   getEvaluationQuota: (u: unknown) => getEvaluationQuotaMock(u),
+}));
+
+const listLastReportsMock = vi.fn();
+const getReportQuotaMock = vi.fn();
+vi.mock("@/lib/evaluations/report-quota", () => ({
+  listLastEvaluationReports: (id: string) => listLastReportsMock(id),
+  getReportQuota: (u: unknown) => getReportQuotaMock(u),
 }));
 
 const USER = {
@@ -78,6 +88,15 @@ beforeEach(() => {
   isEvaluatorUserMock.mockResolvedValue(true);
   listEvaluationsMock.mockResolvedValue(ROWS);
   getEvaluationQuotaMock.mockResolvedValue({ used: 2, limit: 25 });
+  listLastReportsMock.mockReset();
+  getReportQuotaMock.mockReset();
+  listLastReportsMock.mockResolvedValue({
+    "e-1": {
+      evaluationId: "e-1", kind: "full", createdAt: "2026-09-09T00:00:00Z", sviTotal: 71,
+      shareToken: "tok-abc", reportUrl: "/tbr/tok-abc", pdfUrl: "/api/svi/report/pdf?token=tok-abc",
+    },
+  });
+  getReportQuotaMock.mockResolvedValue({ limit: 10, used: 3, remaining: 7, unlimited: false });
 });
 
 describe("/workspace/evaluations", () => {
@@ -128,10 +147,49 @@ describe("/workspace/evaluations", () => {
     expect(out).toContain("<strong>0 of 25</strong>");
   });
 
+  it("T0271: Run Trust BizReport on every row, Re-score only where a report exists, last-report line + links", async () => {
+    const out = await html();
+    expect(out).toContain("Run Trust BizReport for Acme Robotics");
+    expect(out).toContain("Run Trust BizReport for Beta Health");
+    expect(out).toContain("Re-score Acme Robotics");
+    expect(out).not.toContain("Re-score Beta Health");
+    expect((out.match(/data-testid="last-report"/g) ?? []).length).toBe(1);
+    expect(out).toMatch(/Last report: 9 Sept? 2026 · SVI 71/);
+    expect(out).toContain('href="/tbr/tok-abc"');
+    expect(out).toContain('href="/api/svi/report/pdf?token=tok-abc"');
+    expect(listLastReportsMock).toHaveBeenCalledWith("u-1");
+    expect(getReportQuotaMock).toHaveBeenCalledWith(USER);
+  });
+
+  it("T0271: banner shows the included reports left this month (or pay-as-you-go when the plan has none)", async () => {
+    let out = await html();
+    expect(out).toContain("7 of 10 included Trust BizReports left this month");
+
+    getReportQuotaMock.mockResolvedValue({ limit: 0, used: 0, remaining: 0, unlimited: false });
+    out = await html();
+    expect(out).toContain("Trust BizReport A$3 · re-score A$1");
+
+    getReportQuotaMock.mockResolvedValue({ limit: Number.MAX_SAFE_INTEGER, used: 40, remaining: Number.MAX_SAFE_INTEGER, unlimited: true });
+    out = await html();
+    expect(out).toContain("Unlimited Trust BizReports");
+  });
+
+  it("T0271: the confirm dialog states the cost before anything runs", async () => {
+    const { describeCost } = await import("./report-dialog");
+    const quota = { via: "quota" as const, credits: 0, list_credits: 3, balance: 0, remaining_quota: 6, quota: { limit: 10, used: 3, remaining: 7, unlimited: false } };
+    expect(describeCost("full", quota)).toBe("Uses 1 of your 10 included reports this month (6 left after this). No credits will be charged.");
+    const credits = { ...quota, via: "credits" as const, credits: 3, balance: 5, remaining_quota: 0, quota: { limit: 10, used: 10, remaining: 0, unlimited: false } };
+    expect(describeCost("full", credits)).toContain("charged to credits: 3 credits (A$3.00). Balance 5.00 → 2.00 after.");
+    expect(describeCost("rescore", { ...credits, list_credits: 1, credits: 1 })).toContain("Re-scores are always pay-as-you-go: 1 credit (A$1.00)");
+    const none = { ...credits, via: "none" as const, balance: 1 };
+    expect(describeCost("full", none)).toContain("your balance is 1.00");
+  });
+
   it("does not load data for a non-evaluator and shows the claiming state when ?claim= is present", async () => {
     isEvaluatorUserMock.mockResolvedValue(false);
     const out = await html({ claim: "tok" });
     expect(listEvaluationsMock).not.toHaveBeenCalled();
+    expect(listLastReportsMock).not.toHaveBeenCalled();
     expect(out).toContain("Claiming your startup");
     expect(out).not.toContain("data-testid=\"plan-limit-banner\"");
     expect(out).not.toContain("Add a startup");

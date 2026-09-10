@@ -15,6 +15,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getEvaluationQuota, isEvaluatorUser, listEvaluations } from "@/lib/evaluations";
+import { getReportQuota, listLastEvaluationReports } from "@/lib/evaluations/report-quota";
 import { EvaluationsClient } from "./evaluations-client";
 
 export const metadata: Metadata = {
@@ -42,9 +43,14 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
     isEvaluatorUser(user),
   ]);
 
-  const [evaluations, quota] = isEvaluator
-    ? await Promise.all([listEvaluations(user.id), getEvaluationQuota(user)])
-    : [[], { used: 0, limit: 0 }];
+  const [evaluations, quota, lastReports, reportQuota] = isEvaluator
+    ? await Promise.all([
+        listEvaluations(user.id),
+        getEvaluationQuota(user),
+        listLastEvaluationReports(user.id),
+        getReportQuota(user),
+      ])
+    : [[], { used: 0, limit: 0 }, {}, null];
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -55,6 +61,8 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
         plan={user.plan ?? "free"}
         isEvaluator={isEvaluator}
         claimToken={claimToken}
+        lastReports={lastReports}
+        reportQuota={reportQuota}
       />
     </WorkspaceLayout>
   );
