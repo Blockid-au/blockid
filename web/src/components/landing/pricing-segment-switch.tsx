@@ -34,39 +34,14 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
 import type { Segment } from "@/lib/plans-v2";
+import {
+  TAB_TO_SEGMENT,
+  resolvePricingTab,
+  type PricingTab,
+} from "@/components/landing/pricing-tab";
 
-export type PricingTab = "founder" | "evaluator";
-
-/** Map the two public tabs onto the plans-v2 catalogue segments. */
-export const TAB_TO_SEGMENT: Record<PricingTab, Segment> = {
-  founder: "founder",
-  evaluator: "investor",
-};
-
-/**
- * Resolve a `?segment=` / `?tab=` / legacy `?tier=` query value to a tab.
- * Anything evaluator-shaped (investor, advisor, accelerator, evaluator)
- * lands on Evaluator; everything else — including nothing — is Founder.
- */
-export function resolvePricingTab(
-  raw: string | string[] | null | undefined,
-): PricingTab {
-  const v = (Array.isArray(raw) ? raw[0] : raw)?.toLowerCase().trim();
-  switch (v) {
-    case "evaluator":
-    case "evaluators":
-    case "investor":
-    case "investors":
-    case "advisor":
-    case "advisors":
-    case "accelerator":
-    case "accelerators":
-    case "program":
-      return "evaluator";
-    default:
-      return "founder";
-  }
-}
+export { TAB_TO_SEGMENT, resolvePricingTab };
+export type { PricingTab };
 
 export interface PricingSegmentSwitchProps {
   /** Tab shown on first paint (server reads `?segment=` and passes it). */

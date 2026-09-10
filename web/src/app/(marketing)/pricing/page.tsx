@@ -3,11 +3,8 @@ import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { Building2, Check } from "lucide-react";
 import Link from "next/link";
 import { FAQV2 } from "@/components/landing/faq-v2";
-import {
-  PricingSegmentSwitch,
-  resolvePricingTab,
-  type PricingTab,
-} from "@/components/landing/pricing-segment-switch";
+import { PricingSegmentSwitch } from "@/components/landing/pricing-segment-switch";
+import { resolvePricingTab, type PricingTab } from "@/components/landing/pricing-tab";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";

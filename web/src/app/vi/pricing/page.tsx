@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { Building2, Check } from "lucide-react";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { FAQV2 } from "@/components/landing/faq-v2";
-import {
-  PricingSegmentSwitch,
-  resolvePricingTab,
-} from "@/components/landing/pricing-segment-switch";
+import { PricingSegmentSwitch } from "@/components/landing/pricing-segment-switch";
+import { resolvePricingTab } from "@/components/landing/pricing-tab";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
