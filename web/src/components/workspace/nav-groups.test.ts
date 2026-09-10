@@ -374,6 +374,23 @@ describe("NAV_GROUPS — group-specific pins", () => {
     expect(pkg.journeyGroup).toBe("onboarding");
   });
 
+  it("puts the Grant & Program Finder leaf first in Validate → Discover, free tier, phase 0 (G11 T0244)", () => {
+    const validate = NAV_GROUPS.find((g) => g.id === "validate")!;
+    const discover = validate.subgroups!.find((sg) => sg.id === "validate.discover")!;
+    const leaf = discover.items[0];
+    expect(leaf.href).toBe("/workspace/funding");
+    expect(leaf.label).toBe("Grant & Program Finder");
+    expect(leaf.minPlan).toBe("free");
+    expect(leaf.minTier).toBe("free");
+    expect(leaf.growthPhase).toBe(0);
+    expect(leaf.persona).toBe("founder");
+    expect(leaf.journeyGroup).toBe("onboarding");
+    expect(typeof leaf.icon).toBe("object");
+    // Exactly one row across the whole catalogue points at the Money Finder.
+    const hits = NAV_GROUPS.flatMap((g) => Array.from(walkLeaves(g))).filter((l) => l.href === "/workspace/funding");
+    expect(hits).toHaveLength(1);
+  });
+
   // Changed 2026-09-09 with the A$59 Equity add-on going on sale. This used to
   // assert the opposite. `addOnKey` makes a locked row link to the add-on
   // purchase drawer, and the add-on does not grant `cap_table.write` — the cap

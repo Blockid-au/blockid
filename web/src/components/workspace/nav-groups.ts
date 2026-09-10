@@ -265,6 +265,9 @@ const VALIDATE_SUBGROUPS: NavSubgroup[] = [
     id: "validate.discover",
     label: "Discover",
     items: [
+      // Money Finder (G11 T0244, plan §4f / 9-pre G11-1): free tier + phase 0
+      // so idea-stage founders see it; the Fundraise group would render dimmed.
+      { href: "/workspace/funding", label: "Grant & Program Finder", icon: Coins, minPlan: "free", minTier: "free", growthPhase: 0, persona: "founder", journeyGroup: "onboarding" },
       { href: "/dashboard/market-size", label: "Market Size", icon: PieChart, minPlan: "starter", minTier: "starter", growthPhase: 1 },
       { href: "/workspace/knowledge-base", label: "Knowledge Base", icon: BookOpen, minPlan: "starter", minTier: "starter", growthPhase: 1 },
     ],

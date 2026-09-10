@@ -2,7 +2,7 @@
 //
 // Founder-triggered accelerator-application drafter. Mirrors the
 // `[slug]/route.ts` deliverable pipeline (auth → rate-limit → credits →
-// generate → upload → dataroom row → spend) but drafts N text answers via
+// generate → upload + dataroom row via saveDeliverable() → spend) but drafts N text answers via
 // `draftAcceleratorApplication()` and renders them into a single PDF.
 //
 // Body: `{ project_id, accelerator_slug }`.
@@ -20,10 +20,10 @@ import {
   getAcceleratorBySlug,
 } from "@/lib/agents/accelerator-drafter";
 import { renderAcceleratorApplyPdf } from "@/lib/pdf/accelerator-apply-pdf";
+import { saveDeliverable } from "@/lib/dataroom/save-deliverable";
 
 export const dynamic = "force-dynamic";
 
-const BUCKET = "dataroom";
 const RATE_LIMIT_PER_HOUR = 20;
 const FEATURE_KEY = "accelerator_apply";
 
@@ -167,77 +167,23 @@ export async function POST(request: Request) {
     );
   }
 
-  // 9. Upload to storage
+  // 9–10. Upload to storage + dataroom_files upsert (lib/dataroom/save-deliverable)
   const templateSlug = `package_pitch_accelerator_apply_${acceleratorSlug}`;
-  const storagePath = `startup-${projectId}/package/${templateSlug}-v1.pdf`;
-  const uploadRes = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, pdfBuffer, {
-      contentType: "application/pdf",
-      upsert: true,
-    });
-  if (uploadRes.error) {
-    console.error("[accelerator-apply] upload failed", uploadRes.error);
-    return NextResponse.json(
-      { ok: false, error: "storage_upload_failed" },
-      { status: 502 },
-    );
+  const saved = await saveDeliverable({
+    userId: user.id,
+    email: user.email ?? "",
+    projectId,
+    buffer: pdfBuffer,
+    mime: "application/pdf",
+    template_slug: templateSlug,
+    template_version: "v1",
+    svi_dimension: "accelerator",
+    filename: `${templateSlug}.pdf`,
+  });
+  if (!saved.ok) {
+    return NextResponse.json({ ok: false, error: saved.error }, { status: saved.status });
   }
-
-  // 10. dataroom_files upsert
-  const { data: existingRow } = await supabase
-    .from("dataroom_files")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("template_slug", templateSlug)
-    .maybeSingle();
-
-  let dataroomFileId: string | null = null;
-  if (existingRow?.id) {
-    const { data, error } = await supabase
-      .from("dataroom_files")
-      .update({
-        storage_path: storagePath,
-        mime_type: "application/pdf",
-        status: "present",
-        template_version: "v1",
-      })
-      .eq("id", existingRow.id)
-      .select("id")
-      .maybeSingle();
-    if (error) {
-      console.error("[accelerator-apply] update dataroom_files failed", error);
-      return NextResponse.json(
-        { ok: false, error: "dataroom_row_update_failed" },
-        { status: 500 },
-      );
-    }
-    dataroomFileId = data?.id ?? null;
-  } else {
-    const { data, error } = await supabase
-      .from("dataroom_files")
-      .insert({
-        user_id: user.id,
-        email: user.email ?? "",
-        svi_dimension: "accelerator",
-        file_name: `${templateSlug}.pdf`,
-        status: "present",
-        mime_type: "application/pdf",
-        storage_path: storagePath,
-        template_slug: templateSlug,
-        template_version: "v1",
-      })
-      .select("id")
-      .maybeSingle();
-    if (error) {
-      console.error("[accelerator-apply] insert dataroom_files failed", error);
-      return NextResponse.json(
-        { ok: false, error: "dataroom_row_insert_failed" },
-        { status: 500 },
-      );
-    }
-    dataroomFileId = data?.id ?? null;
-  }
+  const { dataroomFileId, storagePath, downloadUrl } = saved;
 
   // 11. Spend credits
   const spend = await spendCredits(user.id, FEATURE_KEY, {
@@ -257,15 +203,6 @@ export async function POST(request: Request) {
       },
       { status: 402 },
     );
-  }
-
-  // 12. Signed download URL
-  let downloadUrl: string | null = null;
-  try {
-    const signed = await supabase.storage.from(BUCKET).createSignedUrl(storagePath, 3600);
-    downloadUrl = signed.data?.signedUrl ?? null;
-  } catch {
-    downloadUrl = null;
   }
 
   return NextResponse.json({
