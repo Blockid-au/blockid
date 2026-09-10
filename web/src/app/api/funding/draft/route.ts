@@ -3,7 +3,11 @@
  * "Application drafts"). Same rails as POST /api/funding/report.
  *
  * POST `{ project_id, grant_id, confirm? }`
- *   auth → rate-limit → gate → (preview | generate) → insert → spend after.
+ *   auth → rate-limit → gate → (preview | generate) → spend → insert.
+ *   The spend runs BEFORE the insert (review 2026-09-10 #3): a spend that
+ *   loses the race (`ok:false`) returns 402 and stores nothing, so the editor
+ *   can never open a draft that was not paid for. An insert failure after a
+ *   successful spend refunds the credits (`grantCredits`).
  *   Gate:
  *     • `can(user, "grant_finder")` is required (Starter+, Startup Package,
  *       evaluator rungs) → 403 `plan_required` otherwise (free founders see
@@ -30,7 +34,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import { canAfford, grantCredits, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { can } from "@/lib/entitlements";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectById } from "@/lib/projects";
@@ -131,6 +135,22 @@ export async function POST(request: Request) {
   }
 
   const charge = result.ai_ok ? cost : 0; // a failed draft is never charged
+
+  // Spend FIRST (atomic RPC in credits.ts), insert only once the credits are
+  // ours — a lost race leaves nothing behind for the editor to load (#3).
+  let creditsCharged = 0;
+  if (charge > 0) {
+    const spent = await spendCredits(user.id, FEATURE_KEY, { project_id: project?.id ?? null, grant_id: grant.id });
+    if (!spent.ok) {
+      return NextResponse.json(
+        { ok: false, error: "credit_spend_failed", creditsRequired: charge, credits_needed: charge, balance: spent.balance },
+        { status: 402 },
+      );
+    }
+    creditsCharged = charge;
+    balance = spent.balance;
+  }
+
   const draft = await insertGrantDraft(
     {
       user_id: user.id,
@@ -144,16 +164,14 @@ export async function POST(request: Request) {
     },
     { db: supabase },
   );
-  if (!draft) return NextResponse.json({ ok: false, error: "draft_insert_failed" }, { status: 500 });
-
-  let creditsCharged = 0;
-  if (charge > 0) {
-    const spent = await spendCredits(user.id, FEATURE_KEY, { project_id: project?.id ?? null, grant_id: grant.id, draft_id: draft.id });
-    if (!spent.ok) {
-      return NextResponse.json({ ok: false, error: "credit_spend_failed", draftId: draft.id, balance: spent.balance }, { status: 402 });
+  if (!draft) {
+    if (creditsCharged > 0) {
+      // Compensate: the founder paid for a row that does not exist.
+      const refund = await grantCredits(user.id, creditsCharged, "refund", { feature: FEATURE_KEY, grant_id: grant.id, reason: "draft_insert_failed" });
+      if (refund.ok) balance = refund.balance;
+      else console.error("[funding:draft] refund after insert failure did not land", { user: user.id, grant: grant.id });
     }
-    creditsCharged = charge;
-    balance = spent.balance;
+    return NextResponse.json({ ok: false, error: "draft_insert_failed" }, { status: 500 });
   }
 
   return NextResponse.json({

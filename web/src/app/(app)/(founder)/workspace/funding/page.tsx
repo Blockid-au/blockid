@@ -163,7 +163,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
             projectId={project?.id ?? null}
             initial={
               existing
-                ? { id: existing.id, answers: existing.answers, status: existing.status, updated_at: existing.updated_at, ai_ok: existing.meta.ai_ok !== false }
+                ? { id: existing.id, answers: existing.answers, status: existing.status === "final" ? "final" : "draft", updated_at: existing.updated_at, ai_ok: existing.meta.ai_ok !== false }
                 : null
             }
             cost={unlimited ? 0 : FEATURE_COSTS.grant_application_draft ?? 2}

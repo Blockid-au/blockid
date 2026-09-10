@@ -38,9 +38,12 @@
 
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
+// `supabaseRef.current` is null for the pure-export suites (module loads with
+// no DB) and swapped for a fake in the `spendCredits` suite below.
+const supabaseRef = vi.hoisted(() => ({ current: null as unknown }));
 vi.mock("@/lib/supabase", () => ({
-  getSupabaseAdmin: () => null,
-  isSupabaseConfigured: () => false,
+  getSupabaseAdmin: () => supabaseRef.current,
+  isSupabaseConfigured: () => supabaseRef.current !== null,
 }));
 
 vi.mock("@/lib/email", () => ({
@@ -58,6 +61,7 @@ import {
   calculateReportCost,
   calculateSectionCost,
   formatCredits,
+  spendCredits,
   type SectionDepth,
 } from "./credits";
 
@@ -520,5 +524,101 @@ describe("formatCredits", () => {
     expect(rendered).toMatch(/^0\.5[01]$/);
     // 1.234 → "1.23"
     expect(formatCredits(1.234)).toBe("1.23");
+  });
+});
+
+// ── spendCredits — atomic RPC + legacy fallback (review 2026-09-10 #18) ───
+//
+// The debit must be ONE statement (`spend_credits_atomic`, migration 0324):
+// balance = balance - cost WHERE balance >= cost, audit rows in the same
+// transaction. The legacy read-then-guard path stays only as the fallback for
+// a not-yet-applied migration (42883 / PGRST202) — and must warn when used.
+
+describe("spendCredits — spend_credits_atomic RPC", () => {
+  interface Call { table?: string; op: string; args: unknown[] }
+  const calls: Call[] = [];
+  const rpc = vi.fn();
+  let legacyBalance = 6;
+
+  function fakeSupabase() {
+    return {
+      rpc: (...args: unknown[]) => {
+        calls.push({ op: "rpc", args });
+        return rpc(...args);
+      },
+      from(table: string) {
+        const c: Record<string, unknown> = {};
+        let op = "select";
+        const rec = (name: string) => (...args: unknown[]) => {
+          if (["insert", "update", "select"].includes(name) && op === "select") op = name;
+          if (name === "insert" || name === "update") calls.push({ table, op: name, args });
+          return c;
+        };
+        for (const m of ["select", "insert", "update", "eq", "gte", "maybeSingle", "single"]) c[m] = rec(m);
+        c.then = (resolve: (v: unknown) => unknown) => {
+          if (table === "credit_balances" && op === "select") return resolve({ data: { balance: legacyBalance, lifetime_spent: 0 }, error: null });
+          if (table === "credit_balances" && op === "update") return resolve({ data: [{ balance: legacyBalance - 3 }], error: null });
+          return resolve({ data: null, error: null });
+        };
+        return c;
+      },
+    };
+  }
+
+  beforeEach(() => {
+    calls.length = 0;
+    rpc.mockReset();
+    legacyBalance = 6;
+    supabaseRef.current = fakeSupabase();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    supabaseRef.current = null;
+    vi.restoreAllMocks();
+  });
+
+  it("debits through the RPC with the feature cost + metadata and returns its balance — no JS read/guard", async () => {
+    rpc.mockResolvedValueOnce({ data: [{ ok: true, balance: "3.00" }], error: null });
+    const res = await spendCredits("user-1", "grant_match", { funding_report_id: "fr_1" });
+    expect(res).toEqual({ ok: true, balance: 3 });
+    expect(rpc).toHaveBeenCalledWith("spend_credits_atomic", {
+      p_user_id: "user-1",
+      p_cost: FEATURE_COSTS.grant_match,
+      p_feature: "grant_match",
+      p_meta: { funding_report_id: "fr_1" },
+    });
+    // The legacy path (select → update credit_balances → insert audit rows) must not run.
+    expect(calls.filter((c) => c.table === "credit_balances")).toHaveLength(0);
+    expect(calls.filter((c) => c.table === "credit_transactions")).toHaveLength(0);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("RPC ok=false (balance < cost under the row lock) → { ok:false, balance } and nothing else is written", async () => {
+    rpc.mockResolvedValueOnce({ data: [{ ok: false, balance: 1.5 }], error: null });
+    const res = await spendCredits("user-1", "grant_match");
+    expect(res).toEqual({ ok: false, balance: 1.5 });
+    expect(calls.filter((c) => c.op === "update" || c.op === "insert")).toHaveLength(0);
+  });
+
+  it.each(["42883", "PGRST202"])("RPC missing (%s) → warns once and falls back to the read-then-guard spend", async (code) => {
+    rpc.mockResolvedValue({ data: null, error: { code, message: "function spend_credits_atomic does not exist" } });
+    const res = await spendCredits("user-1", "grant_match");
+    expect(res).toEqual({ ok: true, balance: 3 });
+    const update = calls.find((c) => c.table === "credit_balances" && c.op === "update");
+    expect(update).toBeTruthy();
+    expect((update!.args[0] as { balance: number }).balance).toBe(3);
+    expect(calls.find((c) => c.table === "credit_transactions" && c.op === "insert")).toBeTruthy();
+    expect(calls.find((c) => c.table === "usage_logs" && c.op === "insert")).toBeTruthy();
+    // The warning is rate-limited to once per process, so only assert it was
+    // called on the first fallback of the run.
+    if (code === "42883") expect(console.warn).toHaveBeenCalledWith(expect.stringMatching(/spend_credits_atomic missing.*0324/));
+  });
+
+  it("any other RPC error is a hard failure (ok:false), never a silent fallback", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "XX000", message: "boom" } });
+    const res = await spendCredits("user-1", "grant_match");
+    expect(res.ok).toBe(false);
+    expect(calls.find((c) => c.table === "credit_balances" && c.op === "update")).toBeUndefined();
   });
 });

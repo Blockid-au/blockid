@@ -13,14 +13,19 @@ vi.mock("./workspace", () => ({
   stageFromNumeric: (n: number | null) => (n === 2 ? "mvp" : null),
 }));
 
-import { gatherDraftContext, rowFromDb } from "./application-drafts";
+import { gatherDraftContext, getGrantDraft, latestGrantDraft, rowFromDb } from "./application-drafts";
 
 const PROJECT = { id: "p1", userId: "u1", name: "Acme", slug: "acme", description: "Soil sensors", industry: "AgTech", stage: 2, isDefault: true, archivedAt: null, createdAt: "", updatedAt: "", growth_phase_current: null };
 
-function fakeDb(tables: Record<string, unknown>) {
+function fakeDb(tables: Record<string, unknown>, ops: Array<{ table: string; op: string; args: unknown[] }> = []) {
   const chain = (table: string) => {
     const c: Record<string, unknown> = {};
-    for (const op of ["select", "eq", "neq", "order", "limit"]) c[op] = () => c;
+    for (const op of ["select", "eq", "neq", "is", "order", "limit"]) {
+      c[op] = (...args: unknown[]) => {
+        ops.push({ table, op, args });
+        return c;
+      };
+    }
     c.maybeSingle = async () => ({ data: (tables[table] as { single?: unknown } | undefined)?.single ?? null, error: null });
     c.then = (r: (v: unknown) => unknown) => r({ data: (tables[table] as { rows?: unknown[] } | undefined)?.rows ?? [], error: null });
     return c;
@@ -40,6 +45,29 @@ describe("rowFromDb", () => {
       credits_cost: "2", status: "weird", meta: null, created_at: "2026-09-10T00:00:00Z", updated_at: "2026-09-10T00:00:00Z",
     });
     expect(row).toMatchObject({ id: "d1", project_id: null, answers: { a: "yes", b: "", c: "" }, prompts: [{ id: "a", question: "Q" }], credits_cost: 2, status: "draft", meta: {} });
+  });
+});
+
+// Review 2026-09-10 #3 belt-and-braces: a row whose credit spend did not
+// land (status = spend_failed, migration 0324) must never be what the editor
+// opens — both readers filter it out server-side.
+describe("spend_failed drafts are invisible", () => {
+  it("rowFromDb keeps the spend_failed status instead of clamping it to draft", () => {
+    expect(rowFromDb({ id: "d1", user_id: "u1", grant_id: "g1", status: "spend_failed" }).status).toBe("spend_failed");
+  });
+
+  it("getGrantDraft and latestGrantDraft both add neq(status, spend_failed)", async () => {
+    const ops: Array<{ table: string; op: string; args: unknown[] }> = [];
+    const db = fakeDb({}, ops);
+    await getGrantDraft("d1", "u1", { db });
+    const getOps = ops.splice(0);
+    expect(getOps.map((o) => o.table)).toContain("grant_application_drafts");
+    expect(getOps.some((o) => o.op === "neq" && o.args[0] === "status" && o.args[1] === "spend_failed")).toBe(true);
+
+    await latestGrantDraft("u1", "p1", "g1", { db });
+    const latestOps = ops.splice(0);
+    expect(latestOps.some((o) => o.op === "neq" && o.args[0] === "status" && o.args[1] === "spend_failed")).toBe(true);
+    expect(latestOps.some((o) => o.op === "eq" && o.args[0] === "project_id" && o.args[1] === "p1")).toBe(true);
   });
 });
 

@@ -649,7 +649,96 @@ export async function spendCredits(
     if (sandbox) return sandbox;
   }
 
-  // Read current balance, then update with a WHERE guard to reduce race window.
+  // ── Atomic debit (review 2026-09-10 #18) ─────────────────────────────
+  // `spend_credits_atomic` (migration 0324) does the whole debit in ONE
+  // statement — `balance = balance - cost WHERE balance >= cost` — and writes
+  // the credit_transactions + usage_logs audit rows in the same transaction.
+  // Two concurrent spends can no longer both read the same stale balance.
+  // When the function is not deployed yet (42883 / PGRST202) we warn once and
+  // fall back to the legacy read-then-guard path below so an unapplied
+  // migration never breaks production.
+  const atomic = await spendCreditsAtomic(supabase, { userId, feature, cost, metadata: metadata ?? {} });
+  let newBalance: number;
+  if (atomic) {
+    if (!atomic.ok) return atomic;
+    newBalance = atomic.balance;
+  } else {
+    const legacy = await spendCreditsLegacy(supabase, { userId, feature, cost, metadata: metadata ?? {} });
+    if (!legacy.ok) return legacy;
+    newBalance = legacy.balance;
+  }
+
+  // Low credit alert (fire-and-forget)
+  if (newBalance < 1.0 && newBalance >= 0) {
+    void sendCreditLowAlertIfNeeded(supabase, userId, newBalance);
+  }
+
+  return { ok: true, balance: newBalance };
+}
+
+// ---------------------------------------------------------------------------
+// spendCreditsAtomic / spendCreditsLegacy — internal halves of spendCredits.
+// ---------------------------------------------------------------------------
+
+/** Postgres "function does not exist" / PostgREST "could not find function". */
+const RPC_MISSING_CODES = new Set(["42883", "PGRST202"]);
+let warnedRpcMissing = false;
+
+/**
+ * One-statement debit through `spend_credits_atomic` (migration 0324).
+ * Returns null ONLY when the RPC is unavailable (not applied yet) so the
+ * caller can fall back; every other outcome — including a DB error — is a
+ * definitive `{ ok, balance }`.
+ */
+async function spendCreditsAtomic(
+  supabase: SupabaseAdmin,
+  args: { userId: string; feature: string; cost: number; metadata: Record<string, unknown> },
+): Promise<{ ok: boolean; balance: number } | null> {
+  let res: { data: unknown; error: { code?: string; message?: string } | null };
+  try {
+    res = await supabase.rpc("spend_credits_atomic", {
+      p_user_id: args.userId,
+      p_cost: args.cost,
+      p_feature: args.feature,
+      p_meta: args.metadata,
+    });
+  } catch (err) {
+    console.error("[blockid:credits] spend_credits_atomic threw", err);
+    return { ok: false, balance: await getBalance(args.userId) };
+  }
+  if (res.error) {
+    if (RPC_MISSING_CODES.has(res.error.code ?? "")) {
+      if (!warnedRpcMissing) {
+        warnedRpcMissing = true;
+        console.warn(
+          "[blockid:credits] spend_credits_atomic missing — apply migration 0324; falling back to read-then-guard spend",
+        );
+      }
+      return null;
+    }
+    console.error("[blockid:credits] spend_credits_atomic failed", res.error);
+    return { ok: false, balance: await getBalance(args.userId) };
+  }
+  // PostgREST returns a `returns table` function as an array of rows.
+  const row = (Array.isArray(res.data) ? res.data[0] : res.data) as { ok?: unknown; balance?: unknown } | null | undefined;
+  if (!row || typeof row.ok !== "boolean") {
+    console.error("[blockid:credits] spend_credits_atomic returned no row", res.data);
+    return { ok: false, balance: await getBalance(args.userId) };
+  }
+  const balance = Number(row.balance);
+  return { ok: row.ok, balance: Number.isFinite(balance) ? balance : 0 };
+}
+
+/**
+ * Pre-0324 path: read, guard with `.gte("balance", cost)`, write the audit
+ * rows afterwards. Kept only as the fallback while the RPC is not deployed —
+ * it still has the concurrent-read race described in the migration header.
+ */
+async function spendCreditsLegacy(
+  supabase: SupabaseAdmin,
+  args: { userId: string; feature: string; cost: number; metadata: Record<string, unknown> },
+): Promise<{ ok: boolean; balance: number }> {
+  const { userId, feature, cost, metadata } = args;
   const { data: row } = await supabase
     .from("credit_balances")
     .select("balance, lifetime_spent")
@@ -699,7 +788,7 @@ export async function spendCredits(
       amount: -cost,
       balance_after: newBalance,
       reason: feature,
-      metadata: metadata ?? {},
+      metadata,
     });
   if (txErr) {
     console.error("[blockid:credits] transaction insert failed", txErr);
@@ -712,13 +801,8 @@ export async function spendCredits(
     user_id: userId,
     feature,
     credits_used: cost,
-    metadata: metadata ?? {},
+    metadata,
   });
-
-  // Low credit alert (fire-and-forget)
-  if (newBalance < 1.0 && newBalance >= 0) {
-    void sendCreditLowAlertIfNeeded(supabase, userId, newBalance);
-  }
 
   return { ok: true, balance: newBalance };
 }
