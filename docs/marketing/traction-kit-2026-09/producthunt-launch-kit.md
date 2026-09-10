@@ -116,7 +116,7 @@ Reply in the founder's voice, under 120 words each, with a link where one exists
 **Site readiness (day before)**
 - [ ] `/status` green; `uptime-guardian.jsonl` clean for 24 h; no deploy scheduled between 12 Oct 12:00 AEDT and 15 Oct.
 - [ ] Free run on `/` works logged out; `/signup?plan=investor_angel` starts a card-required trial in Stripe test → live check done.
-- [ ] Entity sweep done: no "Auschain / ABN" on `/solutions/*`, `/contact`, `/legal/*` (README §7).
+- [ ] Entity check: marketing surfaces say PPL Food PTY LTD; legal/billing surfaces say Auschain PTY LTD — both are correct by design (README §7). No sweep needed.
 - [ ] GA4 receiving `evaluator_signup` and `hero_variant_shown` with `utm_campaign=ph`.
 
 **Distribution on the day (no vote-begging — PH penalises it; ask people to *look*, not to upvote)**

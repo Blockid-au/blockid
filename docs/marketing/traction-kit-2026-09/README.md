@@ -110,6 +110,6 @@ Canonical links:
 
 ## 7. Known gaps to fix before sending (product side, not in this kit's scope)
 
-- `/solutions/*` disclaimers, the trust-badge strip (`evaluator-page-props.ts` TRUST_BADGES) and `/contact` still print **Auschain PTY LTD / ABN 79 659 615 111**; the founder decision (2026-09-10) is PPL Food PTY LTD with no ABN in copy. This kit uses PPL Food PTY LTD throughout; the pages need the S0 entity sweep before an evaluator lands on them from these links.
+- Entity split is **deliberate** (S0, 2026-09-10): marketing copy = **PPL Food PTY LTD** (no ABN); billing, legal disclaimers, tax invoices and JSON-LD = **Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111)**. So the `/solutions/*` general-advice disclaimers, the trust-badge strip and `/contact` legitimately print Auschain — do not "fix" them. Outward copy in this kit uses PPL Food PTY LTD; if an evaluator asks, the answer is "PPL Food is the operating brand; Auschain PTY LTD is the contracting and billing entity."
 - `/contact` does not read `?intent=` or `?plan=`, so the pilot CTA on `/solutions/accelerator` and every T2 link go to `/signup?plan=investor_vc_small&trial=1&from=pilot` instead.
 - `/workspace/evaluations` is behind login — the ProductHunt gallery image for it needs a seeded evaluator session (see the launch kit §5).
