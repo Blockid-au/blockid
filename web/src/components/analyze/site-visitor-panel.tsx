@@ -89,6 +89,7 @@ export function SiteVisitorPanel({
   React.useEffect(() => {
     if (!url) return;
     doneCalledRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the previous crawl's live state each time this effect (re)opens the EventSource; the listeners then repopulate it
     setLivePages([]);
     setLiveTech([]);
     setLiveSignals([]);

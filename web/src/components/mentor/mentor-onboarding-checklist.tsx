@@ -51,6 +51,7 @@ export function MentorOnboardingChecklist() {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
       if (raw) setDone(JSON.parse(raw) as Record<string, boolean>);
     } catch {
       // ignore malformed

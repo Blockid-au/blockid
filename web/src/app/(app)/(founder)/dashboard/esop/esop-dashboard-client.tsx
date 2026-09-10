@@ -45,6 +45,7 @@ export function EsopDashboardClient() {
     setLoading(false);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; the useCallback loader sets state after await (also used after pool creation), the rule cannot see the async boundary through the reference
   useEffect(() => { fetchData(); }, [fetchData]);
 
   async function handleCreatePool() {

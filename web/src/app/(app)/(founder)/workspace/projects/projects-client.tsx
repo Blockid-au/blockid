@@ -129,6 +129,7 @@ export function ProjectsClient({
 
   // Auto-open create modal from URL param
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- URL-driven open of the create modal; runs on mount as well as on navigation, so a render-time sync would change the first render
     if (searchParams.get("new") === "1") setShowCreate(true);
   }, [searchParams]);
 

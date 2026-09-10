@@ -139,11 +139,14 @@ export default function AdminSalesPage() {
   }
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch inside the component-scope loader (also used by the Refresh button), the rule cannot see the async boundary through the reference
     void fetchLeads();
   }, []);
 
   // Initialise local edit state whenever leads load
-  React.useEffect(() => {
+  const [prevLeads, setPrevLeads] = React.useState(leads);
+  if (leads !== prevLeads) {
+    setPrevLeads(leads);
     const statusMap: Record<string, LeadStatus> = {};
     const notesMap: Record<string, string> = {};
     for (const l of leads) {
@@ -152,7 +155,7 @@ export default function AdminSalesPage() {
     }
     setEditStatus(statusMap);
     setEditNotes(notesMap);
-  }, [leads]);
+  }
 
   async function handleSave(leadId: string) {
     setSaving(leadId);

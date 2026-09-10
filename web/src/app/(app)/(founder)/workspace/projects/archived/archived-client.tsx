@@ -66,6 +66,7 @@ export function ArchivedProjectsClient({ rows: initialRows }: Props) {
   // and all rows compute their countdown against the same clock.
   const [nowMs, setNowMs] = React.useState<number>(() => Date.now());
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only re-read of the wall clock so the countdown uses the client's time, not the server-render snapshot
     setNowMs(Date.now());
   }, []);
 

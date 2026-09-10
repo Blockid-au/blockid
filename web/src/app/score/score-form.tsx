@@ -190,6 +190,7 @@ export function ScoreForm() {
   // when the query changes so we don't clobber a user's typed edit.
   React.useEffect(() => {
     if (heroQuery.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill from the `?q=` URL param; runs on mount as well as on change, so a render-time sync would change the first render
       setInput((p) => (p.companyName ? p : { ...p, companyName: heroQuery }));
     }
   }, [heroQuery]);

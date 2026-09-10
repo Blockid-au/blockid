@@ -343,6 +343,7 @@ export function FinanceDashboardClient({ userEmail, startupName }: Props) {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch inside the useCallback loader (also used by Retry/refresh/onAdded), the rule cannot see the async boundary through the reference
   React.useEffect(() => { void load(); }, [load]);
 
   const runway = React.useMemo(() => {

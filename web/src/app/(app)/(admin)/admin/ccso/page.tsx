@@ -62,6 +62,7 @@ export default function CcsoPage() {
 
   React.useEffect(() => {
     if (tab === "nps" && responses.length === 0 && !npsLoading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag before the lazy per-tab fetch; results are set in the .then()/.finally() callbacks
       setNpsLoading(true);
       fetch("/api/nps")
         .then((r) => r.json())

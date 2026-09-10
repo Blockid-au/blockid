@@ -53,9 +53,14 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
   const [showBundles, setShowBundles] = React.useState(false);
   const [showLegend, setShowLegend] = React.useState(false);
   const [statusIdx, setStatusIdx] = React.useState(0);
+  const [prevLoading, setPrevLoading] = React.useState(loading);
+  if (loading !== prevLoading) {
+    setPrevLoading(loading);
+    if (!loading) setStatusIdx(0);
+  }
 
   React.useEffect(() => {
-    if (!loading) { setStatusIdx(0); return; }
+    if (!loading) return;
     const timer = setInterval(() => {
       setStatusIdx((i) => (i + 1) % PICKER_STATUS_MESSAGES.length);
     }, 3000);

@@ -130,6 +130,7 @@ export function DeckReaderPanel({
       }
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the slide counter each time this effect (re)starts the timer-driven walk; the timer callbacks then advance it
     setParsedCount(0);
     doneCalledRef.current = false;
     let cancelled = false;

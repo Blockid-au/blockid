@@ -105,7 +105,14 @@ function OwnershipPieChart({ segments }: { segments: PieSegment[] }) {
   const radius = 85;
   const strokeWidth = 36;
   const circumference = 2 * Math.PI * radius;
+  const arcs: { seg: PieSegment; dashLength: number; dashGap: number; offset: number }[] = [];
   let cumulativeOffset = 0;
+  for (const seg of segments) {
+    const dashLength = (seg.pct / 100) * circumference;
+    const dashGap = circumference - dashLength;
+    arcs.push({ seg, dashLength, dashGap, offset: cumulativeOffset });
+    cumulativeOffset += dashLength;
+  }
 
   return (
     <div className="flex flex-col items-center">
@@ -115,12 +122,7 @@ function OwnershipPieChart({ segments }: { segments: PieSegment[] }) {
         viewBox={`0 0 ${size} ${size}`}
         className="transform -rotate-90"
       >
-        {segments.map((seg, i) => {
-          const dashLength = (seg.pct / 100) * circumference;
-          const dashGap = circumference - dashLength;
-          const offset = cumulativeOffset;
-          cumulativeOffset += dashLength;
-
+        {arcs.map(({ seg, dashLength, dashGap, offset }, i) => {
           return (
             <circle
               key={i}
@@ -239,6 +241,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
   }, []);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch inside the useCallback loader (also used after wizard completion), the rule cannot see the async boundary through the reference
     fetchData();
   }, [fetchData]);
 
@@ -332,6 +335,7 @@ export function EquityDashboardClient({ isAdmin }: { isAdmin: boolean }) {
   }, [tokenAddress]);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on token-address change; loading flag + async RPC fetch inside the useCallback loader (also used after wizard completion), the rule cannot see the async boundary through the reference
     fetchRecentActivity();
   }, [fetchRecentActivity]);
 

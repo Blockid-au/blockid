@@ -43,6 +43,7 @@ export default function FunnelPage() {
   const [isMock, setIsMock] = React.useState(false);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag before the fetch that runs on mount and on range change; results are set in the .then()/.finally() callbacks
     setLoading(true);
     fetch(`/api/funnel?days=${range}`)
       .then((r) => r.json())

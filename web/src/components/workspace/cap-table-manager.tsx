@@ -121,14 +121,18 @@ function PieChart({
     );
   }
 
+  const visibleSlices = slices.filter((sl) => sl.value > 0);
+  const startAngles: number[] = [];
   let cumulativeAngle = 0;
-  const paths = slices
-    .filter((sl) => sl.value > 0)
-    .map((sl) => {
+  for (const sl of visibleSlices) {
+    startAngles.push(cumulativeAngle);
+    cumulativeAngle += (sl.value / total) * 360;
+  }
+  const paths = visibleSlices
+    .map((sl, idx) => {
       const fraction = sl.value / total;
-      const startAngle = cumulativeAngle;
+      const startAngle = startAngles[idx];
       const angle = fraction * 360;
-      cumulativeAngle += angle;
 
       // If this slice is the entire pie, draw a full circle
       if (fraction >= 0.9999) {
@@ -235,6 +239,7 @@ export function CapTableManager() {
   }, []);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag + async fetch; the loader is a useCallback also used after mutations, the rule cannot see the async boundary through the reference
     fetchCapTable();
   }, [fetchCapTable]);
 

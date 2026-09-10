@@ -78,6 +78,7 @@ export function TrialCountdownBanner(): React.ReactElement | null {
   const viewFired = React.useRef(false);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of sessionStorage dismiss state; a lazy initialiser would mismatch the server render
     setDismissed(readSession(DISMISS_KEY));
     let cancelled = false;
     (async () => {

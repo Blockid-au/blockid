@@ -66,7 +66,10 @@ export function GrowthProgressDashboard() {
     }
   }, []);
 
-  React.useEffect(() => { void fetchProgress(); }, [fetchProgress]);
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; the loader sets state after await, the rule cannot see the async boundary through the useCallback reference
+    void fetchProgress();
+  }, [fetchProgress]);
 
   const toggleStep = async (phaseId: string, stepId: string, completed: boolean) => {
     const key = `${phaseId}:${stepId}`;

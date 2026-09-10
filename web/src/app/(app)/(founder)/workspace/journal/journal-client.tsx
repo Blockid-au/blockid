@@ -121,6 +121,7 @@ export function JournalClient() {
   }, [page, filterType]);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount and on page/filter change; loading flag + async fetch inside the useCallback loader (also used after every mutation), the rule cannot see the async boundary through the reference
     fetchEntries();
   }, [fetchEntries]);
 

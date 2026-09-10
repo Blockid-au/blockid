@@ -118,9 +118,11 @@ function AddShareholderModal({
 }) {
   const [form, setForm] = React.useState<AddFormData>(EMPTY_FORM);
 
-  React.useEffect(() => {
+  const [prevOpen, setPrevOpen] = React.useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) setForm(EMPTY_FORM);
-  }, [open]);
+  }
 
   if (!open) return null;
 
@@ -279,12 +281,14 @@ function TransferModal({
   const [toAddress, setToAddress] = React.useState("");
   const [amount, setAmount] = React.useState("");
 
-  React.useEffect(() => {
+  const [prevOpen, setPrevOpen] = React.useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setToAddress("");
       setAmount("");
     }
-  }, [open]);
+  }
 
   if (!open || !shareholder) return null;
 
@@ -557,6 +561,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
   }, []);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch, the rule cannot see the async boundary through the useCallback reference
     fetchData();
   }, [fetchData]);
 

@@ -435,6 +435,7 @@ export function AnalyzeRoot({
     const parked = takePendingIntake() ?? takeSignupIntake();
     const sub = parked ?? submissionFromQuery({ q: initialQuery, kind: initialKind });
     if (!sub) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration claim of the client-only pending-intake store; the initial state is URL-derived so server and first client render agree
       if (initialKind === "deck") setDeckHandoffLost(true);
       setAwaitingHandoff(false);
       return;

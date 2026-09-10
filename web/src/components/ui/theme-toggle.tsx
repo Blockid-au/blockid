@@ -10,6 +10,7 @@ export function ThemeToggle() {
     const saved = localStorage.getItem("blockid_theme");
     // Only apply dark mode when explicitly chosen — never auto-detect from OS
     if (saved === "dark") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage theme; a lazy initialiser would mismatch the server render
       setDark(true);
       document.documentElement.classList.add("dark");
     }

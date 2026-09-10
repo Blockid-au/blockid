@@ -171,11 +171,15 @@ export function SVIEntrance() {
     "Generating action plan...",
   ], []);
   const [sviFallbackIdx, setSviFallbackIdx] = React.useState(0);
+  // Reset the cycling index whenever the fallback ticker is not active
+  // (adjust-state-during-render pattern; same deps as the interval effect).
+  const [prevSviFallbackDeps, setPrevSviFallbackDeps] = React.useState({ state, count: rndStatusEntries.length });
+  if (state !== prevSviFallbackDeps.state || rndStatusEntries.length !== prevSviFallbackDeps.count) {
+    setPrevSviFallbackDeps({ state, count: rndStatusEntries.length });
+    if (state !== "submitting" || rndStatusEntries.length > 0) setSviFallbackIdx(0);
+  }
   React.useEffect(() => {
-    if (state !== "submitting" || rndStatusEntries.length > 0) {
-      setSviFallbackIdx(0);
-      return;
-    }
+    if (state !== "submitting" || rndStatusEntries.length > 0) return;
     const timer = setInterval(() => {
       setSviFallbackIdx((i) => (i + 1) % SVI_FALLBACK_MESSAGES.length);
     }, 2500);
@@ -268,6 +272,7 @@ export function SVIEntrance() {
       // After payment, immediately clear paywall and mark as paid so the
       // next submit bypasses the gate entirely. The server will re-verify
       // credits on the actual API call.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot reaction to the ?analysis_paid URL param after a payment redirect; the effect also clears localStorage and rewrites the URL via router.replace, so it must stay an effect
       setShowPaywall(false);
       setHasPaidPlan(true);
       setAnalysisPaidToast(true);
@@ -550,7 +555,7 @@ export function SVIEntrance() {
                           inputPreview: text.slice(0, 100),
                           email,
                         };
-                        const updated = [entry, ...saved.filter((a: any) => a.slug !== data.slug)].slice(0, 20);
+                        const updated = [entry, ...saved.filter((a: { slug?: string }) => a.slug !== data.slug)].slice(0, 20);
                         localStorage.setItem("blockid_analyses", JSON.stringify(updated));
                       } catch {}
                     }
@@ -619,7 +624,7 @@ export function SVIEntrance() {
               inputPreview: text.slice(0, 100),
               email,
             };
-            const updated = [entry, ...saved.filter((a: any) => a.slug !== data.slug)].slice(0, 20);
+            const updated = [entry, ...saved.filter((a: { slug?: string }) => a.slug !== data.slug)].slice(0, 20);
             localStorage.setItem("blockid_analyses", JSON.stringify(updated));
           } catch {}
         }
@@ -683,7 +688,7 @@ export function SVIEntrance() {
               inputPreview: text.slice(0, 100),
               email,
             };
-            const updated = [entry, ...saved.filter((a: any) => a.slug !== data.slug)].slice(0, 20);
+            const updated = [entry, ...saved.filter((a: { slug?: string }) => a.slug !== data.slug)].slice(0, 20);
             localStorage.setItem("blockid_analyses", JSON.stringify(updated));
           } catch {}
         }
@@ -1250,6 +1255,7 @@ export function SVIEntrance() {
                 <p className="text-xs text-brand-600">
                   Step {rndStatusEntries.length}: {rndStatusEntries[rndStatusEntries.length - 1].message.slice(0, 50)}{rndStatusEntries[rndStatusEntries.length - 1].message.length > 50 ? "…" : ""}
                   <span className="ml-1.5 text-brand-400 tabular-nums">
+                    {/* eslint-disable-next-line react-hooks/purity -- wall-clock read for the live elapsed-seconds label; the 1s tick state above re-renders with a fresher timestamp on purpose */}
                     {Math.round((Date.now() - rndStatusEntries[0].ts) / 1000)}s
                   </span>
                 </p>

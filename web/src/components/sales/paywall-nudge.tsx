@@ -224,6 +224,7 @@ function PaywallDialog({ request, onClose }: PaywallDialogProps) {
   const previousFocus = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of document.body for the portal host; a lazy initialiser would mismatch the server render
     setPortalHost(typeof document !== "undefined" ? document.body : null);
   }, []);
 

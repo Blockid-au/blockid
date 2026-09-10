@@ -137,6 +137,7 @@ export function DocumentsClient() {
     }
   }, [showToast]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch inside the useCallback loader (also used by refresh and after actions), the rule cannot see the async boundary through the reference
   React.useEffect(() => { void loadData(); }, [loadData]);
 
   /* ---------- actions ---------- */

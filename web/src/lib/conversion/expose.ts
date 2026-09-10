@@ -63,6 +63,7 @@ export function useExposeExperiment(id: string): UseExposeExperimentResult {
 
   React.useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag re-armed when `id` changes ahead of the async exposure; the setters after the promise resolve are already accepted
     setIsLoading(true);
     void exposeExperiment(id).then((v) => {
       if (cancelled) return;

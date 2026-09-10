@@ -75,6 +75,7 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
   }, [projectId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount / projectId change; loading flag + async fetch, the rule cannot see the async boundary through the useCallback reference
     void fetchData();
   }, [fetchData]);
 

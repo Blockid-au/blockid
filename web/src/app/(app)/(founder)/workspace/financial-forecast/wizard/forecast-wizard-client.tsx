@@ -41,6 +41,7 @@ export function ForecastWizardClient() {
   useEffect(() => {
     const stepParam = searchParams.get("step");
     if (stepParam) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration sync of the step from the URL query (on mount and on navigation); the sibling effect writes ?step= back via history.replaceState, so a lazy initialiser or render-time reset would skip the mount read
       setStep(Math.min(Math.max(parseInt(stepParam), 1), TOTAL_STEPS));
     }
   }, [searchParams]);

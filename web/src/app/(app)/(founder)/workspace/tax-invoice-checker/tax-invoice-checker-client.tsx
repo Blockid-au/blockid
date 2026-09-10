@@ -180,9 +180,11 @@ export function TaxInvoiceCheckerClient() {
 
   // Reset a saved / error indicator whenever the form changes so the founder
   // knows the button will save the *current* state, not the last-saved one.
-  React.useEffect(() => {
+  const [prevState, setPrevState] = React.useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
     setSaveStatus((prev) => (prev === "saving" ? prev : "idle"));
-  }, [state]);
+  }
 
   const handleSave = React.useCallback(async () => {
     if (!savePossible) return;

@@ -46,6 +46,7 @@ export function AdviceWarningModal({
 
   React.useEffect(() => {
     if (forceOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of sessionStorage (forceOpen short-circuits it); a lazy initialiser would mismatch the server render
       setOpen(true);
       return;
     }

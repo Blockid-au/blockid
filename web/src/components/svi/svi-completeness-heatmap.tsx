@@ -68,13 +68,16 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
   const [adding, setAdding] = useState<string | null>(null);
 
   // Keep the modal in sync when data refreshes after adding evidence
-  useEffect(() => {
-    if (!data) return;
-    setSelectedDim((prev) => {
-      if (!prev) return null;
-      return data.dimensions.find((d) => d.dimension === prev.dimension) ?? null;
-    });
-  }, [data]);
+  const [prevData, setPrevData] = useState(data);
+  if (data !== prevData) {
+    setPrevData(data);
+    if (data) {
+      setSelectedDim((prev) => {
+        if (!prev) return null;
+        return data.dimensions.find((d) => d.dimension === prev.dimension) ?? null;
+      });
+    }
+  }
 
   // Dismiss the modal on Escape — expected keyboard behaviour for any
   // role=dialog surface, and required for AT-only users who can't click
@@ -106,6 +109,7 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
   }, [projectId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag + async fetch; the loader is a useCallback also used after adding evidence, the rule cannot see the async boundary through the reference
     void fetchData();
   }, [fetchData]);
 

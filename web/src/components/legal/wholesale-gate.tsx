@@ -37,14 +37,16 @@ export function WholesaleGate({
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
+  const [prevOpen, setPrevOpen] = React.useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setMode("prompt");
       setFile(null);
       setError(null);
       setSubmitting(false);
     }
-  }, [open]);
+  }
 
   const onChooseRetail = React.useCallback(() => {
     try {

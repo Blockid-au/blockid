@@ -22,6 +22,7 @@ export function HowItWorksConnector() {
 
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     if (mq?.matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of window.matchMedia; a lazy initialiser would mismatch the server render
       setReduced(true);
       setDrawn(true);
       return;

@@ -182,6 +182,7 @@ export function NestedSidebar({
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => {
     const persisted = readJson<OpenStateMap>(storageKey, {});
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of persisted localStorage open-state; a lazy initialiser would mismatch the server render
     setOpenState(initialOpenState(groups, autoOpen, persisted));
     setHydrated(true);
   }, [storageKey, groups, autoOpen]);
@@ -200,6 +201,7 @@ export function NestedSidebar({
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     const seen = window.localStorage.getItem(REORG_SEEN_KEY) === "true";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage seen flag; a lazy initialiser would mismatch the server render
     if (!seen) setShowReorgHint(true);
   }, []);
   const dismissReorgHint = React.useCallback(() => {

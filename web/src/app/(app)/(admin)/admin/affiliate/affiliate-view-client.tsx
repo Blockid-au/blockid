@@ -148,6 +148,7 @@ export function AffiliateViewClient({
 
   React.useEffect(() => {
     if (!selectedId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on reseller change; loading flag + async fetch inside the useCallback loader (also used by child callbacks), the rule cannot see the async boundary through the reference
     void fetchAttributions(selectedId);
   }, [selectedId, fetchAttributions]);
 
