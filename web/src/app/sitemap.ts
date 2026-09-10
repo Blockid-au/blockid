@@ -88,6 +88,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
   const verifiedDate = (v: string | null | undefined) => (v ? new Date(v) : lastModified);
   const fundingEntries: MetadataRoute.Sitemap = [
+    { url: `${SITE_URL}/funding`, lastModified, changeFrequency: "daily" as const, priority: 0.9 },
     { url: `${SITE_URL}/funding/grants`, lastModified, changeFrequency: "daily" as const, priority: 0.8 },
     { url: `${SITE_URL}/funding/programs`, lastModified, changeFrequency: "daily" as const, priority: 0.8 },
     ...CAPITALS.map((c) => ({
