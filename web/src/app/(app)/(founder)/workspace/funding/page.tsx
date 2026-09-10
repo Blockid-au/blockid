@@ -141,6 +141,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
       refresh: refreshRow ? { quarter: refreshRow.quarter, body_md: refreshRow.body_md, changes: refreshRow.changes, created_at: refreshRow.created_at } : null,
       nextRefreshDate: nextRefreshDate(previousQuarter(new Date())),
       startup: project?.name ?? null,
+      capital,
     };
 
     // ── Draft editor (?draft=<grantId>&kind=grant) ─────────────────────────

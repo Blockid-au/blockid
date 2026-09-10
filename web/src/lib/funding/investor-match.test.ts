@@ -189,3 +189,39 @@ describe("store + matchInvestorsForProject", () => {
     expect(out.map((m) => m.investor_id)).toEqual(["inv-1"]);
   });
 });
+
+describe("founder-facing card contract (T0251 follow-up)", () => {
+  it("carries firm + thesis from investor_prefs, trimmed; null when absent", () => {
+    const withCard = scoreInvestorFit(
+      PROJECT,
+      investor({ prefs: { sectors: ["agtech"], stages: ["seed"], geos: ["AU"], cheque_band: "100k_500k", min_svi: 50, firm: "  Sydney Angels ", thesis: " Pre-seed agtech in ANZ " } }),
+    )!;
+    expect(withCard.firm).toBe("Sydney Angels");
+    expect(withCard.thesis).toBe("Pre-seed agtech in ANZ");
+
+    const bare = scoreInvestorFit(PROJECT, investor())!;
+    expect(bare.firm).toBeNull();
+    expect(bare.thesis).toBeNull();
+
+    const blank = scoreInvestorFit(PROJECT, investor({ prefs: { sectors: ["agtech"], firm: "   ", thesis: "" } }))!;
+    expect(blank.firm).toBeNull();
+    expect(blank.thesis).toBeNull();
+  });
+
+  it("an InvestorMatch never carries an email — even when the candidate row leaked one", () => {
+    const leaky = { ...investor(), email: "ann@example.com", prefs: { sectors: ["agtech"], email: "ann@example.com" } } as unknown as InvestorCandidate;
+    const m = scoreInvestorFit(PROJECT, leaky)!;
+    expect(m).not.toHaveProperty("email");
+    expect(JSON.stringify(m)).not.toContain("ann@example.com");
+    // The intro goes to support, never to the investor.
+    expect(m.intro_href.startsWith(`mailto:${SUPPORT_EMAIL}?`)).toBe(true);
+    expect(m.intro_href).not.toContain("ann%40example.com");
+  });
+
+  it("only these keys are exposed on the founder card", () => {
+    const m = scoreInvestorFit(PROJECT, investor())!;
+    expect(Object.keys(m).sort()).toEqual(
+      ["cheque_band", "firm", "gaps", "geos", "intro_href", "investor_id", "min_svi", "name", "plan", "reasons", "score", "sectors", "stages", "thesis"].sort(),
+    );
+  });
+});

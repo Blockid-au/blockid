@@ -4,6 +4,13 @@
 // Writes go to app_users.investor_prefs (jsonb). The column is optional at
 // this stage — a missing column returns { ok:false, reason:"column_missing" }
 // alongside the merged in-memory state so the UI can degrade gracefully.
+//
+// T0251 follow-up — the same POST also carries the "Let matching founders
+// see me" opt-in as `investor_discoverable: boolean` (app_users column,
+// migration 0323). It is written only for evaluator personas
+// (account_type / segment); anyone else has the key ignored and the response
+// says so (`discoverable_ignored: "evaluator_only"`). GET echoes the current
+// flag + persona so the preferences page can render the switch.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
@@ -11,11 +18,18 @@ import { can } from "@/lib/entitlements";
 import {
   DEFAULT_PREFS,
   getInvestorPreferences,
+  getInvestorVisibility,
+  setInvestorDiscoverable,
   setInvestorPreferences,
   type InvestorPreferences,
 } from "@/lib/investor-portal";
 
 export const dynamic = "force-dynamic";
+
+/** Wire body: the prefs patch plus the optional opt-in flag. */
+export type InvestorPreferencesBody = Partial<InvestorPreferences> & {
+  investor_discoverable?: boolean;
+};
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -25,8 +39,16 @@ export async function GET() {
       { status: 401 },
     );
   }
-  const prefs = await getInvestorPreferences(user.id);
-  return NextResponse.json({ ok: true, prefs });
+  const [prefs, visibility] = await Promise.all([
+    getInvestorPreferences(user.id),
+    getInvestorVisibility(user.id),
+  ]);
+  return NextResponse.json({
+    ok: true,
+    prefs,
+    discoverable: visibility.discoverable,
+    evaluator: visibility.evaluator,
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -51,9 +73,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: Partial<InvestorPreferences> = {};
+  let body: InvestorPreferencesBody = {};
   try {
-    body = (await req.json()) as Partial<InvestorPreferences>;
+    body = (await req.json()) as InvestorPreferencesBody;
   } catch {
     return NextResponse.json(
       { ok: false, error: "invalid_json" },
@@ -61,9 +83,45 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const result = await setInvestorPreferences(user.id, body);
+  // Split the opt-in flag off the prefs patch. A non-object body (array,
+  // scalar) is forwarded verbatim as before — the lib normalises it.
+  const isPlainObject = body !== null && typeof body === "object" && !Array.isArray(body);
+  const wantsDiscoverable = isPlainObject && typeof body.investor_discoverable === "boolean";
+  const patch: Partial<InvestorPreferences> =
+    isPlainObject && "investor_discoverable" in body
+      ? (Object.fromEntries(Object.entries(body).filter(([k]) => k !== "investor_discoverable")) as Partial<InvestorPreferences>)
+      : body;
+
+  const result = await setInvestorPreferences(user.id, patch);
+
+  // Opt-in flag — evaluator personas only. Founders (or anyone without an
+  // evaluator account_type / segment) get the key ignored, not an error, so
+  // a stray field never blocks a prefs save.
+  let discoverable: boolean | undefined;
+  let discoverableIgnored: "evaluator_only" | undefined;
+  let discoverableReason: string | undefined;
+  if (wantsDiscoverable) {
+    const visibility = await getInvestorVisibility(user.id);
+    if (!visibility.evaluator) {
+      discoverable = visibility.discoverable;
+      discoverableIgnored = "evaluator_only";
+    } else {
+      const flag = await setInvestorDiscoverable(user.id, body.investor_discoverable === true);
+      discoverable = flag.discoverable;
+      discoverableReason = flag.reason;
+    }
+  }
+
+  const prefsOk = result.ok || result.reason === "column_missing";
+  const flagOk = !discoverableReason || discoverableReason === "column_missing";
   return NextResponse.json(
-    { ok: result.ok, prefs: result.prefs, reason: result.reason },
-    { status: result.ok ? 200 : result.reason === "column_missing" ? 200 : 500 },
+    {
+      ok: result.ok && !discoverableReason,
+      prefs: result.prefs,
+      reason: result.reason ?? discoverableReason,
+      ...(discoverable === undefined ? {} : { discoverable }),
+      ...(discoverableIgnored ? { discoverable_ignored: discoverableIgnored } : {}),
+    },
+    { status: prefsOk && flagOk ? 200 : 500 },
   );
 }

@@ -42,6 +42,9 @@ vi.mock("@/lib/entitlements", () => ({
 
 const getPrefsMock = vi.fn();
 const setPrefsMock = vi.fn();
+// T0251 follow-up — "Let matching founders see me" (investor_discoverable).
+const getVisibilityMock = vi.fn();
+const setDiscoverableMock = vi.fn();
 vi.mock("@/lib/investor-portal", async () => {
   const DEFAULT_PREFS = {
     sectors: [],
@@ -56,6 +59,9 @@ vi.mock("@/lib/investor-portal", async () => {
     getInvestorPreferences: (userId: string) => getPrefsMock(userId),
     setInvestorPreferences: (userId: string, patch: unknown) =>
       setPrefsMock(userId, patch),
+    getInvestorVisibility: (userId: string) => getVisibilityMock(userId),
+    setInvestorDiscoverable: (userId: string, on: boolean) =>
+      setDiscoverableMock(userId, on),
   };
 });
 
@@ -95,6 +101,9 @@ beforeEach(() => {
   canMock.mockReset();
   getPrefsMock.mockReset();
   setPrefsMock.mockReset();
+  // Default: an evaluator persona who has not opted in yet.
+  getVisibilityMock.mockReset().mockResolvedValue({ evaluator: true, discoverable: false });
+  setDiscoverableMock.mockReset().mockImplementation(async (_u: string, on: boolean) => ({ ok: true, discoverable: on }));
 });
 
 describe("GET /api/investor/preferences", () => {
@@ -138,6 +147,24 @@ describe("GET /api/investor/preferences", () => {
     await GET();
     expect(getPrefsMock).toHaveBeenCalledTimes(1);
     expect(getPrefsMock).toHaveBeenCalledWith("u-99");
+  });
+
+  it("echoes the opt-in flag + evaluator persona so the prefs page can render the switch (T0251 follow-up)", async () => {
+    getCurrentUserMock.mockResolvedValue(USER);
+    getPrefsMock.mockResolvedValue(RESOLVED_PREFS);
+    getVisibilityMock.mockResolvedValue({ evaluator: true, discoverable: true });
+    const body = await (await GET()).json();
+    expect(body.discoverable).toBe(true);
+    expect(body.evaluator).toBe(true);
+    expect(getVisibilityMock).toHaveBeenCalledWith("u-99");
+    // Nothing about the email is echoed.
+    expect(JSON.stringify(body)).not.toContain("angel@example.com");
+  });
+
+  it("does NOT read visibility when unauthenticated", async () => {
+    getCurrentUserMock.mockResolvedValue(null);
+    await GET();
+    expect(getVisibilityMock).not.toHaveBeenCalled();
   });
 
   it("echoes the DEFAULT_PREFS shape when the lib returns defaults for a user with no row", async () => {
@@ -349,5 +376,114 @@ describe("POST /api/investor/preferences", () => {
     });
     const res = await POST(jsonReq({ min_svi: 60 }));
     expect(res.status).toBe(500);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST — investor_discoverable ("Let matching founders see me", T0251
+// follow-up). Same route, same 401 / 402 / 400 order; the flag is split off
+// the prefs patch and written only for evaluator personas.
+// ---------------------------------------------------------------------------
+
+describe("POST /api/investor/preferences — investor_discoverable opt-in", () => {
+  beforeEach(() => {
+    getCurrentUserMock.mockResolvedValue(USER);
+    canMock.mockResolvedValue(true);
+    setPrefsMock.mockResolvedValue({ ok: true, prefs: RESOLVED_PREFS });
+  });
+
+  it.each([true, false])("evaluator persona: persists investor_discoverable=%s and echoes it", async (flag) => {
+    const res = await POST(jsonReq({ investor_discoverable: flag, firm: "Blackbird" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.discoverable).toBe(flag);
+    expect(body).not.toHaveProperty("discoverable_ignored");
+    expect(getVisibilityMock).toHaveBeenCalledWith("u-99");
+    expect(setDiscoverableMock).toHaveBeenCalledTimes(1);
+    expect(setDiscoverableMock).toHaveBeenCalledWith("u-99", flag);
+  });
+
+  it("strips the flag off the prefs patch — the jsonb never carries investor_discoverable", async () => {
+    await POST(jsonReq({ investor_discoverable: true, sectors: ["agtech"], thesis: "Pre-seed agtech in ANZ" }));
+    const [, forwarded] = setPrefsMock.mock.calls[0];
+    expect(forwarded).toEqual({ sectors: ["agtech"], thesis: "Pre-seed agtech in ANZ" });
+  });
+
+  it("non-evaluator persona (founder on an investor SKU): flag ignored, prefs still saved, 200 + discoverable_ignored", async () => {
+    getVisibilityMock.mockResolvedValue({ evaluator: false, discoverable: false });
+    const res = await POST(jsonReq({ investor_discoverable: true, sectors: ["agtech"] }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.discoverable).toBe(false);
+    expect(body.discoverable_ignored).toBe("evaluator_only");
+    expect(setDiscoverableMock).not.toHaveBeenCalled();
+    expect(setPrefsMock).toHaveBeenCalledWith("u-99", { sectors: ["agtech"] });
+  });
+
+  it("no plan entitlement → 402 before the flag is even looked at (existing gate is the outer wall)", async () => {
+    canMock.mockResolvedValue(false);
+    const res = await POST(jsonReq({ investor_discoverable: true }));
+    expect(res.status).toBe(402);
+    expect(getVisibilityMock).not.toHaveBeenCalled();
+    expect(setDiscoverableMock).not.toHaveBeenCalled();
+  });
+
+  it("unauthenticated → 401, nothing written", async () => {
+    getCurrentUserMock.mockResolvedValue(null);
+    const res = await POST(jsonReq({ investor_discoverable: true }));
+    expect(res.status).toBe(401);
+    expect(setDiscoverableMock).not.toHaveBeenCalled();
+  });
+
+  it("non-boolean flag (\"true\", 1, null) is dropped from the patch and never written", async () => {
+    for (const bad of ["true", 1, null]) {
+      setPrefsMock.mockClear();
+      const res = await POST(jsonReq({ investor_discoverable: bad, sectors: ["x"] }));
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).not.toHaveProperty("discoverable");
+      expect(setPrefsMock.mock.calls[0][1]).toEqual({ sectors: ["x"] });
+    }
+    expect(getVisibilityMock).not.toHaveBeenCalled();
+    expect(setDiscoverableMock).not.toHaveBeenCalled();
+  });
+
+  it("body without the flag leaves visibility untouched and echoes no discoverable key (legacy callers)", async () => {
+    const res = await POST(jsonReq({ sectors: ["fintech"] }));
+    const body = await res.json();
+    expect(body).not.toHaveProperty("discoverable");
+    expect(getVisibilityMock).not.toHaveBeenCalled();
+    expect(setDiscoverableMock).not.toHaveBeenCalled();
+  });
+
+  it("column_missing on the flag write → 200 + reason column_missing (graceful degrade, prefs kept)", async () => {
+    setDiscoverableMock.mockResolvedValue({ ok: false, discoverable: false, reason: "column_missing" });
+    const res = await POST(jsonReq({ investor_discoverable: true }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.reason).toBe("column_missing");
+    expect(body.discoverable).toBe(false);
+    expect(body.prefs).toEqual(RESOLVED_PREFS);
+  });
+
+  it("db_error on the flag write → 500 even though the prefs write succeeded", async () => {
+    setDiscoverableMock.mockResolvedValue({ ok: false, discoverable: false, reason: "db_error" });
+    const res = await POST(jsonReq({ investor_discoverable: true }));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.reason).toBe("db_error");
+  });
+
+  it("prefs column_missing + flag ok → 200 with the prefs reason (flag result still echoed)", async () => {
+    setPrefsMock.mockResolvedValue({ ok: false, prefs: RESOLVED_PREFS, reason: "column_missing" });
+    const res = await POST(jsonReq({ investor_discoverable: true }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.reason).toBe("column_missing");
+    expect(body.discoverable).toBe(true);
   });
 });

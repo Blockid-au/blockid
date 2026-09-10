@@ -1138,3 +1138,163 @@ describe("investor-portal — getPortfolio", () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// T0251 follow-up — "Let matching founders see me" (investor_discoverable)
+// + the firm / thesis card fields carried inside investor_prefs.
+// ---------------------------------------------------------------------------
+
+describe("investor-portal — getInvestorVisibility", () => {
+  it("returns { evaluator:false, discoverable:false } with zero DB calls when admin is not configured", async () => {
+    state.adminConfigured = false;
+    const { getInvestorVisibility } = await import("./investor-portal");
+    expect(await getInvestorVisibility("u-1")).toEqual({ evaluator: false, discoverable: false });
+    expect(state.calls).toHaveLength(0);
+  });
+
+  it("reads account_type, segment + investor_discoverable from app_users keyed on id — never the email", async () => {
+    state.queue.push({ data: { account_type: "investor", segment: null, investor_discoverable: true } });
+    const { getInvestorVisibility } = await import("./investor-portal");
+    const vis = await getInvestorVisibility("u-9");
+    expect(vis).toEqual({ evaluator: true, discoverable: true });
+    const [call] = callsFor("app_users");
+    expect(call.selectCols).toBe("account_type, segment, investor_discoverable");
+    expect(call.eqs).toEqual([{ col: "id", val: "u-9" }]);
+    expect(call.terminal).toBe("maybeSingle");
+    expect(call.selectCols).not.toMatch(/email/);
+  });
+
+  it("evaluator resolves from segment when account_type is null", async () => {
+    state.queue.push({ data: { account_type: null, segment: "investor_vc", investor_discoverable: false } });
+    const { getInvestorVisibility } = await import("./investor-portal");
+    expect(await getInvestorVisibility("u-1")).toEqual({ evaluator: true, discoverable: false });
+  });
+
+  it("founder persona → evaluator:false even when the flag was somehow set", async () => {
+    state.queue.push({ data: { account_type: "founder", segment: "founder", investor_discoverable: true } });
+    const { getInvestorVisibility } = await import("./investor-portal");
+    expect(await getInvestorVisibility("u-1")).toEqual({ evaluator: false, discoverable: true });
+  });
+
+  it("flag column missing (pre-0323) → re-reads persona only, discoverable:false, no log", async () => {
+    state.queue.push({ error: { message: "column app_users.investor_discoverable does not exist" } });
+    state.queue.push({ data: { account_type: "accelerator", segment: null } });
+    const { getInvestorVisibility } = await import("./investor-portal");
+    expect(await getInvestorVisibility("u-1")).toEqual({ evaluator: true, discoverable: false });
+    const calls = callsFor("app_users");
+    expect(calls).toHaveLength(2);
+    expect(calls[1].selectCols).toBe("account_type, segment");
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it("any other error → not visible + logs", async () => {
+    state.queue.push({ error: { message: "permission denied" } });
+    const { getInvestorVisibility } = await import("./investor-portal");
+    expect(await getInvestorVisibility("u-1")).toEqual({ evaluator: false, discoverable: false });
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("no row → not visible", async () => {
+    state.queue.push({ data: null });
+    const { getInvestorVisibility } = await import("./investor-portal");
+    expect(await getInvestorVisibility("u-1")).toEqual({ evaluator: false, discoverable: false });
+  });
+
+  it("throwing client → not visible + logs", async () => {
+    state.throwOnFrom = "app_users";
+    const { getInvestorVisibility } = await import("./investor-portal");
+    expect(await getInvestorVisibility("u-1")).toEqual({ evaluator: false, discoverable: false });
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("investor-portal — setInvestorDiscoverable", () => {
+  it("returns not_configured when admin is null", async () => {
+    state.adminConfigured = false;
+    const { setInvestorDiscoverable } = await import("./investor-portal");
+    expect(await setInvestorDiscoverable("u-1", true)).toEqual({ ok: false, discoverable: false, reason: "not_configured" });
+  });
+
+  it.each([true, false])("issues UPDATE app_users.investor_discoverable=%s keyed on id", async (flag) => {
+    state.queue.push({ error: null });
+    const { setInvestorDiscoverable } = await import("./investor-portal");
+    const res = await setInvestorDiscoverable("u-7", flag);
+    expect(res).toEqual({ ok: true, discoverable: flag });
+    const [update] = callsFor("app_users");
+    expect(update.updatePayload).toEqual({ investor_discoverable: flag });
+    expect(update.eqs).toEqual([{ col: "id", val: "u-7" }]);
+  });
+
+  it("coerces a truthy non-boolean to a strict false write (only `true` opts in)", async () => {
+    state.queue.push({ error: null });
+    const { setInvestorDiscoverable } = await import("./investor-portal");
+    const res = await setInvestorDiscoverable("u-7", "yes" as unknown as boolean);
+    expect(res.discoverable).toBe(false);
+    expect(callsFor("app_users")[0].updatePayload).toEqual({ investor_discoverable: false });
+  });
+
+  it("column missing → ok:false reason column_missing, no log", async () => {
+    state.queue.push({ error: { message: "column app_users.investor_discoverable does not exist" } });
+    const { setInvestorDiscoverable } = await import("./investor-portal");
+    expect(await setInvestorDiscoverable("u-1", true)).toEqual({ ok: false, discoverable: false, reason: "column_missing" });
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it("other error → db_error + logs", async () => {
+    state.queue.push({ error: { message: "deadlock detected" } });
+    const { setInvestorDiscoverable } = await import("./investor-portal");
+    expect(await setInvestorDiscoverable("u-1", true)).toEqual({ ok: false, discoverable: false, reason: "db_error" });
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("throwing client → db_error + logs", async () => {
+    state.throwOnFrom = "app_users";
+    const { setInvestorDiscoverable } = await import("./investor-portal");
+    expect(await setInvestorDiscoverable("u-1", true)).toEqual({ ok: false, discoverable: false, reason: "db_error" });
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("investor-portal — firm / thesis card fields inside investor_prefs", () => {
+  it("DEFAULT_PREFS carries no firm / thesis keys (legacy shape preserved)", async () => {
+    const { DEFAULT_PREFS } = await import("./investor-portal");
+    expect(DEFAULT_PREFS).not.toHaveProperty("firm");
+    expect(DEFAULT_PREFS).not.toHaveProperty("thesis");
+  });
+
+  it("read: trims, collapses whitespace and caps firm (80) / thesis (200)", async () => {
+    const { FIRM_MAX_LEN, THESIS_MAX_LEN, getInvestorPreferences } = await import("./investor-portal");
+    state.queue.push({
+      data: { investor_prefs: { firm: "  Sydney   Angels  ", thesis: "x".repeat(THESIS_MAX_LEN + 50) } },
+    });
+    const prefs = await getInvestorPreferences("u-1");
+    expect(prefs.firm).toBe("Sydney Angels");
+    expect(prefs.thesis).toHaveLength(THESIS_MAX_LEN);
+    expect(FIRM_MAX_LEN).toBe(80);
+  });
+
+  it("read: empty / non-string firm + thesis are dropped, not stored as ''", async () => {
+    const { getInvestorPreferences } = await import("./investor-portal");
+    state.queue.push({ data: { investor_prefs: { firm: "   ", thesis: 42, sectors: ["fintech"] } } });
+    const prefs = await getInvestorPreferences("u-1");
+    expect(prefs).not.toHaveProperty("firm");
+    expect(prefs).not.toHaveProperty("thesis");
+    expect(prefs.sectors).toEqual(["fintech"]);
+  });
+
+  it("write: firm + thesis persist inside the investor_prefs payload; null clears them; no email key", async () => {
+    const { setInvestorPreferences } = await import("./investor-portal");
+    state.queue.push({ data: { investor_prefs: { firm: "Old Firm", thesis: "Old thesis", sectors: ["agtech"] } } });
+    state.queue.push({ error: null });
+    const res = await setInvestorPreferences("u-7", { firm: "Blackbird", thesis: null });
+    expect(res.ok).toBe(true);
+    expect(res.prefs.firm).toBe("Blackbird");
+    expect(res.prefs).not.toHaveProperty("thesis");
+    expect(res.prefs.sectors).toEqual(["agtech"]);
+    const update = callsFor("app_users").find((c) => c.updatePayload !== null)!;
+    const payload = update.updatePayload as { investor_prefs: Record<string, unknown> };
+    expect(payload.investor_prefs.firm).toBe("Blackbird");
+    expect(payload.investor_prefs).not.toHaveProperty("thesis");
+    expect(payload.investor_prefs).not.toHaveProperty("email");
+  });
+});
