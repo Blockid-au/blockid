@@ -8,11 +8,18 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  LAYOUT_ENDPOINT,
+  SYNC_DEBOUNCE_MS,
+  WIDGET_HIDDEN_KEY,
   WIDGET_ORDER_KEY,
   WIDGET_PINNED_KEY,
+  WIDGET_STAMP_KEY,
+  readLocalLayout,
   resolveWidgetOrder,
   sanitizeStoredIds,
+  writeLocalLayout,
 } from "./widget-grid";
+import { mergeLayouts } from "@/lib/dashboard/widget-layout";
 
 /* ─── In-memory localStorage shim ─────────────────────────────────────────── */
 
@@ -202,5 +209,112 @@ describe("localStorage persistence contract", () => {
     // just needs to survive a non-array input.
     expect(sanitizeStoredIds("{not json", DECLARATION)).toEqual([]);
     expect(resolveWidgetOrder(DECLARATION, [], [])).toEqual([...DECLARATION]);
+  });
+});
+
+/* ─── Server-sync cache contract (G4 #4) ──────────────────────────────────── */
+
+describe("local layout cache (server-sync, G4 #4)", () => {
+  let shim: StorageShim;
+
+  beforeEach(() => {
+    shim = installLocalStorage();
+  });
+
+  afterEach(() => {
+    uninstallLocalStorage();
+    vi.restoreAllMocks();
+  });
+
+  const STAMP = "2026-09-01T00:00:00.000Z";
+
+  it("adds versioned hidden + stamp keys and the sync constants", () => {
+    expect(WIDGET_HIDDEN_KEY).toBe("blockid.dashboard.widgets.hidden.v1");
+    expect(WIDGET_STAMP_KEY).toBe("blockid.dashboard.widgets.updated.v1");
+    expect(LAYOUT_ENDPOINT).toBe("/api/dashboard/layout");
+    expect(SYNC_DEBOUNCE_MS).toBe(800);
+  });
+
+  it("readLocalLayout returns null when nothing was ever stored", () => {
+    expect(readLocalLayout(DECLARATION)).toBeNull();
+  });
+
+  it("writeLocalLayout → readLocalLayout round-trips all four keys", () => {
+    writeLocalLayout({
+      v: 1,
+      order: ["evidence", "credits"],
+      pinned: ["guide-next"],
+      hidden: ["trend-line"],
+      updated_at: STAMP,
+    });
+    expect(JSON.parse(shim.getItem(WIDGET_ORDER_KEY) ?? "null")).toEqual(["evidence", "credits"]);
+    expect(JSON.parse(shim.getItem(WIDGET_PINNED_KEY) ?? "null")).toEqual(["guide-next"]);
+    expect(JSON.parse(shim.getItem(WIDGET_HIDDEN_KEY) ?? "null")).toEqual(["trend-line"]);
+    expect(JSON.parse(shim.getItem(WIDGET_STAMP_KEY) ?? "null")).toBe(STAMP);
+    expect(readLocalLayout(DECLARATION)).toEqual({
+      v: 1,
+      order: ["evidence", "credits"],
+      pinned: ["guide-next"],
+      hidden: ["trend-line"],
+      updated_at: STAMP,
+    });
+  });
+
+  it("pre-sync data (order/pinned, no stamp) reads back with an epoch stamp so a server copy wins", () => {
+    shim.setItem(WIDGET_ORDER_KEY, JSON.stringify(["evidence", "credits"]));
+    shim.setItem(WIDGET_PINNED_KEY, JSON.stringify(["guide-next"]));
+    const local = readLocalLayout(DECLARATION);
+    expect(local).toEqual({
+      v: 1,
+      order: ["evidence", "credits"],
+      pinned: ["guide-next"],
+      updated_at: "1970-01-01T00:00:00.000Z",
+    });
+    const server = { v: 1 as const, order: ["credits"], pinned: [], updated_at: STAMP };
+    expect(mergeLayouts(local, server)).toMatchObject({ source: "server", writeLocal: true });
+    // …but with no server copy it is pushed up as the first sync.
+    expect(mergeLayouts(local, null)).toMatchObject({ source: "local", pushLocal: true });
+  });
+
+  it("filters the cache against the declared ids on read (self-healing)", () => {
+    writeLocalLayout({ v: 1, order: ["ghost", "credits"], pinned: ["nope"], hidden: ["evidence"], updated_at: STAMP });
+    expect(readLocalLayout(DECLARATION)).toEqual({
+      v: 1,
+      order: ["credits"],
+      pinned: [],
+      hidden: ["evidence"],
+      updated_at: STAMP,
+    });
+  });
+
+  it("tolerates malformed JSON in any key", () => {
+    shim.setItem(WIDGET_ORDER_KEY, "{not json");
+    shim.setItem(WIDGET_PINNED_KEY, JSON.stringify(["credits"]));
+    shim.setItem(WIDGET_STAMP_KEY, "not-json-either");
+    const local = readLocalLayout(DECLARATION);
+    expect(local?.order).toEqual([]);
+    expect(local?.pinned).toEqual(["credits"]);
+    expect(local?.updated_at).toBe("1970-01-01T00:00:00.000Z");
+  });
+
+  it("a hidden widget is excluded from the render order but keeps its slot in the tail", () => {
+    const local = {
+      v: 1 as const,
+      order: ["evidence", "trend-line", "credits"],
+      pinned: [],
+      hidden: ["trend-line"],
+      updated_at: STAMP,
+    };
+    const order = resolveWidgetOrder(DECLARATION, local.order, local.pinned);
+    const hiddenSet = new Set(local.hidden);
+    expect(order.filter((id) => !hiddenSet.has(id))).toEqual(["evidence", "credits", "svi-radar", "guide-next"]);
+    // Un-hiding restores it to its saved position without a reorder.
+    expect(resolveWidgetOrder(DECLARATION, local.order, [])).toEqual([
+      "evidence",
+      "trend-line",
+      "credits",
+      "svi-radar",
+      "guide-next",
+    ]);
   });
 });

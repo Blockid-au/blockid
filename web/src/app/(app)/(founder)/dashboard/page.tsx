@@ -927,11 +927,14 @@ export default async function DashboardPage({
           </div>
         )}
 
-        {/* ── Personalizable widget grid (iteration-12 T2) ──────────────────
-            Each child MUST carry a stable `data-widget-id`; WidgetGrid reads
-            it to persist per-founder pin + reorder in localStorage. Wrapping
-            conditionals inline so absent widgets disappear from the grid
-            entirely (sanitizeStoredIds self-heals older saved orders). */}
+        {/* ── Personalizable widget grid (iteration-12 T2; G4 #4 server sync) ──
+            Each child MUST carry a stable `data-widget-id` that is ALSO listed
+            in lib/dashboard/widget-ids.ts (widget-ids.test.ts fails on drift);
+            WidgetGrid persists per-founder pin + reorder + hide to localStorage
+            (instant) and app_users.dashboard_layout via /api/dashboard/layout
+            (cross-device). Wrapping conditionals inline so absent widgets
+            disappear from the grid entirely (sanitizeStoredIds self-heals
+            older saved orders). */}
         <WidgetGrid>
           {/* Health Score composite widget — first, full-width. */}
           {activeProject?.id && (

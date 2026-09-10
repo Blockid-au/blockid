@@ -1,7 +1,17 @@
-// WidgetGrid — dashboard personalization (iteration-12 T2, Q3 UX).
+// WidgetGrid — dashboard personalization (iteration-12 T2, Q3 UX; G4 #4
+// server sync 2026-09-11).
 //
-// Wraps top-level dashboard cards and lets the founder pin + reorder them.
-// State is persisted to localStorage only (Q3 scope — no server round-trip).
+// Wraps top-level dashboard cards and lets the founder pin, reorder and hide
+// them. State lives in two places:
+//   - localStorage — the instant cache and the signed-out / offline fallback
+//     (keys below, plus a stamp key holding the last-change time), and
+//   - app_users.dashboard_layout via GET/PUT /api/dashboard/layout — so the
+//     layout follows the founder across browsers and devices.
+// On mount the local copy renders immediately, then the server copy is
+// fetched and the side with the newer `updated_at` wins (mergeLayouts in
+// lib/dashboard/widget-layout.ts). Every change writes localStorage at once
+// and debounces a PUT (SYNC_DEBOUNCE_MS); a pending PUT is flushed with
+// `keepalive` when the grid unmounts. Fetch failures and 401s are silent.
 //
 // SSR contract: on the server this component MUST emit children in exactly
 // the order they were declared (declarationOrder) — the localStorage read
@@ -10,83 +20,143 @@
 // order.
 //
 // DnD: HTML5 native (draggable + dragover + drop) — no new dependencies,
-// keeping the reseller bundle unchanged. Only the drag HANDLE is draggable
-// so text selection inside widget bodies still works.
+// keeping the reseller bundle unchanged (only the founder dashboard page
+// imports this file). Only the drag HANDLE is draggable so text selection
+// inside widget bodies still works.
 //
-// Pure helpers (resolveWidgetOrder, sanitizeStoredIds) are exported so the
-// vitest suite in widget-grid.test.ts can exercise the ordering rules
-// without needing a JSX/JSDOM environment.
+// Pure helpers (resolveWidgetOrder, sanitizeStoredIds, mergeLayouts,
+// createDebounced) live in lib/dashboard/widget-layout.ts so both the
+// server route and the vitest suite can use them without JSX/JSDOM; the
+// first two are re-exported here for existing importers.
 
 "use client";
 
 import {
   Children,
-  cloneElement,
   isValidElement,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
 } from "react";
-import { GripVertical, Pin, PinOff, RotateCcw, Settings2, X } from "lucide-react";
+import { Eye, EyeOff, GripVertical, Pin, PinOff, RotateCcw, Settings2, X } from "lucide-react";
+import { DASHBOARD_WIDGET_IDS } from "@/lib/dashboard/widget-ids";
+import {
+  createDebounced,
+  mergeLayouts,
+  parseLayout,
+  resolveWidgetOrder,
+  sanitizeStoredIds,
+  type DashboardLayout,
+  type Debounced,
+} from "@/lib/dashboard/widget-layout";
+
+export { resolveWidgetOrder, sanitizeStoredIds };
 
 /* ─── Storage keys (versioned) ───────────────────────────────────────────── */
 
 export const WIDGET_ORDER_KEY = "blockid.dashboard.widgets.v1";
 export const WIDGET_PINNED_KEY = "blockid.dashboard.widgets.pinned.v1";
+export const WIDGET_HIDDEN_KEY = "blockid.dashboard.widgets.hidden.v1";
+/** ISO timestamp of the last local change — compared with the server stamp. */
+export const WIDGET_STAMP_KEY = "blockid.dashboard.widgets.updated.v1";
 
-/* ─── Pure ordering helpers ──────────────────────────────────────────────── */
+export const LAYOUT_ENDPOINT = "/api/dashboard/layout";
+export const SYNC_DEBOUNCE_MS = 800;
 
-/**
- * Filter a stored id list against the set of ids currently declared on the
- * page. Any id that no longer maps to a rendered widget is dropped — this
- * keeps the persisted state self-healing when the dashboard layout evolves
- * across releases.
- */
-export function sanitizeStoredIds(stored: unknown, known: readonly string[]): string[] {
-  if (!Array.isArray(stored)) return [];
-  const knownSet = new Set(known);
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const raw of stored) {
-    if (typeof raw !== "string") continue;
-    if (!knownSet.has(raw)) continue;
-    if (seen.has(raw)) continue;
-    seen.add(raw);
-    out.push(raw);
+/** Stamp given to pre-sync localStorage data (order/pinned but no stamp key). */
+const LEGACY_STAMP = "1970-01-01T00:00:00.000Z";
+
+/* ─── localStorage mirror ────────────────────────────────────────────────── */
+
+function readStoredJson(key: string): unknown {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return null;
   }
-  return out;
+}
+
+function writeStoredJson(key: string, value: unknown): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* quota / privacy mode — silently ignore, personalization is best-effort */
+  }
 }
 
 /**
- * Compute the final render order.
- *
- * Rules:
- *  1. Pinned ids render first, in the order the founder pinned them
- *     (pinnedIds is treated as a stack — earliest pin at index 0).
- *  2. Remaining widgets follow savedOrder, falling back to declarationOrder
- *     for any id the founder hasn't personally sorted yet.
- *  3. Anything unknown to declarationOrder is dropped (self-healing).
- *  4. When savedOrder is empty AND pinnedIds is empty, the output equals
- *     declarationOrder byte-for-byte — this is the SSR guarantee.
+ * Assemble the localStorage copy into a DashboardLayout. Returns null when
+ * nothing has ever been stored. Data written before the stamp key existed
+ * gets LEGACY_STAMP so a server copy (if any) wins over it.
  */
-export function resolveWidgetOrder(
-  declarationOrder: readonly string[],
-  savedOrder: readonly string[],
-  pinnedIds: readonly string[],
-): string[] {
-  const declSet = new Set(declarationOrder);
-  const pinned = pinnedIds.filter((id) => declSet.has(id));
-  const pinnedSet = new Set(pinned);
+export function readLocalLayout(known: readonly string[]): DashboardLayout | null {
+  const order = readStoredJson(WIDGET_ORDER_KEY);
+  const pinned = readStoredJson(WIDGET_PINNED_KEY);
+  const hidden = readStoredJson(WIDGET_HIDDEN_KEY);
+  const stamp = readStoredJson(WIDGET_STAMP_KEY);
+  if (order === null && pinned === null && hidden === null) return null;
+  return parseLayout(
+    {
+      v: 1,
+      order: Array.isArray(order) ? order : [],
+      pinned: Array.isArray(pinned) ? pinned : [],
+      hidden: Array.isArray(hidden) ? hidden : [],
+      updated_at: typeof stamp === "string" ? stamp : LEGACY_STAMP,
+    },
+    known,
+  );
+}
 
-  const savedFiltered = savedOrder.filter((id) => declSet.has(id) && !pinnedSet.has(id));
-  const savedSet = new Set(savedFiltered);
+export function writeLocalLayout(layout: DashboardLayout): void {
+  writeStoredJson(WIDGET_ORDER_KEY, layout.order);
+  writeStoredJson(WIDGET_PINNED_KEY, layout.pinned);
+  writeStoredJson(WIDGET_HIDDEN_KEY, layout.hidden ?? []);
+  writeStoredJson(WIDGET_STAMP_KEY, layout.updated_at);
+}
 
-  const tail = declarationOrder.filter((id) => !pinnedSet.has(id) && !savedSet.has(id));
+/* ─── Server sync ────────────────────────────────────────────────────────── */
 
-  return [...pinned, ...savedFiltered, ...tail];
+async function putLayout(layout: DashboardLayout, keepalive = false): Promise<void> {
+  if (typeof fetch !== "function") return;
+  try {
+    await fetch(LAYOUT_ENDPOINT, {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(layout),
+      keepalive,
+    });
+  } catch {
+    /* offline / signed out — localStorage already has the change */
+  }
+}
+
+async function fetchServerLayout(
+  known: readonly string[],
+  signal: AbortSignal,
+): Promise<{ fetched: boolean; layout: DashboardLayout | null }> {
+  if (typeof fetch !== "function") return { fetched: false, layout: null };
+  try {
+    const res = await fetch(LAYOUT_ENDPOINT, {
+      credentials: "same-origin",
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) return { fetched: false, layout: null };
+    const json = (await res.json()) as { ok?: boolean; layout?: unknown };
+    if (!json?.ok) return { fetched: false, layout: null };
+    return { fetched: true, layout: parseLayout(json.layout, known) };
+  } catch {
+    return { fetched: false, layout: null };
+  }
 }
 
 /* ─── React component ────────────────────────────────────────────────────── */
@@ -112,25 +182,7 @@ function extractChildren(children: ReactNode): ChildRecord[] {
   return out;
 }
 
-function readStoredArray(key: string): unknown {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return null;
-    return JSON.parse(raw) as unknown;
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredArray(key: string, value: readonly string[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* quota / privacy mode — silently ignore, personalization is best-effort */
-  }
-}
+const EMPTY_IDS: readonly string[] = [];
 
 export function WidgetGrid({ children }: WidgetGridProps) {
   const childRecords = useMemo(() => extractChildren(children), [children]);
@@ -138,50 +190,143 @@ export function WidgetGrid({ children }: WidgetGridProps) {
     () => childRecords.map((c) => c.id),
     [childRecords],
   );
+  // Ids we are willing to persist: the page allow-list plus whatever is
+  // declared right now. Persisting against the allow-list (not just the
+  // declared set) keeps an entry for a widget that is conditionally absent
+  // today — e.g. health-score before a project exists — so its slot survives.
+  const knownIds = useMemo(() => {
+    const set = new Set<string>(DASHBOARD_WIDGET_IDS);
+    for (const id of declarationOrder) set.add(id);
+    return Array.from(set);
+  }, [declarationOrder]);
 
-  // First render (SSR + client hydration): use declaration order so the
-  // markup matches. useEffect below swaps in the saved order after mount.
-  const [order, setOrder] = useState<string[]>(declarationOrder);
-  const [pinned, setPinned] = useState<string[]>([]);
+  // First render (SSR + client hydration): null layout → declaration order
+  // so the markup matches. The mount effect below swaps in the saved copy.
+  const [layout, setLayout] = useState<DashboardLayout | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
 
-  // Hydrate from localStorage after mount.
-  useEffect(() => {
-    const savedOrder = sanitizeStoredIds(readStoredArray(WIDGET_ORDER_KEY), declarationOrder);
-    const savedPinned = sanitizeStoredIds(readStoredArray(WIDGET_PINNED_KEY), declarationOrder);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
-    setOrder(resolveWidgetOrder(declarationOrder, savedOrder, savedPinned));
-    setPinned(savedPinned);
-    // declarationOrder is derived from children — re-run only when the
-    // set of widget ids actually changes.
-  }, [declarationOrder]);
+  const savedOrder = layout?.order ?? EMPTY_IDS;
+  const pinned = layout?.pinned ?? EMPTY_IDS;
+  const hidden = layout?.hidden ?? EMPTY_IDS;
 
-  const persist = useCallback(
-    (nextOrder: string[], nextPinned: string[]) => {
-      const resolved = resolveWidgetOrder(declarationOrder, nextOrder, nextPinned);
-      setOrder(resolved);
-      setPinned(nextPinned);
-      // Store only the non-pinned tail order — pinned ids are stored
-      // separately so unpinning restores their previous slot cleanly.
-      const pinnedSet = new Set(nextPinned);
-      const tailOrder = resolved.filter((id) => !pinnedSet.has(id));
-      writeStoredArray(WIDGET_ORDER_KEY, tailOrder);
-      writeStoredArray(WIDGET_PINNED_KEY, nextPinned);
+  const order = useMemo(
+    () => resolveWidgetOrder(declarationOrder, savedOrder, pinned),
+    [declarationOrder, savedOrder, pinned],
+  );
+  const pinnedSet = useMemo(() => new Set(pinned), [pinned]);
+  const hiddenSet = useMemo(() => new Set(hidden), [hidden]);
+  const visibleOrder = useMemo(() => order.filter((id) => !hiddenSet.has(id)), [order, hiddenSet]);
+  const hiddenDeclared = useMemo(() => order.filter((id) => hiddenSet.has(id)), [order, hiddenSet]);
+
+  // Debounced PUT — one instance for the grid's lifetime; flushed on unmount.
+  const syncRef = useRef<Debounced<DashboardLayout> | null>(null);
+  useEffect(() => {
+    const debounced = createDebounced<DashboardLayout>((next) => {
+      void putLayout(next);
+    }, SYNC_DEBOUNCE_MS);
+    syncRef.current = debounced;
+    return () => {
+      // Navigating away mid-debounce must not lose the change: send it now.
+      if (debounced.pending()) {
+        debounced.cancel();
+        const last = readLocalLayout(knownIds);
+        if (last) void putLayout(last, true);
+      }
+      syncRef.current = null;
+    };
+  }, [knownIds]);
+
+  // Mount: localStorage first (instant), then the server copy; newer wins.
+  useEffect(() => {
+    const local = readLocalLayout(knownIds);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
+    setLayout(local);
+
+    const ctrl = new AbortController();
+    void (async () => {
+      const server = await fetchServerLayout(knownIds, ctrl.signal);
+      if (ctrl.signal.aborted || !server.fetched) return; // signed out / offline → local only
+      // Re-read local: the founder may have edited while the fetch was in flight.
+      const merged = mergeLayouts(readLocalLayout(knownIds), server.layout);
+      if (merged.writeLocal && merged.layout) {
+        writeLocalLayout(merged.layout);
+        setLayout(merged.layout);
+      }
+      if (merged.pushLocal && merged.layout) void putLayout(merged.layout);
+    })();
+    return () => ctrl.abort();
+    // knownIds is derived from children — re-run only when the set of
+    // widget ids actually changes.
+  }, [knownIds]);
+
+  /** Apply a new layout: state → localStorage (now) → server (debounced). */
+  const commit = useCallback(
+    (patch: { order: string[]; pinned: string[]; hidden: string[] }) => {
+      const next = parseLayout({ v: 1, ...patch, updated_at: new Date().toISOString() }, knownIds);
+      if (!next) return;
+      setLayout(next);
+      writeLocalLayout(next);
+      syncRef.current?.schedule(next);
     },
-    [declarationOrder],
+    [knownIds],
+  );
+
+  /**
+   * Build the tail order (non-pinned) to persist from the currently visible
+   * sequence: visible ids first, then hidden ones (keeping their slot for
+   * when they are shown again), then saved ids that are not declared today.
+   */
+  const buildTail = useCallback(
+    (visible: readonly string[], nextPinned: readonly string[], nextHidden: readonly string[]) => {
+      const nextPinnedSet = new Set(nextPinned);
+      const seen = new Set<string>();
+      const out: string[] = [];
+      const push = (id: string) => {
+        if (nextPinnedSet.has(id) || seen.has(id)) return;
+        seen.add(id);
+        out.push(id);
+      };
+      visible.forEach(push);
+      nextHidden.forEach(push);
+      savedOrder.forEach(push);
+      return out;
+    },
+    [savedOrder],
   );
 
   const togglePin = useCallback(
     (id: string) => {
-      const isPinned = pinned.includes(id);
+      const isPinned = pinnedSet.has(id);
       const nextPinned = isPinned ? pinned.filter((p) => p !== id) : [...pinned, id];
-      const pinnedSet = new Set(nextPinned);
-      const nextOrder = order.filter((o) => !pinnedSet.has(o));
-      persist(nextOrder, nextPinned);
+      commit({ order: buildTail(visibleOrder, nextPinned, hidden), pinned: nextPinned, hidden: [...hidden] });
     },
-    [order, pinned, persist],
+    [pinned, pinnedSet, visibleOrder, hidden, buildTail, commit],
   );
+
+  const hideWidget = useCallback(
+    (id: string) => {
+      if (hiddenSet.has(id)) return;
+      const nextPinned = pinned.filter((p) => p !== id);
+      const nextHidden = [...hidden, id];
+      commit({ order: buildTail(visibleOrder, nextPinned, nextHidden), pinned: nextPinned, hidden: nextHidden });
+    },
+    [hiddenSet, pinned, hidden, visibleOrder, buildTail, commit],
+  );
+
+  const showWidget = useCallback(
+    (id: string) => {
+      if (!hiddenSet.has(id)) return;
+      const nextHidden = hidden.filter((h) => h !== id);
+      commit({ order: buildTail(order, pinned, nextHidden), pinned: [...pinned], hidden: nextHidden });
+    },
+    [hiddenSet, hidden, order, pinned, buildTail, commit],
+  );
+
+  const showAllHidden = useCallback(() => {
+    if (hidden.length === 0) return;
+    commit({ order: buildTail(order, pinned, []), pinned: [...pinned], hidden: [] });
+  }, [hidden, order, pinned, buildTail, commit]);
 
   const handleDrop = useCallback(
     (targetId: string) => {
@@ -191,25 +336,21 @@ export function WidgetGrid({ children }: WidgetGridProps) {
       }
       const source = dragId;
       setDragId(null);
-      const current = [...order];
+      const current = [...visibleOrder];
       const from = current.indexOf(source);
       const to = current.indexOf(targetId);
       if (from < 0 || to < 0) return;
       current.splice(from, 1);
       current.splice(to, 0, source);
-      const pinnedSet = new Set(pinned);
-      const nextTail = current.filter((id) => !pinnedSet.has(id));
-      persist(nextTail, pinned);
+      commit({ order: buildTail(current, pinned, hidden), pinned: [...pinned], hidden: [...hidden] });
     },
-    [dragId, order, pinned, persist],
+    [dragId, visibleOrder, pinned, hidden, buildTail, commit],
   );
 
+  // Reset is itself a change (fresh stamp) so it propagates to other devices.
   const reset = useCallback(() => {
-    writeStoredArray(WIDGET_ORDER_KEY, []);
-    writeStoredArray(WIDGET_PINNED_KEY, []);
-    setOrder(declarationOrder);
-    setPinned([]);
-  }, [declarationOrder]);
+    commit({ order: [], pinned: [], hidden: [] });
+  }, [commit]);
 
   const byId = useMemo(() => {
     const m = new Map<string, ReactElement<Record<string, unknown>>>();
@@ -217,7 +358,8 @@ export function WidgetGrid({ children }: WidgetGridProps) {
     return m;
   }, [childRecords]);
 
-  const pinnedSet = useMemo(() => new Set(pinned), [pinned]);
+  const handleClass =
+    "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium";
 
   return (
     <div className="space-y-6" data-widget-grid="root">
@@ -255,8 +397,8 @@ export function WidgetGrid({ children }: WidgetGridProps) {
         )}
       </div>
 
-      {/* Ordered widgets */}
-      {order.map((id) => {
+      {/* Ordered, visible widgets */}
+      {visibleOrder.map((id) => {
         const element = byId.get(id);
         if (!element) return null;
         const isPinned = pinnedSet.has(id);
@@ -308,31 +450,83 @@ export function WidgetGrid({ children }: WidgetGridProps) {
                 <GripVertical className="h-4 w-4 text-muted" />
                 <span className="uppercase tracking-wider text-[10px]">{id}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => togglePin(id)}
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ${
-                  isPinned
-                    ? "bg-brand-600 text-white hover:bg-brand-700"
-                    : "bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700"
-                }`}
-                aria-label={isPinned ? `Unpin ${id}` : `Pin ${id}`}
-              >
-                {isPinned ? (
-                  <>
-                    <PinOff className="h-3 w-3" /> Unpin
-                  </>
-                ) : (
-                  <>
-                    <Pin className="h-3 w-3" /> Pin
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => togglePin(id)}
+                  className={`${handleClass} ${
+                    isPinned
+                      ? "bg-brand-600 text-white hover:bg-brand-700"
+                      : "bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700"
+                  }`}
+                  aria-label={isPinned ? `Unpin ${id}` : `Pin ${id}`}
+                >
+                  {isPinned ? (
+                    <>
+                      <PinOff className="h-3 w-3" /> Unpin
+                    </>
+                  ) : (
+                    <>
+                      <Pin className="h-3 w-3" /> Pin
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => hideWidget(id)}
+                  className={`${handleClass} bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700`}
+                  aria-label={`Hide ${id}`}
+                >
+                  <EyeOff className="h-3 w-3" /> Hide
+                </button>
+              </div>
             </div>
             <div className="p-3 opacity-90 pointer-events-none">{element}</div>
           </div>
         );
       })}
+
+      {/* Hidden widgets — compact rows while customizing, one link otherwise */}
+      {editMode && hiddenDeclared.length > 0 && (
+        <div className="space-y-2" data-widget-hidden-list="true">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+            Hidden widgets ({hiddenDeclared.length})
+          </p>
+          {hiddenDeclared.map((id) => (
+            <div
+              key={id}
+              data-widget-slot={id}
+              data-widget-hidden="true"
+              className="flex items-center justify-between rounded-2xl border-2 border-dashed border-surface-200 bg-surface-50/60 px-3 py-2 opacity-70"
+            >
+              <span className="inline-flex items-center gap-2 text-xs font-medium text-ink-600">
+                <EyeOff className="h-4 w-4 text-muted" />
+                <span className="uppercase tracking-wider text-[10px]">{id}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => showWidget(id)}
+                className={`${handleClass} bg-white text-ink-600 hover:bg-brand-50 hover:text-brand-700`}
+                aria-label={`Show ${id}`}
+              >
+                <Eye className="h-3 w-3" /> Show
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {!editMode && hiddenDeclared.length > 0 && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={showAllHidden}
+            className="inline-flex items-center gap-1 text-xs font-medium text-muted underline-offset-2 hover:text-brand-700 hover:underline"
+            aria-label={`Show ${hiddenDeclared.length} hidden widget${hiddenDeclared.length === 1 ? "" : "s"}`}
+          >
+            <Eye className="h-3 w-3" /> Show hidden widgets ({hiddenDeclared.length})
+          </button>
+        </div>
+      )}
     </div>
   );
 }
