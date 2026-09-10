@@ -205,6 +205,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # 3:00am AEST Sunday (17:00 UTC Sat) — Disk cleanup (nested releases, npm cache, /tmp, Docker)
 0 17 * * 0 bash /home/dovanlong/blockid.au/web/scripts/clean-disk.sh --apply >> /tmp/blockid-clean-disk.log 2>&1
 
+# 2:00pm AEST Sunday (04:00 UTC) — AU funding catalogue refresh (T0243, G11 §4d).
+# Re-fetches every au_grants source page with a browser UA, stamps
+# verified_by=cron where the page agrees, auto-flips ONLY upcoming→open on an
+# explicit "applications open" hint, polls the GrantConnect RSS for new items,
+# and queues everything else (mismatches, 403/429 blocks, possible new grants)
+# to content/reports/grants-review-queue.jsonl for /admin/funding. Never
+# auto-closes or deletes a row. `?dry=1` on the route previews without writes.
+0 4 * * 0 bash $RUN refresh-funding-sources --timeout 300
+
 # ═══════════════════════════════════════════════════════════════
 # PIPELINE FLOW DIAGRAM
 # ═══════════════════════════════════════════════════════════════

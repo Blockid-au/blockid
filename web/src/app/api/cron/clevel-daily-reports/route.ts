@@ -20,6 +20,7 @@ import { exec } from "child_process";
 import { loadProjectState, type PlanTask } from "@/lib/project-state";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { countRecentReviewEntries } from "@/lib/funding/review-queue";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -185,8 +186,10 @@ function renderAgentReport(opts: {
   date: string;
   ceoNorthStar: string;
   ceoFilter: string[];
+  /** T0243 — entries in grants-review-queue.jsonl from the last 7 days (IR brief only). */
+  fundingReviewCount?: number;
 }): string {
-  const { agent, kpi, pending, inProgress, doneRecent, activity, status, date, ceoNorthStar, ceoFilter } = opts;
+  const { agent, kpi, pending, inProgress, doneRecent, activity, status, date, ceoNorthStar, ceoFilter, fundingReviewCount = 0 } = opts;
   const todayActions = deriveTodayActions(agent, kpi, pending, inProgress);
 
   const lines: string[] = [
@@ -228,6 +231,9 @@ function renderAgentReport(opts: {
     pending.filter(t => Date.now() - Date.parse(t.createdAt) > 7 * 24 * 60 * 60 * 1000).length > 0
       ? `⚠️ ${pending.filter(t => Date.now() - Date.parse(t.createdAt) > 7 * 24 * 60 * 60 * 1000).length} task(s) pending > 7 days — needs CEO re-prioritisation or de-scope.`
       : `_None._`,
+    agent === "ir" && fundingReviewCount > 0
+      ? `📋 ${fundingReviewCount} funding row(s) need review — /admin/funding review queue (weekly refresh-funding-sources cron, T0243).`
+      : "",
     ``,
     `## 8. EOD Definition of Done`,
     `- At least one of the items in §3 closed or measurably progressed`,
@@ -256,6 +262,12 @@ export async function POST(request: Request) {
   const ps = loadProjectState();
   const date = todayStr();
   const reports: AgentReport[] = [];
+  let fundingReviewCount = 0;
+  try {
+    fundingReviewCount = countRecentReviewEntries(7);
+  } catch {
+    /* queue file optional */
+  }
 
   for (const [agent, kpi] of Object.entries(matrix.agents)) {
     const { pending, inProgress, doneRecent } = tasksFor(agent, ps.plan.tasks);
@@ -272,6 +284,7 @@ export async function POST(request: Request) {
       date,
       ceoNorthStar: matrix._meta.northStar,
       ceoFilter: matrix._meta.ceoFilter,
+      fundingReviewCount,
     });
 
     const path = `${REPORTS_DIR}/${agent}-daily-${date}.md`;
