@@ -237,6 +237,10 @@ const ADVISOR_FEATURES: readonly Feature[] = [
   ...ANGEL_FEATURES,
   "advisory_equity",
   "advisor_portal",
+  // G12 Firm rung: client roster/notes pages gate on advisor.cohort and the
+  // white-label PDF is the advisor's core deliverable.
+  "advisor.cohort",
+  "white_label",
 ];
 
 const VC_SM_FEATURES: readonly Feature[] = [
@@ -245,12 +249,14 @@ const VC_SM_FEATURES: readonly Feature[] = [
   "diligence_pack",
   "api",
   "api.access",
+  // G12 Program rung: quarterly LP / sponsor report export is a headline
+  // feature of the 5-seat tier, not an enterprise-only extra.
+  "lp_export",
+  "lp_report",
 ];
 
 const VC_ENT_FEATURES: readonly Feature[] = [
   ...VC_SM_FEATURES,
-  "lp_export",
-  "lp_report",
   "custom_benchmark",
   "multi_fund",
   "sso",

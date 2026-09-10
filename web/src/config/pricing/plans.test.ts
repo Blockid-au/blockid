@@ -175,7 +175,11 @@ describe("PRC-ACC — Accelerator per-cohort SKUs", () => {
     return plan;
   };
 
-  it("Cohort Starter — A$500/mo, 15 seats, cohort_dashboard feature flag", () => {
+  // 2026-09-10 (G12 S0): accelerator flags now use the tier-ladder vocabulary
+  // that the workspace pages actually gate on (accelerator.cohort, cohort.*,
+  // lp_report) — the old marketing-only names (cohort_dashboard, co_mentor_pool,
+  // multi_cohort_management…) gated nothing. Migration 0309 re-synced the DB.
+  it("Cohort Starter — A$500/mo, 15 seats, accelerator.cohort feature flag", () => {
     const p = byId("accelerator_starter");
     expect(p.price_aud_cents).toBe(50000);
     expect(p.annual_price_aud_cents).toBe(500000);
@@ -184,14 +188,14 @@ describe("PRC-ACC — Accelerator per-cohort SKUs", () => {
     expect(p.usage_limits.monthly_credits).toBe(2000);
     expect(p.feature_flags).toEqual(
       expect.arrayContaining([
-        "cohort_dashboard",
-        "cohort_reports",
-        "program_curriculum_hub",
+        "cohort.view",
+        "cohort.view.stats",
+        "accelerator.cohort",
       ]),
     );
   });
 
-  it("Cohort Growth — A$1500/mo, 50 seats, adds co_mentor_pool + alumni tools", () => {
+  it("Cohort Growth — A$1500/mo, 50 seats, adds cohort.manage", () => {
     const p = byId("accelerator_growth");
     expect(p.price_aud_cents).toBe(150000);
     expect(p.annual_price_aud_cents).toBe(1500000);
@@ -200,15 +204,13 @@ describe("PRC-ACC — Accelerator per-cohort SKUs", () => {
     expect(p.usage_limits.monthly_credits).toBe(8000);
     expect(p.feature_flags).toEqual(
       expect.arrayContaining([
-        "cohort_dashboard",
-        "co_mentor_pool",
-        "cohort_batch_reports",
-        "alumni_network_tools",
+        "accelerator.cohort",
+        "cohort.manage",
       ]),
     );
   });
 
-  it("Cohort Enterprise — A$3500/mo, unlimited seats, adds multi_cohort + sso", () => {
+  it("Cohort Enterprise — A$3500/mo, unlimited seats, adds white_label + api + sso + lp_report", () => {
     const p = byId("accelerator_enterprise");
     expect(p.price_aud_cents).toBe(350000);
     expect(p.annual_price_aud_cents).toBe(3500000);
@@ -217,10 +219,10 @@ describe("PRC-ACC — Accelerator per-cohort SKUs", () => {
     expect(p.usage_limits.monthly_credits).toBe(-1);
     expect(p.feature_flags).toEqual(
       expect.arrayContaining([
-        "multi_cohort_management",
-        "white_label_reports",
-        "dedicated_success_manager",
+        "white_label",
+        "api.access",
         "sso",
+        "lp_report",
       ]),
     );
     expect(p.stripe_env_var).toBe("STRIPE_PRICE_ACCEL_ENTERPRISE");

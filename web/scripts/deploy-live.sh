@@ -15,16 +15,19 @@ trap 'rm -f /tmp/blockid-deploy.pid' EXIT
 # BlockID.au — Zero-Downtime Deploy from Source (with CI gates)
 #
 # Built-in CI/CD pipeline (no Docker, no GitLab, no GitHub Actions):
-#   Gate 1: Verify all critical env keys present
-#   Gate 2: Verify Supabase + Redis connectivity
-#   Gate 3: TypeScript compilation (zero errors)
-#   Gate 4: ESLint (zero errors, warnings OK)
-#   Gate 4b: Unit tests (vitest) — runs even on --quick
-#   Gate 5: npm run build
-#   Gate 6: Start on temp port → smoke test 7 endpoints
-#   Gate 7: Supabase query test from new process
-#   Gate 8: Swap to production port (< 1s gap)
-#   Gate 9: Post-deploy verification (public URL)
+#   (gates are numbered dynamically by gate(); a full run is 12 — 2026-09-10)
+#   Gate 1: Secret scan (gitleaks)
+#   Gate 2: Verify all critical env keys present
+#   Gate 3: Verify Supabase + Redis connectivity
+#   Gate 4: TypeScript compilation (zero errors)        [skipped on --quick]
+#   Gate 5: ESLint (zero errors, warnings OK)           [skipped on --quick]
+#   Gate 6: Unit tests (vitest) — runs even on --quick
+#   Gate 7: npm run build                               [skipped on --skip-build]
+#   Gate 8: Start on temp port → smoke test endpoints + e2e smoke tier
+#   Gate 9: Supabase query test from new process
+#   Gate 10: Swap to production port (< 1s gap)
+#   Gate 11: Post-deploy verification (public URL)
+#   Gate 12: Post-deploy hydrated smoke (Playwright)
 #
 # If ANY gate fails → old build stays live, no damage.
 # Backup in .next-backup/ for instant rollback.

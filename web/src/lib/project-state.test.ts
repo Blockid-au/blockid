@@ -225,7 +225,7 @@ describe("nextTaskId", () => {
     expect(nextTaskId(makeState())).toBe("T0001");
   });
 
-  it("counts plan tasks only when no milestones exist", () => {
+  it("is max(existing)+1 over plan tasks", () => {
     const state = makeState({
       plan: {
         decidedAt: "",
@@ -236,28 +236,31 @@ describe("nextTaskId", () => {
     expect(nextTaskId(state)).toBe("T0004");
   });
 
-  it("counts every taskId recorded across milestones (monotonic id space)", () => {
+  it("considers milestone taskIds even when they are absent from plan.tasks", () => {
     const state = makeState({
       milestones: [makeMilestone({ id: "M001", taskIds: ["T0001", "T0002"] })],
     });
-    // 0 plan tasks + 2 milestone tasks + 1 = T0003
     expect(nextTaskId(state)).toBe("T0003");
   });
 
-  it("sums plan tasks and milestone taskIds together", () => {
+  it("does NOT double-count a task that is both in plan.tasks and a milestone (the 2026-09 collision)", () => {
     const state = makeState({
       plan: {
         decidedAt: "",
         decidedBy: "ceo",
-        tasks: [makeTask({ id: "T0004" }), makeTask({ id: "T0005" }), makeTask({ id: "T0006" })],
+        tasks: [makeTask({ id: "T0001", status: "done" }), makeTask({ id: "T0002", status: "done" }), makeTask({ id: "T0003" })],
       },
-      milestones: [
-        makeMilestone({ id: "M001", taskIds: ["T0001"] }),
-        makeMilestone({ id: "M002", taskIds: ["T0002", "T0003"] }),
-      ],
+      milestones: [makeMilestone({ id: "M001", taskIds: ["T0001", "T0002"] })],
     });
-    // 3 plan + (1+2) milestone + 1 = 7
-    expect(nextTaskId(state)).toBe("T0007");
+    // count-based would say 3 + 2 + 1 = T0006; max-based says T0004
+    expect(nextTaskId(state)).toBe("T0004");
+  });
+
+  it("respects hand-added ids that jump ahead", () => {
+    const state = makeState({
+      plan: { decidedAt: "", decidedBy: "ceo", tasks: [makeTask({ id: "T0001" }), makeTask({ id: "T0237" })] },
+    });
+    expect(nextTaskId(state)).toBe("T0238");
   });
 
   it("zero-pads to 4 digits", () => {
@@ -265,7 +268,7 @@ describe("nextTaskId", () => {
       plan: {
         decidedAt: "",
         decidedBy: "ceo",
-        tasks: Array.from({ length: 8 }, (_, i) => makeTask({ id: `T${i + 1}` })),
+        tasks: Array.from({ length: 8 }, (_, i) => makeTask({ id: `T${String(i + 1).padStart(4, "0")}` })),
       },
     });
     expect(nextTaskId(state)).toBe("T0009");
@@ -273,21 +276,17 @@ describe("nextTaskId", () => {
 
   it("padStart does not truncate — overflow past 9999 grows the id", () => {
     const state = makeState({
-      milestones: [makeMilestone({ id: "M001", taskIds: Array.from({ length: 9999 }, (_, i) => `T${i + 1}`) })],
+      milestones: [makeMilestone({ id: "M001", taskIds: ["T9999"] })],
     });
     expect(nextTaskId(state)).toBe("T10000");
   });
 
-  it("counts done + pending tasks equally (status is irrelevant)", () => {
+  it("ignores status (done, pending and merged all occupy their id)", () => {
     const state = makeState({
       plan: {
         decidedAt: "",
         decidedBy: "ceo",
-        tasks: [
-          makeTask({ id: "T0001", status: "done" }),
-          makeTask({ id: "T0002", status: "failed" }),
-          makeTask({ id: "T0003", status: "in_progress" }),
-        ],
+        tasks: [makeTask({ id: "T0001", status: "done" }), makeTask({ id: "T0002", status: "pending" }), makeTask({ id: "T0003", status: "merged" })],
       },
     });
     expect(nextTaskId(state)).toBe("T0004");

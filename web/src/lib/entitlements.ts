@@ -47,6 +47,7 @@ export type Feature =
   | "esop.manage"
   | "blockchain.sync"
   | "advisor_portal"
+  | "advisor.cohort"
   | "white_label"
   | "pdf_branding"
   | "sso"
@@ -213,6 +214,34 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "reseller.console",
     "reseller.create_startup",
     "reseller.grant_credits",
+  ],
+  // G12 (2026-09-10): evaluator + accelerator bundles mirror the tier-ladder
+  // feature lists so a fresh DB (or a plans-row read failure) never locks a
+  // paying Scout / Firm / Program / Cohort customer out of the pages that
+  // gate on investor.dealflow, watchlist, portfolio, advisor_portal,
+  // advisor.cohort, accelerator.cohort and lp_report. Same lists as
+  // plans.csv + migration 0309.
+  investor_angel: ["watchlist", "svi.feed", "investor.dealflow"],
+  investor_advisor: [
+    "watchlist", "svi.feed", "investor.dealflow",
+    "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
+  ],
+  investor_vc_small: [
+    "watchlist", "svi.feed", "investor.dealflow",
+    "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
+    "portfolio", "diligence_pack", "api", "api.access", "lp_export", "lp_report",
+  ],
+  investor_vc_ent: [
+    "watchlist", "svi.feed", "investor.dealflow",
+    "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
+    "portfolio", "diligence_pack", "api", "api.access", "lp_export", "lp_report",
+    "custom_benchmark", "multi_fund", "sso", "weekly_delta",
+  ],
+  accelerator_starter: ["cohort.view", "cohort.view.stats", "accelerator.cohort"],
+  accelerator_growth: ["cohort.view", "cohort.view.stats", "accelerator.cohort", "cohort.manage"],
+  accelerator_enterprise: [
+    "cohort.view", "cohort.view.stats", "accelerator.cohort", "cohort.manage",
+    "white_label", "api", "api.access", "sso", "lp_report",
   ],
 };
 

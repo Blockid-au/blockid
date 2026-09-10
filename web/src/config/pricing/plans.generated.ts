@@ -168,12 +168,15 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "trial_days": 7,
     "stripe_env_var": "STRIPE_PRICE_INVESTOR_ANGEL",
     "feature_flags": [
-      "investor.dealflow",
-      "investor.watchlist"
+      "watchlist",
+      "svi.feed",
+      "investor.dealflow"
     ],
     "usage_limits": {
+      "profiles": 25,
       "watchlist_size": 25,
-      "diligence_packs_per_month": 5
+      "reports_per_month": 10,
+      "seats": 1
     },
     "active": true,
     "sort_order": 60
@@ -188,12 +191,19 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "trial_days": 7,
     "stripe_env_var": "STRIPE_PRICE_INVESTOR_ADVISOR",
     "feature_flags": [
+      "watchlist",
+      "svi.feed",
       "investor.dealflow",
-      "advisor.clients",
+      "advisory_equity",
+      "advisor_portal",
+      "advisor.cohort",
       "white_label"
     ],
     "usage_limits": {
-      "clients": 25
+      "profiles": 50,
+      "clients": 50,
+      "reports_per_month": 30,
+      "seats": 3
     },
     "active": true,
     "sort_order": 70
@@ -208,13 +218,25 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "trial_days": 7,
     "stripe_env_var": "STRIPE_PRICE_INVESTOR_VC_SMALL",
     "feature_flags": [
+      "watchlist",
+      "svi.feed",
       "investor.dealflow",
-      "investor.portfolio",
-      "investor.lp_export"
+      "advisory_equity",
+      "advisor_portal",
+      "advisor.cohort",
+      "white_label",
+      "portfolio",
+      "diligence_pack",
+      "api",
+      "api.access",
+      "lp_export",
+      "lp_report"
     ],
     "usage_limits": {
-      "seats": 5,
-      "portfolio_size": 50
+      "profiles": 200,
+      "portfolio_size": 200,
+      "reports_per_month": 100,
+      "seats": 5
     },
     "active": true,
     "sort_order": 80
@@ -229,14 +251,28 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "trial_days": 0,
     "stripe_env_var": "STRIPE_PRICE_INVESTOR_VC_ENT",
     "feature_flags": [
+      "watchlist",
+      "svi.feed",
       "investor.dealflow",
-      "investor.portfolio",
-      "investor.lp_export",
+      "advisory_equity",
+      "advisor_portal",
+      "advisor.cohort",
+      "white_label",
+      "portfolio",
+      "diligence_pack",
+      "api",
       "api.access",
-      "custom_benchmarks"
+      "lp_export",
+      "lp_report",
+      "custom_benchmark",
+      "multi_fund",
+      "sso",
+      "weekly_delta"
     ],
     "usage_limits": {
-      "seats": -1
+      "profiles": -1,
+      "seats": -1,
+      "reports_per_month": -1
     },
     "active": true,
     "sort_order": 90
@@ -251,11 +287,12 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "trial_days": 14,
     "stripe_env_var": "STRIPE_PRICE_ACCEL_STARTER",
     "feature_flags": [
-      "cohort_dashboard",
-      "cohort_reports",
-      "program_curriculum_hub"
+      "cohort.view",
+      "cohort.view.stats",
+      "accelerator.cohort"
     ],
     "usage_limits": {
+      "profiles": 25,
       "seats": 15,
       "monthly_credits": 2000
     },
@@ -272,14 +309,13 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "trial_days": 14,
     "stripe_env_var": "STRIPE_PRICE_ACCEL_GROWTH",
     "feature_flags": [
-      "cohort_dashboard",
-      "cohort_reports",
-      "program_curriculum_hub",
-      "co_mentor_pool",
-      "cohort_batch_reports",
-      "alumni_network_tools"
+      "cohort.view",
+      "cohort.view.stats",
+      "accelerator.cohort",
+      "cohort.manage"
     ],
     "usage_limits": {
+      "profiles": 100,
       "seats": 50,
       "monthly_credits": 8000
     },
@@ -296,18 +332,18 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "trial_days": 14,
     "stripe_env_var": "STRIPE_PRICE_ACCEL_ENTERPRISE",
     "feature_flags": [
-      "cohort_dashboard",
-      "cohort_reports",
-      "program_curriculum_hub",
-      "co_mentor_pool",
-      "cohort_batch_reports",
-      "alumni_network_tools",
-      "multi_cohort_management",
-      "white_label_reports",
-      "dedicated_success_manager",
-      "sso"
+      "cohort.view",
+      "cohort.view.stats",
+      "accelerator.cohort",
+      "cohort.manage",
+      "white_label",
+      "api",
+      "api.access",
+      "sso",
+      "lp_report"
     ],
     "usage_limits": {
+      "profiles": -1,
       "seats": -1,
       "monthly_credits": -1
     },

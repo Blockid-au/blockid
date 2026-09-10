@@ -65,11 +65,15 @@ STEP 2 — Pick the highest-priority PENDING task from project-state.json that i
   (b) not blocked by another pending task.
   If no pending task is safe to ship alone, fall back to: bug fix → UX polish → SEO → test → copy improvement.
 
-PRIORITY ORDER (from project-state.json pending tasks):
-  T0010 — Berkus method + AU comparables in cfo-valuation.ts (add 5th valuation method for pre-revenue)
-  T0012 — Onboarding wizard: 3-step welcome modal for new users after first login
-  T0011 — Weekly SEO roundup post template for publish-insight cron
-  T0003 — Pilot valuation model improvement (≥10% AI budget, per existing rationale)
+PRIORITY ORDER (from project-state.json pending tasks — G11/G12 night-loop lane only;
+tasks tagged sprint S0–S5 are owned by founder sessions unless listed here):
+  T0249 — /pricing matrix row, insight cross-links, AnalyticsEventMap funding_* events, sync-stripe-pricing credit-pack drift (1500/2500 → 3500/6000)
+  T0250 — hero one-liners: lib/marketing/hero-variants.ts + GA4 hero_variant + messages hero.* EN/VI
+  T0274 — /investors and /docs stale pricing copy (A$99 / A$499 / Founding 100 / "8 AI Agents" / "17 C-Levels")
+  Otherwise: pick any pending task WITHOUT a sprint tag.
+
+COMMIT RULE: the commit subject MUST contain the task id (e.g. "feat(auto): … (T0249)") —
+the orchestrator closes a task only when its T-id appears in a commit message.
 
 Also look at: web/content/reports/*.md (agent research/insights) and recent git log for ideas.
 

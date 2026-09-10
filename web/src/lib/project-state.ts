@@ -22,7 +22,7 @@ export const ARCHITECTURE_MD_FILE = `${REPORTS_DIR}/architecture.md`;
 export const PACKAGE_JSON_FILE = `${WEB_DIR}/package.json`;
 
 export type VersionImpact = "patch" | "minor" | "major";
-export type TaskStatus = "pending" | "in_progress" | "done" | "failed";
+export type TaskStatus = "pending" | "in_progress" | "done" | "failed" | "merged";
 
 export interface PlanTask {
   id: string;
@@ -123,8 +123,19 @@ export function saveProjectState(state: ProjectState): void {
 // ── Task ids (deterministic — no Math.random in this runtime) ────────────
 
 export function nextTaskId(state: ProjectState): string {
-  const n = state.plan.tasks.length + state.milestones.reduce((s, m) => s + m.taskIds.length, 0) + 1;
-  return `T${String(n).padStart(4, "0")}`;
+  // max(existing)+1 — the old count-based formula double-counted milestone
+  // taskIds (they stay in plan.tasks) and minted ids that already existed
+  // (T0213 twice, then T0236). Hand-added ids are respected too.
+  const ids = [
+    ...state.plan.tasks.map(t => t.id),
+    ...state.milestones.flatMap(m => m.taskIds),
+  ];
+  let max = 0;
+  for (const id of ids) {
+    const m = /^T(\d+)$/.exec(id);
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  return `T${String(max + 1).padStart(4, "0")}`;
 }
 
 export function nextMilestoneId(state: ProjectState): string {
@@ -133,7 +144,7 @@ export function nextMilestoneId(state: ProjectState): string {
 
 // ── Rendering (human-readable mirrors) ───────────────────────────────────
 
-const STATUS_ICON: Record<TaskStatus, string> = { pending: "⬜", in_progress: "🔄", done: "✅", failed: "❌" };
+const STATUS_ICON: Record<TaskStatus, string> = { pending: "⬜", in_progress: "🔄", done: "✅", failed: "❌", merged: "🔀" };
 
 export function renderPlanMarkdown(s: ProjectState): string {
   const active = s.plan.tasks.filter(t => t.status === "pending" || t.status === "in_progress");

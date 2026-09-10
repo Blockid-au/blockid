@@ -199,7 +199,7 @@ async function stagePlan(state: OrchestratorState): Promise<StageResult> {
   // Check what research is available
   const { data: recentKB } = await supabase
     .from("agent_knowledge_base")
-    .select("agent, topic, updated_at")
+    .select("agent, topic, content, updated_at")
     .gte("updated_at", new Date(Date.now() - 7 * 86400_000).toISOString())
     .order("updated_at", { ascending: false })
     .limit(20);
