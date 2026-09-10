@@ -196,6 +196,47 @@ async function latestSnapshotStage(supabase: Supabase, email: string | null, pro
   }
 }
 
+/**
+ * Latest SVI total (index_value ?? svi_total) for the investor reverse-match
+ * (T0251): by `svi_snapshots.project_id` first, then via the user's
+ * `svi_accounts` row. `null` when there is no snapshot / no DB.
+ */
+export async function latestSviTotalFor(user: Pick<AppUser, "id" | "email">, project: Project | null): Promise<number | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const pick = (snap: { index_value?: unknown; svi_total?: unknown } | null): number | null => {
+    if (!snap) return null;
+    const n = Number(snap.index_value ?? snap.svi_total ?? NaN);
+    return Number.isFinite(n) ? n : null;
+  };
+  try {
+    if (project?.id) {
+      const { data } = await supabase
+        .from("svi_snapshots")
+        .select("index_value, svi_total")
+        .eq("project_id", project.id)
+        .order("snapshot_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const v = pick(data);
+      if (v !== null) return v;
+    }
+    if (!user.email) return null;
+    const { data: account } = await supabase.from("svi_accounts").select("id").eq("email", user.email).limit(1).maybeSingle();
+    if (!account?.id) return null;
+    const { data } = await supabase
+      .from("svi_snapshots")
+      .select("index_value, svi_total")
+      .eq("account_id", account.id)
+      .order("snapshot_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return pick(data);
+  } catch {
+    return null;
+  }
+}
+
 // ─── Events + capital map ────────────────────────────────────────────────────
 
 export async function listEventPrograms(capital?: string | null): Promise<AuProgram[]> {

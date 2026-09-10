@@ -181,10 +181,11 @@ const FOUNDER: Plan[] = [
       "Cap-table sync + data room",
       "45 AI credits / month",
       "Term Sheet AI drafter",
-      // G11 §4h Growth rung. Investor reverse-match, per-grant drafts and
-      // the quarterly refresh ship under T0251 (S5) — "(coming)" stays on
-      // this line until that lands. Do not drop the word before then.
-      "+ investor matching, unlimited application drafts, quarterly expert refresh (coming)",
+      // G11 §4h Growth rung — shipped in T0251 (S5): investor reverse-match
+      // ("Investors who match" + Request intro), unlimited per-grant
+      // application drafts, quarterly expert analysis refresh. Wording is
+      // mirrored by FUNDING_COPY.pricing.growth (lib/funding/copy.ts).
+      "+ investor matching, unlimited application drafts, quarterly expert update",
       "Priority support (24h)",
       // The add-on grants exactly four flags — esop.manage, vesting.read,
       // vesting.write, blockchain.sync (see entitlements/user-grants.ts

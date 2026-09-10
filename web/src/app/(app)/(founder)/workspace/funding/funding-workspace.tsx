@@ -9,16 +9,19 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, Bell, CalendarDays, ExternalLink, Landmark, Layers3, RefreshCw } from "lucide-react";
+import Markdown from "react-markdown";
+import { ArrowRight, Bell, CalendarDays, ExternalLink, Landmark, Layers3, Lock, Mail, RefreshCw, Sparkles, Users } from "lucide-react";
 import type { ScoredGrant, ScoredProgram, TimelineItem } from "@/lib/agents/grant-advisor";
 import type { AuProgramRow } from "@/lib/funding/seed-map";
+import type { InvestorMatch } from "@/lib/funding/investor-match";
+import { FUNDING_COPY } from "@/lib/funding/copy";
 import { ReportGrantCard, ReportProgramCard, type ReportCardContext } from "@/components/funding/report-cards";
 import { TimelineGantt, TimelineTable } from "@/components/funding/timeline-gantt";
 import { DeadlineChip } from "@/components/funding/deadline-chip";
 import { formatDateAu } from "@/lib/funding/deadline-status";
 import { capitalSlug, programTypeLabel } from "@/lib/funding/directory";
 
-export type FundingTab = "grants" | "programs" | "events" | "timeline" | "capital" | "alerts";
+export type FundingTab = "grants" | "programs" | "events" | "timeline" | "capital" | "investors" | "refresh" | "alerts";
 
 export const FUNDING_TABS: ReadonlyArray<{ id: FundingTab; label: string }> = [
   { id: "grants", label: "Grants" },
@@ -26,8 +29,20 @@ export const FUNDING_TABS: ReadonlyArray<{ id: FundingTab; label: string }> = [
   { id: "events", label: "Events" },
   { id: "timeline", label: "Timeline" },
   { id: "capital", label: "Capital map" },
+  { id: "investors", label: "Investors" },
+  { id: "refresh", label: "Expert update" },
   { id: "alerts", label: "Alerts" },
 ];
+
+/** Growth extras (T0251, §4h Growth row). `unlocked` false → locked cards with the D-3 copy. */
+export interface GrowthExtras {
+  unlocked: boolean;
+  investors: InvestorMatch[];
+  refresh: { quarter: string; body_md: string; changes: number; created_at: string } | null;
+  /** ISO day the next quarterly note lands. */
+  nextRefreshDate: string | null;
+  startup: string | null;
+}
 
 export interface CapitalMapSection {
   type: string;
@@ -53,23 +68,27 @@ export interface FundingWorkspaceProps {
   capitalMap: CapitalMapSection[];
   alertKinds: ReadonlyArray<{ kind: string; label: string; detail: string }>;
   initialTab?: FundingTab;
-  /** `?draft=<ref>` stub — no drafting logic yet, just an acknowledgement. */
+  /** `?draft=<ref>&kind=program` — programs still get the acknowledgement stub (grant drafts render `draftEditor`). */
   draftRef?: string | null;
+  /** Grant draft editor built by the server page for `?draft=<grantId>&kind=grant` (T0251). */
+  draftEditor?: React.ReactNode;
+  growth?: GrowthExtras | null;
 }
 
 export function isFundingTab(v: string | null | undefined): v is FundingTab {
   return FUNDING_TABS.some((t) => t.id === v);
 }
 
-export function FundingWorkspace({ report, events, capitalMap, alertKinds, initialTab = "grants", draftRef }: FundingWorkspaceProps) {
+export function FundingWorkspace({ report, events, capitalMap, alertKinds, initialTab = "grants", draftRef, draftEditor, growth }: FundingWorkspaceProps) {
   const [tab, setTab] = React.useState<FundingTab>(initialTab);
   const ctx: ReportCardContext | null = report
     ? { reportId: report.id, signedIn: true, today: report.today ? new Date(`${report.today}T00:00:00Z`) : new Date(report.created_at) }
     : null;
 
   return (
-    <div data-funding-workspace data-tab={tab}>
-      {draftRef ? (
+    <div data-funding-workspace data-tab={tab} data-growth={growth?.unlocked ? "1" : "0"}>
+      {draftEditor ?? null}
+      {draftRef && !draftEditor ? (
         <p className="mb-4 rounded-xl border border-action/40 bg-surface-raised px-4 py-3 text-sm text-secondary" data-draft-stub>
           <span className="font-semibold text-primary">Draft application for {draftRef}</span> — the CFO / CLO drafter for grant applications lands with
           the credits release. Your report is saved; we will prefill the application from it.
@@ -101,6 +120,8 @@ export function FundingWorkspace({ report, events, capitalMap, alertKinds, initi
         {tab === "events" ? <EventsTab events={events} state={report?.state ?? null} /> : null}
         {tab === "timeline" ? <TimelineTab report={report} /> : null}
         {tab === "capital" ? <CapitalMapTab sections={capitalMap} /> : null}
+        {tab === "investors" ? <InvestorsTab growth={growth ?? null} /> : null}
+        {tab === "refresh" ? <RefreshTab growth={growth ?? null} /> : null}
         {tab === "alerts" ? <AlertsTab kinds={alertKinds} /> : null}
       </div>
     </div>
@@ -272,6 +293,111 @@ function CapitalMapTab({ sections }: { sections: CapitalMapSection[] }) {
           </Link>
         </div>
       ))}
+    </section>
+  );
+}
+
+function LockedCard({ title, body, icon }: { title: string; body: string; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-line-subtle bg-surface-sunken p-6" data-growth-locked>
+      <p className="inline-flex items-center gap-2 font-semibold text-primary">
+        {icon} {title} <Lock className="h-3.5 w-3.5 text-tertiary" aria-hidden />
+      </p>
+      <p className="mt-1 text-sm text-secondary">{body}</p>
+      <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-action">
+        See Growth <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+      </Link>
+    </div>
+  );
+}
+
+function InvestorsTab({ growth }: { growth: GrowthExtras | null }) {
+  if (!growth?.unlocked) {
+    return (
+      <section aria-label="Investors who match" data-investors>
+        <LockedCard
+          title={FUNDING_COPY.growth.investorsTitle}
+          body={FUNDING_COPY.growth.investorsLocked}
+          icon={<Users className="h-4 w-4 text-action" aria-hidden />}
+        />
+      </section>
+    );
+  }
+  return (
+    <section aria-label="Investors who match" data-investors data-count={growth.investors.length}>
+      <p className="text-sm text-secondary">{FUNDING_COPY.growth.investorsIntro}</p>
+      {growth.investors.length === 0 ? (
+        <div className="mt-4 rounded-2xl border border-dashed border-line-subtle bg-surface-sunken p-5 text-sm text-secondary" data-no-investors>
+          {FUNDING_COPY.growth.noInvestors}
+        </div>
+      ) : (
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {growth.investors.map((inv) => (
+            <li key={inv.investor_id} className="rounded-2xl border border-line-subtle bg-surface p-4" data-investor={inv.investor_id} data-score={inv.score}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-semibold text-primary">{inv.name}</p>
+                <span className="rounded-full bg-action/10 px-2 py-0.5 text-xs font-semibold text-action">Fit {inv.score}</span>
+              </div>
+              <ul className="mt-2 space-y-1 text-xs text-secondary">
+                {inv.reasons.map((r) => (
+                  <li key={r}>· {r}</li>
+                ))}
+                {inv.gaps.map((g) => (
+                  <li key={`gap-${g}`} className="text-tertiary">· Outside their {g} preference</li>
+                ))}
+              </ul>
+              {inv.cheque_band && inv.cheque_band !== "any" ? (
+                <p className="mt-2 text-xs text-tertiary">Cheque: {inv.cheque_band.replace(/_/g, " ")}</p>
+              ) : null}
+              <a
+                href={inv.intro_href}
+                className="mt-3 inline-flex items-center gap-1 rounded-lg border border-line-subtle px-3 py-1.5 text-xs font-semibold text-primary"
+                data-request-intro
+              >
+                <Mail className="h-3.5 w-3.5" aria-hidden /> {FUNDING_COPY.growth.requestIntro}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function RefreshTab({ growth }: { growth: GrowthExtras | null }) {
+  if (!growth?.unlocked) {
+    return (
+      <section aria-label="Quarterly expert update" data-refresh>
+        <LockedCard
+          title={FUNDING_COPY.growth.refreshTitle}
+          body={FUNDING_COPY.growth.refreshLocked}
+          icon={<Sparkles className="h-4 w-4 text-action" aria-hidden />}
+        />
+      </section>
+    );
+  }
+  const r = growth.refresh;
+  return (
+    <section aria-label="Quarterly expert update" data-refresh data-quarter={r?.quarter ?? ""}>
+      {!r ? (
+        <div className="rounded-2xl border border-dashed border-line-subtle bg-surface-sunken p-5 text-sm text-secondary" data-no-refresh>
+          <p className="inline-flex items-center gap-2 font-semibold text-primary">
+            <Sparkles className="h-4 w-4 text-action" aria-hidden /> {FUNDING_COPY.growth.refreshTitle}
+          </p>
+          <p className="mt-1">{FUNDING_COPY.growth.noRefresh}</p>
+          {growth.nextRefreshDate ? <p className="mt-1 text-xs text-tertiary">Next update: {growth.nextRefreshDate}</p> : null}
+        </div>
+      ) : (
+        <article className="rounded-2xl border border-line-subtle bg-surface p-6">
+          <p className="text-xs text-tertiary">
+            {r.quarter} · {r.changes} change{r.changes === 1 ? "" : "s"} · prepared {r.created_at.slice(0, 10)}
+            {growth.nextRefreshDate ? ` · next ${growth.nextRefreshDate}` : ""}
+          </p>
+          <div className="prose prose-sm mt-3 max-w-none text-secondary" data-refresh-body>
+            <Markdown>{r.body_md}</Markdown>
+          </div>
+        </article>
+      )}
     </section>
   );
 }

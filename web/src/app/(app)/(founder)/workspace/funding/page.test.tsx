@@ -2,12 +2,15 @@ import type React from "react";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Render test for /workspace/funding (T0244) with the data layer mocked.
+// Render test for /workspace/funding (T0244 + T0251) with the data layer mocked.
 // Pins: login redirect; the free variant (prefilled intake + A$3 / Starter
-// paywall hint, no tabs); the paid variant (six tabs, latest report on the
-// Grants tab, `?tab=` picks the initial tab, `?draft=` stub, Events from
-// program_type=event, Capital map sections + article links, Alerts kinds);
-// and the "no report yet" prompt for a paid founder without a row.
+// paywall hint, no tabs); the paid variant (eight tabs, latest report on the
+// Grants tab, `?tab=` picks the initial tab, Events from program_type=event,
+// Capital map sections + article links, Alerts kinds); the "no report yet"
+// prompt for a paid founder without a row; T0251 — `?draft=<grantId>&kind=grant`
+// opens the draft editor (Starter: 2 credits on the button; Growth: included),
+// `kind=program` keeps the stub, and the Investors / Expert update tabs show
+// locked cards for Starter and the live data for Growth.
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/components/workspace/workspace-layout", () => ({
@@ -35,10 +38,25 @@ vi.mock("@/lib/projects", () => ({
   getActiveProject: async () => PROJECT,
 }));
 
+const getGrantMock = vi.fn();
 vi.mock("@/lib/funding/data", () => ({
   listGrants: async () => [{ id: "g1", last_verified_at: "2026-09-10" }, { id: "g2", last_verified_at: "2026-09-01" }],
   listPrograms: async () => [{ id: "p1", last_verified_at: "2026-09-05" }],
+  getGrant: (id: string) => getGrantMock(id),
 }));
+
+// T0251 Growth extras — plan gate, investor reverse-match, quarterly note, draft row.
+const growthMock = vi.fn();
+vi.mock("@/lib/funding/growth-extras", () => ({ hasGrowthExtras: () => growthMock() }));
+const investorsMock = vi.fn();
+vi.mock("@/lib/funding/investor-match", () => ({ matchInvestorsForProject: (p: unknown) => investorsMock(p) }));
+const refreshMock = vi.fn();
+vi.mock("@/lib/funding/analysis-refresh", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@/lib/funding/analysis-refresh")>();
+  return { ...orig, latestAnalysisRefresh: (u: string, p: string | null) => refreshMock(u, p) };
+});
+const latestDraftMock = vi.fn();
+vi.mock("@/lib/funding/application-drafts", () => ({ latestGrantDraft: (...a: unknown[]) => latestDraftMock(...a) }));
 
 const latestReportMock = vi.fn();
 const eventsMock = vi.fn();
@@ -49,6 +67,7 @@ vi.mock("@/lib/funding/workspace", async (importOriginal) => {
     intakePrefillFor: async () => ({ description: "Acme Agtech — Soil sensors", state: "NSW", stage: "mvp", industry_tags: ["agtech_food"] }),
     latestFundingReportForUser: (u: string, p: string | null) => latestReportMock(u, p),
     listEventPrograms: (c: string | null) => eventsMock(c),
+    latestSviTotalFor: async () => 62,
     listCapitalMapRows: async () => ({
       angel_group: [{ id: "a1", name: "Sydney Angels", program_type: "angel_group", city: "Sydney", official_url: "https://sydneyangels.net.au", funding_aud: 500000 }],
       vc: [],
@@ -121,6 +140,11 @@ beforeEach(() => {
   latestReportMock.mockReset().mockResolvedValue(ROW);
   eventsMock.mockReset().mockResolvedValue([EVENT]);
   redirectMock.mockClear();
+  getGrantMock.mockReset().mockResolvedValue(grantRow());
+  growthMock.mockReset().mockResolvedValue(false);
+  investorsMock.mockReset().mockResolvedValue([]);
+  refreshMock.mockReset().mockResolvedValue(null);
+  latestDraftMock.mockReset().mockResolvedValue(null);
 });
 
 describe("/workspace/funding (T0244)", () => {
@@ -148,12 +172,12 @@ describe("/workspace/funding (T0244)", () => {
     expect(out).toContain('data-surface="funding_directory"');
   });
 
-  it("paid founder: six tabs with the latest report on Grants, plus the intake to re-run", async () => {
+  it("paid founder: eight tabs with the latest report on Grants, plus the intake to re-run", async () => {
     const out = await html();
     expect(out).toContain('data-plan-included="1"');
     expect(out).toContain('data-funding-workspace');
     expect(out).toContain('data-tab="grants"');
-    for (const t of ["Grants", "Programs", "Events", "Timeline", "Capital map", "Alerts"]) {
+    for (const t of ["Grants", "Programs", "Events", "Timeline", "Capital map", "Investors", "Expert update", "Alerts"]) {
       expect(out).toContain(`>${t}</button>`);
     }
     expect(latestReportMock).toHaveBeenCalledWith("u-1", "proj-1");
@@ -211,15 +235,109 @@ describe("/workspace/funding (T0244)", () => {
     expect(free).not.toContain("data-money-radar-tile");
   });
 
-  it("acknowledges ?draft= as a stub and prompts to run a match when no report exists", async () => {
-    const drafted = await html({ draft: "g1" });
-    expect(drafted).toContain("data-draft-stub");
-    expect(drafted).toContain("Draft application for g1");
+  it("?draft=<grantId>&kind=grant opens the draft editor — Starter shows the 2-credit price, Growth 'included' (T0251)", async () => {
+    const starter = await html({ draft: "g1", kind: "grant" });
+    expect(starter).toContain("data-grant-draft-editor");
+    expect(starter).toContain('data-grant="g1"');
+    expect(starter).toContain('data-cost="2"');
+    expect(starter).toContain('data-unlimited="0"');
+    expect(starter).toContain("Draft application: MVP Ventures");
+    expect(starter).toContain("Drafting this application costs 2 credits. You confirm before we spend them.");
+    expect(starter).toContain("Generate draft — 2 credits");
+    expect(starter).not.toContain("data-draft-stub");
+    // Seeded prompt from the fixture grant would be generic (no application_prompts) → generic note + 4 questions.
+    expect(starter).toContain("data-draft-generic");
+    expect(starter).toContain('data-prompt="project"');
+    expect(starter).toContain('data-prompt="outcomes"');
+    expect(latestDraftMock).toHaveBeenCalledWith("u-1", "proj-1", "g1");
 
+    growthMock.mockResolvedValue(true);
+    const growth = await html({ draft: "g1", kind: "grant" });
+    expect(growth).toContain('data-cost="0"');
+    expect(growth).toContain('data-unlimited="1"');
+    expect(growth).toContain("Application drafts are unlimited on your plan.");
+    expect(growth).toContain("Generate draft — included");
+  });
+
+  it("?draft=<ref>&kind=program keeps the acknowledgement stub; an unknown grant id falls back to the stub too", async () => {
+    const program = await html({ draft: "p1", kind: "program" });
+    expect(program).toContain("data-draft-stub");
+    expect(program).toContain("Draft application for p1");
+    expect(program).not.toContain("data-grant-draft-editor");
+
+    getGrantMock.mockResolvedValueOnce(null);
+    const unknown = await html({ draft: "zzz", kind: "grant" });
+    expect(unknown).toContain("data-draft-stub");
+  });
+
+  it("prompts to run a match when no report exists", async () => {
     latestReportMock.mockResolvedValue(null);
     const none = await html();
     expect(none).toContain("data-no-report");
     expect(none).toContain("Run my match");
     expect(none).toContain("data-funding-intake");
+  });
+
+  it("Investors tab: Starter sees the locked card; Growth sees the ranked investors with a support-mailto intro (T0251)", async () => {
+    const starter = await html({ tab: "investors" });
+    expect(starter).toContain('data-growth="0"');
+    expect(starter).toContain("data-investors");
+    expect(starter).toContain("data-growth-locked");
+    expect(starter).toContain("Investor matching is a Growth feature. Upgrade to see the investors whose thesis fits your startup.");
+    expect(starter).toContain('href="/pricing"');
+    expect(investorsMock).not.toHaveBeenCalled();
+
+    growthMock.mockResolvedValue(true);
+    investorsMock.mockResolvedValue([
+      {
+        investor_id: "inv-1", name: "Sydney Seed Fund", plan: "investor_angel", score: 100,
+        reasons: ["Your SVI 62 clears their 50 floor", "Invests in agtech"], gaps: [], sectors: ["agtech"], stages: ["seed"], geos: ["AU"],
+        cheque_band: "100k_500k", min_svi: 50,
+        intro_href: "mailto:support@blockid.au?subject=Intro%20request%3A%20Acme%20Agtech%20%E2%86%92%20Sydney%20Seed%20Fund",
+      },
+    ]);
+    const growth = await html({ tab: "investors" });
+    expect(growth).toContain('data-growth="1"');
+    expect(growth).toContain('data-count="1"');
+    expect(growth).toContain('data-investor="inv-1"');
+    expect(growth).toContain("Sydney Seed Fund");
+    expect(growth).toContain("Fit 100");
+    expect(growth).toContain("Invests in agtech");
+    expect(growth).toContain("data-request-intro");
+    expect(growth).toContain('href="mailto:support@blockid.au?subject=Intro%20request');
+    expect(growth).not.toContain("data-growth-locked");
+    // The match is built from the project + report + SVI.
+    expect(investorsMock).toHaveBeenCalledWith(expect.objectContaining({ id: "proj-1", name: "Acme Agtech", industry: "AgTech", state: "NSW", svi: 62 }));
+
+    investorsMock.mockResolvedValue([]);
+    const empty = await html({ tab: "investors" });
+    expect(empty).toContain("data-no-investors");
+    expect(empty).toContain("No opted-in investor matches your profile yet.");
+  });
+
+  it("Expert update tab: locked for Starter; Growth sees the next-date note or the latest markdown (T0251)", async () => {
+    const starter = await html({ tab: "refresh" });
+    expect(starter).toContain("data-refresh");
+    expect(starter).toContain("data-growth-locked");
+    expect(starter).toContain("The quarterly expert update is a Growth feature.");
+    expect(refreshMock).not.toHaveBeenCalled();
+
+    growthMock.mockResolvedValue(true);
+    const none = await html({ tab: "refresh" });
+    expect(none).toContain("data-no-refresh");
+    expect(none).toContain("Your first quarterly update lands on the 1st of next quarter.");
+    expect(none).toMatch(/Next update: \d{4}-\d{2}-01/);
+
+    refreshMock.mockResolvedValue({
+      id: "r1", user_id: "u-1", project_id: "proj-1", quarter: "2026-Q3", changes: 3,
+      body_md: "# What changed for Acme Agtech — 2026-Q3\n\n## 1. Your SVI\nSVI moved **54 → 61** (+7).\n", meta: {}, created_at: "2026-10-01T06:00:00Z",
+    });
+    const note = await html({ tab: "refresh" });
+    expect(note).toContain('data-quarter="2026-Q3"');
+    expect(note).toContain("3 changes");
+    expect(note).toContain("data-refresh-body");
+    expect(note).toContain("What changed for Acme Agtech — 2026-Q3");
+    expect(note).toContain("<strong>54 → 61</strong>");
+    expect(refreshMock).toHaveBeenCalledWith("u-1", "proj-1");
   });
 });

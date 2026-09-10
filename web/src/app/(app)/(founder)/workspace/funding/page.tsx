@@ -11,8 +11,14 @@
  *     map · Alerts fed by the latest `funding_reports` row for the active
  *     startup, plus the intake underneath to (re)run a report.
  *
- * `?tab=` picks the initial tab; `?draft=<ref>` is the "Draft application"
- * stub from the report cards (acknowledged, no drafting logic yet).
+ * `?tab=` picks the initial tab; `?draft=<grantId>&kind=grant` opens the
+ * per-grant application draft editor (T0251 — Growth / Startup Package
+ * unlimited, Starter 2 credits after confirming); `?draft=<ref>&kind=program`
+ * is still the acknowledgement stub.
+ *
+ * Growth extras (T0251, §4h Growth row) on the Investors / Expert update
+ * tabs: investor reverse-match (`matchInvestorsForProject`) and the latest
+ * `analysis_refreshes` note. Starter sees locked cards (copy.ts `growth.*`).
  */
 
 import type { Metadata } from "next";
@@ -34,11 +40,20 @@ import {
   MONEY_RADAR_ALERT_KINDS,
   intakePrefillFor,
   latestFundingReportForUser,
+  latestSviTotalFor,
   listCapitalMapRows,
   listEventPrograms,
 } from "@/lib/funding/workspace";
 import { capitalForCity } from "@/lib/funding/seed-map";
-import { FundingWorkspace, isFundingTab, type CapitalMapSection } from "./funding-workspace";
+import { getGrant } from "@/lib/funding/data";
+import { FEATURE_COSTS } from "@/lib/credits";
+import { hasGrowthExtras } from "@/lib/funding/growth-extras";
+import { isGenericPromptSet, promptsForGrant } from "@/lib/funding/application-prompts";
+import { latestGrantDraft } from "@/lib/funding/application-drafts";
+import { matchInvestorsForProject } from "@/lib/funding/investor-match";
+import { latestAnalysisRefresh, nextRefreshDate, previousQuarter } from "@/lib/funding/analysis-refresh";
+import { GrantDraftEditor } from "@/components/funding/grant-draft-editor";
+import { FundingWorkspace, isFundingTab, type CapitalMapSection, type GrowthExtras } from "./funding-workspace";
 import { MoneyRadarTile } from "@/components/dashboard/money-radar-tile";
 import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
 
@@ -51,7 +66,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ tab?: string | string[]; draft?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; draft?: string | string[]; kind?: string | string[] }>;
 }
 
 function first(v: string | string[] | undefined): string | null {
@@ -65,6 +80,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
   const sp = await searchParams;
   const tabParam = first(sp.tab);
   const draftRef = first(sp.draft);
+  const draftKind = first(sp.kind) === "program" ? "program" : "grant";
 
   const [isSandbox, included, project] = await Promise.all([
     getCurrentProjectIsSandbox(),
@@ -101,6 +117,63 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
       rows: s.type in capitalRows ? capitalRows[s.type as keyof typeof capitalRows] : [],
     }));
     const meta = (row?.meta ?? {}) as { today?: string; actions?: string[] };
+
+    // ── Growth extras (T0251) ──────────────────────────────────────────────
+    const unlimited = await hasGrowthExtras({ id: user.id, plan: user.plan });
+    const [investors, refreshRow] = unlimited
+      ? await Promise.all([
+          latestSviTotalFor(user, project).then((svi) =>
+            matchInvestorsForProject({
+              id: project?.id ?? null,
+              name: project?.name ?? "Your startup",
+              industry: project?.industry ?? (intake?.ok ? intake.intake.industry_tags?.[0] ?? null : null),
+              stage: intake?.ok ? intake.intake.stage : project?.stage ?? null,
+              state: state && state !== NOT_INCORPORATED ? state : null,
+              svi,
+            }),
+          ),
+          latestAnalysisRefresh(user.id, project?.id ?? null),
+        ])
+      : [[], null];
+    const growth: GrowthExtras = {
+      unlocked: unlimited,
+      investors,
+      refresh: refreshRow ? { quarter: refreshRow.quarter, body_md: refreshRow.body_md, changes: refreshRow.changes, created_at: refreshRow.created_at } : null,
+      nextRefreshDate: nextRefreshDate(previousQuarter(new Date())),
+      startup: project?.name ?? null,
+    };
+
+    // ── Draft editor (?draft=<grantId>&kind=grant) ─────────────────────────
+    let draftEditor: ReactNode = null;
+    if (draftRef && draftKind === "grant") {
+      let grant = null;
+      try {
+        grant = await getGrant(draftRef);
+      } catch {
+        grant = null;
+      }
+      if (grant && !grant.exclude_from_matching) {
+        const prompts = promptsForGrant(grant);
+        const existing = await latestGrantDraft(user.id, project?.id ?? null, grant.id);
+        draftEditor = (
+          <GrantDraftEditor
+            grant={{ id: grant.id, name: grant.name, official_url: grant.official_url, closes_at: grant.closes_at }}
+            prompts={prompts}
+            generic={isGenericPromptSet(prompts)}
+            projectId={project?.id ?? null}
+            initial={
+              existing
+                ? { id: existing.id, answers: existing.answers, status: existing.status, updated_at: existing.updated_at, ai_ok: existing.meta.ai_ok !== false }
+                : null
+            }
+            cost={unlimited ? 0 : FEATURE_COSTS.grant_application_draft ?? 2}
+            unlimited={unlimited}
+            allowed
+          />
+        );
+      }
+    }
+
     workspace = (
       <FundingWorkspace
         report={
@@ -123,6 +196,8 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
         alertKinds={MONEY_RADAR_ALERT_KINDS}
         initialTab={isFundingTab(tabParam) ? tabParam : "grants"}
         draftRef={draftRef}
+        draftEditor={draftEditor}
+        growth={growth}
       />
     );
   }

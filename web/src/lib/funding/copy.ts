@@ -151,6 +151,25 @@ export const FUNDING_COPY = {
     radarPrice: `${RADAR_PRICE} · Starter`,
   },
 
+  /** Growth extras (T0251 §4h): investor reverse-match, unlimited drafts, quarterly expert update. Starter sees the locked lines. */
+  growth: {
+    investorsTitle: "Investors who match",
+    investorsIntro: "Investors on BlockID who opted in and whose thesis fits your sector, stage, location and SVI. Nothing is sent to them until you ask.",
+    investorsLocked: "Investor matching is a Growth feature. Upgrade to see the investors whose thesis fits your startup.",
+    noInvestors: "No opted-in investor matches your profile yet. We re-check as investors update their preferences.",
+    requestIntro: "Request intro",
+    introSubject: "Intro request: {startup} → {investor}",
+    refreshTitle: "Quarterly expert update",
+    refreshLocked: "The quarterly expert update is a Growth feature. Upgrade to get a \"what changed for your startup\" note every quarter.",
+    noRefresh: "Your first quarterly update lands on the 1st of next quarter. It covers your SVI move, catalogue changes on your matches and new CFO / CLO research.",
+    draftTitle: "Draft application: {grant}",
+    draftCost: "Drafting this application costs {cost} credits. You confirm before we spend them.",
+    draftIncluded: "Application drafts are unlimited on your plan.",
+    draftLocked: "Application drafts are included from Starter (credits) and unlimited on Growth.",
+    draftFailed: "The drafter could not reach the AI, so your questions are saved with empty answers. Retry in a minute.",
+    draftGeneric: "This grant has no official question set yet, so these are the four questions every AU grant form asks.",
+  },
+
   /** Empty / locked states — never blank (auto-fill rule). */
   empty: {
     noGrants: "No grants match yet — the directory is still free to browse.",
