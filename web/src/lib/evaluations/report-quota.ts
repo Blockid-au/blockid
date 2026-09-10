@@ -8,6 +8,14 @@
 //   re-score     → FEATURE_COSTS.trust_report_rescore (1 credit = A$1),
 //                  never the quota — the quota is priced as "10 × A$3".
 //
+// Trial (G12 §3b, S7-C): while the user's Stripe subscription is `trialing`
+// (`subscription_trial_state.status`, mirrored by the webhook, with
+// trial_end > now) the included quota is TRIAL_REPORT_ALLOWANCE = 1 for the
+// WHOLE trial — not the plan's reports_per_month — counted against
+// paid_via='quota' rows since trial_start. Beyond that the run is charged to
+// credits exactly as after the quota; never blocked. The plan quota applies
+// automatically once the status flips to `active` (day 8 charge).
+//
 // `used` is the number of `evaluation_reports` rows (migration 0317) with
 // paid_via='quota' inside the current UTC calendar month; the row is written
 // by the route only AFTER the pipeline succeeded, so a failed run consumes
@@ -36,10 +44,38 @@ export const REPORT_KIND_FEATURE: Record<EvaluationReportKind, "trust_report" | 
   rescore: "trust_report_rescore",
 };
 
+/** Included full reports for the whole card-required trial (not per month). */
+export const TRIAL_REPORT_ALLOWANCE = 1;
+
+export interface ReportTrial {
+  /** status='trialing' and trial_end in the future. */
+  active: boolean;
+  ends_at: string | null;
+  started_at: string | null;
+  /** TRIAL_REPORT_ALLOWANCE — surfaced so the UI never hard-codes it. */
+  allowance: number;
+  /** paid_via='quota' rows since trial_start (0 when not trialing). */
+  used: number;
+  plan_id: string | null;
+}
+
+export const NO_TRIAL: ReportTrial = Object.freeze({
+  active: false,
+  ends_at: null,
+  started_at: null,
+  allowance: TRIAL_REPORT_ALLOWANCE,
+  used: 0,
+  plan_id: null,
+}) as ReportTrial;
+
 export interface ReportQuota {
-  /** Included reports per month; Number.MAX_SAFE_INTEGER when unlimited; 0 when the plan has none. */
+  /**
+   * Included reports per month (TRIAL_REPORT_ALLOWANCE for the whole trial
+   * while `trial.active`); Number.MAX_SAFE_INTEGER when unlimited; 0 when
+   * the plan has none.
+   */
   limit: number;
-  /** paid_via='quota' rows this UTC calendar month. */
+  /** paid_via='quota' rows this UTC calendar month (since trial_start while trialing). */
   used: number;
   remaining: number;
   unlimited: boolean;
@@ -49,6 +85,8 @@ export interface ReportQuota {
    * Batch POST turns it into 402 quota_not_configured (review #14).
    */
   configured?: boolean;
+  /** Trial state the quota was derived from (S7-C). */
+  trial?: ReportTrial;
 }
 
 /** How long a just-written evaluation_reports row is returned instead of re-run (review #9). */
@@ -121,7 +159,7 @@ export function reportLimitFromUsageLimits(limits: Record<string, unknown> | nul
   return Math.floor(n);
 }
 
-export function buildQuota(limit: number, used: number, configured = true): ReportQuota {
+export function buildQuota(limit: number, used: number, configured = true, trial: ReportTrial = NO_TRIAL): ReportQuota {
   const unlimited = limit >= Number.MAX_SAFE_INTEGER;
   return {
     limit,
@@ -129,6 +167,35 @@ export function buildQuota(limit: number, used: number, configured = true): Repo
     remaining: unlimited ? Number.MAX_SAFE_INTEGER : Math.max(0, limit - used),
     unlimited,
     configured,
+    trial,
+  };
+}
+
+/**
+ * Trial quota: TRIAL_REPORT_ALLOWANCE for the whole trial, `used` = rows
+ * since trial_start. Pure — `getReportQuota` picks this over the plan quota
+ * whenever `trial.active`.
+ */
+export function buildTrialQuota(trial: ReportTrial): ReportQuota {
+  return buildQuota(trial.allowance, trial.used, true, trial);
+}
+
+/** `subscription_trial_state` row → ReportTrial (active only while trialing and unexpired). */
+export function trialFromState(
+  row: { status?: string | null; trial_start?: string | null; trial_end?: string | null; plan_id?: string | null } | null | undefined,
+  now: Date = new Date(),
+  used = 0,
+): ReportTrial {
+  if (!row) return NO_TRIAL;
+  const endMs = row.trial_end ? Date.parse(row.trial_end) : NaN;
+  const active = row.status === "trialing" && Number.isFinite(endMs) && endMs > now.getTime();
+  return {
+    active,
+    ends_at: Number.isFinite(endMs) ? new Date(endMs).toISOString() : null,
+    started_at: row.trial_start && Number.isFinite(Date.parse(row.trial_start)) ? new Date(row.trial_start).toISOString() : null,
+    allowance: TRIAL_REPORT_ALLOWANCE,
+    used: active ? used : 0,
+    plan_id: row.plan_id ?? null,
   };
 }
 
@@ -261,17 +328,18 @@ export async function countPendingBatchItems(userId: string): Promise<number> {
   return count ?? 0;
 }
 
-async function countQuotaUsedThisMonth(userId: string, now: Date): Promise<number> {
+/** paid_via='quota' rows for the user inside `[start, end)` (end optional). */
+async function countQuotaUsed(userId: string, start: string | null, end: string | null): Promise<number> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 0;
-  const { start, end } = monthWindow(now);
-  const { count, error } = await supabase
+  let q = supabase
     .from("evaluation_reports")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .eq("paid_via", "quota")
-    .gte("created_at", start)
-    .lt("created_at", end);
+    .eq("paid_via", "quota");
+  if (start) q = q.gte("created_at", start);
+  if (end) q = q.lt("created_at", end);
+  const { count, error } = await q;
   if (error) {
     // 42P01 = migration 0317 not applied yet → nothing used.
     if ((error as { code?: string }).code !== "42P01") {
@@ -282,16 +350,58 @@ async function countQuotaUsedThisMonth(userId: string, now: Date): Promise<numbe
   return count ?? 0;
 }
 
-/** `{limit, used, remaining}` for the user's plan this calendar month. */
+async function countQuotaUsedThisMonth(userId: string, now: Date): Promise<number> {
+  const { start, end } = monthWindow(now);
+  return countQuotaUsed(userId, start, end);
+}
+
+/**
+ * The user's trial as the Stripe webhook mirrors it into
+ * `subscription_trial_state` (register-with-card seeds the row with
+ * status='trialing'; customer.subscription.updated/deleted rewrite `status`
+ * from the Stripe subscription). No row / lookup error → not trialing.
+ */
+export async function getTrialState(userId: string, now: Date = new Date()): Promise<ReportTrial> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return NO_TRIAL;
+  const { data, error } = await supabase
+    .from("subscription_trial_state")
+    .select("status, trial_start, trial_end, plan_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    if ((error as { code?: string }).code !== "42P01") {
+      console.error("[blockid:evaluations:quota] trial lookup failed", error);
+    }
+    return NO_TRIAL;
+  }
+  return trialFromState(data as Parameters<typeof trialFromState>[0], now);
+}
+
+/** paid_via='quota' rows since the trial started (whole trial, not per month). */
+export async function countTrialReportsUsed(userId: string, trial: Pick<ReportTrial, "started_at">): Promise<number> {
+  return countQuotaUsed(userId, trial.started_at, null);
+}
+
+/**
+ * `{limit, used, remaining, trial}` — TRIAL_REPORT_ALLOWANCE for the whole
+ * trial while the subscription is `trialing`, otherwise the plan's
+ * reports_per_month this calendar month.
+ */
 export async function getReportQuota(
   user: { id: string; plan?: string | null },
   now: Date = new Date(),
 ): Promise<ReportQuota> {
+  const trial = await getTrialState(user.id, now);
+  if (trial.active) {
+    const used = await countTrialReportsUsed(user.id, trial);
+    return buildTrialQuota({ ...trial, used });
+  }
   const [info, used] = await Promise.all([
     getReportLimitInfoForPlan(user.plan ?? null),
     countQuotaUsedThisMonth(user.id, now),
   ]);
-  return buildQuota(info.limit, used, info.configured);
+  return buildQuota(info.limit, used, info.configured, trial);
 }
 
 /**
@@ -308,7 +418,7 @@ export async function previewReportCharge(
     getBalance(user.id),
     countPendingBatchItems(user.id).catch(() => 0),
   ]);
-  const reserved = quota.unlimited ? quota : buildQuota(quota.limit, quota.used + pending, quota.configured);
+  const reserved = quota.unlimited ? quota : buildQuota(quota.limit, quota.used + pending, quota.configured, quota.trial);
   return resolveReportCharge(kind, reserved, balance);
 }
 

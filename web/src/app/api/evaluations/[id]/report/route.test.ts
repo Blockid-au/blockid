@@ -151,6 +151,21 @@ describe("POST /api/evaluations/[id]/report", () => {
     expect(spendCreditsMock).not.toHaveBeenCalled();
   });
 
+  it("S7-C: the preview and the run carry cost.trial through from the quota (null when the quota has none)", async () => {
+    const trial = { active: true, ends_at: "2026-09-17T00:00:00.000Z", started_at: "2026-09-10T00:00:00.000Z", allowance: 1, used: 0, plan_id: "investor_angel" };
+    previewMock.mockResolvedValue({ ...quotaCost(0), quota: { limit: 1, used: 0, remaining: 1, unlimited: false, trial }, remaining_quota: 0 });
+    let json = await (await POST(post({ kind: "full" }), ctx())).json();
+    expect(json.cost).toMatchObject({ via: "quota", remaining_quota: 0, quota: { limit: 1, remaining: 1 }, trial: { active: true, allowance: 1, used: 0 } });
+
+    json = await (await POST(post({ kind: "full", confirm: true }), ctx())).json();
+    expect(json).toMatchObject({ ok: true, via: "quota", credits_spent: 0, remaining_quota: 0, trial: { active: true, allowance: 1 } });
+    expect(recordMock).toHaveBeenCalledWith(expect.objectContaining({ paidVia: "quota", creditsCost: 0 }));
+
+    previewMock.mockResolvedValue(creditsCost(5));
+    json = await (await POST(post({ kind: "full" }), ctx())).json();
+    expect(json.cost.trial).toBeNull();
+  });
+
   it("402s when neither quota nor credits cover the run", async () => {
     previewMock.mockResolvedValue(noneCost());
     const res = await POST(post({ kind: "full", confirm: true }), ctx());

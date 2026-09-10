@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getPlanCached = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/plans-db", () => ({ getPlanCached }));
 
-import { renderReminder, reminderSubject, resolvePlanDisplay } from "./reminder-copy";
+import { includedReportLine, renderReminder, reminderSubject, resolvePlanDisplay } from "./reminder-copy";
 
 const STALE = [/add a payment method/i, /downgrade to the free plan/i, /no charge/i];
 
@@ -58,6 +58,28 @@ describe("renderReminder — card-required wording", () => {
     });
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;");
+  });
+});
+
+describe("S7-C included trial report line", () => {
+  const base = { name: "Eva", trialEndFmt: "Friday 18 Sep", planName: "Scout", price: "A$79" };
+  const LINE = "You have 1 included Trust BizReport left — run it from Startups I&#39;m evaluating before your trial ends.";
+
+  it("adds one line when the evaluator still has the included report", () => {
+    expect(includedReportLine(1)).toBe("You have 1 included Trust BizReport left — run it from Startups I'm evaluating before your trial ends.");
+    const html = renderReminder({ ...base, includedReportsLeft: 1 });
+    expect(html).toContain(LINE);
+    // The charge sentence + cancel footnote are untouched (cadence and copy unchanged).
+    expect(html).toContain("Your card will be charged A$79 on Friday 18 Sep unless you cancel before then.");
+    expect(html.indexOf("Your card will be charged")).toBeLessThan(html.indexOf("You have 1 included"));
+  });
+
+  it("omits the line when it is used up, absent or not an evaluator trial", () => {
+    for (const left of [0, null, undefined, -1, NaN]) {
+      expect(includedReportLine(left)).toBeNull();
+      expect(renderReminder({ ...base, includedReportsLeft: left })).not.toContain("included Trust BizReport");
+    }
+    expect(renderReminder(base)).not.toContain("included Trust BizReport");
   });
 });
 

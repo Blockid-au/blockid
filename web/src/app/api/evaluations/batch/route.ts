@@ -7,8 +7,10 @@
 //
 //   401 anonymous · 403 feature_locked (Scout / Firm — no lp_export /
 //   accelerator.cohort; body carries the upgrade hint) · 400 bad body / ids
-//   not yours · 402 quota_insufficient (all-or-nothing: the whole batch must
-//   fit the remaining reports_per_month minus items already queued) · 503 DB.
+//   not yours · 402 trial_limit (subscription still `trialing`: the batch
+//   may only use the 1 included trial report — G12 §3b, S7-C) ·
+//   402 quota_insufficient (all-or-nothing: the whole batch must fit the
+//   remaining reports_per_month minus items already queued) · 503 DB.
 //
 // Nothing runs here. The cron /api/cron/evaluation-batch-runner scores the
 // items off-peak, 5 per tick, and records one evaluation_reports
@@ -102,6 +104,24 @@ export async function POST(request: Request) {
     );
   }
   const available = quota.unlimited ? Number.MAX_SAFE_INTEGER : Math.max(0, quota.remaining - pending);
+  // Trial: the batch may only use the single included trial report; the
+  // runner re-checks getReportQuota per item so nothing beyond it runs.
+  if (quota.trial?.active && available < ids.length) {
+    const allowance = quota.trial.allowance;
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "trial_limit",
+        message: `Your trial includes ${allowance} Trust BizReport${allowance === 1 ? "" : "s"}; this batch needs ${ids.length} and ${available} remain${available === 1 ? "s" : ""}${pending > 0 ? ` (${pending} already queued)` : ""}. Score ${available > 0 ? `${available} now` : "once your trial converts"} or upgrade — ${UPGRADE_HINT}`,
+        needed: ids.length,
+        available,
+        trial: quota.trial,
+        upgrade_url: "/pricing?segment=evaluator",
+        quota: { limit: quota.limit, used: quota.used, remaining: quota.remaining, unlimited: quota.unlimited, pending },
+      },
+      { status: 402 },
+    );
+  }
   if (available < ids.length) {
     return NextResponse.json(
       {

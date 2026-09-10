@@ -583,6 +583,62 @@ describe("POST /api/stripe/webhook — idempotency (replay)", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Trial cancelled before day 8 (G12 §3b, S7-C)
+// ---------------------------------------------------------------------------
+// An evaluator who cancels during the card-required trial receives
+// customer.subscription.deleted with status='trialing' still on the object
+// (or 'canceled'). Either way the mirror row must read status='canceled' —
+// report-quota.ts derives the 1-included-report allowance from
+// subscription_trial_state.status === 'trialing', so a stale 'trialing' here
+// would keep handing out the free report after the card was withdrawn.
+// ---------------------------------------------------------------------------
+
+describe("POST /api/stripe/webhook — customer.subscription.deleted during trial", () => {
+  function buildDeletedEvent(status: string): Stripe.Event {
+    return {
+      id: `evt_sub_deleted_${status}`,
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: "sub_trial_1",
+          object: "subscription",
+          customer: "cus_trial_1",
+          status,
+          trial_start: 1_789_000_000,
+          trial_end: 1_789_604_800,
+          cancel_at_period_end: false,
+          items: { data: [] },
+        },
+      },
+    } as unknown as Stripe.Event;
+  }
+
+  for (const status of ["trialing", "canceled"]) {
+    it(`status='${status}' on the deleted subscription → app_users.plan=free + subscription_trial_state.status='canceled'`, async () => {
+      selectResponses.set("app_users:select", { data: { id: "user-trial-1", email: "eva@fund.vc", plan: "investor_angel" }, error: null });
+      verifyWebhookSignature.mockReturnValue(buildDeletedEvent(status));
+
+      const res = await invoke();
+      expect(res.status).toBe(200);
+
+      const downgrade = updateCalls.find((c) => c.table === "app_users");
+      expect(downgrade?.row).toMatchObject({ plan: "free", plan_started_at: null });
+
+      const mirror = upsertCalls.find((c) => c.table === "subscription_trial_state");
+      expect(mirror?.row).toMatchObject({
+        user_id: "user-trial-1",
+        stripe_subscription_id: "sub_trial_1",
+        status: "canceled",
+        cancel_at_period_end: false,
+      });
+      expect((mirror?.row as { status?: string }).status).not.toBe("trialing");
+      expect(emailMock.sendSubscriptionCancelled).toHaveBeenCalledWith({ to: "eva@fund.vc" });
+      expect(markWebhookEventProcessed).toHaveBeenCalledWith(`evt_sub_deleted_${status}`, undefined);
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Founding 100 cutover race hole (2026-09-01 UTC)
 // ---------------------------------------------------------------------------
 // The webhook is the LAST line of defence. Even if checkout guard + /api/lead

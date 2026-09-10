@@ -9,6 +9,8 @@
 //   6. Happy path → 201 { batch_id, queued, quota_left } and createBatch gets
 //      the deduped ids, the trimmed name and normalised weights.
 //   7. GET lists the caller's batches.
+//   8. S7-C: a still-trialing subscription may batch at most the 1 included
+//      trial report → 402 trial_limit + upgrade hint beyond it.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -120,6 +122,36 @@ describe("/api/evaluations/batch", () => {
     // Exactly fits → passes.
     countPendingMock.mockResolvedValue(2);
     expect((await POST(post({ evaluation_ids: ["e-1", "e-2", "e-3"] }))).status).toBe(201);
+  });
+
+  it("S7-C: during the trial a batch may only use the 1 included report — 402 trial_limit with the upgrade hint beyond it", async () => {
+    const trial = { active: true, ends_at: "2026-09-17T00:00:00.000Z", started_at: "2026-09-10T00:00:00.000Z", allowance: 1, used: 0, plan_id: "investor_vc_small" };
+    getReportQuotaMock.mockResolvedValue({ limit: 1, used: 0, remaining: 1, unlimited: false, configured: true, trial });
+    const res = await POST(post({ evaluation_ids: ["e-1", "e-2"] }));
+    expect(res.status).toBe(402);
+    const json = await res.json();
+    expect(json.error).toBe("trial_limit");
+    expect(json).toMatchObject({ needed: 2, available: 1, upgrade_url: "/pricing?segment=evaluator", trial: { active: true, allowance: 1 } });
+    expect(json.message).toMatch(/Your trial includes 1 Trust BizReport; this batch needs 2 and 1 remains\. Score 1 now or upgrade — Batch scoring is included in Program/);
+    expect(createBatchMock).not.toHaveBeenCalled();
+
+    // Exactly the included one → queued, nothing left.
+    const ok = await POST(post({ evaluation_ids: ["e-1"] }));
+    expect(ok.status).toBe(201);
+    expect((await ok.json()).quota_left).toBe(0);
+
+    // Included one already used → trial_limit, not the monthly-reset wording.
+    getReportQuotaMock.mockResolvedValue({ limit: 1, used: 1, remaining: 0, unlimited: false, configured: true, trial: { ...trial, used: 1 } });
+    const spent = await POST(post({ evaluation_ids: ["e-1"] }));
+    expect(spent.status).toBe(402);
+    const spentJson = await spent.json();
+    expect(spentJson.error).toBe("trial_limit");
+    expect(spentJson.message).toMatch(/once your trial converts/);
+    expect(spentJson.message).not.toMatch(/monthly reset/);
+
+    // Converted (trial.active=false) → the ordinary plan quota path.
+    getReportQuotaMock.mockResolvedValue({ limit: 100, used: 0, remaining: 100, unlimited: false, configured: true, trial: { ...trial, active: false } });
+    expect((await POST(post({ evaluation_ids: ["e-1", "e-2"] }))).status).toBe(201);
   });
 
   it("#14: a plan with no usage_limits.reports_per_month (accelerator_* Contact-Sales) gets 402 quota_not_configured + Contact sales, not a generic quota error", async () => {

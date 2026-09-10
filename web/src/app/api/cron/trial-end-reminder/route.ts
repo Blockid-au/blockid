@@ -21,6 +21,8 @@ import { sendEmail } from "@/lib/email";
 import { sendTelegram } from "@/lib/telegram";
 import { redactPii } from "@/lib/log-redact";
 import { renderReminder, reminderSubject, resolvePlanDisplay } from "./reminder-copy";
+import { countTrialReportsUsed, TRIAL_REPORT_ALLOWANCE } from "@/lib/evaluations/report-quota";
+import { isEvaluatorPlanId } from "@/lib/plans/signup-plans";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -45,9 +47,25 @@ interface HistoryEntry {
 
 interface TrialRow {
   user_id: string;
+  trial_start: string | null;
   trial_end: string | null;
   plan_id: string | null;
   status: string | null;
+}
+
+/**
+ * Evaluator trials include TRIAL_REPORT_ALLOWANCE Trust BizReports (S7-C).
+ * Returns how many are still unused, or null for founder plans / non-trialing
+ * rows / lookup failures (→ the line is omitted).
+ */
+async function includedReportsLeft(row: TrialRow): Promise<number | null> {
+  if (row.status !== "trialing" || !isEvaluatorPlanId(row.plan_id)) return null;
+  try {
+    const used = await countTrialReportsUsed(row.user_id, { started_at: row.trial_start });
+    return Math.max(0, TRIAL_REPORT_ALLOWANCE - used);
+  } catch {
+    return null;
+  }
 }
 
 // The cron-runner sends POST requests; export POST so the Node.js runtime
@@ -73,7 +91,7 @@ export async function GET(request: Request) {
 
   const { data: candidates, error } = await supabase
     .from("subscription_trial_state")
-    .select("user_id, trial_end, plan_id, status")
+    .select("user_id, trial_start, trial_end, plan_id, status")
     .in("status", ["trialing", "active"])
     .gte("trial_end", windowStart)
     .lt("trial_end", windowEnd);
@@ -125,13 +143,14 @@ export async function GET(request: Request) {
         })
       : "in 3 days";
 
-    const plan = await resolvePlanDisplay(row.plan_id);
+    const [plan, reportsLeft] = await Promise.all([resolvePlanDisplay(row.plan_id), includedReportsLeft(row)]);
     const subject = reminderSubject(plan, trialEndFmt);
     const html = renderReminder({
       name: user.display_name ?? "there",
       trialEndFmt,
       planName: plan.name,
       price: plan.price,
+      includedReportsLeft: reportsLeft,
     });
 
     const result = await sendEmail({ to: user.email, subject, html }).catch((err: unknown) => {

@@ -243,6 +243,61 @@ describe("/workspace/evaluations", () => {
     expect(describeCost("full", none)).toContain("your balance is 1.00");
   });
 
+  it("S7-C: a trialing evaluator sees the trial strip (days left, used count, cancel date, Manage billing) and the trial quota wording", async () => {
+    const endsAt = new Date(Date.now() + 5 * 86_400_000 + 60_000).toISOString();
+    const trial = { active: true, ends_at: endsAt, started_at: "2026-09-10T00:00:00.000Z", allowance: 1, used: 0, plan_id: "investor_angel" };
+    getReportQuotaMock.mockResolvedValue({ limit: 1, used: 0, remaining: 1, unlimited: false, configured: true, trial });
+    const { formatTrialEndDate, buildTrialReportBannerCopy } = await import("./trial-report-banner");
+    const endDate = formatTrialEndDate(endsAt);
+
+    let out = await html();
+    expect(out).toContain('data-testid="trial-report-banner"');
+    expect(out).toContain("Trial: 6 days left");
+    expect(out).toContain("1 full Trust BizReport included (0/1 used)");
+    expect(out).toContain(`Scout continues at A$79/mo on ${endDate} unless you cancel`);
+    expect(out).toContain("Manage billing");
+    expect(out).toContain("1 of 1 included Trust BizReport left in your trial, then 3 credits each");
+    expect(out).not.toContain("left this month");
+
+    // Used → 0 left; the pure builder is what the strip renders.
+    getReportQuotaMock.mockResolvedValue({ limit: 1, used: 1, remaining: 0, unlimited: false, configured: true, trial: { ...trial, used: 1 } });
+    out = await html();
+    expect(out).toContain("1 full Trust BizReport included (1/1 used)");
+    expect(out).toContain("0 of 1 included Trust BizReport left in your trial");
+    const copy = buildTrialReportBannerCopy({ ...trial, used: 1, ends_at: "2026-09-17T00:00:00.000Z" }, new Date("2026-09-16T12:00:00.000Z"));
+    expect(copy.segments).toEqual([
+      "Trial: 1 day left",
+      "1 full Trust BizReport included (1/1 used)",
+      "Scout continues at A$79/mo on Thu 17 Sep unless you cancel",
+    ]);
+    expect(copy.text).toBe(copy.segments.join(" · "));
+
+    // Not trialing → no strip, monthly wording back.
+    getReportQuotaMock.mockResolvedValue({ limit: 10, used: 3, remaining: 7, unlimited: false, configured: true, trial: { ...trial, active: false } });
+    out = await html();
+    expect(out).not.toContain('data-testid="trial-report-banner"');
+    expect(out).toContain("7 of 10 included Trust BizReports left this month");
+  });
+
+  it("S7-C: the confirm dialog says Included in your trial, then charged to credits once the 1 is used", async () => {
+    const { describeCost, describeResult } = await import("./report-dialog");
+    const trial = { active: true, ends_at: "2026-09-17T00:00:00.000Z", allowance: 1, used: 0 };
+    const included = { via: "quota" as const, credits: 0, list_credits: 3, balance: 0, remaining_quota: 0, quota: { limit: 1, used: 0, remaining: 1, unlimited: false }, trial };
+    expect(describeCost("full", included)).toBe("Included in your trial — 1 full Trust BizReport free, 0 left after this. No credits will be charged.");
+    const spent = { ...included, via: "credits" as const, credits: 3, balance: 5, quota: { limit: 1, used: 1, remaining: 0, unlimited: false }, trial: { ...trial, used: 1 } };
+    expect(describeCost("full", spent)).toBe("Your trial's 1 included report is used, so this run is charged to credits: 3 credits (A$3.00). Balance 5.00 → 2.00 after.");
+    expect(describeCost("rescore", { ...spent, list_credits: 1, credits: 1 })).toContain("Re-scores are always pay-as-you-go: 1 credit (A$1.00)");
+    expect(describeCost("full", { ...spent, via: "none" as const, balance: 1 })).toBe("This needs 3 credits (A$3.00); your balance is 1.00 and your trial's included report is used.");
+    // Converted → the ordinary monthly wording.
+    expect(describeCost("full", { ...included, remaining_quota: 6, quota: { limit: 10, used: 3, remaining: 7, unlimited: false }, trial: { ...trial, active: false } })).toBe(
+      "Uses 1 of your 10 included reports this month (6 left after this). No credits will be charged.",
+    );
+    const base = { kind: "full" as const, credits_spent: 0, balance: 0, svi: 70, report_url: null, pdf_url: null, share_token: null };
+    expect(describeResult({ ...base, via: "quota", remaining_quota: 0, trial })).toBe("Used your included trial report — further reports cost 3 credits (A$3) each.");
+    expect(describeResult({ ...base, via: "quota", remaining_quota: 6 })).toBe("Used 1 included report (6 left this month).");
+    expect(describeResult({ ...base, via: "credits", credits_spent: 3, balance: 2, remaining_quota: 0, trial })).toBe("3 credits charged (balance 2.00).");
+  });
+
   it("T0273: Progress column shows Δ with ▲, a sparkline, the stage change and the deadline badge per startup", async () => {
     const out = await html();
     expect(out).toContain(">Progress</th>");

@@ -9,7 +9,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 //   * recordEvaluationReport writes the row that IS the quota decrement;
 //   * listLastEvaluationReports keeps only the newest row per evaluation;
 //   * review #8: previewReportCharge subtracts queued batch items; #9: the
-//     idempotency lookup / key on insert (42703 fallback); #14: configured flag.
+//     idempotency lookup / key on insert (42703 fallback); #14: configured flag;
+//   * S7-C: while subscription_trial_state.status='trialing' (trial_end in the
+//     future) the quota is TRIAL_REPORT_ALLOWANCE = 1 for the whole trial,
+//     counted since trial_start; 1 used → credits, never a block; status
+//     'active' or an expired trial_end → the plan quota again.
 
 interface Captured {
   table: string;
@@ -76,8 +80,14 @@ vi.mock("@/lib/credits", () => ({
 }));
 
 import {
+  NO_TRIAL,
+  TRIAL_REPORT_ALLOWANCE,
   buildQuota,
+  buildTrialQuota,
   countPendingBatchItems,
+  countTrialReportsUsed,
+  getTrialState,
+  trialFromState,
   findRecentEvaluationReport,
   getReportQuota,
   listLastEvaluationReports,
@@ -156,7 +166,9 @@ describe("getReportQuota", () => {
   it("counts paid_via=quota rows for the user inside the month window", async () => {
     state.queue.push({ table: "evaluation_reports", count: 4 });
     const q = await getReportQuota(SCOUT, new Date("2026-09-10T10:00:00Z"));
-    expect(q).toEqual({ limit: 10, used: 4, remaining: 6, unlimited: false, configured: true });
+    expect(q).toEqual({ limit: 10, used: 4, remaining: 6, unlimited: false, configured: true, trial: NO_TRIAL });
+    // The trial lookup always runs first (no row → not trialing).
+    expect(state.calls[0]).toMatchObject({ table: "subscription_trial_state", eqs: [{ col: "user_id", val: "u-1" }] });
     const call = state.calls.find((c) => c.table === "evaluation_reports")!;
     expect(call.selectOpts).toMatchObject({ count: "exact", head: true });
     expect(call.eqs).toEqual([
@@ -226,6 +238,98 @@ describe("getReportQuota", () => {
     const q = await getReportQuota({ id: "u-acc", plan: "accelerator_starter" });
     expect(q).toMatchObject({ limit: 0, remaining: 0, unlimited: false, configured: false });
     expect(buildQuota(10, 0).configured).toBe(true);
+  });
+});
+
+describe("S7-C trial allowance", () => {
+  const NOW = new Date("2026-09-10T10:00:00Z");
+  const TRIALING = { status: "trialing", trial_start: "2026-09-08T00:00:00Z", trial_end: "2026-09-15T00:00:00Z", plan_id: "investor_angel" };
+
+  it("trialFromState: active only while status=trialing and trial_end is in the future", () => {
+    expect(TRIAL_REPORT_ALLOWANCE).toBe(1);
+    expect(trialFromState(TRIALING, NOW, 0)).toEqual({
+      active: true, ends_at: "2026-09-15T00:00:00.000Z", started_at: "2026-09-08T00:00:00.000Z", allowance: 1, used: 0, plan_id: "investor_angel",
+    });
+    expect(trialFromState({ ...TRIALING, status: "active" }, NOW, 1)).toMatchObject({ active: false, used: 0 });
+    expect(trialFromState({ ...TRIALING, trial_end: "2026-09-09T00:00:00Z" }, NOW).active).toBe(false);
+    expect(trialFromState({ ...TRIALING, status: "canceled" }, NOW).active).toBe(false);
+    expect(trialFromState(null, NOW)).toBe(NO_TRIAL);
+    expect(buildTrialQuota({ ...NO_TRIAL, active: true, used: 1 })).toMatchObject({ limit: 1, used: 1, remaining: 0, unlimited: false, configured: true });
+  });
+
+  it("trialing + 0 used → 1 included for the whole trial, counted since trial_start, plan quota not consulted", async () => {
+    state.queue.push({ table: "subscription_trial_state", data: TRIALING });
+    state.queue.push({ table: "evaluation_reports", count: 0 });
+    const q = await getReportQuota(SCOUT, NOW);
+    expect(q).toMatchObject({ limit: 1, used: 0, remaining: 1, unlimited: false, configured: true, trial: { active: true, allowance: 1, used: 0, ends_at: "2026-09-15T00:00:00.000Z" } });
+    expect(getPlanCachedMock).not.toHaveBeenCalled();
+    const count = state.calls.find((c) => c.table === "evaluation_reports")!;
+    expect(count.eqs).toEqual([{ col: "user_id", val: "u-1" }, { col: "paid_via", val: "quota" }]);
+    expect(count.gte).toEqual([{ col: "created_at", val: "2026-09-08T00:00:00.000Z" }]);
+    expect(count.lt).toEqual([]); // whole trial, not the calendar month
+
+    state.queue.push({ table: "subscription_trial_state", data: TRIALING });
+    state.queue.push({ table: "evaluation_reports", count: 0 });
+    getBalanceMock.mockResolvedValue(0);
+    const c = await previewReportCharge(SCOUT, "full");
+    expect(c).toMatchObject({ via: "quota", credits: 0, remaining_quota: 0 });
+    expect(c.quota.trial?.active).toBe(true);
+  });
+
+  it("trialing + 1 used → credits (3) with balance, `none` without — never a block on the trial itself", async () => {
+    state.queue.push({ table: "subscription_trial_state", data: TRIALING });
+    state.queue.push({ table: "evaluation_reports", count: 1 });
+    getBalanceMock.mockResolvedValue(3);
+    const c = await previewReportCharge(SCOUT, "full");
+    expect(c).toMatchObject({ via: "credits", credits: 3, balance: 3, remaining_quota: 0 });
+    expect(c.quota).toMatchObject({ limit: 1, used: 1, remaining: 0, trial: { active: true, used: 1 } });
+
+    state.queue.push({ table: "subscription_trial_state", data: TRIALING });
+    state.queue.push({ table: "evaluation_reports", count: 1 });
+    getBalanceMock.mockResolvedValue(0);
+    expect((await previewReportCharge(SCOUT, "full")).via).toBe("none");
+
+    // A queued batch item reserves the single trial slot too (review #8).
+    state.queue.push({ table: "subscription_trial_state", data: TRIALING });
+    state.queue.push({ table: "evaluation_reports", count: 0 });
+    state.queue.push({ table: "evaluation_batches", data: [{ id: "b-1" }] });
+    state.queue.push({ table: "evaluation_batch_items", count: 1 });
+    getBalanceMock.mockResolvedValue(3);
+    expect((await previewReportCharge(SCOUT, "full")).via).toBe("credits");
+  });
+
+  it("status=active (converted) → the plan's reports_per_month this month; trial.active=false", async () => {
+    state.queue.push({ table: "subscription_trial_state", data: { ...TRIALING, status: "active" } });
+    state.queue.push({ table: "evaluation_reports", count: 2 });
+    const q = await getReportQuota(SCOUT, NOW);
+    expect(q).toMatchObject({ limit: 10, used: 2, remaining: 8, trial: { active: false, used: 0, ends_at: "2026-09-15T00:00:00.000Z" } });
+    expect(getPlanCachedMock).toHaveBeenCalledWith("investor_angel");
+    const count = state.calls.find((c) => c.table === "evaluation_reports")!;
+    expect(count.gte).toEqual([{ col: "created_at", val: "2026-09-01T00:00:00.000Z" }]);
+    expect(count.lt).toEqual([{ col: "created_at", val: "2026-10-01T00:00:00.000Z" }]);
+  });
+
+  it("trial ended (trial_end in the past, status still trialing) → plan quota; a free plan → 0 included", async () => {
+    state.queue.push({ table: "subscription_trial_state", data: { ...TRIALING, trial_end: "2026-09-09T00:00:00Z" } });
+    state.queue.push({ table: "evaluation_reports", count: 0 });
+    expect(await getReportQuota(SCOUT, NOW)).toMatchObject({ limit: 10, remaining: 10, trial: { active: false } });
+
+    getPlanCachedMock.mockResolvedValue({ usage_limits: { profiles: 1 } });
+    state.queue.push({ table: "subscription_trial_state", data: { ...TRIALING, status: "canceled" } });
+    state.queue.push({ table: "evaluation_reports", count: 0 });
+    getBalanceMock.mockResolvedValue(3);
+    const c = await previewReportCharge({ id: "u-1", plan: "free" }, "full");
+    expect(c).toMatchObject({ via: "credits", credits: 3 });
+    expect(c.quota).toMatchObject({ limit: 0, trial: { active: false } });
+  });
+
+  it("getTrialState / countTrialReportsUsed degrade to not-trialing / 0 on lookup errors", async () => {
+    state.queue.push({ table: "subscription_trial_state", error: { code: "42P01" } });
+    expect(await getTrialState("u-1", NOW)).toBe(NO_TRIAL);
+    state.queue.push({ table: "evaluation_reports", error: { code: "42P01" } });
+    expect(await countTrialReportsUsed("u-1", { started_at: null })).toBe(0);
+    const count = state.calls.find((c) => c.table === "evaluation_reports")!;
+    expect(count.gte).toEqual([]);
   });
 });
 
