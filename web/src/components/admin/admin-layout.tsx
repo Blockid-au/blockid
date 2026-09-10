@@ -31,6 +31,7 @@ import {
   Funnel,
   Activity,
   Mail,
+  Landmark,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Other",
     items: [
       { href: "/admin/listings", label: "Listings", icon: ExternalLink },
+      { href: "/admin/funding", label: "AU Funding", icon: Landmark },
       { href: "/admin/ai-health", label: "AI Health", icon: Activity },
       { href: "/admin/drip-stats", label: "Drip Stats", icon: Mail },
     ],
