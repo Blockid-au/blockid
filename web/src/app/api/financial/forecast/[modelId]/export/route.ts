@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import type { ProjectionMonth, ProjectionOutput } from '@/types/financial';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,7 +96,7 @@ export async function GET(
 /**
  * Generate CSV from projection
  */
-function generateCsv(projection: any, name: string): string {
+function generateCsv(projection: Partial<ProjectionOutput>, name: string): string {
   const headers = [
     'Month',
     'Date',
@@ -114,7 +115,7 @@ function generateCsv(projection: any, name: string): string {
   rows.push(headers.join(','));
 
   if (projection?.months && Array.isArray(projection.months)) {
-    projection.months.forEach((month: any) => {
+    projection.months.forEach((month: ProjectionMonth) => {
       rows.push(
         [
           month.month,

@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { SandboxScopeChip } from "@/components/admin/sandbox-scope-chip";
+import Link from "next/link";
 // D3-CISO-05: sandbox scope chip is display-only on /admin/resellers/requests
 // — reseller_requests has no sandbox column; the sandbox/live distinction on
 // the underlying grant lives on reseller_credit_grants.kind.
@@ -78,12 +79,12 @@ export default async function AdminResellerRequestsPage() {
             </code>
             . Approving a code request marks it ready — mint the Stripe coupon
             + promotion code on the{" "}
-            <a
+            <Link
               href="/admin/resellers"
               className="text-brand-700 underline"
             >
               reseller detail page
-            </a>
+            </Link>
             .
           </p>
           <div className="mt-3">

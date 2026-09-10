@@ -33,6 +33,7 @@ import {
   type SandboxScopeQueryLike,
 } from "@/lib/admin/sandbox-scope";
 import { UserActionsClient } from "./user-actions-client";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -360,9 +361,9 @@ export default async function AdminUserDetailPage({
     return (
       <div className="min-h-screen bg-surface-50">
         <div className="mx-auto max-w-3xl p-6">
-          <a href="/admin/users" className="text-sm text-brand-700 hover:underline">
+          <Link href="/admin/users" className="text-sm text-brand-700 hover:underline">
             ← All users
-          </a>
+          </Link>
           <div className="mt-6 rounded-lg border border-dashed border-surface-300 bg-white p-8 text-center">
             <p className="text-sm text-ink-600">Supabase admin client not configured.</p>
           </div>
@@ -402,9 +403,9 @@ export default async function AdminUserDetailPage({
     <div className="min-h-screen bg-surface-50">
       <div className="mx-auto max-w-5xl p-6">
         <nav className="mb-4 text-sm">
-          <a href="/admin/users" className="text-brand-700 hover:underline">
+          <Link href="/admin/users" className="text-brand-700 hover:underline">
             ← All users
-          </a>
+          </Link>
         </nav>
 
         <header className="mb-6 flex items-baseline justify-between">

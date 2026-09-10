@@ -9,6 +9,8 @@
 
 import { NextResponse } from "next/server";
 import * as crypto from "crypto";
+import * as fs from "fs";
+import * as cp from "child_process";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +26,6 @@ function verifySignature(payload: string, signature: string | null): boolean {
 
 function logEvent(event: string, detail: string): void {
   try {
-    const fs = require("fs");
     const entry = JSON.stringify({ ts: new Date().toISOString(), event, detail, source: "github-webhook" });
     fs.appendFileSync(DEPLOY_LOG, entry + "\n");
   } catch { /* non-critical */ }
@@ -50,7 +51,6 @@ export async function POST(request: Request) {
     logEvent("github-push-master", `${pusher}: ${headMsg} (${commits} commits)`);
 
     // Run deploy in background (non-blocking)
-    const cp = require("child_process");
     const note = `GitHub push by ${pusher}: ${headMsg}`.slice(0, 120);
     cp.spawn("bash", ["-c", `cd ${WEB_DIR} && git pull github master --ff-only && DEPLOY_NOTE="${note.replace(/"/g, '\\"')}" bash scripts/deploy-live.sh`], {
       detached: true,

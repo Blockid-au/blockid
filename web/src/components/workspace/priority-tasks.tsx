@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { CheckCircle2, Circle, Clock, ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { SVIEvidenceGap, SVIExtractedSignals } from "@/lib/svi-analysis";
 
 interface PriorityTask {
   id: string;
@@ -17,16 +18,21 @@ interface PriorityTask {
 }
 
 // Generate tasks from SVI analysis gaps
-export function generatePriorityTasks(analysis: any, stage: number): PriorityTask[] {
+type PriorityTaskSource = {
+  evidenceGaps?: SVIEvidenceGap[];
+  signals?: Partial<SVIExtractedSignals>;
+} | null | undefined;
+
+export function generatePriorityTasks(analysis: PriorityTaskSource, stage: number): PriorityTask[] {
   const tasks: PriorityTask[] = [];
 
   // Always start with the most impactful evidence gaps
-  const gaps = analysis?.evidenceGaps ?? [];
-  const p0Gaps = gaps.filter((g: any) => g.priority === "P0");
-  const p1Gaps = gaps.filter((g: any) => g.priority === "P1");
+  const gaps: SVIEvidenceGap[] = analysis?.evidenceGaps ?? [];
+  const p0Gaps = gaps.filter((g) => g.priority === "P0");
+  const p1Gaps = gaps.filter((g) => g.priority === "P1");
 
   // Map gaps to actionable tasks with links
-  const gapToTask = (gap: any, idx: number): PriorityTask => ({
+  const gapToTask = (gap: SVIEvidenceGap, idx: number): PriorityTask => ({
     id: `gap-${idx}`,
     priority: gap.priority,
     title: gap.label,
@@ -38,7 +44,7 @@ export function generatePriorityTasks(analysis: any, stage: number): PriorityTas
   });
 
   // P0 tasks first
-  p0Gaps.slice(0, 2).forEach((g: any, i: number) => tasks.push(gapToTask(g, i)));
+  p0Gaps.slice(0, 2).forEach((g, i) => tasks.push(gapToTask(g, i)));
 
   // Stage-specific tasks
   if (stage <= 1) {
@@ -81,7 +87,7 @@ export function generatePriorityTasks(analysis: any, stage: number): PriorityTas
   }
 
   // P1 gaps
-  p1Gaps.slice(0, 2).forEach((g: any, i: number) => tasks.push(gapToTask(g, i + 10)));
+  p1Gaps.slice(0, 2).forEach((g, i) => tasks.push(gapToTask(g, i + 10)));
 
   return tasks.slice(0, 5);
 }

@@ -103,6 +103,7 @@ export default async function UptimeGuardianPage() {
       supabase
         .from("perf_samples")
         .select("ts, route, lh_score, lcp_ms, ttfb_ms, inp_ms")
+        // eslint-disable-next-line react-hooks/purity -- async server component: rendered once per request, wall-clock read is intended
         .gte("ts", new Date(Date.now() - 24 * 3_600_000).toISOString())
         .order("ts", { ascending: false })
         .limit(500),
@@ -123,6 +124,7 @@ export default async function UptimeGuardianPage() {
   // 24h. Falls back to "n/a" if we lack duration data.
   const downtimeMs = incidents
     .filter((i) => (i.severity === "critical" || i.severity === "alert") && i.kind === "downtime")
+    // eslint-disable-next-line react-hooks/purity -- async server component: rendered once per request, wall-clock read is intended
     .filter((i) => Date.now() - new Date(i.ts).getTime() < 24 * 3_600_000)
     .reduce((sum, i) => sum + Math.max(0, i.duration_ms ?? 0), 0);
   const dayMs = 24 * 3_600_000;

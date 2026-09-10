@@ -15,7 +15,7 @@ const MOCK_SCRIPT = path.join(REPO_ROOT, "scripts", "stripe-mock-webhook.mjs");
 
 function baseURL(page: Page | APIRequestContext): string {
   // both Page and APIRequestContext expose _options in Playwright internals
-  const ctx = (page as any).context?.() ?? page;
+  const ctx = ((page as { context?: () => unknown }).context?.() ?? page) as { _options?: { baseURL?: string } };
   return ctx._options?.baseURL ?? process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 }
 

@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -59,18 +60,18 @@ export default async function AdminResellersPage() {
             <h1 className="text-2xl font-semibold text-ink-900">Resellers</h1>
             <p className="mt-1 text-sm text-ink-600">
               Every reseller org attributed to Auschain PTY LTD. See{" "}
-              <a href="/admin/resellers/requests" className="text-brand-700 underline">
+              <Link href="/admin/resellers/requests" className="text-brand-700 underline">
                 requests
-              </a>{" "}
+              </Link>{" "}
               for pending code + credit approvals.
             </p>
           </div>
-          <a
+          <Link
             href="/admin/resellers/new"
             className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white"
           >
             + New reseller
-          </a>
+          </Link>
         </header>
 
         {rows.length === 0 ? (

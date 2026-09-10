@@ -82,6 +82,7 @@ class FakeDb {
   constructor(private readonly opts: FakeDbOptions) {}
 
   client(): RefundSupabase {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- nested object-literal methods are invoked on the returned client, so the fake DB instance must be captured
     const db = this;
     return {
       from(table: string) {

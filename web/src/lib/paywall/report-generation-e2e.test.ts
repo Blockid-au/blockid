@@ -172,6 +172,7 @@ class FakeDb {
   }
 
   workerClient(): MinimalSupabase {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- nested object-literal methods are invoked on the returned client, so the fake DB instance must be captured
     const db = this;
     return {
       from(table: string) {
@@ -213,6 +214,7 @@ class FakeDb {
   }
 
   generatorClient(): GeneratorSupabase {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- nested object-literal methods are invoked on the returned client, so the fake DB instance must be captured
     const db = this;
     return {
       from(table: string) {

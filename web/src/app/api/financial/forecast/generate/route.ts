@@ -68,14 +68,14 @@ export async function POST(request: NextRequest) {
 
     // 4. Prepare input for calculation
     const forecastInput = {
-      modelType: (body.modelType as any) || 'saas',
+      modelType: body.modelType || 'saas',
       currentArrAud: body.currentArrAud ?? 0,
       monthlyGrowthPct: body.monthlyGrowthPct ?? 5,
       churnPct: body.churnPct ?? 0,
       cogsPercent: body.cogsPercent ?? 25,
       opexMonthlyAud: body.opexMonthlyAud ?? 0,
       fixedCostsAud: body.fixedCostsAud ?? 0,
-      scenario: (body.scenario as any) ?? 'base',
+      scenario: body.scenario ?? 'base',
       includeTaxIncentives: body.includeTaxIncentives ?? false,
       sector: project.sector || 'saas',
     };
