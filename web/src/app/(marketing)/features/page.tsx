@@ -31,6 +31,7 @@ import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
+import { UnlockPreview } from "@/components/marketing/unlock-preview";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 
@@ -271,6 +272,10 @@ export default function FeaturesPage() {
           <FeatureGrid features={EVERYONE_FEATURES} />
         </div>
       </MarketingSection>
+
+      {/* G11 §3c (T0238) — the eight workspace surfaces that left the top
+          nav, shown locked with a login deep-link each. */}
+      <UnlockPreview tone="sunken" className="mt-4" />
 
       <MarketingSection tone="elevated">
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">

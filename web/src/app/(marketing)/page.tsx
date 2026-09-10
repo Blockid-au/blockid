@@ -6,6 +6,7 @@ import { NavV2 } from "@/components/landing/nav-v2";
 import { HeroSection } from "@/components/marketing/hero-section";
 import { LogoBand } from "@/components/marketing/logo-band";
 import { FinalCTA } from "@/components/marketing/final-cta";
+import { UnlockPreview } from "@/components/marketing/unlock-preview";
 import { TierLadder } from "@/components/marketing/homepage/tier-ladder";
 import {
   DimensionRadar,
@@ -99,8 +100,9 @@ import {
 //   5. #next           LIGHT  (bg.sunken)  the data room filling up.
 //   6. Three runs      LIGHT  (bg.base)    small multiples.
 //   7. #tiers          LIGHT  (bg.sunken)  the three rungs.
-//   8. LogoBand        LIGHT  (bg.base)    where it is built and how it runs.
-//   9. FinalCTA        LIGHT  (bg.sunken)  one primary button.
+//   7b. #unlock        LIGHT  (bg.base)    eight locked workspace cards (T0238).
+//   8. LogoBand        LIGHT  (bg.sunken)  where it is built and how it runs.
+//   9. FinalCTA        LIGHT  (bg.base)    one primary button.
 //  10. Entity strip    DARK   footer edge  PPL Food PTY LTD.
 export const metadata = {
   title: "See your company the way an investor will · BlockID.au",
@@ -405,10 +407,14 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 8. Where it is built and how it is run. Forced to the base
-            surface: #tiers above it is sunken, and two sunken bands in a row
-            lose the boundary between them. */}
-        <LogoBand className="bg-surface" />
+        {/* 7b. What you unlock after login (G11 §3c, T0238). Sits directly
+            under the ladder because it answers the question the A$29 rung
+            raises. Base surface so it separates from the sunken #tiers. */}
+        <UnlockPreview tone="base" />
+
+        {/* 8. Where it is built and how it is run. Sunken here so it keeps
+            its boundary against the base-surface unlock strip above. */}
+        <LogoBand className="bg-surface-sunken" />
 
         {/* 9. Final CTA — one primary button, pricing as a text link. */}
         <FinalCTA />

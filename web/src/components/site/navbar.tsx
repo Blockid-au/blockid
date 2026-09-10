@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/language-toggle";
 import { MENU } from "@/components/landing/nav-v2";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { useAuthUser, type AuthUser } from "@/hooks/useAuthUser";
 
 interface NavLink {
   href: string;
@@ -46,37 +47,9 @@ function isDropdown(item: NavEntry): item is NavDropdown {
   return (item as NavDropdown).groups !== undefined;
 }
 
-/* ── Auth state hook ─────────────────────────────────────────────────── */
-
-interface AuthUser {
-  id: string;
-  email: string;
-  displayName?: string | null;
-  plan?: string;
-}
-
-function useAuthUser() {
-  const [user, setUser] = React.useState<AuthUser | null | undefined>(undefined); // undefined = loading
-
-  React.useEffect(() => {
-    let cancelled = false;
-    fetch("/api/auth/me", { credentials: "same-origin" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled) {
-          setUser(data.ok && data.user ? data.user : null);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setUser(null);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  return user;
-}
-
 /* ── User menu dropdown ──────────────────────────────────────────────── */
+// Auth state comes from the shared `useAuthUser()` hook (also used by
+// NavV2 since T0238) so both headers agree on who is signed in.
 
 function UserMenu({ user }: { user: AuthUser }) {
   const [open, setOpen] = React.useState(false);

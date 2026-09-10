@@ -3,7 +3,9 @@
  *
  * Pins the top-nav IA contracts stated in the goal doc:
  *   - Anonymous visitors on /pricing (MarketingShell → NavV2) see <=7 nav
- *     items AND a Demo link that points at /showcase/atlassian?step=1.
+ *     items (five since G11 T0238: Get my score · Get funding · Free tools
+ *     · Pricing · Demo), a "Get funding" dropdown, the "Do you need money?"
+ *     CTA, AND a Demo link that points at /showcase/atlassian?step=1.
  *   - Anonymous visitors on /docs (legacy site/navbar) see a Demo dropdown
  *     containing an Atlassian journey link.
  *   - Logged-in founders on /dashboard get the JourneyStepLadder rendered.
@@ -41,6 +43,32 @@ test.describe("Menu structure — anonymous visitor (MarketingShell / NavV2)", (
     // visible label rather than the sublink, because dropdowns collapse.
     const demoTrigger = primary.getByRole("button", { name: /^demo$/i });
     await expect(demoTrigger).toBeVisible();
+
+    // G11 T0238 — the money rail is a dropdown button too, and the
+    // primary CTA is "Do you need money?" → /funding?intent=money (the
+    // old "Start free" bounced anonymous visitors to login). The CTA lives
+    // in the desktop CTA row, so it is scoped to the nav, not the <ul>.
+    const fundingTrigger = primary.getByRole("button", { name: /^get funding$/i });
+    await expect(fundingTrigger).toBeVisible();
+    const moneyCta = primary.getByRole("link", { name: /^do you need money\?$/i });
+    await expect(moneyCta).toBeVisible({ timeout: 15_000 });
+    expect(await moneyCta.getAttribute("href")).toBe("/funding?intent=money");
+    await expect(primary.getByRole("link", { name: /^start free$/i })).toHaveCount(0);
+  });
+
+  test("Get funding dropdown lists the grant and program directories", async ({
+    page,
+  }) => {
+    await page.goto("/pricing");
+    const primary = page.locator('nav[aria-label="Primary"]').first();
+    const fundingTrigger = primary.getByRole("button", { name: /^get funding$/i });
+    await expect(fundingTrigger).toBeVisible({ timeout: 15_000 });
+    await fundingTrigger.click();
+    const grants = primary.getByRole("menuitem", { name: /grants for my startup/i });
+    await expect(grants).toBeVisible({ timeout: 5_000 });
+    expect(await grants.getAttribute("href")).toBe("/funding/grants");
+    const programs = primary.getByRole("menuitem", { name: /startup programs by city/i });
+    expect(await programs.getAttribute("href")).toBe("/funding/programs");
   });
 
   test("Atlassian walkthrough URL is reachable (Demo target 200s)", async ({
@@ -154,7 +182,7 @@ test.describe("Menu structure — a11y landmarks", () => {
     await page.goto("/pricing");
     const primary = page.locator('nav[aria-label="Primary"]').first();
     await expect(primary).toBeVisible({ timeout: 15_000 });
-    // Every dropdown trigger (Product/For/Demo/Compare/Docs) must have
+    // Every dropdown trigger (Get funding / Free tools / Demo) must have
     // aria-haspopup="menu" — the WAI-ARIA APG value for menu disclosures.
     const triggers = primary.locator('button[aria-haspopup]');
     const n = await triggers.count();
