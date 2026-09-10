@@ -141,6 +141,18 @@ export interface SolutionPageProps {
     ctaLabel: string;
     ctaHref: string;
   };
+  /**
+   * G12 traction T2 — optional pilot offer card, rendered after the journey
+   * and before the FAQ. The accelerator persona uses it for the 14-day
+   * Program pilot on a live intake; other personas leave it out.
+   */
+  pilotCta?: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    ctaLabel: string;
+    ctaHref: string;
+  };
 }
 
 /**
@@ -204,6 +216,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
     disclaimer,
     trustBadges,
     samplePreview,
+    pilotCta,
   } = props;
 
   return (
@@ -395,6 +408,35 @@ export function SolutionsPageShell(props: SolutionPageProps) {
             ))}
           </ol>
         </section>
+        )}
+
+        {/* G12 T2 — pilot offer (accelerator persona opts in) */}
+        {pilotCta && (
+          <section
+            aria-label="Pilot offer"
+            data-testid="pilot-cta"
+            className="mx-auto max-w-5xl px-6 py-8"
+          >
+            <div className="rounded-2xl border border-action/40 bg-surface-sunken p-6 sm:p-8">
+              <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-action">
+                {fillPrices(pilotCta.eyebrow)}
+              </p>
+              <h2 className="mt-3 font-display text-xl font-semibold text-primary sm:text-2xl">
+                {fillPrices(pilotCta.title)}
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-secondary">
+                {fillPrices(pilotCta.body)}
+              </p>
+              <Link
+                href={pilotCta.ctaHref}
+                data-testid="pilot-cta-link"
+                className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] transition-all duration-200 hover:bg-action-hover hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+              >
+                {fillPrices(pilotCta.ctaLabel)}
+                <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              </Link>
+            </div>
+          </section>
         )}
 
         {/* FAQ */}
