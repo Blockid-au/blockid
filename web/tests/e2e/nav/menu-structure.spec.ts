@@ -96,7 +96,11 @@ test.describe("Menu structure — anonymous visitor (legacy site/navbar)", () =>
     await expect(demo).toBeVisible({ timeout: 15_000 });
     // Open the dropdown; assert the Atlassian sub-link appears.
     await demo.click();
-    const atlassianLink = page.getByRole("link", {
+    // Dropdown entries carry role="menuitem" (G7-P7 a11y contract:
+    // aria-haspopup="menu" trigger + menuitem children), so query by that
+    // role rather than "link". Since 1c359f000 the legacy navbar derives its
+    // items from NavV2's MENU, so this is the same markup as the homepage.
+    const atlassianLink = page.getByRole("menuitem", {
       name: /atlassian journey/i,
     });
     await expect(atlassianLink.first()).toBeVisible({ timeout: 5_000 });
