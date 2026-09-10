@@ -210,6 +210,14 @@ export interface AnalyticsEventMap {
   // ── Pitch Video ──────────────────────────────────────────────────────────
   pitch_video_generated: { startup_id: string };
 
+  // ── Money Finder (/funding, G11 T0242) ───────────────────────────────────
+  //   preview     — free preview rendered after the 3-question intake
+  //   paywall_hit — the A$3 / 3-credit / plan-included card was shown
+  //   report_paid — a full report was unlocked (guest Stripe, credits or plan)
+  funding_preview: { state: string; stage: string; grant_count: number; program_count: number };
+  funding_paywall_hit: { state: string; stage: string; rail: "guest" | "credits" | "plan" | "anonymous" };
+  funding_report_paid: { paid_via: "one_off" | "credits" | "plan"; report_id: string };
+
   // ── Wave 25C — TBR onboarding tour ───────────────────────────────────────
   tbr_onboard_step_clicked: { step: number };
 

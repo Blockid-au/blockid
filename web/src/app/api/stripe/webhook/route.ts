@@ -166,6 +166,15 @@ export async function POST(request: Request) {
       return;
     }
 
+    // ── A$3 Money Finder report (G11 T0242) ─────────────────────────────
+    // Guest paywall on /funding: flips the pending funding_reports row to
+    // paid, generates the ranked grant/program report and emails the
+    // tokenised link. Idempotent on the row status (pending_payment only).
+    if (session.metadata?.scope === "funding_report") {
+      await handleFundingReportPaid(session, e);
+      return;
+    }
+
     // ── Per-analysis payment (no auth required) ─────────────────────
     if (session.metadata?.blockid_type === "svi_analysis") {
       const email = session.metadata.blockid_email?.toLowerCase().trim();
@@ -1230,6 +1239,42 @@ export async function POST(request: Request) {
         session_id: session.id,
         guest_analysis_id: guestAnalysisId,
         sku: session.metadata?.sku ?? "sku_one_click_report_3aud",
+        email: session.metadata?.email ?? session.customer_email ?? null,
+      },
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Money Finder A$3 report (funding_report scope) — T0242.
+  // -------------------------------------------------------------------------
+  //
+  // The lifecycle lives in @/lib/funding/reports (handleFundingReportCompleted)
+  // so it is unit-tested without the webhook's infra. Generation awaits here
+  // on purpose: the emailed link must point at a finished report, and a
+  // thrown error asks Stripe to retry (row stays pending_payment until the
+  // paid update succeeds, so a retry is safe).
+  async function handleFundingReportPaid(
+    session: Stripe.Checkout.Session,
+    event: Stripe.Event,
+  ): Promise<void> {
+    const { handleFundingReportCompleted } = await import("@/lib/funding/reports");
+    const result = await handleFundingReportCompleted(session, event.id);
+    console.info(
+      `[blockid:stripe] funding_report ${result.reportId ?? "?"} → ${result.skipped ?? "generated"} (session ${session.id})`,
+    );
+    if (result.skipped === "already_processed" || !result.ok) return;
+
+    await recordRevenueEvent({
+      userId: null,
+      planId: null,
+      stripeEventId: event.id,
+      grossCents: session.amount_total ?? 0,
+      currency: session.currency ?? "aud",
+      kind: "funding_report_3aud",
+      detail: {
+        session_id: session.id,
+        funding_report_id: result.reportId,
+        sku: session.metadata?.sku ?? "sku_funding_report_3aud",
         email: session.metadata?.email ?? session.customer_email ?? null,
       },
     });

@@ -50,7 +50,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "profile.multi",
       "svi.premium",
       "data_room.access",
-      "investor_links.premium"
+      "investor_links.premium",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "profiles": 1,
@@ -78,7 +80,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "term_sheet_ai",
       "share_management",
       "investor_pack",
-      "per_investor_share_links"
+      "per_investor_share_links",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "profiles": 3,
@@ -114,7 +118,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "c_level_agents",
       "dcf_sensitivity",
       "dividend_engine",
-      "white_label_pdf"
+      "white_label_pdf",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "profiles": 10,
@@ -148,7 +154,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "advisor_portal",
       "white_label",
       "api.access",
-      "sso"
+      "sso",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "profiles": -1,
@@ -170,7 +178,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "feature_flags": [
       "watchlist",
       "svi.feed",
-      "investor.dealflow"
+      "investor.dealflow",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "profiles": 25,
@@ -197,7 +207,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "advisory_equity",
       "advisor_portal",
       "advisor.cohort",
-      "white_label"
+      "white_label",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "profiles": 50,
@@ -230,7 +242,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "api",
       "api.access",
       "lp_export",
-      "lp_report"
+      "lp_report",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "profiles": 200,
@@ -267,7 +281,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "custom_benchmark",
       "multi_fund",
       "sso",
-      "weekly_delta"
+      "weekly_delta",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "profiles": -1,
@@ -361,7 +377,9 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
     "stripe_env_var": "STRIPE_PRICE_STARTUP_PACKAGE",
     "feature_flags": [
       "startup_package",
-      "pdf_branding"
+      "pdf_branding",
+      "grant_finder",
+      "money_radar"
     ],
     "usage_limits": {
       "monthly_credits": 25

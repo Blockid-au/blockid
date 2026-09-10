@@ -111,6 +111,31 @@ describe("tier-ladder — invariant (d) no-orphan-features", () => {
   });
 });
 
+describe("tier-ladder — Money Finder flags (G11 T0242)", () => {
+  it("grant_finder + money_radar start at Starter and reach every paid founder tier", () => {
+    expect(TIER_LADDER_BY_ID.founder_free.supportingUnlocks).not.toContain("grant_finder");
+    for (const id of ["founder_starter", "founder_growth", "founder_scale", "founder_enterprise"] as const) {
+      expect(TIER_LADDER_BY_ID[id].supportingUnlocks, id).toContain("grant_finder");
+      expect(TIER_LADDER_BY_ID[id].supportingUnlocks, id).toContain("money_radar");
+    }
+  });
+
+  it("every evaluator rung carries both flags (Scout → VC Enterprise)", () => {
+    for (const id of ["investor_angel", "investor_advisor", "investor_vc_small", "investor_vc_ent"] as const) {
+      expect(TIER_LADDER_BY_ID[id].supportingUnlocks, id).toContain("grant_finder");
+      expect(TIER_LADDER_BY_ID[id].supportingUnlocks, id).toContain("money_radar");
+    }
+  });
+
+  it("LEGACY_FEATURE_FALLBACK agrees: Starter+, founder_package and evaluators grant both; free does not", () => {
+    for (const id of ["founder_starter", "founder_growth", "founder_package", "investor_angel", "investor_advisor", "investor_vc_small"]) {
+      expect(LEGACY_FEATURE_FALLBACK[id], id).toContain("grant_finder");
+      expect(LEGACY_FEATURE_FALLBACK[id], id).toContain("money_radar");
+    }
+    expect(LEGACY_FEATURE_FALLBACK.founder_free).not.toContain("grant_finder");
+  });
+});
+
 describe("tier-ladder — invariant (e) headlineUnlock strings unique across the whole ladder", () => {
   it("no two entries share a headlineUnlock string", () => {
     const headlines = ALL_LADDER_ENTRIES.map((e) => e.headlineUnlock);

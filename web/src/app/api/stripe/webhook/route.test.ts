@@ -183,6 +183,16 @@ vi.mock("@/lib/reseller/founder-attribution-linker", () => ({
   linkFounderAttribution: vi.fn(async () => ({ ok: true })),
 }));
 
+// Money Finder A$3 report (T0242) — the lifecycle is unit-tested in
+// src/lib/funding/reports.test.ts; here we only pin the routing contract.
+const handleFundingReportCompletedMock = vi.fn<
+  (session: unknown, eventId: string) => Promise<{ ok: boolean; reportId: string | null; skipped?: string }>
+>();
+vi.mock("@/lib/funding/reports", () => ({
+  handleFundingReportCompleted: (session: unknown, eventId: string) =>
+    handleFundingReportCompletedMock(session, eventId),
+}));
+
 // Telegram is only used by the founding50 post-cutover guard's alert path
 // (dynamic import). Provide a stub so the cutover test can pin that the alert
 // fires without a real network call.
@@ -255,6 +265,8 @@ beforeEach(() => {
   grantCreditsMock.mockResolvedValue({ ok: true });
   sendTelegramMock.mockReset();
   sendTelegramMock.mockResolvedValue(undefined);
+  handleFundingReportCompletedMock.mockReset();
+  handleFundingReportCompletedMock.mockResolvedValue({ ok: true, reportId: "fr-1" });
   for (const fn of Object.values(emailMock)) fn.mockReset();
 });
 
@@ -417,6 +429,54 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
 
     // No credit grant for the per-analysis path.
     expect(grantCreditsMock).not.toHaveBeenCalled();
+  });
+
+  it("funding_report (T0242): routes to handleFundingReportCompleted with the event id, records revenue, no credits", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({
+        id: "evt_funding_report",
+        metadata: {
+          scope: "funding_report",
+          funding_report_id: "fr-1",
+          sku: "sku_funding_report_3aud",
+          email: "founder@example.com",
+        },
+        customerEmail: "founder@example.com",
+        amountTotal: 300,
+      }),
+    );
+
+    const res = await invoke();
+    expect(res.status).toBe(200);
+
+    expect(handleFundingReportCompletedMock).toHaveBeenCalledTimes(1);
+    const [session, eventId] = handleFundingReportCompletedMock.mock.calls[0];
+    expect((session as { id: string }).id).toBe("cs_test_evt_funding_report");
+    expect(eventId).toBe("evt_funding_report");
+
+    const revenue = insertCalls.find((c) => c.table === "revenue_events");
+    expect(revenue).toBeTruthy();
+    expect((revenue!.row as Row).kind).toBe("funding_report_3aud");
+    expect((revenue!.row as Row).gross_aud_cents).toBe(300);
+    expect(((revenue!.row as Row).detail as Row).funding_report_id).toBe("fr-1");
+
+    // Guest paywall: no plan grant, no credit pack, no app_users write.
+    expect(grantCreditsMock).not.toHaveBeenCalled();
+    expect(updateCalls.find((c) => c.table === "app_users")).toBeUndefined();
+  });
+
+  it("funding_report replay: an already-processed row records no second revenue event", async () => {
+    handleFundingReportCompletedMock.mockResolvedValueOnce({ ok: true, reportId: "fr-1", skipped: "already_processed" });
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({
+        id: "evt_funding_report_replay",
+        metadata: { scope: "funding_report", funding_report_id: "fr-1" },
+        amountTotal: 300,
+      }),
+    );
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(insertCalls.find((c) => c.table === "revenue_events")).toBeUndefined();
   });
 });
 

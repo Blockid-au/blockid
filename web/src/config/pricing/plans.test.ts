@@ -229,6 +229,28 @@ describe("PRC-ACC — Accelerator per-cohort SKUs", () => {
   });
 });
 
+// ── Money Finder flags (G11 T0242) ──────────────────────────────────────────
+
+describe("grant_finder + money_radar flags (T0242, migration 0316)", () => {
+  const flagsFor = (id: string): string[] => {
+    const plan = GENERATED_PLANS.find((p) => p.id === id);
+    if (!plan) throw new Error(`plan ${id} missing from GENERATED_PLANS`);
+    return plan.feature_flags as string[];
+  };
+
+  it("Starter, Growth, Startup Package and the three evaluator rungs include the report + radar", () => {
+    for (const id of ["founder_starter", "founder_growth", "founder_package", "investor_angel", "investor_advisor", "investor_vc_small"]) {
+      expect(flagsFor(id), `${id} must grant grant_finder`).toContain("grant_finder");
+      expect(flagsFor(id), `${id} must grant money_radar`).toContain("money_radar");
+    }
+  });
+
+  it("Free stays preview-only (A$3 or 3 credits for the report)", () => {
+    expect(flagsFor("founder_free")).not.toContain("grant_finder");
+    expect(flagsFor("founder_free")).not.toContain("money_radar");
+  });
+});
+
 // ── tier supersetting (regression) ──────────────────────────────────────────
 
 describe("founder ladder — a higher tier never has fewer features", () => {

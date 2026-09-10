@@ -31,6 +31,11 @@ export type FeatureSlug =
   | "startup_package"
   // nav-groups `feature:` bindings not in FEATURE_GATES
   | "equity_offer.request"
+  // Money Finder (T0242): the full grant & program report and Founder Radar
+  // alerts are included from Starter (A$29) up. Surfaces: /funding paywall
+  // card ("included in your plan") and the T0247 workspace leaf.
+  | "grant_finder"
+  | "money_radar"
   // Startup Package — visible to every tier because the paywall is a
   // per-project purchase gate, not a subscription tier. See
   // web/supabase/migrations/0118_startup_package.sql.
@@ -152,6 +157,20 @@ export const VISIBILITY: Readonly<Record<FeatureSlug, VisibilityRow>> = Object.f
     upgradeCTA: "Contact sales",
     bestAtPhase: 12,
     monthlyDeltaAud: 0,
+  },
+  grant_finder: {
+    minTier: "starter",
+    discoveryHint: "Ranked grants, eligibility checklist and a 12-month plan — included",
+    upgradeCTA: "Upgrade to Starter",
+    bestAtPhase: 1,
+    monthlyDeltaAud: 29,
+  },
+  money_radar: {
+    minTier: "starter",
+    discoveryHint: "Founder Radar: deadline alerts for the grants you match",
+    upgradeCTA: "Upgrade to Starter",
+    bestAtPhase: 2,
+    monthlyDeltaAud: 29,
   },
   startup_package: {
     // Sidebar surface is tier-free — the actual paywall is a per-project

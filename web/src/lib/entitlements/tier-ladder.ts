@@ -117,6 +117,10 @@ const STARTER_FEATURES: readonly Feature[] = [
   // link; these are the two flags that make that true.
   "data_room.access",
   "investor_links.premium",
+  // 2026-09-10 (T0242): Money Finder report + Founder Radar from Starter up —
+  // paired with plans.csv, LEGACY_FEATURE_FALLBACK and migration 0316.
+  "grant_finder",
+  "money_radar",
 ];
 
 const GROWTH_FEATURES: readonly Feature[] = [
@@ -231,6 +235,10 @@ const ANGEL_FEATURES: readonly Feature[] = [
   "watchlist",
   "svi.feed",
   "investor.dealflow",
+  // T0242: evaluators run the Money Finder report for the startups they
+  // assess; every rung above inherits through the spread.
+  "grant_finder",
+  "money_radar",
 ];
 
 const ADVISOR_FEATURES: readonly Feature[] = [

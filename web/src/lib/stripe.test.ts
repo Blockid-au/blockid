@@ -187,6 +187,8 @@ describe("STRIPE_PRICE_MAP", () => {
       "addon_share_mgmt_monthly",
       "addon_share_mgmt_annual",
       "one_click_report",
+      // Money Finder A$3 report (G11 T0242) — POST /api/funding/checkout.
+      "funding_report",
     ] as const;
     const actualKeys = Object.keys(mod.STRIPE_PRICE_MAP).sort();
     expect(actualKeys).toEqual([...expectedKeys].sort());
