@@ -54,6 +54,7 @@ import type { SVIAnalysis, SVISubScore } from "@/lib/svi-analysis";
 import { getSVIPercentile } from "@/lib/benchmarks";
 import { computePhaseGate, topBlockers, type SviDimension } from "@/lib/growth/phase-gate";
 import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
+import { NAV_PHASE_NAMES, resolveFounderNavPhase } from "@/lib/nav/founder-phase";
 import { getCompletedOnboardingSteps } from "@/lib/onboarding-steps";
 
 export const dynamic = "force-dynamic";
@@ -257,16 +258,10 @@ function computeDirectionSteps(analysis: SVIAnalysis | null, stage: number): Dir
 }
 
 /* ─── Phase mapping ─────────────────────────────────────────────────────────── */
-
-function computePhase(sviScore: number | null): { phase: number; name: string } {
-  if (sviScore == null) return { phase: 0, name: "Idea" };
-  if (sviScore < 30) return { phase: 0, name: "Idea" };
-  if (sviScore <= 50) return { phase: 1, name: "Validation" };
-  if (sviScore <= 70) return { phase: 2, name: "Equity" };
-  if (sviScore <= 85) return { phase: 3, name: "Fundraise" };
-  if (sviScore <= 120) return { phase: 4, name: "Traction" };
-  return { phase: 5, name: "Growth" };
-}
+// S7-A: the SVI band table that used to live here (`computePhase()`) is now
+// `navPhaseFromSvi()` in `@/lib/nav/founder-phase`, and the sidebar phase is
+// `resolveFounderNavPhase()` = max(SVI band, growth phase) — the same number
+// the `(founder)` layout publishes to every other workspace page.
 
 /* ─── Estimated Valuation from SVI ──────────────────────────────────────────── */
 
@@ -710,10 +705,12 @@ export default async function DashboardPage({
   // ── Derived values ───────────────────────────────────────────────────────
   const sviScore = analysis?.totalSVI ?? null;
   const delta = previousSVI != null && sviScore != null ? sviScore - previousSVI : weeklyDelta ?? null;
-  const { phase, name: phaseName } = computePhase(sviScore);
+  // S7-A: one phase notion — max(SVI band, projects.growth_phase_current).
+  const rawCurrentPhase = activeProject?.growth_phase_current ?? null;
+  const phase = resolveFounderNavPhase({ svi: sviScore, growthPhaseId: rawCurrentPhase });
+  const phaseName = NAV_PHASE_NAMES[phase] ?? NAV_PHASE_NAMES[0];
 
   // G8-P4: compute phase gate result for the NextUnlockCard.
-  const rawCurrentPhase = activeProject?.growth_phase_current ?? null;
   const phaseGateCurrentPhase = isGrowthPhaseId(rawCurrentPhase) ? rawCurrentPhase : null;
   const phaseGateDimensions = extractSviDimensions(
     analysis ? (analysis as unknown as { subs?: unknown }) : null,

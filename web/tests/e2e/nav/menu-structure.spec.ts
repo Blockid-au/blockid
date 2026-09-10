@@ -175,6 +175,46 @@ test.describe("Menu structure — founder logged-in dashboard", () => {
   });
 });
 
+// S7-A (G8 follow-up) — the sidebar must not change shape between founder
+// pages. /dashboard passes `currentPhase` explicitly; /workspace/equity
+// passes nothing and relies on the `(founder)` layout's
+// FounderNavContextProvider. Same founder → same visible group headers.
+test.describe("Menu structure — consistent phase gating across founder pages", () => {
+  test.setTimeout(45_000);
+
+  test("/workspace/equity shows the same sidebar groups as /dashboard for the same founder", async ({
+    page,
+  }) => {
+    let loginOk = false;
+    try {
+      await loginAs(page, FOUNDER_EMAIL);
+      loginOk = true;
+    } catch {
+      /* fixture missing on this box */
+    }
+    test.skip(
+      !loginOk,
+      `QA founder ${FOUNDER_EMAIL} not seeded — run scripts/seed-test-users.mjs`,
+    );
+
+    const groupLabels = async (path: string): Promise<string[]> => {
+      await page.goto(path);
+      const nav = page.locator('nav[aria-label="Workspace navigation"]');
+      await expect(nav).toBeVisible({ timeout: 15_000 });
+      // Rendered (near-phase, not hidden) groups carry data-group-label;
+      // the later-phases panel is collapsed by default so it never leaks in.
+      return nav.locator("[data-group-label]").evaluateAll((els) =>
+        els.map((el) => el.getAttribute("data-group-label") ?? ""),
+      );
+    };
+
+    const onDashboard = await groupLabels("/dashboard");
+    const onEquity = await groupLabels("/workspace/equity");
+    expect(onDashboard.length).toBeGreaterThan(0);
+    expect(onEquity).toEqual(onDashboard);
+  });
+});
+
 // ux-ia-startup-flow-v1 §P7 — a11y contract for the workspace + marketing
 // nav landmarks and disclosure buttons.
 test.describe("Menu structure — a11y landmarks", () => {

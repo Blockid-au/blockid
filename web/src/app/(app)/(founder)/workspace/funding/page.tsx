@@ -32,6 +32,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { FundingIntake } from "@/components/funding/funding-intake";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { getActiveProject, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getFounderNavContext } from "@/lib/nav/founder-phase";
 import { listGrants, listPrograms } from "@/lib/funding/data";
 import { parseFundingIntake, NOT_INCORPORATED } from "@/lib/funding/intake";
 import { latestVerifiedAt } from "@/lib/funding/directory";
@@ -87,6 +88,9 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
     can({ id: user.id, plan: user.plan ?? "free", segment: "founder" }, "grant_finder"),
     getActiveProject(user.id).catch(() => null),
   ]);
+  // S7-A: sidebar phase from the shared resolver (SVI band ∨ growth phase),
+  // not `projects.stage` — same number every other founder page gets.
+  const { navPhase } = await getFounderNavContext(user, { project });
 
   const [prefill, grants, programs] = await Promise.all([
     intakePrefillFor(user, project),
@@ -206,7 +210,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
   const verified = latestVerifiedAt([...grants, ...programs]);
 
   return (
-    <WorkspaceLayout user={user} isSandbox={isSandbox} startupName={project?.name} currentPhase={project?.stage ?? 0}>
+    <WorkspaceLayout user={user} isSandbox={isSandbox} startupName={project?.name} currentPhase={navPhase}>
       <div className="mx-auto max-w-5xl" data-workspace-funding data-plan-included={included ? "1" : "0"}>
         <header className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-action">Validate · Discover</p>

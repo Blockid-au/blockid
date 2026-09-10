@@ -28,7 +28,8 @@
 import { NAV_GROUPS, type NavGroup, type NavItem } from "@/components/workspace/nav-groups";
 import { decideVisibility, type LockedDecision } from "@/lib/nav/hide-when-locked";
 import { getMenuOverlayForRole } from "@/lib/nav/role-menu-overlay";
-import { STEP_TO_PHASE, type WorkflowStep } from "@/lib/nav/workflow-steps";
+import type { WorkflowStep } from "@/lib/nav/workflow-steps";
+import { GROWTH_PHASE_TO_WORKFLOW_STEP, navPhaseFromGrowthPhase } from "@/lib/nav/founder-phase";
 import { meetsMinPlan, planIdToTier, type PlanTier, type Segment } from "@/lib/segments";
 import { PHASE_EXIT_RULES, REQUIRED_QUALITY, type SviDimension } from "@/lib/growth/phase-gate";
 import {
@@ -102,32 +103,18 @@ export function buildColumns(): MatrixColumn[] {
 /**
  * The sidebar gates groups on a coarse 0..5 `currentPhase` (the workflow-step
  * index in lib/nav/workflow-steps.ts), not on the 12 growth phases directly.
- * The only in-code statement of how the 12-phase ordinal buckets onto the six
- * steps is the doc comment on `currentPhaseToStep()`:
- *
- *   1..2 → validate · 3..5 → build · 6..8 → fundraise · 9..11 → grow · 12 → exit
- *
- * That table is restated here as data (the function's 1..5 branch is shadowed
- * by its 0..5 fast path, so it cannot be called for the low ordinals) and
- * pinned by unlock-matrix.test.ts against the function for 6..12.
+ * Since S7-A the bridge is real code, not a docs-only table: the founder
+ * route-group layout resolves `max(navPhaseFromSvi, navPhaseFromGrowthPhase)`
+ * (`lib/nav/founder-phase.ts`) and the sidebar gates on that. This matrix
+ * reads the same `GROWTH_PHASE_TO_WORKFLOW_STEP` table, so Table 1 is
+ * derived from what the sidebar really does for a founder whose SVI band
+ * does not out-rank their declared growth phase. unlock-matrix.test.ts still
+ * pins the table against `currentPhaseToStep()` for 6..12.
  */
-export const GROWTH_PHASE_TO_WORKFLOW_STEP: Record<GrowthPhaseId, WorkflowStep> = {
-  vision: "validate",
-  customer_dev: "validate",
-  revenue_model: "build",
-  pitch: "build",
-  mentor_review: "build",
-  legal_equity: "fundraise",
-  go_to_market: "fundraise",
-  product_dev: "fundraise",
-  investor_review: "grow",
-  team: "grow",
-  growth: "grow",
-  funding: "exit",
-};
+export { GROWTH_PHASE_TO_WORKFLOW_STEP };
 
 export function sidebarPhaseFor(id: GrowthPhaseId): number {
-  return STEP_TO_PHASE[GROWTH_PHASE_TO_WORKFLOW_STEP[id]];
+  return navPhaseFromGrowthPhase(id);
 }
 
 // ─── Visibility pipeline (mirrors workspace-layout.tsx) ──────────────────────
