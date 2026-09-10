@@ -1,9 +1,10 @@
 /**
- * /solutions/accelerator — the accelerator, incubator and programme persona page (Program
- * A$349 recommended; Contact Sales for multi-cohort programs)
+ * /solutions/advisor — the advisor / consulting-firm persona page (Firm A$149 recommended).
+ * New on 2026-09-10 (T0274): before this, `/solutions/advisor` 301'd to
+ * `/for/advisor`, which sold advisory firms the founder Growth plan
  *
  * Every visible string resolves through `t()` against the shared catalogue
- * and the props come from `buildAcceleratorProps()` in `evaluator-page-props.ts`, so
+ * and the props come from `buildAdvisorProps()` in `evaluator-page-props.ts`, so
  * this page and its Vietnamese twin render the same page by construction.
  * Amounts are never strings: the copy carries `{reportPrice}`-style tokens
  * and `SolutionsPageShell` substitutes them from the pricing catalogue.
@@ -14,16 +15,16 @@
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
 import { SolutionsPageShell } from "../solutions-shared";
-import { buildAcceleratorProps } from "../evaluator-page-props";
+import { buildAdvisorProps } from "../evaluator-page-props";
 
 const SITE_URL = "https://blockid.au";
-const CANONICAL_EN = `${SITE_URL}/solutions/accelerator`;
-const CANONICAL_VI = `${SITE_URL}/vi/solutions/accelerator`;
+const CANONICAL_EN = `${SITE_URL}/solutions/advisor`;
+const CANONICAL_VI = `${SITE_URL}/vi/solutions/advisor`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const m = await getMessages("en");
-  const title = t(m, "meta.solutions.accelerator.title");
-  const description = t(m, "meta.solutions.accelerator.description");
+  const title = t(m, "meta.solutions.advisor.title");
+  const description = t(m, "meta.solutions.advisor.description");
   return {
     title,
     description,
@@ -48,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function SolutionsAcceleratorPage() {
+export default async function SolutionsAdvisorPage() {
   const m = await getMessages("en");
-  return <SolutionsPageShell {...buildAcceleratorProps(m, "en")} />;
+  return <SolutionsPageShell {...buildAdvisorProps(m, "en")} />;
 }

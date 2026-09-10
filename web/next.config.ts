@@ -27,8 +27,8 @@ const nextConfig: NextConfig = {
    * URLs migrate to `/solutions/*`. Only the /for/[segment] slugs that
    * actually exist today get a 301; `/for/vn-sme` was never live so no
    * redirect is registered for it (would produce a redirect chain to the
-   * dynamic-route 404). Advisor stays on `/for/advisor` because there is
-   * no `/solutions/advisor` in the plan's persona set.
+   * dynamic-route 404). `/for/advisor` joined the list on 2026-09-10 when
+   * `/solutions/advisor` became a real page (T0274).
    */
   async rewrites() {
     return [
@@ -59,12 +59,27 @@ const nextConfig: NextConfig = {
         destination: "/solutions/accelerator",
         statusCode: 301,
       },
-      // Workstream A7 — nav now links personas at /solutions/* consistently.
-      // /solutions/advisor doesn't have its own page; alias it back to the
-      // existing /for/advisor route so the unified URL still resolves.
+      // T0274 (G12-5, 2026-09-10) — `/solutions/advisor` is now a real page
+      // (Firm A$149 for advisory firms). The old alias ran the other way and
+      // landed advisors on `/for/advisor`, which sold them Growth A$69 and
+      // said white-label was "Not yet". Every `/for/*` slug now 301s to its
+      // `/solutions/*` twin; `/for/advisor` is no longer a segment-content
+      // entry, so without this redirect it would 404.
       {
-        source: "/solutions/advisor",
-        destination: "/for/advisor",
+        source: "/for/advisor",
+        destination: "/solutions/advisor",
+        statusCode: 301,
+      },
+      // T0275 (2026-09-10) — one privacy policy. `/privacy` was a second,
+      // older notice (dated 2026-08-23, listing a different provider set)
+      // that contradicted `/legal/privacy`. The canonical policy lives at
+      // `/legal/privacy` (content/legal/privacy-v2.mdx); the page at
+      // `app/privacy/page.tsx` was deleted. The `#security` fragment the
+      // site footer uses survives the redirect because the browser carries
+      // it over when the Location has none of its own.
+      {
+        source: "/privacy",
+        destination: "/legal/privacy",
         statusCode: 301,
       },
       // B1 Task 5 — consolidate SVI landing routes onto a single canonical

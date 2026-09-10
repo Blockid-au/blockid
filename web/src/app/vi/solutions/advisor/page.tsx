@@ -1,8 +1,10 @@
 /**
- * /vi/solutions/investor — Vietnamese mirror of the investor and analyst persona page (Scout A$79 recommended)
+ * /vi/solutions/advisor — Vietnamese mirror of the advisor / consulting-firm persona page (Firm A$149 recommended).
+ * New on 2026-09-10 (T0274): before this, `/solutions/advisor` 301'd to
+ * `/for/advisor`, which sold advisory firms the founder Growth plan
  *
  * Every visible string resolves through `t()` against the shared catalogue
- * and the props come from `buildInvestorProps()` in `evaluator-page-props.ts`, so
+ * and the props come from `buildAdvisorProps()` in `evaluator-page-props.ts`, so
  * this page and its English twin render the same page by construction.
  * Amounts are never strings: the copy carries `{reportPrice}`-style tokens
  * and `SolutionsPageShell` substitutes them from the pricing catalogue.
@@ -13,16 +15,16 @@
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
 import { SolutionsPageShell } from "../../../(marketing)/solutions/solutions-shared";
-import { buildInvestorProps } from "../../../(marketing)/solutions/evaluator-page-props";
+import { buildAdvisorProps } from "../../../(marketing)/solutions/evaluator-page-props";
 
 const SITE_URL = "https://blockid.au";
-const CANONICAL_EN = `${SITE_URL}/solutions/investor`;
-const CANONICAL_VI = `${SITE_URL}/vi/solutions/investor`;
+const CANONICAL_EN = `${SITE_URL}/solutions/advisor`;
+const CANONICAL_VI = `${SITE_URL}/vi/solutions/advisor`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const m = await getMessages("vi");
-  const title = t(m, "meta.solutions.investor.title");
-  const description = t(m, "meta.solutions.investor.description");
+  const title = t(m, "meta.solutions.advisor.title");
+  const description = t(m, "meta.solutions.advisor.description");
   return {
     title,
     description,
@@ -47,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function ViSolutionsInvestorPage() {
+export default async function ViSolutionsAdvisorPage() {
   const m = await getMessages("vi");
-  return <SolutionsPageShell {...buildInvestorProps(m, "vi")} />;
+  return <SolutionsPageShell {...buildAdvisorProps(m, "vi")} />;
 }

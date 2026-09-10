@@ -3,16 +3,13 @@ import Link from "next/link";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { JOURNEY_VOCAB_VERSION } from "@/lib/journey-vocabulary";
-import {
-  getPlatformConfig,
-  founding_price_aud,
-  growth_price_monthly_aud,
-} from "@/lib/platform-config";
+import { getPlatformConfig } from "@/lib/platform-config";
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 
 export const metadata: Metadata = {
-  title: "BlockID Platform Docs — Company, Roadmap, Team, SVI & Founding 100",
+  title: "BlockID Platform Docs — Company, Roadmap, Team, SVI & Pricing",
   description:
-    "Public entry point to BlockID.au platform documentation — company overview, product roadmap, the 11-role AI C-Level team, the 8-dimension Startup Value Index (SVI), Founding 100 lifetime deal, plus plan deltas and the canonical journey vocabulary.",
+    "Public entry point to BlockID.au platform documentation — company overview, product roadmap, the 11-role AI C-Level team, the 8-dimension Startup Value Index (SVI), the current pricing ladder, plus plan deltas and the canonical journey vocabulary.",
   alternates: {
     canonical: "https://blockid.au/docs",
   },
@@ -154,12 +151,12 @@ const SHIPPED_HIGHLIGHTS: RoadmapItem[] = [
   {
     title: "Enhanced SVI + Multi-Agent Reports (Phase 2.5)",
     note:
-      "8-dimension SVI evaluation, 3-phase report generation (Gather → Analyze → Synthesize), 21 sections with agent ownership, DOCX/PDF export with brand styling, 9 AI providers.",
+      "8-dimension, 13-criteria SVI evaluation, 3-phase report generation (Gather → Analyze → Synthesize), 21 sections with agent ownership, DOCX/PDF export with brand styling, a fallback chain of AI inference providers (listed in the Privacy Policy).",
   },
   {
-    title: "Founding 100 auto-cutover (v3.3.2 — 2026-09-01)",
+    title: "Founding 100 retired (v3.3.2 — 2026-09-01)",
     note:
-      "Hard-coded promo end in lib/founding-promo.ts; checkout 410, page redirect, webhook + reconcile guards; grandfathered buyers keep access on the legacy plan.",
+      "The A$5 lifetime promo closed on 2026-09-01: checkout 410, page redirect, webhook + reconcile guards; grandfathered buyers keep access on the legacy plan. The public ladder is now Free → A$3 Trust BizReport → Starter A$29 → Growth A$69.",
   },
 ];
 
@@ -227,11 +224,13 @@ const WORKFLOW_DOCS: DocEntry[] = [
 
 export default async function DocsPage() {
   const cfg = await getPlatformConfig();
-  const foundingPrice = founding_price_aud(cfg);
-  const growthMonthly = growth_price_monthly_aud(cfg);
+  // Prices come from the generated catalogue (plans.csv), not from
+  // platform_config: `growth_price_monthly_cents` there still defaults to
+  // the legacy 9900 (A$99), which is how this page said "reverts to A$99/mo"
+  // for a week after Growth became A$69 (2026-09-08).
+  const starterMonthly = `A$${GENERATED_PLANS_BY_ID.founder_starter.price_aud_cents / 100}/mo`;
+  const growthMonthly = `A$${GENERATED_PLANS_BY_ID.founder_growth.price_aud_cents / 100}/mo`;
   const foundingSpots = cfg.founding_spots_total;
-  const foundingCredits = cfg.founding_credits;
-  const promoDeadline = cfg.early_bird_deadline;
   const weights = cfg.svi_weights;
 
   return (
@@ -253,7 +252,7 @@ export default async function DocsPage() {
             </h1>
             <p className="mt-6 text-base md:text-lg leading-relaxed text-ink-600 max-w-2xl mx-auto">
               Company overview, product roadmap, the AI C-Level team, the 8-dimension
-              Startup Value Index (SVI), and the Founding {foundingSpots} lifetime deal —
+              Startup Value Index (SVI), and the current pricing ladder —
               plus the plan deltas and canonical journey vocabulary that keep the
               autonomous agent fleet on the same page.
             </p>
@@ -432,39 +431,51 @@ export default async function DocsPage() {
             </p>
           </section>
 
-          {/* Founding 100 */}
+          {/* Pricing ladder — 2026-09-10 (T0274). This section used to
+              document the Founding 100 lifetime deal (A$1 → A$3 → A$5) and
+              said the price "reverts to A$99/mo Growth" after cutover. The
+              promo closed 2026-09-01 and Growth has been A$69 since the
+              2026-09-08 rework, so the section now states the live ladder.
+              Founder prices come from the generated catalogue (plans.csv);
+              evaluator rungs are the G12 D2 decision (2026-09-10). */}
           <section className="mb-14">
             <h2 className="text-2xl font-bold text-ink-800 mb-2">
-              Founding {foundingSpots} lifetime deal — {foundingPrice}
+              Pricing ladder
             </h2>
             <p className="text-sm text-ink-600 mb-4">
-              The Founding {foundingSpots} plan is a one-off lifetime purchase at{" "}
-              <strong>{foundingPrice}</strong> that grants{" "}
-              <strong>{foundingCredits} SVI-analysis credits</strong> and permanent
-              access to the platform. It exists to seed the first cohort of
-              Australian founders and to feed the public AU startup index.
+              One report price for everyone — <strong>A$3</strong> buys the full
+              Trust BizReport (8 dimensions, 13 criteria, AUD valuation range,
+              C-suite review, auditor flags, next-step plan) on any startup,
+              whether you are its founder or someone evaluating it.
+              Subscriptions sell the workspace that keeps the score, not
+              access to the report.
             </p>
             <div className="rounded-xl border border-brand-500/40 bg-surface-50 p-5">
               <p className="text-sm text-ink-700 mb-2">
-                <strong>Price ladder</strong> (deliberately escalating so
-                early-buyers keep an edge):
+                <strong>Founders</strong>
+              </p>
+              <ul className="text-sm text-ink-600 space-y-1 list-disc list-inside mb-4">
+                <li>Free — first SVI analysis, no signup</li>
+                <li>A$3 — full Trust BizReport</li>
+                <li>{starterMonthly} — Starter: workspace, data room, investor links, Founder Radar</li>
+                <li>{growthMonthly} — Growth: cap table, term sheets, evidence vault, weekly snapshots</li>
+              </ul>
+              <p className="text-sm text-ink-700 mb-2">
+                <strong>Evaluators</strong> (investors, advisory firms,
+                accelerators, incubators, service providers)
               </p>
               <ul className="text-sm text-ink-600 space-y-1 list-disc list-inside">
-                <li>A$1 — launch (2026-06-17)</li>
-                <li>A$3 — first bump (2026-06-21)</li>
-                <li>
-                  <strong>{foundingPrice}</strong> — current, promo through{" "}
-                  <span className="font-mono">{promoDeadline}</span>
-                </li>
-                <li>
-                  {growthMonthly} — reverts to the standard Growth plan after
-                  cutover (2026-09-01)
-                </li>
+                <li>A$3 per Trust BizReport on any startup you enter, pay as you go</li>
+                <li>Scout A$79/mo · Firm A$149/mo · Program A$349/mo — reports included, tracked startups, seats, white-label</li>
+                <li>7-day free trial on every rung, card required; nothing billed if cancelled before day 7</li>
+                <li>Multi-cohort accelerators, VC enterprise and reseller / wholesale: Contact Sales</li>
               </ul>
               <p className="text-xs text-ink-500 mt-3">
-                Cutover is hard-coded in <code>lib/founding-promo.ts</code> so a
-                Supabase outage cannot accidentally re-open the promo. Grandfathered
-                Founding {foundingSpots} buyers keep their access on the legacy plan.
+                The Founding {foundingSpots} lifetime deal closed on 2026-09-01
+                (cutover hard-coded in <code>lib/founding-promo.ts</code>);
+                grandfathered buyers keep their access on the legacy plan.
+                See <Link href="/pricing" className="text-brand-600 underline">/pricing</Link> for
+                what each rung includes.
               </p>
             </div>
           </section>
@@ -685,7 +696,7 @@ export default async function DocsPage() {
                   /team
                 </p>
                 <p className="text-xs text-ink-600 leading-relaxed">
-                  17 AI-agent C-Levels and their most recent shipped
+                  The 11 C-Level AI agents and their most recent shipped
                   contribution.
                 </p>
               </Link>
@@ -742,18 +753,6 @@ export default async function DocsPage() {
                 <p className="text-xs text-ink-600 leading-relaxed">
                   Public AU startup index — live SVI leaderboard and
                   cohort-percentile view.
-                </p>
-              </Link>
-              <Link
-                href="/founding-50"
-                className="rounded-xl border border-surface-200 bg-surface-50 p-4 hover:border-brand-500/40 transition-colors"
-              >
-                <p className="text-sm font-semibold text-ink-800 mb-1">
-                  /founding-50
-                </p>
-                <p className="text-xs text-ink-600 leading-relaxed">
-                  Founding {foundingSpots} lifetime deal — {foundingPrice} for{" "}
-                  {foundingCredits} SVI-analysis credits until {promoDeadline}.
                 </p>
               </Link>
               <Link

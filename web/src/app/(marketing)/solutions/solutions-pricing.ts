@@ -29,6 +29,15 @@
  *   founderCredits  `founder_starter.usage_limits.monthly_credits`
  *   growthCredits   `founder_growth.usage_limits.monthly_credits`
  *
+ * Evaluator ladder (G12, founder decision D2 2026-09-10 — Scout / Firm /
+ * Program re-use the `investor_angel` / `investor_advisor` /
+ * `investor_vc_small` rows):
+ *
+ *   scoutPrice, firmPrice, programPrice        `price_aud_cents`
+ *   scoutReports, firmReports, programReports  `usage_limits.reports_per_month`
+ *   scoutStartups, firmStartups, programStartups `usage_limits.profiles`
+ *   firmSeats, programSeats                    `usage_limits.seats`
+ *
  * A token nobody defined is left in place rather than blanked, so a typo
  * surfaces as a visible `{typo}` in the rendered page and in the colocated
  * suite instead of silently deleting half a sentence.
@@ -75,6 +84,19 @@ function planCredits(planId: string): number {
   return credits;
 }
 
+/** A named usage limit from a plan row; throws when the row does not carry it. */
+function planLimit(planId: string, key: string): number {
+  const plan = GENERATED_PLANS_BY_ID[planId];
+  if (!plan) {
+    throw new Error(`/solutions copy names unknown plan "${planId}"`);
+  }
+  const value = (plan.usage_limits as Record<string, unknown>)[key];
+  if (typeof value !== "number" || value <= 0) {
+    throw new Error(`/solutions copy names plan "${planId}" with no "${key}" limit`);
+  }
+  return value;
+}
+
 function reportCents(): number {
   const cents = ONE_CLICK_REPORT_3AUD.unit_amount_incl_gst_cents;
   if (typeof cents !== "number" || !Number.isFinite(cents)) {
@@ -92,6 +114,18 @@ export const SOLUTION_PRICE_TOKENS: Readonly<Record<string, string>> = {
   equityAddon: `A$${EQUITY_ADDON_MONTHLY_AUD}`,
   founderCredits: String(planCredits("founder_starter")),
   growthCredits: String(planCredits("founder_growth")),
+  // Evaluator ladder — every number below is a plans.csv cell.
+  scoutPrice: aud(planCents("investor_angel")),
+  firmPrice: aud(planCents("investor_advisor")),
+  programPrice: aud(planCents("investor_vc_small")),
+  scoutReports: String(planLimit("investor_angel", "reports_per_month")),
+  firmReports: String(planLimit("investor_advisor", "reports_per_month")),
+  programReports: String(planLimit("investor_vc_small", "reports_per_month")),
+  scoutStartups: String(planLimit("investor_angel", "profiles")),
+  firmStartups: String(planLimit("investor_advisor", "profiles")),
+  programStartups: String(planLimit("investor_vc_small", "profiles")),
+  firmSeats: String(planLimit("investor_advisor", "seats")),
+  programSeats: String(planLimit("investor_vc_small", "seats")),
 };
 
 const TOKEN_PATTERN = /\{([a-zA-Z]+)\}/g;

@@ -14,7 +14,6 @@
 import { describe, expect, it } from "vitest";
 
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
-import { PUBLIC_HIDDEN_PLAN_IDS } from "@/lib/plans-v2";
 
 import {
   SEGMENT_CONTENT,
@@ -46,13 +45,15 @@ function wordCount(entry: SegmentContent): number {
 }
 
 describe("SEGMENT_SLUGS", () => {
-  it("contains exactly the four canonical audience slugs in canonical order", () => {
-    expect(SEGMENT_SLUGS).toEqual([
-      "founder",
-      "investor",
-      "advisor",
-      "accelerator",
-    ]);
+  it("contains exactly the three remaining audience slugs in canonical order", () => {
+    // `advisor` left on 2026-09-10 (T0274): /for/advisor now 301s to the
+    // real /solutions/advisor page instead of rendering Growth A$69 copy.
+    expect(SEGMENT_SLUGS).toEqual(["founder", "investor", "accelerator"]);
+  });
+
+  it("no longer carries an advisor entry", () => {
+    expect(isSegmentSlug("advisor")).toBe(false);
+    expect("advisor" in SEGMENT_CONTENT).toBe(false);
   });
 
   it("has no duplicate entries", () => {
@@ -93,14 +94,14 @@ describe("isSegmentSlug", () => {
   });
 
   it("narrows the type — a positive result is usable as a SegmentSlug", () => {
-    const raw: string = "advisor";
+    const raw: string = "investor";
     if (isSegmentSlug(raw)) {
       // If this type-narrows correctly, `raw` is now a SegmentSlug and
       // the SEGMENT_CONTENT lookup below is well-typed at compile time.
       const entry: SegmentContent = SEGMENT_CONTENT[raw];
-      expect(entry.slug).toBe("advisor");
+      expect(entry.slug).toBe("investor");
     } else {
-      throw new Error("expected 'advisor' to narrow to SegmentSlug");
+      throw new Error("expected 'investor' to narrow to SegmentSlug");
     }
   });
 });
@@ -216,23 +217,12 @@ describe("SEGMENT_CONTENT — planAnchor identity per segment", () => {
     expectAnchor("investor", "investor_angel", "Investor Angel");
   });
 
-  it("advisor → founder_growth, priced from the catalogue", () => {
-    // Not investor_advisor (A$149). That plan is off the public /pricing
-    // ladder, and its only delta over Growth is `advisor.clients` — the flag
-    // behind a console whose tables do not exist. The advisor page describes
-    // the founder toolset, so it anchors the plan that grants it.
-    expectAnchor("advisor", "founder_growth", "Growth");
-  });
-
-  it("does not recommend a plan the public pricing ladder cannot show", () => {
-    // Every anchor a visitor can actually reach must exist on /pricing.
-    // /for/founder, /for/investor and /for/accelerator all 301 to
-    // /solutions/*; /for/advisor is the only one that renders.
-    expect(SEGMENT_CONTENT.advisor.planAnchor.id).toBe("founder_growth");
-    expect(PUBLIC_HIDDEN_PLAN_IDS).not.toContain(
-      SEGMENT_CONTENT.advisor.planAnchor.id,
-    );
-  });
+  // The "does not recommend a hidden plan" assertion that lived here guarded
+  // /for/advisor, the one slug that still rendered. Since 2026-09-10 every
+  // /for/* slug is a 301 to /solutions/* (pinned in
+  // (marketing)/solutions/advisor/redirects.test.ts), so no /for/* anchor
+  // reaches a visitor; the public/hidden split of the investor rows is
+  // T0268's to decide (plans-v2.ts), not this copy's.
 
   it("accelerator → accelerator_growth, priced from the catalogue", () => {
     expectAnchor("accelerator", "accelerator_growth", "Accelerator Growth");
@@ -255,7 +245,6 @@ describe("SEGMENT_CONTENT — audience labels", () => {
   it("label pluralises the audience noun for every segment", () => {
     expect(SEGMENT_CONTENT.founder.label).toBe("Founders");
     expect(SEGMENT_CONTENT.investor.label).toBe("Investors");
-    expect(SEGMENT_CONTENT.advisor.label).toBe("Advisors");
     expect(SEGMENT_CONTENT.accelerator.label).toBe("Accelerators");
   });
 

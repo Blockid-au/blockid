@@ -68,11 +68,14 @@ describe("DISCLAIMER_VERSIONS registry integrity", () => {
     }
   });
 
-  it("tos and privacy share a version string (both bumped on 2026-07-16)", () => {
-    // Not a hard rule forever, but pins the current release train — if legal
-    // splits them, this assertion is the reminder to update downstream
-    // consent-collection surfaces that assume one bump = one re-consent.
-    expect(DISCLAIMER_VERSIONS.tos).toBe(DISCLAIMER_VERSIONS.privacy);
+  it("privacy moved ahead of tos on 2026-09-10 (T0275: one canonical policy, real provider chain)", () => {
+    // tos and privacy shared "v2.0-2026-07-16" until the privacy policy was
+    // consolidated. The split is deliberate: only the privacy surface
+    // (PrivacyBanner → /api/legal/ack) records the new version; tos consent
+    // rows are untouched.
+    expect(DISCLAIMER_VERSIONS.tos).toBe("v2.0-2026-07-16");
+    expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.1-2026-09-10");
+    expect(DISCLAIMER_VERSIONS.privacy > DISCLAIMER_VERSIONS.tos).toBe(true);
   });
 });
 
@@ -159,18 +162,20 @@ describe("registry / guard cross-invariants", () => {
     }
   });
 
-  it("shipped release train: tos/privacy on v2.0 and the other 5 kinds on v1.0 (both dated 2026-07-16)", () => {
+  it("shipped release train: tos v2.0, privacy v2.1 (2026-09-10), the other 5 kinds on v1.0", () => {
     // The 2026-07-16 bulk release stamped tos/privacy at v2.0 and the five
-    // AFSL/consent kinds at v1.0. Pin the distinct-string count so an
-    // accidental copy of one group's version into the other fires here
-    // instead of silently reusing a body_md hash in consent_events.
+    // AFSL/consent kinds at v1.0; T0275 moved privacy alone to v2.1. Pin the
+    // distinct-string count so an accidental copy of one group's version
+    // into another fires here instead of silently reusing a body_md hash in
+    // consent_events.
     const versions = Object.values(DISCLAIMER_VERSIONS);
     const unique = new Set(versions);
-    expect(unique.size).toBe(2);
+    expect(unique.size).toBe(3);
     expect(unique.has("v2.0-2026-07-16")).toBe(true);
+    expect(unique.has("v2.1-2026-09-10")).toBe(true);
     expect(unique.has("v1.0-2026-07-16")).toBe(true);
     expect(DISCLAIMER_VERSIONS.tos).toBe("v2.0-2026-07-16");
-    expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.0-2026-07-16");
+    expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.1-2026-09-10");
     for (const kind of [
       "general_advice_warning",
       "wholesale_certification",
