@@ -59,7 +59,14 @@ const ACCOUNT_TYPES: readonly { value: string; label: string }[] = [
 ];
 
 export function SignupForm(props: SignupFormProps) {
-  if (!props.stripePublishableKey) {
+  // Hook first, early return second. useMemo used to sit below the guard, so
+  // the hook was skipped on the "no key" branch — a rules-of-hooks violation
+  // that is stable only for as long as the prop never changes between renders.
+  const stripePromise = React.useMemo(
+    () => (props.stripePublishableKey ? getStripe(props.stripePublishableKey) : null),
+    [props.stripePublishableKey],
+  );
+  if (!props.stripePublishableKey || !stripePromise) {
     return (
       <div
         role="alert"
@@ -71,10 +78,6 @@ export function SignupForm(props: SignupFormProps) {
       </div>
     );
   }
-  const stripePromise = React.useMemo(
-    () => getStripe(props.stripePublishableKey!),
-    [props.stripePublishableKey],
-  );
   return (
     <Elements stripe={stripePromise}>
       <InnerForm {...props} />

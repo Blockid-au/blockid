@@ -80,7 +80,6 @@ function useCountUp(target: number, durationMs = 500): number {
 
 export function RunningSviHero({ dims, stage, industry, totalCount, running, done }: Props) {
   const scored = dims.filter((d): d is RunningDim & { score: number } => d.score !== null);
-  if (scored.length === 0 && !running) return null;
 
   const totalWeight = scored.reduce((acc, d) => acc + d.weight, 0);
   const rawTotal =
@@ -88,6 +87,12 @@ export function RunningSviHero({ dims, stage, industry, totalCount, running, don
       ? Math.round(scored.reduce((acc, d) => acc + (d.score * d.weight) / totalWeight, 0))
       : 0;
   const animatedSvi = useCountUp(rawTotal);
+  // The idle early-return used to sit ABOVE useCountUp. The component renders
+  // with zero hooks while nothing is scored and not running, then with one
+  // hook the moment `running` flips — which is exactly the transition this
+  // component exists for, and React throws "Rendered more hooks than during
+  // the previous render" on it. Hooks first, then bail.
+  if (scored.length === 0 && !running) return null;
   const showValuation = scored.length >= 3;
 
   const band: "strong" | "developing" | "early" | "pending" =

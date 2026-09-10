@@ -130,11 +130,17 @@ docker_prune() {
   # docker system df --format is unreliable across versions; approximate via /var/lib/docker
   before=$(path_size_bytes /var/lib/docker)
   if [[ $DRY_RUN -eq 1 ]]; then
-    log "docker_prune: DRY-RUN would run: docker system prune -af --volumes (current /var/lib/docker=${before}B)"
+    log "docker_prune: DRY-RUN would run: docker system prune -af (current /var/lib/docker=${before}B)"
     return 0
   fi
-  log "docker_prune: running docker system prune -af --volumes"
-  docker system prune -af --volumes >/dev/null 2>&1 || log "docker_prune: prune returned non-zero (continuing)"
+  # No --volumes. This host runs the production Postgres (supabase-db) and
+  # Redis in Docker. pgdata is a bind mount, which prune cannot touch — but the
+  # three named volumes (postgres config, redis persistence, deno cache) total
+  # ~450KB, so --volumes could only ever free nothing while adding the one way
+  # this script could remove state from a database host. Images are where the
+  # space is (-a reclaims unused image layers), so that stays.
+  log "docker_prune: running docker system prune -af"
+  docker system prune -af >/dev/null 2>&1 || log "docker_prune: prune returned non-zero (continuing)"
   after=$(path_size_bytes /var/lib/docker)
   freed=$(( before - after ))
   (( freed < 0 )) && freed=0
