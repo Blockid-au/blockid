@@ -47,33 +47,33 @@
 
 ## Q4 2026 (Oct-Dec) — "Scale & Enterprise"
 
-### Money Finder & Founder Radar — G11 (CFO + CLO + IR + CMO + CTO) · sprints S0/S2/S3/S4/S5 per SOT unified plan · plan [`docs/plans/money-finder-2026-09-10.md`](../../docs/plans/money-finder-2026-09-10.md)
+### Money Finder & Founder Radar — G11 (CFO + CLO + IR + CMO + CTO) · **all sprints shipped 2026-09-10** (5 releases, last `fea2aa62b`) · plan [`docs/plans/money-finder-2026-09-10.md`](../../docs/plans/money-finder-2026-09-10.md)
 - [x] P0 goal doc + AU grants seed (56) + programs seed (8 capitals + national) — 2026-09-10, plan-only
-- [ ] P1 public nav → 5 items + "Do you need money?" CTA; legacy navbar mirrors; unlock-preview strip
-- [ ] P2 migration `0308_au_funding.sql` (`au_grants`, `au_programs`, `funding_reports`, `project_grant_profiles`) + seed script + `/admin/funding`
-- [ ] P3 `lib/agents/grant-advisor.ts` (deterministic match/score/timeline → LLM narrative, RDTI/ESIC A$ estimate) + tests
-- [ ] P4 `/funding` landing + free preview + A$3 guest SKU + credits/plan gate + `POST /api/funding/report`
-- [ ] P5 paid report page (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + save to data room + `/workspace/funding`
-- [ ] P6 public SEO directories `/funding/grants`, `/funding/programs/[city]` + JSON-LD
-- [ ] P7 weekly `refresh-funding-sources` cron (GrantConnect RSS, Qld CKAN, state portals) + agent research topics + review queue
-- [ ] P8 pricing row, insight cross-links, GA4 events, stripe sync drift fix
-- [ ] P9 `funding_matches` + `money-radar-sweep` + notification kinds + `money_radar` email category + ICS
-- [ ] P10 radar drips T-30/14/3 + weekly digest money block + events + `svi_trend_alert` writer
-- [ ] P11 Founder Radar bundled into Starter A$29 (flag `money_radar`) + A$3→subscribe upsell card
-- [ ] P12 Growth extras: investor reverse-match, per-grant application drafts, quarterly expert refresh (v2)
-- [ ] P13 dashboard `MoneyRadarTile` (5 states) + `/workspace/funding` tabs + messaging copy EN/VI
-- [ ] P14 hero one-liners (founder / investor / general, EN+VI) — truth check, 5-second + say-it-back tests, A/B via `cta-variants.ts`; winners → hero, `/solutions/*`, og, i18n, directory bios; recorded in G9
+- [x] P1 public nav → 5 items + "Do you need money?" CTA; legacy navbar mirrors; unlock-preview strip
+- [x] P2 migration `0308_au_funding.sql` (`au_grants`, `au_programs`, `funding_reports`, `project_grant_profiles`) + seed script + `/admin/funding`
+- [x] P3 `lib/agents/grant-advisor.ts` (deterministic match/score/timeline → LLM narrative, RDTI/ESIC A$ estimate) + tests
+- [x] P4 `/funding` landing + free preview + A$3 guest SKU + credits/plan gate + `POST /api/funding/report`
+- [x] P5 paid report page (cards, 12-month SVG Gantt, actions, disclaimers) + PDF + save to data room + `/workspace/funding`
+- [x] P6 public SEO directories `/funding/grants`, `/funding/programs/[city]` + JSON-LD
+- [x] P7 weekly `refresh-funding-sources` cron (GrantConnect RSS, Qld CKAN, state portals) + agent research topics + review queue
+- [x] P8 pricing row, insight cross-links, GA4 events, stripe sync drift fix
+- [x] P9 `funding_matches` + `money-radar-sweep` + notification kinds + `money_radar` email category + ICS
+- [x] P10 radar drips T-30/14/3 + weekly digest money block + events + `svi_trend_alert` writer
+- [x] P11 Founder Radar bundled into Starter A$29 (flag `money_radar`) + A$3→subscribe upsell card
+- [x] P12 Growth extras: investor reverse-match, per-grant application drafts, quarterly expert refresh (v2)
+- [x] P13 dashboard `MoneyRadarTile` (5 states) + `/workspace/funding` tabs + messaging copy EN/VI
+- [x] P14 hero one-liners (founder / investor / general, EN+VI) — truth check, 5-second + say-it-back tests, A/B via `cta-variants.ts`; winners → hero, `/solutions/*`, og, i18n, directory bios; recorded in G9
 
-### Evaluator Traction — G12 (CRO + CTO + CFO + CPO + CMO + CLO) · sprints S0/S1/S3/S4/S5 per SOT unified plan · plan [`docs/plans/evaluator-traction-2026-09-10.md`](../../docs/plans/evaluator-traction-2026-09-10.md)
+### Evaluator Traction — G12 (CRO + CTO + CFO + CPO + CMO + CLO) · **all sprints shipped 2026-09-10** (last release `fea2aa62b`) · plan [`docs/plans/evaluator-traction-2026-09-10.md`](../../docs/plans/evaluator-traction-2026-09-10.md)
 - [x] P0 goal doc + research (54 competitors, JTBD, ChatGPT evidence, AU sizing) — 2026-09-10, plan-only
-- [ ] T0268 Scout A$79 / Firm A$149 / Program A$349 public in `plans.csv` + limits + `/pricing` Evaluator tab + retire A$5.50 SKU (A$3 = full Trust BizReport)
-- [ ] T0269 evaluator signup with card-required 7-day Stripe trial; `account_type` investor/accelerator/incubator/advisor/service_provider
-- [ ] T0270 "Startups I'm evaluating" object + consent tiers + missing migrations (investor_portfolio, watchlist_digest, advisor_client_roster)
-- [ ] T0271 in-workspace Trust BizReport A$3 (3 credits / plan quota) + re-score A$1
-- [ ] T0272 Program batch scoring + cohort table + sponsor/LP report
-- [ ] T0273 Evaluator Progress Radar digest (merges G11 Money Radar signals)
-- [ ] T0274 `/solutions/advisor` + investor/accelerator rewrite + "BlockID vs ChatGPT vs a valuer" page + messaging EN/VI + GA4 funnel
-- [ ] T0275 compliance: data-handling sentence, general-advice disclaimer, doctoral-research wording sign-off
+- [x] T0268 Scout A$79 / Firm A$149 / Program A$349 public in `plans.csv` + limits + `/pricing` Evaluator tab + retire A$5.50 SKU (A$3 = full Trust BizReport)
+- [x] T0269 evaluator signup with card-required 7-day Stripe trial; `account_type` investor/accelerator/incubator/advisor/service_provider
+- [x] T0270 "Startups I'm evaluating" object + consent tiers + missing migrations (investor_portfolio, watchlist_digest, advisor_client_roster)
+- [x] T0271 in-workspace Trust BizReport A$3 (3 credits / plan quota) + re-score A$1
+- [x] T0272 Program batch scoring + cohort table + sponsor/LP report
+- [x] T0273 Evaluator Progress Radar digest (merges G11 Money Radar signals)
+- [x] T0274 `/solutions/advisor` + investor/accelerator rewrite + "BlockID vs ChatGPT vs a valuer" page + messaging EN/VI + GA4 funnel
+- [x] T0275 compliance: data-handling sentence, general-advice disclaimer, doctoral-research wording sign-off
 
 ### Multi-Project System Enhancement (CTO)
 - [ ] Portfolio dashboard (all startups side-by-side)

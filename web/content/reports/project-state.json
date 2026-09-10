@@ -1,6 +1,6 @@
 {
   "version": "3.11.0",
-  "updatedAt": "2026-09-10T16:15:09.429Z",
+  "updatedAt": "2026-09-10T19:42:18.019Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-09-10T16:00:02.533Z",
@@ -2092,7 +2092,7 @@
         "title": "Growth extras: investor reverse-match (getDealFlow inverted), per-grant application_prompts drafts, quarterly expert analysis refresh",
         "rationale": "Wave 6 · G11-P12 · §4h. v2 lane after MRR signal. Depends T0245.",
         "versionImpact": "minor",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": [
           "G",
@@ -2138,11 +2138,12 @@
           ".",
           "m",
           "d",
-          "S5 started 2026-09-10 16:20Z in parallel worktree agents"
+          "S5 started 2026-09-10 16:20Z in parallel worktree agents",
+          "Merged fea2aa62b · au_grants.application_prompts (21 seeded) + grant_application_drafts + investor_prefs/discoverable + analysis_refreshes (0323), POST/PATCH /api/funding/draft (Growth 0 / Starter 2 credits w/ confirm), investor reverse-match tab + intro mailto, analysis-refresh-quarterly cron 0 6 1 1,4,7,10 · live"
         ],
         "sprint": "S5",
         "priority": "P3",
-        "completedAt": "2026-09-10T16:00:02.533Z",
+        "completedAt": "2026-09-10T19:50:00.000Z",
         "commit": "59255c9a1"
       },
       {
@@ -2210,7 +2211,7 @@
         "title": "Program batch scoring: queue N startups off-peak, cohort table + CSV, sponsor/LP report export (extend /api/reports/quarterly), custom rubric weights",
         "rationale": "G12 Wave C · §3c.7. Depends T0271.",
         "versionImpact": "minor",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T04:22:55.026Z",
         "notes": [
           "G",
@@ -2262,10 +2263,12 @@
           ".",
           "m",
           "d",
-          "S5 started 2026-09-10 16:20Z in parallel worktree agents"
+          "S5 started 2026-09-10 16:20Z in parallel worktree agents",
+          "Merged 79c4ec450 · evaluation_batches + items (0322), POST /api/evaluations/batch (Program-gated, quota all-or-nothing), evaluation-batch-runner cron */20 12-20, cohort table + CSV, /api/reports/quarterly?batch|cohort LP report, /solutions/accelerator copy flipped · live 2026-09-10 S5 deploy"
         ],
         "sprint": "S5",
-        "priority": "P3"
+        "priority": "P3",
+        "completedAt": "2026-09-10T19:50:00.000Z"
       },
       {
         "id": "T0273",
