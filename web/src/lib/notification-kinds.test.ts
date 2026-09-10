@@ -35,23 +35,44 @@ describe("registry", () => {
   });
 });
 
-describe("describeNotification / notificationAction — Money Radar payloads", () => {
-  it("grant_deadline reads the tier + date", () => {
+describe("describeNotification / notificationAction — Money Radar payloads (D-3 titles, T0248)", () => {
+  it("grant_deadline reads the tier: T-30 / T-14 (with A$ when known) / T-3 (weekday)", () => {
     const r = row("grant_deadline", { event: "deadline_t14", name: "MVP Ventures", closes_at: "2026-09-27", days_left: 14, url: "https://x.gov.au" });
-    expect(describeNotification(r)).toBe("MVP Ventures closes in 14 days (2026-09-27)");
+    expect(describeNotification(r)).toBe("14 days left: MVP Ventures");
+    expect(describeNotification(row("grant_deadline", { event: "deadline_t14", name: "MVP Ventures", amount_max_aud: 75000 }))).toBe("14 days left: MVP Ventures (A$75,000)");
+    expect(describeNotification(row("grant_deadline", { event: "deadline_t30", name: "MVP Ventures", days_left: 28 }))).toBe(
+      "MVP Ventures closes in 30 days — start your application",
+    );
+    expect(describeNotification(row("grant_deadline", { event: "deadline_t3", name: "MVP Ventures", closes_at: "2026-09-11", days_left: 3 }))).toBe(
+      "Last call: MVP Ventures closes Friday",
+    );
+    expect(describeNotification(row("grant_deadline", { event: "deadline_t3", name: "MVP Ventures", days_left: 0 }))).toBe("Last call: MVP Ventures closes today");
     expect(notificationAction(r)).toEqual({ href: "https://x.gov.au", label: "Open grant" });
+    // Unknown event → the generic line, never blank.
+    expect(describeNotification(row("grant_deadline", { name: "MVP Ventures", closes_at: "2026-09-27", days_left: 14 }))).toBe(
+      "MVP Ventures closes in 14 days (2026-09-27)",
+    );
   });
 
   it("status_changed / new_round_opened wording", () => {
-    expect(describeNotification(row("grant_deadline", { event: "status_changed", name: "Ignite", status: "paused" }))).toBe("Ignite is now paused");
-    expect(describeNotification(row("program_intake", { event: "new_round_opened", name: "Plus Eight" }))).toBe("Plus Eight — a new round just opened");
+    expect(describeNotification(row("grant_deadline", { event: "status_changed", name: "Ignite", status: "paused" }))).toBe("Ignite paused — see your alternatives");
+    expect(describeNotification(row("grant_deadline", { event: "status_changed", name: "Ignite", status: "paused", alternatives: ["a", "b"] }))).toBe(
+      "Ignite paused — here are 2 alternatives",
+    );
+    expect(describeNotification(row("program_intake", { event: "new_round_opened", name: "Plus Eight" }))).toBe("Plus Eight just opened a new round");
   });
 
   it("program_intake / event_match / new_matches copy", () => {
-    expect(describeNotification(row("program_intake", { event: "deadline_t3", name: "Startmate", days_left: 1 }))).toBe("Startmate applications close tomorrow");
-    expect(describeNotification(row("event_match", { name: "West Tech Fest", closes_at: "2026-12-01" }))).toBe("West Tech Fest — 2026-12-01");
-    expect(describeNotification(row("new_matches", { count: 3, grant_count: 2, program_count: 1, startup: "Acme" }))).toBe("2 grants and 1 program now match Acme");
-    expect(describeNotification(row("new_matches", { count: 1 }))).toBe("1 new match now match your startup");
+    expect(describeNotification(row("program_intake", { event: "deadline_t3", name: "Startmate", days_left: 1 }))).toBe("Last call: Startmate closes tomorrow");
+    expect(describeNotification(row("event_match", { name: "West Tech Fest", closes_at: "2026-12-01" }))).toBe(
+      "West Tech Fest (2026-12-01) — founders at your stage go to this",
+    );
+    expect(describeNotification(row("event_match", { name: "West Tech Fest", closes_at: "2026-12-01", city: "Perth" }))).toBe(
+      "West Tech Fest (Perth, 2026-12-01) — founders at your stage go to this",
+    );
+    expect(describeNotification(row("new_matches", { count: 3, grant_count: 3, program_count: 0, startup: "Acme" }))).toBe("3 new grants match Acme this week");
+    expect(describeNotification(row("new_matches", { count: 3, grant_count: 2, program_count: 1, startup: "Acme" }))).toBe("3 new matches for Acme this week");
+    expect(describeNotification(row("new_matches", { count: 1 }))).toBe("1 new matches for your startup this week");
     expect(notificationAction(row("new_matches", { report_id: "r1" }))).toEqual({ href: "/funding/report/r1", label: "See matches" });
     expect(notificationAction(row("event_match", {}))).toEqual({ href: "/funding", label: "See programs" });
   });
@@ -60,6 +81,9 @@ describe("describeNotification / notificationAction — Money Radar payloads", (
     expect(describeNotification(row("weekly_next_step", { title: "Apply for MVP Ventures" }))).toBe("Apply for MVP Ventures");
     expect(notificationAction(row("weekly_next_step", { href: "/funding/report/r1" }))).toEqual({ href: "/funding/report/r1", label: "Do it now" });
     expect(notificationAction(row("analysis_refresh"))).toEqual({ href: "/workspace/business-report", label: "Read the update" });
+    expect(describeNotification(row("analysis_refresh", { changes: 2 }))).toBe("Your funding plan was refreshed — 2 changes");
+    expect(describeNotification(row("analysis_refresh"))).toBe("Your funding plan was refreshed");
+    expect(describeNotification(row("weekly_next_step"))).toBe("Your next money step this week");
   });
 
   it("legacy kinds keep their Wave 27C words; unknown kinds fall back to the kind", () => {

@@ -111,6 +111,13 @@ export const FOUNDER_RADAR_TRIAL_DAYS = 7;
 export const SCOUT_MONTHLY_AUD = 79;
 export const FUNDING_REPORT_AUD = 3;
 
+/**
+ * The approved closing clause of the A$3 → Founder Radar sentence (D-3).
+ * `RadarUpsellCard` renders it; `lib/funding/copy.ts` re-exports it as
+ * `FUNDING_COPY.upsell.tail` so the messaging pack never duplicates it.
+ */
+export const RADAR_UPSELL_TAIL = `Founder Radar watches them for you: alerts, monthly re-match, weekly next step — A$${FOUNDER_RADAR_MONTHLY_AUD}/mo, first ${FOUNDER_RADAR_TRIAL_DAYS} days free.`;
+
 export function founderRadarSignupHref(from: string): string {
   return `/signup?plan=founder_starter&trial=1&from=${encodeURIComponent(from)}`;
 }

@@ -10,11 +10,15 @@
 //     `describeNotification()` below, so both show the same words.
 //
 // No `server-only` import: this file is shared by client components.
+// Money Radar titles come from the D-3 messaging pack (lib/funding/copy.ts,
+// T0248) so the feed, the bell and the emails say the same words.
 //
 // Wave 27C shipped the first six kinds. T0245 (Money Radar, plan §4h) adds
 // the six `MONEY_KINDS`; `weekly_next_step` and `analysis_refresh` are
 // registered here so T0246 (digest money block) and T0273 (evaluator radar)
 // can write them without touching this list again.
+
+import { FUNDING_COPY, fill, weekdayOf } from "@/lib/funding/copy";
 
 export const NOTIFICATION_KINDS = [
   // Wave 27C
@@ -82,6 +86,11 @@ function n(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
+const AUD_FMT = new Intl.NumberFormat("en-AU", { maximumFractionDigits: 0 });
+function formatAud(v: number): string {
+  return `A$${AUD_FMT.format(Math.round(v))}`;
+}
+
 /** "in 14 days" / "today" / "tomorrow" for the deadline copy. */
 export function daysLeftPhrase(days: number | null): string {
   if (days === null) return "";
@@ -121,32 +130,58 @@ export function describeNotification(row: FounderNotificationRow): string {
     case "grant_deadline":
     case "program_intake":
     case "event_match": {
+      // D-3 titles (lib/funding/copy.ts) keyed by the sweep's payload.event.
       const name = s(p.name) ?? "A matched opportunity";
       const event = s(p.event) ?? "";
       const days = n(p.days_left);
       const closes = s(p.closes_at);
       if (event === "status_changed") {
         const status = s(p.status) ?? "closed";
-        return `${name} is now ${status}`;
+        const alts = Array.isArray(p.alternatives) ? p.alternatives.length : n(p.alternatives_count);
+        return alts && alts > 0
+          ? fill(FUNDING_COPY.notification.status_changed, { program: name, status, k: alts })
+          : fill(FUNDING_COPY.notification.status_changed_noAlt, { program: name, status });
       }
-      if (event === "new_round_opened") return `${name} — a new round just opened`;
-      if (row.kind === "event_match") return closes ? `${name} — ${closes}` : name;
+      if (event === "new_round_opened") return fill(FUNDING_COPY.notification.new_round_opened, { program: name });
+      if (row.kind === "event_match") {
+        const city = s(p.city);
+        const date = closes ?? "date to be confirmed";
+        return city
+          ? fill(FUNDING_COPY.notification.event_match, { event: name, city, date })
+          : fill(FUNDING_COPY.notification.event_match_noCity, { event: name, date });
+      }
+      if (event === "deadline_t30") return fill(FUNDING_COPY.notification.deadline_t30, { program: name });
+      if (event === "deadline_t14") {
+        const max = n(p.amount_max_aud);
+        return max
+          ? fill(FUNDING_COPY.notification.deadline_t14, { program: name, max: formatAud(max) })
+          : fill(FUNDING_COPY.notification.deadline_t14_noAmount, { program: name });
+      }
+      if (event === "deadline_t3") {
+        const weekday = days !== null && days <= 0 ? "today" : days === 1 ? "tomorrow" : weekdayOf(closes);
+        return fill(FUNDING_COPY.notification.deadline_t3, { program: name, weekday });
+      }
       const noun = row.kind === "grant_deadline" ? "closes" : "applications close";
       return closes ? `${name} ${noun} ${daysLeftPhrase(days)} (${closes})` : `${name} ${noun} ${daysLeftPhrase(days)}`;
     }
     case "new_matches": {
       const count = n(p.count) ?? 0;
-      const startup = s(p.startup);
+      const startup = s(p.startup) ?? "your startup";
       const g = n(p.grant_count) ?? 0;
       const pr = n(p.program_count) ?? 0;
-      const parts = [g ? `${g} grant${g === 1 ? "" : "s"}` : null, pr ? `${pr} program${pr === 1 ? "" : "s"}` : null].filter(Boolean);
-      const what = parts.length ? parts.join(" and ") : `${count} new ${count === 1 ? "match" : "matches"}`;
-      return startup ? `${what} now match ${startup}` : `${what} now match your startup`;
+      // "3 new grants match Acme this week" when every match is a grant;
+      // otherwise the mixed line so a program is never called a grant.
+      return g === count && g > 0 && pr === 0
+        ? fill(FUNDING_COPY.notification.new_match, { n: count, startup })
+        : fill(FUNDING_COPY.notification.new_match_mixed, { n: count || g + pr, startup });
     }
     case "weekly_next_step":
-      return s(p.title) ?? "Your next money step this week";
-    case "analysis_refresh":
-      return s(p.title) ?? "What changed for your startup — quarterly analysis refreshed";
+      return s(p.title) ?? FUNDING_COPY.notification.weekly_next_step;
+    case "analysis_refresh": {
+      const changes = n(p.changes) ?? (Array.isArray(p.changes) ? p.changes.length : null);
+      if (changes !== null && changes > 0) return fill(FUNDING_COPY.notification.analysis_refresh, { n: changes });
+      return s(p.title) ?? FUNDING_COPY.notification.analysis_refresh_noCount;
+    }
     default:
       return row.kind;
   }

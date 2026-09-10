@@ -32,7 +32,8 @@ async function html(): Promise<string> {
 describe("/funding landing (T0242)", () => {
   it("renders live counts, the free directories and the A$3 / evaluator paths", async () => {
     const out = await html();
-    expect(out).toContain("1 Australian grants worth up to");
+    expect(out).toContain("There&#x27;s A$75,000 in Australian grants and programs open right now. Find the ones you qualify for in 60 seconds.");
+    expect(out).toContain("Every program links to its official page. Grant information is free from government — we sell the analysis, not the access.");
     expect(out).toContain("/funding/grants");
     expect(out).toContain("/funding/programs/sydney");
     expect(out).toContain("A$3");
@@ -56,7 +57,7 @@ describe("/funding landing (T0242)", () => {
 
   it("carries the §5a positioning, the price ladder and the §5f disclaimer", async () => {
     const out = await html();
-    expect(out).toContain("The lists are free.");
+    expect(out).toContain("The list is free. The eligibility check, ranking and 12-month plan are A$3.");
     expect(out).toContain("A$29/mo");
     expect(out).toContain("Founder Radar");
     expect(out).toContain('data-surface="funding_directory"');

@@ -197,6 +197,20 @@ describe("/workspace/funding (T0244)", () => {
     expect(bogus).toContain('data-tab="grants"');
   });
 
+  it("mounts the compact MoneyRadarTile above the tabs for a paid founder (T0248), never for the free variant", async () => {
+    const paid = await html();
+    expect(paid).toContain("data-money-radar-tile");
+    expect(paid).toContain('data-compact="1"');
+    // money_radar resolves true from the mocked can() → subscriber (deadline inside 30 d? no: 81 d) → nothing_due.
+    expect(canMock).toHaveBeenCalledWith(expect.objectContaining({ id: "u-1" }), "money_radar");
+    expect(paid).toMatch(/data-state="(subscriber|nothing_due)"/);
+    expect(paid.indexOf("data-money-radar-tile")).toBeLessThan(paid.indexOf("data-funding-workspace"));
+
+    canMock.mockResolvedValue(false);
+    const free = await html();
+    expect(free).not.toContain("data-money-radar-tile");
+  });
+
   it("acknowledges ?draft= as a stub and prompts to run a match when no report exists", async () => {
     const drafted = await html({ draft: "g1" });
     expect(drafted).toContain("data-draft-stub");
