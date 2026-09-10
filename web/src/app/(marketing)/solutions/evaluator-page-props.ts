@@ -162,9 +162,9 @@ function acceleratorJourney(m: Messages): SolutionJourneyStep[] {
 
 /**
  * `/solutions/accelerator` — Program A$349 recommended; Contact Sales stays
- * as the secondary CTA for multi-cohort programs. Batch scoring and the
- * sponsor/LP export are worded "coming in this release" in the catalogue
- * (T0272 flips the copy when Program ships them).
+ * as the secondary CTA for multi-cohort programs. Batch scoring (one rubric,
+ * off-peak, cohort table + CSV) and the sponsor/LP report export shipped in
+ * T0272, and the catalogue copy describes them as live.
  */
 export function buildAcceleratorProps(m: Messages, lang: Lang = "en"): SolutionPageProps {
   return {

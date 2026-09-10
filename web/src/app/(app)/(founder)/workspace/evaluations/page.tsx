@@ -13,6 +13,9 @@
 // badge, movers / next-deadlines panel) is computed by buildEvaluatorProgress
 // for every evaluator; the panel itself is gated on `money_radar` (Scout /
 // Firm / Program) — without it the client shows the Scout trial teaser.
+//
+// T0272: Program (lp_export / accelerator.cohort via getEntitlements) gets
+// row multi-select → Batch score, plus the Cohorts section (listBatches).
 
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -22,7 +25,9 @@ import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getEvaluationQuota, isEvaluatorUser, listEvaluations } from "@/lib/evaluations";
 import { getReportQuota, listLastEvaluationReports } from "@/lib/evaluations/report-quota";
 import { buildEvaluatorProgress } from "@/lib/evaluations/progress-radar";
-import { can } from "@/lib/entitlements";
+import { getEntitlements } from "@/lib/entitlements";
+import { listBatches } from "@/lib/evaluations/batch";
+import { canBatchScore } from "@/lib/evaluations/batch-shared";
 import { EvaluationsClient } from "./evaluations-client";
 
 export const metadata: Metadata = {
@@ -50,16 +55,19 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
     isEvaluatorUser(user),
   ]);
 
-  const [evaluations, quota, lastReports, reportQuota, progress, hasMoneyRadar] = isEvaluator
+  const [evaluations, quota, lastReports, reportQuota, progress, flags, batches] = isEvaluator
     ? await Promise.all([
         listEvaluations(user.id),
         getEvaluationQuota(user),
         listLastEvaluationReports(user.id),
         getReportQuota(user),
         buildEvaluatorProgress({ userId: user.id }).catch(() => null),
-        can({ id: user.id, plan: user.plan ?? "", segment: "investor" }, "money_radar").catch(() => false),
+        getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
+        listBatches(user.id).catch(() => []),
       ])
-    : [[], { used: 0, limit: 0 }, {}, null, null, false];
+    : [[], { used: 0, limit: 0 }, {}, null, null, [] as string[], []];
+  const hasMoneyRadar = flags.includes("money_radar");
+  const canBatch = canBatchScore(flags);
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -74,6 +82,8 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
         reportQuota={reportQuota}
         progress={progress}
         hasMoneyRadar={hasMoneyRadar}
+        canBatch={canBatch}
+        batches={batches}
       />
     </WorkspaceLayout>
   );

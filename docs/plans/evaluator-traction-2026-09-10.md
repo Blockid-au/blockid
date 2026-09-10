@@ -293,7 +293,7 @@ Supporting bullets: consistent verdicts (vs model-to-model variance) · no hallu
 | `/docs` | "Founding 100 lifetime deal A$5", "A$99/mo reverts to Growth", "17 AI-agent C-Levels", "9 AI providers" | T0274 |
 | `/version` | history lines "Free / Growth A$99 / Pro A$299" — historical, leave; but `ROADMAP.md:5` header still says "Universal 3-rung pricing ladder (Free / Growth A$99 / Pro A$299)" | fix ROADMAP header on approval (docs) |
 | `/for/advisor` | "Recommended plan Growth A$69", white-label "Not yet" | T0274 (G12-5) |
-| `/solutions/accelerator` | "batch scoring … in build", "no packaged sponsor or LP report yet" | T0272 flips copy when Program ships |
+| `/solutions/accelerator` | ~~"batch scoring … in build", "no packaged sponsor or LP report yet"~~ | **Shipped T0272** — batch scoring (queue → off-peak runner → cohort table + CSV, custom rubric weights) and the sponsor/LP report (`/api/reports/quarterly?batch=`) are live; copy flipped in `en.json` / `vi.json` |
 | `/pricing` FAQ | "Can I switch segment (Founder → Investor)?" with no segment UI; "Beta pricing" badge; no credit-pack prices shown | T0268 |
 | `/one-click-report` | legacy footer ("SOC2 Type II in progress", Company/About/Contact); "never train third-party models on it" | T0275 unifies data sentence; T0238 footer |
 | `/legal/privacy` (v2.0, 30 Jul 2026) **and** `/privacy` (2026-08-23) — two different policies; provider table lists **only Anthropic** while `/docs` says "9 AI providers" and `ai-client.ts` chains groq/cerebras/sambanova/deepinfra/openrouter/ollama | T0275: one policy, provider list = actual chain, founder-approved data sentence (no training claim either way) |

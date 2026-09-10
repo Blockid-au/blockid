@@ -151,11 +151,17 @@ describe("solutions.* approved wording", () => {
     expect(enText).not.toContain("5.50");
   });
 
-  it("does not claim batch scoring or the sponsor/LP export is live", () => {
-    // T0272 flips these when Program ships them; until then the accepted
-    // wording is "coming in this release".
-    expect(EN["solutions.accelerator.faq.a1"]).toMatch(/coming in this release/);
-    expect(EN["solutions.accelerator.faq.a2"]).toMatch(/coming in this release/);
+  it("describes batch scoring and the sponsor/LP export as shipped (T0272)", () => {
+    // T0272 shipped Program batch scoring (one rubric, off-peak, cohort table
+    // + CSV) and the sponsor/LP report export — the "coming in this release"
+    // / "in build" wording must not come back.
+    for (const key of ["solutions.accelerator.benefit1.body", "solutions.accelerator.faq.a1", "solutions.accelerator.faq.a2"]) {
+      expect(EN[key]).not.toMatch(/coming in this release|in build|no packaged/i);
+      expect(VI[key]).not.toMatch(/sẽ có trong bản phát hành này/);
+    }
+    expect(EN["solutions.accelerator.faq.a1"]).toMatch(/cohort table/);
+    expect(EN["solutions.accelerator.faq.a1"]).toMatch(/CSV/);
+    expect(EN["solutions.accelerator.faq.a2"]).toMatch(/sponsor \/ LP report/);
   });
 });
 

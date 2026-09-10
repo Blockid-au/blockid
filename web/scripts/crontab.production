@@ -498,6 +498,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # idempotent via evaluator_progress_sends (migration 0321). `?dry=1` for checks.
 30 23 * * 0 bash $RUN evaluator-progress-weekly --timeout 300
 
+# T0272 — Program batch scoring runner (G12 sprint S5). Every 20 min inside
+# 12:00–20:59 UTC (22:00–06:59 AEST, the off-peak window heavy work is gated
+# to). Picks the oldest queued|running `evaluation_batches` row and scores up
+# to 5 items per tick through runTrustReportForProject (one full 13-agent
+# Trust BizReport each, paid from the plan's reports_per_month quota via an
+# evaluation_reports row per success). Closes the batch + writes one
+# `weekly_next_step` notification when no item is left. `?dry=1` for checks.
+*/20 12-20 * * * bash $RUN evaluation-batch-runner --timeout 300
+
 # Wave 31c — Investor Lead Drip Sequence (Steps 2 + 3).
 # Step 1 fires inline from POST /api/tbr/[token]/lead. This cron advances
 # eligible leads to Step 2 (T+2 days, warm+) and Step 3 (T+7 days, all).
