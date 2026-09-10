@@ -226,6 +226,23 @@ export interface AnalyticsEventMap {
   funding_preview: { state: string; stage: string; grant_count: number; program_count: number };
   funding_paywall_hit: { state: string; stage: string; rail: "guest" | "credits" | "plan" | "anonymous" };
   funding_report_paid: { paid_via: "one_off" | "credits" | "plan"; report_id: string };
+  //   radar_upsell_view / _click — the A$3 → Founder Radar (Starter) card
+  //   (T0247). `surface` = where it rendered; `variant` = whether the copy
+  //   had a real next deadline ("timeline") or fell back ("generic");
+  //   `target` on click = which rung the viewer chose.
+  radar_upsell_view: {
+    surface: "funding_report" | "funding_paywall";
+    viewer: "guest" | "founder" | "evaluator";
+    variant: "timeline" | "generic";
+    report_id?: string;
+    paid_reports?: number;
+  };
+  radar_upsell_click: {
+    surface: "funding_report" | "funding_paywall";
+    viewer: "guest" | "founder" | "evaluator";
+    target: "founder_starter" | "investor_angel";
+    report_id?: string;
+  };
 
   // ── Wave 25C — TBR onboarding tour ───────────────────────────────────────
   tbr_onboard_step_clicked: { step: number };

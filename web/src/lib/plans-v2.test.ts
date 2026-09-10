@@ -11,6 +11,11 @@ import { describe, it, expect } from "vitest";
 // ---------------------------------------------------------------------------
 
 import {
+  EVALUATOR_RADAR_LINE,
+  FOUNDER_RADAR_BADGE,
+  FOUNDER_RADAR_FEATURE_LINE,
+  STARTUP_PACKAGE_MONEY_FINDER_LINE,
+  STARTUP_PACKAGE_RADAR_DAYS,
   PLANS_V2,
   PUBLIC_HIDDEN_PLAN_IDS,
   plansForSegment,
@@ -209,6 +214,41 @@ describe("PLANS_V2 catalogue", () => {
     expect(program).toContain("batch scoring");
     expect(program).toMatch(/lp \/ sponsor report/);
     expect(program).toContain("read-only api");
+  });
+
+  // G11 (2026-09-10, T0247): Founder Radar bundled into Starter (D10) — no
+  // rename, a chip instead; Growth extras honestly "(coming)" until T0251;
+  // the three evaluator rungs say the radar is included.
+  it("Starter keeps its name, carries the Founder Radar badge + feature line (T0247)", () => {
+    const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
+    const starter = byId.get("founder_starter")!;
+    expect(starter.name).toBe("Starter");
+    expect(starter.badge).toBe(FOUNDER_RADAR_BADGE);
+    expect(starter.features).toContain(FOUNDER_RADAR_FEATURE_LINE);
+    expect(FOUNDER_RADAR_FEATURE_LINE).toMatch(/^Founder Radar — grant & program deadline alerts, monthly re-match, weekly next step, capital map$/);
+    // Only Starter wears the chip.
+    expect(PLANS_V2.filter((p) => p.badge).map((p) => p.id)).toEqual(["founder_starter"]);
+  });
+
+  it("Free names the Money Finder preview and the A$3 Trust BizReport; Growth marks Radar extras as coming", () => {
+    const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
+    const free = byId.get("founder_free")!.features.join(" ");
+    expect(free).toContain("Money Finder preview");
+    expect(free).toContain("Trust BizReport A$3 pay-as-you-go");
+    const growth = byId.get("founder_growth")!.features.join(" ");
+    expect(growth).toContain("+ investor matching, unlimited application drafts, quarterly expert refresh (coming)");
+  });
+
+  it("every public evaluator rung includes the Money Finder & Progress Radar line", () => {
+    expect(EVALUATOR_RADAR_LINE).toBe("Money Finder & Progress Radar included");
+    for (const p of publicPlansForSegment("investor")) {
+      expect(p.features).toContain(EVALUATOR_RADAR_LINE);
+    }
+  });
+
+  it("Startup Package copy + radar window are pinned (90 days = 3 months, T0247 / migration 0319)", () => {
+    expect(STARTUP_PACKAGE_RADAR_DAYS).toBe(90);
+    expect(STARTUP_PACKAGE_MONEY_FINDER_LINE).toBe("1 Money Finder report + 3 months Founder Radar included");
   });
 
   it("investor_vc_ent and the accelerator_* cohort SKUs stay contact-sales (public:false)", () => {

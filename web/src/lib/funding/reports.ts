@@ -300,6 +300,32 @@ export async function getFundingReport(id: string): Promise<FundingReportRow | n
   }
 }
 
+/**
+ * How many Money Finder reports this user has PAID for — A$3 one-off or
+ * 3 credits; plan-included runs (`paid_via = 'plan'`) are not a spend. Drives
+ * the "You've spent A$9 on 3 reports" Radar upsell (T0247). Fails to 0.
+ */
+export async function countPaidFundingReports(userId: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase || !userId) return 0;
+  try {
+    const { count, error } = await supabase
+      .from("funding_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .in("paid_via", ["one_off", "credits"])
+      .in("status", ["paid", "generating", "ready"]);
+    if (error) {
+      if (error.code !== "42P01") console.warn("[funding/reports] countPaidFundingReports", error.message);
+      return 0;
+    }
+    return typeof count === "number" && count > 0 ? count : 0;
+  } catch (err) {
+    console.warn("[funding/reports] countPaidFundingReports", err instanceof Error ? err.message : String(err));
+    return 0;
+  }
+}
+
 export interface ViewerContext {
   userId?: string | null;
   /** `?t=` access token from the emailed link. */

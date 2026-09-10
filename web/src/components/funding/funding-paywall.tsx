@@ -15,6 +15,11 @@
  * Copy carries the §5a positioning ("Grant information is free from
  * government — we sell the analysis") and the §5f disclaimer lives in the
  * page-level FundingDisclaimer right below.
+ *
+ * T0247: after the third paid report (A$9 spent) the Founder Radar card
+ * (`RadarUpsellCard`) renders under the rails — counted from
+ * `funding_reports` (GET /api/funding/report) when signed in, from
+ * localStorage (`guest-paid-reports.ts`) for guests. Plan rail never sees it.
  */
 
 import * as React from "react";
@@ -24,6 +29,10 @@ import { Check, Coins, Mail, ShieldCheck } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { CreditConfirm } from "@/components/ui/credit-confirm";
 import { CreditGate } from "@/components/ui/credit-gate";
+import { RadarUpsellCard } from "@/components/funding/radar-upsell-card";
+import { useEntitlement } from "@/hooks/useEntitlement";
+import { guestPaidReportCount, RADAR_UPSELL_AFTER_REPORTS } from "@/lib/funding/guest-paid-reports";
+import { FUNDING_REPORT_AUD, radarViewerKind } from "@/lib/funding/radar-upsell";
 import type { FundingPreviewPayload } from "@/lib/funding/preview";
 
 export type PaywallRail = "anonymous" | "guest" | "credits" | "plan";
@@ -54,6 +63,8 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [gateOpen, setGateOpen] = React.useState(false);
   const trackedRail = React.useRef<PaywallRail | null>(null);
+  const [paidCount, setPaidCount] = React.useState(0);
+  const { user: entUser } = useEntitlement();
 
   // GA4 — once per rail resolution (anonymous → guest/credits/plan).
   React.useEffect(() => {
@@ -70,6 +81,27 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { balance?: number } | null) => {
         if (!cancelled && d && typeof d.balance === "number") setBalance(d.balance);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [rail]);
+
+  // Paid-report count for the 3rd-purchase Radar card (T0247). Signed-in →
+  // funding_reports via GET /api/funding/report; guest → localStorage.
+  React.useEffect(() => {
+    if (rail === "guest") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- storage read after hydration
+      setPaidCount(guestPaidReportCount());
+      return;
+    }
+    if (rail !== "credits") return;
+    let cancelled = false;
+    fetch("/api/funding/report", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { paid_count?: number } | null) => {
+        if (!cancelled && d && typeof d.paid_count === "number") setPaidCount(d.paid_count);
       })
       .catch(() => undefined);
     return () => {
@@ -136,6 +168,7 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
   }
 
   const total = preview.grant_count + preview.program_count;
+  const showRadarCard = rail !== "plan" && rail !== "anonymous" && paidCount >= RADAR_UPSELL_AFTER_REPORTS;
 
   return (
     <div className="mt-6 rounded-2xl border border-action/40 bg-surface-raised p-6 shadow-sm sm:p-8" data-funding-paywall data-rail={rail}>
@@ -183,6 +216,16 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
           </p>
         </div>
       </div>
+
+      {showRadarCard ? (
+        <RadarUpsellCard
+          surface="funding_paywall"
+          viewer={rail === "guest" ? "guest" : radarViewerKind(entUser)}
+          lead={`You've spent A$${paidCount * FUNDING_REPORT_AUD} on ${paidCount} reports — Founder Radar is A$29/mo and includes this report every month.`}
+          paidReports={paidCount}
+          className="mt-6"
+        />
+      ) : null}
 
       <CreditConfirm
         isOpen={confirmOpen}

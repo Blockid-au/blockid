@@ -12,12 +12,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { STARTUP_PACKAGE_MONEY_FINDER_LINE } from "@/lib/plans-v2";
 import { CheckoutButton } from "./checkout-button";
 
 export const metadata: Metadata = {
   title: "Startup Package · Idea to investor-ready in 90 days",
   description:
-    "Guided interview, C-Level AI analysis, real-time SVI, dataroom templates, public /startup/[slug] listing — one A$149 package.",
+    "Guided interview, C-Level AI analysis, real-time SVI, dataroom templates, public /startup/[slug] listing, 1 Money Finder report + 3 months Founder Radar — one A$149 package.",
   openGraph: {
     title: "BlockID Startup Package — investor-ready in 90 days",
     description:
@@ -70,6 +71,9 @@ export default function StartupPackagePage() {
         <p className="mx-auto mt-4 max-w-2xl text-lg text-secondary">
           A guided interview, seven C-Level agents, a live Startup Value Index,
           and a Day-0 dataroom — one A$149 unlock and pay-as-you-go from there.
+        </p>
+        <p className="mx-auto mt-2 max-w-2xl text-sm font-medium text-action" data-package-money-finder>
+          {STARTUP_PACKAGE_MONEY_FINDER_LINE}.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -126,10 +130,13 @@ export default function StartupPackagePage() {
       <section className="mx-auto max-w-4xl px-6 py-10 text-secondary">
         <div className="rounded-3xl border border-line-subtle bg-surface-sunken/60 p-6 sm:p-8">
           <h2 className="text-xl font-semibold text-primary">
-            What's inside your A$149 unlock
+            What&apos;s inside your A$149 unlock
           </h2>
           <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
             <li>• 25 seed credits (~25 agent passes)</li>
+            {/* G11 §4h (T0247): grant_finder flag (0316) + 90-day
+                money_radar_until stamp from the Stripe webhook (0319). */}
+            <li>• {STARTUP_PACKAGE_MONEY_FINDER_LINE}</li>
             <li>• 4 auto-agent passes on the interview</li>
             <li>• Day-0 dataroom (10 templates)</li>
             <li>• Public /startup/[slug] listing</li>

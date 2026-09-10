@@ -14,6 +14,8 @@
  * owns is given, the intake is persisted to `project_grant_profiles` (§4b)
  * so the next run (and T0247 Founder Radar) is prefilled.
  *
+ * GET (T0247) returns `{ ok, paid_count }` for the signed-in user — see below.
+ *
  *   200 { ok, reportId, url, paidVia, creditsCharged, summary }
  *   400 { ok:false, error, field }   401 unauthorized   402 insufficient_credits
  *   403 project_not_found_or_forbidden   429 rate_limited   503 service_unavailable
@@ -27,12 +29,28 @@ import { can } from "@/lib/entitlements";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectById } from "@/lib/projects";
 import { parseFundingIntake, intakeToProjectGrantProfile } from "@/lib/funding/intake";
-import { buildReportFromIntake, newAccessToken, reportColumns } from "@/lib/funding/reports";
+import { buildReportFromIntake, countPaidFundingReports, newAccessToken, reportColumns } from "@/lib/funding/reports";
 
 export const dynamic = "force-dynamic";
 
 const FEATURE_KEY = "grant_match";
 const RATE_LIMIT_PER_HOUR = 10;
+
+/**
+ * GET /api/funding/report — how many reports the signed-in user has paid for
+ * (A$3 / credits; plan-included runs excluded). The /funding paywall uses it
+ * to show the Founder Radar card after the third purchase (T0247).
+ *
+ *   200 { ok, paid_count }   401 unauthorized
+ */
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+  const paid_count = await countPaidFundingReports(user.id);
+  return NextResponse.json({ ok: true, paid_count }, { headers: { "cache-control": "private, no-store" } });
+}
 
 export async function POST(request: Request) {
   // 1. Auth

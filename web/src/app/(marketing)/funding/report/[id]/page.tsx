@@ -9,21 +9,23 @@
  * Renders: ranked grants (name, A$, status/deadline chip, checklist ✓ / ✗ / ?,
  * official link), programs, the timeline as a month list, the narrative
  * markdown, the §5f disclaimer via `FUNDING_DISCLAIMER` + `FundingDisclaimer`,
- * and the Founder Radar upsell.
+ * and the Founder Radar upsell (`RadarUpsellCard`, T0247 — copy computed
+ * from the report's own timeline).
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import Markdown from "react-markdown";
-import { ArrowRight, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { StatusChip } from "@/components/funding/status-chip";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { FundingReportTracker } from "@/components/funding/funding-report-tracker";
+import { RadarUpsellCard } from "@/components/funding/radar-upsell-card";
 import { getCurrentUser } from "@/lib/auth";
 import { canViewFundingReport, getFundingReport, publicFundingReport } from "@/lib/funding/reports";
 import { describeIntake } from "@/lib/funding/intake";
+import { computeRadarUpsellFacts, radarViewerKind } from "@/lib/funding/radar-upsell";
 import { formatAudCompact, formatAudRange, latestVerifiedAt } from "@/lib/funding/directory";
 import { FUNDING_DISCLAIMER, type EligibilityCheck, type TimelineItem } from "@/lib/agents/grant-advisor";
 
@@ -205,16 +207,17 @@ export default async function FundingReportPage({
           </>
         )}
 
-        <section className="mt-10 rounded-2xl border border-action/40 bg-surface-raised p-6" aria-labelledby="fr-radar">
-          <h2 id="fr-radar" className="text-lg font-semibold text-primary">Deadlines move — Founder Radar A$29/mo</h2>
-          <p className="mt-2 text-sm text-secondary">
-            Windows in this report open and close through the year. Founder Radar re-runs this match weekly, alerts you
-            before each deadline you fit, and includes 20 AI credits a month. 7-day trial.
-          </p>
-          <Link href="/pricing" className="mt-3 inline-flex items-center gap-2 font-semibold text-action">
-            See Founder Radar <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
-        </section>
+        {/* T0247 — A$3 → Founder Radar upsell. Hidden when the plan already paid
+            for the report (the reader is a Radar subscriber). */}
+        {report.paid_via !== "plan" ? (
+          <RadarUpsellCard
+            surface="funding_report"
+            viewer={radarViewerKind(user)}
+            facts={computeRadarUpsellFacts(report.timeline, report.meta?.today ?? new Date())}
+            reportId={report.id}
+            className="mt-10"
+          />
+        ) : null}
 
         <p className="mt-10 text-xs leading-relaxed text-tertiary" data-funding-disclaimer>
           {FUNDING_DISCLAIMER}

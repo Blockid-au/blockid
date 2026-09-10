@@ -30,6 +30,13 @@ export interface Plan {
   /** Optional short tagline surfaced above the price. */
   tagline?: string;
   /**
+   * Optional chip rendered next to the plan name on the card. Used for the
+   * "Founder Radar" bundle on Starter (G11 D10, 2026-09-10): the founder
+   * kept the label "Starter" — the chip is how the card says the A$29 rung
+   * now carries the grant & program radar without renaming the SKU.
+   */
+  badge?: string;
+  /**
    * Whether this plan surfaces on the public /pricing ladder. Defaults to
    * `true` when omitted. `false` = hidden from the ladder but kept in the
    * catalogue for legacy renewals and contact-sales flows. Set false on
@@ -63,6 +70,28 @@ export interface Plan {
  */
 export const EQUITY_ADDON_MONTHLY_AUD = 59;
 
+/**
+ * Founder Radar — the Money Finder subscription benefits bundled into
+ * Starter A$29 (G11 §4h D10, decided 2026-09-10; feature flag `money_radar`
+ * on plans.csv / migration 0316). One string, read by the Starter card, the
+ * A$3 report upsell (`radar-upsell-card.tsx`) and the /funding paywall so
+ * the four surfaces cannot describe four different products.
+ */
+export const FOUNDER_RADAR_BADGE = "Founder Radar";
+export const FOUNDER_RADAR_FEATURE_LINE =
+  "Founder Radar — grant & program deadline alerts, monthly re-match, weekly next step, capital map";
+
+/**
+ * Startup Package (founder_package, A$149 one-off — plans.csv row, not a
+ * ladder card). Besides the 25 seed credits it includes one Money Finder
+ * report (`grant_finder` flag, 0316) and a time-boxed Founder Radar grant:
+ * the Stripe webhook stamps `app_users.money_radar_until = now() + 90 days`
+ * (migration 0319) and `can(user, "money_radar")` honours that stamp.
+ */
+export const STARTUP_PACKAGE_RADAR_DAYS = 90;
+export const STARTUP_PACKAGE_MONEY_FINDER_LINE =
+  "1 Money Finder report + 3 months Founder Radar included";
+
 // ─── Founder ──────────────────────────────────────────────────────────────
 const FOUNDER: Plan[] = [
   {
@@ -90,6 +119,10 @@ const FOUNDER: Plan[] = [
       "1 startup workspace",
       "A five-page written summary, emailed as a PDF",
       "Valuation range with its low and high",
+      // G11 (2026-09-10, T0247): the Money Finder ladder starts here — the
+      // free preview (counts + top-3 names) and the A$3 one-off report.
+      "Money Finder preview — how many grants and programs you match, top 3 named",
+      "Trust BizReport A$3 pay-as-you-go",
       "No card, no expiry",
     ],
   },
@@ -102,6 +135,7 @@ const FOUNDER: Plan[] = [
     trial_days: 7,
     cta_kind: "trial",
     tagline: "Solo founder",
+    badge: FOUNDER_RADAR_BADGE,
     // 2026-09-08: back on the public ladder. The 2026-09-07 3-rung decision
     // (Free / Growth A$99 / Pro A$299) hid this tier; the new ladder is
     // Free / Founder A$29 / Growth A$69, so A$29 is the entry rung again.
@@ -125,6 +159,9 @@ const FOUNDER: Plan[] = [
       "1 startup workspace",
       "Your data room, filling up in the order investors ask",
       "Share a live link with an investor instead of a PDF",
+      // G11 D10 (2026-09-10, T0247): Founder Radar is bundled here, not sold
+      // as a 4th tier or an add-on. Flag `money_radar` (plans.csv, 0316).
+      FOUNDER_RADAR_FEATURE_LINE,
       "20 AI credits / month",
       "Email support (48h)",
     ],
@@ -144,6 +181,10 @@ const FOUNDER: Plan[] = [
       "Cap-table sync + data room",
       "45 AI credits / month",
       "Term Sheet AI drafter",
+      // G11 §4h Growth rung. Investor reverse-match, per-grant drafts and
+      // the quarterly refresh ship under T0251 (S5) — "(coming)" stays on
+      // this line until that lands. Do not drop the word before then.
+      "+ investor matching, unlimited application drafts, quarterly expert refresh (coming)",
       "Priority support (24h)",
       // The add-on grants exactly four flags — esop.manage, vesting.read,
       // vesting.write, blockchain.sync (see entitlements/user-grants.ts
@@ -214,6 +255,14 @@ const FOUNDER: Plan[] = [
 // labels and the feature copy moved. Numbers below are read off plans.csv
 // `usage_limits` (reports_per_month / profiles / seats) and `feature_flags`
 // — keep them in lock-step, plans-v2.test.ts pins the anchors.
+/**
+ * Every evaluator rung carries `grant_finder` + `money_radar` (0316): a
+ * Scout / Firm / Program user runs the Money Finder for the startups they
+ * evaluate and gets the same deadline signals through the Progress Radar
+ * (G12 §3b, T0273).
+ */
+export const EVALUATOR_RADAR_LINE = "Money Finder & Progress Radar included";
+
 const INVESTOR: Plan[] = [
   {
     id: "investor_angel",
@@ -232,6 +281,7 @@ const INVESTOR: Plan[] = [
       "Weekly Progress Radar — score deltas, stage changes, new evidence",
       "Deal-flow feed + watchlist",
       "ICS calendar and share-link tracking",
+      EVALUATOR_RADAR_LINE,
     ],
   },
   {
@@ -251,6 +301,7 @@ const INVESTOR: Plan[] = [
       "White-label PDF reports + client roster",
       "Full mentor access to each client's workspace (founder-approved)",
       "R&DTI / ESIC / s708 checks per client",
+      EVALUATOR_RADAR_LINE,
     ],
   },
   {
@@ -270,6 +321,7 @@ const INVESTOR: Plan[] = [
       "Batch scoring — one rubric across a whole application round",
       "Cohort dashboard + quarterly LP / sponsor report export",
       "Read-only API access",
+      EVALUATOR_RADAR_LINE,
     ],
   },
   {

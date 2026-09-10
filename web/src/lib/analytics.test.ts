@@ -231,6 +231,20 @@ describe("trackEvent", () => {
     ]);
     expect(ctx.win.dataLayer?.[0]).toEqual({ event: "hero_variant_shown", arm: "F1" });
   });
+
+  it("radar_upsell_view / radar_upsell_click carry surface, viewer, variant and target (T0247)", () => {
+    trackEvent("radar_upsell_view", { surface: "funding_report", viewer: "founder", variant: "timeline", report_id: "r1" });
+    trackEvent("radar_upsell_view", { surface: "funding_paywall", viewer: "guest", variant: "generic", paid_reports: 3 });
+    trackEvent("radar_upsell_click", { surface: "funding_report", viewer: "evaluator", target: "investor_angel", report_id: "r1" });
+    expect(rec.calls).toEqual([
+      ["event", "radar_upsell_view", { surface: "funding_report", viewer: "founder", variant: "timeline", report_id: "r1" }],
+      ["event", "radar_upsell_view", { surface: "funding_paywall", viewer: "guest", variant: "generic", paid_reports: 3 }],
+      ["event", "radar_upsell_click", { surface: "funding_report", viewer: "evaluator", target: "investor_angel", report_id: "r1" }],
+    ]);
+    expect(ctx.win.dataLayer?.[2]).toEqual({
+      event: "radar_upsell_click", surface: "funding_report", viewer: "evaluator", target: "investor_angel", report_id: "r1",
+    });
+  });
 });
 
 // ── setUserProperties ─────────────────────────────────────────────────
