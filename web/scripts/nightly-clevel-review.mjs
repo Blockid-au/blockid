@@ -1097,15 +1097,16 @@ export async function routeWoWAlertsToTelegram({ projectId, roles }) {
     console.log("[nightly-clevel-review] WoW alerts: TELEGRAM_CHAT_ID not set, skipping");
     return;
   }
-  const supabase = await getSupabaseClient();
-  if (!supabase) {
-    console.log("[nightly-clevel-review] WoW alerts: no Supabase client, skipping");
-    return;
-  }
-
+  // Cheapest guard first: nothing to alert on means no client is needed
+  // (also keeps the outcome independent of whether Supabase env is loaded).
   const alertRoles = roles.filter((r) => WOW_ALERT_ROLES.includes(r));
   if (alertRoles.length === 0) {
     console.log("[nightly-clevel-review] WoW alerts: no eligible roles ran, skipping");
+    return;
+  }
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    console.log("[nightly-clevel-review] WoW alerts: no Supabase client, skipping");
     return;
   }
 
