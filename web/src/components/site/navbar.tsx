@@ -6,6 +6,7 @@ import { ChevronDown, Menu, X, LayoutDashboard, LogOut, BarChart3, FileText, Tre
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/language-toggle";
+import { MENU } from "@/components/landing/nav-v2";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
 interface NavLink {
@@ -25,136 +26,21 @@ interface NavDropdown {
 
 type NavEntry = NavLink | NavDropdown;
 
-// Fintech v2 (2026-09-08): the top-line primary items now mirror the
-// homepage 70/30 story — Analyse (the AI omnibox), Pricing, Tokenize
-// (blockchain-equity shelf), For Investors, Tools, Docs, Team. Dropdown
-// groups follow. Order is deliberate: analysis-led before ancillary
-// pillars, then tools/docs/team.
-const navItems: NavEntry[] = [
-  { href: "/analyze", label: "Analyse" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/tokenize", label: "Tokenize" },
-  { href: "/for/investor", label: "For Investors" },
-  {
-    label: "Trust Reports",
-    groups: [
-      {
-        heading: "For investors",
-        items: [
-          { href: "/investor", label: "Investor Home" },
-          { href: "/listings", label: "Browse startups" },
-          { href: "/startup-index", label: "Startup Value Index" },
-        ],
+// One source of truth: the primary navigation is NavV2's MENU. This bar keeps
+// its own rendering and auth-aware chrome (user menu, Login/Dashboard) but no
+// longer carries a second, hand-maintained copy of the items — which is how it
+// ended up still offering "Trust Reports" and "Browse startups" on ~50 pages
+// after both were retired from the homepage and the content.
+const navItems: NavEntry[] = MENU.map((entry): NavEntry =>
+  entry.kind === "link"
+    ? { href: entry.href, label: entry.label }
+    : {
+        label: entry.label,
+        groups: entry.sections
+          ? entry.sections.map((s) => ({ heading: s.heading, items: s.items }))
+          : [{ heading: entry.label, items: entry.items }],
       },
-      {
-        heading: "See a sample",
-        items: [
-          { href: "/reports/samples", label: "Sample reports" },
-          { href: "/showcase", label: "Case studies" },
-          { href: "/how-it-works", label: "How the score works" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Tools",
-    groups: [
-      {
-        heading: "Idea",
-        items: [
-          { href: "/tools/idea-lab", label: "Idea Lab" },
-          { href: "/tools/idea-clarify", label: "Idea Clarify" },
-          { href: "/tools/idea-valuation", label: "Idea Valuation" },
-          { href: "/tools/safe-calculator", label: "SAFE Calculator" },
-        ],
-      },
-      {
-        heading: "Cap Table",
-        items: [
-          { href: "/tools/cap-table", label: "Cap Table" },
-          { href: "/tools/dilution", label: "Dilution" },
-          { href: "/tools/equity-split", label: "Equity Split" },
-          { href: "/tools/esop-checklist", label: "ESOP Checklist" },
-        ],
-      },
-      {
-        heading: "Fundraise",
-        items: [
-          { href: "/tools/funding-plan", label: "Funding Plan" },
-          { href: "/tools/term-sheet", label: "Term Sheet" },
-          { href: "/tools/cofounder-match", label: "Co-founder Match" },
-        ],
-      },
-      {
-        heading: "AU compliance",
-        items: [
-          { href: "/tools/asic", label: "ASIC" },
-          { href: "/tools/esic", label: "ESIC" },
-          { href: "/tools/rnd-tax", label: "R&D Tax" },
-          { href: "/tools/data-room", label: "Data Room" },
-        ],
-      },
-      {
-        heading: "Reports",
-        items: [
-          { href: "/tools/financial-projections", label: "Financial Projections" },
-        ],
-      },
-    ],
-  },
-  // ux-ia-startup-flow-v1 §C.2 + §C.7 — global Demo entry, mirrors NavV2.
-  {
-    label: "Demo",
-    groups: [
-      {
-        heading: "Live walkthrough",
-        items: [
-          { href: "/showcase/atlassian?step=1", label: "Atlassian journey" },
-        ],
-      },
-      {
-        heading: "More case studies",
-        items: [
-          { href: "/showcase/sprocketbay", label: "Sprocketbay" },
-          { href: "/showcase/blockid", label: "BlockID" },
-          { href: "/showcase/canva", label: "Canva" },
-          { href: "/showcase/xero", label: "Xero" },
-          { href: "/showcase/safetyculture", label: "SafetyCulture" },
-          { href: "/showcase", label: "All case studies" },
-        ],
-      },
-    ],
-  },
-  { href: "/docs", label: "Docs" },
-  // Team page — surfaces the founder card (Long DO + LinkedIn) so the
-  // /team route is one click from every page, not only from the footer.
-  { href: "/team", label: "Team" },
-  // ux-ia-startup-flow-v1 §C.2 — collapse Benchmarks / Insights / Version
-  // under a single Resources dropdown so the top-nav stays at <=7 items
-  // after adding Demo.
-  {
-    label: "Resources",
-    groups: [
-      {
-        heading: "Learn",
-        items: [
-          { href: "/benchmarks", label: "AU Benchmarks" },
-          { href: "/insights", label: "Insights" },
-          { href: "/docs", label: "Docs" },
-        ],
-      },
-      {
-        heading: "Platform",
-        items: [
-          { href: "/version", label: "Version" },
-          { href: "/changelog", label: "Changelog" },
-          { href: "/roadmap", label: "Roadmap" },
-          { href: "/status", label: "Status" },
-        ],
-      },
-    ],
-  },
-];
+);
 
 function isDropdown(item: NavEntry): item is NavDropdown {
   return (item as NavDropdown).groups !== undefined;

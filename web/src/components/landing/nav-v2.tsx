@@ -40,12 +40,12 @@ interface MenuItem {
   label: string;
 }
 
-interface MenuGroupSection {
+export interface MenuGroupSection {
   heading: string;
   items: MenuItem[];
 }
 
-interface MenuGroup {
+export interface MenuGroup {
   kind: "group";
   key: string;
   label: string;
@@ -61,22 +61,30 @@ interface MenuGroup {
   sections?: MenuGroupSection[];
 }
 
-interface MenuLink {
+export interface MenuLink {
   kind: "link";
   key: string;
   label: string;
   href: string;
 }
 
-type MenuEntry = MenuGroup | MenuLink;
+export type MenuEntry = MenuGroup | MenuLink;
 
-const MENU: MenuEntry[] = [
+/**
+ * The site's one primary navigation. site/navbar.tsx (the auth-aware shell
+ * used by ~50 app and docs pages) derives its items from this list, so the
+ * two bars cannot drift again. They had: the legacy copy was still offering
+ * "Trust Reports" and "Browse startups" after both were retired everywhere
+ * else.
+ */
+export const MENU: MenuEntry[] = [
   {
     kind: "group",
     key: "product",
     label: "Product",
     width: "w-64",
     items: [
+      { label: "All features", href: "/features" },
       // B1 Task 3 — /for/founder is now a 301 to /solutions/founder.
       { label: "Investor-ready score", href: "/solutions/founder#svi" },
       { label: "Cap table + ESOP", href: "/solutions/founder#captable" },
@@ -152,9 +160,11 @@ const MENU: MenuEntry[] = [
       },
     ],
   },
-  { kind: "link", key: "features", label: "Features", href: "/features" },
+  // Top level is capped at seven entries (tests/e2e/nav/menu-structure.spec.ts,
+  // set 2026-07-24 at six). It had grown to nine — which is also why the bar
+  // wrapped mid-label at every desktop width. Features now lives under
+  // Product ("All features") and Team under Docs; both pages are unchanged.
   { kind: "link", key: "pricing", label: "Pricing", href: "/pricing" },
-  { kind: "link", key: "team",    label: "Team", href: "/team" },
   { kind: "link", key: "index",   label: "Startup Index", href: "/index" },
   {
     // ux-ia-startup-flow-v1 §C.1 + §C.7 — global Demo entry-point so a
@@ -186,6 +196,7 @@ const MENU: MenuEntry[] = [
     items: [
       { label: "Changelog", href: "/changelog" },
       { label: "Roadmap", href: "/roadmap" },
+      { label: "Team", href: "/team" },
       { label: "Status", href: "/status" },
       { label: "Security audit", href: "/security-audit" },
     ],
@@ -292,7 +303,7 @@ function DesktopDropdown({
         aria-label={`${group.label} menu`}
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
-        className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+        className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
       >
         {group.label}
         <ChevronDown
@@ -568,7 +579,7 @@ export function NavV2() {
     >
 <nav
         aria-label="Primary"
-        className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 min-[1440px]:max-w-[92rem]"
+        className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 xl:max-w-[92rem]"
       >
         <Link
           href="/"
@@ -590,7 +601,7 @@ export function NavV2() {
         </Link>
 
         {/* Desktop links */}
-        <ul className="hidden items-center gap-1 min-[1440px]:flex">
+        <ul className="hidden items-center gap-1 xl:flex">
           {MENU.map((entry) => {
             if (entry.kind === "link") {
               return (
@@ -598,7 +609,7 @@ export function NavV2() {
                   <Link
                     href={entry.href}
                     onClick={() => closeImmediately()}
-                    className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+                    className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-brand-ink-muted transition-colors duration-200 hover:text-brand-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
                   >
                     {entry.label}
                   </Link>
@@ -626,7 +637,7 @@ export function NavV2() {
         </ul>
 
         {/* Desktop CTAs */}
-        <div className="hidden items-center gap-3 min-[1440px]:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           <LocaleSwitcher />
           <Link
             href="/analyze"
@@ -651,7 +662,7 @@ export function NavV2() {
         {/* Mobile toggle */}
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-brand-ink min-[1440px]:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-brand-ink xl:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan"
           aria-expanded={mobileOpen}
           aria-controls="nav-v2-mobile-menu"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -669,7 +680,7 @@ export function NavV2() {
       {mobileOpen && (
         <div
           id="nav-v2-mobile-menu"
-          className="border-t border-white/5 bg-brand-navy px-4 pb-4 pt-2 min-[1440px]:hidden"
+          className="border-t border-white/5 bg-brand-navy px-4 pb-4 pt-2 xl:hidden"
         >
           <ul className="flex flex-col gap-1">
             {MENU.map((entry) =>
@@ -694,7 +705,7 @@ export function NavV2() {
           </ul>
           <div className="mt-3 flex flex-col gap-2 border-t border-white/5 pt-3">
             {/* Language lived only in the desktop CTA row until the nav
-                breakpoint moved to 1440px, which would have taken EN/VI away
+                breakpoint moved to xl (1280px), which would have taken EN/VI away
                 from every screen below that. */}
             <div className="flex justify-start pb-1">
               <LocaleSwitcher />
