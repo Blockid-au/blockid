@@ -96,6 +96,9 @@ Pulled from [`svi-exchange-tasks.json`](./web/content/reports/svi-exchange-tasks
 | **T_EMAIL_0001** D1/D4/D9 nurture sequence | — | P1 | pending | Templates via email-sequence skill + queue wiring. ~2h. |
 | **T_SVI_EXC_0014** Institutional API tier | v0.9 | P2 | pending | API key mgmt + Stripe billing, ~10h. |
 | **T_SVI_EXC_0015** Escrow settlement (v0.7) | v0.7 | P2 | pending | Settlement layer for closed EOI-book deals. |
+| **G11-P1** Public nav → 5 items + "Do you need money?" CTA | — | P1 | planned (founder go pending) | Goal doc [`docs/plans/money-finder-2026-09-10.md`](./docs/plans/money-finder-2026-09-10.md); SOT G11. Legacy navbar mirrors; E2E `menu-structure.spec.ts` updated same commit. |
+| **G11-P2** Migration 0308 `au_grants`/`au_programs` + seed from `web/content/data/*.seed.json` | — | P1 | planned | 56 grants + 199 programs (8 capitals) seeded 2026-09-10; weekly refresh cron in P7. |
+| **G11-P3..P13** Grant-advisor agent, `/funding` A$3 report, Founder Radar (Starter) alerts/digest, dashboard tile | — | P2 | planned | Full phase table in SOT §2 rows G11-P0..P13. |
 
 ### Recently shipped (this session, 2026-08-13)
 - **T0094–T0101 Antler / Series A knowledge pack DONE** (7 of 8 tasks — T0097 UI deferred to next sprint). Full detail in [`WORK_SUMMARY_T0094_T0101.md`](./WORK_SUMMARY_T0094_T0101.md).

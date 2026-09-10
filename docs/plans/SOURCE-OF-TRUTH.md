@@ -143,6 +143,16 @@
 - **Blocker:** none. Sprint closed.
 - **Docs synced (this tick):** README.md (new), ARCHITECTURE.md, GOALS.md, ROADMAP.md, KNOWLEDGE_BASE_INDEX.md, blockid_prd.md, blockid_master_project_blueprint_v1.md, blockid_gtm_sales_first_v1.md, blockid.au.md (deprecated banner), this SOURCE-OF-TRUTH.md, `/version` page + `web/CHANGELOG.md` + `web/package.json` bump to 3.9.23.
 
+### G11 — Money Finder: simple public menu + "Do you need money?" (AU grants, programs, Founder Radar)
+- **Source:** [`docs/plans/money-finder-2026-09-10.md`](./money-finder-2026-09-10.md) · seed data `web/content/data/grants-au.seed.json` (56 rows) + `web/content/data/programs-au.seed.json` (8 capitals + national)
+- **Status:** **P0 shipped 2026-09-10** (goal doc + seed data, plan-only). P1–P13 `open` — **no code lane started**; implementation gated on founder "go".
+- **Founder decisions (2026-09-10):** public nav = 5 items (Get my score · Get funding ▾ · Free tools ▾ · Pricing · Demo ▾) + CTA "Do you need money?" · gate = A$3 one-off (guest SKU, same pattern as One-Click Report) + 3 credits + plan-included · programs = all 8 capitals in v1 · "Founder Radar" alerts/re-match/digest bundled into **Starter A$29** (no new tier, no add-on).
+- **Parts:** A public-menu simplification (legacy `site/navbar.tsx` mirrors, not retired — 52 importers, shell swap stays in G8-P6) · B Money Finder (`au_grants`/`au_programs`/`funding_reports`/`project_grant_profiles`, `lib/agents/grant-advisor.ts`, `/funding*`, A$3 SKU) · C Founder Radar (deadline drips T-30/14/3, monthly re-match, weekly digest money block, ICS, capital map, application drafts) · D weekly refresh cron + dashboard `MoneyRadarTile` + messaging pack.
+- **Amendments:** G7 public-nav file boundary and G9 "do not touch `nav-v2.tsx`" are superseded by G11-P1 for the **public** nav only; G7 "never hide a feature" continues to govern the logged-in sidebar (G8).
+- **Positioning constraint:** business.gov.au says "don't pay for government grant information" — lists + official links stay free; A$3/plan buys eligibility analysis, ranking, A$ estimate, timeline, drafts. CC BY 3.0 AU attribution on reused Commonwealth text.
+- **Next action:** founder "go" → G11-P1 (nav) and G11-P2 (migration `0308_au_funding.sql` + seed script) can run in parallel; P3 agent after P2.
+- **Blocker:** none for P0–P2. Q1–Q3 in goal doc §7 are founder-review, non-blocking.
+
 ---
 
 ## 2. Requirements Register
@@ -200,6 +210,20 @@
 | G8-P7 | unlock-next-level-2026-07-31 | CI-guard | open | test-master | — |
 | G8-P8 | unlock-next-level-2026-07-31 | docs | open | code-documenter | — |
 | DR-SBOM-01 | dataroom license-risk review | licence-classifier | shipped | typescript-pro | `563a3124` |
+| G11-P0 | money-finder-2026-09-10 | goal-doc + seed data | shipped | senior-pm | (this commit) |
+| G11-P1 | money-finder-2026-09-10 | public-nav 5 items + CTA | open | react-expert + nextjs-developer | — |
+| G11-P2 | money-finder-2026-09-10 | migration 0308 + seed script + /admin/funding | open | db-migrate + fullstack-guardian | — |
+| G11-P3 | money-finder-2026-09-10 | grant-advisor agent + tests | open | cfo-advisor + clo-advisor + typescript-pro | — |
+| G11-P4 | money-finder-2026-09-10 | /funding landing + preview + A$3 SKU + report API + grant_finder flag | open | fullstack-guardian + stripe-saas-billing | — |
+| G11-P5 | money-finder-2026-09-10 | paid report page + PDF + dataroom save + workspace leaf | open | react-expert + nextjs-developer | — |
+| G11-P6 | money-finder-2026-09-10 | public directories /funding/grants, /funding/programs/[city] | open | seo-content-au + nextjs-developer | — |
+| G11-P7 | money-finder-2026-09-10 | refresh-funding-sources cron + fetch helper + research topics | open | cto + rnd | — |
+| G11-P8 | money-finder-2026-09-10 | pricing row, insight links, GA4 events, stripe sync drift | open | cmo + code-documenter | — |
+| G11-P9 | money-finder-2026-09-10 | funding_matches + money-radar-sweep + notification kinds + email category + ICS | open | fullstack-guardian + db-migrate | — |
+| G11-P10 | money-finder-2026-09-10 | radar drips T-30/14/3 + digest money block + events + svi_trend_alert writer | open | cto + cmo | — |
+| G11-P11 | money-finder-2026-09-10 | Founder Radar packaging in Starter + upsell card | open | cro + stripe-saas-billing | — |
+| G11-P12 | money-finder-2026-09-10 | Growth extras: investor reverse-match, per-grant drafts, quarterly refresh (v2) | open | investor-relations + cfo-advisor | — |
+| G11-P13 | money-finder-2026-09-10 | MoneyRadarTile + /workspace/funding tabs + messaging copy EN/VI | open | react-expert + cmo + conversion-optimizer | — |
 
 ---
 
@@ -328,7 +352,9 @@ Live markers for downstream update agents. Consume by grepping this section for 
 - `[MARKER: update /guide when a chapter callout ships]` — audit #10, 12-chapter arc.
 - `[MARKER: update-status agent should consume §3 shipped-log commit count 294 for this cycle]`.
 - `[MARKER: update-roadmap agent should consume §1 Top-5 open Q3 items list].`
-- `[MARKER: phase-close]` — none this tick.
+- `[MARKER: update /roadmap when G11-P1 or G11-P2 closes]` — Money Finder lanes; `feature-upgrade-roadmap-v2.md` Q4 checklist + `ROADMAP.md` §4 rows mirror SOT §2 G11-P0..P13.
+- `[MARKER: update /pricing when G11-P11 ships]` — Starter gains Founder Radar (`money_radar` flag), A$3 `FUNDING_REPORT_3AUD` SKU; also touch `docs/pricing-upgrade-plan-2026-07-16.md` (amendment note already present).
+- `[MARKER: phase-close]` — G11-P0 (plan-only) closed 2026-09-10.
 - `[MARKER: security-fix]` — `fd4a1eb3` (Stripe portal wholesale gate).
 
 ---
@@ -361,5 +387,6 @@ the sentinels is overwritten._
 | When | Who | What |
 |---|---|---|
 | 2026-07-23 | loop agent (SOT consolidation task) | Initial consolidation. §1–§7 authored; back-links applied to reseller-plan + unicorn-masterplan; memory pointer added. |
+| 2026-09-10 | CEO + Claude (plan session) | G11 Money Finder opened (P0 shipped, plan-only): goal doc `money-finder-2026-09-10.md`, §2 rows G11-P0..P13, §7 markers; amendments recorded in G7/G9 goal docs, `feature-upgrade-roadmap-v2.md` Q4, `ROADMAP.md` §4, `pricing-upgrade-plan-2026-07-16.md`, `GOALS.md` Goal 3, `role-based-2026-07-25/founder.md` gap #8; seed data `web/content/data/grants-au.seed.json` + `programs-au.seed.json`. |
 | 2026-07-23 | qa/regression sweep | Iteration 5-9 sync: G1 tick 290 → 317; G2 audit #1/2/3/4/5/8/9 flipped to shipped with commit SHAs (#6/7/10 remain founder-review-blocked); G4 Top-5 #3 PDF branding flipped to shipped; requirements register rows added for AUD-R1/2/3/4/5/8/9 + Q3-PDF-BRAND; §3 shipped-log expanded with audit-remediation, product/branding, QA/infra subsections. |
 

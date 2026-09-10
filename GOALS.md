@@ -164,6 +164,7 @@ Evidence Vault
 - Day 30: Monthly deep analysis + cap table check
 - Day 90: Quarterly review + investor readiness check
 - Triggered: "Your score dropped 5 points this week — here's why"
+- Money Radar (G11, Starter+): "{program} closes in 30/14/3 days", "3 new grants match {startup} this week", "{program} paused — 2 alternatives"; weekly digest gains a money block (next deadline · new matches · this week's step). Spec: `docs/plans/money-finder-2026-09-10.md` §4h/§4i.
 
 ### Gamification
 - Milestone badges (First Revenue, Cap Table Clean, Investor Ready, etc.)

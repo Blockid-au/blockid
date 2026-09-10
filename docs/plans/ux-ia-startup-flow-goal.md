@@ -1,6 +1,7 @@
 # UX Information Architecture — Startup Flow (Machine-Readable Goal)
 
 > **Source of truth: [SOURCE-OF-TRUTH.md](./SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+> **G11 amendment (2026-09-10):** the **public** top-nav (`nav-v2.tsx`, `site/navbar.tsx`) is now owned by [`money-finder-2026-09-10.md`](./money-finder-2026-09-10.md) G11-P1 (5 items + "Do you need money?" CTA; Demo stays a dropdown). §C.5 "never hide a feature" continues to apply to the logged-in sidebar only (G8).
 
 ```yaml
 ---

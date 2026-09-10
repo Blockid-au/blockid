@@ -46,6 +46,8 @@
 | Scale | A$299 | A$2,990 | 7-day CC | Seed→Series A; 10 profiles, unlimited SVI, ESOP, quarterly investor report, white-label |
 | Enterprise | Custom (from A$1,500/mo) | Annual | Sales-led | SSO, multi-entity, API, dedicated CSM, SLA |
 
+> **G11 amendment (2026-09-10, plan-only — [`docs/plans/money-finder-2026-09-10.md`](./plans/money-finder-2026-09-10.md)):** no new tier. **Starter A$29** additionally bundles **Founder Radar** (grant/program deadline alerts T-30/14/3, monthly re-match, weekly next-step digest money block, ICS, capital map, application drafts via credits) behind feature flag `money_radar`; **Growth** adds investor reverse-match + unlimited drafts + quarterly expert refresh; **Startup Package A$149** includes 1 Money Finder report + 3 months Radar. New one-off SKU **`FUNDING_REPORT_3AUD` (A$3 inc GST, guest)** mirrors `ONE_CLICK_REPORT_3AUD`. `FEATURE_COSTS.grant_match = 3` credits. Per SOT §6 rule 5 the `plans.csv` + this doc + SOT §2 change lands together in G11-P4/P11 — not before. (Note: the matrix above still shows Growth A$99 / Scale A$299 from the v2 draft; the live ladder since v3.9.23 is Free / Starter A$29 / Growth A$69 — see SOT G5.)
+
 ### Investor / advisor side (per-seat)
 
 | Tier | AUD/seat/mo | Fit | PRC-INV status |

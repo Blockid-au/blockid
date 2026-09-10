@@ -119,6 +119,9 @@ BlockID surface; gaps are enumerated in section 7.
    CFO advisor computes runway but only on demand.
 8. **Grant & R&D-tax matcher** — Australian grants (AusIndustry, R&D Tax
    Incentive, EMDG) recommender tied to SVI/industry; nothing exists.
+   → **Planned as G11** ([`money-finder-2026-09-10.md`](../money-finder-2026-09-10.md)):
+   `grant-advisor` agent + `au_grants`/`au_programs` seed + A$3 report +
+   Founder Radar alerts in Starter. Also covers #5 warm-intro (Growth v2 lane, G11-P12).
 
 ## 8. Onboarding Tour (first-run)
 

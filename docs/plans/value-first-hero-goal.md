@@ -1,6 +1,7 @@
 # Value-First Hero — User Outcome Copy Enforcement (Machine-Readable Goal)
 
 > **Source of truth: [SOURCE-OF-TRUTH.md](./SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
+> **G11 amendment (2026-09-10):** the "do NOT touch `nav-v2.tsx` (G7)" file boundary is superseded for the public nav by [`money-finder-2026-09-10.md`](./money-finder-2026-09-10.md) G11-P1. The value-first copy rule still governs the new `/funding` hero and the "Do you need money?" CTA.
 
 ```yaml
 ---
