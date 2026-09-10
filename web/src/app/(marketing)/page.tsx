@@ -20,6 +20,7 @@ import {
   RunComparisonLegend,
 } from "@/components/marketing/homepage/run-comparison";
 import { runById } from "@/components/marketing/homepage/sample-runs";
+import { heroLine } from "@/lib/marketing/hero-variants";
 import {
   readSignedInHint,
   SIGNED_IN_LANDING_HREF,
@@ -104,10 +105,12 @@ import {
 //   8. LogoBand        LIGHT  (bg.sunken)  where it is built and how it runs.
 //   9. FinalCTA        LIGHT  (bg.base)    one primary button.
 //  10. Entity strip    DARK   footer edge  PPL Food PTY LTD.
+// Title + description are the hero's own lines (T0250): the title is the
+// first breath of F1, the description the whole of F1, so what a search
+// result promises is exactly what the H1 says.
 export const metadata = {
-  title: "See your company the way an investor will · BlockID.au",
-  description:
-    "Give it a pitch deck, a website, or a few sentences. Your score and valuation range appear on screen free, then a five-page summary by email. The full written report is A$3. The workspace, with cap table and data room, is A$29 a month.",
+  title: "See your startup the way an investor will · BlockID.au",
+  description: heroLine("F1").en,
   alternates: {
     canonical: "https://blockid.au",
   },

@@ -18,6 +18,7 @@ import { ResellerRefCapture } from "@/components/marketing/reseller-ref-capture"
 import { TranslationProvider } from "@/components/i18n/translation-provider";
 import { DEFAULT_LOCALE, LOCALE_HEADER, isLocale, type Locale } from "@/lib/i18n/locales";
 import { buildSeedCatalog } from "@/lib/i18n/seed-catalog";
+import { heroLine } from "@/lib/marketing/hero-variants";
 import "./globals.css";
 
 const inter = Inter({
@@ -42,8 +43,10 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 const SITE_NAME = "BlockID.au — Startup Value Index";
-const SITE_DESCRIPTION =
-  "Measure, prove and grow your startup value from day one. Get your free Startup Value Index. Evidence-backed scoring for Australian founders.";
+// G1 from the speakable catalogue (T0250) — this is also the og:description
+// every page inherits, since the homepage `metadata` has no `openGraph` of
+// its own (money-finder plan §8.1 correction 8).
+const SITE_DESCRIPTION = heroLine("G1").en;
 const SITE_URL = "https://blockid.au";
 
 export const metadata: Metadata = {

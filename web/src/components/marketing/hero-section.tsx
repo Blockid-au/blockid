@@ -3,6 +3,16 @@
 /**
  * HeroSection — the omnibox, and the three questions the page answers.
  *
+ * ONE-LINERS (2026-09-10, G11 §4i D-5, T0250). The H1 and the sub-line are
+ * now drawn from the speakable catalogue in `lib/marketing/hero-variants.ts`:
+ * H1 = founder line F1, sub-line = F3. The server always renders F1 so the
+ * markup hydrates cleanly; only when the URL carries `?hero=F2|F3` does the
+ * client swap the H1 after mount (no cookie reading on the server — the page
+ * stays static-friendly). Whichever arm ends up on screen is reported once as
+ * `hero_variant_shown{arm}` and rides along on the omnibox `svi_submitted`,
+ * which is how the A/B in `docs/plans/hero-one-liner-test-protocol.md` reads
+ * its submit rate per arm.
+ *
  * FUNNEL PASS (2026-09-09). The hero now has to say three things and still
  * fit above the fold: what this is, what you get, and what it costs. It used
  * to carry two separate rows under the omnibox — three question anchors and
@@ -43,9 +53,17 @@
  * (#1D4ED8, 8.59:1).
  */
 
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
+import {
+  HERO_DEFAULT_ARM,
+  heroLine,
+  parseHeroArm,
+  type HeroArm,
+} from "@/lib/marketing/hero-variants";
 import { SmartIntake, type SmartIntakeSubmission } from "@/components/analyze/smart-intake";
 import {
   pendingIntakeQuery,
@@ -57,6 +75,39 @@ import {
 } from "@/components/marketing/homepage/sample-runs";
 import { heroTierChips } from "@/components/marketing/homepage/tiers";
 
+/**
+ * The sub-line is F3 — the action line for the omnibox — except on the F3
+ * arm, where F3 is already the H1 and the two lines swap so nothing repeats.
+ */
+function subLineFor(arm: HeroArm): string {
+  return heroLine(arm === "F3" ? "F1" : "F3").en;
+}
+
+/**
+ * Split a one-liner at its em dash so the second breath can carry the
+ * `text-action` accent the H1 has always had. A line with no dash renders
+ * plain.
+ */
+function splitAtDash(text: string): { head: string; tail: string | null } {
+  const i = text.indexOf(" — ");
+  if (i === -1) return { head: text, tail: null };
+  return { head: text.slice(0, i), tail: text.slice(i + 3) };
+}
+
+/** `?hero=` never changes without a navigation, so there is nothing to subscribe to. */
+function subscribeToNothing(): () => void {
+  return () => {};
+}
+function readArmFromUrl(): HeroArm {
+  return (
+    parseHeroArm(new URLSearchParams(window.location.search).get("hero")) ??
+    HERO_DEFAULT_ARM
+  );
+}
+function readServerArm(): HeroArm {
+  return HERO_DEFAULT_ARM;
+}
+
 export function HeroSection() {
   const router = useRouter();
   const tiers = heroTierChips();
@@ -65,7 +116,35 @@ export function HeroSection() {
     (b) => b.measured !== null,
   );
 
+  // The URL is an external store: the server snapshot is always F1, the
+  // client snapshot reads `?hero=`. React hydrates against the server value
+  // and re-renders with the client one, so there is no mismatch and no
+  // setState-in-effect. The effect below only reports what was shown.
+  const arm = useSyncExternalStore(
+    subscribeToNothing,
+    readArmFromUrl,
+    readServerArm,
+  );
+  // Report once, reading the URL directly: during hydration the first
+  // passive effect can still see the server snapshot (F1) before React's
+  // forced re-render lands the client one, and we want the arm that was
+  // actually shown.
+  const reported = useRef(false);
+  useEffect(() => {
+    if (reported.current) return;
+    reported.current = true;
+    trackEvent("hero_variant_shown", { arm: readArmFromUrl() });
+  }, []);
+
+  const headline = splitAtDash(heroLine(arm).en);
+  const subLine = subLineFor(arm);
+
   function handleSmartSubmit(payload: SmartIntakeSubmission) {
+    trackEvent("svi_submitted", {
+      method: payload.file ? "file" : "text",
+      has_file: !!payload.file,
+      arm,
+    });
     // Park the whole submission — including a dropped File, which cannot be
     // encoded in a URL — then navigate. /analyze claims it on mount and starts
     // the analysis immediately, so nothing is ever typed twice.
@@ -100,17 +179,24 @@ export function HeroSection() {
           id="hero-heading"
           className="animate-fade-in-up font-display max-w-3xl text-balance text-4xl font-bold leading-[1.08] tracking-tight text-primary sm:text-5xl lg:text-[3.5rem]"
           style={{ animationDelay: "40ms" }}
+          data-hero-arm={arm}
         >
-          See your company{" "}
-          <span className="text-action">the way an investor will.</span>
+          {headline.tail === null ? (
+            headline.head
+          ) : (
+            <>
+              {headline.head}
+              {" — "}
+              <span className="text-action">{headline.tail}</span>
+            </>
+          )}
         </h1>
 
         <p
           className="animate-fade-in-up max-w-2xl text-balance text-base leading-relaxed text-secondary sm:text-lg"
           style={{ animationDelay: "80ms" }}
         >
-          Paste a deck, a link, or three sentences. Your score, valuation range
-          and next move appear on screen straight away — free, no account.
+          {subLine}
         </p>
 
         {/* The primary action. SmartIntake wraps itself in

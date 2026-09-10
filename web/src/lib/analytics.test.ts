@@ -221,6 +221,16 @@ describe("trackEvent", () => {
     expect(row?.plan).toBe("growth");
     expect(row?.label).toBe("Buy");
   });
+
+  it("hero_variant_shown carries the arm, and svi_submitted accepts an optional arm (T0250)", () => {
+    trackEvent("hero_variant_shown", { arm: "F1" });
+    trackEvent("svi_submitted", { method: "text", has_file: false, arm: "F2" });
+    expect(rec.calls).toEqual([
+      ["event", "hero_variant_shown", { arm: "F1" }],
+      ["event", "svi_submitted", { method: "text", has_file: false, arm: "F2" }],
+    ]);
+    expect(ctx.win.dataLayer?.[0]).toEqual({ event: "hero_variant_shown", arm: "F1" });
+  });
 });
 
 // ── setUserProperties ─────────────────────────────────────────────────
