@@ -33,6 +33,9 @@ export default function robots(): MetadataRoute.Robots {
           "/insights",
           "/insights/",
           "/sample-business-report",
+          // T0241 (G11) — free, indexable funding directories.
+          "/funding/grants",
+          "/funding/programs",
         ],
         disallow: [
           "/api/",

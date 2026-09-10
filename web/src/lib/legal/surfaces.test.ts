@@ -17,6 +17,7 @@ const CANONICAL_SURFACE_IDS = [
   "equity_offer_page",
   "tokenised_share_view",
   "evaluator_report",
+  "funding_directory",
   "general_all",
 ] as const;
 

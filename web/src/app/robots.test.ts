@@ -26,6 +26,8 @@ const ALLOW_EXPECTED = [
   "/insights",
   "/insights/",
   "/sample-business-report",
+  "/funding/grants",
+  "/funding/programs",
 ];
 const DISALLOW_EXPECTED = [
   "/api/",
