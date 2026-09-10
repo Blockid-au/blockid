@@ -18,6 +18,7 @@
 export type SkuId =
   | "sku_trust_report_5aud"
   | "sku_one_click_report_3aud"
+  | "sku_funding_report_3aud"
   | "sku_starter"
   | "sku_growth_monthly"
   | "sku_growth_annual"
@@ -37,6 +38,7 @@ export interface V3Sku {
   tier:
     | "trust_report"
     | "one_click_report"
+    | "funding_report"
     | "starter"
     | "growth"
     | "professional"
@@ -99,6 +101,28 @@ export const ONE_CLICK_REPORT_3AUD: V3Sku = {
   stripe_managed: true,
   description:
     "Full SVI valuation from your pitch deck or website — 8-dimension investor scorecard, comparable valuation range (AUD low/mid/high), instant email delivery. No signup required.",
+  display_price_label: "A$3.00 inc-GST",
+};
+
+/**
+ * The A$3.00 inc-GST one-off Money Finder report (G11 T0242, plan §4e/§4g).
+ * A guest answers the 3-question /funding intake, sees the free preview, and
+ * pays A$3 for the analysis: ranked grants + programs against their profile,
+ * eligibility checklist, A$ estimates (R&DTI / ESIC) and a 12-month timeline.
+ * Rows land in `funding_reports` (migration 0311 + 0315) keyed by Stripe
+ * session id; signed-in founders pay 3 credits or get it with Starter.
+ * Grant information itself is free (business.gov.au) — this sells analysis.
+ */
+export const FUNDING_REPORT_3AUD: V3Sku = {
+  id: "sku_funding_report_3aud",
+  name: "Money Finder report — grants & programs",
+  tier: "funding_report",
+  unit_amount_incl_gst_cents: 300,
+  cadence: "one_off",
+  credits_per_cycle: 0,
+  stripe_managed: true,
+  description:
+    "Ranked Australian grants and programs for one startup profile — eligibility checklist, A$ estimates, 12-month timeline and next actions, emailed as a private link. No signup required.",
   display_price_label: "A$3.00 inc-GST",
 };
 
@@ -202,6 +226,7 @@ export const ENTERPRISE_CUSTOM: V3Sku = {
 export const V3_SKUS: readonly V3Sku[] = [
   TRUST_REPORT_5AUD,
   ONE_CLICK_REPORT_3AUD,
+  FUNDING_REPORT_3AUD,
   STARTER,
   GROWTH_MONTHLY,
   GROWTH_ANNUAL,

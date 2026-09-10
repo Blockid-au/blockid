@@ -53,6 +53,10 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   // (sku_one_click_report_3aud). Populated by scripts/stripe/sync-plans.mjs;
   // consumed by the guest checkout route (Phase 2).
   one_click_report: process.env.STRIPE_PRICE_ONE_CLICK_REPORT,
+  // Money Finder report — A$3.00 inc-GST guest paywall on /funding
+  // (sku_funding_report_3aud, T0242). Mint with scripts/sync-stripe-pricing.mjs;
+  // consumed by POST /api/funding/checkout.
+  funding_report: process.env.STRIPE_PRICE_FUNDING_REPORT,
   // Share Management add-on — per docs/plans/reseller-module-plan.md § F.5 / P8.
   //
   // 2026-09-08: provisioned and sold as the **Equity add-on**, a flat

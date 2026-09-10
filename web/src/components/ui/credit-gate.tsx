@@ -44,6 +44,12 @@ const FEATURE_INFO: Record<string, { label: string; description: string; costLab
     description: "Enhanced AI scoring for your startup across multiple dimensions.",
     costLabel: "A$0.25",
   },
+  grant_match: {
+    label: "Grant & Program match report (≈1,200 words, 12-month timeline)",
+    description:
+      "Every Australian grant and program you are eligible for, ranked, with the checklist, A$ estimates and the month-by-month plan. Included free with Starter (Founder Radar).",
+    costLabel: "3 credits",
+  },
   modular_report: {
     label: "Modular Report",
     description: "Custom AI report with your chosen sections.",

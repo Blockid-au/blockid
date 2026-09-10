@@ -14,6 +14,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ENTERPRISE_CUSTOM,
+  FUNDING_REPORT_3AUD,
   GROWTH_ANNUAL,
   GROWTH_MONTHLY,
   PROFESSIONAL_ANNUAL,
@@ -41,6 +42,21 @@ describe("V3 SKU catalogue", () => {
     expect(TRUST_REPORT_5AUD.display_price_label).not.toContain("5.50");
     expect(TRUST_REPORT_5AUD.description).toMatch(/13-area/);
     expect(TRUST_REPORT_5AUD.description).toMatch(/valid 90 days/);
+  });
+
+  it("Money Finder report is a A$3.00 GST-inclusive one-off, Stripe-managed, its own tier (T0242)", () => {
+    expect(FUNDING_REPORT_3AUD.id).toBe("sku_funding_report_3aud");
+    expect(FUNDING_REPORT_3AUD.tier).toBe("funding_report");
+    expect(FUNDING_REPORT_3AUD.unit_amount_incl_gst_cents).toBe(300);
+    expect(FUNDING_REPORT_3AUD.cadence).toBe("one_off");
+    expect(FUNDING_REPORT_3AUD.credits_per_cycle).toBe(0);
+    expect(FUNDING_REPORT_3AUD.stripe_managed).toBe(true);
+    expect(FUNDING_REPORT_3AUD.display_price_label).toBe("A$3.00 inc-GST");
+    // §5a positioning: the description sells analysis, never the grant list.
+    expect(FUNDING_REPORT_3AUD.description).toMatch(/eligibility checklist/i);
+    expect(FUNDING_REPORT_3AUD.description).toMatch(/12-month timeline/i);
+    expect(skuById("sku_funding_report_3aud")).toBe(FUNDING_REPORT_3AUD);
+    expect(STRIPE_MANAGED_SKUS.map((s) => s.id)).toContain("sku_funding_report_3aud");
   });
 
   it("Professional monthly stays anchored on A$149 net (D2 auto-migrate target)", () => {

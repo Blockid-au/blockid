@@ -85,7 +85,14 @@ export type Feature =
   // data-room / esop / blockchain / token / vesting primitives.
   | "share_management"
   | "vesting.read"
-  | "vesting.write";
+  | "vesting.write"
+  // Money Finder (G11 T0242, plan §4e/§4h). `grant_finder` = the full ranked
+  // grant & program report is included in the plan (no credit spend);
+  // `money_radar` = Founder Radar deadline alerts (surface wired in T0247).
+  // Granted from Starter up, to the Startup Package and to every evaluator
+  // rung — mirrored in plans.csv + migration 0316.
+  | "grant_finder"
+  | "money_radar";
 
 // ---------------------------------------------------------------------------
 // Session subset — matches what `/api/entitlement/me` returns to the client
@@ -128,6 +135,10 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     // plans-table miss cannot silently take back what the homepage sells.
     "data_room.access",
     "investor_links.premium",
+    // 2026-09-10 (T0242): Money Finder report + Founder Radar are part of
+    // the A$29 rung ("free with Founder Radar" on the /funding paywall).
+    "grant_finder",
+    "money_radar",
   ],
   founder_growth: [
     "svi.run",
@@ -150,6 +161,8 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     // share_management add-on was silently 402'ing A$99 subscribers
     // when they tried to open /workspace/cap-table.
     "share_management",
+    "grant_finder",
+    "money_radar",
   ],
   founder_scale: [
     "svi.run",
@@ -176,6 +189,8 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     // grandfathered Scale (now displayed as Pro) subscriber without the
     // DB row still resolves share_management.
     "share_management",
+    "grant_finder",
+    "money_radar",
   ],
   founder_enterprise: [
     "svi.run",
@@ -204,7 +219,13 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
     "sla",
     "equity_offer.request",
     "share_management",
+    "grant_finder",
+    "money_radar",
   ],
+  // Startup Package (A$149 one-off, plans.csv founder_package). Ship-1 gave
+  // it startup_package + pdf_branding; T0242 adds the Money Finder report so
+  // the paywall card reads "included in your Startup Package".
+  founder_package: ["startup_package", "pdf_branding", "grant_finder", "money_radar"],
   // Why: reseller-admin plan is not in the plans table (0074 or plans.csv);
   // without this bundle, gateRequireFeature("reseller.*") 402s every reseller
   // console + mutation route so the Playwright wave-1..3 rows in
@@ -221,21 +242,26 @@ export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
   // gate on investor.dealflow, watchlist, portfolio, advisor_portal,
   // advisor.cohort, accelerator.cohort and lp_report. Same lists as
   // plans.csv + migration 0309.
-  investor_angel: ["watchlist", "svi.feed", "investor.dealflow"],
+  // Every evaluator rung also gets the Money Finder report + radar (T0242):
+  // a Scout / Firm / Program user runs it for the startups they evaluate.
+  investor_angel: ["watchlist", "svi.feed", "investor.dealflow", "grant_finder", "money_radar"],
   investor_advisor: [
     "watchlist", "svi.feed", "investor.dealflow",
     "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
+    "grant_finder", "money_radar",
   ],
   investor_vc_small: [
     "watchlist", "svi.feed", "investor.dealflow",
     "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
     "portfolio", "diligence_pack", "api", "api.access", "lp_export", "lp_report",
+    "grant_finder", "money_radar",
   ],
   investor_vc_ent: [
     "watchlist", "svi.feed", "investor.dealflow",
     "advisory_equity", "advisor_portal", "advisor.cohort", "white_label",
     "portfolio", "diligence_pack", "api", "api.access", "lp_export", "lp_report",
     "custom_benchmark", "multi_fund", "sso", "weekly_delta",
+    "grant_finder", "money_radar",
   ],
   accelerator_starter: ["cohort.view", "cohort.view.stats", "accelerator.cohort"],
   accelerator_growth: ["cohort.view", "cohort.view.stats", "accelerator.cohort", "cohort.manage"],
