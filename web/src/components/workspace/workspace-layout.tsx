@@ -15,6 +15,7 @@ import { PHASE_LABELS } from "@/lib/showcase/gallery";
 // of truth. See ux-ia-startup-flow-goal.md §C.6 — P6.
 import { getMenuOverlayForRole, resolveInitialCollapse } from "@/lib/nav/role-menu-overlay";
 import { useNavCollapse } from "@/lib/nav/nav-collapse-store";
+import { useResolvedNavPhase } from "@/components/workspace/founder-nav-context";
 import { RecommendedNextStepTile } from "@/components/workspace/recommended-next-step-tile";
 import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
@@ -62,7 +63,13 @@ interface WorkspaceLayoutProps {
   };
   startupName?: string;
   notificationCount?: number;
-  /** Current startup phase (0-5). Controls which sidebar groups are highlighted vs dimmed. */
+  /**
+   * Current startup phase (0-5). Controls which sidebar groups are hidden /
+   * dimmed / auto-expanded. Optional: when omitted the layout reads the
+   * founder route-group context (`FounderNavContextProvider`), so a page
+   * only needs to pass this when it has a more specific number in hand.
+   * Resolve it with `resolveFounderNavPhase()` from `@/lib/nav/founder-phase`.
+   */
   currentPhase?: number;
   /**
    * True when the active project has `reseller_sandbox_id` set. Server parents
@@ -432,8 +439,14 @@ function renderNavGroup(args: {
   );
 }
 
-export function WorkspaceLayout({ children, user, startupName, currentPhase = 0, isSandbox = false, completedOnboardingSteps }: Omit<WorkspaceLayoutProps, "notificationCount">) {
+export function WorkspaceLayout({ children, user, startupName, currentPhase: currentPhaseProp, isSandbox = false, completedOnboardingSteps }: Omit<WorkspaceLayoutProps, "notificationCount">) {
   const pathname = usePathname();
+  // S7-A — one phase for every founder page: explicit prop > the founder
+  // route-group context (`(app)/(founder)/layout.tsx` resolves
+  // max(SVI band, growth phase) once per request) > 0. Pages outside the
+  // founder group (reseller / compliance shells) have no context → 0, as
+  // before.
+  const currentPhase = useResolvedNavPhase(currentPhaseProp);
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const isAdmin = user.role === "admin";
