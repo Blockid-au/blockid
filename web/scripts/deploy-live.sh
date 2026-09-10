@@ -915,11 +915,15 @@ fi
 #
 # Non-fatal when Playwright itself is unavailable (Gate 12 makes that fatal);
 # a missing test runner reports SKIPPED, never a pass — see Gate 0.5.
-if npx --no-install playwright --version >/dev/null 2>&1; then
+# Run from WEB_DIR in a subshell: this gate's cwd is $RELEASE_DIR, whose
+# standalone node_modules has no Playwright — the first run reported
+# "SKIPPED — Playwright not installed" from inside the release dir while the
+# binary sat one directory up. Gate 12 cds to WEB_DIR for the same reason.
+if (cd "$WEB_DIR" && npx --no-install playwright --version >/dev/null 2>&1); then
   echo "  ▶ Running e2e smoke tier against :$TEMP_PORT ..."
-  if PLAYWRIGHT_BASE_URL="http://127.0.0.1:$TEMP_PORT" \
+  if (cd "$WEB_DIR" && PLAYWRIGHT_BASE_URL="http://127.0.0.1:$TEMP_PORT" \
      npx --no-install playwright test tests/e2e/smoke.*.spec.ts \
-       --reporter=list --retries=1 --workers=2 > /tmp/blockid-deploy-smoke-tier.log 2>&1; then
+       --reporter=list --retries=1 --workers=2 > /tmp/blockid-deploy-smoke-tier.log 2>&1); then
     echo "  ✅ e2e smoke tier passed ($(grep -cE '^\s+✓' /tmp/blockid-deploy-smoke-tier.log) tests)"
   else
     echo "  ❌ e2e smoke tier FAILED — /tmp/blockid-deploy-smoke-tier.log"
