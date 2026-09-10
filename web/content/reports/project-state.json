@@ -1,6 +1,6 @@
 {
   "version": "3.10.0",
-  "updatedAt": "2026-09-10T12:25:27.501Z",
+  "updatedAt": "2026-09-10T13:10:52.620Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-31T14:00:01.953Z",
@@ -1617,12 +1617,14 @@
         "title": "S0 hygiene: re-id orchestrator ID collisions, nextTaskId max+1, TaskStatus merged, stagePlan content select, self-upgrade priority list [T0249,T0250,T0274] + T-id rule, migration 0309_sync_b2b_plan_rows (DB plans = csv), legal entity → PPL Food PTY LTD site-wide, ROADMAP/deploy header drift",
         "rationale": "S0 · money-finder §8 + evaluator-traction §9 review 2026-09-10. Blocks everything: DB plan rows for 7 B2B SKUs are still the 0074 seed; nextTaskId returns a taken id. Entity copy = \"PPL Food PTY LTD\" only; remove the Auschain ABN line, no ABN shown.",
         "versionImpact": "patch",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S0",
         "priority": "P0",
-        "updatedAt": "2026-09-10T12:25:26.630Z"
+        "updatedAt": "2026-09-10T12:25:26.630Z",
+        "commit": "59abcac77",
+        "completedAt": "2026-09-10T13:10:51.898Z"
       },
       {
         "id": "T0238",
@@ -1630,11 +1632,13 @@
         "title": "Public nav → 5 items + \"Do you need money?\" CTA; shared lib/nav/public-menu.ts; NavV2 useAuthUser; legacy navbar mirrors; footer Funding column; unlock-preview strip",
         "rationale": "Wave 1a · G11-P1 · money-finder-2026-09-10.md §3. Update tests/e2e/nav/menu-structure.spec.ts in the same commit. Depends T0237.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S2",
-        "priority": "P1"
+        "priority": "P1",
+        "commit": "862d5b85e",
+        "completedAt": "2026-09-10T13:10:51.898Z"
       },
       {
         "id": "T0239",
@@ -1642,12 +1646,14 @@
         "title": "Migration 0308_au_funding.sql (au_grants, au_programs, funding_reports, project_grant_profiles, public-read RLS) + web/scripts/seed-au-funding.mjs + /admin/funding review page",
         "rationale": "Wave 1b · G11-P2 · §4b. Seeds from web/content/data/{grants-au,programs-au}.seed.json. Apply via docker exec psql + NOTIFY pgrst. Depends T0237.",
         "versionImpact": "minor",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S2",
         "priority": "P1",
-        "updatedAt": "2026-09-10T12:25:26.630Z"
+        "updatedAt": "2026-09-10T12:25:26.630Z",
+        "commit": "d5669457d",
+        "completedAt": "2026-09-10T13:10:51.898Z"
       },
       {
         "id": "T0240",
@@ -1655,7 +1661,7 @@
         "title": "lib/agents/grant-advisor.ts — matchGrants/matchPrograms/buildTimeline (pure) + narrative via callAI with llm-auditor; reuses estimateRdti/evaluateEsic; colocated tests",
         "rationale": "Wave 2a · G11-P3 · §4c. Absorbs T0169/T0185/T0198 (RDTI/ESIC logic). Depends T0239.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "in_progress",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S3",
@@ -1667,11 +1673,13 @@
         "title": "Public SEO directories /funding/grants, /funding/programs/[city] + JSON-LD + sitemap (server-rendered from au_* tables)",
         "rationale": "Wave 2b · G11-P6 · §4f. Free list + official links (business.gov.au \"don't pay for grant info\" rule). Depends T0239.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S2",
-        "priority": "P1"
+        "priority": "P1",
+        "commit": "181bc4ce2",
+        "completedAt": "2026-09-10T13:10:51.898Z"
       },
       {
         "id": "T0242",
@@ -1775,7 +1783,7 @@
         "title": "Hero one-liners: lib/marketing/hero-variants.ts (F1/F2/F3 arms) + GA4 hero_variant + hero-section + layout SITE_DESCRIPTION + messages hero.* (EN/VI) + 5-second test protocol",
         "rationale": "Wave 2c · G11-P14 · §4i D-5. Absorbs T0213 (SVI landing hero copy). Winner recorded in value-first-hero-goal.md (G9).",
         "versionImpact": "patch",
-        "status": "pending",
+        "status": "in_progress",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S2",
@@ -1799,12 +1807,14 @@
         "title": "S1 Evaluator ladder public: plans.csv flags → gate vocabulary (investor.dealflow, watchlist, portfolio, lp_export, advisor_portal, advisor.cohort, white_label, accelerator.cohort, lp_report, api.access), profiles 25/50/200, reports_per_month 10/30/100, public:true, 2-tab /pricing (Founder/Evaluator), A$5.50 SKU re-priced in place to A$3 Trust BizReport, tier-visibility snapshot regenerated",
         "rationale": "S1 · evaluator-traction §3c + §9 corrections G12-1/2/3/4/7. Depends T0237 (0309 applied). Human-blocked: Stripe prices Angel/Advisor/VC Small (+annual) + A$3 price swap for TRUST_REPORT sku.",
         "versionImpact": "minor",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T04:22:55.026Z",
         "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
         "sprint": "S1",
         "priority": "P1",
-        "updatedAt": "2026-09-10T12:25:26.630Z"
+        "updatedAt": "2026-09-10T12:25:26.630Z",
+        "commit": "af0e05644",
+        "completedAt": "2026-09-10T13:10:51.898Z"
       },
       {
         "id": "T0269",
@@ -1812,12 +1822,14 @@
         "title": "S1 Evaluator signup: account_type enum + DB CHECKs (investor, accelerator, incubator, advisor, service_provider→advisor segment), app_users.segment set from account_type, trial_days from plan, card-required 7-day Stripe trial on Scout/Firm/Program, trial-end-reminder copy fixed, evaluator TrialBanner copy",
         "rationale": "S1 · §3c.3 + G12-6. Depends T0268.",
         "versionImpact": "minor",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T04:22:55.026Z",
         "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
         "sprint": "S1",
         "priority": "P1",
-        "updatedAt": "2026-09-10T12:25:26.630Z"
+        "updatedAt": "2026-09-10T12:25:26.630Z",
+        "commit": "dcd9e5603",
+        "completedAt": "2026-09-10T13:10:51.898Z"
       },
       {
         "id": "T0270",
@@ -1887,12 +1899,14 @@
         "title": "S1 Compliance: one privacy policy (/legal/privacy canonical, /privacy 301), AI provider list = actual chain (groq/cerebras/sambanova/deepinfra/anthropic/openrouter/ollama), approved data sentence (no training claim either way), general-advice disclaimer on evaluator reports, doctoral-research sentence, PPL Food PTY LTD entity",
         "rationale": "S1 · §4b guardrails + live review (two policies, only Anthropic listed). Founder approved sentences 2026-09-10.",
         "versionImpact": "patch",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T04:22:55.026Z",
         "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
         "sprint": "S1",
         "priority": "P1",
-        "updatedAt": "2026-09-10T12:25:26.630Z"
+        "updatedAt": "2026-09-10T12:25:26.630Z",
+        "commit": "95b7033ef",
+        "completedAt": "2026-09-10T13:10:51.898Z"
       }
     ]
   },
@@ -2288,6 +2302,12 @@
       "action": "code",
       "version": "3.10.0",
       "note": "S0+S1+T0239 merged to master (59abcac77, af0e05644, dcd9e5603, 95b7033ef, d5669457d); migrations 0309–0313 applied; 56 grants + 199 programs seeded; deploy in progress."
+    },
+    {
+      "ts": "2026-09-10T13:10:51.898Z",
+      "action": "deploy",
+      "version": "3.10.0",
+      "note": "S0+S1+S2 live 2026-09-10 13:08 UTC — release passed 12/12 gates (T0237 T0268 T0269 T0275 T0239 T0238 T0241 + T0274 part 1 + interim /funding). Gate-12 lessons: never merge into the working tree while deploy-live runs (spec drift), and client-module exports cannot be called from server pages (pricing-tab.ts regression test)."
     }
   ],
   "shipped_this_session": {
