@@ -1,6 +1,6 @@
 {
   "version": "3.10.0",
-  "updatedAt": "2026-09-10T11:37:00.751Z",
+  "updatedAt": "2026-09-10T11:39:54.998Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-31T14:00:01.953Z",
@@ -1615,7 +1615,7 @@
         "id": "T0237",
         "agent": "cto",
         "title": "S0 hygiene: re-id orchestrator ID collisions, nextTaskId max+1, TaskStatus merged, stagePlan content select, self-upgrade priority list [T0249,T0250,T0274] + T-id rule, migration 0309_sync_b2b_plan_rows (DB plans = csv), legal entity → PPL Food PTY LTD site-wide, ROADMAP/deploy header drift",
-        "rationale": "S0 · money-finder §8 + evaluator-traction §9 review 2026-09-10. Blocks everything: DB plan rows for 7 B2B SKUs are still the 0074 seed; nextTaskId returns a taken id. Needs PPL Food ABN/ACN from founder.",
+        "rationale": "S0 · money-finder §8 + evaluator-traction §9 review 2026-09-10. Blocks everything: DB plan rows for 7 B2B SKUs are still the 0074 seed; nextTaskId returns a taken id. Entity copy = \"PPL Food PTY LTD\" only; remove the Auschain ABN line, no ABN shown.",
         "versionImpact": "patch",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",

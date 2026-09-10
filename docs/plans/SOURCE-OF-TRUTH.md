@@ -2,7 +2,7 @@
 
 > **Version:** 2026-07-23 (rev.317) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
 > **Rule:** Consult this file BEFORE any specialised plan doc. Every specialised plan carries a top-of-file back-link to this one.
-> **Entity:** PPL Food PTY LTD (founder decision 2026-09-10 — replaces Auschain across site copy; ABN/ACN to be supplied by founder) · Sydney NSW.
+> **Entity:** PPL Food PTY LTD · Sydney NSW (founder decision 2026-09-10; no ABN/ACN shown in copy).
 
 ---
 
@@ -158,7 +158,7 @@
 - **Source:** goal docs §9 (`money-finder-2026-09-10.md`, `evaluator-traction-2026-09-10.md`) · ledger `project-state.json` tasks carry `sprint` (S0–S5) + `priority` (P0–P3).
 - **Order:** **S0 Hygiene** T0237 (re-id collisions · `nextTaskId` max+1 · `merged` status · `stagePlan` content · migration **0309** DB `plans` = csv · entity → **PPL Food PTY LTD** · header drift) → **S1 Sell to evaluators** T0268 → T0269 → T0275 → T0274-1 → **S2 Founder funnel + data** T0239 ∥ T0238 → T0250 → T0241 → **S3 Reports that make money** T0240 → T0242 ∥ T0270 → T0271 → T0243 → **S4 Retention** T0244 → T0245 → T0246 → T0247 ∥ T0273 → T0248 → T0249 (night loop) → T0274-2 → **S5 Scale** T0272 → T0251. ~14 working days, ≤ 2 parallel worktrees, deploys off-peak, T-id in every commit subject.
 - **Review findings that changed scope:** nav consolidated `1c359f000` (T0238 shrinks: edit `MENU` 7→5 + CTA); DB `plans` rows for 7 B2B SKUs still 0074 seed (**blocking**, → 0309 in S0); csv flag names ≠ page gates (→ T0268 uses gate vocabulary); A$5.50 SKU re-priced in place (Q-C); `/solutions/advisor` 301 → `/for/advisor` selling Growth A$69 (→ T0274); two privacy policies, provider list only Anthropic (→ T0275); snapshot test `tier-visibility` must be regenerated with new flags; `deploy-live.sh` = 12 gates; `menu-structure.spec.ts` not run by deploy.
-- **Go checklist:** PPL Food ABN/ACN · Stripe evaluator prices minted (or Wave A without checkout) · uptime ≥ 99 % last 24 h (was 87.1 % on 2026-09-10) · `npm test` green on HEAD · founder "go".
+- **Go checklist:** Stripe evaluator prices minted (or S1 ships without checkout until minted) · uptime ≥ 99 % last 24 h (was 87.1 % on 2026-09-10) · `npm test` green on HEAD · founder "go". Entity = PPL Food PTY LTD, no ABN in copy.
 
 ### G12 — Evaluator Traction: pricing + positioning for investors, accelerators, incubators, consulting & service firms
 - **Source:** [`docs/plans/evaluator-traction-2026-09-10.md`](./evaluator-traction-2026-09-10.md) · companion of G11 (Evaluator Progress Radar consumes G11 signals)
@@ -353,7 +353,6 @@
 | Free-tier in-app deadline alerts (G11 Q2, T0245) | Radar sweep fan-out rules | Yes/no for A$3 buyers (in-app only, no email) | Founder |
 | GA4 `hero_variant` custom dimension (G11 T0250) | Hero one-liner A/B measurement | Create dimension in GA4 property | Founder (GA4 admin) |
 | `ABR_GUID` env present? (G11 T0244) | ABN lookup for `project_grant_profiles` | Confirm ABR web-services GUID in `web/.env` | Founder |
-| PPL Food PTY LTD ABN/ACN (S0 T0237) | Entity line on pricing FAQ, privacy, solutions, SOT/goal headers | Founder supplies ABN/ACN; until then the ABN line is removed, not guessed | Founder |
 | Stripe prices for evaluator rungs (G12 T0268) | Scout/Firm/Program self-serve checkout | Mint `STRIPE_PRICE_INVESTOR_ANGEL`, `_ADVISOR`, `_VC_SMALL` (+ annual) in Stripe dashboard; add env | Founder (Stripe owner) |
 | Doctoral-research sentence (G12 D4, T0275) | Positioning claim #6 on /solutions/* and comparison page | **APPROVED by founder 2026-09-10:** "grounded in the founder's doctoral research (DBA) on startup valuation"; never "PhD" | Founder ✅ |
 | Provider data-handling sentence (G12 T0275) | "confidential" claim in the ChatGPT comparison | **APPROVED by founder 2026-09-10 (data principle):** "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what." T0275 publishes it on /solutions/*, comparison page and privacy policy, and verifies each provider's policy in the free-model chain so the claim holds end-to-end. | Founder ✅ (CISO verification at T0275) |
