@@ -150,6 +150,7 @@ export function WidgetGrid({ children }: WidgetGridProps) {
   useEffect(() => {
     const savedOrder = sanitizeStoredIds(readStoredArray(WIDGET_ORDER_KEY), declarationOrder);
     const savedPinned = sanitizeStoredIds(readStoredArray(WIDGET_PINNED_KEY), declarationOrder);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
     setOrder(resolveWidgetOrder(declarationOrder, savedOrder, savedPinned));
     setPinned(savedPinned);
     // declarationOrder is derived from children — re-run only when the

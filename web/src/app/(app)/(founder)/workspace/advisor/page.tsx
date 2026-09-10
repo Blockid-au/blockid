@@ -127,7 +127,7 @@ export default async function AdvisorWorkspacePage() {
               <div>
                 <h2 className="text-lg font-semibold text-ink-900">Weekly digest</h2>
                 <p className="text-sm text-ink-500 mt-1">
-                  A single Monday email summarising every client's SVI move,
+                  A single Monday email summarising every client&apos;s SVI move,
                   new evidence and cap-table changes.
                 </p>
               </div>

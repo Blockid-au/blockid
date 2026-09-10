@@ -68,7 +68,10 @@ export function InsightsPanel() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchInsights(); }, [fetchInsights]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; the loader sets state after await, the rule cannot see the async boundary through the useCallback reference
+    fetchInsights();
+  }, [fetchInsights]);
 
   const markAsRead = async (id: string) => {
     setDismissing(id);

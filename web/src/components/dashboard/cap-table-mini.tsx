@@ -25,7 +25,12 @@ export function CapTableMini({ shareholders, totalShares }: CapTableMiniProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
+  const slices: { slice: ShareholderSlice; offset: number }[] = [];
   let cumulativePercent = 0;
+  for (const slice of data) {
+    slices.push({ slice, offset: cumulativePercent });
+    cumulativePercent += slice.percentage;
+  }
 
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-6">
@@ -36,9 +41,7 @@ export function CapTableMini({ shareholders, totalShares }: CapTableMiniProps) {
         {/* Donut Chart */}
         <div className="relative shrink-0">
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-            {data.map((slice, i) => {
-              const offset = cumulativePercent;
-              cumulativePercent += slice.percentage;
+            {slices.map(({ slice, offset }, i) => {
               const dashArray = `${(slice.percentage / 100) * circumference} ${circumference}`;
               const dashOffset = -(offset / 100) * circumference;
 

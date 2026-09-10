@@ -46,6 +46,7 @@ export function PrivacyBanner({
   const [submitting, setSubmitting] = React.useState<boolean>(false);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
     if (!readAcked()) setVisible(true);
   }, []);
 

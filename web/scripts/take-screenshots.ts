@@ -5,7 +5,7 @@ import { resolve } from "path";
 const OUTPUT_DIR = resolve(import.meta.dirname ?? ".", "../public/video-assets");
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
-const WAIT: "domcontentloaded" = "domcontentloaded";
+const WAIT = "domcontentloaded" as const;
 const TIMEOUT = 45000;
 const SETTLE = 2000; // ms to wait after load for JS rendering
 
@@ -32,8 +32,8 @@ async function main() {
       }
       await page.screenshot({ path: `${OUTPUT_DIR}/${name}.png` });
       console.log(`  -> Saved ${name}.png`);
-    } catch (err: any) {
-      console.error(`  -> FAILED ${name}: ${err.message}`);
+    } catch (err) {
+      console.error(`  -> FAILED ${name}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

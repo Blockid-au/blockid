@@ -80,6 +80,7 @@ export function ProductTour(): React.ReactElement | null {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage dismissed phase; a lazy initialiser would mismatch the server render
     setDismissedPhase(readDismissed());
     setHydrated(true);
   }, []);

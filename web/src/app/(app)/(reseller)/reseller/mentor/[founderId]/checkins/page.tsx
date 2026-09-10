@@ -42,6 +42,7 @@ export default async function MentorCheckinsTab({
   const heat = heatFromDays(days.get(founderId) ?? null);
   const rec = recommendForFounder(phase, heat, days.get(founderId) ?? null);
 
+  // eslint-disable-next-line react-hooks/purity -- async server component: rendered once per request, wall-clock read is intended
   const now = Date.now();
   const upcoming = checkins.filter((c) => new Date(c.scheduled_at).getTime() >= now);
   const past = checkins.filter((c) => new Date(c.scheduled_at).getTime() < now);

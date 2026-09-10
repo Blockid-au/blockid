@@ -35,6 +35,7 @@ export default function SviApiPage() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; the loader sets state after await, the rule cannot see the async boundary through the function reference
   useEffect(() => { load(); }, []);
 
   const createKey = async () => {

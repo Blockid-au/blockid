@@ -1674,6 +1674,16 @@ async function trackAction(email: string, action: { label: string; type: string;
 
 /* ─── Main Component ──────────────────────────────────────────────────── */
 
+/** One slide from POST /api/svi/pitch-deck (LLM-generated outline). */
+type PitchDeckSlide = {
+  slide: number;
+  title: string;
+  keyMessage: string;
+  bullets?: string[];
+  speakerNotes: string;
+  visual: string;
+};
+
 export function SVIResultsPanel({
   analysis,
   slug,
@@ -1691,7 +1701,7 @@ export function SVIResultsPanel({
 }) {
   const [copied, setCopied] = React.useState(false);
   const [pitchDeckLoading, setPitchDeckLoading] = React.useState(false);
-  const [pitchDeckSlides, setPitchDeckSlides] = React.useState<any[] | null>(null);
+  const [pitchDeckSlides, setPitchDeckSlides] = React.useState<PitchDeckSlide[] | null>(null);
   const pageIds = PAGES.map((p) => p.id);
   const activeId = useActiveSection(pageIds);
 
@@ -2555,13 +2565,13 @@ export function SVIResultsPanel({
                 </a>
 
                 {/* Analysis History */}
-                <a
+                <Link
                   href="/workspace/reports"
                   title="Analysis History"
                   className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                 >
                   <History strokeWidth={1.75} className="h-4 w-4" />
-                </a>
+                </Link>
 
                 {/* PDF Download */}
                 <PDFDownloadButton slug={slug} analysis={analysis} email={email} />
@@ -2681,7 +2691,7 @@ export function SVIResultsPanel({
               <div className="rounded-2xl border border-brand-200 bg-brand-50/50 p-5 mb-6">
                 <h3 className="text-lg font-bold text-ink-900 mb-4">Your Pitch Deck Outline</h3>
                 <div className="space-y-4">
-                  {pitchDeckSlides.map((slide: any) => (
+                  {pitchDeckSlides.map((slide) => (
                     <div key={slide.slide} className="rounded-xl bg-surface-50 dark:bg-surface-100 border border-surface-200 p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="h-7 w-7 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center">{slide.slide}</span>

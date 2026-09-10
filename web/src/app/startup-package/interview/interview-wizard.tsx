@@ -472,7 +472,7 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
           <ul className="list-disc space-y-1 pl-4">
             <li>Answers autosave every ~1s (localStorage + server).</li>
             <li>SVI recomputes after every save + agent pass.</li>
-            <li>Credit charges appear only when you hit "Analyse".</li>
+            <li>Credit charges appear only when you hit &quot;Analyse&quot;.</li>
             <li>You can leave and resume — nothing is lost.</li>
           </ul>
         </div>

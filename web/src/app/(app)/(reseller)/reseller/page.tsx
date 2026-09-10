@@ -19,6 +19,7 @@ import {
 import { buildPhaseDistribution } from "@/lib/reseller/portfolio-phase-distribution";
 import { buildReviewsSummary } from "@/lib/reseller/reviews";
 import { RoleLandingIntro } from "@/components/role/role-landing-intro";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -182,7 +183,7 @@ export default async function ResellerDashboardPage() {
           <h2 className="text-lg font-semibold text-ink-900">Phase distribution</h2>
           <p className="text-xs text-ink-500">
             12-phase startup journey — same taxonomy as{" "}
-            <a href="/guide/01-vision" className="text-brand-700 underline">guide chapters</a>
+            <Link href="/guide/01-vision" className="text-brand-700 underline">guide chapters</Link>
           </p>
         </div>
         <ul className="mt-3 space-y-1 text-sm text-ink-700">

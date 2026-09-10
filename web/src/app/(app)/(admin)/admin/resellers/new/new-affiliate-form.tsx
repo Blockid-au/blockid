@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 interface ResellerOption {
   code: string;
@@ -515,12 +516,12 @@ export function NewAffiliateForm({ resellers }: Props) {
         </section>
 
         <div className="flex items-center justify-end gap-3">
-          <a
+          <Link
             href="/admin/resellers"
             className="rounded-md border border-surface-300 bg-white px-3 py-1.5 text-sm text-ink-700"
           >
             Cancel
-          </a>
+          </Link>
           <button
             type="submit"
             disabled={submitting}
@@ -644,7 +645,7 @@ function SuccessCard({
       {invite?.method === "set_password" ? (
         <p className="mt-3 text-xs text-ink-700">
           Initial password was bcrypt-hashed server-side. Share the plaintext
-          separately if you haven't already.
+          separately if you haven&apos;t already.
         </p>
       ) : null}
 

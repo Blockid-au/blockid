@@ -177,7 +177,7 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
       {submitted ? (
         <div className="p-4">
           <p className="text-xs text-ink-600 dark:text-ink-400 leading-relaxed">
-            They'll be in touch. You can close this window.
+            They&apos;ll be in touch. You can close this window.
           </p>
         </div>
       ) : (

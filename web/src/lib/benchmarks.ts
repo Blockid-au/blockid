@@ -103,7 +103,8 @@ export function getPercentile(
   const band = stageBenchmarks[metric as keyof StageBenchmarks];
   if (!band) return 50;
 
-  let { p25, p50, p75 } = band;
+  let { p25, p75 } = band;
+  const { p50 } = band;
 
   // Detect "lower is better" metrics where p25 > p75
   const inverted = p25 > p75;

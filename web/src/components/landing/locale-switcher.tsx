@@ -56,6 +56,7 @@ export function LocaleSwitcher() {
   const [current, setCurrent] = useState<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of document.cookie; a lazy initialiser would mismatch the server render
     setCurrent(readCookieLocale());
   }, []);
 

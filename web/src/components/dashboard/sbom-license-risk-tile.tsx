@@ -97,6 +97,7 @@ export function SbomLicenseRiskTile({ rowCap = DEFAULT_ROW_CAP }: SbomLicenseRis
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch (loading flag + async fetch); the loader sets state after await, the rule cannot see the async boundary through the useCallback reference
     void load();
   }, [load]);
 

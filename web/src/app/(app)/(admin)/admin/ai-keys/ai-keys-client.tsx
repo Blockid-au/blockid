@@ -80,6 +80,7 @@ export function AIKeysClient() {
     setLoading(false);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch inside the useCallback loader (also used by save/delete/refresh), the rule cannot see the async boundary through the reference
   React.useEffect(() => { void fetchAll(); }, [fetchAll]);
 
   const handleSave = async () => {

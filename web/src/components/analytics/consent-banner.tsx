@@ -30,6 +30,7 @@ export function ConsentBanner() {
   const [showPrefs, setShowPrefs] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted flag flipped after hydration so the server render stays deterministic
     setMounted(true);
     if (!hasResponded()) setVisible(true);
   }, []);

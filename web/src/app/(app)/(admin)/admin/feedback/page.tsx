@@ -29,7 +29,9 @@ export default async function AdminFeedbackPage() {
   };
 
   if (supabase) {
+    // eslint-disable-next-line react-hooks/purity -- async server component: rendered once per request, wall-clock read is intended
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    // eslint-disable-next-line react-hooks/purity -- async server component: rendered once per request, wall-clock read is intended
     const since7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     const { data } = await supabase

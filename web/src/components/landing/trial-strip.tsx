@@ -17,6 +17,7 @@ export function TrialStrip() {
     if (typeof window === "undefined") return;
     try {
       if (window.localStorage.getItem(STORAGE_KEY) === "1") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
         setVisible(false);
         return;
       }

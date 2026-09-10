@@ -237,6 +237,7 @@ export function GoalsClient() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch inside the component-scope loader (also used by the Retry/Refresh buttons), the rule cannot see the async boundary through the reference
   useEffect(() => { fetchData(); }, []);
 
   const toggleAgent = (agent: string) => {

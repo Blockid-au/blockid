@@ -46,7 +46,7 @@ export default async function WhiteLabelPage() {
           <p className="text-sm font-medium text-ink-700">Coming Soon — Scale &amp; Enterprise</p>
           <p className="mt-2 text-sm text-ink-500">
             The white-label configuration panel is under development. Once live,
-            you'll be able to upload your logo, set brand colours, configure a
+            you&apos;ll be able to upload your logo, set brand colours, configure a
             custom domain, and remove BlockID attribution from client-facing
             reports and investor data rooms.
           </p>

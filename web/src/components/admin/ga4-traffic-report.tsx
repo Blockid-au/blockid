@@ -71,6 +71,7 @@ export function Ga4TrafficReport() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch, the rule cannot see the async boundary through the function reference
   useEffect(() => { void load(); }, []);
 
   return (

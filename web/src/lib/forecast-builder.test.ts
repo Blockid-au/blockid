@@ -17,7 +17,7 @@ import {
   validateForecastInput,
   getAfslDisclaimer,
 } from './forecast-builder';
-import type { ForecastBuilderInput } from '@/types/financial';
+import type { ForecastBuilderInput, ForecastScenario } from '@/types/financial';
 
 const DEFAULT_INPUT: ForecastBuilderInput = {
   modelType: 'saas',
@@ -516,7 +516,7 @@ describe('validateForecastInput', () => {
 
   it('should reject missing modelType', () => {
     const input = { ...DEFAULT_INPUT };
-    delete (input as any).modelType;
+    delete (input as Partial<typeof input>).modelType;
     const validation = validateForecastInput(input);
     expect(validation.isValid).toBe(false);
     expect(validation.errors).toContain('modelType is required');
@@ -542,7 +542,7 @@ describe('validateForecastInput', () => {
   it('should reject invalid scenario', () => {
     const validation = validateForecastInput({
       ...DEFAULT_INPUT,
-      scenario: 'invalid' as any,
+      scenario: 'invalid' as unknown as ForecastScenario,
     });
     expect(validation.isValid).toBe(false);
   });

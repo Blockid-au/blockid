@@ -6,6 +6,7 @@
 import type { Metadata } from "next";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { SubmitForm } from "./submit-form";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Submit Your Startup | BlockID AU Startup Public Index",
@@ -62,13 +63,13 @@ export default function SubmitPage() {
         {/* Fine print */}
         <p className="mt-6 text-xs text-center text-secondary">
           By submitting you agree to the{" "}
-          <a href="/legal/terms" className="underline underline-offset-2 hover:text-primary">
+          <Link href="/legal/terms" className="underline underline-offset-2 hover:text-primary">
             Terms of Service
-          </a>{" "}
+          </Link>{" "}
           and{" "}
-          <a href="/legal/privacy" className="underline underline-offset-2 hover:text-primary">
+          <Link href="/legal/privacy" className="underline underline-offset-2 hover:text-primary">
             Privacy Policy
-          </a>
+          </Link>
           . Already have a BlockID account?{" "}
           <a href="/login" className="underline underline-offset-2 hover:text-primary">
             Sign in to claim your profile.

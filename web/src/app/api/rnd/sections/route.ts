@@ -234,7 +234,7 @@ export async function POST(request: Request) {
 
       // Step 6: Persist
       const supabase = getSupabaseAdmin();
-      let slug = newSlug();
+      const slug = newSlug();
       if (supabase) {
         await supabase.from("svi_analyses").insert({
           id: slug,

@@ -354,7 +354,7 @@ describe('clevel-sensitivity: Edge Cases', () => {
   test('Edge case: missing growth rate uses stage benchmark', () => {
     const input: CLevelValuationInput = {
       ...MOCK_SEED_STARTUP,
-      monthlyGrowthRate: undefined as any,
+      monthlyGrowthRate: undefined,
     };
     const scenarios = generateScenarios(input);
 

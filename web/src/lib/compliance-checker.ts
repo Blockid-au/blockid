@@ -1,3 +1,5 @@
+import type { SVIExtractedSignals } from "@/lib/svi-analysis";
+
 export interface ComplianceItem {
   id: string;
   category: "corporate" | "tax" | "investor" | "employment" | "ip";
@@ -10,8 +12,13 @@ export interface ComplianceItem {
   regulation?: string;
 }
 
-export function checkCompliance(analysis: any): ComplianceItem[] {
-  const signals = analysis?.signals ?? {};
+export type ComplianceSource = {
+  stage?: number;
+  signals?: Partial<SVIExtractedSignals>;
+} | null | undefined;
+
+export function checkCompliance(analysis: ComplianceSource): ComplianceItem[] {
+  const signals: Partial<SVIExtractedSignals> = analysis?.signals ?? {};
   const items: ComplianceItem[] = [];
 
   // Corporate

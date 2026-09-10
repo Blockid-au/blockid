@@ -175,7 +175,7 @@ export default async function AcceleratorQuarterlyReportPage() {
                 Quarterly LP Report
               </h1>
               <p className="text-sm text-ink-500 mt-1">
-                Snapshot of your cohort's performance this quarter — ready to
+                Snapshot of your cohort&apos;s performance this quarter — ready to
                 share with limited partners.
               </p>
             </div>

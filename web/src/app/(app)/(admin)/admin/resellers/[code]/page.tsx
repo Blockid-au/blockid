@@ -11,6 +11,7 @@ import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { ResellerEditClient } from "./reseller-edit-client";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -162,9 +163,9 @@ export default async function AdminResellerDetailPage({
     return (
       <div className="min-h-screen bg-surface-50">
         <div className="mx-auto max-w-3xl p-6">
-          <a href="/admin/resellers" className="text-sm text-brand-700 hover:underline">
+          <Link href="/admin/resellers" className="text-sm text-brand-700 hover:underline">
             ← All resellers
-          </a>
+          </Link>
           <div className="mt-6 rounded-lg border border-dashed border-surface-300 bg-white p-8 text-center">
             <p className="text-sm text-ink-600">
               Reseller module tables not applied yet. Run migrations 0091 + 0092 first.
@@ -183,9 +184,9 @@ export default async function AdminResellerDetailPage({
     <div className="min-h-screen bg-surface-50">
       <div className="mx-auto max-w-5xl p-6">
         <nav className="mb-4 text-sm">
-          <a href="/admin/resellers" className="text-brand-700 hover:underline">
+          <Link href="/admin/resellers" className="text-brand-700 hover:underline">
             ← All resellers
-          </a>
+          </Link>
         </nav>
 
         <header className="mb-6 flex items-baseline justify-between">

@@ -313,7 +313,11 @@ function MemberModal({
 }) {
   const [form, setForm] = React.useState<MemberFormData>(EMPTY_FORM);
 
-  React.useEffect(() => {
+  const [prevEditMember, setPrevEditMember] = React.useState(editMember);
+  const [prevOpen, setPrevOpen] = React.useState(open);
+  if (editMember !== prevEditMember || open !== prevOpen) {
+    setPrevEditMember(editMember);
+    setPrevOpen(open);
     if (editMember) {
       setForm({
         name: editMember.name,
@@ -329,7 +333,7 @@ function MemberModal({
     } else {
       setForm(EMPTY_FORM);
     }
-  }, [editMember, open]);
+  }
 
   if (!open) return null;
 

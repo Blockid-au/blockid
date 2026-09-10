@@ -286,6 +286,7 @@ export function RevenueClient() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; the loader sets state after await, the rule cannot see the async boundary through the useCallback reference
   React.useEffect(() => { loadData(); }, [loadData]);
 
   // Calculate dividends when slider changes
@@ -315,6 +316,7 @@ export function RevenueClient() {
 
   // Initial dividend calc when revenue loads
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag + async fetch; the loader is shared with the slider handler and sets state after await
     if (revenue) calculateDividends(distPct);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revenue]);

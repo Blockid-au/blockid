@@ -143,7 +143,7 @@ async function toggleStep(
     .eq("phase_id", phaseId)
     .maybeSingle();
 
-  let stepsJson: Array<{ id: string; completed: boolean; completedAt: string | null; notes: string | null }> =
+  const stepsJson: Array<{ id: string; completed: boolean; completedAt: string | null; notes: string | null }> =
     existing?.steps_json ?? phase.steps.map(s => ({ id: s.id, completed: false, completedAt: null, notes: null }));
 
   const stepIdx = stepsJson.findIndex(s => s.id === stepId);
@@ -317,7 +317,7 @@ async function autoDetectProgress(
       .eq("phase_id", phase.id)
       .maybeSingle();
 
-    let stepsJson: Array<{ id: string; completed: boolean; completedAt: string | null; notes: string | null }> =
+    const stepsJson: Array<{ id: string; completed: boolean; completedAt: string | null; notes: string | null }> =
       existing?.steps_json ?? phase.steps.map(s => ({ id: s.id, completed: false, completedAt: null, notes: null }));
 
     let changed = false;

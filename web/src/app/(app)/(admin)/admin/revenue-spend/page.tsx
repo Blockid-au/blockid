@@ -81,6 +81,7 @@ export default async function AdminRevenueSpendPage() {
         .from("stripe_webhook_events")
         .select("id, created_at, payload, stripe_customer_id")
         .eq("type", "payment_intent.succeeded")
+        // eslint-disable-next-line react-hooks/purity -- async server component: rendered once per request, wall-clock read is intended
         .gte("created_at", new Date(Date.now() - 84 * 24 * 60 * 60 * 1000).toISOString())
         .order("created_at", { ascending: false })
         .limit(500);
@@ -132,7 +133,9 @@ export default async function AdminRevenueSpendPage() {
     }));
 
     // 7-day and 30-day totals
+    // eslint-disable-next-line react-hooks/purity -- async server component: rendered once per request, wall-clock read is intended
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    // eslint-disable-next-line react-hooks/purity -- async server component: rendered once per request, wall-clock read is intended
     const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const { data: tx7d } = await supabase

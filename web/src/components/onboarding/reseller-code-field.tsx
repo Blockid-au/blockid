@@ -138,6 +138,7 @@ export function ResellerCodeField({ locale = "en", initialCode, onValidated, onC
     if (autoValidated.current) return;
     if (initialCode && normaliseCodeClient(initialCode)) {
       autoValidated.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only auto-validate (status flag + async fetch); the validator sets state after await, the rule cannot see the async boundary through the useCallback reference
       void runValidate(initialCode);
     }
   }, [initialCode, runValidate]);

@@ -100,6 +100,7 @@ export function HeroV4({ signedInHref, verifiedCount }: HeroV4Props) {
     if (!seed) return;
     const decoded = decodeSeed(seed);
     if (!decoded || decoded.trim().length < 20) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of window.location.search; a lazy initialiser would mismatch the server render
     setText(decoded);
     void runAnalyze(decoded);
   }, []);

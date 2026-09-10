@@ -246,7 +246,7 @@ export async function computeListings(args: {
   }
 
   // Apply filters
-  let filtered = rows.filter((r) => {
+  const filtered = rows.filter((r) => {
     if (filter.sector && filter.sector !== "all" && r.sector !== filter.sector) return false;
     if (filter.stage != null && filter.stage !== "all" && r.stage !== filter.stage) return false;
     if (filter.publicOnly && !r.publicVisible) return false;

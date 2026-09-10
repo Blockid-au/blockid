@@ -98,7 +98,7 @@ export async function GET(request: Request) {
     (id): id is string => Boolean(id),
   );
 
-  let churnBySegment: Record<string, number> = {};
+  const churnBySegment: Record<string, number> = {};
   if (churnByUser.length > 0) {
     const { data: segmentRows } = await supabase
       .from("app_users")

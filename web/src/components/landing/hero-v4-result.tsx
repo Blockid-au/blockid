@@ -9,7 +9,7 @@
  */
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 export interface HeroAnalyzeResponse {
   ok: boolean;
@@ -213,14 +213,11 @@ export function HeroV4Result({
 
 function SaveShareBand({ sourceText }: { sourceText: string }) {
   const [copied, setCopied] = useState(false);
-  const [seed, setSeed] = useState("");
-
-  useEffect(() => {
+  const seed = useMemo(() => {
     try {
-      const encoded = encodeSeed(sourceText);
-      setSeed(encoded);
+      return encodeSeed(sourceText);
     } catch {
-      setSeed("");
+      return "";
     }
   }, [sourceText]);
 

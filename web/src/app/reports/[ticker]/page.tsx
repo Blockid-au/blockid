@@ -171,7 +171,7 @@ export default async function TrustReportPage({ params }: PageProps) {
 
       <MarketingSection>
         <p className="text-xs text-tertiary">
-          Public disclosures composed at read-time from the founder's
+          Public disclosures composed at read-time from the founder&apos;s
           BlockID.au listing. Not investment advice.{" "}
           <Link href={`/listings/${t}`} className="underline">
             View source listing →

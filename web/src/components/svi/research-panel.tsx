@@ -69,9 +69,14 @@ export function ResearchPanel({ description, keywords, websiteUrl }: ResearchPan
   const [result, setResult] = React.useState<ResearchResult | null>(null);
   const [errorMsg, setErrorMsg] = React.useState("");
   const [researchStatusIdx, setResearchStatusIdx] = React.useState(0);
+  const [prevState, setPrevState] = React.useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state !== "loading") setResearchStatusIdx(0);
+  }
 
   React.useEffect(() => {
-    if (state !== "loading") { setResearchStatusIdx(0); return; }
+    if (state !== "loading") return;
     const timer = setInterval(() => {
       setResearchStatusIdx((i) => (i + 1) % RESEARCH_STATUS_MESSAGES.length);
     }, 3000);

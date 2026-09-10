@@ -109,6 +109,7 @@ export function StickyCta({
   const viewFired = React.useRef(false);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted flag set post-hydration; a lazy initialiser would mismatch the server render
     setMounted(true);
     setDismissed(readDismiss(dismissKey));
   }, [dismissKey]);

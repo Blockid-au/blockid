@@ -115,7 +115,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
     return `/index/listings?${next.toString()}`;
   }
 
-  function SortHeader({ field, label, align = "left" }: { field: ListingSort; label: string; align?: "left" | "right" }) {
+  function sortHeader({ field, label, align = "left" }: { field: ListingSort; label: string; align?: "left" | "right" }) {
     const active = sort === field;
     const nextOrder = active && order === "desc" ? "asc" : "desc";
     return (
@@ -212,10 +212,10 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                   <th className="py-2 px-2 text-[10px] uppercase tracking-wider font-semibold text-ink-400 text-left">#</th>
                   <th className="py-2 px-2 text-[10px] uppercase tracking-wider font-semibold text-ink-400 text-left">Ticker</th>
                   <th className="py-2 px-2 text-[10px] uppercase tracking-wider font-semibold text-ink-400 text-left">Sector</th>
-                  <SortHeader field="stage" label="Stage" />
-                  <SortHeader field="svi" label="SVI" align="right" />
-                  <SortHeader field="delta" label="Δ 7d" align="right" />
-                  <SortHeader field="valuation" label="Valuation" align="right" />
+                  {sortHeader({ field: "stage", label: "Stage" })}
+                  {sortHeader({ field: "svi", label: "SVI", align: "right" })}
+                  {sortHeader({ field: "delta", label: "Δ 7d", align: "right" })}
+                  {sortHeader({ field: "valuation", label: "Valuation", align: "right" })}
                   <th className="py-2 px-2 text-[10px] uppercase tracking-wider font-semibold text-ink-400 text-right">Trend</th>
                   <th className="py-2 px-2 text-[10px] uppercase tracking-wider font-semibold text-ink-400 text-right">Analyses</th>
                 </tr>

@@ -48,10 +48,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   DollarSign,
 };
 
-function getIcon(name: string): LucideIcon {
-  return ICON_MAP[name] ?? FileText;
-}
-
 // ── Quality badge config ─────────────────────────────────────────────────────
 
 const QUALITY_BADGE: Record<
@@ -145,17 +141,19 @@ export function CriterionCard({
     null,
   );
 
-  const Icon = getIcon(criterion.icon);
+  const Icon = ICON_MAP[criterion.icon] ?? FileText;
   const quality = data.quality_level;
   const badge = QUALITY_BADGE[quality];
 
   // Sync incoming data when parent updates
-  React.useEffect(() => {
+  const [prevData, setPrevData] = React.useState(data);
+  if (data !== prevData) {
+    setPrevData(data);
     setTextInput(data.text_input);
     setLinks(data.links);
     setSuggestions(data.ai_suggestions);
     setAiScore(data.ai_score);
-  }, [data]);
+  }
 
   // ── Auto-save on text change ──────────────────────────────────────────────
 

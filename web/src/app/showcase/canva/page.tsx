@@ -89,7 +89,7 @@ export default function CanvaShowcasePage() {
           <p className="mt-3 max-w-3xl text-base text-ink-700">
             Melanie Perkins pitched 100+ Silicon Valley investors and heard no
             before securing US$3M seed in 2013. A decade later, Canva is
-            Australia's most valuable private tech company — a decacorn built
+            Australia&apos;s most valuable private tech company — a decacorn built
             product-first, with founders retaining substantial ownership
             through nine private rounds. The Canva journey shows how a
             second-time founder converts one rejection cycle into a global
@@ -123,31 +123,31 @@ export default function CanvaShowcasePage() {
               <strong>Idea validation via a precursor business.</strong>{" "}
               Fusion Yearbooks (2007-2012) taught the founders the design-tool
               pain point long before Canva incorporated. First-time founders
-              underweight this "problem authority" step.
+              underweight this &quot;problem authority&quot; step.
             </li>
             <li>
               <strong>Rejection is a filter, not a signal.</strong> 100+
-              investor no's in Silicon Valley before the seed round. Bill Tai
+              investor no&apos;s in Silicon Valley before the seed round. Bill Tai
               + Lars Rasmussen connection unlocked the round. Networks matter
               more than pitch quality at the very earliest stage.
             </li>
             <li>
               <strong>Growth capital, not IPO capital.</strong> 9 private
               rounds have kept optionality without the reporting overhead. In
-              contrast to Atlassian's IPO-then-buyback pattern, Canva is
-              running the "stay private, sell secondaries" playbook that
+              contrast to Atlassian&apos;s IPO-then-buyback pattern, Canva is
+              running the &quot;stay private, sell secondaries&quot; playbook that
               Stripe + SpaceX also use.
             </li>
             <li>
               <strong>Valuation reset is normal.</strong> US$40B (2021) →
               US$26B (2022) secondary reprice was a headline event but did
               not reset primary financing terms. Founders that pre-commit
-              secondary schedules avoid the "signal risk" of ad-hoc sales.
+              secondary schedules avoid the &quot;signal risk&quot; of ad-hoc sales.
             </li>
             <li>
               <strong>M&A can be transformational late-stage.</strong> The
               Affinity acquisition (2024, US$380M) broadened Canva into
-              pro-designer territory in one deal. BlockID.au's tokenisation
+              pro-designer territory in one deal. BlockID.au&apos;s tokenisation
               + cap-table modules should model similar strategic M&A as a
               Phase 11-12 growth accelerator.
             </li>

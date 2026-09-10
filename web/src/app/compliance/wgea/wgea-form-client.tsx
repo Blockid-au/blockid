@@ -182,8 +182,8 @@ export function WgeaFormClient(props: Props) {
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-ink-600 leading-relaxed">
           Enter your Australian headcount (excluding contractors and offshore
-          staff). We check whether you cross the 100-employee "relevant
-          employer" threshold in s3 of the Workplace Gender Equality Act 2012
+          staff). We check whether you cross the 100-employee &quot;relevant
+          employer&quot; threshold in s3 of the Workplace Gender Equality Act 2012
           (Cth), and — if you have previously lodged — surface the s3B(2)
           two-period grace window.
         </p>

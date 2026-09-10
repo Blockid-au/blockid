@@ -64,6 +64,7 @@ export function SviLiveMeter({
 
   React.useEffect(() => {
     if (!isActive) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag + async fetch; the loader is a useCallback shared with the interval, the rule cannot see the async boundary through the reference
     void fetchOnce();
     const id = window.setInterval(fetchOnce, Math.max(1000, intervalMs));
     return () => window.clearInterval(id);

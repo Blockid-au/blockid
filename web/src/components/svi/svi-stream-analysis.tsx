@@ -212,8 +212,10 @@ function AnalystPersonaBanner({
 
   if (!running) return null;
 
+  // eslint-disable-next-line react-hooks/purity -- wall-clock read for the live elapsed label; the tick state above re-renders with a fresher timestamp on purpose
   const elapsed = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
   const estRemaining = startedAt && completed > 0
+    // eslint-disable-next-line react-hooks/purity -- wall-clock read for the live ETA label; the tick state above re-renders with a fresher timestamp on purpose
     ? Math.max(3, Math.round(((Date.now() - startedAt) / completed) * (total - completed) / 1000))
     : null;
 
@@ -945,6 +947,49 @@ function saveOnboardProgress(
   }
 }
 
+function StepRow({
+  step,
+  title,
+  hint,
+  action,
+  disabled,
+  completedSteps,
+}: {
+  step: number;
+  title: string;
+  hint?: string;
+  action: React.ReactNode;
+  disabled?: boolean;
+  completedSteps: Record<number, boolean>;
+}) {
+  const done = !!completedSteps[step];
+  return (
+    <li className={cn(
+      "flex items-start gap-3 py-2.5 border-b border-brand-200/50 dark:border-brand-800/40 last:border-b-0",
+      disabled && "opacity-60",
+    )}>
+      <span
+        className={cn(
+          "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+          done
+            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
+            : "bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300",
+        )}
+        aria-hidden="true"
+      >
+        {done ? <CheckCircle2 className="h-4 w-4" /> : step}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-ink-800 dark:text-ink-100">{title}</p>
+        {hint && (
+          <p className="text-[11px] text-ink-500 dark:text-ink-400 mt-0.5">{hint}</p>
+        )}
+      </div>
+      <div className="shrink-0">{action}</div>
+    </li>
+  );
+}
+
 function TbrOnboardingSteps({
   projectId,
   emailWasSent,
@@ -964,6 +1009,7 @@ function TbrOnboardingSteps({
 
   useEffect(() => {
     const { visible: v, completedSteps: c } = loadOnboardProgress(projectId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
     setVisible(v);
     setCompletedSteps(c);
   }, [projectId]);
@@ -1035,47 +1081,6 @@ function TbrOnboardingSteps({
     ? `/api/svi/report/pdf?token=${encodeURIComponent(shareToken)}`
     : null;
 
-  const StepRow = ({
-    step,
-    title,
-    hint,
-    action,
-    disabled,
-  }: {
-    step: number;
-    title: string;
-    hint?: string;
-    action: React.ReactNode;
-    disabled?: boolean;
-  }) => {
-    const done = !!completedSteps[step];
-    return (
-      <li className={cn(
-        "flex items-start gap-3 py-2.5 border-b border-brand-200/50 dark:border-brand-800/40 last:border-b-0",
-        disabled && "opacity-60",
-      )}>
-        <span
-          className={cn(
-            "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-            done
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-              : "bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300",
-          )}
-          aria-hidden="true"
-        >
-          {done ? <CheckCircle2 className="h-4 w-4" /> : step}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-ink-800 dark:text-ink-100">{title}</p>
-          {hint && (
-            <p className="text-[11px] text-ink-500 dark:text-ink-400 mt-0.5">{hint}</p>
-          )}
-        </div>
-        <div className="shrink-0">{action}</div>
-      </li>
-    );
-  };
-
   return (
     <div className="rounded-xl border-2 border-brand-300 dark:border-brand-700 bg-white dark:bg-ink-950 shadow-sm p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -1098,6 +1103,7 @@ function TbrOnboardingSteps({
       </div>
       <ul className="space-y-0">
         <StepRow
+          completedSteps={completedSteps}
           step={1}
           title="Your 10-page report is ready"
           hint="Executive summary, 8 dimensions, 13 investor criteria, valuation range."
@@ -1114,6 +1120,7 @@ function TbrOnboardingSteps({
           }
         />
         <StepRow
+          completedSteps={completedSteps}
           step={2}
           title="Share it with an investor"
           hint={
@@ -1138,6 +1145,7 @@ function TbrOnboardingSteps({
           </li>
         )}
         <StepRow
+          completedSteps={completedSteps}
           step={3}
           title="Download the PDF"
           hint={
@@ -1164,6 +1172,7 @@ function TbrOnboardingSteps({
         />
         {emailWasSent && (
           <StepRow
+            completedSteps={completedSteps}
             step={4}
             title="Check your email"
             hint="We sent a copy of this report to your inbox (spam folder if it doesn't land)."
@@ -1179,6 +1188,7 @@ function TbrOnboardingSteps({
           />
         )}
         <StepRow
+          completedSteps={completedSteps}
           step={5}
           title="Come back monthly to track your SVI trend"
           hint="See how your score moves as you add evidence and hit milestones."
@@ -1305,6 +1315,7 @@ export function SviStreamAnalysis({
   useEffect(() => {
     const saved = loadPersisted(projectId ?? "");
     if (!saved) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- post-hydration restore of the <30 min run from localStorage; a lazy initialiser would mismatch the server render */
     setDimStates(saved.dimStates);
     if (saved.criterionStates?.length > 0) setCriterionStates(saved.criterionStates);
     setCompleted(saved.completed);
@@ -1314,6 +1325,7 @@ export function SviStreamAnalysis({
     setIndustry(saved.industry);
     if (saved.stage) setStage(saved.stage);
     setRestoredFromCache(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [projectId]);
 
   // Score-delta: fetch the last-persisted SVI snapshot on mount so the
@@ -1586,6 +1598,7 @@ export function SviStreamAnalysis({
   // off the run with the initialDims filter as soon as the component mounts.
   useEffect(() => {
     if (!autoStart || !initialDims || initialDims.length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only auto-start; the useCallback loader sets loading flags synchronously then streams after await, and the rule cannot see the async boundary through the reference
     void startAnalysis(initialDims);
     // Only fire once on mount, hence the disabled deps warning.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1646,6 +1659,7 @@ export function SviStreamAnalysis({
       stage,
       totalMs,
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- once-only guard flag set right after firing the parent onDone callback; the effect deliberately waits for committed dimStates before notifying
     setDoneFired(true);
   }, [done, doneFired, dimStates, onDone, criterionStates, industry, stage, totalMs]);
 
@@ -1700,7 +1714,9 @@ export function SviStreamAnalysis({
               </p>
               {startedAt !== null && completed > 0 && completed < total && (
                 <p className="text-[11px] text-ink-500 dark:text-ink-400">
+                  {/* eslint-disable-next-line react-hooks/purity -- wall-clock read for the live ETA label; each SSE event re-renders with a fresher timestamp on purpose */}
                   <span className="tabular-nums">~{Math.max(3, Math.round(((Date.now() - startedAt) / completed) * (total - completed) / 1000))}s</span>{" "}
+                  {/* eslint-disable-next-line react-hooks/purity -- wall-clock read for the live elapsed label; each SSE event re-renders with a fresher timestamp on purpose */}
                   remaining · {Math.round((Date.now() - startedAt) / 1000)}s elapsed
                 </p>
               )}

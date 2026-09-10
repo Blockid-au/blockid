@@ -565,6 +565,7 @@ export function BusinessReportClient({
     if (initialData) return;
     const saved = loadPersisted(projectId);
     if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
       setData(saved);
       return;
     }

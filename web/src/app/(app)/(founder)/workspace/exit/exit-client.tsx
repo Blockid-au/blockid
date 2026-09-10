@@ -159,11 +159,15 @@ export function ExitClient() {
   }, []);
 
   // Update valuation when slider changes
-  React.useEffect(() => {
+  const [prevRevenueMultiple, setPrevRevenueMultiple] = React.useState(revenueMultiple);
+  const [prevAnnualRevenue, setPrevAnnualRevenue] = React.useState(annualRevenue);
+  if (revenueMultiple !== prevRevenueMultiple || annualRevenue !== prevAnnualRevenue) {
+    setPrevRevenueMultiple(revenueMultiple);
+    setPrevAnnualRevenue(annualRevenue);
     if (annualRevenue > 0) {
       setValuation(String(Math.round(annualRevenue * revenueMultiple)));
     }
-  }, [revenueMultiple, annualRevenue]);
+  }
 
   async function handleCalculate(e: React.FormEvent) {
     e.preventDefault();

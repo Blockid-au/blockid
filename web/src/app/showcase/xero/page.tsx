@@ -130,13 +130,13 @@ export default function XeroShowcasePage() {
             <li>
               <strong>US expansion at any price is not always right.</strong>{" "}
               The 2014 US$150M round + aggressive US push was later described
-              as capital-inefficient. AU/NZ + UK proved to be Xero's real
+              as capital-inefficient. AU/NZ + UK proved to be Xero&apos;s real
               markets.
             </li>
             <li>
               <strong>Cloud-first beats desktop-with-cloud.</strong> Xero
-              was born browser-native; MYOB's desktop-plus-cloud never fully
-              caught up. Same lesson: don't retrofit.
+              was born browser-native; MYOB&apos;s desktop-plus-cloud never fully
+              caught up. Same lesson: don&apos;t retrofit.
             </li>
             <li>
               <strong>Founder → external CEO transition when the growth

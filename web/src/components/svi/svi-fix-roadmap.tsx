@@ -83,6 +83,7 @@ export function SviFixRoadmap({ projectId, className }: SviFixRoadmapProps) {
   }, [projectId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag + async fetch; the loader sets state after await, the rule cannot see the async boundary through the useCallback reference
     void fetchData();
   }, [fetchData]);
 

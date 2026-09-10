@@ -32,10 +32,10 @@ const handlers = new Map<string, TableHandlers>();
 const lastInsert = new Map<string, unknown>();
 const lastUpdate = new Map<string, unknown>();
 
-function chain(table: string, kind: keyof TableHandlers): any {
+function chain(table: string, kind: keyof TableHandlers): Record<string, unknown> {
   const resolve = () =>
     handlers.get(table)?.[kind]?.() ?? Promise.resolve({ data: null, error: null });
-  const proxy: any = {
+  const proxy: Record<string, unknown> = {
     select: () => proxy,
     eq: () => proxy,
     is: () => proxy,
@@ -353,7 +353,7 @@ describe("inviteMember", () => {
     expect(member.status).toBe("invited");
     expect(member.token).toBe("TOKEN123");
 
-    const insertRow = lastInsert.get("project_members") as any;
+    const insertRow = lastInsert.get("project_members") as Record<string, unknown>;
     expect(insertRow.user_email).toBe("cofounder@example.com");
     expect(insertRow.role).toBe("editor");
     expect(insertRow.invited_by).toBe("u1");
@@ -379,7 +379,7 @@ describe("inviteMember", () => {
     });
 
     await inviteMember("p1", "known@example.com", "viewer", "u1");
-    const insertRow = lastInsert.get("project_members") as any;
+    const insertRow = lastInsert.get("project_members") as Record<string, unknown>;
     expect(insertRow.user_id).toBe("u2");
   });
 
@@ -436,7 +436,7 @@ describe("acceptInvite", () => {
     expect(member.status).toBe("accepted");
     expect(member.userId).toBe("u2");
 
-    const patch = lastUpdate.get("project_members") as any;
+    const patch = lastUpdate.get("project_members") as Record<string, unknown>;
     expect(patch.status).toBe("accepted");
     expect(patch.user_id).toBe("u2");
     expect(typeof patch.accepted_at).toBe("string");
@@ -498,7 +498,7 @@ describe("revokeMember", () => {
     expect(member.status).toBe("revoked");
     expect(member.revokedAt).toBeTruthy();
 
-    const patch = lastUpdate.get("project_members") as any;
+    const patch = lastUpdate.get("project_members") as Record<string, unknown>;
     expect(patch.status).toBe("revoked");
     expect(typeof patch.revoked_at).toBe("string");
   });

@@ -33,7 +33,7 @@ export default async function WeeklyDigestPage() {
           </div>
           <h1 className="text-2xl font-bold text-ink-900">Weekly Digest</h1>
           <p className="mt-2 text-sm text-ink-600">
-            Auto-generated digest of your portfolio's week — advisor-curated highlights sent every Monday.
+            Auto-generated digest of your portfolio&apos;s week — advisor-curated highlights sent every Monday.
           </p>
           {/* EN/VI copy */}
           <p className="mt-1 text-xs text-muted">
@@ -45,7 +45,7 @@ export default async function WeeklyDigestPage() {
           <p className="text-sm font-medium text-ink-700">Coming Soon</p>
           <p className="mt-2 text-sm text-ink-500">
             The Weekly Digest surface is under active development. Once live,
-            you'll see curated highlights — portfolio performance, flagged
+            you&apos;ll see curated highlights — portfolio performance, flagged
             action items, and advisor notes — ready to forward to stakeholders.
           </p>
           <p className="mt-1 text-xs text-muted">

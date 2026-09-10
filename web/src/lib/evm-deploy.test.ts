@@ -47,9 +47,11 @@ import * as path from "node:path";
 // snapshot can still be steered.
 
 const { TMP, FAKE_CAST, COUNTER, ARGS_LOG } = vi.hoisted(() => {
+  /* eslint-disable @typescript-eslint/no-require-imports -- vi.hoisted runs before the ESM imports exist; require is the only synchronous loader here */
   const fsH = require("node:fs") as typeof import("node:fs");
   const osH = require("node:os") as typeof import("node:os");
   const pathH = require("node:path") as typeof import("node:path");
+  /* eslint-enable @typescript-eslint/no-require-imports */
 
   const tmp = fsH.mkdtempSync(pathH.join(osH.tmpdir(), "evm-deploy-test-"));
   const fakeCast = pathH.join(tmp, "cast");

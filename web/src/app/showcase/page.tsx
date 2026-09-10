@@ -176,7 +176,7 @@ export default function ShowcaseMenuPage() {
         <header className="mb-8">
           <h1 className="text-3xl font-semibold text-ink-900">Showcase library</h1>
           <p className="mt-2 max-w-3xl text-base text-ink-600">
-            Real public-company journeys walked through BlockID.au's 12-phase
+            Real public-company journeys walked through BlockID.au&apos;s 12-phase
             startup roadmap. Every fact is cited from public filings (SEC EDGAR,
             press releases, DEF 14A proxies) so a founder can compare their
             own trajectory against an audited baseline.

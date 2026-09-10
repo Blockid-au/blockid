@@ -22,7 +22,6 @@ interface InsightTrackerProps {
 export function InsightTracker({ slug, category, keywords, readingTime, title }: InsightTrackerProps) {
   const scrollFired = useRef<Set<number>>(new Set());
   const readFired = useRef(false);
-  const startTime = useRef(Date.now());
 
   useEffect(() => {
     const primaryKeyword = keywords[0] ?? "";

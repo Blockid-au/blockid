@@ -22,6 +22,7 @@ export function useAnalysisSessions() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
       if (raw) setAnalyses(JSON.parse(raw));
     } catch {}
   }, []);

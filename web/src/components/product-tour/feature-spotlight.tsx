@@ -99,6 +99,7 @@ export function FeatureSpotlight({
   const [stepIndex, setStepIndex] = React.useState(0);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrated flag + post-hydration read of localStorage; a lazy initialiser would mismatch the server render
     setHydrated(true);
     if (tour) setDismissedVersion(readDismissedVersion(tour.slug));
     setStepIndex(0);

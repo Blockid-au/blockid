@@ -13,6 +13,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NewAffiliateForm } from "./new-affiliate-form";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +49,9 @@ export default async function NewAffiliatePage() {
       <div className="mx-auto max-w-3xl p-6">
         <header className="mb-6">
           <p className="text-xs uppercase tracking-wide text-ink-500">
-            <a href="/admin/resellers" className="hover:underline">
+            <Link href="/admin/resellers" className="hover:underline">
               Resellers
-            </a>{" "}
+            </Link>{" "}
             /
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-ink-900">

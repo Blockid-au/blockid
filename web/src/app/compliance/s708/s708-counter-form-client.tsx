@@ -118,8 +118,8 @@ export function S708CounterFormClient(props: Props) {
         <p className="mt-2 max-w-2xl text-sm text-ink-600 leading-relaxed">
           Paste your personal-offer register (one row per accepted offer). We
           roll the trailing 365-day window and tell you how much investor +
-          dollar headroom is left under the s708(1) "20 investors / A$2M in 12
-          months" caps. Tick the preview box to model what would happen if you
+          dollar headroom is left under the s708(1) &quot;20 investors / A$2M in 12
+          months&quot; caps. Tick the preview box to model what would happen if you
           accept the next tranche.
         </p>
       </header>

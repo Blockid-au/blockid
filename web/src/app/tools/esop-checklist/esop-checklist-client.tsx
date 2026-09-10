@@ -345,6 +345,7 @@ export function EsopChecklistClient() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const ids: string[] = JSON.parse(raw);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage; a lazy initialiser would mismatch the server render
         setChecked(new Set(ids));
       }
     } catch {}

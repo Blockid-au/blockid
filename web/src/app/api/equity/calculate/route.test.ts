@@ -259,7 +259,6 @@ describe("POST /api/equity/calculate", () => {
 
     it("falls back to 'Calculation failed' when a non-Error value is thrown", async () => {
       mocks.calculateDilution.mockImplementation(() => {
-        // eslint-disable-next-line @typescript-eslint/no-throw-literal
         throw "string-not-error";
       });
       const res = await POST(postReq({

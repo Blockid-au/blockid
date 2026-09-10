@@ -144,6 +144,7 @@ export function PhaseAwareUpgradeCard(props: PhaseAwareUpgradeCardProps): React.
       isSessionSuppressed(suggestion.feature) ||
       isCoolingDown(suggestion.feature) ||
       isDailyCapped();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of sessionStorage/localStorage suppression state; a lazy initialiser would mismatch the server render
     setSuppressed(blocked);
     if (blocked) return;
 

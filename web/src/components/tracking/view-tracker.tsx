@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 interface ViewTrackerProps {
   slug: string;
@@ -30,14 +30,14 @@ function detectDeviceType(): "desktop" | "mobile" | "tablet" {
  * - When tab becomes hidden (visibilitychange)
  */
 export function ViewTracker({ slug, sectionIds = [] }: ViewTrackerProps) {
-  const startTime = useRef(Date.now());
+  const [startTime] = useState(() => Date.now());
   const maxScrollDepth = useRef(0);
   const sectionsViewed = useRef<Set<string>>(new Set());
   const lastSentAt = useRef(0);
   const hasSent = useRef(false);
 
   const getPayload = useCallback(() => {
-    const timeSpent = Math.round((Date.now() - startTime.current) / 1000);
+    const timeSpent = Math.round((Date.now() - startTime) / 1000);
     return {
       slug,
       timeSpent,
@@ -45,7 +45,7 @@ export function ViewTracker({ slug, sectionIds = [] }: ViewTrackerProps) {
       scrollDepth: maxScrollDepth.current,
       deviceType: detectDeviceType(),
     };
-  }, [slug]);
+  }, [slug, startTime]);
 
   const sendData = useCallback(
     (useBeacon = false) => {

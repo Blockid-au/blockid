@@ -235,6 +235,7 @@ export function HealthScoreWidget({ startupId, lang = "en" }: Props) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch keyed on startupId; loading/error flags are reset synchronously before the request, results are set in .then/.catch
     if (!startupId) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);

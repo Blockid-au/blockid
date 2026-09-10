@@ -14,6 +14,7 @@ export function WelcomeGuide() {
     const dismissed = localStorage.getItem(STORAGE_KEY);
     if (dismissed === "permanent") return;
     // Show the guide
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage dismiss state; a lazy initialiser would mismatch the server render
     setVisible(true);
   }, []);
 

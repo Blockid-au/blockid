@@ -52,6 +52,7 @@ function useCountUp(target: number, durationMs = 500): number {
       try {
         if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           fromRef.current = roundedTarget;
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of window.matchMedia (reduced motion) skips the rAF count-up and snaps to the target
           setDisplayed(roundedTarget);
           return;
         }

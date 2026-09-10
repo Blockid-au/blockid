@@ -1368,7 +1368,7 @@ export function SVIReportPDF({
           </View>
 
           <Text style={{ fontSize: 8.5, color: C.brand100, lineHeight: 1.5, textAlign: "center", maxWidth: 280 }}>
-            You're ahead of {percentile}% of startups at your stage. This is your starting point.
+            You&apos;re ahead of {percentile}% of startups at your stage. This is your starting point.
           </Text>
         </View>
 
@@ -1898,7 +1898,7 @@ export function SVIReportPDF({
             <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.teal600 }}>→ Model Valuation Scenarios</Text>
           </View>
           <Text style={{ fontSize: 7, color: C.ink500 }}>
-            Log in to Valuation Engine on blockid.au to run "what-if" scenarios. See how improvements in revenue, user count, or team strength move your valuation up.
+            Log in to Valuation Engine on blockid.au to run &quot;what-if&quot; scenarios. See how improvements in revenue, user count, or team strength move your valuation up.
           </Text>
         </View>
 

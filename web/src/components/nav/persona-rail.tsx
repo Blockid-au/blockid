@@ -34,7 +34,7 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { Persona } from "@/components/workspace/nav-groups";
 
@@ -80,9 +80,11 @@ export function PersonaRail({
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   // Keep the external prop in sync when it changes.
-  useEffect(() => {
+  const [prevCollapsedProp, setPrevCollapsedProp] = useState(collapsedProp);
+  if (collapsedProp !== prevCollapsedProp) {
+    setPrevCollapsedProp(collapsedProp);
     if (collapsedProp !== undefined) setInternalCollapsed(collapsedProp);
-  }, [collapsedProp]);
+  }
 
   const activeIndex = availablePersonas.indexOf(activePersona);
 

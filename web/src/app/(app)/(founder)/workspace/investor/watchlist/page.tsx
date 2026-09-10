@@ -217,7 +217,7 @@ export default async function InvestorWatchlistPage() {
                 <ul className="mt-4 space-y-2 text-xs text-slate-700 dark:text-slate-300">
                   <li className="flex items-center gap-2">
                     <TagBadge tag="following" />
-                    <span>Active pipeline — you're evaluating.</span>
+                    <span>Active pipeline — you&apos;re evaluating.</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <TagBadge tag="contacted" />

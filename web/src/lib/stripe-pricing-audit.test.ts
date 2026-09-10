@@ -50,9 +50,9 @@ function makeStripe(overrides: {
 } = {}) {
   const state = {
     retrieveCalls: [] as string[],
-    productSearchCalls: [] as Stripe.ProductSearchParams[],
-    productCreateCalls: [] as Stripe.ProductCreateParams[],
-    priceCreateCalls: [] as Stripe.PriceCreateParams[],
+    productSearchCalls: [] as StripeProductSearchParams[],
+    productCreateCalls: [] as StripeProductCreateParams[],
+    priceCreateCalls: [] as StripePriceCreateParams[],
   };
   const stripe = {
     prices: {
@@ -63,19 +63,19 @@ function makeStripe(overrides: {
         if (!entry) throw new Error(`No such price: ${id}`);
         return entry;
       }),
-      create: vi.fn(async (params: Stripe.PriceCreateParams) => {
+      create: vi.fn(async (params: StripePriceCreateParams) => {
         state.priceCreateCalls.push(params);
         if (overrides.pricesCreateResult instanceof Error) throw overrides.pricesCreateResult;
         return overrides.pricesCreateResult ?? { id: "price_new_default" };
       }),
     },
     products: {
-      search: vi.fn(async (params: Stripe.ProductSearchParams) => {
+      search: vi.fn(async (params: StripeProductSearchParams) => {
         state.productSearchCalls.push(params);
         if (overrides.productsSearchResult instanceof Error) throw overrides.productsSearchResult;
         return overrides.productsSearchResult ?? { data: [] };
       }),
-      create: vi.fn(async (params: Stripe.ProductCreateParams) => {
+      create: vi.fn(async (params: StripeProductCreateParams) => {
         state.productCreateCalls.push(params);
         if (overrides.productsCreateResult instanceof Error) throw overrides.productsCreateResult;
         return overrides.productsCreateResult ?? { id: "prod_new_default" };
@@ -85,19 +85,17 @@ function makeStripe(overrides: {
   return { stripe, state };
 }
 
-// Minimal namespace shim so Stripe.PriceCreateParams etc. compile without
+// Minimal type shim so the StripePriceCreateParams etc. shapes compile without
 // pulling the real Stripe SDK into this test.
-namespace Stripe {
-  export type ProductSearchParams = { query: string; limit: number };
-  export type ProductCreateParams = { name: string; metadata?: Record<string, string> };
-  export type PriceCreateParams = {
-    product: string;
-    currency: string;
-    unit_amount: number;
-    recurring?: { interval: "month" | "year" } | undefined;
-    metadata?: Record<string, string>;
-  };
-}
+type StripeProductSearchParams = { query: string; limit: number };
+type StripeProductCreateParams = { name: string; metadata?: Record<string, string> };
+type StripePriceCreateParams = {
+  product: string;
+  currency: string;
+  unit_amount: number;
+  recurring?: { interval: "month" | "year" } | undefined;
+  metadata?: Record<string, string>;
+};
 
 // ─── Fake platform config ───────────────────────────────────────────────────
 

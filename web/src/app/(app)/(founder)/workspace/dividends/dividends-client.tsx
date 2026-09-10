@@ -135,6 +135,7 @@ export function DividendsClient() {
   }, [account, userBalance]);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load on wallet change; the useCallback loader sets state only after awaiting the chain (also used by refresh/declare/claim), the rule cannot see the async boundary through the reference
     if (account) loadData();
   }, [account, loadData]);
 

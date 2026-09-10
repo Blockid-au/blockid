@@ -23,7 +23,7 @@ export interface ConsentState {
 // Window.gtag + Window.dataLayer are already declared in web/src/lib/analytics.ts.
 // Do not redeclare here to avoid TS type-narrowing conflicts.
 
-type Gtag = (...args: any[]) => void;
+type Gtag = (...args: unknown[]) => void;
 
 // ── Local storage / cookie plumbing ────────────────────────────────────
 

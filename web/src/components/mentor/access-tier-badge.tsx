@@ -10,7 +10,7 @@
 // lib/mentor/access-tiers.ts.
 
 import * as React from "react";
-import { Eye, FileText, Handshake } from "lucide-react";
+import { Eye, FileText, Handshake, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
@@ -31,23 +31,18 @@ export interface AccessTierBadgeProps {
   className?: string;
 }
 
-function iconFor(t: MentorAccessTier) {
-  switch (t) {
-    case "attributed_only":
-      return Eye;
-    case "reports_shared":
-      return FileText;
-    case "full_mentor":
-      return Handshake;
-  }
-}
+const TIER_ICONS: Record<MentorAccessTier, LucideIcon> = {
+  attributed_only: Eye,
+  reports_shared: FileText,
+  full_mentor: Handshake,
+};
 
 export function AccessTierBadge({
   tier,
   showTooltip = false,
   className,
 }: AccessTierBadgeProps) {
-  const Icon = iconFor(tier);
+  const Icon = TIER_ICONS[tier];
   const variant = tierBadgeColor(tier);
   const label = tierLabel(tier);
 

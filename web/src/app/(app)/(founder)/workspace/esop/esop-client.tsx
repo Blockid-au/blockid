@@ -228,6 +228,7 @@ export function EsopClient() {
   }, []);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch inside the useCallback loader (also used after grant submission), the rule cannot see the async boundary through the reference
     fetchShareholders();
   }, [fetchShareholders]);
 
@@ -271,6 +272,7 @@ export function EsopClient() {
 
   React.useEffect(() => {
     if (shareholders.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reload on-chain grants when shareholders change; the useCallback loader (also used after revoke) clears synchronously only in the no-ESOP-holder case and otherwise sets state after await
       loadActiveGrants();
     }
   }, [shareholders, loadActiveGrants]);

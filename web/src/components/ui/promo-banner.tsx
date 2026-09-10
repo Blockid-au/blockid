@@ -28,6 +28,7 @@ export function PromoBanner() {
     const d = localStorage.getItem(DISMISS_KEY);
     // Show again after 24h if dismissed
     if (d && Date.now() - parseInt(d, 10) < 86_400_000) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of localStorage dismiss state; a lazy initialiser would mismatch the server render
     if (new Date() < PROMO_DEADLINE) setDismissed(false);
   }, []);
 

@@ -593,6 +593,7 @@ export function VestingDashboard() {
   }, []);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only fetch; loading flag + async fetch, the rule cannot see the async boundary through the useCallback reference
     fetchSchedules();
   }, [fetchSchedules]);
 

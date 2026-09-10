@@ -103,6 +103,7 @@ function resetHookState(): void {
 function render(): ReturnType<typeof useStartupToken> {
   stateCursor = 0;
   effectCursor = 0;
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- hand-rolled hook harness: React primitives are mocked above, this is not a component
   const out = useStartupToken();
   // Run any effects pending from this render, storing their cleanups.
   for (const p of pending.splice(0)) {
