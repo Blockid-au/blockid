@@ -158,3 +158,21 @@ describe("solutions.* approved wording", () => {
     expect(EN["solutions.accelerator.faq.a2"]).toMatch(/coming in this release/);
   });
 });
+
+describe("funding.copy.* catalogue parity (en ⇄ vi) — T0248 messaging pack", () => {
+  it.each(["funding.copy.", "meta.funding."])("every %s key in en.json exists in vi.json, and vice versa", (prefix) => {
+    expect(enKeys(prefix).filter((k) => !(k in VI)), "missing in vi.json").toEqual([]);
+    expect(viKeys(prefix).filter((k) => !(k in EN)), "missing in en.json").toEqual([]);
+  });
+
+  it("no funding.copy.* value is empty, tokens match, and the numbers are Free / A$3 / A$29 only", () => {
+    const tokens = (s: string) => (s.match(/\{[a-zA-Z_]+\}/g) ?? []).sort();
+    for (const k of enKeys("funding.copy.")) {
+      expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
+      expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
+      expect(tokens(VI[k]!), k).toEqual(tokens(EN[k]!));
+    }
+    const text = enKeys("funding.copy.").map((k) => EN[k]).join("\n");
+    expect(text).not.toMatch(/PhD|5\.50|A\$99/);
+  });
+});

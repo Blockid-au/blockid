@@ -28,6 +28,7 @@ import {
   EMPTY_RADAR_FACTS,
   FOUNDER_RADAR_MONTHLY_AUD,
   FOUNDER_RADAR_TRIAL_DAYS,
+  RADAR_UPSELL_TAIL,
   SCOUT_MONTHLY_AUD,
   SCOUT_SIGNUP_HREF,
   founderRadarSignupHref,
@@ -50,7 +51,7 @@ export interface RadarUpsellCardProps {
   className?: string;
 }
 
-const RADAR_TAIL = `Founder Radar watches them for you: alerts, monthly re-match, weekly next step — A$${FOUNDER_RADAR_MONTHLY_AUD}/mo, first ${FOUNDER_RADAR_TRIAL_DAYS} days free.`;
+const RADAR_TAIL = RADAR_UPSELL_TAIL;
 
 function closesIn(days: number): string {
   if (days <= 0) return "closes today";

@@ -39,6 +39,8 @@ import {
 } from "@/lib/funding/workspace";
 import { capitalForCity } from "@/lib/funding/seed-map";
 import { FundingWorkspace, isFundingTab, type CapitalMapSection } from "./funding-workspace";
+import { MoneyRadarTile } from "@/components/dashboard/money-radar-tile";
+import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
 
 export const metadata: Metadata = {
   title: "Grant & Program Finder | BlockID",
@@ -79,8 +81,14 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
   const openProgramCount = programs.length;
 
   let workspace: ReactNode = null;
+  let tile: ReactNode = null;
   if (included) {
     const row = await latestFundingReportForUser(user.id, project?.id ?? null);
+    // Same tile as /dashboard, compact, on the paid page (T0248 D-2). The
+    // report + catalogue are already in hand; a failed read just hides it.
+    const radarOn = await can({ id: user.id, plan: user.plan ?? "free", segment: "founder" }, "money_radar").catch(() => false);
+    const data = await getMoneyRadarTileData(user, project, { hasMoneyRadar: radarOn, report: row, grants, programs }).catch(() => null);
+    tile = data ? <MoneyRadarTile data={data} compact className="mb-6" /> : null;
     const intake = row ? parseFundingIntake(row.intake) : null;
     const state = intake?.ok ? (intake.intake.state === NOT_INCORPORATED ? intake.intake.based_state ?? null : intake.intake.state) : (prefill.state ?? null);
     const city = intake?.ok ? intake.intake.city ?? null : null;
@@ -148,6 +156,7 @@ export default async function WorkspaceFundingPage({ searchParams }: PageProps) 
           ) : null}
         </header>
 
+        {tile}
         {workspace}
 
         <section className={included ? "mt-10 border-t border-line-subtle pt-8" : ""} aria-label="Run a match">

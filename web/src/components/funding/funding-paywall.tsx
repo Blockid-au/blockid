@@ -33,6 +33,7 @@ import { RadarUpsellCard } from "@/components/funding/radar-upsell-card";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { guestPaidReportCount, RADAR_UPSELL_AFTER_REPORTS } from "@/lib/funding/guest-paid-reports";
 import { FUNDING_REPORT_AUD, radarViewerKind } from "@/lib/funding/radar-upsell";
+import { FUNDING_COPY } from "@/lib/funding/copy";
 import type { FundingPreviewPayload } from "@/lib/funding/preview";
 
 export type PaywallRail = "anonymous" | "guest" | "credits" | "plan";
@@ -174,11 +175,8 @@ export function FundingPaywall({ intake, preview, rail }: FundingPaywallProps) {
     <div className="mt-6 rounded-2xl border border-action/40 bg-surface-raised p-6 shadow-sm sm:p-8" data-funding-paywall data-rail={rail}>
       <div className="grid gap-8 md:grid-cols-[1.2fr_1fr]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-action">Unlock the full report</p>
-          <h3 className="mt-1 font-display text-xl font-semibold text-primary sm:text-2xl">
-            The full ranked list, eligibility checklist, A$ estimate and 12-month timeline — {FUNDING_REPORT_PRICE_LABEL},
-            or free with Founder Radar (7-day trial).
-          </h3>
+          <p className="text-xs font-semibold uppercase tracking-wide text-action">{FUNDING_COPY.paywall.eyebrow}</p>
+          <h3 className="mt-1 font-display text-xl font-semibold text-primary sm:text-2xl">{FUNDING_COPY.paywall.card}</h3>
           <ul className="mt-4 space-y-2 text-sm text-secondary">
             {UNLOCKS.map((u) => (
               <li key={u} className="flex items-start gap-2">

@@ -95,13 +95,27 @@ describe("FundingPreviewCard", () => {
 
   it("shows counts, the hero A$, names + why and the locked rows", async () => {
     const out = await html(<FundingPreviewCard preview={preview} />);
-    expect(out).toContain("We found 4 grants (up to A$120,000 across the top five) and 2 programs matching you.");
+    expect(out).toContain("We found 4 grants and 2 programs matching you.");
     expect(out).toContain("MVP Ventures");
     expect(out).toContain("Fits MVP stage in NSW.");
     expect(out).toContain("Plus Eight");
     expect(out).toContain("Eligibility checklist — 19 checks");
     expect(out).toContain("12-month timeline — 7 dated actions");
     expect(out).toContain("1 A$ estimates");
+  });
+
+  it("renders the D-3 preview sentence from the submitted intake (city → state → Australia fallbacks)", async () => {
+    const withCity = await html(
+      <FundingPreviewCard preview={preview} intake={{ state: "NSW", city: "Sydney", stage: "mvp", industry_tags: ["software_saas"] }} />,
+    );
+    expect(withCity).toContain(
+      "We found 4 grants worth up to A$120,000 and 2 programs in Sydney for a mvp Software / SaaS startup. Top 3: MVP Ventures, Plus Eight, —.",
+    );
+    const noCity = await html(<FundingPreviewCard preview={{ ...preview, top_grants_amount_max_aud: 0 }} intake={{ state: "WA", stage: "idea" }} />);
+    expect(noCity).toContain("We found 4 grants and 2 programs in Western Australia for a idea Australian startup.");
+    const notInc = await html(<FundingPreviewCard preview={preview} intake={{ state: "not_incorporated", stage: "mvp" }} />);
+    expect(notInc).toContain("programs in Australia for a mvp Australian startup");
+    expect(withCity).not.toMatch(/A\$5\.50|PhD/);
   });
 
   it("never renders empty — the fallback rows and reason take over when nothing matched", async () => {

@@ -33,6 +33,8 @@ import { CapTableMini } from "@/components/dashboard/cap-table-mini";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StatusCards } from "@/components/dashboard/status-cards";
 import { ScnPositionHero } from "@/components/dashboard/scn-position-hero";
+import { MoneyRadarTile } from "@/components/dashboard/money-radar-tile";
+import { getMoneyRadarTileData } from "@/lib/funding/tile-data";
 import { ScnDirectionNavigator, type DirectionStep } from "@/components/dashboard/scn-direction-navigator";
 import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-action-plan";
 import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
@@ -752,6 +754,12 @@ export default async function DashboardPage({
   const primaryAiSummary = aiSummaries[0] ?? null;
   const ideaSummary = rawInput ? rawInput.slice(0, 200) : analysis?.summary?.slice(0, 200) ?? null;
 
+  // Money Radar tile (T0248) — never lets a funding read break the dashboard.
+  const moneyRadar = await getMoneyRadarTileData(user, activeProject ?? null).catch((err) => {
+    console.warn("[dashboard] money radar tile", err instanceof Error ? err.message : String(err));
+    return null;
+  });
+
   // For the LivingSVIDashboard
   const computedDelta = previousSVI != null && analysis ? analysis.totalSVI - previousSVI : undefined;
   const analysisWithDelta: SVIAnalysis | null = analysis
@@ -847,14 +855,25 @@ export default async function DashboardPage({
         {/* ── ux-ia-startup-flow-v1 §C.4 — full 12-phase step ladder ────────── */}
         <JourneyStepLadder currentPhase={phase} mode="coarse" />
 
-        {/* ── SCN POSITION hero — "Where am I?" above valuation ─────────────── */}
-        <ScnPositionHero
-          sviScore={sviScore}
-          stageLabel={phaseName}
-          percentile={scnPercentile}
-          valuationLabel={valuation.value}
-          phase6={phase}
-        />
+        {/* ── SCN POSITION hero — "Where am I?" — next to the Money Radar tile
+              (G11 §4i D-2 / SOT G9 #5: a live founder-relevant metric above
+              the fold). Stacks on mobile, 3:2 from lg. ─────────────────── */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5" data-dashboard-first-row>
+          <div className="lg:col-span-3">
+            <ScnPositionHero
+              sviScore={sviScore}
+              stageLabel={phaseName}
+              percentile={scnPercentile}
+              valuationLabel={valuation.value}
+              phase6={phase}
+            />
+          </div>
+          {moneyRadar && (
+            <div className="lg:col-span-2">
+              <MoneyRadarTile data={moneyRadar} />
+            </div>
+          )}
+        </div>
 
         {/* ── Value Impact Banner — BlockID value delivered to this founder ── */}
         {sviScore != null && (

@@ -36,6 +36,7 @@ import {
 } from "@/lib/funding/intake";
 import type { FundingPreviewPayload } from "@/lib/funding/preview";
 import { formatAudCompact } from "@/lib/funding/directory";
+import { FUNDING_COPY, fill } from "@/lib/funding/copy";
 import type { FounderStage } from "@/lib/agents/grant-advisor-rules";
 import { FundingPaywall, type PaywallRail } from "./funding-paywall";
 
@@ -418,7 +419,7 @@ export function FundingIntake({ openGrantCount, openProgramCount, initial, proje
 
       {preview && submitted ? (
         <div ref={previewRef} className="mt-8 scroll-mt-24">
-          <FundingPreviewCard preview={preview} />
+          <FundingPreviewCard preview={preview} intake={submitted} />
           <FundingPaywall intake={submitted} preview={preview} rail={rail} />
         </div>
       ) : null}
@@ -457,22 +458,36 @@ function NumberField({
   );
 }
 
+/** Tokens for the D-3 preview sentence from the submitted intake — every one has a fallback so the line is never blank. */
+export function previewHeadline(preview: FundingPreviewPayload, intake?: Record<string, unknown> | null): string {
+  if (preview.grant_count === 0 && preview.program_count === 0) return FUNDING_COPY.preview.nothing;
+  if (!intake) return fill(FUNDING_COPY.preview.resultCounts, { n: preview.grant_count, m: preview.program_count });
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const stateCode = str(intake.state) === NOT_INCORPORATED ? str(intake.based_state) : str(intake.state);
+  const stateLabel = STATE_OPTIONS.find((o) => o.value === stateCode)?.label ?? null;
+  const city = str(intake.city) ?? stateLabel ?? "Australia";
+  const stage = INTAKE_STAGES.find((o) => o.value === str(intake.stage))?.label.toLowerCase() ?? "early-stage";
+  const tags = Array.isArray(intake.industry_tags) ? (intake.industry_tags as unknown[]).filter((t): t is string => typeof t === "string") : [];
+  const industry = INDUSTRY_OPTIONS.find((o) => o.value === tags[0])?.label ?? "Australian";
+  const top = [...preview.top_grants, ...preview.top_programs].map((m) => m.name);
+  const [a, b, c] = [top[0] ?? "—", top[1] ?? "—", top[2] ?? "—"];
+  const tokens = { n: preview.grant_count, m: preview.program_count, city, stage, industry, a, b, c };
+  return preview.top_grants_amount_max_aud > 0
+    ? fill(FUNDING_COPY.preview.result, { ...tokens, sum: formatAudCompact(preview.top_grants_amount_max_aud) })
+    : fill(FUNDING_COPY.preview.resultNoSum, tokens);
+}
+
 /** The free tier of the result: counts, top-3 names + why, hero A$, locked rows. */
-export function FundingPreviewCard({ preview }: { preview: FundingPreviewPayload }) {
+export function FundingPreviewCard({ preview, intake }: { preview: FundingPreviewPayload; intake?: Record<string, unknown> | null }) {
   const fb = preview.fallback;
-  const headline =
-    preview.grant_count > 0 || preview.program_count > 0
-      ? `We found ${preview.grant_count} ${preview.grant_count === 1 ? "grant" : "grants"}${
-          preview.top_grants_amount_max_aud > 0 ? ` (up to ${formatAudCompact(preview.top_grants_amount_max_aud)} across the top five)` : ""
-        } and ${preview.program_count} ${preview.program_count === 1 ? "program" : "programs"} matching you.`
-      : "No exact matches yet — here is the nearest national money.";
+  const headline = previewHeadline(preview, intake);
 
   const grants = fb ? fb.grants : preview.top_grants;
   const programs = fb ? fb.programs : preview.top_programs;
 
   return (
     <div className="rounded-2xl border border-line-subtle bg-surface p-6 sm:p-8" data-funding-preview>
-      <p className="text-xs font-semibold uppercase tracking-wide text-action">Your free preview</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-action">{FUNDING_COPY.preview.eyebrow}</p>
       <h3 className="mt-1 font-display text-xl font-semibold text-primary sm:text-2xl">{headline}</h3>
       {fb ? <p className="mt-2 text-sm text-secondary">{fb.reason}</p> : null}
       {preview.location_unknown ? (
@@ -483,8 +498,8 @@ export function FundingPreviewCard({ preview }: { preview: FundingPreviewPayload
       ) : null}
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <PreviewList title={fb ? "National grants open now" : "Top grants"} items={grants} empty="No grants match yet — the directory is still free to browse." />
-        <PreviewList title={fb ? "National / remote programs" : "Top programs"} items={programs} empty="No programs match yet — try a different stage or city." />
+        <PreviewList title={fb ? "National grants open now" : "Top grants"} items={grants} empty={FUNDING_COPY.empty.noGrants} />
+        <PreviewList title={fb ? "National / remote programs" : "Top programs"} items={programs} empty={FUNDING_COPY.empty.noPrograms} />
       </div>
 
       <ul className="mt-6 grid gap-2 text-sm text-secondary sm:grid-cols-3" aria-label="What the full report adds">
