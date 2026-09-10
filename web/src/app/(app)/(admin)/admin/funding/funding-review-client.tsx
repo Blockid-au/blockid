@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Landmark, ExternalLink, Search, Check, X, Loader2 } from "lucide-react";
+import { Landmark, ExternalLink, Search, Check, X, Loader2, AlertTriangle } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import type { AuGrant, AuProgram, FundingStatus } from "@/lib/funding/data";
 import type { FundingKind } from "@/lib/funding/admin-patch";
+import type { ReviewQueueEntry } from "@/lib/funding/review-queue";
 
 // /admin/funding — review table for au_grants + au_programs. Rows sort with
 // status_confidence=low first (they are the ones the seed could not verify),
@@ -15,6 +16,8 @@ interface Props {
   user: { email: string; displayName: string | null };
   grants: AuGrant[];
   programs: AuProgram[];
+  /** Newest first; from grants-review-queue.jsonl (T0243). */
+  queue?: ReviewQueueEntry[];
 }
 
 const STATUSES: FundingStatus[] = ["open", "upcoming", "paused", "closed"];
@@ -102,7 +105,7 @@ function sortRows(rows: ReviewRow[]): ReviewRow[] {
   });
 }
 
-export function FundingReviewClient({ user, grants, programs }: Props) {
+export function FundingReviewClient({ user, grants, programs, queue = [] }: Props) {
   const [rows, setRows] = React.useState<ReviewRow[]>(() => sortRows(toRows(grants, programs)));
   const [kind, setKind] = React.useState<"all" | FundingKind>("all");
   const [region, setRegion] = React.useState("all");
@@ -172,6 +175,8 @@ export function FundingReviewClient({ user, grants, programs }: Props) {
           <Select label="Confidence" value={confidence} onChange={setConfidence} options={[["all", "All"], ["low", "low"], ["medium", "medium"], ["high", "high"]]} />
         </div>
 
+        <ReviewQueuePanel queue={queue} />
+
         <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -194,7 +199,7 @@ export function FundingReviewClient({ user, grants, programs }: Props) {
                   </tr>
                 ) : (
                   filtered.map((r) => (
-                    <tr key={`${r.kind}:${r.id}`} className="border-b border-surface-200/40 hover:bg-surface-50 transition-colors align-top">
+                    <tr key={`${r.kind}:${r.id}`} id={rowAnchor(r.kind, r.id)} className="border-b border-surface-200/40 hover:bg-surface-50 transition-colors align-top target:bg-brand-50">
                       <td className="px-4 py-3">
                         <div className="font-medium text-ink-800">
                           {r.name}
@@ -237,6 +242,120 @@ export function FundingReviewClient({ user, grants, programs }: Props) {
 
 function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <th className={`text-left px-4 py-3 text-xs text-ink-700 font-medium ${className}`}>{children}</th>;
+}
+
+/** DOM id for a catalogue row so queue entries can deep-link to it. */
+function rowAnchor(kind: FundingKind | "grant" | "program", id: string): string {
+  const k = kind === "grant" ? "grants" : kind === "program" ? "programs" : kind;
+  return `row-${k}-${id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+}
+
+const REASON_LABEL: Record<string, string> = {
+  blocked: "Source blocked the bot (403/429)",
+  unreachable: "Source page unreachable (4xx)",
+  status_mismatch: "Page status differs",
+  closes_at_mismatch: "Closing date differs",
+  status_closes_mismatch: "Status + closing date differ",
+  flipped_open: "Auto-flipped upcoming → open (audit)",
+  possible_new_grant: "Possible new grant (GrantConnect)",
+  feed_empty: "GrantConnect feed returned no items",
+};
+
+function hintSummary(e: ReviewQueueEntry): string {
+  const h = e.hint ?? {};
+  const parts: string[] = [];
+  if (typeof h.status === "string") parts.push(`status ${h.status}`);
+  if (typeof h.closes_at === "string") parts.push(`closes ${h.closes_at}`);
+  if (typeof h.http_status === "number") parts.push(`HTTP ${h.http_status}`);
+  if (typeof h.title === "string") parts.push(h.title);
+  if (typeof h.confidence === "string") parts.push(`(${h.confidence})`);
+  return parts.join(" · ");
+}
+
+function currentSummary(e: ReviewQueueEntry): string {
+  const c = e.current;
+  if (!c) return "—";
+  const parts: string[] = [];
+  if (typeof c.status === "string") parts.push(`status ${c.status}`);
+  parts.push(`closes ${typeof c.closes_at === "string" ? c.closes_at : "—"}`);
+  return parts.join(" · ");
+}
+
+// Read-only list of what the weekly refresh could not settle on its own.
+// Resolving an entry = open the row (anchor link) and "Mark verified" there;
+// the cron never edits the JSONL, so old lines simply age out of the last-200 window.
+function ReviewQueuePanel({ queue }: { queue: ReviewQueueEntry[] }) {
+  const [open, setOpen] = React.useState(true);
+  const lastRun = queue[0]?.ts ?? null;
+  return (
+    <div className="rounded-2xl border border-surface-200 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 px-5 py-3 text-left cursor-pointer"
+      >
+        <div className="flex items-center gap-2">
+          <AlertTriangle strokeWidth={1.75} className="h-4 w-4 text-amber-600" />
+          <span className="text-sm font-semibold text-ink-800">Review queue</span>
+          <span className="text-xs text-ink-500">
+            {queue.length} entr{queue.length === 1 ? "y" : "ies"} · from the weekly refresh-funding-sources cron
+            {lastRun ? ` · last queued ${lastRun.slice(0, 16).replace("T", " ")} UTC` : ""}
+          </span>
+        </div>
+        <span className="text-xs text-ink-500">{open ? "Hide" : "Show"}</span>
+      </button>
+      {open && (
+        queue.length === 0 ? (
+          <p className="px-5 pb-4 text-xs text-ink-500">
+            Nothing queued. The cron runs Sundays 04:00 UTC; run <code>/api/cron/refresh-funding-sources?dry=1</code> to preview.
+          </p>
+        ) : (
+          <div className="overflow-x-auto border-t border-surface-200">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-surface-100 text-ink-700">
+                  <Th>When</Th>
+                  <Th>Kind</Th>
+                  <Th>Row</Th>
+                  <Th>Reason</Th>
+                  <Th>Source said</Th>
+                  <Th>Table has</Th>
+                  <Th className="text-center">Links</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {queue.map((e, i) => (
+                  <tr key={`${e.ts}:${e.kind}:${e.id ?? e.url}:${i}`} className="border-b border-surface-200/40 align-top">
+                    <td className="px-4 py-2 whitespace-nowrap text-ink-600">{e.ts.slice(0, 10)}</td>
+                    <td className="px-4 py-2 text-ink-600">{e.kind}</td>
+                    <td className="px-4 py-2 text-ink-800 font-medium">{e.id ?? "—"}</td>
+                    <td className="px-4 py-2 text-ink-700">{REASON_LABEL[e.reason] ?? e.reason}</td>
+                    <td className="px-4 py-2 text-ink-700 max-w-[320px]">
+                      {hintSummary(e) || "—"}
+                      {typeof e.hint?.evidence === "string" && (
+                        <div className="text-[10px] text-ink-500 mt-0.5 line-clamp-2">“{e.hint.evidence}”</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-ink-600 whitespace-nowrap">{currentSummary(e)}</td>
+                    <td className="px-4 py-2 text-center whitespace-nowrap">
+                      {e.id && e.kind !== "new" && (
+                        <a href={`#${rowAnchor(e.kind, e.id)}`} className="text-brand-600 hover:text-brand-700 font-medium mr-3">
+                          Row
+                        </a>
+                      )}
+                      <a href={e.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 font-medium">
+                        Source <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+    </div>
+  );
 }
 
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: Array<[string, string]> }) {

@@ -96,6 +96,8 @@ export const CEO_GOAL_TREE: AgentGoal = {
         "Financial projection norms: growth, churn, gross margin, Rule of 40, NRR, CAC payback, LTV/CAC by stage",
         "Financial injection & cap table: round sizing, use of funds, dilution, pre/post-money, runway (AVCAL, Cut Through Venture AU)",
         "R&D Tax Incentive, ESIC and AU funding data relevant to valuation",
+        // T0243 — feeds the Money Finder catalogue (au_grants) and the review queue when a portal 403s the cron.
+        "Australian startup grants — new rounds, closures and deadline changes (business.gov.au, GrantConnect, state portals)",
       ],
       researchFrequency: "daily",
       subGoals: [],
@@ -144,6 +146,8 @@ export const CEO_GOAL_TREE: AgentGoal = {
         "AU startup ecosystem reports",
         "Content marketing benchmarks",
         "Positioning a 'Startup Navigation System' (Google Maps for Startups) — messaging vs valuation/equity tools",
+        // T0243 — IR has no goal-tree entry, so the weekly programs topic lives with the CMO (au_programs catalogue).
+        "Accelerator, incubator and founder program intakes in the eight Australian capitals",
       ],
       researchFrequency: "weekly-tue",
       subGoals: [],
