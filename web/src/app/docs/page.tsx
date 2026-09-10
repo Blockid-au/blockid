@@ -431,6 +431,26 @@ export default async function DocsPage() {
             </p>
           </section>
 
+          {/* Progressive unlock — G8-P8 founder-facing matrix */}
+          <section className="mb-14">
+            <h2 className="text-2xl font-bold text-ink-800 mb-2">
+              What unlocks when
+            </h2>
+            <p className="text-sm text-ink-600 mb-4">
+              The workspace sidebar grows with the startup: groups appear as the
+              founder reaches each of the 12 growth phases, and rows above the
+              current plan stay visible but dimmed. The full phase × plan matrix
+              and the evidence that clears each phase gate are published at{" "}
+              <Link href="/docs/unlocks" className="text-brand-600 underline">
+                /docs/unlocks
+              </Link>{" "}
+              — generated from the nav catalogue and gate engine, so it cannot
+              drift from the app. Gates are advisory: founders can move on
+              manually; the badge and investor-facing trust score follow the
+              evidence.
+            </p>
+          </section>
+
           {/* Pricing ladder — 2026-09-10 (T0274). This section used to
               document the Founding 100 lifetime deal (A$1 → A$3 → A$5) and
               said the price "reverts to A$99/mo Growth" after cutover. The

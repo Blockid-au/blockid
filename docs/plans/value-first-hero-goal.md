@@ -9,7 +9,7 @@
 ---
 goal_id: value-first-hero-v1
 status: shipped
-version: 2026-08-08.2
+version: 2026-09-10.1   # P4 close-out (Money Radar tile) + Q1 resolved
 shipped_at: 2026-08-08
 owner: admin@blockid.au
 created: 2026-08-08
@@ -85,20 +85,39 @@ phased_tracks:
       stage 1-4), <3s API target. verifiedCount is hidden when zero to
       avoid fabricating numbers.
   P4_dashboard_metric:
-    status: done
-    completed_at: 2026-08-08
+    status: shipped
+    completed_at: 2026-09-10
+    shipped_commit: 25dd6b1b0   # G11 D-2 / T0248 — MoneyRadarTile beside ScnPositionHero
     description: |
-      Already satisfied: ScnPositionHero (SVI + percentile + valuation label)
-      and MetricCard grid (Company Value + trend) both render above the fold
-      on the founder dashboard. Adding another card would duplicate signal
-      and violate the "additive only, no reorder" rule.
+      Shipped. The founder dashboard first row (`data-dashboard-first-row`,
+      web/src/app/(app)/(founder)/dashboard/page.tsx) renders two live
+      metric surfaces above the fold, per G11 §4i D-2 (commit 25dd6b1b0):
+        - ScnPositionHero — SVI score, AU-cohort percentile for the stage,
+          valuation label, 6-step phase (3/5 width from lg).
+        - MoneyRadarTile — live count of open grants and programs matched
+          to the founder's state and stage (5 states: no_profile /
+          free_previewed / buyer / subscriber / nothing_due; 2/5 width).
+          Data via lib/funding/tile-data.ts; a read failure logs and hides
+          the tile rather than breaking the dashboard.
+      Both stack on mobile. Earlier note ("already satisfied by
+      ScnPositionHero + MetricCard grid", 2026-08-08) is superseded: the
+      Money Radar tile is the additive metric card this track asked for,
+      and it landed without reordering the existing rows. Documented in
+      G8-P8 close-out (docs/plans/unlock-next-level-2026-07-31.md §5).
 
 open_questions:
   Q1:
     text: "Which live metric is highest priority for the dashboard metric card — SVI score, valuation estimate, or cap-table completeness?"
     recommendation: "SVI score + valuation estimate as a two-stat card (most founder-relevant; already computed)."
     human_owner: admin@blockid.au
-    blocking: true   # blocks P4 start
+    blocking: false  # resolved 2026-09-10
+    resolution: |
+      Resolved by G11 D-2 (commit 25dd6b1b0): live metric = SVI position +
+      Money Radar counts. The first row pairs ScnPositionHero (SVI score,
+      percentile, valuation label) with MoneyRadarTile (open grants /
+      programs for the founder's state and stage). Cap-table completeness
+      stays a lower-fold card; it is a phase-6 (legal_equity) concern and
+      would be empty for most first-week founders.
   Q2:
     text: "Should the numbers strip in HeroV3 auto-update from the DB or be a static constant updated manually each quarter?"
     recommendation: "Static constant in platform-config.ts for now — avoids a DB query on the landing page critical path."

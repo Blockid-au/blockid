@@ -10,6 +10,7 @@
 // + topBlockers() and the nudge engine's next_action, so this component stays
 // a pure presentational leaf — no fetching, no side effects.
 
+import Link from "next/link";
 import type { PhaseBlocker } from "@/lib/growth/phase-gate";
 import type { GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { GROWTH_PHASE_LABELS, growthPhaseOrder } from "@/lib/growth/phase-taxonomy";
@@ -65,6 +66,13 @@ export function NextUnlockCard({
         <div>
           <p className="text-[10px] uppercase tracking-widest text-slate-400 font-medium mb-1">
             Next Unlock
+            {/* G8-P8 — founder-facing phase × plan matrix + exit criteria. */}
+            <Link
+              href="/docs/unlocks"
+              className="ml-2 normal-case tracking-normal text-slate-500 underline decoration-slate-600 underline-offset-2 hover:text-slate-300"
+            >
+              How unlocks work
+            </Link>
           </p>
           <h3 className="text-sm font-semibold text-slate-100 leading-snug">
             Phase {phaseOrder} &middot; {phaseLabel}
