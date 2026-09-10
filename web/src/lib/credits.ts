@@ -73,6 +73,7 @@ export const FEATURE_COSTS: Record<string, number> = {
   pitch_video: 2.00,  // A$2.00 — 60-second Pitch Snapshot video (Remotion render)
   idea_lab: 3,         // 3 credits — sector-aware AI Idea Lab (10 angles + 5 non-obvious + 3 competitors)
   grant_match: 3,      // 3 credits — Money Finder: ranked AU grants + programs, eligibility checklist, 12-month timeline (T0242; plan-included via `grant_finder`)
+  grant_application_draft: 2, // 2 credits — Money Finder: AI draft of one grant's application_prompts (T0251; Starter pays after confirming, Growth / Startup Package unlimited)
 
   // ── Evidence AI analysis tiers ────────────────────────────────────────
   evidence_scan: 0.10,       // Quick validation, authenticity check

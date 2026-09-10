@@ -26,6 +26,19 @@ export type Capital =
   | "Remote";
 
 export type FundingStatus = "open" | "closed" | "paused" | "upcoming";
+
+/**
+ * One application question for a grant (`au_grants.application_prompts[]`,
+ * migration 0323, T0251). `guidance` is a one-line hint from the official
+ * guidelines ("generic" marks a fallback set); `max_words` caps the drafted
+ * answer.
+ */
+export interface ApplicationPrompt {
+  id: string;
+  question: string;
+  guidance?: string;
+  max_words?: number;
+}
 export type VerifiedBy = "seed" | "cron" | "agent" | "human";
 export type StatusConfidence = "high" | "medium" | "low";
 
@@ -127,6 +140,8 @@ export interface AuGrantRow {
   verified_by: VerifiedBy;
   status_confidence: StatusConfidence;
   sources: unknown[] | null;
+  /** Per-grant application questions (0323). Optional so older fixtures / cached rows still type-check; the mapper always sets it. */
+  application_prompts?: ApplicationPrompt[];
 }
 
 export interface AuProgramRow {
@@ -197,6 +212,32 @@ function isoDate(v: unknown): string | null {
   return s && ISO_DATE.test(s) ? s : null;
 }
 
+/**
+ * Coerce a raw `application_prompts` value to a clean list: drops entries
+ * without an id + question, trims strings, keeps `max_words` only when it is
+ * a positive integer, and de-duplicates ids (first wins).
+ */
+export function parseApplicationPrompts(v: unknown): ApplicationPrompt[] {
+  if (!Array.isArray(v)) return [];
+  const out: ApplicationPrompt[] = [];
+  const seen = new Set<string>();
+  for (const raw of v) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const r = raw as Record<string, unknown>;
+    const id = str(r.id);
+    const question = str(r.question);
+    if (!id || !question || seen.has(id)) continue;
+    seen.add(id);
+    const p: ApplicationPrompt = { id, question };
+    const guidance = str(r.guidance);
+    if (guidance) p.guidance = guidance;
+    const mw = num(r.max_words);
+    if (mw !== null && Number.isInteger(mw) && mw > 0) p.max_words = mw;
+    out.push(p);
+  }
+  return out;
+}
+
 function oneOf<T extends string>(v: unknown, allowed: readonly T[], fallback: T): T {
   const s = str(v);
   return s && (allowed as readonly string[]).includes(s) ? (s as T) : fallback;
@@ -256,6 +297,7 @@ export function mapGrantSeed(raw: SeedRecord): AuGrantRow {
     verified_by: oneOf(raw.verified_by, VERIFIED_BY, "seed"),
     status_confidence: oneOf(raw.status_confidence, STATUS_CONFIDENCES, "medium"),
     sources: Array.isArray(raw.sources) ? (raw.sources as unknown[]) : null,
+    application_prompts: parseApplicationPrompts(raw.application_prompts),
   };
 }
 

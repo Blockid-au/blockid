@@ -217,7 +217,7 @@ describe("PLANS_V2 catalogue", () => {
   });
 
   // G11 (2026-09-10, T0247): Founder Radar bundled into Starter (D10) — no
-  // rename, a chip instead; Growth extras honestly "(coming)" until T0251;
+  // rename, a chip instead; Growth extras live since T0251;
   // the three evaluator rungs say the radar is included.
   it("Starter keeps its name, carries the Founder Radar badge + feature line (T0247)", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
@@ -230,13 +230,14 @@ describe("PLANS_V2 catalogue", () => {
     expect(PLANS_V2.filter((p) => p.badge).map((p) => p.id)).toEqual(["founder_starter"]);
   });
 
-  it("Free names the Money Finder preview and the A$3 Trust BizReport; Growth marks Radar extras as coming", () => {
+  it("Free names the Money Finder preview and the A$3 Trust BizReport; Growth lists the live Radar extras (T0251)", () => {
     const byId = new Map(PLANS_V2.map((p) => [p.id, p]));
     const free = byId.get("founder_free")!.features.join(" ");
     expect(free).toContain("Money Finder preview");
     expect(free).toContain("Trust BizReport A$3 pay-as-you-go");
     const growth = byId.get("founder_growth")!.features.join(" ");
-    expect(growth).toContain("+ investor matching, unlimited application drafts, quarterly expert refresh (coming)");
+    expect(growth).toContain("+ investor matching, unlimited application drafts, quarterly expert update");
+    expect(growth).not.toContain("(coming)");
   });
 
   it("every public evaluator rung includes the Money Finder & Progress Radar line", () => {

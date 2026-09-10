@@ -1,0 +1,201 @@
+/**
+ * /api/funding/draft — per-grant application drafts (T0251, plan §4h
+ * "Application drafts"). Same rails as POST /api/funding/report.
+ *
+ * POST `{ project_id, grant_id, confirm? }`
+ *   auth → rate-limit → gate → (preview | generate) → insert → spend after.
+ *   Gate:
+ *     • `can(user, "grant_finder")` is required (Starter+, Startup Package,
+ *       evaluator rungs) → 403 `plan_required` otherwise (free founders see
+ *       the locked copy in the UI and never reach here).
+ *     • Growth extras (`hasGrowthExtras`: founder tier ≥ Growth or an
+ *       active Startup Package grant) → unlimited, cost 0.
+ *     • Otherwise (Starter) → `FEATURE_COSTS.grant_application_draft`
+ *       (2 credits). Transparent-pricing rule: `confirm !== true` returns
+ *       200 `{ preview: true, cost, balance, prompts }` and spends nothing;
+ *       the editor shows that cost on the button before the confirmed call.
+ *   Generation reuses the accelerator-drafter pattern through ai-client with
+ *   the SVI analysis + data-room evidence as context. Never blank: an AI
+ *   failure still stores the prompts with empty answers (200, `ai_ok: false`)
+ *   and is NOT charged.
+ *
+ * PATCH `{ id, answers?, status? }` — owner update from the editor.
+ *
+ *   200 { ok, draft, prompts, cost, creditsCharged, ai_ok }
+ *   400 bad body   401 unauthorized   402 insufficient_credits
+ *   403 plan_required | project_not_found_or_forbidden   404 grant_not_found
+ *   429 rate_limited   503 service_unavailable
+ */
+
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
+import { can } from "@/lib/entitlements";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { getProjectById } from "@/lib/projects";
+import { getGrant } from "@/lib/funding/data";
+import { hasGrowthExtras } from "@/lib/funding/growth-extras";
+import { promptsForGrant, emptyAnswers } from "@/lib/funding/application-prompts";
+import { gatherDraftContext, insertGrantDraft, updateGrantDraft } from "@/lib/funding/application-drafts";
+import { draftGrantApplication } from "@/lib/agents/grant-application-drafter";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 120;
+
+const FEATURE_KEY = "grant_application_draft";
+const RATE_LIMIT_PER_HOUR = 20;
+
+function str(v: unknown): string | null {
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+
+  const limited = enforceRateLimit("funding-draft", user.id, request, RATE_LIMIT_PER_HOUR, 60 * 60 * 1000);
+  if (limited) return limited;
+
+  let body: Record<string, unknown> = {};
+  try {
+    body = ((await request.json()) ?? {}) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON body", field: "grant_id" }, { status: 400 });
+  }
+  const grantId = str(body.grant_id ?? body.grantId);
+  if (!grantId) return NextResponse.json({ ok: false, error: "grant_id is required", field: "grant_id" }, { status: 400 });
+  const projectId = str(body.project_id ?? body.projectId);
+  const confirmed = body.confirm === true;
+
+  let project = null;
+  if (projectId) {
+    project = await getProjectById(projectId);
+    if (!project || project.userId !== user.id) {
+      return NextResponse.json({ ok: false, error: "project_not_found_or_forbidden" }, { status: 403 });
+    }
+  }
+
+  const grant = await getGrant(grantId);
+  if (!grant || grant.exclude_from_matching) return NextResponse.json({ ok: false, error: "grant_not_found" }, { status: 404 });
+  const prompts = promptsForGrant(grant);
+
+  // Gate → cost.
+  const uwp = { id: user.id, plan: user.plan ?? "free", segment: "founder" };
+  const included = await can(uwp, "grant_finder");
+  if (!included) {
+    return NextResponse.json({ ok: false, error: "plan_required", feature: "grant_finder" }, { status: 403 });
+  }
+  const unlimited = await hasGrowthExtras({ id: user.id, plan: user.plan });
+  let cost = 0;
+  let balance: number | null = null;
+  if (!unlimited) {
+    const afford = await canAfford(user.id, FEATURE_KEY);
+    cost = FEATURE_COSTS[FEATURE_KEY] ?? afford.cost;
+    balance = afford.balance;
+    if (!afford.allowed) {
+      return NextResponse.json(
+        { ok: false, error: "insufficient_credits", creditsRequired: cost, balance: afford.balance, reason: afford.reason ?? "insufficient_credits" },
+        { status: 402 },
+      );
+    }
+    if (!confirmed) {
+      // Transparent pricing: show the price, spend nothing.
+      return NextResponse.json({ ok: true, preview: true, cost, balance, prompts, grant: { id: grant.id, name: grant.name } });
+    }
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return NextResponse.json({ ok: false, error: "service_unavailable" }, { status: 503 });
+
+  // Generate — never throws; failures come back as empty answers.
+  const ctx = await gatherDraftContext({ id: user.id, email: user.email ?? null }, project, grant.id, { db: supabase });
+  let result;
+  try {
+    result = await draftGrantApplication(
+      {
+        id: grant.id,
+        name: grant.name,
+        provider: grant.provider,
+        summary: grant.summary,
+        amount_note: grant.amount_note,
+        co_contribution: grant.co_contribution,
+        official_url: grant.official_url,
+      },
+      prompts,
+      ctx,
+    );
+  } catch (err) {
+    console.error("[funding:draft] drafter threw", err instanceof Error ? err.message : String(err));
+    result = { answers: emptyAnswers(prompts), ai_ok: false, failed: prompts.map((p) => p.id), provider: null, model: null };
+  }
+
+  const charge = result.ai_ok ? cost : 0; // a failed draft is never charged
+  const draft = await insertGrantDraft(
+    {
+      user_id: user.id,
+      project_id: project?.id ?? null,
+      grant_id: grant.id,
+      answers: result.answers,
+      prompts,
+      credits_cost: charge,
+      status: "draft",
+      meta: { ai_ok: result.ai_ok, failed: result.failed, provider: result.provider, model: result.model, unlimited, evidence: ctx.evidence.length },
+    },
+    { db: supabase },
+  );
+  if (!draft) return NextResponse.json({ ok: false, error: "draft_insert_failed" }, { status: 500 });
+
+  let creditsCharged = 0;
+  if (charge > 0) {
+    const spent = await spendCredits(user.id, FEATURE_KEY, { project_id: project?.id ?? null, grant_id: grant.id, draft_id: draft.id });
+    if (!spent.ok) {
+      return NextResponse.json({ ok: false, error: "credit_spend_failed", draftId: draft.id, balance: spent.balance }, { status: 402 });
+    }
+    creditsCharged = charge;
+    balance = spent.balance;
+  }
+
+  return NextResponse.json({
+    ok: true,
+    draft,
+    prompts,
+    cost,
+    creditsCharged,
+    balance,
+    ai_ok: result.ai_ok,
+    failed: result.failed,
+    grant: { id: grant.id, name: grant.name, official_url: grant.official_url },
+  });
+}
+
+export async function PATCH(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+
+  let body: Record<string, unknown> = {};
+  try {
+    body = ((await request.json()) ?? {}) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON body", field: "id" }, { status: 400 });
+  }
+  const id = str(body.id);
+  if (!id) return NextResponse.json({ ok: false, error: "id is required", field: "id" }, { status: 400 });
+
+  const patch: { answers?: Record<string, string>; status?: "draft" | "final" } = {};
+  if (body.answers && typeof body.answers === "object" && !Array.isArray(body.answers)) {
+    const answers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(body.answers as Record<string, unknown>)) {
+      if (typeof v === "string") answers[k] = v.slice(0, 20_000);
+    }
+    patch.answers = answers;
+  }
+  if (body.status === "draft" || body.status === "final") patch.status = body.status;
+  if (!patch.answers && !patch.status) {
+    return NextResponse.json({ ok: false, error: "nothing to update", field: "answers" }, { status: 400 });
+  }
+
+  const draft = await updateGrantDraft(id, user.id, patch);
+  if (!draft) return NextResponse.json({ ok: false, error: "draft_not_found" }, { status: 404 });
+  return NextResponse.json({ ok: true, draft });
+}

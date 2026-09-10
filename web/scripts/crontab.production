@@ -223,6 +223,14 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # `?dry=1` on the route previews without writes.
 0 5 * * 0 bash $RUN money-radar-sweep --timeout 300
 
+# 4:00pm AEST on the 1st of Jan/Apr/Jul/Oct (06:00 UTC) — Quarterly expert
+# analysis refresh (T0251, G11 §4h Growth row). For every Growth founder ×
+# project: SVI delta over the quarter, grant/program moves on their Money
+# Radar matches (new / closed / paused) and this quarter's CFO / CLO research
+# → analysis_refreshes row + ONE analysis_refresh in-app notification when
+# something changed. `?dry=1` previews without writes; `?force=1` rebuilds.
+0 6 1 1,4,7,10 * bash $RUN analysis-refresh-quarterly --timeout 300
+
 # ═══════════════════════════════════════════════════════════════
 # PIPELINE FLOW DIAGRAM
 # ═══════════════════════════════════════════════════════════════

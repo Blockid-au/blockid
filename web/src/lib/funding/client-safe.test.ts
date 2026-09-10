@@ -11,6 +11,9 @@ const CLIENT_ENTRIES = [
   "components/funding/funding-intake.tsx",
   "components/funding/funding-paywall.tsx",
   "components/funding/funding-report-tracker.tsx",
+  // T0251 — draft editor + workspace tabs (investor-match / analysis-refresh types only).
+  "components/funding/grant-draft-editor.tsx",
+  "app/(app)/(founder)/workspace/funding/funding-workspace.tsx",
 ];
 const FORBIDDEN = ["lib/ai-client.ts", "lib/supabase.ts", "lib/agents/grant-advisor-narrative.ts"];
 

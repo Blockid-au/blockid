@@ -6,7 +6,7 @@
 //   1. Starter keeps its label, gains the "Founder Radar" chip and the
 //      approved Radar feature line; no other founder card carries the chip.
 //   2. Free names the Money Finder preview + the A$3 Trust BizReport.
-//   3. Growth's Radar extras are marked "(coming)" — honest until T0251.
+//   3. Growth's Radar extras are live (T0251) — no "(coming)" left.
 //   4. Every Evaluator card says "Money Finder & Progress Radar included".
 
 import { describe, expect, it } from "vitest";
@@ -53,8 +53,9 @@ describe("<PricingMatrix segment='founder' /> — Founder Radar in Starter (T024
     expect(out).toContain("Trust BizReport A$3 pay-as-you-go");
   });
 
-  it("Growth marks investor matching / unlimited drafts / quarterly refresh as coming", () => {
-    expect(out).toContain("+ investor matching, unlimited application drafts, quarterly expert refresh (coming)");
+  it("Growth lists investor matching / unlimited drafts / quarterly expert update (live since T0251)", () => {
+    expect(out).toContain("+ investor matching, unlimited application drafts, quarterly expert update");
+    expect(out).not.toContain("(coming)");
   });
 
   it("does not put the evaluator Radar line on founder cards", () => {
