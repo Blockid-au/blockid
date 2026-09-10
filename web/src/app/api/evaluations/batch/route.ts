@@ -86,6 +86,21 @@ export async function POST(request: Request) {
 
   // Quota — all-or-nothing, net of items already waiting in other batches.
   const [quota, pending] = await Promise.all([getReportQuota(user), countPendingBatchItems(user.id)]);
+  // accelerator_* Contact-Sales plans pass canBatchScore but carry no
+  // usage_limits.reports_per_month at all (review #14) — say so instead of
+  // a "0 of 0 remain" quota error.
+  if (quota.configured === false) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "quota_not_configured",
+        hint: "Contact sales",
+        message: "Your plan has batch scoring but no included Trust BizReport allowance configured yet. Contact sales to enable it.",
+        quota: { limit: quota.limit, used: quota.used, remaining: quota.remaining, unlimited: quota.unlimited, pending },
+      },
+      { status: 402 },
+    );
+  }
   const available = quota.unlimited ? Number.MAX_SAFE_INTEGER : Math.max(0, quota.remaining - pending);
   if (available < ids.length) {
     return NextResponse.json(

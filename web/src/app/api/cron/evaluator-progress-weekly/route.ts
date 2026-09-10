@@ -131,6 +131,10 @@ export async function GET(request: Request) {
       budgetExceeded = true;
       break;
     }
+    // Tracked outside the try so a throw after the claim (notify /
+    // canSendEmail / render / send) releases the slot (review #13) — the
+    // in-app row's dedupe key stops a duplicate on the retry.
+    let claimed: EvaluatorProgress | null = null;
     try {
       // 3. money_radar entitlement (plan + grants + timed layer).
       const flags = await getEntitlements(u.plan, u.id);
@@ -171,6 +175,7 @@ export async function GET(request: Request) {
         summaries.push({ ...base, outcome: "failed" });
         continue;
       }
+      claimed = progress;
 
       // 5. In-app row (free for every rung; dedupe-keyed on the period).
       await notifyEvaluatorProgress(progress);
@@ -209,6 +214,13 @@ export async function GET(request: Request) {
       failures++;
       summaries.push({ user_id: u.id, startups: 0, moved: 0, deadlines: 0, new_matches: 0, digest_ready: false, outcome: "failed" });
       console.warn("[evaluator-progress-weekly] tick failed for", u.id, err);
+      if (claimed) {
+        try {
+          await releaseProgressSend(claimed);
+        } catch (releaseErr) {
+          console.warn("[evaluator-progress-weekly] release after failure failed for", u.id, releaseErr);
+        }
+      }
     }
   }
 

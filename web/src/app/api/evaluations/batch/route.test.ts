@@ -122,6 +122,19 @@ describe("/api/evaluations/batch", () => {
     expect((await POST(post({ evaluation_ids: ["e-1", "e-2", "e-3"] }))).status).toBe(201);
   });
 
+  it("#14: a plan with no usage_limits.reports_per_month (accelerator_* Contact-Sales) gets 402 quota_not_configured + Contact sales, not a generic quota error", async () => {
+    getReportQuotaMock.mockResolvedValue({ limit: 0, used: 0, remaining: 0, unlimited: false, configured: false });
+    const res = await POST(post({ evaluation_ids: ["e-1"] }));
+    expect(res.status).toBe(402);
+    const json = await res.json();
+    expect(json).toMatchObject({ ok: false, error: "quota_not_configured", hint: "Contact sales" });
+    expect(createBatchMock).not.toHaveBeenCalled();
+
+    // A configured 0 is still the ordinary quota_insufficient path.
+    getReportQuotaMock.mockResolvedValue({ limit: 0, used: 0, remaining: 0, unlimited: false, configured: true });
+    expect((await (await POST(post({ evaluation_ids: ["e-1"] }))).json()).error).toBe("quota_insufficient");
+  });
+
   it("unlimited plans never hit the quota check", async () => {
     getReportQuotaMock.mockResolvedValue({ limit: Number.MAX_SAFE_INTEGER, used: 0, remaining: Number.MAX_SAFE_INTEGER, unlimited: true });
     countPendingMock.mockResolvedValue(999);

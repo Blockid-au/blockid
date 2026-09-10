@@ -45,7 +45,14 @@ interface Summary {
   topTen: CohortMemberRow[];
 }
 
-async function loadSummary(ownerId: string): Promise<Summary> {
+/**
+ * Live 0021 schema (money-path review #14): the caller's cohort is the
+ * newest `accelerator_cohorts` row with manager_email = their email; its
+ * `cohort_members` link to `svi_accounts` (current_svi / current_stage /
+ * last_active_at). The previous owner_id / latest_svi / is_active select matched
+ * no column, so the "Export to PDF" link never carried a cohort id.
+ */
+async function loadSummary(userEmail: string | null | undefined): Promise<Summary> {
   const supabase = getSupabaseAdmin();
   const empty: Summary = {
     cohortId: null,
@@ -56,30 +63,50 @@ async function loadSummary(ownerId: string): Promise<Summary> {
     topTen: [],
   };
   if (!supabase) return empty;
+  const email = (userEmail ?? "").trim().toLowerCase();
+  if (!email) return empty;
 
   let members: CohortMemberRow[] = [];
   let cohortId: string | null = null;
   try {
-    const { data, error } = await supabase
-      .from("cohort_members")
-      .select(
-        "id,cohort_id,startup_name,stage,latest_svi,latest_raise_aud,last_activity_at,is_active",
-      )
-      .eq("owner_id", ownerId);
-    if (!error && data) {
-      members = data.map((row) => ({
-        id: String(row.id),
-        startupName: String(row.startup_name ?? "Untitled"),
-        stage: row.stage == null ? null : String(row.stage),
-        latestSvi: row.latest_svi == null ? null : Number(row.latest_svi),
-        latestRaiseAud:
-          row.latest_raise_aud == null ? null : Number(row.latest_raise_aud),
-        lastActivityAt:
-          row.last_activity_at == null ? null : String(row.last_activity_at),
-        isActive: row.is_active !== false,
-      }));
-      const first = data.find((r) => r.cohort_id != null);
-      cohortId = first ? String(first.cohort_id) : null;
+    const { data: cohorts } = await supabase
+      .from("accelerator_cohorts")
+      .select("id, manager_email, created_at")
+      .eq("manager_email", email)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const cohort = (cohorts ?? [])[0] as Record<string, unknown> | undefined;
+    cohortId = cohort?.id ? String(cohort.id) : null;
+    if (cohortId) {
+      const { data, error } = await supabase
+        .from("cohort_members")
+        .select("id, startup_name, email, svi_account_id")
+        .eq("cohort_id", cohortId);
+      const rows = (!error && data ? data : []) as Array<Record<string, unknown>>;
+      const accountIds = rows
+        .map((r) => r.svi_account_id)
+        .filter((v): v is string => typeof v === "string" && v.length > 0);
+      const accounts = new Map<string, Record<string, unknown>>();
+      if (accountIds.length > 0) {
+        const { data: accRows } = await supabase
+          .from("svi_accounts")
+          .select("id, current_svi, current_stage, last_active_at")
+          .in("id", accountIds);
+        for (const a of (accRows ?? []) as Array<Record<string, unknown>>) accounts.set(String(a.id), a);
+      }
+      members = rows.map((row) => {
+        const acc = typeof row.svi_account_id === "string" ? accounts.get(row.svi_account_id) : undefined;
+        const svi = acc?.current_svi == null ? null : Number(acc.current_svi);
+        return {
+          id: String(row.id),
+          startupName: String(row.startup_name ?? row.email ?? "Untitled"),
+          stage: acc?.current_stage == null ? null : String(acc.current_stage),
+          latestSvi: svi != null && Number.isFinite(svi) ? svi : null,
+          latestRaiseAud: null,
+          lastActivityAt: acc?.last_active_at == null ? null : String(acc.last_active_at),
+          isActive: true,
+        };
+      });
     }
   } catch {
     // fall through
@@ -159,11 +186,13 @@ export default async function AcceleratorQuarterlyReportPage() {
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
-  const summary = await loadSummary(user.id);
+  const summary = await loadSummary(user.email);
 
+  // No accelerator cohort for this manager → the batch-scored route is the
+  // working export (review #14); /api/reports/quarterly alone would 400.
   const exportHref = summary.cohortId
     ? `/api/reports/quarterly?cohort=${encodeURIComponent(summary.cohortId)}`
-    : "/api/reports/quarterly";
+    : "/workspace/evaluations";
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -183,7 +212,7 @@ export default async function AcceleratorQuarterlyReportPage() {
               href={exportHref}
               className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
-              Export to PDF
+              {summary.cohortId ? "Export to PDF" : "Export from Batch score"}
             </Link>
           </header>
 

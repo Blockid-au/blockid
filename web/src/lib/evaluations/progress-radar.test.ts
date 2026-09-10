@@ -306,18 +306,38 @@ describe("createSupabaseProgressStore", () => {
       svi_accounts: [{ id: "acc-1", project_id: "p-1" }],
       evidence_items: [{ account_id: "acc-1", created_at: "2026-09-10T00:00:00Z" }, { account_id: "acc-1", created_at: "2026-09-11T00:00:00Z" }],
       evaluation_reports: [{ evaluation_id: "e-1", kind: "rescore", svi_total: 70, created_at: "2026-09-11T00:00:00Z" }],
-      funding_matches: [{ project_id: "p-1", ref_kind: "grant", ref_id: "g1", closes_at: "2026-09-27", first_seen_at: "2026-09-13T00:00:00Z", score: 9, status_at_match: "open" }],
+      // #16 fixture: the founder (f-1, projects.user_id) has a match on p-1; the
+      // evaluator (u-1) reading the radar has none. The row must still surface.
+      projects: [{ id: "p-1", user_id: "f-1" }],
+      funding_matches: [
+        { user_id: "f-1", project_id: "p-1", ref_kind: "grant", ref_id: "g1", closes_at: "2026-09-27", first_seen_at: "2026-09-13T00:00:00Z", score: 9, status_at_match: "open" },
+        { user_id: "someone-else", project_id: "p-1", ref_kind: "grant", ref_id: "g-other", closes_at: "2026-09-30", first_seen_at: "2026-09-13T00:00:00Z", score: 5, status_at_match: "open" },
+      ],
       au_grants: [{ id: "g1", name: "MVP Ventures", official_url: "https://x" }],
       au_programs: [],
     };
     const deletes: unknown[] = [];
+    const queried: Array<{ table: string; filters: Array<[string, string, unknown]> }> = [];
     const builder = (table: string) => {
       const b: Record<string, unknown> = {};
-      const resolve = () => Promise.resolve({ data: rows[table] ?? [], error: null });
+      const filters: Array<[string, string, unknown]> = [];
+      queried.push({ table, filters });
+      const resolve = () => {
+        let data = rows[table] ?? [];
+        // Only funding_matches / projects filter in this fake — enough to prove #16.
+        if (table === "funding_matches" || table === "projects") {
+          data = (data as Array<Record<string, unknown>>).filter((r) =>
+            filters.every(([op, col, val]) =>
+              op === "eq" ? String(r[col]) === String(val) : op === "in" ? (val as unknown[]).map(String).includes(String(r[col])) : true,
+            ),
+          );
+        }
+        return Promise.resolve({ data, error: null });
+      };
       Object.assign(b, {
         select: () => b,
-        eq: () => b,
-        in: () => b,
+        eq: (col: string, val: unknown) => { filters.push(["eq", col, val]); return b; },
+        in: (col: string, val: unknown[]) => { filters.push(["in", col, val]); return b; },
         gte: () => b,
         order: () => b,
         limit: () => b,
@@ -335,7 +355,7 @@ describe("createSupabaseProgressStore", () => {
       });
       return b;
     };
-    return { db: { from: builder }, deletes };
+    return { db: { from: builder }, deletes, queried };
   }
 
   it("maps every table to the store shape (numbers coerced, current_phase from analysis_json)", async () => {
@@ -351,6 +371,24 @@ describe("createSupabaseProgressStore", () => {
     expect(await store.resolveRefs([{ ref_kind: "grant", ref_id: "g1" }])).toEqual([{ ref_kind: "grant", ref_id: "g1", name: "MVP Ventures", url: "https://x" }]);
     expect(await store.listSnapshots([])).toEqual([]);
     expect(await store.listMatches("u-1", [])).toEqual([]);
+  });
+
+  it("#16 listMatches queries funding_matches by the FOUNDER (projects.user_id) + project, never the evaluator's id", async () => {
+    const f = fakeDb([]);
+    const store = createSupabaseProgressStore(f.db);
+    // Evaluator u-1 has no funding_matches rows; the founder f-1 does → must surface.
+    const rows = await store.listMatches("u-1", ["p-1"]);
+    expect(rows.map((r) => r.ref_id)).toEqual(["g1"]);
+    const projects = f.queried.find((q) => q.table === "projects")!;
+    expect(projects.filters).toEqual([["in", "id", ["p-1"]]]);
+    const matches = f.queried.find((q) => q.table === "funding_matches")!;
+    expect(matches.filters).toEqual([
+      ["in", "user_id", ["f-1"]],
+      ["in", "project_id", ["p-1"]],
+    ]);
+    expect(matches.filters.some(([, col, val]) => col === "user_id" && (val === "u-1" || (Array.isArray(val) && val.includes("u-1"))))).toBe(false);
+    // Unknown project → no owner → nothing queried, empty result.
+    expect(await store.listMatches("u-1", ["p-unknown"])).toEqual([]);
   });
 
   it("claimSend inserts the evaluator_progress_sends row; 23505 → dupe; other errors → error; releaseSend deletes", async () => {
