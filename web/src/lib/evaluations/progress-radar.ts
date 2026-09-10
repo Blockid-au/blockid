@@ -14,7 +14,8 @@
 //   • the latest `evaluation_reports` row (date, SVI, full|rescore);
 //   • the startup's money signals from `funding_matches` (T0245): the next
 //     dated deadline, how many deadlines are ahead, and matches first seen
-//     this period;
+//     this period — keyed on the FOUNDER (projects.user_id) + project, not
+//     the evaluator reading the radar (review #16);
 //   • `scoreHistory` — the last 8 snapshot totals, oldest first, for the
 //     inline sparkline on /workspace/evaluations.
 //
@@ -394,12 +395,22 @@ export function createSupabaseProgressStore(db: SupabaseLike): ProgressStore {
       }));
     },
 
-    async listMatches(userId, projectIds) {
+    async listMatches(_userId, projectIds) {
       if (projectIds.length === 0) return [];
+      // funding_matches rows are keyed to the user the radar sweep ran FOR —
+      // the project's owner (projects.user_id), never the evaluator reading
+      // the radar (review #16). Resolve each evaluation's project owner and
+      // query by (owner, project) so a founder's matches surface.
+      const { data: projRows, error: projErr } = await db.from("projects").select("id, user_id").in("id", projectIds);
+      if (projErr || !projRows) return [];
+      const ownerIds = Array.from(
+        new Set((projRows as Row[]).map((p) => (p.user_id == null ? "" : String(p.user_id))).filter(Boolean)),
+      );
+      if (ownerIds.length === 0) return [];
       const { data, error } = await db
         .from("funding_matches")
         .select("project_id, ref_kind, ref_id, closes_at, first_seen_at, score, status_at_match")
-        .eq("user_id", userId)
+        .in("user_id", ownerIds)
         .in("project_id", projectIds)
         .limit(2000);
       if (error || !data) return [];

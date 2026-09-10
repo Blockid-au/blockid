@@ -28,7 +28,7 @@ vi.mock("@/lib/evaluations/batch", () => ({
 const fromMock = vi.fn();
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => ({ from: (t: string) => fromMock(t) }) }));
 
-import { GET, dynamic } from "./route";
+import { COHORT_UNAVAILABLE, GET, dynamic } from "./route";
 
 const USER = { id: "u-1", email: "prog@accel.au", plan: "investor_vc_small", displayName: "Plus Eight" };
 const PROGRAM_FLAGS = ["investor.dealflow", "portfolio", "lp_export", "lp_report"];
@@ -42,14 +42,35 @@ function req(query: string): Request {
   return new Request("http://localhost/api/reports/quarterly" + query, { headers: { "x-nonce": "n0nce" } });
 }
 
-function cohortTable(rows: unknown[]) {
+function cohortTable(rows: unknown[], error: unknown = null) {
   const b: Record<string, unknown> = {};
+  const resolve = () => Promise.resolve({ data: error ? null : rows, error });
   Object.assign(b, {
     select: () => b,
     eq: () => b,
-    then: (ok: (v: unknown) => unknown, err?: (e: unknown) => unknown) => Promise.resolve({ data: rows, error: null }).then(ok, err),
+    in: () => b,
+    maybeSingle: () => resolve().then((r) => ({ data: Array.isArray(r.data) ? (r.data[0] ?? null) : r.data, error: r.error })),
+    then: (ok: (v: unknown) => unknown, err?: (e: unknown) => unknown) => resolve().then(ok, err),
   });
   return b;
+}
+
+/** Route the fake by table: the live 0021 schema (review #14). */
+function liveCohortDb(over: Partial<Record<string, unknown[]>> = {}, errors: Partial<Record<string, unknown>> = {}) {
+  const tables: Record<string, unknown[]> = {
+    accelerator_cohorts: [{ id: "c-1", name: "Cohort 4 intake", manager_email: "prog@accel.au" }],
+    cohort_members: [
+      { id: "m-1", startup_name: "Gamma", email: "g@x.au", svi_account_id: "acc-1" },
+      { id: "m-2", startup_name: "Delta", email: "d@x.au", svi_account_id: "acc-2" },
+      { id: "m-3", startup_name: null, email: "nolink@x.au", svi_account_id: null },
+    ],
+    svi_accounts: [
+      { id: "acc-1", current_svi: 66, current_stage: 4 },
+      { id: "acc-2", current_svi: null, current_stage: 2 },
+    ],
+    ...over,
+  };
+  return (t: string) => cohortTable(tables[t] ?? [], errors[t] ?? null);
 }
 
 beforeEach(() => {
@@ -127,23 +148,43 @@ describe("GET /api/reports/quarterly", () => {
     expect(html).not.toContain("onclick=");
   });
 
-  it("?cohort= scopes to cohort_members owned by the caller and 404s an empty cohort", async () => {
-    fromMock.mockImplementation(() => cohortTable([
-      { id: "m-1", cohort_id: "c-1", startup_name: "Gamma", stage: 4, latest_svi: 66, is_active: true },
-      { id: "m-2", cohort_id: "c-1", startup_name: "Delta", stage: 2, latest_svi: null, is_active: true },
-      { id: "m-3", cohort_id: "c-1", startup_name: "Old", stage: 2, latest_svi: 50, is_active: false },
-    ]));
+  it("#14 ?cohort= reads the live 0021 schema: accelerator_cohorts (manager_email = caller) → cohort_members → svi_accounts", async () => {
+    fromMock.mockImplementation(liveCohortDb());
     const res = await GET(req("?cohort=c-1"));
     expect(res.status).toBe(200);
     const html = await res.text();
+    expect(fromMock).toHaveBeenCalledWith("accelerator_cohorts");
     expect(fromMock).toHaveBeenCalledWith("cohort_members");
+    expect(fromMock).toHaveBeenCalledWith("svi_accounts");
+    expect(html).toContain("Cohort 4 intake");
     expect(html).toContain("<strong>Gamma</strong> — SVI 66 · Early traction · new");
     expect(html).toContain("<strong>Delta</strong> — not scored yet");
-    expect(html).not.toContain("<strong>Old</strong>");
+    expect(html).toContain("<strong>nolink@x.au</strong> — not scored yet");
     expect(html).toContain("doctoral research (DBA)");
     expect(getBatchMock).not.toHaveBeenCalled();
+  });
 
-    fromMock.mockImplementation(() => cohortTable([]));
-    expect((await GET(req("?cohort=c-empty"))).status).toBe(404);
+  it("#14 ?cohort= 404s a cohort the caller does not manage, an unknown cohort and an empty one", async () => {
+    fromMock.mockImplementation(liveCohortDb({ accelerator_cohorts: [{ id: "c-1", name: "Theirs", manager_email: "someone@else.au" }] }));
+    const res = await GET(req("?cohort=c-1"));
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ ok: false, error: "not_found" });
+    expect(fromMock).not.toHaveBeenCalledWith("cohort_members");
+
+    fromMock.mockImplementation(liveCohortDb({ accelerator_cohorts: [] }));
+    expect((await GET(req("?cohort=c-unknown"))).status).toBe(404);
+
+    fromMock.mockImplementation(liveCohortDb({ cohort_members: [] }));
+    expect((await GET(req("?cohort=c-1"))).status).toBe(404);
+  });
+
+  it("#14 ?cohort= answers 404 cohort_report_unavailable with the ?batch= hint when the accelerator tables cannot serve it", async () => {
+    fromMock.mockImplementation(liveCohortDb({}, { cohort_members: { code: "42P01", message: "relation does not exist" } }));
+    const res = await GET(req("?cohort=c-1"));
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual(COHORT_UNAVAILABLE);
+
+    fromMock.mockImplementation(liveCohortDb({}, { accelerator_cohorts: { code: "42703", message: "column missing" } }));
+    expect(await (await GET(req("?cohort=c-1"))).json()).toEqual({ ok: false, error: "cohort_report_unavailable", hint: "Use ?batch=<id> from Batch score" });
   });
 });

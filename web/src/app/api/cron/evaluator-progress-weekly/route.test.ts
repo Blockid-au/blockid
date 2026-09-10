@@ -182,6 +182,33 @@ describe("evaluator-progress-weekly route", () => {
     expect((h.releaseMock.mock.calls[0][0] as { userId: string }).userId).toBe("u-scout");
   });
 
+  it("#13: a throw AFTER the claim (notify / canSendEmail / send) releases the slot so the week is not lost; a throw before the claim releases nothing", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    // Throw after the claim for the first user (notify explodes), succeed for the second.
+    h.notifyMock.mockRejectedValueOnce(new Error("notifications table locked"));
+    let body = await (await POST(req(undefined, "Bearer s3cret"))).json();
+    expect(body).toMatchObject({ sent: 1, failures: 1 });
+    expect(h.claimMock).toHaveBeenCalledTimes(2);
+    expect(h.releaseMock).toHaveBeenCalledTimes(1);
+    expect((h.releaseMock.mock.calls[0][0] as { userId: string }).userId).toBe("u-scout");
+
+    // canSendEmail throwing (after the claim) also releases.
+    h.releaseMock.mockReset();
+    h.canSendEmailMock.mockRejectedValueOnce(new Error("prefs down"));
+    body = await (await POST(req(undefined, "Bearer s3cret"))).json();
+    expect(body.failures).toBe(1);
+    expect(h.releaseMock).toHaveBeenCalledTimes(1);
+
+    // A throw BEFORE the claim (buildEvaluatorProgress) must not release anything.
+    h.releaseMock.mockReset();
+    h.claimMock.mockClear();
+    h.buildMock.mockRejectedValueOnce(new Error("snapshots down"));
+    body = await (await POST(req(undefined, "Bearer s3cret"))).json();
+    expect(body.failures).toBe(1);
+    expect(h.releaseMock).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it("a missing evaluations table (42P01) is a clean no-op, other query errors are 500", async () => {
     h.fromMock.mockImplementation((t: string) => {
       if (t !== "evaluations") return table(t);

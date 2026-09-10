@@ -12,7 +12,13 @@
 //
 //   401 anonymous · 403 feature_locked (needs lp_report or lp_export —
 //   Program / VC Enterprise / Cohort Enterprise) · 400 no scope ·
-//   404 batch/cohort not the caller's · 200 text/html.
+//   404 batch/cohort not the caller's · 404 cohort_report_unavailable (the
+//   accelerator tables cannot serve it — use ?batch=) · 200 text/html.
+//
+// ?cohort= reads the LIVE 0021 schema (review #14): accelerator_cohorts
+// owned by manager_email = caller → cohort_members → svi_accounts
+// (current_svi / current_stage). The earlier select of owner_id / stage /
+// latest_svi / is_active on cohort_members matched no column and always 404'd.
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
@@ -42,34 +48,76 @@ function siteBase(request: Request): string {
   }
 }
 
-async function loadCohortMembers(ownerId: string, cohortId: string): Promise<{ name: string; startups: QuarterlyReportStartup[] } | null> {
+export const COHORT_UNAVAILABLE = {
+  ok: false,
+  error: "cohort_report_unavailable",
+  hint: "Use ?batch=<id> from Batch score",
+} as const;
+
+type CohortLoad =
+  | { ok: true; name: string; startups: QuarterlyReportStartup[] }
+  | { ok: false; reason: "not_found" | "unavailable" };
+
+/**
+ * Live schema (migration 0021, review #14): `accelerator_cohorts(id, name,
+ * manager_email)` → `cohort_members(cohort_id, email, startup_name,
+ * svi_account_id)` → `svi_accounts(current_svi, current_stage)`. Ownership
+ * is the cohort's manager_email = the caller's email; there is no owner_id /
+ * stage / latest_svi / is_active on cohort_members.
+ */
+async function loadCohortMembers(userEmail: string | null | undefined, cohortId: string): Promise<CohortLoad> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-  const { data, error } = await supabase
+  if (!supabase) return { ok: false, reason: "unavailable" };
+  const email = (userEmail ?? "").trim().toLowerCase();
+  if (!email) return { ok: false, reason: "not_found" };
+
+  const { data: cohort, error: cohortErr } = await supabase
+    .from("accelerator_cohorts")
+    .select("id, name, manager_email")
+    .eq("id", cohortId)
+    .maybeSingle();
+  if (cohortErr) return { ok: false, reason: "unavailable" };
+  const c = (cohort ?? null) as Record<string, unknown> | null;
+  if (!c || String(c.manager_email ?? "").trim().toLowerCase() !== email) return { ok: false, reason: "not_found" };
+
+  const { data: members, error: memErr } = await supabase
     .from("cohort_members")
-    .select("id, cohort_id, startup_name, stage, latest_svi, is_active")
-    .eq("owner_id", ownerId)
+    .select("id, startup_name, email, svi_account_id")
     .eq("cohort_id", cohortId);
-  if (error || !data || data.length === 0) return null;
-  const rows = data as Array<Record<string, unknown>>;
-  const startups: QuarterlyReportStartup[] = rows
-    .filter((r) => r.is_active !== false)
-    .map((r) => {
-      const svi = r.latest_svi == null ? null : Number(r.latest_svi);
-      const stage = r.stage == null ? null : Number(r.stage);
-      return {
-        name: String(r.startup_name ?? "Untitled"),
+  if (memErr) return { ok: false, reason: "unavailable" };
+  const rows = ((members ?? []) as Array<Record<string, unknown>>).filter((r) => r.id != null);
+  if (rows.length === 0) return { ok: false, reason: "not_found" };
+
+  const accountIds = rows.map((r) => r.svi_account_id).filter((v): v is string => typeof v === "string" && v.length > 0);
+  const accounts = new Map<string, { svi: number | null; stage: number | null }>();
+  if (accountIds.length > 0) {
+    const { data: accRows } = await supabase.from("svi_accounts").select("id, current_svi, current_stage").in("id", accountIds);
+    for (const a of (accRows ?? []) as Array<Record<string, unknown>>) {
+      const svi = a.current_svi == null ? null : Number(a.current_svi);
+      const stage = a.current_stage == null ? null : Number(a.current_stage);
+      accounts.set(String(a.id), {
         svi: svi != null && Number.isFinite(svi) ? svi : null,
-        weighted: null,
         stage: stage != null && Number.isFinite(stage) ? stage : null,
-        delta: null,
-        topStrength: null,
-        topGap: null,
-        reportUrl: null,
-        status: svi != null ? "done" : "queued",
-      };
-    });
-  return { name: `Cohort ${cohortId.slice(0, 8)}`, startups };
+      });
+    }
+  }
+
+  const startups: QuarterlyReportStartup[] = rows.map((r) => {
+    const acc = typeof r.svi_account_id === "string" ? accounts.get(r.svi_account_id) : undefined;
+    const svi = acc?.svi ?? null;
+    return {
+      name: String(r.startup_name ?? r.email ?? "Untitled"),
+      svi,
+      weighted: null,
+      stage: acc?.stage ?? null,
+      delta: null,
+      topStrength: null,
+      topGap: null,
+      reportUrl: null,
+      status: svi != null ? "done" : "queued",
+    };
+  });
+  return { ok: true, name: String(c.name ?? `Cohort ${cohortId.slice(0, 8)}`), startups };
 }
 
 export async function GET(request: Request) {
@@ -114,8 +162,12 @@ export async function GET(request: Request) {
       startups: cohortRowsToReportStartups(rows),
     };
   } else {
-    const cohort = await loadCohortMembers(user.id, cohortId as string);
-    if (!cohort) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    const cohort = await loadCohortMembers(user.email, cohortId as string);
+    if (!cohort.ok) {
+      return cohort.reason === "unavailable"
+        ? NextResponse.json(COHORT_UNAVAILABLE, { status: 404 })
+        : NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    }
     data = {
       cohortName: cohort.name,
       programName: user.displayName ?? null,
