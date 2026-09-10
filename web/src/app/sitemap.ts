@@ -3,6 +3,9 @@ import { getAllArticles, invalidateCache } from "@/lib/insights";
 import { listPublicSlugsForSitemap } from "@/lib/business-id/list-public-slugs";
 import { getPublicListings } from "@/lib/listings/listings-db";
 import { listPublishedForSitemap } from "@/lib/publish/store";
+import { listGrants, listPrograms } from "@/lib/funding/data";
+import { CAPITALS } from "@/lib/funding/seed-map";
+import { capitalSlug } from "@/lib/funding/directory";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +77,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     ];
   });
+
+  // T0241 (G11) — free funding directories: /funding/grants, one page per
+  // grant, /funding/programs, one page per capital (9, static) and one per
+  // program. Rows come from au_grants / au_programs; both helpers degrade to
+  // [] when the tables are absent, so the static index URLs still ship.
+  const [grants, programs] = await Promise.all([
+    listGrants({ excludeNonMatching: true }),
+    listPrograms(),
+  ]);
+  const verifiedDate = (v: string | null | undefined) => (v ? new Date(v) : lastModified);
+  const fundingEntries: MetadataRoute.Sitemap = [
+    { url: `${SITE_URL}/funding/grants`, lastModified, changeFrequency: "daily" as const, priority: 0.8 },
+    { url: `${SITE_URL}/funding/programs`, lastModified, changeFrequency: "daily" as const, priority: 0.8 },
+    ...CAPITALS.map((c) => ({
+      url: `${SITE_URL}/funding/programs/${capitalSlug(c)}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
+    ...grants.map((g) => ({
+      url: `${SITE_URL}/funding/grants/${encodeURIComponent(g.id)}`,
+      lastModified: verifiedDate(g.last_verified_at),
+      changeFrequency: "weekly" as const,
+      priority: g.status === "open" ? 0.7 : 0.5,
+    })),
+    ...programs.map((p) => ({
+      url: `${SITE_URL}/funding/programs/${capitalSlug(p.capital)}/${encodeURIComponent(p.id)}`,
+      lastModified: verifiedDate(p.last_verified_at),
+      changeFrequency: "weekly" as const,
+      priority: p.status === "open" ? 0.6 : 0.4,
+    })),
+  ];
 
   // Dynamic insight articles — recent (last 30d) get weekly crawl + higher priority
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -693,6 +728,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...listingEntries,
     // Founder-published company profiles at /listings/{slug} (0128)
     ...publishedEntries,
+    // Free funding directories — grants, programs, capitals (T0241)
+    ...fundingEntries,
   ].reduce<MetadataRoute.Sitemap>((acc, entry) => {
     // Deduplicate by URL — manifest can produce the same slug twice
     const e = entry as MetadataRoute.Sitemap[number];

@@ -74,6 +74,22 @@ export const DISCLAIMER_SURFACES: Record<string, DisclaimerSurface> = {
     body_md_vi: `[TODO-VI] **Chỉ là thông tin chung — không phải tư vấn tài chính, đầu tư hay pháp lý.** Điểm số, khoảng định giá và mọi nhận định về điều kiện tài trợ, chương trình hay ưu đãi thuế chỉ mang tính tham khảo; một kết quả khớp không phải là phê duyệt hay đề nghị cấp vốn.`,
   },
 
+  /**
+   * T0241 (G11, 2026-09-10) — footer for the free, indexable funding
+   * directories (/funding/grants, /funding/programs and their detail pages).
+   * business.gov.au tells founders not to pay for grant information, so the
+   * text says the list is free and the official portal is where you apply;
+   * what BlockID charges for is the analysis. Rendered by `FundingDisclaimer`
+   * (components/funding), which appends the page's own "last verified" date.
+   */
+  funding_directory: {
+    kind: "not_financial_advice",
+    jurisdictions: ["AU"],
+    label: "Funding Directory Footer",
+    body_md: `**General information only — not financial, tax or legal advice.** This directory is published by BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111) from public government, university and program sources. Government grant information is free: the names, amounts and official links here cost nothing, and you should only ever apply through the official portal linked on each row. Grants and programs pause, close and change their rules without notice — verify every detail on the official site before you rely on it. Eligibility is decided solely by the agency or program; appearing here, or matching your profile, is not an approval and not a guarantee of funding. Tax measures such as the R&D Tax Incentive and ESIC are for a registered tax agent to confirm. Equity programs are listed for information and are not an offer or a recommendation; BlockID.au does not hold an Australian Financial Services Licence (AFSL). Grant income is generally assessable and GST may apply. Deadlines are shown as published by the source — check the source's time zone. What BlockID.au charges for is analysis against your own startup's evidence, never the list itself.`,
+    body_md_vi: `[TODO-VI] **Chỉ là thông tin chung — không phải tư vấn tài chính, thuế hay pháp lý.** Thông tin về tài trợ của chính phủ là miễn phí; hãy nộp hồ sơ qua cổng chính thức và kiểm tra lại mọi chi tiết trên trang chính thức. Xuất hiện trong danh mục này không phải là phê duyệt.`,
+  },
+
   general_all: {
     kind: "not_financial_advice",
     jurisdictions: ["*"],
