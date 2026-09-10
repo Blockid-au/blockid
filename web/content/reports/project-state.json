@@ -1,6 +1,6 @@
 {
   "version": "3.10.0",
-  "updatedAt": "2026-09-10T13:10:52.620Z",
+  "updatedAt": "2026-09-10T14:17:36.105Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-31T14:00:01.953Z",
@@ -1661,11 +1661,13 @@
         "title": "lib/agents/grant-advisor.ts — matchGrants/matchPrograms/buildTimeline (pure) + narrative via callAI with llm-auditor; reuses estimateRdti/evaluateEsic; colocated tests",
         "rationale": "Wave 2a · G11-P3 · §4c. Absorbs T0169/T0185/T0198 (RDTI/ESIC logic). Depends T0239.",
         "versionImpact": "minor",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S3",
-        "priority": "P1"
+        "priority": "P1",
+        "commit": "596d614df",
+        "completedAt": "2026-09-10T14:17:35.266Z"
       },
       {
         "id": "T0241",
@@ -1687,11 +1689,13 @@
         "title": "/funding landing + 3-question intake + POST /api/funding/preview + A$3 guest SKU FUNDING_REPORT_3AUD + webhook scope funding_report + POST /api/funding/report (credits grant_match / flag grant_finder)",
         "rationale": "Wave 3a · G11-P4 · §4e. Human-blocked: mint STRIPE_PRICE_FUNDING_REPORT. plans.feature_flags + entitlements Feature union + tier-ladder.test. Depends T0240.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S3",
-        "priority": "P1"
+        "priority": "P1",
+        "commit": "8fd7e10d1",
+        "completedAt": "2026-09-10T14:17:35.266Z"
       },
       {
         "id": "T0243",
@@ -1699,11 +1703,13 @@
         "title": "lib/funding/fetch-source.ts + api/cron/refresh-funding-sources (GrantConnect RSS, Qld CKAN, state portals) + crontab line + goal-tree research topics + gitignored review queue",
         "rationale": "Wave 3b · G11-P7 · §4d. Absorbs T0209/T0211/T0212/T0202 (ecosystem & grant trends). Depends T0239.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S3",
-        "priority": "P1"
+        "priority": "P1",
+        "commit": "b4d6bc411",
+        "completedAt": "2026-09-10T14:17:35.266Z"
       },
       {
         "id": "T0244",
@@ -1783,11 +1789,13 @@
         "title": "Hero one-liners: lib/marketing/hero-variants.ts (F1/F2/F3 arms) + GA4 hero_variant + hero-section + layout SITE_DESCRIPTION + messages hero.* (EN/VI) + 5-second test protocol",
         "rationale": "Wave 2c · G11-P14 · §4i D-5. Absorbs T0213 (SVI landing hero copy). Winner recorded in value-first-hero-goal.md (G9).",
         "versionImpact": "patch",
-        "status": "in_progress",
+        "status": "done",
         "createdAt": "2026-09-10T03:19:21.933Z",
         "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
         "sprint": "S2",
-        "priority": "P1"
+        "priority": "P1",
+        "commit": "f04879155",
+        "completedAt": "2026-09-10T14:17:35.266Z"
       },
       {
         "id": "T0251",
@@ -1837,12 +1845,14 @@
         "title": "S3 Evaluations object: \"Startups I am evaluating\" — POST /api/evaluations (owner_kind evaluator, attribution, invite-the-founder magic link, consent tiers) + migrations for investor_portfolio, watchlist_digest, advisor_client_roster, engagement_notes, advisor_notes, advisor_portal, evaluations",
         "rationale": "S3 · §3c.4-5 + G12-8/9. Hard prerequisite for T0271 (report routes are owner-scoped). Depends T0269.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T04:22:55.026Z",
         "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
         "sprint": "S3",
         "priority": "P1",
-        "updatedAt": "2026-09-10T11:37:00.023Z"
+        "updatedAt": "2026-09-10T11:37:00.023Z",
+        "commit": "7cf6e564d",
+        "completedAt": "2026-09-10T14:17:35.266Z"
       },
       {
         "id": "T0271",
@@ -1850,11 +1860,13 @@
         "title": "In-workspace Trust BizReport purchase for evaluators: POST /api/evaluations/[id]/report (3 credits or plan quota) + re-score A$1 + PDF/TBR token",
         "rationale": "G12 Wave B · §3c.6. Uses orchestrateReport (13-criteria) + canAfford/spendCredits. Depends T0270.",
         "versionImpact": "minor",
-        "status": "pending",
+        "status": "done",
         "createdAt": "2026-09-10T04:22:55.026Z",
         "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
         "sprint": "S3",
-        "priority": "P1"
+        "priority": "P1",
+        "commit": "333219b1c",
+        "completedAt": "2026-09-10T14:17:35.266Z"
       },
       {
         "id": "T0272",
@@ -2308,6 +2320,12 @@
       "action": "deploy",
       "version": "3.10.0",
       "note": "S0+S1+S2 live 2026-09-10 13:08 UTC — release passed 12/12 gates (T0237 T0268 T0269 T0275 T0239 T0238 T0241 + T0274 part 1 + interim /funding). Gate-12 lessons: never merge into the working tree while deploy-live runs (spec drift), and client-module exports cannot be called from server pages (pricing-tab.ts regression test)."
+    },
+    {
+      "ts": "2026-09-10T14:17:35.266Z",
+      "action": "deploy",
+      "version": "3.10.0",
+      "note": "S3 live 2026-09-10 ~14:20 UTC (12/12 gates): grant-advisor, /funding intake + preview + A$3 guest report + credits/plan report API, weekly refresh-funding-sources cron (installed), evaluations object + investor/advisor migrations 0314, in-workspace Trust BizReport quota/credits 0317, hero one-liners F1/F3/G1. Stripe prices synced/minted (evaluator rungs, Trust BizReport A$3, Money Finder A$3). Gate-7 lesson: client components must not import modules that reach ai-client/supabase — static import-graph test added."
     }
   ],
   "shipped_this_session": {
