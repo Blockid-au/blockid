@@ -102,7 +102,7 @@ export default function AtlassianShowcasePage() {
           <p className="mt-3 max-w-3xl text-base text-ink-700">
             Cannon-Brookes + Farquhar bootstrapped Jira on an A$10K credit card,
             skipped the classic Series A/B/C stack, took one Accel secondary
-            (2010) + one T. Rowe Price secondary (2014), and IPO'd on NASDAQ
+            (2010) + one T. Rowe Price secondary (2014), and IPO&apos;d on NASDAQ
             with founders each holding ~37% and Class B retaining 96.7% of
             voting power. This is the canonical Australian bootstrap-to-unicorn
             journey.

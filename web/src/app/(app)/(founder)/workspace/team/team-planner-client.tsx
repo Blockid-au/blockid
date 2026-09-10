@@ -312,7 +312,7 @@ export function TeamPlannerClient({ initial, disabled, suggestedAdvisors }: Prop
       <section className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
         {items.length === 0 ? (
           <div className="px-6 py-12 text-center text-sm text-ink-500">
-            No roles yet. Start with founders and add the next 3–5 hires you'd make with fresh capital.
+            No roles yet. Start with founders and add the next 3–5 hires you&apos;d make with fresh capital.
           </div>
         ) : (
           <div className="overflow-x-auto">

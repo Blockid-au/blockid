@@ -142,7 +142,7 @@ export function WholesaleGate({
                 Yes — upload certificate
               </div>
               <div className="mt-0.5 text-xs text-brand-800/80 dark:text-brand-200/80">
-                Upload an accountant's s708(8) certificate or professional
+                Upload an accountant&apos;s s708(8) certificate or professional
                 investor licence.
               </div>
             </button>
@@ -175,7 +175,7 @@ export function WholesaleGate({
         {mode === "upload" && (
           <div className="px-6 py-5 space-y-4">
             <p className="text-sm text-slate-700 dark:text-slate-300">
-              Upload your s708(8) accountant's certificate (PDF, ≤ 8 MB). The
+              Upload your s708(8) accountant&apos;s certificate (PDF, ≤ 8 MB). The
               file hash and metadata are stored in our audit trail; a human
               reviewer confirms status.
             </p>

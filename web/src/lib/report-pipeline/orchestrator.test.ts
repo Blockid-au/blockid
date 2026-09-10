@@ -420,7 +420,6 @@ describe("orchestrateReport() — wave dispatch", () => {
 describe("orchestrateReport() — gather phase", () => {
   it("hands researchMarket the {startupName, description, sector} shape and stores its output under gatherResults.competitiveResearch", async () => {
     researchMarketSpy.mockResolvedValueOnce({ competitors: ["A", "B"] });
-    let capturedContext: ReportContext | undefined;
     await orchestrateReport({
       ...baseInput({
         criteriaData: makeCriteriaData({ market: { textInput: "saas" } }),
@@ -435,7 +434,7 @@ describe("orchestrateReport() — gather phase", () => {
       sector: "saas",
     });
     // Assemble is called with the fully populated context — verify the gather slot
-    capturedContext = assembleSpy.mock.calls[0][0] as ReportContext;
+    const capturedContext = assembleSpy.mock.calls[0][0] as ReportContext;
     expect(capturedContext.gatherResults.competitiveResearch).toEqual({
       competitors: ["A", "B"],
     });

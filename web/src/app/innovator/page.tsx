@@ -78,8 +78,8 @@ export default function InnovatorHomePage() {
               Your innovation thesis
             </h2>
             <p className="mt-2 text-sm text-ink-700 dark:text-ink-200">
-              Define up to 3 strategic themes — e.g. "AI in logistics", "climate
-              fintech", "B2B SaaS under $5M ARR" — and the Industry Map will
+              Define up to 3 strategic themes — e.g. &quot;AI in logistics&quot;, &quot;climate
+              fintech&quot;, &quot;B2B SaaS under $5M ARR&quot; — and the Industry Map will
               pre-filter results to match, while your watchlist digest highlights
               the startups that move the needle on each theme.
             </p>

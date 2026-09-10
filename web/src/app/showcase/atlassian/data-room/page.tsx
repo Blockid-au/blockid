@@ -123,10 +123,10 @@ export default function AtlassianDataRoomPage() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-ink-700">
               The 12-section BlockID data-room template, populated with
-              Atlassian's actual public disclosures where available (S-1,
+              Atlassian&apos;s actual public disclosures where available (S-1,
               10-K, press releases) and redacted / inferred stubs where the
-              private paperwork isn't. This is the shape your own data room
-              would take once BlockID's C-Level agents start filling it.
+              private paperwork isn&apos;t. This is the shape your own data room
+              would take once BlockID&apos;s C-Level agents start filling it.
             </p>
           </header>
 
@@ -261,7 +261,7 @@ export default function AtlassianDataRoomPage() {
           </aside>
 
           <footer className="mt-8 text-xs text-ink-500">
-            Master source for the public rows in this mirror: Atlassian's
+            Master source for the public rows in this mirror: Atlassian&apos;s
             filings on the SEC EDGAR system —{" "}
             <a
               href={ATLASSIAN_S1_SEC_URL}
@@ -271,7 +271,7 @@ export default function AtlassianDataRoomPage() {
             >
               SEC EDGAR — Atlassian Corporation (CIK 0001650372)
             </a>
-            . Every row that is not marked "inferred" links to the specific
+            . Every row that is not marked &quot;inferred&quot; links to the specific
             disclosure it maps to.
           </footer>
         </div>

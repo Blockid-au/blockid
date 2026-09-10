@@ -644,7 +644,7 @@ function SuccessCard({
       {invite?.method === "set_password" ? (
         <p className="mt-3 text-xs text-ink-700">
           Initial password was bcrypt-hashed server-side. Share the plaintext
-          separately if you haven't already.
+          separately if you haven&apos;t already.
         </p>
       ) : null}
 

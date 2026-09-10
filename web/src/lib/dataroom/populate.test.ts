@@ -57,8 +57,8 @@ function makeSupabase(state: FakeState): SupabaseClient {
     initialPayload?: unknown,
   ) {
     const filters: Array<{ col: string; op: "eq" | "neq"; val: unknown }> = [];
-    let mode = initialMode;
-    let insertPayload: Array<Record<string, unknown>> | null =
+    const mode = initialMode;
+    const insertPayload: Array<Record<string, unknown>> | null =
       mode === "insert"
         ? (Array.isArray(initialPayload)
             ? (initialPayload as Array<Record<string, unknown>>)

@@ -89,8 +89,8 @@ export default function SafetyCultureShowcasePage() {
             iAuditor replaces paper safety checklists at industrial worksites
             with a mobile app freemium model. 12 years bootstrapped then a
             Series A → C → Softbank Vision Fund arc that peaked at
-            US$2.7B. This case study is the "regional Aussie founder,
-            long-bootstrap, private-unicorn" story.
+            US$2.7B. This case study is the &quot;regional Aussie founder,
+            long-bootstrap, private-unicorn&quot; story.
           </p>
         </header>
 
@@ -118,25 +118,25 @@ export default function SafetyCultureShowcasePage() {
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-brand-900">
             <li>
               <strong>Regional-Aussie tech is possible.</strong> Townsville
-              is 1400km north of Brisbane. Anear proves you don't need
+              is 1400km north of Brisbane. Anear proves you don&apos;t need
               Sydney/Melbourne to scale. Fibre + remote-first + local hires
               built the foundation.
             </li>
             <li>
               <strong>12 years of bootstrap can be the right answer.</strong>{" "}
-              Anear was not "raising too late" — he was building the market
+              Anear was not &quot;raising too late&quot; — he was building the market
               until the SaaS-industrial buyer emerged. Long-bootstrap fits
               category-creator startups.
             </li>
             <li>
               <strong>Freemium at physical worksites requires strong PLG
-              instrumentation.</strong> iAuditor's freemium isn't just SaaS —
-              it's used on scaffolding + factory floors. Instrumenting +
+              instrumentation.</strong> iAuditor&apos;s freemium isn&apos;t just SaaS —
+              it&apos;s used on scaffolding + factory floors. Instrumenting +
               measuring adoption in that context is a competitive moat.
             </li>
             <li>
               <strong>Softbank ≠ trap when growth is real.</strong>{" "}
-              SafetyCulture's Softbank round was structured with achievable
+              SafetyCulture&apos;s Softbank round was structured with achievable
               milestones. Not every founder needs to avoid Vision Fund — but
               you must be able to hit the growth curve implied.
             </li>

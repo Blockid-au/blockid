@@ -103,7 +103,7 @@ export function ConferenceRecommender() {
             Conferences worth flying to
           </h2>
           <p className="mt-1 text-xs text-ink-500">
-            Matched to your startup's sector, stage, and region. Refreshed from the
+            Matched to your startup&apos;s sector, stage, and region. Refreshed from the
             curated seed list.
           </p>
         </div>
@@ -121,7 +121,7 @@ export function ConferenceRecommender() {
 
       {state.status === "error" ? (
         <p className="text-sm text-rose-600">
-          Couldn't load recommendations: {state.message}
+          Couldn&apos;t load recommendations: {state.message}
         </p>
       ) : null}
 

@@ -1740,8 +1740,8 @@ export async function GET(req: Request) {
     new Set(Array.from(customersByReseller.values()).flatMap((s) => Array.from(s))),
   );
 
-  let usersById = new Map<string, AppUserRow>();
-  let userIdByEmail = new Map<string, string>();
+  const usersById = new Map<string, AppUserRow>();
+  const userIdByEmail = new Map<string, string>();
   if (allUserIds.length > 0) {
     const { data: userRows, error: userErr } = await supabase
       .from("app_users")
@@ -1762,7 +1762,7 @@ export async function GET(req: Request) {
   // Bridge svi_analyses (email-keyed, no user_id column) → user_id via the
   // app_users.email map built above. Missing/unknown emails are silently
   // dropped by leading-signals so a stray report cannot poison the rollup.
-  let reportsByUser = new Map<string, AttributedReportRow[]>();
+  const reportsByUser = new Map<string, AttributedReportRow[]>();
   if (userIdByEmail.size > 0) {
     const emails = Array.from(userIdByEmail.keys());
     const { data: sviRows, error: sviErr } = await supabase

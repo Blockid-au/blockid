@@ -71,7 +71,7 @@ export default function AtlassianAgentsIndexPage() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-ink-700">
               Seven BlockID C-Level AI agents each drafted a phase-appropriate
-              briefing for a real moment in Atlassian's journey. Click a card
+              briefing for a real moment in Atlassian&apos;s journey. Click a card
               for the full report — sources cited inline.
             </p>
           </header>

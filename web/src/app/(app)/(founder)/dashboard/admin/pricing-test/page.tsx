@@ -42,7 +42,7 @@ export default async function PricingTestPage() {
           </Link>
           <h1 className="text-2xl font-bold">{exp.label}</h1>
           <p className="text-sm text-muted-foreground max-w-3xl leading-relaxed">
-            Live A/B test for the Founding 100 price. Variants are assigned by deterministic hash of the visitor's anonymous_id cookie — the same visitor always sees the same price (until the cookie is cleared).
+            Live A/B test for the Founding 100 price. Variants are assigned by deterministic hash of the visitor&apos;s anonymous_id cookie — the same visitor always sees the same price (until the cookie is cleared).
             Pick the variant with the highest <strong>revenue per session (RPS)</strong> — it captures both conversion and price together.
           </p>
           <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
@@ -141,9 +141,9 @@ export default async function PricingTestPage() {
           </p>
           <ul className="space-y-1">
             <li>• <strong>Exposures</strong>: visitors who saw the founding-50 page and were bucketed into this variant.</li>
-            <li>• <strong>Conv %</strong>: paid ÷ exposures. Higher means the price didn't scare them off.</li>
+            <li>• <strong>Conv %</strong>: paid ÷ exposures. Higher means the price didn&apos;t scare them off.</li>
             <li>• <strong>RPS (revenue per session)</strong>: total revenue ÷ exposures. <em>This is the metric you optimise</em> — a higher price with lower conversion can still win.</li>
-            <li>• Significance: pick a winner only when each variant has ≥100 exposures and the leader's RPS is ≥20% above the runner-up.</li>
+            <li>• Significance: pick a winner only when each variant has ≥100 exposures and the leader&apos;s RPS is ≥20% above the runner-up.</li>
           </ul>
           <p className="mt-2">
             To activate the winning variant permanently, update <code className="bg-muted px-1 rounded">platform-config.ts → founding_price_cents</code> and run the Stripe sync to create a matching Price ID. <Link href="/dashboard/admin/stripe-sync" className="text-blue-600 hover:underline inline-flex items-center gap-0.5">Stripe Sync <ExternalLink className="h-3 w-3" /></Link>.

@@ -616,14 +616,14 @@ export function FundraiseClient() {
                     Wholesale-only round (s708(8) / s761G(7))
                   </span>
                   <span className="block text-xs text-ink-600 mt-1">
-                    Tick this if you're marketing the round only to
+                    Tick this if you&apos;re marketing the round only to
                     sophisticated / professional investors and pitching
                     the ESIC 20% offset or Div 83A ESS start-up
                     concession as a material claim. BlockID will refuse
                     to save the round (HTTP 412) if your ESIC
                     self-assessment is missing / stale / negative, or
                     if any active ESOP grant fails the Div 83A gate.
-                    Leave unticked for a normal round — you'll still
+                    Leave unticked for a normal round — you&apos;ll still
                     see a warning banner but nothing is blocked.
                   </span>
                 </span>
@@ -660,8 +660,8 @@ export function FundraiseClient() {
                     (HTTP 412) unless a fresh eligible ESIC
                     self-assessment is on file, because misleading
                     conduct under s1041H Corporations Act 2001 (Cth)
-                    doesn't turn on the wholesale/retail distinction.
-                    Leave unticked if you're not marketing the offset
+                    doesn&apos;t turn on the wholesale/retail distinction.
+                    Leave unticked if you&apos;re not marketing the offset
                     at all — the server-side heuristic scan of your
                     round name / pitch text / tags will still catch
                     obvious mentions.

@@ -136,7 +136,7 @@ export default async function DripStatsPage() {
 
         {!hasAny && !stats.error && (
           <div className="rounded-xl border border-surface-200 bg-white px-4 py-6 text-sm text-ink-600 text-center">
-            No data yet — the investor drip sequence hasn't sent any emails.
+            No data yet — the investor drip sequence hasn&apos;t sent any emails.
           </div>
         )}
 

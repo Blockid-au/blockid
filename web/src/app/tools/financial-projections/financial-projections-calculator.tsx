@@ -80,7 +80,8 @@ function percentileFromBand(
   band: { p25: number; p50: number; p75: number },
   value: number,
 ): number {
-  let { p25, p50, p75 } = band;
+  let { p25, p75 } = band;
+  const { p50 } = band;
   const inverted = p25 > p75;
   if (inverted) {
     [p25, p75] = [p75, p25];

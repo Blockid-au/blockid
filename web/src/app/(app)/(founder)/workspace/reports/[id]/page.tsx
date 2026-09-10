@@ -55,7 +55,7 @@ export default async function SavedReportPage({
           <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 px-8 py-12">
             <h1 className="text-xl font-bold text-ink-800 mb-2">Report Not Found</h1>
             <p className="text-sm text-ink-600 mb-6">
-              This report doesn't exist or you don't have access to it.
+              This report doesn&apos;t exist or you don&apos;t have access to it.
             </p>
             <Link
               href="/workspace/reports"

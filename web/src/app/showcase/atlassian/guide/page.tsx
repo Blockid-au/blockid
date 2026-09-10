@@ -66,7 +66,7 @@ export default function AtlassianGuideMirrorPage() {
               The 12-chapter mentor guide — every founder walks this path
             </h1>
             <p className="mt-2 max-w-3xl text-base text-ink-700">
-              BlockID's <code className="rounded bg-surface-100 px-1">/guide</code>{" "}
+              BlockID&apos;s <code className="rounded bg-surface-100 px-1">/guide</code>{" "}
               turns the 12 phases into a chapter-by-chapter mentor script. Here
               each chapter is overlaid with what Atlassian actually did, so you
               can see the abstract phase advice sitting on top of a real
@@ -174,7 +174,7 @@ export default function AtlassianGuideMirrorPage() {
             <p className="mt-1 text-brand-800">
               You log in, answer the 13-criterion SVI, and the same 12 chapters
               are re-rendered against your phase, your agents, your evidence
-              gaps — not Atlassian's. The overlay here is a preview; the real
+              gaps — not Atlassian&apos;s. The overlay here is a preview; the real
               guide meets you where your own startup sits today.
             </p>
           </footer>

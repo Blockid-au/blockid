@@ -47,7 +47,7 @@ export function ExitSurvey({ onSubmit, onCancel, submitting }: ExitSurveyProps) 
     >
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-          Before you go — what's the main reason?
+          Before you go — what&apos;s the main reason?
         </legend>
         <div className="grid gap-2">
           {CANCEL_REASONS.map((r) => (
@@ -75,7 +75,7 @@ export function ExitSurvey({ onSubmit, onCancel, submitting }: ExitSurveyProps) 
 
       <label className="block space-y-1 text-sm">
         <span className="font-medium text-neutral-700 dark:text-neutral-300">
-          Anything you'd like us to know? (optional)
+          Anything you&apos;d like us to know? (optional)
         </span>
         <textarea
           value={feedback}

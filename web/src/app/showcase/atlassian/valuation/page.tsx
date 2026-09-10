@@ -108,9 +108,9 @@ export default function AtlassianValuationPage() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-ink-700">
               Every method converges within ~20% at IPO but disagrees wildly
-              pre-revenue — that's the point of running all four. DCF,
+              pre-revenue — that&apos;s the point of running all four. DCF,
               Berkus, Scorecard and Comparables at four snapshots of
-              Atlassian's history, all values in AUD (converted from USD at
+              Atlassian&apos;s history, all values in AUD (converted from USD at
               the spot FX for each period).
             </p>
           </header>
@@ -338,7 +338,7 @@ export default function AtlassianValuationPage() {
               uploads — cap table, financials, market comparables.
             </p>
             <p className="mt-1">
-              You'll see the same disagreement pre-revenue and the same
+              You&apos;ll see the same disagreement pre-revenue and the same
               convergence at scale — which is exactly the signal a term-sheet
               conversation needs.
             </p>

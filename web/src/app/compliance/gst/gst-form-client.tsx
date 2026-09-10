@@ -180,7 +180,7 @@ export function GstFormClient(props: Props) {
         <p className="mt-3 max-w-2xl text-sm text-ink-600 leading-relaxed">
           Enter your monthly turnover history (oldest → newest) and — if you
           have one — your next-12-month projection. We compare both against the
-          ATO's A$75,000 GST turnover threshold. The current + prior 11 months
+          ATO&apos;s A$75,000 GST turnover threshold. The current + prior 11 months
           count as your <em>current GST turnover</em>; current + next 11 months
           count as your <em>projected GST turnover</em>. Either crossing
           triggers a 21-day registration window.
@@ -219,7 +219,7 @@ export function GstFormClient(props: Props) {
             Registration status
           </h2>
           <p className="text-xs text-ink-500 mt-1">
-            If you've already registered we skip the threshold test and simply
+            If you&apos;ve already registered we skip the threshold test and simply
             remind you to keep lodging BAS on your ATO cycle.
           </p>
           <div className="mt-4 space-y-3">

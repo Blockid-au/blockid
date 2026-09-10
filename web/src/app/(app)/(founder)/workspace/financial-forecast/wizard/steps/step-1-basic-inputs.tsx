@@ -14,7 +14,7 @@ export function Step1BasicInputs({ data, onChange }: Step1Props) {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-2">Basic Information</h2>
-        <p className="text-gray-600">Let's start with your current revenue and growth</p>
+        <p className="text-gray-600">Let&apos;s start with your current revenue and growth</p>
       </div>
 
       <div className="space-y-4">

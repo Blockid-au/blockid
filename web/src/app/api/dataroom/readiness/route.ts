@@ -68,7 +68,7 @@ export async function GET(_request: NextRequest) {
     );
 
     // Supplement with SVI signals for some sections
-    let bonusDocs: string[] = [];
+    const bonusDocs: string[] = [];
     if (section.id === "equity" && signals?.hasCapTable) bonusDocs.push("Cap table (SVI signal)");
     if (section.id === "equity" && signals?.hasVesting) bonusDocs.push("Vesting schedule (SVI signal)");
     if (section.id === "pitch" && signals?.hasPitchDeck) bonusDocs.push("Pitch deck (SVI signal)");

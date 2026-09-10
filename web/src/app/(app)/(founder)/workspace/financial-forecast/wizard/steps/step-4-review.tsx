@@ -114,7 +114,7 @@ export function Step4Review({ data, preview, loading }: Step4Props) {
           </p>
         </div>
       ) : (
-        <p className="text-gray-600">Click "Next" to generate a preview of your 36-month projection.</p>
+        <p className="text-gray-600">Click &quot;Next&quot; to generate a preview of your 36-month projection.</p>
       )}
     </div>
   );
