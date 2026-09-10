@@ -6,10 +6,20 @@
 // implementing loop reserves for heavy work).
 //
 // Per tick:
-//   1. claimNextBatch() — oldest queued|running batch → running.
-//   2. nextQueuedItems(batch, 5) — BATCH_ITEMS_PER_TICK, lowest id first.
-//   3. Each item: mark running → runTrustReportForProject({ projectId,
-//      requestedByUserId: batch.user_id, tier: "standard" }) — the same seam
+//   1. claimNextBatch() — oldest queued|running batch with a live item →
+//      running (conditional flip, review #6; all-terminal batches are closed
+//      and skipped, review #7).
+//   1b. sweepExpiredLeases(batch) — items `running` > 15 min are requeued
+//      (attempts < 2) or failed with error='lease_expired' (review #7), so a
+//      deploy mid-item can no longer wedge the queue.
+//   2. nextQueuedItems(batch, 5) — BATCH_ITEMS_PER_TICK, lowest id first,
+//      each claimed with `… where status='queued'` so an overlapping tick
+//      never scores the same item twice (review #6).
+//   3. Each item: getReportQuota(owner) — at 0 remaining the item is failed
+//      with error='quota_exhausted' and NOTHING runs (review #8: direct runs
+//      after queuing, or a downgrade, must not yield reports beyond the
+//      plan) → runTrustReportForProject({ projectId, requestedByUserId:
+//      batch.user_id, tier: "standard" }) — the same seam
 //      POST /api/evaluations/[id]/report uses (T0271) — → copy the snapshot's
 //      dimension_scores onto the item → mark done → recordEvaluationReport(
 //      paid_via='quota') so the run counts against reports_per_month and
@@ -35,14 +45,16 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { isAIConfigured } from "@/lib/ai-client";
 import { insertNotification } from "@/lib/notifications";
-import { recordEvaluationReport } from "@/lib/evaluations/report-quota";
+import { getReportQuota, recordEvaluationReport } from "@/lib/evaluations/report-quota";
 import { runTrustReportForProject } from "@/lib/report-pipeline/run-for-project";
 import {
   claimNextBatch,
   finaliseBatch,
+  loadBatchOwner,
   loadSnapshotDimensionScores,
   markItem,
   nextQueuedItems,
+  sweepExpiredLeases,
 } from "@/lib/evaluations/batch";
 import { BATCH_ITEMS_PER_TICK, flattenDimensionScores, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
 
@@ -70,6 +82,9 @@ interface ItemSummary {
   svi?: number;
   error?: string;
 }
+
+/** Item-level error when the owner's reports_per_month is used up (review #8). */
+export const QUOTA_EXHAUSTED_ERROR = "quota_exhausted";
 
 export function batchNotificationPayload(batch: EvaluationBatch): Record<string, unknown> {
   return {
@@ -100,7 +115,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, dryRun, batch: null, items: [], reason: "idle" });
   }
 
-  const items = await nextQueuedItems(batch.id, BATCH_ITEMS_PER_TICK);
+  // Lease sweep BEFORE claiming (review #7): items a killed tick left
+  // `running` go back to the queue (or fail after 2 attempts) so
+  // finaliseBatch can close the batch.
+  const swept = dryRun ? { requeued: [], failed: [] } : await sweepExpiredLeases(batch.id);
+
+  if (!dryRun && !isAIConfigured()) {
+    // Checked BEFORE claiming so no item burns a lease attempt; the batch
+    // stays running and the next tick retries once a provider is back.
+    return NextResponse.json({ ok: false, error: "ai_unavailable", batch: { id: batch.id, status: batch.status }, items: [] }, { status: 503 });
+  }
+
+  const items = await nextQueuedItems(batch.id, BATCH_ITEMS_PER_TICK, dryRun);
   const summaries: ItemSummary[] = [];
 
   if (dryRun) {
@@ -110,18 +136,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, dryRun, batch: { id: batch.id, name: batch.name, status: batch.status, total: batch.total }, items: summaries });
   }
 
-  if (items.length > 0 && !isAIConfigured()) {
-    // Leave the batch running; the next tick retries once a provider is back.
-    return NextResponse.json({ ok: false, error: "ai_unavailable", batch: { id: batch.id, status: batch.status }, items: [] }, { status: 503 });
-  }
-
   let done = 0;
   let failed = 0;
   let budgetExceeded = false;
+  const owner = items.length > 0 ? ((await loadBatchOwner(batch.userId)) ?? { id: batch.userId, plan: null }) : null;
 
   for (const it of items) {
     if (Date.now() - startedAt > BUDGET_MS) {
       budgetExceeded = true;
+      // Claimed but not run — release the lease so the next tick takes it
+      // (the attempt counter keeps the +1; the sweep only reads `running` rows).
+      await markItem(it.id, { status: "queued" });
       summaries.push({ item_id: it.id, evaluation_id: it.evaluationId, project_id: it.projectId, startup: it.projectName, outcome: "skipped_budget" });
       continue;
     }
@@ -132,7 +157,16 @@ export async function GET(request: Request) {
       summaries.push({ ...base, outcome: "failed", error: "evaluation_missing" });
       continue;
     }
-    await markItem(it.id, { status: "running" });
+    // Quota re-check per item (review #8): the queue reserved a slot when the
+    // batch was created, but direct runs / a downgrade since then may have
+    // used it. Never run — and never silently charge credits — at 0.
+    const quota = await getReportQuota(owner ?? { id: batch.userId, plan: null });
+    if (!quota.unlimited && quota.remaining <= 0) {
+      failed++;
+      await markItem(it.id, { status: "failed", error: QUOTA_EXHAUSTED_ERROR });
+      summaries.push({ ...base, outcome: "failed", error: QUOTA_EXHAUSTED_ERROR });
+      continue;
+    }
     try {
       const run = await runTrustReportForProject({
         projectId: it.projectId,
@@ -194,6 +228,7 @@ export async function GET(request: Request) {
     failed,
     closed,
     budgetExceeded,
+    leases: { requeued: swept.requeued, expired: swept.failed },
     items: summaries,
   });
 }

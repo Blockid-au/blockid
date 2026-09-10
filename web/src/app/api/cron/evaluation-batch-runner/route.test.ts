@@ -7,6 +7,10 @@
 // failed (error kept, NOTHING recorded) while the loop continues, the batch
 // closing → one weekly_next_step notification "Batch '{name}' scored: d/t",
 // not closing while items remain, 503 ai_unavailable, and POST === GET.
+// Money-path review 2026-09-10: the lease sweep runs BEFORE the claim (#7),
+// items arrive already claimed by nextQueuedItems (no second `running`
+// mark, #6), and each item re-checks the owner's quota — at 0 it is failed
+// with error=quota_exhausted and the pipeline never runs (#8).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,6 +24,9 @@ const h = vi.hoisted(() => ({
   markMock: vi.fn(),
   scoresMock: vi.fn(),
   finaliseMock: vi.fn(),
+  sweepMock: vi.fn(),
+  ownerMock: vi.fn(),
+  quotaMock: vi.fn(),
   runMock: vi.fn(),
   recordMock: vi.fn(),
   notifyMock: vi.fn(),
@@ -28,17 +35,22 @@ const h = vi.hoisted(() => ({
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => (h.supabaseAvailable ? { from: () => ({}) } : null) }));
 vi.mock("@/lib/ai-client", () => ({ isAIConfigured: () => h.aiConfigured }));
 vi.mock("@/lib/notifications", () => ({ insertNotification: (a: unknown) => h.notifyMock(a) }));
-vi.mock("@/lib/evaluations/report-quota", () => ({ recordEvaluationReport: (a: unknown) => h.recordMock(a) }));
+vi.mock("@/lib/evaluations/report-quota", () => ({
+  recordEvaluationReport: (a: unknown) => h.recordMock(a),
+  getReportQuota: (u: unknown) => h.quotaMock(u),
+}));
 vi.mock("@/lib/report-pipeline/run-for-project", () => ({ runTrustReportForProject: (a: unknown) => h.runMock(a) }));
 vi.mock("@/lib/evaluations/batch", () => ({
   claimNextBatch: (dry: boolean) => h.claimMock(dry),
-  nextQueuedItems: (id: string, n: number) => h.nextItemsMock(id, n),
+  nextQueuedItems: (id: string, n: number, dry?: boolean) => h.nextItemsMock(id, n, dry),
   markItem: (id: number, patch: unknown) => h.markMock(id, patch),
   loadSnapshotDimensionScores: (id: string | null) => h.scoresMock(id),
   finaliseBatch: (id: string) => h.finaliseMock(id),
+  sweepExpiredLeases: (id: string) => h.sweepMock(id),
+  loadBatchOwner: (id: string) => h.ownerMock(id),
 }));
 
-import { GET, POST, batchNotificationPayload, dynamic, maxDuration } from "./route";
+import { GET, POST, QUOTA_EXHAUSTED_ERROR, batchNotificationPayload, dynamic, maxDuration } from "./route";
 
 const BATCH = { id: "b-1", userId: "u-1", name: "Cohort 4", rubricWeights: {}, status: "running", total: 3, doneCount: 0, failedCount: 0, createdAt: "2026-09-10T00:00:00Z", startedAt: "2026-09-10T12:00:00Z", finishedAt: null };
 function item(id: number, evaluationId: string, projectId: string | null = `p-${id}`) {
@@ -67,6 +79,9 @@ beforeEach(() => {
   h.recordMock.mockResolvedValue({ id: "er-1" });
   h.finaliseMock.mockResolvedValue({ batch: { ...BATCH, status: "running", doneCount: 2 }, closed: false });
   h.notifyMock.mockResolvedValue(undefined);
+  h.sweepMock.mockResolvedValue({ requeued: [], failed: [] });
+  h.ownerMock.mockResolvedValue({ id: "u-1", plan: "investor_vc_small" });
+  h.quotaMock.mockResolvedValue({ limit: 100, used: 10, remaining: 90, unlimited: false, configured: true });
 });
 
 afterEach(() => {
@@ -102,7 +117,8 @@ describe("/api/cron/evaluation-batch-runner", () => {
   it("?dry=1 claims nothing, runs nothing, and lists what the next tick would take", async () => {
     const json = await (await GET(req("?dry=1"))).json();
     expect(h.claimMock).toHaveBeenCalledWith(true);
-    expect(h.nextItemsMock).toHaveBeenCalledWith("b-1", 5);
+    expect(h.nextItemsMock).toHaveBeenCalledWith("b-1", 5, true);
+    expect(h.sweepMock).not.toHaveBeenCalled();
     expect(json.dryRun).toBe(true);
     expect(json.items.map((i: { outcome: string }) => i.outcome)).toEqual(["would_run", "would_run"]);
     expect(json.items[0]).toMatchObject({ item_id: 1, evaluation_id: "e-1", project_id: "p-1", startup: "Startup 1" });
@@ -118,18 +134,21 @@ describe("/api/cron/evaluation-batch-runner", () => {
     expect(res.status).toBe(503);
     expect((await res.json()).error).toBe("ai_unavailable");
     expect(h.runMock).not.toHaveBeenCalled();
+    // Checked before the claim: no item is touched, no lease attempt burnt.
+    expect(h.nextItemsMock).not.toHaveBeenCalled();
     expect(h.markMock).not.toHaveBeenCalled();
   });
 
-  it("scores up to 5 items per tick: running → pipeline → snapshot scores → done + quota row", async () => {
+  it("scores up to 5 items per tick: claimed → pipeline → snapshot scores → done + quota row", async () => {
     const json = await (await GET(req())).json();
     expect(h.claimMock).toHaveBeenCalledWith(false);
-    expect(h.nextItemsMock).toHaveBeenCalledWith("b-1", 5);
+    expect(h.nextItemsMock).toHaveBeenCalledWith("b-1", 5, false);
     expect(h.runMock).toHaveBeenCalledTimes(2);
     expect(h.runMock).toHaveBeenCalledWith({ projectId: "p-1", requestedByUserId: "u-1", tier: "standard", creditsCost: 0 });
-    // running mark, then done mark with the refs of the run + flattened scores.
-    expect(h.markMock).toHaveBeenNthCalledWith(1, 1, { status: "running" });
-    expect(h.markMock).toHaveBeenNthCalledWith(2, 1, {
+    // #6: nextQueuedItems already claimed the item (conditional update) — no
+    // second unconditional `running` mark; the first mark is the done mark.
+    expect(h.markMock).not.toHaveBeenCalledWith(expect.anything(), { status: "running" });
+    expect(h.markMock).toHaveBeenNthCalledWith(1, 1, {
       status: "done", reportId: "r-p-1", snapshotId: "s-p-1", shareToken: "tok-p-1", sviTotal: 71, dimensionScores: { ftv: 80, tre: 40 }, error: null,
     });
     expect(h.scoresMock).toHaveBeenCalledWith("s-p-1");
@@ -174,6 +193,46 @@ describe("/api/cron/evaluation-batch-runner", () => {
     expect(batchNotificationPayload(closedBatch as never).title).toBe("Batch 'Cohort 4' scored: 2/3");
     expect(json.closed).toBe(true);
     expect(json.batch).toMatchObject({ id: "b-1", status: "done", done: 2, failed: 1, total: 3 });
+  });
+
+  it("#7: sweeps expired leases BEFORE claiming items and reports what it requeued / expired", async () => {
+    const order: string[] = [];
+    h.sweepMock.mockImplementation(async (id: string) => {
+      order.push(`sweep:${id}`);
+      return { requeued: [7], failed: [8] };
+    });
+    h.nextItemsMock.mockImplementation(async () => {
+      order.push("claim");
+      return [item(1, "e-1")];
+    });
+    const json = await (await GET(req())).json();
+    expect(order).toEqual(["sweep:b-1", "claim"]);
+    expect(json.leases).toEqual({ requeued: [7], expired: [8] });
+    expect(h.finaliseMock).toHaveBeenCalledWith("b-1");
+  });
+
+  it("#8: re-checks the batch owner's quota per item — at 0 remaining the item is failed quota_exhausted and nothing runs or is recorded", async () => {
+    h.ownerMock.mockResolvedValue({ id: "u-1", plan: "investor_vc_small" });
+    h.quotaMock
+      .mockResolvedValueOnce({ limit: 100, used: 99, remaining: 1, unlimited: false, configured: true })
+      .mockResolvedValueOnce({ limit: 100, used: 100, remaining: 0, unlimited: false, configured: true });
+    const json = await (await GET(req())).json();
+    expect(h.ownerMock).toHaveBeenCalledWith("u-1");
+    expect(h.quotaMock).toHaveBeenCalledTimes(2);
+    expect(h.quotaMock).toHaveBeenCalledWith({ id: "u-1", plan: "investor_vc_small" });
+    expect(h.runMock).toHaveBeenCalledTimes(1);
+    expect(h.runMock).toHaveBeenCalledWith(expect.objectContaining({ projectId: "p-1" }));
+    expect(h.markMock).toHaveBeenCalledWith(2, { status: "failed", error: QUOTA_EXHAUSTED_ERROR });
+    expect(h.recordMock).toHaveBeenCalledTimes(1);
+    expect(json).toMatchObject({ processed: 2, done: 1, failed: 1 });
+    expect(json.items[1]).toMatchObject({ item_id: 2, outcome: "failed", error: "quota_exhausted" });
+  });
+
+  it("#8: unlimited plans never trip the per-item quota check", async () => {
+    h.quotaMock.mockResolvedValue({ limit: Number.MAX_SAFE_INTEGER, used: 500, remaining: Number.MAX_SAFE_INTEGER, unlimited: true, configured: true });
+    const json = await (await GET(req())).json();
+    expect(h.runMock).toHaveBeenCalledTimes(2);
+    expect(json).toMatchObject({ done: 2, failed: 0 });
   });
 
   it("POST === GET", async () => {
