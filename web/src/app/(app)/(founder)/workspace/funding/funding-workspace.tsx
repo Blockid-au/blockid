@@ -42,6 +42,8 @@ export interface GrowthExtras {
   /** ISO day the next quarterly note lands. */
   nextRefreshDate: string | null;
   startup: string | null;
+  /** Founder's nearest capital ("Sydney") for the empty-state programs link; null → the directory index. */
+  capital?: string | null;
 }
 
 export interface CapitalMapSection {
@@ -323,21 +325,33 @@ function InvestorsTab({ growth }: { growth: GrowthExtras | null }) {
       </section>
     );
   }
+  // Never-blank rule: zero opted-in investors → the queue line + a way to meet
+  // investors in person via the programs directory for the founder's capital.
+  const programsHref = growth.capital ? `/funding/programs/${capitalSlug(growth.capital)}` : "/funding/programs";
   return (
     <section aria-label="Investors who match" data-investors data-count={growth.investors.length}>
       <p className="text-sm text-secondary">{FUNDING_COPY.growth.investorsIntro}</p>
       {growth.investors.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-line-subtle bg-surface-sunken p-5 text-sm text-secondary" data-no-investors>
-          {FUNDING_COPY.growth.noInvestors}
+          <p>{FUNDING_COPY.growth.noInvestors}</p>
+          <Link href={programsHref} className="mt-3 inline-flex items-center gap-1 font-semibold text-action" data-no-investors-programs>
+            {FUNDING_COPY.growth.noInvestorsBrowse} <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
         </div>
       ) : (
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
           {growth.investors.map((inv) => (
+            // Card shows name, firm, thesis and the preference axes only — the
+            // investor's email is never on the wire (InvestorMatch has no such field).
             <li key={inv.investor_id} className="rounded-2xl border border-line-subtle bg-surface p-4" data-investor={inv.investor_id} data-score={inv.score}>
               <div className="flex items-start justify-between gap-2">
-                <p className="font-semibold text-primary">{inv.name}</p>
+                <div>
+                  <p className="font-semibold text-primary" data-investor-name>{inv.name}</p>
+                  {inv.firm ? <p className="text-xs text-secondary" data-investor-firm>{inv.firm}</p> : null}
+                </div>
                 <span className="rounded-full bg-action/10 px-2 py-0.5 text-xs font-semibold text-action">Fit {inv.score}</span>
               </div>
+              {inv.thesis ? <p className="mt-2 text-sm text-secondary" data-investor-thesis>“{inv.thesis}”</p> : null}
               <ul className="mt-2 space-y-1 text-xs text-secondary">
                 {inv.reasons.map((r) => (
                   <li key={r}>· {r}</li>

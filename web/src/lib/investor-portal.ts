@@ -16,6 +16,7 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { listWatchlist, type WatchlistRow } from "@/lib/watchlist";
+import { isEvaluatorPersona } from "@/lib/evaluations/progress-shared";
 
 // ---------------------------------------------------------------------------
 // Preference schema — stored as jsonb on app_users.investor_prefs.
@@ -46,7 +47,17 @@ export interface InvestorPreferences {
   cheque_band: ChequeBand;  // single band
   min_svi: number | null;   // 0-100 floor, null = any
   updated_at: string | null;
+  /**
+   * Public-facing card fields shown to matching founders once the investor
+   * opts in (`app_users.investor_discoverable`, T0251 follow-up). Optional —
+   * only present after the investor typed them; never an email.
+   */
+  firm?: string | null;     // "Sydney Angels", "Blackbird" — ≤ FIRM_MAX_LEN
+  thesis?: string | null;   // one-liner — ≤ THESIS_MAX_LEN
 }
+
+export const FIRM_MAX_LEN = 80;
+export const THESIS_MAX_LEN = 200;
 
 export const DEFAULT_PREFS: InvestorPreferences = {
   sectors: [],
@@ -167,6 +178,82 @@ export async function setInvestorPreferences(
   } catch (err) {
     console.error("[blockid:investor-portal] prefs write threw", err);
     return { ok: false, prefs: merged, reason: "db_error" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Investor visibility — the "Let matching founders see me" opt-in
+// (app_users.investor_discoverable, migration 0323; default false).
+//
+// Only evaluator personas (account_type / segment per
+// lib/evaluations/progress-shared.ts) may flip it. The founder-facing
+// reverse-match (lib/funding/investor-match.ts) lists only rows where the
+// flag is true and exposes display name + prefs — never the email. Both
+// helpers tolerate the column being missing on legacy installs.
+// ---------------------------------------------------------------------------
+
+export interface InvestorVisibility {
+  /** True when app_users.account_type / segment is an evaluator persona. */
+  evaluator: boolean;
+  /** Current app_users.investor_discoverable (false when unset / column missing). */
+  discoverable: boolean;
+}
+
+const NOT_VISIBLE: InvestorVisibility = { evaluator: false, discoverable: false };
+
+export async function getInvestorVisibility(userId: string): Promise<InvestorVisibility> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return NOT_VISIBLE;
+
+  const read = (cols: string) =>
+    supabase.from("app_users").select(cols).eq("id", userId).maybeSingle();
+
+  try {
+    let { data, error } = await read("account_type, segment, investor_discoverable");
+    if (error && /column.*investor_discoverable/i.test(error.message ?? "")) {
+      // 0323 not applied yet — the persona still resolves, the flag reads false.
+      ({ data, error } = await read("account_type, segment"));
+    }
+    if (error) {
+      console.error("[blockid:investor-portal] visibility read failed", error);
+      return NOT_VISIBLE;
+    }
+    const row = (data ?? null) as
+      | { account_type?: string | null; segment?: string | null; investor_discoverable?: boolean | null }
+      | null;
+    if (!row) return NOT_VISIBLE;
+    return { evaluator: isEvaluatorPersona(row), discoverable: row.investor_discoverable === true };
+  } catch (err) {
+    console.error("[blockid:investor-portal] visibility read threw", err);
+    return NOT_VISIBLE;
+  }
+}
+
+export async function setInvestorDiscoverable(
+  userId: string,
+  discoverable: boolean,
+): Promise<{ ok: boolean; discoverable: boolean; reason?: string }> {
+  const on = discoverable === true;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, discoverable: false, reason: "not_configured" };
+
+  try {
+    const { error } = await supabase
+      .from("app_users")
+      .update({ investor_discoverable: on })
+      .eq("id", userId);
+
+    if (error) {
+      if (/column.*investor_discoverable/i.test(error.message ?? "")) {
+        return { ok: false, discoverable: false, reason: "column_missing" };
+      }
+      console.error("[blockid:investor-portal] discoverable write failed", error);
+      return { ok: false, discoverable: false, reason: "db_error" };
+    }
+    return { ok: true, discoverable: on };
+  } catch (err) {
+    console.error("[blockid:investor-portal] discoverable write threw", err);
+    return { ok: false, discoverable: false, reason: "db_error" };
   }
 }
 
@@ -413,7 +500,16 @@ export async function getPortfolio(userId: string): Promise<PortfolioRow[]> {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Trim + cap a public card field; empty / non-string → null (key dropped). */
+function cardText(v: unknown, max: number): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.replace(/\s+/g, " ").trim().slice(0, max);
+  return t.length ? t : null;
+}
+
 function normalisePrefs(p: Partial<InvestorPreferences>): InvestorPreferences {
+  const firm = cardText(p.firm, FIRM_MAX_LEN);
+  const thesis = cardText(p.thesis, THESIS_MAX_LEN);
   return {
     sectors: Array.isArray(p.sectors) ? p.sectors.slice(0, 20).map(String) : [],
     stages: Array.isArray(p.stages) && p.stages.length
@@ -423,6 +519,9 @@ function normalisePrefs(p: Partial<InvestorPreferences>): InvestorPreferences {
     cheque_band: (p.cheque_band as ChequeBand) ?? "any",
     min_svi: typeof p.min_svi === "number" ? Math.max(0, Math.min(100, p.min_svi)) : null,
     updated_at: typeof p.updated_at === "string" ? p.updated_at : null,
+    // Only carried when set so DEFAULT_PREFS and legacy rows keep their shape.
+    ...(firm ? { firm } : {}),
+    ...(thesis ? { thesis } : {}),
   };
 }
 

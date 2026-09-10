@@ -53,6 +53,10 @@ export type FitGate = "sector" | "stage" | "geo" | "svi";
 export interface InvestorMatch {
   investor_id: string;
   name: string;
+  /** Firm / organisation from `investor_prefs.firm` — null until the investor fills it in. */
+  firm: string | null;
+  /** One-line thesis from `investor_prefs.thesis`. */
+  thesis: string | null;
   plan: string | null;
   /** 0–100. */
   score: number;
@@ -241,6 +245,8 @@ export function scoreInvestorFit(project: InvestorMatchProject, investor: Invest
   return {
     investor_id: investor.id,
     name: investor.name,
+    firm: typeof prefs.firm === "string" && prefs.firm.trim() ? prefs.firm.trim() : null,
+    thesis: typeof prefs.thesis === "string" && prefs.thesis.trim() ? prefs.thesis.trim() : null,
     plan: investor.plan,
     score,
     reasons,

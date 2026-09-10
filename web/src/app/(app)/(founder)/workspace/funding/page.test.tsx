@@ -290,7 +290,7 @@ describe("/workspace/funding (T0244)", () => {
     growthMock.mockResolvedValue(true);
     investorsMock.mockResolvedValue([
       {
-        investor_id: "inv-1", name: "Sydney Seed Fund", plan: "investor_angel", score: 100,
+        investor_id: "inv-1", name: "Sydney Seed Fund", firm: "Sydney Angels", thesis: "Pre-seed agtech in ANZ", plan: "investor_angel", score: 100,
         reasons: ["Your SVI 62 clears their 50 floor", "Invests in agtech"], gaps: [], sectors: ["agtech"], stages: ["seed"], geos: ["AU"],
         cheque_band: "100k_500k", min_svi: 50,
         intro_href: "mailto:support@blockid.au?subject=Intro%20request%3A%20Acme%20Agtech%20%E2%86%92%20Sydney%20Seed%20Fund",
@@ -312,7 +312,49 @@ describe("/workspace/funding (T0244)", () => {
     investorsMock.mockResolvedValue([]);
     const empty = await html({ tab: "investors" });
     expect(empty).toContain("data-no-investors");
-    expect(empty).toContain("No opted-in investor matches your profile yet.");
+    expect(empty).toContain("No opted-in investors match yet. We add investors every week — your profile is already in the queue.");
+  });
+
+  it("Investors card (T0251 follow-up): shows name, firm, thesis + preference axes — never an email; the only mailto is support", async () => {
+    growthMock.mockResolvedValue(true);
+    investorsMock.mockResolvedValue([
+      {
+        investor_id: "inv-1", name: "Ann Angel", firm: "Sydney Angels", thesis: "Pre-seed agtech in ANZ, A$50k first cheques", plan: "investor_angel", score: 90,
+        reasons: ["No SVI floor", "Invests in agtech", "Backs seed rounds", "Invests in AU"], gaps: [], sectors: ["agtech"], stages: ["seed"], geos: ["AU"],
+        cheque_band: "25k_100k", min_svi: null,
+        intro_href: "mailto:support@blockid.au?subject=Intro%20request%3A%20Acme%20Agtech%20%E2%86%92%20Ann%20Angel",
+        // A leaked field must never reach the markup even if a store ever returned it.
+        email: "ann@example.com",
+      },
+    ]);
+    const out = await html({ tab: "investors" });
+    expect(out).toContain('data-investor-name');
+    expect(out).toContain("Ann Angel");
+    expect(out).toContain('data-investor-firm');
+    expect(out).toContain("Sydney Angels");
+    expect(out).toContain('data-investor-thesis');
+    expect(out).toContain("Pre-seed agtech in ANZ, A$50k first cheques");
+    expect(out).toContain("Backs seed rounds");
+    expect(out).toContain("Cheque: 25k 100k");
+    expect(out).not.toContain("ann@example.com");
+    // Every mailto on the tab routes to support, never to the investor.
+    const mailtos = out.match(/href="mailto:[^"]+"/g) ?? [];
+    expect(mailtos.length).toBeGreaterThan(0);
+    for (const m of mailtos) expect(m).toMatch(/^href="mailto:support@blockid\.au\?/);
+  });
+
+  it("Investors empty state (T0251 follow-up): queue copy + programs link for the founder's capital (never blank)", async () => {
+    growthMock.mockResolvedValue(true);
+    investorsMock.mockResolvedValue([]);
+    const out = await html({ tab: "investors" });
+    expect(out).toContain('data-count="0"');
+    expect(out).toContain("data-no-investors");
+    expect(out).toContain("No opted-in investors match yet. We add investors every week — your profile is already in the queue.");
+    expect(out).toContain("data-no-investors-programs");
+    // ROW.intake.city = Sydney → /funding/programs/sydney.
+    expect(out).toContain('href="/funding/programs/sydney"');
+    expect(out).toContain("Meet investors at programs near you");
+    expect(out).not.toContain("data-request-intro");
   });
 
   it("Expert update tab: locked for Starter; Growth sees the next-date note or the latest markdown (T0251)", async () => {

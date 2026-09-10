@@ -4,6 +4,13 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import {
+  FIRM_MAX_LEN,
+  THESIS_MAX_LEN,
+  getInvestorPreferences,
+  getInvestorVisibility,
+} from "@/lib/investor-portal";
+import { InvestorVisibilityForm } from "./investor-visibility-form";
 
 export const metadata: Metadata = {
   title: "Investor Preferences — Workspace — BlockID",
@@ -18,7 +25,13 @@ export default async function InvestorPreferencesPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/investor/preferences");
 
-  const isSandbox = await getCurrentProjectIsSandbox();
+  // The opt-in switch is evaluator-only (account_type / segment); founders
+  // never see it. Prefs feed the firm / thesis card fields it edits.
+  const [isSandbox, visibility] = await Promise.all([
+    getCurrentProjectIsSandbox(),
+    getInvestorVisibility(user.id),
+  ]);
+  const prefs = visibility.evaluator ? await getInvestorPreferences(user.id) : null;
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -44,6 +57,16 @@ export default async function InvestorPreferencesPage() {
             to rebuild your saved searches.
           </p>
         </header>
+
+        {visibility.evaluator ? (
+          <InvestorVisibilityForm
+            initialDiscoverable={visibility.discoverable}
+            initialFirm={prefs?.firm ?? null}
+            initialThesis={prefs?.thesis ?? null}
+            firmMaxLen={FIRM_MAX_LEN}
+            thesisMaxLen={THESIS_MAX_LEN}
+          />
+        ) : null}
 
         <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-3">
           <h2 className="text-lg font-semibold text-ink-900">Fields covered</h2>
