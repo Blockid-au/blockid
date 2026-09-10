@@ -100,3 +100,5 @@ Australian government grants offer a non-dilutive funding source for startups. B
 </svg>
 
 > **Take your startup to the next level with BlockID's expert guidance.** [More founder guides](/insights)
+
+> **See which of these you qualify for →** [Run the free Money Finder preview](/funding) — Australian grants, programs and events matched to your startup, top 3 named, no sign-up.

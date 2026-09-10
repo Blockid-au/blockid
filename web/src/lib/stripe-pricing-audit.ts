@@ -19,6 +19,7 @@ import type Stripe from "stripe";
 import { getStripe, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getPlatformConfig } from "@/lib/platform-config";
 import { GENERATED_PLANS } from "@/config/pricing/plans.generated";
+import { CREDIT_PACKS } from "@/lib/credit-packs";
 
 export type AuditStatus = "match" | "drift" | "missing_price_id" | "stripe_not_configured" | "stripe_lookup_failed" | "archived";
 
@@ -70,12 +71,16 @@ const LEGACY_PLANS: PlanExpectation[] = [
   { planId: "growth",        label: "Growth — monthly",       configField: "growth_price_monthly_cents", cadence: "monthly" },
   { planId: "growth_annual", label: "Growth — annual",        configField: "growth_price_yearly_cents",  cadence: "yearly" },
 
-  // Credit packs — static expectations matching the comments in stripe.ts
-  { planId: "credits_5",   label: "5 credits pack",   staticCents: 500,  cadence: "credit-pack" },
-  { planId: "credits_10",  label: "10 credits pack",  staticCents: 900,  cadence: "credit-pack" },
-  { planId: "credits_25",  label: "25 credits pack",  staticCents: 2000, cadence: "credit-pack" },
-  { planId: "credits_50",  label: "50 credits pack",  staticCents: 1500, cadence: "credit-pack" },
-  { planId: "credits_100", label: "100 credits pack", staticCents: 2500, cadence: "credit-pack" },
+  // Credit packs — derived from CREDIT_PACKS (src/lib/credit-packs.ts), the
+  // single source of truth, so the audit can never drift from the ladder the
+  // billing page sells (T0249: this list previously said A$15/A$25 for the
+  // 50/100 packs after B8 moved them to A$35/A$60).
+  ...CREDIT_PACKS.map<PlanExpectation>((p) => ({
+    planId: `credits_${p.credits}`,
+    label: `${p.credits} credits pack`,
+    staticCents: p.priceAudCents,
+    cadence: "credit-pack",
+  })),
 ];
 
 /**

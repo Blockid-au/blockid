@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
 import { FilterChips, type FilterChipGroup } from "@/components/funding/filter-chips";
@@ -118,6 +119,7 @@ export default async function GrantsDirectoryPage({
 
   return (
     <MarketingShell>
+      <PageViewTracker event="funding_directory_viewed" params={{ kind: "grants" }} />
       <BreadcrumbListJsonLd
         items={[
           { name: "Home", href: "/" },

@@ -113,3 +113,5 @@ To explore non-dilutive funding options in more detail, consider the following c
 > **Ready to take your startup to the next level?** [More founder guides](/insights)
 
 Don't let funding hold you back. Explore non-dilutive funding options today and discover how you can boost your startup without equity.
+
+> **See which of these you qualify for →** [Run the free Money Finder preview](/funding) — Australian grants, programs and events matched to your startup, top 3 named, no sign-up.

@@ -370,3 +370,5 @@ By building a robust framework now, you not only secure your refund but also str
 Don't leave your R&D claim—or your valuation—to chance. Assess your startup's position with the **BlockID.au** platform.
 
 > **Take control of your startup's future.** Check your **SVI Score** today to see how your R&D strategy impacts your valuation and investor readiness. [Get your free SVI score](/score)
+
+> **See which of these you qualify for →** [Run the free Money Finder preview](/funding) — Australian grants, programs and events matched to your startup, top 3 named, no sign-up.

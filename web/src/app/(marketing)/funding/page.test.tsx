@@ -54,6 +54,26 @@ describe("/funding landing (T0242)", () => {
     expect(out).not.toContain("data-funding-paywall");
   });
 
+  it("links the 9 funding insight articles in a Read more strip (T0249)", async () => {
+    const out = await html();
+    expect(out).toContain('aria-label="Read more about startup funding in Australia"');
+    for (const slug of [
+      "government-grants-startups-australia-2026",
+      "non-dilutive-funding-strategies-australia",
+      "esic-and-rnd-tax-incentive-guide-2026",
+      "r-and-d-tax-incentive-startups-australia",
+      "esic-compliance-guide-early-stage-startups",
+      "revenue-based-financing-australia",
+      "australian-startup-funding-rounds-2026-guide",
+      "venture-debt-vs-equity-funding-australia",
+      "bootstrapping-vs-fundraising-australian-founders",
+    ]) {
+      expect(out).toContain(`href="/insights/${slug}"`);
+    }
+    // Title comes from the manifest, not hand-typed copy.
+    expect(out).toContain("Australian Government Grants for Startups 2026");
+  });
+
   it("carries the §5a positioning, the price ladder and the §5f disclaimer", async () => {
     const out = await html();
     expect(out).toContain("The lists are free.");

@@ -354,3 +354,5 @@ Using debt can actually help your ESIC strategy. By preserving equity value, you
 ## Strategic Capital Planning: Building Your Hybrid Roadmap
 
 The most successful
+
+> **See which of these you qualify for →** [Run the free Money Finder preview](/funding) — Australian grants, programs and events matched to your startup, top 3 named, no sign-up.

@@ -409,3 +409,5 @@ Let's look at two real-world examples of how Australian founders navigated this 
 
 ### Case Study 1: The Bootstrapped Niche Leader
 *Company: A specialized compliance SaaS for
+
+> **See which of these you qualify for →** [Run the free Money Finder preview](/funding) — Australian grants, programs and events matched to your startup, top 3 named, no sign-up.

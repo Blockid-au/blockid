@@ -30,6 +30,22 @@ import {
   latestVerifiedAt,
 } from "@/lib/funding/directory";
 import { CAPITALS } from "@/lib/funding/seed-map";
+import { getArticleBySlug } from "@/lib/insights";
+
+// G11 §1b / T0249 — the funding insight articles that carry the "See which of
+// these you qualify for → /funding" callout; this strip is the return link.
+// Titles come from content/insights/manifest.json so the copy never drifts.
+const FUNDING_READ_MORE_SLUGS = [
+  "government-grants-startups-australia-2026",
+  "non-dilutive-funding-strategies-australia",
+  "esic-and-rnd-tax-incentive-guide-2026",
+  "r-and-d-tax-incentive-startups-australia",
+  "esic-compliance-guide-early-stage-startups",
+  "revenue-based-financing-australia",
+  "australian-startup-funding-rounds-2026-guide",
+  "venture-debt-vs-equity-funding-australia",
+  "bootstrapping-vs-fundraising-australian-founders",
+] as const;
 
 export const revalidate = 3600;
 
@@ -48,6 +64,10 @@ export default async function FundingLandingPage() {
   const stats = grantStats(grants);
   const openPrograms = programs.filter((p) => p.status === "open").length;
   const verified = latestVerifiedAt([...grants, ...programs]);
+  const readMore = FUNDING_READ_MORE_SLUGS.flatMap((slug) => {
+    const a = getArticleBySlug(slug);
+    return a ? [{ slug: a.slug, title: a.title }] : [];
+  });
 
   return (
     <MarketingShell>
@@ -141,6 +161,24 @@ export default async function FundingLandingPage() {
             See evaluator plans <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
+
+        {readMore.length > 0 && (
+          <nav aria-label="Read more about startup funding in Australia" className="mt-10">
+            <p className="text-sm font-semibold uppercase tracking-wide text-tertiary">Read more</p>
+            <ul className="mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+              {readMore.map((a) => (
+                <li key={a.slug}>
+                  <Link
+                    href={`/insights/${a.slug}`}
+                    className="text-sm text-secondary underline-offset-4 hover:text-primary hover:underline"
+                  >
+                    {a.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
 
         <FundingDisclaimer lastVerifiedAt={verified} className="mt-10" />
       </section>

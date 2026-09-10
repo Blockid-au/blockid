@@ -102,6 +102,14 @@ const FAQ_JSONLD = [
     answer:
       "7-day money-back guarantee on your first paid month. Contact support and we'll process within 3 business days.",
   },
+  {
+    // G11 (2026-09-10, T0249): Money Finder ladder — mirrors faq-v2.tsx.
+    // `grant_finder` is a plain plan flag (Starter, Growth, Package) with
+    // no monthly quota in code, so the copy says "included", not "1/mo".
+    question: "What is the Grant & Program Finder (Money Finder)?",
+    answer:
+      "A ranked scan of Australian grants, programs and events your startup qualifies for. Free = the preview (how many you match, top 3 named) and the open-grants directory · A$3 = the full Money Finder report per startup — ranked matches, eligibility checklist, 12-month timeline, PDF · Starter A$29 = Founder Radar deadline alerts and monthly re-match, with full reports included · Growth A$69 = the same, with 45 credits a month for application drafts. A grants consultant charges A$500–2,000 for this scan.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -217,6 +225,23 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         className="mx-auto max-w-7xl px-6 py-8 sm:py-12 scroll-mt-24"
       >
         <PricingSegmentSwitch initialSegment={initialTab} />
+        {/* G11 §4g anchor line (T0249): prices the Money Finder scan against
+            what a grants consultant charges. Sits under the ladder, outside
+            <PricingMatrix /> so the matrix component stays untouched. */}
+        <p
+          data-testid="money-finder-anchor"
+          className="mx-auto mt-6 max-w-3xl text-center text-sm text-secondary"
+        >
+          Every Founder plan includes the Grant &amp; Program Finder — free
+          preview, A$3 for a full report, alerts and re-match from Starter. A
+          grants consultant charges A$500–2,000 for this scan.{" "}
+          <Link
+            href="/funding"
+            className="font-medium text-action underline-offset-4 hover:underline"
+          >
+            See what you qualify for
+          </Link>
+        </p>
       </section>
 
       {/* Contact-sales row for the tiers that don't fit either self-serve

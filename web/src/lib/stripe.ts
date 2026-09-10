@@ -44,8 +44,8 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   credits_5: process.env.STRIPE_PRICE_CREDITS_5,     // A$5  = 5 credits
   credits_10: process.env.STRIPE_PRICE_CREDITS_10,   // A$9  = 10 credits
   credits_25: process.env.STRIPE_PRICE_CREDITS_25,   // A$20 = 25 credits
-  credits_50: process.env.STRIPE_PRICE_CREDITS_50,   // A$15 = 50 credits
-  credits_100: process.env.STRIPE_PRICE_CREDITS_100,  // A$25 = 100 credits
+  credits_50: process.env.STRIPE_PRICE_CREDITS_50,   // A$35 = 50 credits
+  credits_100: process.env.STRIPE_PRICE_CREDITS_100,  // A$60 = 100 credits
   // Startup Package — one-off A$149 SKU. Provisions the guided founder flow
   // per web/supabase/migrations/0118_startup_package.sql.
   founder_package: process.env.STRIPE_PRICE_STARTUP_PACKAGE,

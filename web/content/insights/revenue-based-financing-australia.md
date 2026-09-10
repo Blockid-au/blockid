@@ -93,3 +93,5 @@ Revenue Based Financing is a viable non-dilutive funding option for Australian S
 </svg>
 
 > **Take control of your startup's valuation and funding journey.** [More founder guides](/insights)
+
+> **See which of these you qualify for →** [Run the free Money Finder preview](/funding) — Australian grants, programs and events matched to your startup, top 3 named, no sign-up.

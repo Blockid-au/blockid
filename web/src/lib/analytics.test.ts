@@ -530,3 +530,36 @@ describe("trackPageView", () => {
     ctx.restore();
   });
 });
+
+// ── G11 / G12 funnel events (T0249 GA4 map) ───────────────────────────────
+// Typed call sites double as the pin: if any of these keys leaves
+// AnalyticsEventMap, or a payload shape changes, this file stops compiling.
+describe("G11/G12 funnel events are in AnalyticsEventMap", () => {
+  it("accepts the Money Finder + evaluator + compare events with their payloads", () => {
+    const ctx = install({ withoutGtag: true });
+    trackEvent("funding_preview", { state: "NSW", stage: "mvp", grant_count: 3, program_count: 2 });
+    trackEvent("funding_paywall_hit", { state: "NSW", stage: "mvp", rail: "guest" });
+    trackEvent("funding_report_paid", { paid_via: "one_off", report_id: "r1" });
+    trackEvent("funding_directory_viewed", { kind: "grants" });
+    trackEvent("funding_directory_viewed", { kind: "programs", capital: "Sydney" });
+    trackEvent("radar_upsell_view", { surface: "funding_report", viewer: "guest", variant: "generic" });
+    trackEvent("radar_upsell_click", { surface: "funding_report", viewer: "guest", target: "founder_starter" });
+    trackEvent("hero_variant_shown", { arm: "money" });
+    trackEvent("evaluator_pricing_viewed", { via: "tab" });
+    trackEvent("compare_viewed", { variant: "chatgpt" });
+    expect(ctx.win.dataLayer?.map((e) => e.event)).toEqual([
+      "funding_preview",
+      "funding_paywall_hit",
+      "funding_report_paid",
+      "funding_directory_viewed",
+      "funding_directory_viewed",
+      "radar_upsell_view",
+      "radar_upsell_click",
+      "hero_variant_shown",
+      "evaluator_pricing_viewed",
+      "compare_viewed",
+    ]);
+    expect(ctx.win.dataLayer?.[4]).toMatchObject({ kind: "programs", capital: "Sydney" });
+    ctx.restore();
+  });
+});

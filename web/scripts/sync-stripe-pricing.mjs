@@ -50,6 +50,10 @@ if (!STRIPE_KEY) {
 const stripe = new Stripe(STRIPE_KEY, { typescript: false });
 
 // ─── Plan registry (mirrors lib/stripe-pricing-audit.ts) ───────────────────
+// Credit-pack cents MUST equal `CREDIT_PACKS[].priceAudCents` in
+// src/lib/credit-packs.ts (single source of truth; ladder is 500/900/2000/
+// 3500/6000 since 2026-09-07 B8). This script cannot import that TS module,
+// so `credit-packs.test.ts` greps these rows and fails on drift (T0249).
 const PLANS = [
   { planId: "founding50",    label: "Founding 100 (one-off)", configCents: 300,   cadence: "one-off",  envVar: "STRIPE_PRICE_FOUNDING50" },
   { planId: "growth",        label: "Growth — monthly",       configCents: 9900,  cadence: "monthly",  envVar: "STRIPE_PRICE_GROWTH" },
@@ -57,8 +61,8 @@ const PLANS = [
   { planId: "credits_5",     label: "5 credits pack",         configCents: 500,   cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_5" },
   { planId: "credits_10",    label: "10 credits pack",        configCents: 900,   cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_10" },
   { planId: "credits_25",    label: "25 credits pack",        configCents: 2000,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_25" },
-  { planId: "credits_50",    label: "50 credits pack",        configCents: 1500,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_50" },
-  { planId: "credits_100",   label: "100 credits pack",       configCents: 2500,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_100" },
+  { planId: "credits_50",    label: "50 credits pack",        configCents: 3500,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_50" },
+  { planId: "credits_100",   label: "100 credits pack",       configCents: 6000,  cadence: "one-off",  envVar: "STRIPE_PRICE_CREDITS_100" },
   { planId: "one_click_report", label: "One-Click Report (A$3)", configCents: 300, cadence: "one-off", envVar: "STRIPE_PRICE_ONE_CLICK_REPORT" },
   { planId: "funding_report", label: "Money Finder report (A$3)", configCents: 300, cadence: "one-off", envVar: "STRIPE_PRICE_FUNDING_REPORT" },
 ];
