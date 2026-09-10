@@ -23,13 +23,17 @@ const ON_TRACK = "on‑track";
 // ── registry constants ──────────────────────────────────────────────────────
 
 describe("ESSENTIAL_EIGHT_TEMPLATE registry", () => {
-  it("declares the 4 controls the module ships (Application Control / Patch / Macros / User App Hardening)", () => {
+  it("declares all 8 ACSC Essential Eight controls in the ACSC-published order", () => {
     const names = ESSENTIAL_EIGHT_TEMPLATE.map((i) => i.name);
     expect(names).toEqual([
       "Application Control",
       "Patch Applications",
       "Configure Microsoft Office Macros",
       "User Application Hardening",
+      "Restrict Administrative Privileges",
+      "Patch Operating Systems",
+      "Multi-Factor Authentication",
+      "Regular Backups",
     ]);
   });
 

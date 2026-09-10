@@ -45,7 +45,7 @@ export interface VulnerabilityCategory {
 
 // ── Registry constants ───────────────────────────────────────────────────────
 
-/** The 4 Essential Eight controls this module ships (ACSC Maturity Level 2 target). */
+/** The 8 Essential Eight controls this module ships (ACSC Maturity Level 2 target). */
 export const ESSENTIAL_EIGHT_TEMPLATE: Omit<EssentialEightItem, "maturityLevel" | "gap">[] = [
   {
     name: "Application Control",
@@ -85,6 +85,46 @@ export const ESSENTIAL_EIGHT_TEMPLATE: Omit<EssentialEightItem, "maturityLevel" 
       "Disable Flash, Java, and ads in browsers",
       "Restrict installation of unnecessary plugins",
       "Enforce secure configuration baselines",
+    ],
+  },
+  {
+    name: "Restrict Administrative Privileges",
+    description: "Limit and monitor privileged account use (ACSC ML2)",
+    targetLevel: 2,
+    actions: [
+      "Separate privileged accounts from day-to-day accounts",
+      "Re-validate privileged access at least every 12 months",
+      "Log and alert on all privileged-account activity",
+    ],
+  },
+  {
+    name: "Patch Operating Systems",
+    description: "Keep operating systems patched — critical fixes within 48 hours (ACSC)",
+    targetLevel: 2,
+    actions: [
+      "Patch critical OS vulnerabilities within 48 hours",
+      "Retire operating systems that no longer receive vendor security updates",
+      "Automate vulnerability scanning across all workstations and servers",
+    ],
+  },
+  {
+    name: "Multi-Factor Authentication",
+    description: "Enforce phishing-resistant MFA for privileged and internet-facing access",
+    targetLevel: 2,
+    actions: [
+      "Require phishing-resistant MFA (FIDO2/WebAuthn) for admin and remote access",
+      "Enforce MFA on all internet-facing services holding customer data",
+      "Disable SMS/voice MFA fallbacks for privileged accounts",
+    ],
+  },
+  {
+    name: "Regular Backups",
+    description: "Back up important data and test restoration on a recurring cadence",
+    targetLevel: 2,
+    actions: [
+      "Perform daily backups of important data and configurations",
+      "Store backups offline or immutably to survive ransomware",
+      "Test restoration from backups at least quarterly",
     ],
   },
 ];
