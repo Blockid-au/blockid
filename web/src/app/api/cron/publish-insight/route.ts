@@ -55,6 +55,60 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, error: "topic-queue.json not found" }, { status: 404 });
     }
 
+const ARTICLE_CATEGORIES = [
+  "valuation", "cap-table", "fundraising", "equity", "compliance", "tools", "growth",
+] as const;
+
+/**
+ * Reject a topic the model did not actually write.
+ *
+ * The auto-research prompt shows an example JSON object to fix the shape. A
+ * weaker model answers by echoing that example back, and `JSON.parse(...) as
+ * TopicItem` is a compile-time cast that checks nothing at runtime — so the
+ * placeholders were written to topic-queue.json AND published as a real
+ * article. Two of them reached production: /insights/kebab-case-slug, titled
+ * "Title Under 70 Chars", category "valuation|cap-table|fundraising|..." (the
+ * list of options, not a choice), CTA pointing at "/tools/xxx or /score or /",
+ * and a description offering a "keyword1-focused guide". Both were in the
+ * sitemap and on the /insights index.
+ *
+ * Checks the shape AND the specific example values, because a model that
+ * echoes the example produces something structurally valid.
+ */
+function validateTopic(t: unknown): { ok: true; topic: TopicItem } | { ok: false; reason: string } {
+  if (!t || typeof t !== "object") return { ok: false, reason: "not an object" };
+  const o = t as Record<string, unknown>;
+  const str = (k: string) => (typeof o[k] === "string" ? (o[k] as string).trim() : "");
+
+  const slug = str("slug");
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+){1,11}$/.test(slug)) return { ok: false, reason: `bad slug "${slug}"` };
+  if (slug === "kebab-case-slug") return { ok: false, reason: "slug is the prompt example" };
+
+  const title = str("title");
+  if (title.length < 15 || title.length > 70) return { ok: false, reason: `title length ${title.length}` };
+  if (/title under \d+ chars/i.test(title)) return { ok: false, reason: "title is the prompt example" };
+
+  const category = str("category");
+  if (!(ARTICLE_CATEGORIES as readonly string[]).includes(category)) {
+    return { ok: false, reason: `category "${category}" is not one of ${ARTICLE_CATEGORIES.join(", ")}` };
+  }
+
+  const keywords = Array.isArray(o.keywords)
+    ? (o.keywords as unknown[]).filter((k): k is string => typeof k === "string" && k.trim().length > 0)
+    : [];
+  if (keywords.length < 2) return { ok: false, reason: "fewer than 2 keywords" };
+  if (keywords.some((k) => /^keyword\d$/i.test(k.trim()))) return { ok: false, reason: "keywords are the prompt example" };
+  if (keywords.some((k) => k.includes("INTENT:") || k.includes("..."))) return { ok: false, reason: "keywords contain prompt fragments" };
+
+  const cta = (o.cta ?? {}) as Record<string, unknown>;
+  const href = typeof cta.href === "string" ? cta.href.trim() : "";
+  const label = typeof cta.label === "string" ? cta.label.trim() : "";
+  if (!href.startsWith("/") || href.includes(" ")) return { ok: false, reason: `bad cta.href "${href}"` };
+  if (href.includes("xxx") || /^cta label$/i.test(label)) return { ok: false, reason: "cta is the prompt example" };
+
+  return { ok: true, topic: { ...(o as unknown as TopicItem), slug, title, category, keywords } };
+}
+
     const queue = JSON.parse(readFileSync(queuePath, "utf-8")) as { topics: TopicItem[] };
     const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as { articles: ManifestArticle[] };
 
@@ -76,7 +130,17 @@ No markdown, no explanation, just the JSON object.`,
         const raw = researchResult.text;
         const jsonMatch = raw.match(/\{[\s\S]*\}/);
         const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-        topic = JSON.parse(cleaned) as TopicItem;
+        const candidate = validateTopic(JSON.parse(cleaned));
+        if (!candidate.ok) {
+          // Do NOT persist or publish — a rejected topic that reaches the queue
+          // is published on the next run without ever being re-checked.
+          return NextResponse.json({
+            ok: true,
+            message: "Auto-researched topic rejected as invalid; nothing published.",
+            reason: candidate.reason,
+          });
+        }
+        topic = candidate.topic;
         queue.topics.push(topic);
         writeFileSync(queuePath, JSON.stringify(queue, null, 2) + "\n", "utf-8");
       } catch (researchErr) {
@@ -87,7 +151,18 @@ No markdown, no explanation, just the JSON object.`,
     if (!topic) {
       return NextResponse.json({ ok: true, message: "No topic available." });
     }
-    const nextTopic = topic;
+    // A topic already sitting in the queue gets the same treatment: earlier runs
+    // wrote unvalidated ones there, so trusting the file would republish them.
+    const queued = validateTopic(topic);
+    if (!queued.ok) {
+      return NextResponse.json({
+        ok: true,
+        message: "Queued topic is invalid; nothing published.",
+        slug: (topic as { slug?: string }).slug ?? null,
+        reason: queued.reason,
+      });
+    }
+    const nextTopic = queued.topic;
 
     // 2.5 Brand Search Optimization (Google Agent Garden port) — expand the
     // topic's keywords and tighten the title for search intent before writing.
@@ -96,8 +171,16 @@ No markdown, no explanation, just the JSON object.`,
       { title: nextTopic.title, keywords: nextTopic.keywords, angle: nextTopic.angle },
       adkModel,
     );
-    const articleTitle = seo.optimizedTitle;
-    const articleKeywords = seo.expandedKeywords;
+    // optimizeForSearch is documented as fail-safe, but it can return a result
+    // with these fields missing, and `articleKeywords.join(", ")` below then
+    // threw "Cannot read properties of undefined (reading 'join')" — a 500 on
+    // every run. Fall back to the topic's own values, which is what the
+    // fail-safe was meant to do.
+    const articleTitle = seo?.optimizedTitle?.trim() || nextTopic.title;
+    const articleKeywords =
+      Array.isArray(seo?.expandedKeywords) && seo.expandedKeywords.length > 0
+        ? seo.expandedKeywords
+        : nextTopic.keywords;
 
     // 3. Generate article via AI
     const aiResult = await callAI({

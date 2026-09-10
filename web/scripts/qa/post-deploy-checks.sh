@@ -46,7 +46,19 @@ if [ "$n" = "0" ]; then echo "0 ✓"; pass=$((pass+1)); else echo "$n ✗"; fail
 
 echo "── cron auth uses the rotated secret ──"
 NEW=$(grep '^CRON_SECRET=' /home/dovanlong/blockid.au/web/.env | cut -d= -f2-)
-chk "old secret rejected" 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Authorization: Bearer ***REMOVED***' $B/api/cron/ai-health-check)"
+# Rotation proof WITHOUT putting the leaked value in the repo. Committing the
+# old secret as a literal — even a dead one — is the habit that caused this in
+# the first place, and gitleaks (correctly) aborted a deploy over it. Compare
+# a hash instead: if the live secret ever equals the leaked one again, this
+# fails, and no credential is stored here either way.
+LEAKED_SHA256='aec9cb53387ad753e686d25f1ec465bc969ee4a9f0e43e42ea52722df8ac8e51'
+cur_sha=$(printf '%s' "$NEW" | sha256sum | cut -d' ' -f1)
+if [ "$cur_sha" = "$LEAKED_SHA256" ]; then
+  echo "  ✗ CRON_SECRET is back to the value leaked on the public repo"; fail=$((fail+1))
+else
+  echo "  ✓ CRON_SECRET is not the leaked value"; pass=$((pass+1))
+fi
+chk "a wrong secret is rejected" 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Authorization: Bearer not-the-real-secret-0000000000000000' $B/api/cron/ai-health-check)"
 chk "empty bearer rejected" 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Authorization: Bearer ' $B/api/cron/ai-health-check)"
 got=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $NEW" $B/api/cron/ai-health-check)
 if [ "$got" = "200" ] || [ "$got" = "500" ]; then echo "  ✓ new secret authenticates ($got, not 401)"; pass=$((pass+1));
