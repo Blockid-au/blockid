@@ -4,6 +4,9 @@
 //
 //   subscribers  = every user whose plan (or per-user grant) carries
 //                  `money_radar`  → channels in-app + email + ics
+//                + every user with a live timed grant
+//                  (`app_users.money_radar_until > now()`, the Startup
+//                  Package's 90 days)                   → in-app + email + ics
 //                + every user with a paid `funding_reports` row in the last
 //                  90 days                              → channel in-app only
 //   targets      = per subscriber, one (user, project|null) pair per
@@ -78,6 +81,7 @@ import {
 import type { AuGrantRow, AuProgramRow } from "./seed-map";
 import { listGrants, listPrograms } from "./data";
 import { intakeToGrantProfile, locationUnknown, parseFundingIntake, type FundingIntake } from "./intake";
+import { liveTimedGrants } from "@/lib/entitlements/timed-grants";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -625,6 +629,22 @@ export function createSupabaseRadarStore(db: SupabaseLike): RadarStore {
       if (grantIds.length > 0) {
         const { data } = await db.from("app_users").select("id, email, plan").in("id", grantIds);
         for (const u of (data ?? []) as UserRow[]) radarUsers.set(u.id, u);
+      }
+      // Timed grants (Startup Package → `app_users.money_radar_until`,
+      // migration 0319) are the third audience source — a Free founder who
+      // bought the A$149 package holds `money_radar` through
+      // entitlements/timed-grants but has neither the plan flag nor an
+      // entitlements row (review 2026-09-10 #5). Same full channel set.
+      const { data: timed } = await db
+        .from("app_users")
+        .select("id, email, plan, money_radar_until")
+        .gt("money_radar_until", now.toISOString())
+        .limit(10_000);
+      for (const u of (timed ?? []) as Array<UserRow & { money_radar_until?: unknown }>) {
+        if (!u.id || radarUsers.has(u.id)) continue;
+        if (liveTimedGrants({ money_radar_until: u.money_radar_until }, now.getTime()).includes("money_radar")) {
+          radarUsers.set(u.id, { id: u.id, email: u.email, plan: u.plan });
+        }
       }
 
       // A$3 / credit buyers in the last 90 days → in-app only.

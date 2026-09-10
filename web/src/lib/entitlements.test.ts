@@ -28,11 +28,24 @@ vi.mock("./entitlements/timed-grants", () => ({
   getUserTimedGrants: (u: string | null | undefined) => getUserTimedGrantsMock(u),
 }));
 
-import { getEntitlements, can } from "./entitlements";
+import { getEntitlements, can, LEGACY_FEATURE_FALLBACK } from "./entitlements";
 
 beforeEach(() => {
   getUserGrantedFeaturesMock.mockReset().mockResolvedValue([]);
   getUserTimedGrantsMock.mockReset().mockResolvedValue([]);
+});
+
+// Review 2026-09-10 #4: a plans-table miss must not hand every free user the
+// package-gated surfaces (unlimited grant drafts) — buyers are recognised by
+// their purchase (lib/funding/growth-extras.ts), never by this bundle.
+describe("LEGACY_FEATURE_FALLBACK — founder_free never carries startup_package", () => {
+  it("fallback bundle and the resolved flags on a plans-table miss both exclude it", async () => {
+    expect(LEGACY_FEATURE_FALLBACK.founder_free).not.toContain("startup_package");
+    getPlanCachedMock.mockReset().mockResolvedValue(null);
+    const flags = await getEntitlements("founder_free");
+    expect(flags).not.toContain("startup_package");
+    expect(flags).toContain("svi.run.limited");
+  });
 });
 
 describe("LEGACY_FEATURE_FALLBACK — reseller_admin bundle", () => {

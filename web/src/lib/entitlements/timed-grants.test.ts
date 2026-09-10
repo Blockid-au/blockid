@@ -19,6 +19,7 @@ vi.mock("@/lib/supabase", () => ({
 import {
   TIMED_GRANT_COLUMNS,
   __timedCacheSizeForTest,
+  extendTimedGrant,
   getUserTimedGrants,
   invalidateTimedGrants,
   liveTimedGrants,
@@ -93,6 +94,16 @@ describe("liveTimedGrants — pure", () => {
 
   it("timedGrantUntil(90) is exactly 90 days out — the Package window", () => {
     expect(timedGrantUntil(90, NOW)).toBe(FUTURE);
+  });
+
+  // Review 2026-09-10 #12: a re-purchase EXTENDS the live window.
+  it("extendTimedGrant: live stamp + 90d; NULL / past / junk → fresh 90d from now", () => {
+    const day30 = new Date(NOW + 30 * 86_400_000).toISOString(); // bought again on day 30 of a window ending FUTURE
+    expect(extendTimedGrant(FUTURE, 90, Date.parse(day30))).toBe(timedGrantUntil(90, Date.parse(FUTURE))); // day 180, not day 120
+    expect(extendTimedGrant(null, 90, NOW)).toBe(FUTURE);
+    expect(extendTimedGrant(PAST, 90, NOW)).toBe(FUTURE);
+    expect(extendTimedGrant("junk", 90, NOW)).toBe(FUTURE);
+    expect(extendTimedGrant(new Date(NOW).toISOString(), 90, NOW)).toBe(FUTURE); // exact-now stamp is not "live"
   });
 });
 

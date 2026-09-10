@@ -22,7 +22,7 @@ import {
   reconcileSubscriptionAddon,
   revokeAddonForCustomer,
 } from "@/lib/stripe/addon-entitlements";
-import { invalidateTimedGrants, timedGrantUntil } from "@/lib/entitlements/timed-grants";
+import { extendTimedGrant, invalidateTimedGrants } from "@/lib/entitlements/timed-grants";
 import { STARTUP_PACKAGE_RADAR_DAYS } from "@/lib/plans-v2";
 
 // POST /api/stripe/webhook
@@ -1324,12 +1324,23 @@ export async function POST(request: Request) {
     }
 
     // (a2) Three months of Founder Radar (G11 §4h, T0247): stamp
-    //      app_users.money_radar_until = now() + 90d (migration 0319).
-    //      `can(user, "money_radar")` reads it through entitlements/timed-grants.
-    //      Never shortens a window a later purchase or support grant already
-    //      extended (the `or` keeps NULL and earlier stamps only). Non-fatal.
+    //      app_users.money_radar_until (migration 0319). `can(user,
+    //      "money_radar")` reads it through entitlements/timed-grants.
+    //      ADDITIVE (review 2026-09-10 #12): a re-purchase extends the live
+    //      window — `max(existing, now) + 90d` via extendTimedGrant — so a
+    //      second package on day 30 ends on day 180, not day 120. Never
+    //      shortens a window support already widened (the `or` keeps NULL
+    //      and earlier stamps only). Non-fatal.
     try {
-      const radarUntil = timedGrantUntil(STARTUP_PACKAGE_RADAR_DAYS);
+      const { data: radarRow } = await supabase
+        .from("app_users")
+        .select("money_radar_until")
+        .eq("id", userId)
+        .maybeSingle();
+      const radarUntil = extendTimedGrant(
+        (radarRow as { money_radar_until?: unknown } | null)?.money_radar_until ?? null,
+        STARTUP_PACKAGE_RADAR_DAYS,
+      );
       const { error: radarErr } = await supabase
         .from("app_users")
         .update({ money_radar_until: radarUntil })

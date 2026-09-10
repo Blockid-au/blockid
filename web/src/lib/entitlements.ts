@@ -125,7 +125,12 @@ const LEGACY_PLAN_MAP: Record<string, string> = {
 // Exported so entitlements/tier-ladder.test.ts can assert the ladder covers
 // every feature key the fallback surfaces (no orphan gates).
 export const LEGACY_FEATURE_FALLBACK: Record<string, Feature[]> = {
-  founder_free: ["svi.run.limited", "startup_package"],
+  // 2026-09-10 (review #4): `startup_package` removed — live
+  // plans.founder_free.feature_flags never carried it, and the fallback
+  // handed every free user the package-gated surfaces (unlimited grant
+  // application drafts) during a plans-table miss. Package buyers are
+  // recognised by their purchase (lib/funding/growth-extras.ts), not a flag.
+  founder_free: ["svi.run.limited"],
   founder_starter: [
     "svi.run",
     "evidence.upload",
