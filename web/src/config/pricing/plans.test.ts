@@ -115,7 +115,7 @@ describe("PRC-INV — 12-SKU pricing matrix (11 tier SKUs + Startup Package one-
     );
   });
 
-  it("Investor tab renders the 4 Investor SKUs (Angel / Advisor / VC Small / VC Enterprise)", () => {
+  it("Investor catalogue holds the 4 Investor SKUs (Scout / Firm / Program / VC Enterprise)", () => {
     const investor = plansForSegment("investor");
     expect(investor).toHaveLength(4);
     const ids = investor.map((p) => p.id);

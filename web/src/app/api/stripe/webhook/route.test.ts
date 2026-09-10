@@ -368,7 +368,7 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
           bid_user_id: "user-1",
           bid_sku: "sku_trust_report_5aud",
         },
-        amountTotal: 550,
+        amountTotal: 300,
       }),
     );
 

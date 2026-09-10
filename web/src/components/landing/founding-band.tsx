@@ -52,7 +52,7 @@ export function FoundingBand() {
               See it before you buy
             </p>
             <h3 className="mt-3 font-display text-2xl font-semibold text-[var(--fintech-ink)]">
-              Read a real Trust Report.
+              Read a real Trust BizReport.
             </h3>
             <p className="mt-3 text-sm text-[var(--fintech-ink-muted)]">
               An anonymised end-to-end report from a Series-A AU startup:
@@ -64,7 +64,7 @@ export function FoundingBand() {
                 href="/reports/samples"
                 className="inline-flex h-11 items-center justify-center rounded-xl border border-white/15 bg-white/[0.03] px-6 text-sm font-medium text-[var(--fintech-ink)] hover:border-[var(--fintech-accent)]/60 hover:bg-white/[0.06]"
               >
-                See a sample Trust Report
+                See a sample Trust BizReport
               </Link>
               <span className="text-[11px] text-[var(--fintech-ink-muted)]">
                 Free · No signup

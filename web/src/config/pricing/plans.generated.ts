@@ -161,7 +161,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
   {
     "id": "investor_angel",
     "segment": "investor_angel",
-    "name": "Angel",
+    "name": "Scout",
     "price_aud_cents": 7900,
     "annual_price_aud_cents": 79000,
     "interval": "monthly",
@@ -184,7 +184,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
   {
     "id": "investor_advisor",
     "segment": "advisor",
-    "name": "Advisor",
+    "name": "Firm",
     "price_aud_cents": 14900,
     "annual_price_aud_cents": 149000,
     "interval": "monthly",
@@ -211,7 +211,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
   {
     "id": "investor_vc_small",
     "segment": "investor_vc",
-    "name": "VC Small (5-seat min)",
+    "name": "Program",
     "price_aud_cents": 34900,
     "annual_price_aud_cents": 349000,
     "interval": "monthly",

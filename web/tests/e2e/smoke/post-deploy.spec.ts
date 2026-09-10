@@ -31,10 +31,9 @@ test.describe("Post-deploy hydrated smoke", () => {
   }) => {
     // Post-Workstream B (v3.9.23): /pricing collapsed from 4-tab persona
     // segmentation to a Universal 3-rung ladder + ContactSalesRow below.
-    // The Accelerator + Investor VC + Enterprise SKUs now surface in the
-    // contact-sales row, no longer as their own tab. Assert the three
-    // canonical tier fragment IDs are present so the deep-link surface
-    // stays regression-safe.
+    // G12 (2026-09-10) added a two-way Founder | Evaluator switch; the
+    // Founder tab is the default, so the bare URL must still render the
+    // three canonical founder tier fragment IDs for the deep-link surface.
     test.setTimeout(30_000);
     await page.goto("/pricing", { waitUntil: "domcontentloaded" });
     for (const id of ["tier-free", "tier-growth", "tier-pro"]) {
@@ -44,11 +43,32 @@ test.describe("Post-deploy hydrated smoke", () => {
     }
   });
 
-  test("/pricing — ContactSalesRow surfaces Accelerator + Investor VC + Enterprise", async ({
+  test("/pricing?segment=evaluator — Evaluator tab renders Scout / Firm / Program", async ({
     page,
   }) => {
-    // Accelerator/VC/Enterprise SKUs live in the ContactSalesRow beneath
-    // the public ladder. Copy source: pricing/page.tsx ContactSalesRow.
+    // G12 (2026-09-10, T0268): /pricing carries a two-way Founder |
+    // Evaluator switch. The deep link must land on the Evaluator ladder
+    // (investor_angel / investor_advisor / investor_vc_small) and every
+    // rung must route to the evaluator signup, not contact-sales.
+    test.setTimeout(30_000);
+    await page.goto("/pricing?segment=evaluator", {
+      waitUntil: "domcontentloaded",
+    });
+    for (const id of ["tier-scout", "tier-firm", "tier-program"]) {
+      await expect(page.locator(`#${id}`)).toBeVisible({
+        timeout: PAGE_TIMEOUT,
+      });
+    }
+    await expect(
+      page.locator('a[href*="/signup?segment=evaluator&plan=investor_angel"]'),
+    ).toBeVisible({ timeout: PAGE_TIMEOUT });
+  });
+
+  test("/pricing — ContactSalesRow surfaces Accelerator + VC Enterprise + Enterprise", async ({
+    page,
+  }) => {
+    // Accelerator/VC Enterprise/Enterprise SKUs live in the ContactSalesRow
+    // beneath both ladders. Copy source: pricing/page.tsx ContactSalesRow.
     test.setTimeout(30_000);
     await page.goto("/pricing", { waitUntil: "domcontentloaded" });
     await expect(page.getByText(/accelerator/i).first()).toBeVisible({

@@ -107,8 +107,8 @@ export interface GeneratorDeps {
 
 /**
  * Map the credit quote's depth (report-credit-cost.ts) onto a pipeline
- * tier. Path A (A$5.50 Stripe) carries no quote and lands on "standard",
- * which is exactly the 10-section / ~5-8k-word product the A$5.50 SKU is
+ * tier. Path A (A$3 Stripe) carries no quote and lands on "standard",
+ * which is exactly the 10-section / ~5-8k-word product the A$3 SKU is
  * priced for (§14bis D1).
  */
 const DEPTH_TIER: Record<string, ReportTier> = {

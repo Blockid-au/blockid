@@ -3,7 +3,11 @@ import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { Building2, Check } from "lucide-react";
 import Link from "next/link";
 import { FAQV2 } from "@/components/landing/faq-v2";
-import { PricingMatrix } from "@/components/landing/pricing-matrix";
+import {
+  PricingSegmentSwitch,
+  resolvePricingTab,
+  type PricingTab,
+} from "@/components/landing/pricing-segment-switch";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -12,48 +16,46 @@ import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
-import type { Segment } from "@/lib/plans-v2";
 
 // Force dynamic — pricing reads platform_config (Supabase) on every
-// request, and searchParams (?tier=…) picks the initial tab. ISR would
+// request, and searchParams (?segment=…) picks the initial tab. ISR would
 // serve stale copy while the pricing catalogue evolves.
 export const dynamic = "force-dynamic";
 
-// 2026-09-07 (Workstream B5): the persona segment tabs are gone. /pricing
-// renders the Universal 3-rung ladder (Free / Starter / Growth) + a
-// contact-sales row for Accelerator / VC / Enterprise. Persona pages now
-// deep-link to a specific card via `#tier-growth` / `#tier-pro`
-// fragments defined on <PricingMatrix />.
+// 2026-09-07 (Workstream B5) retired the four persona tabs (Founder /
+// Investor / Advisor / Accelerator). 2026-09-10 (G12, T0268) brings back a
+// deliberately smaller switch — two tabs, one per self-serve ladder:
 //
-// resolveSegmentFromTier() is kept as a no-op returning "founder" so the
-// `?tier=` query param (still linked from legacy campaigns + tests) does
-// not 404. VALID_SEGMENTS stays exported for the SSR type contract.
-const VALID_SEGMENTS: readonly Segment[] = [
-  "founder",
-  "investor",
-  "advisor",
-  "accelerator",
-] as const;
-
-function resolveSegmentFromTier(
-  _tier: string | string[] | undefined,
-): Segment {
-  void _tier;
-  void VALID_SEGMENTS;
-  return "founder";
+//   Founder    Free / Starter A$29 / Growth A$69
+//   Evaluator  Scout A$79 / Firm A$149 / Program A$349
+//              (investor_angel / investor_advisor / investor_vc_small)
+//
+// The contact-sales row below the switch stays visible under both tabs.
+// Deep links: `?segment=evaluator` (canonical), plus the legacy `?tab=` and
+// `?tier=` params still linked from older campaigns — any evaluator-shaped
+// value (investor / advisor / accelerator) lands on the Evaluator tab, so
+// none of those links 404 or silently show the wrong ladder. Persona pages
+// keep deep-linking to a card via `#tier-growth` / `#tier-scout` fragments
+// defined on <PricingMatrix />.
+function resolveInitialTab(sp: {
+  segment?: string | string[];
+  tab?: string | string[];
+  tier?: string | string[];
+}): PricingTab {
+  return resolvePricingTab(sp.segment ?? sp.tab ?? sp.tier);
 }
 
 export const metadata: Metadata = {
   title: "Pricing — BlockID.au",
   description:
-    "12-SKU pricing across Founder, Investor, Advisor and Accelerator tiers. Every monthly plan includes a 7-day free trial. Cancel anytime before Day 8 — no charge.",
+    "Founder plans from free (Starter A$29, Growth A$69) and Evaluator plans for investors, advisors and programs (Scout A$79, Firm A$149, Program A$349). Every monthly plan includes a 7-day free trial. Cancel anytime before Day 8 — no charge.",
   alternates: {
     canonical: "https://blockid.au/pricing",
   },
   openGraph: {
     title: "Pricing — BlockID.au",
     description:
-      "12-SKU pricing across Founder, Investor, Advisor and Accelerator tiers. Every monthly plan includes a 7-day free trial.",
+      "Founder plans from free and Evaluator plans (Scout A$79 · Firm A$149 · Program A$349). Every monthly plan includes a 7-day free trial.",
     url: "https://blockid.au/pricing",
     siteName: "BlockID.au",
     type: "website",
@@ -63,7 +65,7 @@ export const metadata: Metadata = {
         url: "/images/logo-full.png",
         width: 1556,
         height: 880,
-        alt: "BlockID.au — 12-SKU pricing matrix with 7-day trial",
+        alt: "BlockID.au — Founder and Evaluator pricing with 7-day trial",
       },
     ],
   },
@@ -71,7 +73,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Pricing — BlockID.au",
     description:
-      "12-SKU pricing across Founder, Investor, Advisor and Accelerator tiers. 7-day trial included.",
+      "Founder plans from free and Evaluator plans (Scout A$79 · Firm A$149 · Program A$349). 7-day trial included.",
     images: ["/images/logo-full.png"],
   },
   robots: { index: true, follow: true },
@@ -94,6 +96,11 @@ const FAQ_JSONLD = [
       "Yes. Upgrade or downgrade any time from Billing settings; prorated changes apply immediately.",
   },
   {
+    question: "Founder or Evaluator — which plans do I see?",
+    answer:
+      "Use the Founder / Evaluator switch above the plans. Founder shows Free, Starter A$29 and Growth A$69. Evaluator shows Scout A$79, Firm A$149 and Program A$349 for investors, advisors, accelerators and programs — each with a 7-day free trial, card required, cancel anytime. Without a subscription, every full Trust BizReport is A$3 per startup.",
+  },
+  {
     question: "What's the refund policy?",
     answer:
       "7-day money-back guarantee on your first paid month. Contact support and we'll process within 3 business days.",
@@ -105,14 +112,16 @@ const FAQ_JSONLD = [
 // ---------------------------------------------------------------------------
 
 interface PricingPageProps {
-  searchParams: Promise<{ tier?: string | string[] }>;
+  searchParams: Promise<{
+    segment?: string | string[];
+    tab?: string | string[];
+    tier?: string | string[];
+  }>;
 }
 
 export default async function PricingPage({ searchParams }: PricingPageProps) {
   const sp = await searchParams;
-  // Kept for the SSR contract; the retired persona segment tabs used to
-  // consume this. See resolveSegmentFromTier() docstring.
-  void resolveSegmentFromTier(sp?.tier);
+  const initialTab = resolveInitialTab(sp ?? {});
   // Founding-50 promo sunset 2026-09-01 (Phase 3b) — the urgency banner
   // that used to live here linked to the (now deleted) /founding-50 route
   // and has been removed outright. `getFoundingPromoState()` still exists
@@ -135,7 +144,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
       <MarketingHero
         eyebrow="Pricing v2.0"
         title="Get fundable in 7 days. Then choose your plan."
-        subtitle="7-day free trial on Starter and Growth. Card required at signup, charged only on Day 8. Cancel anytime before with no charge. Accelerator / VC / Enterprise pilots on request (14-day)."
+        subtitle="7-day free trial on every self-serve plan — Founder (Starter, Growth) or Evaluator (Scout, Firm, Program). Card required at signup, charged only on Day 8. Cancel anytime before with no charge. Cohort / Enterprise pilots on request (14-day)."
         primaryCta={{
           href: "/signup?plan=founder_growth&trial=1",
           label: "Start 7-day free trial",
@@ -181,11 +190,11 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-secondary">
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-action" />
-            7-day free trial on Starter and Growth
+            7-day free trial on every Founder and Evaluator plan
           </span>
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-action" />
-            14-day pilot on request (Accelerator / VC / Enterprise)
+            14-day pilot on request (Cohort / Enterprise)
           </span>
           <span className="inline-flex items-center gap-2">
             <Check aria-hidden="true" className="h-4 w-4 text-action" />
@@ -198,28 +207,26 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         </div>
       </section>
 
-      {/* Universal 3-rung pricing matrix (Free / Starter A$29 / Growth A$69).
-          "Pro" (founder_scale) was retired 2026-09-08 — plans.csv active=false,
-          public:false, Stripe price archived — so the hero no longer offers a
-          trial on it, and the anchor link no longer says "12 plans" when the
-          matrix renders three. `publicPlansForSegment("founder")` is the
-          authority for that count; plans-v2.test.ts pins it.
-          `id="pricing-matrix"` is the anchor target for the hero's
-          secondary text link. Persona segment tabs retired 2026-09-07 —
-          persona pages now deep-link to a specific card via
-          `/pricing#tier-growth` / `#tier-pro` fragments. */}
+      {/* Founder | Evaluator switch (G12, T0268) over the 3-rung ladders.
+          Founder: Free / Starter A$29 / Growth A$69 — "Pro" (founder_scale)
+          retired 2026-09-08. Evaluator: Scout A$79 / Firm A$149 / Program
+          A$349. `publicPlansForSegment()` is the authority for each ladder;
+          plans-v2.test.ts pins both. `id="pricing-matrix"` is the anchor
+          target for the hero's secondary text link; persona pages deep-link
+          to a card via `#tier-growth` / `#tier-scout` fragments. */}
       <section
         id="pricing-matrix"
         aria-label="Pricing matrix"
         className="mx-auto max-w-7xl px-6 py-8 sm:py-12 scroll-mt-24"
       >
-        <PricingMatrix />
+        <PricingSegmentSwitch initialSegment={initialTab} />
       </section>
 
-      {/* Contact-sales row for the tiers that don't fit the self-serve
-          Universal 3-rung ladder — Accelerator cohort, Investor VC, and
-          Enterprise. Each tile prefills /contact with `?plan=<slug>` so
-          the sales team can pick the intent up in one glance. */}
+      {/* Contact-sales row for the tiers that don't fit either self-serve
+          ladder — Accelerator cohorts, VC Enterprise, and multi-entity
+          Enterprise. Rendered under both tabs. Each tile prefills /contact
+          with `?plan=<slug>` so the sales team can pick the intent up in
+          one glance. */}
       <ContactSalesRow />
 
       {/* FAQ */}
@@ -276,12 +283,13 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
 // Contact-sales row
 // ---------------------------------------------------------------------------
 //
-// The public /pricing ladder is deliberately three rungs (Free / Growth /
-// Pro) — every tier that needs a conversation (cohort seats, fund
-// deal-flow, multi-entity enterprise) surfaces below the grid in this
-// row. Each tile links to /contact with `?plan=<slug>` +
-// `?contact_reason=<slug>` prefill so the sales team knows which SKU
-// prompted the enquiry without asking again.
+// Each public ladder is deliberately three rungs — every tier that needs a
+// conversation (cohort seats, funds beyond five seats, multi-entity
+// enterprise) surfaces below the grid in this row, under both tabs. Each
+// tile links to /contact with `?plan=<slug>` + `?contact_reason=<slug>`
+// prefill so the sales team knows which SKU prompted the enquiry without
+// asking again. "Investor VC from A$349" moved onto the Evaluator tab as
+// Program (self-serve) on 2026-09-10; the fund-grade tier here is custom.
 interface ContactSalesTier {
   slug: string;
   label: string;
@@ -298,9 +306,9 @@ const CONTACT_SALES_TIERS: ReadonlyArray<ContactSalesTier> = [
   },
   {
     slug: "investor_vc",
-    label: "Investor VC",
-    price: "from A$349/mo",
-    blurb: "Curated deal flow, portfolio tracking, LP export, team seats.",
+    label: "VC Enterprise",
+    price: "custom",
+    blurb: "Funds beyond 5 seats: multi-fund, custom benchmarks, SSO/SAML, LP reporting suite.",
   },
   {
     slug: "enterprise",
@@ -325,8 +333,9 @@ function ContactSalesRow() {
           Talk to sales for a bespoke fit
         </h2>
         <p className="mt-2 text-sm text-secondary">
-          14-day pilot on request. Every tier below includes a demo call
-          with our founder team.
+          Program A$349 covers most VC teams and accelerators self-serve.
+          Need more seats, cohorts or SSO? 14-day pilot on request — every
+          tier below includes a demo call with our founder team.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

@@ -57,22 +57,27 @@ export interface V3Sku {
 }
 
 /**
- * The A$5.50 inc-GST one-off SKU that unlocks a full Trust Business Report
- * for one business, one time. Ships in Phase 1 as the paywall entry point.
- * §14bis D1: advertise A$5.50 (GST-inclusive) — Stripe booking splits into
- * A$5.00 net + A$0.50 GST via automatic_tax.
+ * The A$3.00 inc-GST one-off SKU that unlocks a full Trust BizReport for one
+ * business, one time. Ships in Phase 1 as the paywall entry point.
+ *
+ * Re-priced in place 2026-09-10 (founder decision D3 / Q-C, G12 §3a): one
+ * price, one story — "A$3 = the full Trust BizReport" everywhere. The SKU id
+ * `sku_trust_report_5aud`, the `revenue_events.kind = "trust_report_5aud"`
+ * and the `report_orders.product_sku` CHECK (migration 0270) are historical
+ * identifiers and MUST NOT be renamed — only the amount, name and labels
+ * changed. Stripe automatic_tax splits A$3.00 into A$2.73 net + A$0.27 GST.
  */
 export const TRUST_REPORT_5AUD: V3Sku = {
   id: "sku_trust_report_5aud",
-  name: "Trust Business Report — one-off",
+  name: "Trust BizReport",
   tier: "trust_report",
-  unit_amount_incl_gst_cents: 550,
+  unit_amount_incl_gst_cents: 300,
   cadence: "one_off",
   credits_per_cycle: 0,
   stripe_managed: true,
   description:
-    "Full 13-area Trust Business Report for one business, valid 90 days. Includes evidence citations, 30/60/90-day plan, PDF+DOCX export, share link with trust badge.",
-  display_price_label: "A$5.50 inc-GST",
+    "Full 13-area Trust BizReport for one business, valid 90 days. 8-dimension SVI score, AUD valuation range with methods, evidence citations, 30/60/90-day plan, PDF+DOCX export, share link with trust badge.",
+  display_price_label: "A$3.00 inc-GST",
 };
 
 /**

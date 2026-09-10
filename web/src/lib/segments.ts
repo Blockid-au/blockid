@@ -176,9 +176,11 @@ const PLAN_LABELS: Record<PlanTier, string> = {
   growth: "Growth",
   scale: "Scale",
   enterprise: "Enterprise",
-  angel: "Angel",
-  advisor: "Advisor",
-  vc_small: "VC (Small)",
+  // G12 (2026-09-10, T0268): the self-serve investor tiers are sold as the
+  // Evaluator ladder — Scout / Firm / Program. Tier keys are frozen.
+  angel: "Scout",
+  advisor: "Firm",
+  vc_small: "Program",
   vc_ent: "VC (Enterprise)",
   accel_starter: "Accelerator Starter",
   accel_growth: "Accelerator Growth",

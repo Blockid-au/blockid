@@ -921,7 +921,9 @@ export async function POST(request: Request) {
   // Stage 3 Batch A sub-task A1 · Master Upgrade Plan §8.4.
   //
   // Fires when /api/reports/checkout has minted a Stripe Checkout Session
-  // for the A$5.50 inc-GST Trust Business Report SKU. Two happy paths:
+  // for the A$3 inc-GST Trust BizReport SKU (`sku_trust_report_5aud` — the
+  // id is historical; re-priced A$5.50 → A$3 in place 2026-09-10, D3). Two
+  // happy paths:
   //
   //   1. The row already exists (checkout route succeeded end-to-end) →
   //      guarded UPDATE flips CHECKOUT_INITIATED/PAYMENT_PENDING → PAID.
@@ -995,7 +997,7 @@ export async function POST(request: Request) {
       // the queue drain can still generate the report the user paid
       // for. product_sku is trusted from metadata (server-authored by
       // the checkout route) so we do not accept a client-supplied SKU.
-      const amountCents = session.amount_total ?? 550;
+      const amountCents = session.amount_total ?? 300;
       const insertMetadata: Record<string, unknown> = {
         sku,
         first_touch: session.metadata?.bid_first_touch ?? "",

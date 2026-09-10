@@ -12,7 +12,8 @@
  *                every time.
  * Core outcome:  Be discovered. Be understood. Be trusted.
  * Primary CTA:   Claim Your Founding Spot (A$5)
- * Secondary CTA: See a sample Trust Report (A$5.50)  ← D1 GST-inclusive
+ * Secondary CTA: See a sample Trust BizReport (A$3)  ← D1 GST-inclusive,
+ *                re-priced A$5.50 → A$3 in place 2026-09-10 (D3)
  *
  * Signed-in context (persistent SSO §8.9): parent server component reads
  * the Supabase session and passes `signedInHref` — when present the primary
@@ -83,7 +84,7 @@ export function HeroV3({
             href={sampleReportHref}
             className="inline-flex h-12 items-center justify-center rounded-xl border border-white/15 bg-white/[0.03] px-6 text-sm font-medium text-[var(--fintech-ink)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--fintech-accent)]/60 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary)]"
           >
-            See a sample Trust Report (A$5.50)
+            See a sample Trust BizReport (A$3)
           </Link>
         </div>
 

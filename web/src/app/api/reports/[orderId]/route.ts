@@ -2,7 +2,7 @@
  * GET /api/reports/[orderId] — Trust Business Report delivery.
  *
  * Master Upgrade Plan §8.4 + §8.7. This is the missing half of the
- * paywall: `/api/reports/checkout` (A$5.50 inc-GST) and
+ * paywall: `/api/reports/checkout` (A$3 inc-GST) and
  * `/api/reports/redeem` (credits) take the money and hand back an
  * `orderId`; the drain cron generates the artifact and parks it in
  * `assembled_reports`. Until this route existed a paying customer had
@@ -42,7 +42,7 @@
  *
  * ── Exports ───────────────────────────────────────────────────────────
  *
- * §8.7 sells PDF + DOCX as part of the A$5.50 deliverable, so the export
+ * §8.7 sells PDF + DOCX as part of the A$3 deliverable, so the export
  * formats hang off this same owner-scoped, status-gated route rather than
  * a second endpoint with its own auth to get wrong. Both reuse the
  * existing renderers (`@/lib/pdf/svi-report-pdf`, `@/lib/docx/svi-report-docx`).

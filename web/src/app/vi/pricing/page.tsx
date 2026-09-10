@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Building2, Check } from "lucide-react";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { FAQV2 } from "@/components/landing/faq-v2";
-import { SegmentTabs } from "@/components/landing/segment-tabs";
-import { PricingMatrix } from "@/components/landing/pricing-matrix";
+import {
+  PricingSegmentSwitch,
+  resolvePricingTab,
+} from "@/components/landing/pricing-segment-switch";
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
@@ -77,8 +79,18 @@ const FAQ_JSONLD_VI = [
   },
 ];
 
-export default async function ViPricingPage() {
+interface ViPricingPageProps {
+  searchParams: Promise<{
+    segment?: string | string[];
+    tab?: string | string[];
+    tier?: string | string[];
+  }>;
+}
+
+export default async function ViPricingPage({ searchParams }: ViPricingPageProps) {
   const m = await getMessages("vi");
+  const sp = await searchParams;
+  const initialTab = resolvePricingTab(sp?.segment ?? sp?.tab ?? sp?.tier);
 
   return (
     <MarketingShell>
@@ -111,15 +123,21 @@ export default async function ViPricingPage() {
         </div>
       </section>
 
-      {/* SegmentTabs + PricingMatrix — SKU names/prices are proper nouns
-          (AUD), so we do NOT localise them. */}
+      {/* Founder | Evaluator switch (G12, T0268) — same two ladders as
+          /pricing. SKU names/prices are proper nouns (AUD), so we do NOT
+          localise them; only the two tab labels are Vietnamese. */}
       <section
+        id="pricing-matrix"
         aria-label="Bảng giá theo phân khúc"
-        className="mx-auto max-w-7xl px-6 py-8 sm:py-12"
+        className="mx-auto max-w-7xl px-6 py-8 sm:py-12 scroll-mt-24"
       >
-        <SegmentTabs>
-          <PricingMatrix />
-        </SegmentTabs>
+        <PricingSegmentSwitch
+          initialSegment={initialTab}
+          labels={{
+            founder: { label: "Nhà sáng lập", sub: "Xây dựng, định giá, gọi vốn" },
+            evaluator: { label: "Nhà đánh giá", sub: "Nhà đầu tư · cố vấn · chương trình" },
+          }}
+        />
       </section>
 
       <section
