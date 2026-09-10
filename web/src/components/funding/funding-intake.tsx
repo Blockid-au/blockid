@@ -42,9 +42,19 @@ import { FundingPaywall, type PaywallRail } from "./funding-paywall";
 export interface FundingIntakeProps {
   openGrantCount: number;
   openProgramCount: number;
+  /**
+   * Server-side prefill (T0244 /workspace/funding): values from `projects`,
+   * `project_grant_profiles` and the latest SVI snapshot. URL prefill still
+   * wins for the fields it names.
+   */
+  initial?: FundingIntakePrefill;
+  /** Attach the generated report to this startup (`funding_reports.project_id`). */
+  projectId?: string | null;
+  /** Workspace variant: shorter heading, no "no signup" line. */
+  variant?: "public" | "workspace";
 }
 
-interface FormState {
+export interface FormState {
   description: string;
   state: IntakeState | "";
   based_state: string;
@@ -74,6 +84,19 @@ const EMPTY: FormState = {
 
 const FIELD =
   "w-full rounded-lg border border-line-subtle bg-surface px-3 py-2.5 text-sm text-primary placeholder:text-tertiary focus:border-action focus:outline-none focus:ring-2 focus:ring-action/30";
+
+/** Serialisable subset a server page can hand the form. */
+export type FundingIntakePrefill = Partial<
+  Pick<FormState, "description" | "state" | "based_state" | "stage" | "industry_tags" | "turnover_aud" | "rd_spend_aud" | "incorporated_year" | "headcount" | "export_intent">
+> & { toggles?: Partial<FormState["toggles"]> };
+
+/** Merge a server prefill over the empty form. Exported for tests. */
+export function initialForm(initial?: FundingIntakePrefill): FormState {
+  if (!initial) return EMPTY;
+  const { toggles, ...rest } = initial;
+  const clean = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined && v !== null)) as Partial<FormState>;
+  return { ...EMPTY, ...clean, toggles: { ...EMPTY.toggles, ...(toggles ?? {}) } };
+}
 
 /** Build the intake body the API expects from the form state. Exported for tests. */
 export function toIntakeBody(f: FormState): Record<string, unknown> {
@@ -109,8 +132,8 @@ export function prefillFromSearch(search: string): Partial<FormState> {
   return out;
 }
 
-export function FundingIntake({ openGrantCount, openProgramCount }: FundingIntakeProps) {
-  const [form, setForm] = React.useState<FormState>(EMPTY);
+export function FundingIntake({ openGrantCount, openProgramCount, initial, projectId, variant = "public" }: FundingIntakeProps) {
+  const [form, setForm] = React.useState<FormState>(() => initialForm(initial));
   const [drawer, setDrawer] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -148,7 +171,7 @@ export function FundingIntake({ openGrantCount, openProgramCount }: FundingIntak
     if (!canSubmit) return;
     setLoading(true);
     setError(null);
-    const body = toIntakeBody(form);
+    const body = projectId ? { ...toIntakeBody(form), project_id: projectId } : toIntakeBody(form);
     try {
       const res = await fetch("/api/funding/preview", {
         method: "POST",
@@ -177,15 +200,19 @@ export function FundingIntake({ openGrantCount, openProgramCount }: FundingIntak
   }
 
   return (
-    <section id="intake" className="mx-auto max-w-5xl px-6 py-12" aria-labelledby="funding-intake-heading">
+    <section id="intake" className={variant === "workspace" ? "" : "mx-auto max-w-5xl px-6 py-12"} aria-labelledby="funding-intake-heading">
       <div className="rounded-2xl border border-line-subtle bg-surface-raised p-6 shadow-sm sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-action">Three questions · free preview</p>
         <h2 id="funding-intake-heading" className="mt-1 font-display text-2xl font-semibold text-primary sm:text-3xl">
           What could you apply for this year?
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-secondary">
-          {openGrantCount} grants and {openProgramCount} programs are open right now. Tell us three things and
-          we match them to you — the list is free, the analysis is A$3.
+          {openGrantCount} grants and {openProgramCount} programs are open right now.{" "}
+          {variant === "workspace"
+            ? initial && (initial.description || initial.state || initial.stage)
+              ? "We prefilled what we know about this startup — check it and run the match."
+              : "Tell us three things and we match them to this startup."
+            : "Tell us three things and we match them to you — the list is free, the analysis is A$3."}
         </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-5" noValidate data-funding-intake>
@@ -382,7 +409,9 @@ export function FundingIntake({ openGrantCount, openProgramCount }: FundingIntak
             >
               {loading ? "Matching…" : preview ? "Update my preview" : "Show my matches — free"}
             </button>
-            <span className="text-xs text-tertiary">No signup. Nothing is stored until you buy a report.</span>
+            <span className="text-xs text-tertiary">
+              {variant === "workspace" ? "The preview is free — the full report is A$3 (3 credits) or included in Starter." : "No signup. Nothing is stored until you buy a report."}
+            </span>
           </div>
         </form>
       </div>

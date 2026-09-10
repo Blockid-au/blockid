@@ -31,6 +31,20 @@ describe("prefillFromSearch", () => {
   });
 });
 
+describe("initialForm", () => {
+  it("merges a server prefill over the empty form, ignoring null / undefined and merging toggles", async () => {
+    const { initialForm } = await import("./funding-intake");
+    const f = initialForm({ description: "Acme", state: "NSW", stage: "mvp", turnover_aud: undefined, headcount: null as unknown as string, toggles: { women_led: true } });
+    expect(f.description).toBe("Acme");
+    expect(f.state).toBe("NSW");
+    expect(f.stage).toBe("mvp");
+    expect(f.turnover_aud).toBe("");
+    expect(f.headcount).toBe("");
+    expect(f.toggles).toEqual({ women_led: true, indigenous_owned: false, regional: false, under_30: false });
+    expect(initialForm(undefined).description).toBe("");
+  });
+});
+
 describe("toIntakeBody", () => {
   it("flattens toggles, nulls blank numbers and only sends based_state when not incorporated", () => {
     const body = toIntakeBody({

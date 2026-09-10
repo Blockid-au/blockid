@@ -1,8 +1,11 @@
-// Render test for the minimal /funding/report/[id] page (T0242; T0244
-// restyles it). Pins: 404 for an unauthorised viewer, and for a ready report
-// the ranked grants (fit score, A$, status chip, ✓/✗/? checklist, official
-// link), programs, month-grouped timeline, narrative, both disclaimers and
-// the Founder Radar upsell.
+// Render test for /funding/report/[id] (T0242 minimal view → T0244 full
+// view). Pins: 404 for an unauthorised viewer; for a ready report the header
+// (summary, state / stage chips, generated + verified dates in AEST), the
+// ranked grant cards (fit score bar, A$, RDStatus deadline chip, ✓/✗/?
+// checklist, "Why you", official link), the SVG Gantt + table twin, the
+// next-3 actions, narrative, both disclaimers and the Founder Radar upsell;
+// guest-vs-owner differences (ICS / draft links, Download PDF / Save to data
+// room only for the signed-in owner).
 
 import type React from "react";
 import { renderToReadableStream } from "react-dom/server";
@@ -92,36 +95,56 @@ beforeEach(() => {
   notFoundMock.mockClear();
 });
 
-describe("/funding/report/[id] (T0242 minimal view)", () => {
+describe("/funding/report/[id] (T0244 full view)", () => {
   it("404s for a viewer with no token / session / ownership", async () => {
     await expect(html()).rejects.toThrow("NEXT_NOT_FOUND");
     expect(notFoundMock).toHaveBeenCalled();
   });
 
-  it("renders the ranked grant with score, A$, chip, checklist glyphs and the official link", async () => {
+  it("renders the header, the ranked grant card with score bar, deadline chip, checklist, why-you and the official link (guest token)", async () => {
     const out = await html({ t: "tok_secret" });
     expect(out).toContain('data-status="ready"');
     expect(out).toContain("1 grants and 0 programs, ranked for you");
+    // Header: startup summary + state / stage chips + dates in AEST.
+    expect(out).toContain("Soil sensors for grain farmers");
+    expect(out).toContain("New South Wales");
+    expect(out).toContain(">MVP<");
     expect(out).toContain("NSW · MVP · Agtech / food");
+    expect(out).toContain("Generated 10 Sep 2026, 10:00 AEST");
+    expect(out).toContain("Catalogue verified as of 10 Sep 2026");
+    // Card.
     expect(out).toContain("#1 · fit 82/100");
+    expect(out).toContain('data-score="82"');
+    expect(out).toContain('aria-valuenow="82"');
     expect(out).toContain("A$25,000 – A$75,000");
     expect(out).toContain("est. A$43,500 for you");
-    expect(out).toContain('data-status="open"');
-    expect(out).toContain("closes 30 Nov 2026");
+    expect(out).toContain('data-deadline-status="open"');
+    expect(out).toContain("Closes 30 Nov 2026");
     expect(out).toContain("✓");
     expect(out).toContain("✗");
     expect(out).toContain("?</span>");
+    expect(out).toContain("Why you: </span>Fits MVP stage in NSW.");
     expect(out).toContain('href="https://www.investment.nsw.gov.au/mvp"');
     expect(out).toContain("Up to <strong>A$75,000</strong>");
+    // Guest: no calendar / draft links, no owner buttons.
+    expect(out).not.toContain("data-ics");
+    expect(out).not.toContain("data-draft");
+    expect(out).not.toContain("data-report-owner-actions");
   });
 
-  it("renders next actions, the month-grouped timeline, the narrative and both disclaimers + upsell", async () => {
+  it("renders next actions, the SVG Gantt + table twin, the narrative and both disclaimers + upsell", async () => {
     const out = await html({ s: "cs_live_1" });
-    expect(out).toContain("Next 3 actions");
+    expect(out).toContain("Your next 3 actions");
     expect(out).toContain("Lodge the MVP Ventures EOI");
-    expect(out).toContain("October 2026");
-    expect(out).toContain("February 2027");
-    expect(out).toContain("deadline 2026-11-30");
+    expect(out).toContain('data-timeline-gantt');
+    expect(out).toContain('data-bars="3"');
+    expect(out).toContain("data-today-marker");
+    expect(out).toContain('data-month="2026-09"');
+    expect(out).toContain('fill="var(--gantt-grant)"');
+    expect(out).toContain('fill="var(--gantt-tax)"');
+    expect(out).toContain('fill="var(--gantt-program)"');
+    expect(out).toContain("data-timeline-table");
+    expect(out).toContain("30 Nov 2026 (AEST)");
     expect(out).toContain("Where you stand");
     expect(out).toContain("<strong>MVP</strong>");
     expect(out).toContain("data-funding-disclaimer");
@@ -164,6 +187,25 @@ describe("/funding/report/[id] (T0242 minimal view)", () => {
     const out = await html({ t: "tok_secret" });
     expect(out).toContain('data-variant="generic"');
     expect(out).toContain("Deadlines move and new rounds open through the year.");
+  });
+
+  it("gives the signed-in owner the PDF / data-room buttons and the ICS + draft links", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "user-1" });
+    getFundingReportMock.mockResolvedValue({ ...ROW, user_id: "user-1", project_id: "proj-1" });
+    const out = await html();
+    expect(out).toContain("data-report-owner-actions");
+    expect(out).toContain(`href="/api/funding/report/${ID}/pdf"`);
+    expect(out).toContain("Save to data room");
+    expect(out).toContain(`href="/api/funding/calendar.ics?report=${ID}&amp;ref=g1"`);
+    expect(out).toContain('href="/workspace/funding?draft=g1&amp;kind=grant"');
+    expect(out).toContain("Draft application (credits)");
+  });
+
+  it("signed-in non-owner viewing via token gets the links but not the owner buttons", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "user-9" });
+    const out = await html({ t: "tok_secret" });
+    expect(out).toContain("data-ics");
+    expect(out).not.toContain("data-report-owner-actions");
   });
 
   it("shows the 'being prepared' state while the webhook is still generating", async () => {

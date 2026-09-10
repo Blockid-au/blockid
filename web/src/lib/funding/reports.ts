@@ -362,11 +362,14 @@ export interface PublicFundingReport {
   meta: FundingReportMeta | null;
   disclaimer: string;
   is_owner: boolean;
+  /** Owner only — the startup the report was generated for (drives save-to-data-room). Null for guests. */
+  project_id: string | null;
 }
 
 /** Strip secrets (token, email, Stripe ids) before the row leaves the server. */
 export function publicFundingReport(row: FundingReportRow, viewer: ViewerContext): PublicFundingReport {
   const parsed = parseFundingIntake(row.intake);
+  const isOwner = Boolean(viewer.userId && row.user_id && viewer.userId === row.user_id);
   return {
     id: row.id,
     status: row.status,
@@ -379,6 +382,7 @@ export function publicFundingReport(row: FundingReportRow, viewer: ViewerContext
     narrative_md: row.narrative_md ?? null,
     meta: (row.meta as FundingReportMeta | null) ?? null,
     disclaimer: FUNDING_DISCLAIMER,
-    is_owner: Boolean(viewer.userId && row.user_id && viewer.userId === row.user_id),
+    is_owner: isOwner,
+    project_id: isOwner ? (row.project_id ?? null) : null,
   };
 }

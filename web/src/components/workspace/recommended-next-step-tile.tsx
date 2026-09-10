@@ -8,7 +8,9 @@
 //
 // Renders: sparkle icon, one-line title, one-line reason
 // ("Because you're at Phase N: …"), single primary CTA button that
-// links to the recommended href. Emits GA4 event `nav.rec_next_step.click`
+// links to the recommended href, and — when the phase map carries a
+// `secondary` step (phases 1–3 → Money Finder, G11 T0244) — one small
+// second line under the CTA. Emits GA4 event `nav.rec_next_step.click`
 // when the CTA is pressed. Includes `data-testid="rec-next-step"`.
 //
 // The tile is intentionally tiny (single row on collapsed sidebar, three
@@ -114,6 +116,9 @@ export function RecommendedNextStepTile({
   const ctaLabel = remote?.cta_label ?? fallback.ctaLabel;
   const reason = remote?.reason ?? reasonForPhase(currentPhase);
   const Icon = ICON_MAP[fallback.icon] ?? Sparkles;
+  // The secondary line comes from the phase map only; it is still shown
+  // when the remote nudge is used unless the nudge already points there.
+  const secondary = fallback.secondary && fallback.secondary.href !== href ? fallback.secondary : null;
 
   const handleClick = React.useCallback(() => {
     // Fire GA4 event non-blocking; guard against no-analytics envs.
@@ -181,6 +186,16 @@ export function RecommendedNextStepTile({
       >
         {ctaLabel}
       </Link>
+      {secondary ? (
+        <Link
+          href={secondary.href}
+          data-testid="rec-next-step-secondary"
+          title={secondary.reason}
+          className="mt-1.5 block truncate text-center text-[11px] font-medium text-brand-700/90 underline-offset-2 hover:underline dark:text-brand-100/80"
+        >
+          {secondary.label} →
+        </Link>
+      ) : null}
     </div>
   );
 }

@@ -15,11 +15,24 @@
 
 import { PHASE_LABELS } from "@/lib/showcase/gallery";
 
+export interface SecondaryNextStep {
+  href: string;
+  label: string;
+  reason: string;
+}
+
 export interface RecommendedNextStep {
   href: string;
   label: string;
   reason: string;
   ctaLabel: string;
+  /**
+   * Optional second line under the primary CTA (G11 T0244, plan §4f): the
+   * Money Finder nudge for phases 1–3, where non-dilutive money should be
+   * checked before any equity conversation. Rendered small; never replaces
+   * the primary step.
+   */
+  secondary?: SecondaryNextStep;
   /** Lucide icon name — resolved to a real component in the client tile. */
   icon:
     | "sparkles"
@@ -97,6 +110,14 @@ const SEGMENT_STEPS: Record<string, RecommendedNextStep> = {
   },
 };
 
+// Secondary nudge for the idea → validation → discovery phases: grants and
+// programs first, equity later. Sidebar leaf: Validate › Discover.
+export const MONEY_FINDER_SECONDARY: SecondaryNextStep = {
+  href: "/workspace/funding",
+  label: "Find non-dilutive money first",
+  reason: "Grants and programs you already qualify for, before you sell equity",
+};
+
 // Phase 1..12 → step. Mirrors the group order in NAV_GROUPS so a user's
 // next recommended action always points inside a group they can also reach
 // via the sidebar (no dead-end deep-links).
@@ -107,6 +128,7 @@ const PHASE_TO_STEP: Record<number, RecommendedNextStep> = {
     reason: "Frame the problem before building",
     ctaLabel: "Start evaluation",
     icon: "sparkles",
+    secondary: MONEY_FINDER_SECONDARY,
   },
   2: {
     href: "/workspace/evidence",
@@ -114,6 +136,7 @@ const PHASE_TO_STEP: Record<number, RecommendedNextStep> = {
     reason: "Validation gets measurable when you upload proof",
     ctaLabel: "Add evidence",
     icon: "file-text",
+    secondary: MONEY_FINDER_SECONDARY,
   },
   3: {
     href: "/workspace/knowledge-base",
@@ -121,6 +144,7 @@ const PHASE_TO_STEP: Record<number, RecommendedNextStep> = {
     reason: "The Knowledge Base builds your market thesis",
     ctaLabel: "Open Knowledge Base",
     icon: "map",
+    secondary: MONEY_FINDER_SECONDARY,
   },
   4: {
     href: "/workspace/metrics",

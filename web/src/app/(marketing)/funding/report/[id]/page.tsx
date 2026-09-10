@@ -1,33 +1,39 @@
 /**
- * /funding/report/[id] — paid Money Finder report (T0242 minimal view;
- * T0244 restyles it with the SVG Gantt, DOCX/PDF and save-to-data-room).
+ * /funding/report/[id] — paid Money Finder report (T0242 minimal view →
+ * T0244 full view: SVG Gantt, PDF, save-to-data-room, RDStatus deadline chips).
  *
  * Access mirrors GET /api/funding/report/[id]: signed-in owner, emailed
  * `?t=<access_token>`, or the Stripe `?s=<session>` success redirect. Any
  * other visitor gets a 404. Dynamic (reads cookies + query) and never cached.
  *
- * Renders: ranked grants (name, A$, status/deadline chip, checklist ✓ / ✗ / ?,
- * official link), programs, the timeline as a month list, the narrative
- * markdown, the §5f disclaimer via `FUNDING_DISCLAIMER` + `FundingDisclaimer`,
- * and the Founder Radar upsell (`RadarUpsellCard`, T0247 — copy computed
- * from the report's own timeline).
+ * Layout (plan §4f / §4i D-4):
+ *   header — startup summary from the intake, state / stage chips, generated
+ *            date and "verified as of" date (AEST/AWST per state)
+ *   owner bar — Download PDF · Save to data room (signed-in owner only)
+ *   "Your next 3 actions" · ranked grant cards · programs · 12-month SVG
+ *   Gantt (+ table twin) · narrative markdown · FUNDING_DISCLAIMER +
+ *   FundingDisclaimer · Founder Radar upsell (`RadarUpsellCard`, T0247, copy from the timeline).
  */
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import Markdown from "react-markdown";
-import { ExternalLink } from "lucide-react";
+import { CalendarClock, MapPin, Sprout } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { StatusChip } from "@/components/funding/status-chip";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { FundingReportTracker } from "@/components/funding/funding-report-tracker";
+import { ReportGrantCard, ReportProgramCard, type ReportCardContext } from "@/components/funding/report-cards";
+import { ReportOwnerActions } from "@/components/funding/report-owner-actions";
 import { RadarUpsellCard } from "@/components/funding/radar-upsell-card";
+import { TimelineGantt, TimelineTable } from "@/components/funding/timeline-gantt";
 import { getCurrentUser } from "@/lib/auth";
 import { canViewFundingReport, getFundingReport, publicFundingReport } from "@/lib/funding/reports";
-import { describeIntake } from "@/lib/funding/intake";
+import { describeIntake, INTAKE_STAGES, NOT_INCORPORATED, STATE_OPTIONS } from "@/lib/funding/intake";
+import { formatAudCompact, latestVerifiedAt } from "@/lib/funding/directory";
 import { computeRadarUpsellFacts, radarViewerKind } from "@/lib/funding/radar-upsell";
-import { formatAudCompact, formatAudRange, latestVerifiedAt } from "@/lib/funding/directory";
-import { FUNDING_DISCLAIMER, type EligibilityCheck, type TimelineItem } from "@/lib/agents/grant-advisor";
+import { formatDateAu, formatDateTimeAu } from "@/lib/funding/deadline-status";
+import { FUNDING_DISCLAIMER } from "@/lib/agents/grant-advisor";
 
 export const dynamic = "force-dynamic";
 
@@ -62,18 +68,56 @@ export default async function FundingReportPage({
     ...report.programs.map((p) => p.program),
   ]);
   const summary = report.meta?.summary;
+  const intake = report.intake;
+  const stateForTz = intake ? (intake.state === NOT_INCORPORATED ? intake.based_state ?? null : intake.state) : null;
+  const stateLabel = intake
+    ? intake.state === NOT_INCORPORATED
+      ? intake.based_state
+        ? `Based in ${STATE_OPTIONS.find((o) => o.value === intake.based_state)?.label ?? intake.based_state} · not incorporated`
+        : "Not incorporated yet"
+      : STATE_OPTIONS.find((o) => o.value === intake.state)?.label ?? intake.state
+    : null;
+  const stageLabel = intake ? INTAKE_STAGES.find((s) => s.value === intake.stage)?.label ?? intake.stage : null;
+  const today = report.meta?.today ? new Date(`${report.meta.today}T00:00:00Z`) : new Date(report.created_at);
+  const ctx: ReportCardContext = { reportId: report.id, signedIn: Boolean(user), today };
+  const actions = (report.meta?.actions ?? []).slice(0, 3);
 
   return (
     <MarketingShell>
       <FundingReportTracker reportId={report.id} paidVia={(report.paid_via as "one_off" | "credits" | "plan" | null) ?? "one_off"} />
       <article className="mx-auto max-w-5xl px-6 py-12" data-funding-report data-status={report.status}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-action">Money Finder report</p>
-        <h1 className="mt-1 font-display text-3xl font-semibold text-primary">
-          {ready && summary
-            ? `${summary.grant_count} grants and ${summary.program_count} programs, ranked for you`
-            : "Your report is being prepared"}
-        </h1>
-        {report.intake ? <p className="mt-2 text-sm text-secondary">{describeIntake(report.intake)}</p> : null}
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <header>
+          <p className="text-xs font-semibold uppercase tracking-wide text-action">Money Finder report</p>
+          <h1 className="mt-1 font-display text-3xl font-semibold text-primary">
+            {ready && summary
+              ? `${summary.grant_count} grants and ${summary.program_count} programs, ranked for you`
+              : "Your report is being prepared"}
+          </h1>
+          {intake ? (
+            <p className="mt-3 max-w-3xl text-base text-secondary" data-startup-summary>
+              {intake.description}
+            </p>
+          ) : null}
+          {intake ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs" data-intake-chips>
+              <span className="inline-flex items-center gap-1 rounded-full border border-line-subtle bg-surface-raised px-2.5 py-1 font-semibold text-primary">
+                <MapPin className="h-3 w-3 text-action" aria-hidden /> {stateLabel}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-line-subtle bg-surface-raised px-2.5 py-1 font-semibold text-primary">
+                <Sprout className="h-3 w-3 text-bull" aria-hidden /> {stageLabel}
+              </span>
+              <span className="sr-only">{describeIntake(intake)}</span>
+            </div>
+          ) : null}
+          <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-tertiary" data-report-dates>
+            <span className="inline-flex items-center gap-1">
+              <CalendarClock className="h-3.5 w-3.5" aria-hidden /> Generated {formatDateTimeAu(report.meta?.generated_at ?? report.created_at, stateForTz)}
+            </span>
+            <span>Catalogue verified as of {formatDateAu(verified, stateForTz, { withZone: false })}</span>
+          </p>
+          {report.is_owner && ready ? <ReportOwnerActions reportId={report.id} projectId={report.project_id} className="mt-5" /> : null}
+        </header>
 
         {!ready ? (
           <section className="mt-8 rounded-2xl border border-line-subtle bg-surface-sunken p-6 text-sm text-secondary">
@@ -92,64 +136,46 @@ export default async function FundingReportPage({
         ) : (
           <>
             {summary && summary.top_grants_amount_max_aud > 0 ? (
-              <p className="mt-4 text-lg text-primary">
+              <p className="mt-6 text-lg text-primary">
                 Up to <strong>{formatAudCompact(summary.top_grants_amount_max_aud)}</strong> across your top five grants
                 {summary.timeline_count ? ` · ${summary.timeline_count} dated actions over the next 12 months` : ""}.
               </p>
             ) : null}
 
-            {report.meta?.actions?.length ? (
+            {/* ── Next 3 actions ─────────────────────────────────────── */}
+            {actions.length ? (
               <section className="mt-8 rounded-2xl border border-action/40 bg-surface-raised p-6" aria-labelledby="fr-actions">
-                <h2 id="fr-actions" className="text-lg font-semibold text-primary">Next 3 actions</h2>
-                <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-secondary">
-                  {report.meta.actions.slice(0, 3).map((a) => (
-                    <li key={a}>{a}</li>
+                <h2 id="fr-actions" className="text-lg font-semibold text-primary">Your next 3 actions</h2>
+                <ol className="mt-3 space-y-2 text-sm text-secondary">
+                  {actions.map((a, i) => (
+                    <li key={a} className="flex items-start gap-3">
+                      <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-action text-[11px] font-bold text-on-action" aria-hidden>
+                        {i + 1}
+                      </span>
+                      <span>{a}</span>
+                    </li>
                   ))}
                 </ol>
               </section>
             ) : null}
 
+            {/* ── Grants ─────────────────────────────────────────────── */}
             <section className="mt-10" aria-labelledby="fr-grants">
               <h2 id="fr-grants" className="text-2xl font-semibold text-primary">Grants, ranked</h2>
               {report.grants.length === 0 ? (
-                <p className="mt-2 text-sm text-secondary">No grant passed every hard gate for this profile. The free directory still lists every open scheme.</p>
+                <p className="mt-2 text-sm text-secondary">
+                  No grant passed every hard gate for this profile. The{" "}
+                  <Link href="/funding/grants" className="font-semibold text-action">free directory</Link> still lists every open scheme.
+                </p>
               ) : null}
               <ol className="mt-4 space-y-4">
                 {report.grants.map((g, i) => (
-                  <li key={g.ref_id} className="rounded-2xl border border-line-subtle bg-surface p-5" data-grant={g.ref_id}>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-tertiary">
-                          #{i + 1} · fit {g.score}/100
-                        </p>
-                        <h3 className="text-lg font-semibold text-primary">{g.name}</h3>
-                        <p className="text-sm text-secondary">
-                          {formatAudRange(g.grant.amount_min_aud, g.grant.amount_max_aud, g.grant.amount_note)}
-                          {typeof g.estimate_aud === "number" ? ` · est. ${formatAudCompact(g.estimate_aud)} for you` : ""}
-                        </p>
-                      </div>
-                      <StatusChip
-                        status={g.effective_status}
-                        closes_at={g.next_window.closes_at ?? g.grant.closes_at}
-                        next_round_note={g.next_window.label}
-                      />
-                    </div>
-                    {g.estimate_note ? <p className="mt-2 text-xs text-tertiary">{g.estimate_note}</p> : null}
-                    <Checklist items={g.eligibility_checklist} />
-                    {g.why.length ? <p className="mt-3 text-sm text-secondary">{g.why.join(" ")}</p> : null}
-                    <a
-                      href={g.grant.official_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-action"
-                    >
-                      Official page <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                    </a>
-                  </li>
+                  <ReportGrantCard key={g.ref_id} g={g} rank={i + 1} ctx={ctx} />
                 ))}
               </ol>
             </section>
 
+            {/* ── Programs ───────────────────────────────────────────── */}
             <section className="mt-10" aria-labelledby="fr-programs">
               <h2 id="fr-programs" className="text-2xl font-semibold text-primary">Programs</h2>
               {report.programs.length === 0 ? (
@@ -157,43 +183,24 @@ export default async function FundingReportPage({
               ) : null}
               <ol className="mt-4 space-y-4">
                 {report.programs.map((p, i) => (
-                  <li key={p.ref_id} className="rounded-2xl border border-line-subtle bg-surface p-5" data-program={p.ref_id}>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-tertiary">
-                          #{i + 1} · fit {p.score}/100 · {p.program.city}
-                        </p>
-                        <h3 className="text-lg font-semibold text-primary">{p.name}</h3>
-                        <p className="text-sm text-secondary">
-                          {p.program.funding_aud ? `${formatAudCompact(p.program.funding_aud)} funding` : "No cash"}
-                          {p.program.equity_pct ? ` · ${p.program.equity_pct} equity` : ""}
-                          {p.program.length_weeks ? ` · ${p.program.length_weeks} weeks` : ""}
-                        </p>
-                      </div>
-                      <StatusChip
-                        status={p.effective_status}
-                        applications_close={p.next_window.closes_at ?? p.program.applications_close}
-                        next_round_note={p.next_window.label}
-                      />
-                    </div>
-                    <Checklist items={p.eligibility_checklist} />
-                    {p.why.length ? <p className="mt-3 text-sm text-secondary">{p.why.join(" ")}</p> : null}
-                    <a
-                      href={p.program.official_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-action"
-                    >
-                      Official page <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                    </a>
-                  </li>
+                  <ReportProgramCard key={p.ref_id} p={p} rank={i + 1} ctx={ctx} />
                 ))}
               </ol>
             </section>
 
+            {/* ── Timeline ───────────────────────────────────────────── */}
             <section className="mt-10" aria-labelledby="fr-timeline">
               <h2 id="fr-timeline" className="text-2xl font-semibold text-primary">12-month timeline</h2>
-              <Timeline items={report.timeline} />
+              <p className="mt-1 text-sm text-secondary">
+                Each bar runs from the month to start work to the deadline. Hover a bar for the lead time.
+              </p>
+              <div className="mt-4 rounded-2xl border border-line-subtle bg-surface p-4">
+                <TimelineGantt items={report.timeline} today={report.meta?.today ?? report.created_at} state={stateForTz} />
+              </div>
+              <details className="mt-3 text-sm">
+                <summary className="cursor-pointer font-semibold text-secondary">Show as a table</summary>
+                <TimelineTable items={report.timeline} state={stateForTz} className="mt-3" />
+              </details>
             </section>
 
             {report.narrative_md ? (
@@ -226,62 +233,4 @@ export default async function FundingReportPage({
       </article>
     </MarketingShell>
   );
-}
-
-const CHECK_GLYPH: Record<EligibilityCheck["status"], { glyph: string; cls: string }> = {
-  pass: { glyph: "✓", cls: "text-bull" },
-  fail: { glyph: "✗", cls: "text-bear" },
-  unknown: { glyph: "?", cls: "text-warn" },
-};
-
-function Checklist({ items }: { items: EligibilityCheck[] }) {
-  if (!items.length) return null;
-  return (
-    <ul className="mt-3 grid gap-1 text-sm sm:grid-cols-2" aria-label="Eligibility checklist">
-      {items.map((c, i) => (
-        <li key={`${c.label}-${i}`} className="flex items-start gap-2">
-          <span className={`font-mono font-bold ${CHECK_GLYPH[c.status].cls}`} aria-label={c.status}>
-            {CHECK_GLYPH[c.status].glyph}
-          </span>
-          <span className="text-secondary">
-            {c.label}
-            {c.detail ? <span className="text-tertiary"> — {c.detail}</span> : null}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Timeline({ items }: { items: TimelineItem[] }) {
-  if (!items.length) return <p className="mt-2 text-sm text-secondary">Nothing dated yet — rolling schemes can be lodged any time.</p>;
-  const byMonth = new Map<string, TimelineItem[]>();
-  for (const it of items) {
-    const list = byMonth.get(it.month) ?? [];
-    list.push(it);
-    byMonth.set(it.month, list);
-  }
-  return (
-    <ol className="mt-4 space-y-4">
-      {Array.from(byMonth.entries()).map(([month, list]) => (
-        <li key={month} className="rounded-2xl border border-line-subtle bg-surface p-4">
-          <p className="text-sm font-semibold text-primary">{monthLabel(month)}</p>
-          <ul className="mt-2 space-y-1 text-sm text-secondary">
-            {list.map((it, i) => (
-              <li key={`${it.ref_id}-${i}`}>
-                <span className="font-medium text-primary">{it.name}</span> — {it.action}
-                {it.deadline ? <span className="text-tertiary"> (deadline {it.deadline})</span> : null}
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function monthLabel(ym: string): string {
-  const [y, m] = ym.split("-").map(Number);
-  if (!y || !m) return ym;
-  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-AU", { month: "long", year: "numeric", timeZone: "UTC" });
 }

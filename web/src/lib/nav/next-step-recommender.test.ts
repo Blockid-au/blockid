@@ -12,6 +12,7 @@
 import { describe, it, expect } from "vitest";
 import { PHASE_LABELS } from "@/lib/showcase/gallery";
 import {
+  MONEY_FINDER_SECONDARY,
   recommendNextStep,
   reasonForPhase,
 } from "@/lib/nav/next-step-recommender";
@@ -82,5 +83,20 @@ describe("next-step-recommender", () => {
     expect(reasonForPhase(3)).toContain("Market Research");
     // Phase 0 has its own dedicated copy.
     expect(reasonForPhase(0)).toMatch(/haven't started|evaluation/i);
+  });
+
+  it("carries the Money Finder secondary line for phases 1–3 only (G11 T0244)", () => {
+    for (const phase of [1, 2, 3]) {
+      const step = recommendNextStep({ currentPhase: phase });
+      expect(step.secondary).toEqual(MONEY_FINDER_SECONDARY);
+      expect(step.secondary!.href).toBe("/workspace/funding");
+      expect(step.secondary!.label).toBe("Find non-dilutive money first");
+      expect(step.secondary!.reason.length).toBeGreaterThan(0);
+    }
+    for (const phase of [0, 4, 7, 12]) {
+      expect(recommendNextStep({ currentPhase: phase }).secondary).toBeUndefined();
+    }
+    // Segment overrides never carry the founder nudge.
+    expect(recommendNextStep({ currentPhase: 2, segment: "investor_angel" }).secondary).toBeUndefined();
   });
 });
