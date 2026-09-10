@@ -36,7 +36,7 @@ import {
 } from "@/lib/funding/intake";
 import type { FundingPreviewPayload } from "@/lib/funding/preview";
 import { formatAudCompact } from "@/lib/funding/directory";
-import type { FounderStage } from "@/lib/agents/grant-advisor";
+import type { FounderStage } from "@/lib/agents/grant-advisor-rules";
 import { FundingPaywall, type PaywallRail } from "./funding-paywall";
 
 export interface FundingIntakeProps {

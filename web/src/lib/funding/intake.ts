@@ -11,12 +11,13 @@
 //
 // Colocated tests: intake.test.ts.
 
-import {
-  FOUNDER_STAGES,
-  type FounderStage,
-  type GrantProfile,
-  type ProfileState,
-} from "@/lib/agents/grant-advisor";
+// Runtime vocab comes from grant-advisor-rules (client-safe: no ai-client /
+// supabase behind it). Types are `import type` so this module — which the
+// "use client" FundingIntake imports — never drags the narrative → ai-client
+// → supabase (server-only) chain into the browser bundle. That exact chain
+// broke the S3 production build on 2026-09-10.
+import { FOUNDER_STAGES, type FounderStage } from "@/lib/agents/grant-advisor-rules";
+import type { GrantProfile, ProfileState } from "@/lib/agents/grant-advisor";
 
 // ─── Vocab ───────────────────────────────────────────────────────────────────
 
