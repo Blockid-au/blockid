@@ -118,4 +118,33 @@ commits = [
   # rotated on 2026-09-09 and are now distinct. The commit is allowlisted
   # because the value it contains is dead.
   "75503ac67fb83609a4eddac5e9903c71e2ecdffd",
+  # 698b8b9bc committed scripts/qa/post-deploy-checks.sh with the ALREADY-DEAD
+  # CRON_SECRET as a literal, to assert that the leaked value still gets a 401.
+  # Well-intentioned and still wrong: a dead credential in the repo is the same
+  # habit that produced 75503ac67, and this gate caught it and aborted a deploy,
+  # which is exactly right.
+  #
+  # The script now compares a SHA-256 instead, so nothing is stored and the
+  # check is stronger (it also fails if the secret ever reverts). The commit is
+  # allowlisted because git history cannot be edited and the value is dead.
+  "698b8b9bc21bfbc3f68f2418df359fb56ea4d119",
+]
+
+# ---------------------------------------------------------------------------
+# Deliberately-wrong tokens in QA scripts.
+#
+# The curl-auth-header rule matches the shape `-H "Authorization: Bearer
+# <value>"` in a curl invocation, whatever the value is. A QA script has to
+# send a wrong token to prove the endpoint answers 401, so that shape is
+# unavoidable there. These literals are self-describing non-secrets.
+#
+# Scoped to the exact strings — NOT to the file, and NOT to the rule — so a
+# real token pasted into the same script still fails the gate.
+# ---------------------------------------------------------------------------
+[[allowlists]]
+description = "Self-describing placeholder tokens in QA scripts"
+regexTarget = "match"
+regexes = [
+  '''not-the-real-secret-0+''',
+  '''deliberately-invalid''',
 ]

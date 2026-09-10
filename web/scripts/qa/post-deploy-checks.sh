@@ -58,7 +58,11 @@ if [ "$cur_sha" = "$LEAKED_SHA256" ]; then
 else
   echo "  ✓ CRON_SECRET is not the leaked value"; pass=$((pass+1))
 fi
-chk "a wrong secret is rejected" 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Authorization: Bearer not-the-real-secret-0000000000000000' $B/api/cron/ai-health-check)"
+# Built from a variable: gitleaks' curl-auth-header rule matches the literal
+# `Bearer <value>` shape in a curl invocation, regardless of whether the value
+# is a real credential. An inline placeholder here trips the gate for nothing.
+WRONG_SECRET="deliberately-invalid"
+chk "a wrong secret is rejected" 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $WRONG_SECRET" $B/api/cron/ai-health-check)"
 chk "empty bearer rejected" 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Authorization: Bearer ' $B/api/cron/ai-health-check)"
 got=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $NEW" $B/api/cron/ai-health-check)
 if [ "$got" = "200" ] || [ "$got" = "500" ]; then echo "  ✓ new secret authenticates ($got, not 401)"; pass=$((pass+1));
