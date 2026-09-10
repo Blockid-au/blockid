@@ -45,6 +45,17 @@ type Lang = "en" | "vi";
 export const COMPARE_CHATGPT_HREF = "/compare/chatgpt";
 
 /**
+ * Where the accelerator page's "Run a 14-day pilot on your next intake"
+ * button lands (G12 traction T2). The contact form does not read
+ * `?intent=` / `?plan=` (it posts name/email/message only), so the pilot
+ * goes straight to the evaluator signup with Program pre-selected: `plan=`
+ * alone resolves the evaluator segment (`resolveSignupSegment`), and
+ * `from=pilot` tags the referrer for GA4 / the traction tracking sheet.
+ */
+export const ACCELERATOR_PILOT_HREF =
+  "/signup?plan=investor_vc_small&trial=1&from=pilot";
+
+/**
  * Regulatory facts about Auschain PTY LTD that we can point at, not
  * capability claims — hard-coded rather than translated for that reason.
  * The Privacy Act and Essential Eight lines are the same two already
@@ -174,6 +185,13 @@ export function buildAcceleratorProps(m: Messages, lang: Lang = "en"): SolutionP
     benefits: benefits(m, "accelerator", 6),
     journeyTitle: t(m, "solutions.accelerator.journey.title"),
     journey: acceleratorJourney(m),
+    pilotCta: {
+      eyebrow: t(m, "solutions.accelerator.pilot.eyebrow"),
+      title: t(m, "solutions.accelerator.pilot.title"),
+      body: t(m, "solutions.accelerator.pilot.body"),
+      ctaLabel: t(m, "solutions.accelerator.pilot.cta"),
+      ctaHref: ACCELERATOR_PILOT_HREF,
+    },
     faqs: faqs(m, "accelerator", 3),
     trustBadges: TRUST_BADGES,
   };
