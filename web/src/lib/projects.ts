@@ -42,9 +42,10 @@ const UNLIMITED_PROJECTS = Number.MAX_SAFE_INTEGER;
 
 // Static fallback in case the plans row is missing (fresh dev DB / migration
 // gap). Values mirror plans.csv → usage_limits.profiles, keyed by both legacy
-// and v2 IDs. G12-7 (2026-09-10, T0268): the Evaluator rungs (Scout / Firm /
-// Program) and the accelerator cohort SKUs are listed too — before this an
-// evaluator whose plans row failed to load was capped at 1 startup.
+// and v2 IDs. G12-7 (2026-09-10, T0268/T0269): the Evaluator rungs (Scout /
+// Firm / Program — an evaluator creates the startups they evaluate, so
+// 25 / 50 / 200) and the accelerator cohort SKUs are listed too — before this
+// an evaluator whose plans row failed to load was capped at 1 startup.
 const FALLBACK_PROJECT_LIMITS: Record<string, number> = {
   founder_free: 1,
   founder_starter: 1,

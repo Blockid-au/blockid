@@ -69,9 +69,10 @@ describe("getProjectLimit — plans.usage_limits.profiles lookup", () => {
     expect(await getProjectLimit("founding50")).toBe(1);
   });
 
-  // G12-7 (2026-09-10, T0268): evaluator + accelerator SKUs mirror plans.csv
-  // usage_limits.profiles so a missing plans row never caps a paying Scout /
-  // Firm / Program customer at one startup.
+  // G12-7 (2026-09-10, T0268/T0269): evaluators create the startups they
+  // evaluate, so Scout / Firm / Program (and the accelerator SKUs) mirror
+  // plans.csv usage_limits.profiles and never collapse to the founder default
+  // of 1 when the plans row is missing.
   it("evaluator rungs fall back to plans.csv profiles (Scout 25 / Firm 50 / Program 200)", async () => {
     getPlanCachedMock.mockResolvedValue(null);
     expect(await getProjectLimit("investor_angel")).toBe(25);
@@ -85,6 +86,11 @@ describe("getProjectLimit — plans.usage_limits.profiles lookup", () => {
     expect(await getProjectLimit("accelerator_starter")).toBe(25);
     expect(await getProjectLimit("accelerator_growth")).toBe(100);
     expect(await getProjectLimit("accelerator_enterprise")).toBe(UNLIMITED);
+  });
+
+  it("evaluator rungs prefer the DB row's profiles over the fallback", async () => {
+    getPlanCachedMock.mockResolvedValue({ id: "investor_angel", usage_limits: { profiles: 30 } });
+    expect(await getProjectLimit("investor_angel")).toBe(30);
   });
 
   it("unknown plan id defaults to 1", async () => {

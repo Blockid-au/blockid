@@ -3,9 +3,13 @@
 // Card-required signup form — Stripe Elements + POST /api/auth/register-with-card.
 //
 // Rendered inside a Server Component (`./page.tsx`) that pre-resolves the
-// four founder trial plans so the picker never blocks on a fetch.
+// trial plans for the segment (founder or evaluator) so the picker never
+// blocks on a fetch. The account-type selector is segment-specific: the
+// evaluator variant offers Investor / Accelerator or incubator / Advisor or
+// consulting firm / Service provider (T0269).
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CardElement,
@@ -14,7 +18,12 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
-import { TRIAL_COPY, TRIAL_DAYS } from "@/lib/plans/trial-copy";
+import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS } from "@/lib/plans/trial-copy";
+import {
+  FOUNDER_ACCOUNT_TYPE_OPTIONS,
+  type AccountTypeOption,
+  type SignupSegment,
+} from "@/lib/plans/signup-plans";
 
 export interface SignupPlanChoice {
   id: string;
@@ -26,8 +35,12 @@ export interface SignupPlanChoice {
 }
 
 export interface SignupFormProps {
+  /** Which ladder the picker shows; drives copy + account-type options. */
+  segment?: SignupSegment;
   trialPlans: SignupPlanChoice[];
   defaultPlanId: string;
+  /** Account-type choices; defaults to the founder trio. */
+  accountTypeOptions?: readonly AccountTypeOption[];
   stripePublishableKey: string | null;
 }
 
@@ -51,12 +64,6 @@ const CARD_STYLE = {
     invalid: { color: "#F87171" },
   },
 };
-
-const ACCOUNT_TYPES: readonly { value: string; label: string }[] = [
-  { value: "founder", label: "Founder" },
-  { value: "investor", label: "Investor" },
-  { value: "journalist", label: "Journalist" },
-];
 
 export function SignupForm(props: SignupFormProps) {
   // Hook first, early return second. useMemo used to sit below the guard, so
@@ -123,10 +130,20 @@ function InnerForm(props: SignupFormProps) {
   const stripe = useStripe();
   const elements = useElements();
 
+  const segment: SignupSegment = props.segment ?? "founder";
+  const isEvaluator = segment === "evaluator";
+  const accountTypeOptions =
+    props.accountTypeOptions && props.accountTypeOptions.length > 0
+      ? props.accountTypeOptions
+      : FOUNDER_ACCOUNT_TYPE_OPTIONS;
+
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [displayName, setDisplayName] = React.useState("");
-  const [accountType, setAccountType] = React.useState("founder");
+  // First option of the segment's list — "founder" or "investor".
+  const [accountType, setAccountType] = React.useState<string>(
+    accountTypeOptions[0]?.value ?? "founder",
+  );
   const [planId, setPlanId] = React.useState(props.defaultPlanId);
   const [terms, setTerms] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
@@ -142,10 +159,13 @@ function InnerForm(props: SignupFormProps) {
   const [promoError, setPromoError] = React.useState<string | null>(null);
   const [promoValidating, setPromoValidating] = React.useState(false);
 
-  // Hydrate promo code from cookie on mount + revalidate once.
+  // Hydrate promo code from cookie on mount + revalidate once. Must run
+  // post-mount (not as a lazy initialiser) so the SSR markup and the first
+  // client render agree on an empty input.
   React.useEffect(() => {
     const cached = readViaCookie();
     if (cached && !promoCode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- read browser cookie after mount (SSR-safe)
       setPromoCode(cached);
       void runPromoValidate(cached);
     }
@@ -309,13 +329,14 @@ function InnerForm(props: SignupFormProps) {
       </label>
       <div className="grid grid-cols-2 gap-3 mb-3.5">
         <label>
-          {fieldLabel("Account type")}
+          {fieldLabel(isEvaluator ? EVALUATOR_TRIAL_COPY.account_type_label : "Account type")}
           <select
             value={accountType}
             onChange={(e) => setAccountType(e.target.value)}
             className={inputClass}
+            data-testid="signup-account-type"
           >
-            {ACCOUNT_TYPES.map((t) => (
+            {accountTypeOptions.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
@@ -384,9 +405,9 @@ function InnerForm(props: SignupFormProps) {
         />
         <span>
           I accept the{" "}
-          <a href="/legal/terms" className="text-blue-400 hover:underline">terms of service</a>
+          <Link href="/legal/terms" className="text-blue-400 hover:underline">terms of service</Link>
           {" "}and{" "}
-          <a href="/legal/privacy" className="text-blue-400 hover:underline">privacy policy</a>.
+          <Link href="/legal/privacy" className="text-blue-400 hover:underline">privacy policy</Link>.
         </span>
       </label>
 
@@ -409,15 +430,20 @@ function InnerForm(props: SignupFormProps) {
             : "bg-blue-600 text-[#0B1220] hover:bg-blue-500 cursor-pointer",
         ].join(" ")}
       >
-        {submitting ? "Starting trial…" : TRIAL_COPY.cta}
+        {submitting
+          ? "Starting trial…"
+          : isEvaluator
+            ? EVALUATOR_TRIAL_COPY.cta
+            : TRIAL_COPY.cta}
       </button>
 
       <p className="mt-3 text-xs text-slate-500 leading-relaxed">
+        {isEvaluator ? EVALUATOR_TRIAL_COPY.trial_line + " " : ""}
         {TRIAL_COPY.fine_print}
         {selectedPlan ? " " + priceLine : ""}
       </p>
       <p className="mt-1.5 text-[11px] text-slate-600 leading-relaxed">
-        No indefinite free tier — every account starts with a {TRIAL_DAYS}-day trial.
+        No indefinite free tier — every account starts with a {selectedPlan?.trialDays ?? TRIAL_DAYS}-day trial.
       </p>
     </form>
   );
@@ -441,7 +467,7 @@ function mapErrorCode(code: string): string {
     case "stripe_subscription_failed":
       return "We couldn't reach Stripe — please retry, or contact support if this persists.";
     case "unsupported_plan":
-      return "That plan can't be selected from signup — please pick a founder plan.";
+      return "That plan can't be selected from signup — please pick a founder or evaluator plan.";
     default:
       return "Signup failed. Please check your details and retry.";
   }

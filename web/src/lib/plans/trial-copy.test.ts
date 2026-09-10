@@ -10,6 +10,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  EVALUATOR_TRIAL_COPY,
   TRIAL_COPY,
   TRIAL_DAYS,
   TRIAL_WARNING_HOURS_BEFORE,
@@ -284,7 +285,44 @@ describe("TRIAL_COPY is `as const` (immutable at the type level)", () => {
       "banner_headline",
       "banner_subline",
       "email_subject",
+      "reminder_body",
+      "reminder_footnote",
     ]);
     expect(new Set(Object.keys(TRIAL_COPY))).toEqual(expected);
+  });
+});
+
+// T0269 / G12-6 — the T-3d reminder is a card-on-file trial: it must name
+// the charge + date and the cancel-before path, never "add a payment method".
+describe("TRIAL_COPY.reminder_body / reminder_footnote (card-required)", () => {
+  it("names the charge amount and date, and the cancel-before escape", () => {
+    expect(
+      TRIAL_COPY.reminder_body({ planName: "Scout", price: "A$79", dateStr: "Friday 18 Sep" }),
+    ).toBe(
+      "Your BlockID Scout trial ends in 3 days. Your card will be charged A$79 on Friday 18 Sep unless you cancel before then.",
+    );
+    expect(TRIAL_COPY.reminder_footnote("Friday 18 Sep")).toBe(
+      "Don't want to continue? Cancel any time before Friday 18 Sep from Billing and nothing will be charged. You keep full access until then.",
+    );
+  });
+
+  it("still says the card will be charged when the price is unknown", () => {
+    const body = TRIAL_COPY.reminder_body({ planName: "your plan", price: null, dateStr: "Monday" });
+    expect(body).toContain("Your card will be charged on Monday unless you cancel before then.");
+    expect(body).not.toMatch(/add a payment method/i);
+    expect(body).not.toMatch(/downgrade/i);
+  });
+});
+
+describe("EVALUATOR_TRIAL_COPY (T0269 /signup?segment=evaluator)", () => {
+  it("pins the approved headline + trial line", () => {
+    expect(EVALUATOR_TRIAL_COPY.headline).toBe(
+      "Evaluate any Australian startup for A$3. Track it from A$79 a month.",
+    );
+    expect(EVALUATOR_TRIAL_COPY.trial_line).toBe(
+      "7-day free trial · card required · cancel anytime · charged on day 8",
+    );
+    expect(EVALUATOR_TRIAL_COPY.cta).toMatch(/7-day/);
+    expect(EVALUATOR_TRIAL_COPY.trial_line).toContain(`${TRIAL_DAYS}-day`);
   });
 });

@@ -66,6 +66,37 @@ export const TRIAL_COPY = {
   /** Pre-charge email subject. */
   email_subject: (hoursLeft: number, price: string, dateStr: string): string =>
     `Your BlockID trial ends in ${hoursLeft} hours — you'll be charged ${price} on ${dateStr}`,
+
+  /**
+   * T-3d reminder body line (card-required trial — the card is already on
+   * file, so the ask is "cancel before X if you don't want to be charged",
+   * never "add a payment method"). `price` is null when the plan price
+   * could not be resolved.
+   */
+  reminder_body: (a: { planName: string; price: string | null; dateStr: string }): string =>
+    a.price
+      ? `Your BlockID ${a.planName} trial ends in 3 days. Your card will be charged ${a.price} on ${a.dateStr} unless you cancel before then.`
+      : `Your BlockID ${a.planName} trial ends in 3 days. Your card will be charged on ${a.dateStr} unless you cancel before then.`,
+
+  /** T-3d reminder footnote — how to avoid the charge. */
+  reminder_footnote: (dateStr: string): string =>
+    `Don't want to continue? Cancel any time before ${dateStr} from Billing and nothing will be charged. You keep full access until then.`,
+} as const;
+
+/**
+ * Evaluator-segment copy for `/signup?segment=evaluator` — investors,
+ * accelerators / incubators, advisors / consulting firms, service providers.
+ * Same card-required 7-day mechanism as founders (founder decision D1,
+ * 2026-09-10); different headline (docs/plans/evaluator-traction-2026-09-10.md
+ * §5 "Pricing card headline").
+ */
+export const EVALUATOR_TRIAL_COPY = {
+  headline: "Evaluate any Australian startup for A$3. Track it from A$79 a month.",
+  subheadline:
+    "One rubric, a whole C-suite, the startup's own evidence — Australian context, from A$3 a report.",
+  trial_line: "7-day free trial · card required · cancel anytime · charged on day 8",
+  cta: "Start 7-day evaluator trial",
+  account_type_label: "I evaluate startups as",
 } as const;
 
 /** Format an AUD cents amount as a display price string ("A$29" / "A$29.50"). */

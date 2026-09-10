@@ -30,6 +30,12 @@ export type Segment =
 // CHECK constraint gets extended in P12.2 (migration 0102) so an insert
 // against a value not in this list still fails at the DB layer if the
 // migration has not yet been applied on that host.
+//
+// T0269 (migration 0310) adds `service_provider` — the fourth evaluator
+// persona on `/signup?segment=evaluator`. It is an account type only; its
+// `app_users.segment` is `advisor` (see `segmentForAccountType` in
+// `@/lib/plans/signup-plans`). Keep this list, the zod enum in
+// `api/auth/register-with-card` and `app_users_account_type_check` in sync.
 export const ACCOUNT_TYPE_VALUES = [
   "founder",
   "investor",
@@ -41,6 +47,7 @@ export const ACCOUNT_TYPE_VALUES = [
   "incubator",
   "reseller",
   "affiliate",
+  "service_provider",
 ] as const;
 
 export type AccountType = (typeof ACCOUNT_TYPE_VALUES)[number];
@@ -60,6 +67,7 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   incubator: "Incubator",
   reseller: "Reseller",
   affiliate: "Affiliate",
+  service_provider: "Service provider",
 };
 
 export function accountTypeLabel(t: AccountType): string {
