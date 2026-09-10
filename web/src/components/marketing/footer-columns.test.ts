@@ -49,6 +49,11 @@ describe("FOOTER_COLUMNS", () => {
     );
   });
 
+  it("links the comparison page from the Docs column (T0274)", () => {
+    const compare = column("Docs").items.find((i) => i.href === "/compare");
+    expect(compare?.label).toBe("Compare");
+  });
+
   it("links nowhere that needs a session", () => {
     const all = FOOTER_COLUMNS.flatMap((c) => c.items.map((i) => i.href));
     expect(all.some((h) => h.startsWith("/workspace") || h.startsWith("/dashboard"))).toBe(false);
