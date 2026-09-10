@@ -489,6 +489,15 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # CRON_SECRET-guarded. Skips silent weeks (no views + no leads + no SVI move).
 0 23 * * 0 bash $RUN founder-digest-weekly
 
+# T0273 — Evaluator Progress Radar (G12 sprint S4). Sunday 23:30 UTC = Monday
+# 09:30 AEST, 30 min after the founder digest so an evaluator who is also a
+# founder gets two distinct emails. Audience: evaluator personas holding ≥ 1
+# `evaluations` row with the `money_radar` feature. Movers (SVI Δ, stage),
+# deadlines/intakes from funding_matches (keyed on evaluations.project_id),
+# new matches; in-app `weekly_next_step` + email (money_radar category);
+# idempotent via evaluator_progress_sends (migration 0321). `?dry=1` for checks.
+30 23 * * 0 bash $RUN evaluator-progress-weekly --timeout 300
+
 # Wave 31c — Investor Lead Drip Sequence (Steps 2 + 3).
 # Step 1 fires inline from POST /api/tbr/[token]/lead. This cron advances
 # eligible leads to Step 2 (T+2 days, warm+) and Step 3 (T+7 days, all).

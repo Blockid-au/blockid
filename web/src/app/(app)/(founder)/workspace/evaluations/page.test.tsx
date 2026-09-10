@@ -9,6 +9,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // T0271: the "Run Trust BizReport" button per row, "Re-score" only when a
 // report exists, "Last report: <date> · SVI n" + tbr/PDF links, the included
 // reports counter in the banner, and the confirm dialog's cost copy.
+// T0273: the Progress column (Δ with ▲/▼ + inline SVG sparkline, stage change,
+// deadline badge from funding_matches), the Progress Radar panel (movers +
+// next deadlines) for money_radar plans, and the Scout-trial teaser without.
 
 vi.mock("@/components/workspace/workspace-layout", () => ({
   WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
@@ -43,6 +46,43 @@ vi.mock("@/lib/evaluations/report-quota", () => ({
   listLastEvaluationReports: (id: string) => listLastReportsMock(id),
   getReportQuota: (u: unknown) => getReportQuotaMock(u),
 }));
+
+const buildProgressMock = vi.fn();
+vi.mock("@/lib/evaluations/progress-radar", () => ({
+  buildEvaluatorProgress: (o: unknown) => buildProgressMock(o),
+}));
+const canMock = vi.fn();
+vi.mock("@/lib/entitlements", () => ({ can: (u: unknown, f: string) => canMock(u, f) }));
+
+const PROGRESS = {
+  userId: "u-1",
+  periodStart: "2026-09-07T00:00:00.000Z",
+  periodEnd: "2026-09-13T23:30:00.000Z",
+  items: [
+    {
+      evaluationId: "e-1", projectId: "p-1", projectSlug: "acme-robotics", name: "Acme Robotics", label: "Cohort 4",
+      sviNow: 71.4, sviPrev: 62, delta: 9.4, stageNow: 4, stagePrev: 3, stageChanged: true, newEvidence: 2,
+      lastReport: { at: "2026-09-09T00:00:00Z", svi: 71, kind: "full" },
+      money: {
+        nextDeadline: { evaluationId: "e-1", projectId: "p-1", startup: "Acme Robotics", refKind: "grant", refId: "g-mvp", name: "MVP Ventures", closesAt: "2026-09-27", daysLeft: 14, url: "https://www.nsw.gov.au/mvp" },
+        deadlinesAhead: 2, newMatches: 1,
+      },
+      scoreHistory: [50, 55, 58, 62, 71.4],
+    },
+    {
+      evaluationId: "e-2", projectId: "p-2", projectSlug: "beta-health", name: "Beta Health", label: null,
+      sviNow: null, sviPrev: null, delta: null, stageNow: 1, stagePrev: null, stageChanged: false, newEvidence: 0, lastReport: null,
+      money: { nextDeadline: null, deadlinesAhead: 0, newMatches: 0 }, scoreHistory: [],
+    },
+  ],
+  movers: [] as unknown[],
+  deadlines: [] as unknown[],
+  newMatches: 1,
+  newEvidence: 2,
+  digest_ready: true,
+};
+PROGRESS.movers = [PROGRESS.items[0]];
+PROGRESS.deadlines = [PROGRESS.items[0].money.nextDeadline];
 
 const USER = {
   id: "u-1", email: "scout@fund.vc", displayName: "Sam", role: "user", plan: "investor_angel",
@@ -97,6 +137,10 @@ beforeEach(() => {
     },
   });
   getReportQuotaMock.mockResolvedValue({ limit: 10, used: 3, remaining: 7, unlimited: false });
+  buildProgressMock.mockReset();
+  canMock.mockReset();
+  buildProgressMock.mockResolvedValue(PROGRESS);
+  canMock.mockResolvedValue(true);
 });
 
 describe("/workspace/evaluations", () => {
@@ -185,11 +229,65 @@ describe("/workspace/evaluations", () => {
     expect(describeCost("full", none)).toContain("your balance is 1.00");
   });
 
+  it("T0273: Progress column shows Δ with ▲, a sparkline, the stage change and the deadline badge per startup", async () => {
+    const out = await html();
+    expect(out).toContain(">Progress</th>");
+    expect((out.match(/data-testid="progress-cell"/g) ?? []).length).toBe(2);
+    expect(out).toContain("▲ +9.4");
+    expect(out).toContain('data-testid="sparkline"');
+    expect(out).toContain("SVI trend 50 to 71.4");
+    expect(out).toContain("Stage 3 → 4");
+    expect(out).toContain("2 new evidence items");
+    expect(out).toContain('data-testid="deadline-badge"');
+    expect(out).toContain("2 deadlines · next in 14 days");
+    expect(out).toContain("1 new match this week");
+    // Beta has one/no snapshot → "New", no sparkline, no badge.
+    expect(out).toContain(">New<");
+    expect((out.match(/data-testid="sparkline"/g) ?? []).length).toBe(2); // row + panel mover
+    expect((out.match(/data-testid="deadline-badge"/g) ?? []).length).toBe(1);
+    expect(buildProgressMock).toHaveBeenCalledWith({ userId: "u-1" });
+    expect(canMock).toHaveBeenCalledWith({ id: "u-1", plan: "investor_angel", segment: "investor" }, "money_radar");
+  });
+
+  it("T0273: Progress Radar panel lists movers + next deadlines for money_radar plans", async () => {
+    const out = await html();
+    expect(out).toContain('data-testid="progress-radar-panel"');
+    expect(out).not.toContain('data-testid="progress-radar-teaser"');
+    expect(out).toContain("1 of 2 startups moved this week");
+    expect(out).toContain("1 new match");
+    expect((out.match(/data-testid="mover"/g) ?? []).length).toBe(1);
+    expect((out.match(/data-testid="panel-deadline"/g) ?? []).length).toBe(1);
+    expect(out).toContain('href="https://www.nsw.gov.au/mvp"');
+    expect(out).toContain("MVP Ventures");
+    expect(out).toContain("Acme Robotics · in 14 days (2026-09-27)");
+  });
+
+  it("T0273: without money_radar the panel is the Scout 7-day trial teaser → /pricing?segment=evaluator", async () => {
+    canMock.mockResolvedValue(false);
+    const out = await html();
+    expect(out).toContain('data-testid="progress-radar-teaser"');
+    expect(out).not.toContain('data-testid="progress-radar-panel"');
+    expect(out).toContain("Progress Radar is included in Scout — 7-day trial");
+    expect(out).toContain("/pricing?segment=evaluator");
+    // The Δ column still renders — the computation is free for every evaluator.
+    expect(out).toContain("▲ +9.4");
+  });
+
+  it("T0273: a failed progress build degrades to dashes, never a crash", async () => {
+    buildProgressMock.mockRejectedValue(new Error("boom"));
+    const out = await html();
+    expect(out).toContain("Acme Robotics");
+    expect(out).toContain('data-testid="progress-radar-panel"');
+    expect(out).toContain("0 of 0 startups moved this week");
+    expect(out).not.toContain('data-testid="sparkline"');
+  });
+
   it("does not load data for a non-evaluator and shows the claiming state when ?claim= is present", async () => {
     isEvaluatorUserMock.mockResolvedValue(false);
     const out = await html({ claim: "tok" });
     expect(listEvaluationsMock).not.toHaveBeenCalled();
     expect(listLastReportsMock).not.toHaveBeenCalled();
+    expect(buildProgressMock).not.toHaveBeenCalled();
     expect(out).toContain("Claiming your startup");
     expect(out).not.toContain("data-testid=\"plan-limit-banner\"");
     expect(out).not.toContain("Add a startup");

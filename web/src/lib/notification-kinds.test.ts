@@ -62,6 +62,18 @@ describe("describeNotification / notificationAction — Money Radar payloads", (
     expect(notificationAction(row("analysis_refresh"))).toEqual({ href: "/workspace/business-report", label: "Read the update" });
   });
 
+  it("T0273: weekly_next_step evaluator radar payloads {movers, deadlines, startups} derive a summary and open the workspace", () => {
+    const moved = { movers: [{ name: "Acme" }, { name: "Beta" }], deadlines: [], startups: 5, href: "/workspace/evaluations" };
+    expect(describeNotification(row("weekly_next_step", moved))).toBe("2 of 5 startups you evaluate moved this week");
+    expect(notificationAction(row("weekly_next_step", moved))).toEqual({ href: "/workspace/evaluations", label: "Open Progress Radar" });
+    const still = { movers: [], deadlines: [{ name: "MVP Ventures" }], startups: 1 };
+    expect(describeNotification(row("weekly_next_step", still))).toBe("No movement this week across 1 startup — 1 deadline ahead");
+    // An explicit title always wins (the cron writes one).
+    expect(describeNotification(row("weekly_next_step", { ...moved, title: "Your weekly progress radar — 2 of 5 startups moved" }))).toBe(
+      "Your weekly progress radar — 2 of 5 startups moved",
+    );
+  });
+
   it("legacy kinds keep their Wave 27C words; unknown kinds fall back to the kind", () => {
     expect(describeNotification(row("tbr_lead", { name: "Jo", firm: "Fund", interest: "warm" }))).toBe("Jo, Fund — Warm");
     expect(describeNotification(row("report_shared"))).toBe("Report share link minted");

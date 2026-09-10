@@ -143,8 +143,21 @@ export function describeNotification(row: FounderNotificationRow): string {
       const what = parts.length ? parts.join(" and ") : `${count} new ${count === 1 ? "match" : "matches"}`;
       return startup ? `${what} now match ${startup}` : `${what} now match your startup`;
     }
-    case "weekly_next_step":
-      return s(p.title) ?? "Your next money step this week";
+    case "weekly_next_step": {
+      // T0273 Evaluator Progress Radar writes {title, movers[], deadlines[],
+      // startups, moved, new_matches}; the founder digest money block (T0246)
+      // writes {title}. Prefer the explicit title, then derive from the shape.
+      const title = s(p.title);
+      if (title) return title;
+      const movers = Array.isArray(p.movers) ? p.movers.length : null;
+      const startups = n(p.startups);
+      if (movers != null && startups != null) {
+        if (movers > 0) return `${movers} of ${startups} startup${startups === 1 ? "" : "s"} you evaluate moved this week`;
+        const deadlines = Array.isArray(p.deadlines) ? p.deadlines.length : 0;
+        return `No movement this week across ${startups} startup${startups === 1 ? "" : "s"} — ${deadlines} deadline${deadlines === 1 ? "" : "s"} ahead`;
+      }
+      return "Your next money step this week";
+    }
     case "analysis_refresh":
       return s(p.title) ?? "What changed for your startup — quarterly analysis refreshed";
     default:
@@ -183,7 +196,8 @@ export function notificationAction(row: FounderNotificationRow): { href: string;
       return reportId ? { href: `/funding/report/${reportId}`, label: "See matches" } : { href: "/funding", label: "See matches" };
     }
     case "weekly_next_step":
-      return { href: s(p.href) ?? "/dashboard", label: "Do it now" };
+      // Evaluator radar payloads carry href=/workspace/evaluations (T0273).
+      return { href: s(p.href) ?? "/dashboard", label: Array.isArray(p.movers) ? "Open Progress Radar" : "Do it now" };
     case "analysis_refresh":
       return { href: s(p.href) ?? "/workspace/business-report", label: "Read the update" };
     default:

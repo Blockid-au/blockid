@@ -2,13 +2,16 @@
 
 // EvaluationsClient — table + "Add a startup" dialog + founder claim handler
 // for /workspace/evaluations (T0270). All writes go through /api/evaluations.
+// T0273 adds the Progress column (Δ since last week + sparkline), the
+// per-startup deadline badge and the Progress Radar panel / Scout teaser.
 
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail, FileText, RefreshCw, FileDown } from "lucide-react";
+import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail, FileText, RefreshCw, FileDown, Radar, CalendarClock } from "lucide-react";
 import type { EvaluationListRow, EvaluationConsentTier } from "@/lib/evaluations";
 import type { LastEvaluationReport, ReportQuota } from "@/lib/evaluations/report-quota";
+import { formatDelta, type EvaluatorProgress, type EvaluatorProgressItem, type ProgressDeadline } from "@/lib/evaluations/progress-shared";
 import { ReportDialog, type ReportKind, type ReportRunResult } from "./report-dialog";
 
 // ---------------------------------------------------------------------------
@@ -27,6 +30,10 @@ export interface EvaluationsClientProps {
   lastReports?: Record<string, LastEvaluationReport>;
   /** Included Trust BizReports this month from usage_limits.reports_per_month. */
   reportQuota?: ReportQuota | null;
+  /** T0273 — Δ / sparkline / deadlines per evaluation + movers for the panel. */
+  progress?: EvaluatorProgress | null;
+  /** Plan has `money_radar` (Scout / Firm / Program) → Progress Radar panel; else the trial teaser. */
+  hasMoneyRadar?: boolean;
 }
 
 const AU_STATE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -81,6 +88,158 @@ function isUnlimited(limit: number): boolean {
   return limit >= Number.MAX_SAFE_INTEGER || limit >= 1_000_000;
 }
 
+function daysPhrase(days: number): string {
+  if (days <= 0) return "today";
+  if (days === 1) return "tomorrow";
+  return `in ${days} days`;
+}
+
+// ---------------------------------------------------------------------------
+// Progress Radar (T0273) — sparkline, Δ cell, deadline badge, panel
+// ---------------------------------------------------------------------------
+
+/** Tiny inline SVG sparkline over the last ≤ 8 snapshot totals (oldest first). */
+export function Sparkline({ values, width = 64, height = 18 }: { values: number[]; width?: number; height?: number }) {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const stepX = width / (values.length - 1);
+  const pts = values.map((v, i) => `${(i * stepX).toFixed(1)},${(height - 2 - ((v - min) / span) * (height - 4)).toFixed(1)}`);
+  const up = values[values.length - 1] >= values[0];
+  return (
+    <svg
+      data-testid="sparkline"
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      aria-label={`SVI trend ${values[0]} to ${values[values.length - 1]}`}
+      role="img"
+      className="inline-block align-middle"
+    >
+      <polyline fill="none" stroke={up ? "#047857" : "#B91C1C"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" points={pts.join(" ")} />
+    </svg>
+  );
+}
+
+function DeltaCell({ item }: { item: EvaluatorProgressItem | null }) {
+  if (!item) return <span className="text-xs text-ink-400">—</span>;
+  const d = item.delta;
+  const tone = d == null || d === 0 ? "text-ink-500" : d > 0 ? "text-emerald-700" : "text-red-700";
+  return (
+    <div data-testid="progress-cell" className="space-y-1">
+      <div className="flex items-center gap-2">
+        <span className={`text-sm font-semibold ${tone}`}>{d == null ? "New" : formatDelta(d)}</span>
+        <Sparkline values={item.scoreHistory} />
+      </div>
+      {item.stageChanged ? (
+        <div className="text-[11px] text-brand-700">Stage {item.stagePrev} → {item.stageNow}</div>
+      ) : null}
+      {item.newEvidence > 0 ? (
+        <div className="text-[11px] text-ink-500">{item.newEvidence} new evidence item{item.newEvidence === 1 ? "" : "s"}</div>
+      ) : null}
+      {item.money.deadlinesAhead > 0 && item.money.nextDeadline ? (
+        <span
+          data-testid="deadline-badge"
+          title={`${item.money.nextDeadline.name} · ${item.money.nextDeadline.closesAt}`}
+          className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+        >
+          <CalendarClock className="h-3 w-3" />
+          {item.money.deadlinesAhead} deadline{item.money.deadlinesAhead === 1 ? "" : "s"} · next {daysPhrase(item.money.nextDeadline.daysLeft)}
+        </span>
+      ) : null}
+      {item.money.newMatches > 0 ? (
+        <div className="text-[11px] text-ink-500">{item.money.newMatches} new match{item.money.newMatches === 1 ? "" : "es"} this week</div>
+      ) : null}
+    </div>
+  );
+}
+
+export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: EvaluatorProgress | null; hasMoneyRadar: boolean }) {
+  if (!hasMoneyRadar) {
+    return (
+      <div
+        data-testid="progress-radar-teaser"
+        className="rounded-2xl border border-dashed border-brand-300 bg-brand-50/40 px-5 py-4 text-sm text-ink-700 flex flex-wrap items-center justify-between gap-3"
+      >
+        <div className="flex items-start gap-3">
+          <Radar strokeWidth={1.75} className="mt-0.5 h-5 w-5 text-brand-600" />
+          <div>
+            <p className="font-semibold text-ink-900">Progress Radar is included in Scout — 7-day trial</p>
+            <p className="mt-0.5 text-xs text-ink-500">
+              Every Monday: which of your startups moved (SVI Δ, stage), grant and program deadlines across all of them, and new matches — in your inbox and here.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/pricing?segment=evaluator"
+          className="inline-flex min-h-10 items-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+        >
+          Start Scout trial
+        </Link>
+      </div>
+    );
+  }
+  const movers = progress?.movers ?? [];
+  const deadlines: ProgressDeadline[] = progress?.deadlines ?? [];
+  const total = progress?.items.length ?? 0;
+  return (
+    <section data-testid="progress-radar-panel" aria-label="Progress Radar" className="rounded-2xl border border-surface-200 bg-white px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+          <Radar strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
+          Progress Radar
+          <span className="text-xs font-normal text-ink-500">
+            — {movers.length} of {total} startup{total === 1 ? "" : "s"} moved this week
+            {progress && progress.newMatches > 0 ? ` · ${progress.newMatches} new match${progress.newMatches === 1 ? "" : "es"}` : ""}
+          </span>
+        </h2>
+        <span className="text-[11px] text-ink-400">Emailed every Monday</span>
+      </div>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">Movers</p>
+          {movers.length === 0 ? (
+            <p className="mt-1 text-xs text-ink-500">No SVI movement this week. Run a re-score (A$1) after new evidence lands.</p>
+          ) : (
+            <ul className="mt-1 space-y-1">
+              {movers.map((m) => (
+                <li key={m.evaluationId} data-testid="mover" className="flex items-center justify-between gap-2 text-sm">
+                  <span className="truncate text-ink-800">{m.name}</span>
+                  <span className="flex items-center gap-2 whitespace-nowrap">
+                    <span className="text-xs text-ink-500">SVI {m.sviNow == null ? "—" : Math.round(m.sviNow)}</span>
+                    <span className={`text-xs font-semibold ${(m.delta ?? 0) > 0 ? "text-emerald-700" : "text-red-700"}`}>{formatDelta(m.delta)}</span>
+                    <Sparkline values={m.scoreHistory} width={48} height={14} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">Next deadlines</p>
+          {deadlines.length === 0 ? (
+            <p className="mt-1 text-xs text-ink-500">No dated grant or program deadlines ahead for the startups you track.</p>
+          ) : (
+            <ul className="mt-1 space-y-1">
+              {deadlines.map((d) => (
+                <li key={`${d.evaluationId}:${d.refKind}:${d.refId}`} data-testid="panel-deadline" className="text-sm text-ink-800">
+                  {d.url ? (
+                    <a href={d.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">{d.name}</a>
+                  ) : (
+                    <span className="font-medium">{d.name}</span>
+                  )}
+                  <span className="text-xs text-ink-500"> — {d.startup} · {daysPhrase(d.daysLeft)} ({d.closesAt})</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -94,7 +253,14 @@ export function EvaluationsClient({
   claimToken = null,
   lastReports: initialLastReports = {},
   reportQuota = null,
+  progress = null,
+  hasMoneyRadar = false,
 }: EvaluationsClientProps) {
+  const progressByEval = React.useMemo(() => {
+    const m = new Map<string, EvaluatorProgressItem>();
+    for (const it of progress?.items ?? []) m.set(it.evaluationId, it);
+    return m;
+  }, [progress]);
   const router = useRouter();
   const [rows, setRows] = React.useState<EvaluationListRow[]>(initialEvaluations);
   const [used, setUsed] = React.useState(initialUsed);
@@ -384,6 +550,9 @@ export function EvaluationsClient({
         </div>
       )}
 
+      {/* Progress Radar (T0273) — panel for money_radar plans, Scout teaser otherwise */}
+      {isEvaluator && rows.length > 0 ? <ProgressRadarPanel progress={progress} hasMoneyRadar={hasMoneyRadar} /> : null}
+
       {!isEvaluator && claimState.status === "idle" && (
         <div className="rounded-xl border border-surface-200 bg-white px-5 py-6 text-sm text-ink-600">
           <p className="font-medium text-ink-900">This workspace is for evaluators.</p>
@@ -429,6 +598,7 @@ export function EvaluationsClient({
               <tr>
                 <th scope="col" className="px-4 py-3 font-semibold">Startup</th>
                 <th scope="col" className="px-4 py-3 font-semibold">Stage / SVI</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Progress</th>
                 <th scope="col" className="px-4 py-3 font-semibold">Consent</th>
                 <th scope="col" className="px-4 py-3 font-semibold">Added</th>
                 <th scope="col" className="px-4 py-3 font-semibold text-right">Actions</th>
@@ -509,6 +679,9 @@ export function EvaluationsClient({
                           ) : null}
                         </div>
                       ) : null}
+                    </td>
+                    <td className="px-4 py-3">
+                      <DeltaCell item={progressByEval.get(row.id) ?? null} />
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chip.className}`}>

@@ -455,20 +455,39 @@ const SCALE_EXIT_SUBGROUPS: NavSubgroup[] = [
 // IMPORTANT: The `Mentor` subgroup below is the block added by workflow
 // wf2tywpoq (mentor-console). Preserved verbatim (hrefs, feature key,
 // icons) per the coordination note in the release plan.
+
+/**
+ * Every evaluator persona (T0273): the two investor segments plus advisor
+ * (Firm) and accelerator (Program). `/workspace/evaluations` and the Investor
+ * subgroup that holds it are gated on this set; the investor-only leaves
+ * keep the narrower pair.
+ */
+export const EVALUATOR_NAV_SEGMENTS: Segment[] = ["investor_angel", "investor_vc", "advisor", "accelerator"];
+
 const ROLES_SUBGROUPS: NavSubgroup[] = [
   {
     id: "roles.investor",
     label: "Investor",
-    segments: ["investor_angel", "investor_vc"],
+    // T0273 — widened from the two investor segments to every evaluator
+    // persona (advisor = Firm, accelerator = Program) so the subgroup is not
+    // hidden before its first leaf can be reached. Every OTHER leaf inside
+    // keeps the investor-only filter, so an advisor / accelerator sees this
+    // heading with a single item: "Startups I'm evaluating" (their own
+    // Progress Radar surface). The Advisor / Accelerator subgroups keep their
+    // own tools; the href stays unique across the catalogue.
+    segments: EVALUATOR_NAV_SEGMENTS,
     items: [
       // T0270 — the evaluator's own object: startups they entered, one rubric.
       // minPlan/minTier "free" so a trialling Scout (plan row may still be
       // syncing) is never locked out of the page that holds their data.
+      // T0273 — segments widened to advisor + accelerator (Firm / Program
+      // rungs, plan §3b): the weekly Progress Radar keys on
+      // `evaluations.project_id` for every evaluator persona.
       {
         href: "/workspace/evaluations",
         label: "Startups I'm evaluating",
         icon: ClipboardList,
-        segments: ["investor_angel", "investor_vc"],
+        segments: EVALUATOR_NAV_SEGMENTS,
         minPlan: "free",
         minTier: "free",
       },
