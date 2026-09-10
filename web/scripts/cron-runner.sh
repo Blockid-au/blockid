@@ -31,12 +31,6 @@ if command -v flock >/dev/null 2>&1; then
     exit 0
   fi
 fi
-# Overall watchdog: hard-kill this process tree at 90s so a hung curl+retry
-# can never block the next cron tick.
-( sleep 90 && kill -TERM -$$ 2>/dev/null ) &
-WATCHDOG_PID=$!
-trap 'kill $WATCHDOG_PID 2>/dev/null; rm -f "$LOCK_FILE" 2>/dev/null' EXIT
-
 # Parse optional --timeout
 TIMEOUT=60
 shift
@@ -46,6 +40,15 @@ while [ $# -gt 0 ]; do
     *) shift ;;
   esac
 done
+
+# Overall watchdog: hard-kill this process tree so a hung curl+retry can never
+# block the next cron tick. Sized from --timeout (curl budget + 30 s for the
+# retry/Telegram tail) — a fixed 90 s used to kill every cron that legitimately
+# ran longer (evaluation-batch-runner, report pipelines with --timeout 300).
+WATCHDOG_S=$((TIMEOUT + 30))
+( sleep "$WATCHDOG_S" && kill -TERM -$$ 2>/dev/null ) &
+WATCHDOG_PID=$!
+trap 'kill $WATCHDOG_PID 2>/dev/null; rm -f "$LOCK_FILE" 2>/dev/null' EXIT
 
 # Secrets are read from the gitignored .env (never hardcoded in committed
 # scripts). An already-exported env var wins; otherwise we pull the single key
