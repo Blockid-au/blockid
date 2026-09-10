@@ -47,7 +47,7 @@
 
 ## Q4 2026 (Oct-Dec) — "Scale & Enterprise"
 
-### Money Finder & Founder Radar — G11 (CFO + CLO + IR + CMO + CTO) · plan [`docs/plans/money-finder-2026-09-10.md`](../../docs/plans/money-finder-2026-09-10.md)
+### Money Finder & Founder Radar — G11 (CFO + CLO + IR + CMO + CTO) · sprints S0/S2/S3/S4/S5 per SOT unified plan · plan [`docs/plans/money-finder-2026-09-10.md`](../../docs/plans/money-finder-2026-09-10.md)
 - [x] P0 goal doc + AU grants seed (56) + programs seed (8 capitals + national) — 2026-09-10, plan-only
 - [ ] P1 public nav → 5 items + "Do you need money?" CTA; legacy navbar mirrors; unlock-preview strip
 - [ ] P2 migration `0308_au_funding.sql` (`au_grants`, `au_programs`, `funding_reports`, `project_grant_profiles`) + seed script + `/admin/funding`
@@ -64,7 +64,7 @@
 - [ ] P13 dashboard `MoneyRadarTile` (5 states) + `/workspace/funding` tabs + messaging copy EN/VI
 - [ ] P14 hero one-liners (founder / investor / general, EN+VI) — truth check, 5-second + say-it-back tests, A/B via `cta-variants.ts`; winners → hero, `/solutions/*`, og, i18n, directory bios; recorded in G9
 
-### Evaluator Traction — G12 (CRO + CTO + CFO + CPO + CMO + CLO) · plan [`docs/plans/evaluator-traction-2026-09-10.md`](../../docs/plans/evaluator-traction-2026-09-10.md)
+### Evaluator Traction — G12 (CRO + CTO + CFO + CPO + CMO + CLO) · sprints S0/S1/S3/S4/S5 per SOT unified plan · plan [`docs/plans/evaluator-traction-2026-09-10.md`](../../docs/plans/evaluator-traction-2026-09-10.md)
 - [x] P0 goal doc + research (54 competitors, JTBD, ChatGPT evidence, AU sizing) — 2026-09-10, plan-only
 - [ ] T0268 Scout A$79 / Firm A$149 / Program A$349 public in `plans.csv` + limits + `/pricing` Evaluator tab + retire A$5.50 SKU (A$3 = full Trust BizReport)
 - [ ] T0269 evaluator signup with card-required 7-day Stripe trial; `account_type` investor/accelerator/incubator/advisor/service_provider

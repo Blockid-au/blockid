@@ -2,7 +2,7 @@
 
 > **This is the single source of truth.** Every roadmap, plan, architecture diagram, or task list lives here or is linked from here. When in doubt, this file wins.
 
-**Current version:** `v3.9.23` (web/package.json) · git `8ed44c24a` · release `JctZ0PfqkXowL6mTrcEs3` — Unify messaging + simplify pricing + close feature drift (2026-09-07). Universal 3-rung pricing ladder (Free / Growth A$99 / Pro A$299) shipped, `/features` under-promised-capability surface live, investor pack now truthfully 9 chapters (CLevelPage renders), homepage names SVI + quantifies the promise.
+**Current version:** `v3.9.23` (web/package.json) · git `8ed44c24a` · release `JctZ0PfqkXowL6mTrcEs3` — Unify messaging + simplify pricing + close feature drift (2026-09-07). Universal 3-rung pricing ladder (Free / Starter A$29 / Growth A$69; Pro A$299 retired 2026-09-08) shipped, `/features` under-promised-capability surface live, investor pack now truthfully 9 chapters (CLevelPage renders), homepage names SVI + quantifies the promise.
 **Last updated:** 2026-09-07 UTC
 
 > **[LEGACY — 2026-09-01 sunset, retained for archive]**

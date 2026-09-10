@@ -1,6 +1,6 @@
 {
   "version": "3.10.0",
-  "updatedAt": "2026-09-10T04:22:55.846Z",
+  "updatedAt": "2026-09-10T11:37:00.751Z",
   "architecture": {
     "summary": "BlockID.au — AI-powered startup valuation SaaS for AU founders (pre-seed → Series A). Next.js 16 standalone + Supabase + zero-downtime port-swap deploys. Multi-model AI engine (Claude Sonnet 4.6, Groq, Cerebras, SambaNova, OpenRouter fallback). C-Level AI agents (cto/cfo/cpo/cmo/cro/clo/chro/ciso/cdo/coo/rnd) self-research and self-upgrade domain modules under src/lib/agents/. CEO implementing-plan loop + daily cron pipeline (34+ jobs) ship continuous improvements off-peak (AEST 22:00-06:00). SCN model (Validation→Position→Value→Direction→Capital) drives the full product flow.",
     "lastReviewedAt": "2026-08-31T14:00:01.953Z",
@@ -1614,12 +1614,15 @@
       {
         "id": "T0237",
         "agent": "cto",
-        "title": "Loop hygiene: nextTaskId max+1, stagePlan select content, TaskStatus merged, self-upgrade-agent priority list → G11, T-id-in-commit rule",
-        "rationale": "Wave 0 · money-finder-2026-09-10.md §8. Unblocks the CEO loop (ID collisions at T0213, empty research summaries) before G11 waves start.",
+        "title": "S0 hygiene: re-id orchestrator ID collisions, nextTaskId max+1, TaskStatus merged, stagePlan content select, self-upgrade priority list [T0249,T0250,T0274] + T-id rule, migration 0309_sync_b2b_plan_rows (DB plans = csv), legal entity → PPL Food PTY LTD site-wide, ROADMAP/deploy header drift",
+        "rationale": "S0 · money-finder §8 + evaluator-traction §9 review 2026-09-10. Blocks everything: DB plan rows for 7 B2B SKUs are still the 0074 seed; nextTaskId returns a taken id. Needs PPL Food ABN/ACN from founder.",
         "versionImpact": "patch",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S0",
+        "priority": "P0",
+        "updatedAt": "2026-09-10T11:37:00.023Z"
       },
       {
         "id": "T0238",
@@ -1629,7 +1632,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S2",
+        "priority": "P1"
       },
       {
         "id": "T0239",
@@ -1639,7 +1644,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S2",
+        "priority": "P1"
       },
       {
         "id": "T0240",
@@ -1649,7 +1656,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S3",
+        "priority": "P1"
       },
       {
         "id": "T0241",
@@ -1659,7 +1668,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S2",
+        "priority": "P1"
       },
       {
         "id": "T0242",
@@ -1669,7 +1680,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S3",
+        "priority": "P1"
       },
       {
         "id": "T0243",
@@ -1679,7 +1692,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S3",
+        "priority": "P1"
       },
       {
         "id": "T0244",
@@ -1689,7 +1704,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S4",
+        "priority": "P2"
       },
       {
         "id": "T0245",
@@ -1699,7 +1716,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S4",
+        "priority": "P2"
       },
       {
         "id": "T0246",
@@ -1709,7 +1728,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S4",
+        "priority": "P2"
       },
       {
         "id": "T0247",
@@ -1719,7 +1740,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S4",
+        "priority": "P2"
       },
       {
         "id": "T0248",
@@ -1729,7 +1752,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S4",
+        "priority": "P2"
       },
       {
         "id": "T0249",
@@ -1739,7 +1764,9 @@
         "versionImpact": "patch",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S4",
+        "priority": "P2"
       },
       {
         "id": "T0250",
@@ -1749,7 +1776,9 @@
         "versionImpact": "patch",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S2",
+        "priority": "P1"
       },
       {
         "id": "T0251",
@@ -1759,37 +1788,48 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T03:19:21.933Z",
-        "notes": "G11 · docs/plans/money-finder-2026-09-10.md"
+        "notes": "G11 · docs/plans/money-finder-2026-09-10.md",
+        "sprint": "S5",
+        "priority": "P3"
       },
       {
         "id": "T0268",
         "agent": "cro",
-        "title": "Evaluator ladder: plans.csv public Scout/Firm/Program (investor_angel/advisor/vc_small) + profiles/reports_per_month/seats limits + plans-v2 sync + /pricing Evaluator tab + retire A$5.50 SKU (A$3 = full Trust BizReport)",
-        "rationale": "G12 Wave A · evaluator-traction-2026-09-10.md §3. SOT §6 rule 5 bundle (plans.csv + pricing plan + SOT). Human-blocked: mint STRIPE_PRICE_INVESTOR_ANGEL/ADVISOR/VC_SMALL (+annual).",
+        "title": "S1 Evaluator ladder public: plans.csv flags → gate vocabulary (investor.dealflow, watchlist, portfolio, lp_export, advisor_portal, advisor.cohort, white_label, accelerator.cohort, lp_report, api.access), profiles 25/50/200, reports_per_month 10/30/100, public:true, 2-tab /pricing (Founder/Evaluator), A$5.50 SKU re-priced in place to A$3 Trust BizReport, tier-visibility snapshot regenerated",
+        "rationale": "S1 · evaluator-traction §3c + §9 corrections G12-1/2/3/4/7. Depends T0237 (0309 applied). Human-blocked: Stripe prices Angel/Advisor/VC Small (+annual) + A$3 price swap for TRUST_REPORT sku.",
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T04:22:55.026Z",
-        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
+        "sprint": "S1",
+        "priority": "P1",
+        "updatedAt": "2026-09-10T11:37:00.023Z"
       },
       {
         "id": "T0269",
         "agent": "cto",
-        "title": "Evaluator signup: card-required 7-day Stripe trial on Scout/Firm/Program, account_type extension (investor, accelerator, incubator, advisor, service_provider), /signup?segment=evaluator, allow-lists, evaluator TrialBanner copy",
-        "rationale": "G12 Wave A · §3c.3. Reuses register-with-card + checkout trial_period_days + trial-end-reminder/trial-charge-warning. Depends T0268.",
+        "title": "S1 Evaluator signup: account_type enum + DB CHECKs (investor, accelerator, incubator, advisor, service_provider→advisor segment), app_users.segment set from account_type, trial_days from plan, card-required 7-day Stripe trial on Scout/Firm/Program, trial-end-reminder copy fixed, evaluator TrialBanner copy",
+        "rationale": "S1 · §3c.3 + G12-6. Depends T0268.",
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T04:22:55.026Z",
-        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
+        "sprint": "S1",
+        "priority": "P1",
+        "updatedAt": "2026-09-10T11:37:00.023Z"
       },
       {
         "id": "T0270",
         "agent": "cto",
-        "title": "Evaluations object: \"Startups I am evaluating\" — generalise reseller create-startup to POST /api/evaluations (owner_kind evaluator, attribution, invite-the-founder magic link, consent tiers) + missing migrations investor_portfolio, watchlist_digest, advisor_client_roster, evaluations",
-        "rationale": "G12 Wave B · §3c.4-5. Depends T0269.",
+        "title": "S3 Evaluations object: \"Startups I am evaluating\" — POST /api/evaluations (owner_kind evaluator, attribution, invite-the-founder magic link, consent tiers) + migrations for investor_portfolio, watchlist_digest, advisor_client_roster, engagement_notes, advisor_notes, advisor_portal, evaluations",
+        "rationale": "S3 · §3c.4-5 + G12-8/9. Hard prerequisite for T0271 (report routes are owner-scoped). Depends T0269.",
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T04:22:55.026Z",
-        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
+        "sprint": "S3",
+        "priority": "P1",
+        "updatedAt": "2026-09-10T11:37:00.023Z"
       },
       {
         "id": "T0271",
@@ -1799,7 +1839,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T04:22:55.026Z",
-        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
+        "sprint": "S3",
+        "priority": "P1"
       },
       {
         "id": "T0272",
@@ -1809,7 +1851,9 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T04:22:55.026Z",
-        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
+        "sprint": "S5",
+        "priority": "P3"
       },
       {
         "id": "T0273",
@@ -1819,27 +1863,35 @@
         "versionImpact": "minor",
         "status": "pending",
         "createdAt": "2026-09-10T04:22:55.026Z",
-        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
+        "sprint": "S4",
+        "priority": "P2"
       },
       {
         "id": "T0274",
         "agent": "cmo",
-        "title": "/solutions/advisor (new) + /solutions/investor|accelerator rewrite + \"BlockID vs ChatGPT vs a valuer\" comparison page + evaluator messaging keys EN/VI + GA4 evaluator_signup/evaluation_added/report_purchased/evaluator_upgrade + contact form reads ?plan= and posts Telegram",
-        "rationale": "G12 Wave A/B · §4 differentiators + §4c messaging. Every claim maps to §4a proof row. Depends T0268.",
+        "title": "S1/S4 Solutions + comparison: real /solutions/advisor (Firm A$149) + /for/advisor 301, /solutions/investor|accelerator rewrite (6 differentiators), /investors + /docs stale pricing copy removed, \"BlockID vs ChatGPT vs a valuer\" page (S4), evaluator messaging EN/VI, GA4 evaluator funnel, contact form reads ?plan= + Telegram",
+        "rationale": "S1 part 1 (pages + stale copy) · S4 part 2 (comparison page). §4 + G12-5 + live review §3. Depends T0268.",
         "versionImpact": "patch",
         "status": "pending",
         "createdAt": "2026-09-10T04:22:55.026Z",
-        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
+        "sprint": "S1",
+        "priority": "P1",
+        "updatedAt": "2026-09-10T11:37:00.023Z"
       },
       {
         "id": "T0275",
         "agent": "clo",
-        "title": "Compliance for evaluator surface: provider data-handling sentence (CISO/CLO), general-advice/AFSL disclaimer on evaluator reports, doctoral-research wording sign-off (never \"PhD\"), CC BY attribution where AU data reused",
-        "rationale": "G12 Wave A · §4b guardrails. Human-blocked: founder approves the doctoral-research sentence.",
+        "title": "S1 Compliance: one privacy policy (/legal/privacy canonical, /privacy 301), AI provider list = actual chain (groq/cerebras/sambanova/deepinfra/anthropic/openrouter/ollama), approved data sentence (no training claim either way), general-advice disclaimer on evaluator reports, doctoral-research sentence, PPL Food PTY LTD entity",
+        "rationale": "S1 · §4b guardrails + live review (two policies, only Anthropic listed). Founder approved sentences 2026-09-10.",
         "versionImpact": "patch",
         "status": "pending",
         "createdAt": "2026-09-10T04:22:55.026Z",
-        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md"
+        "notes": "G12 · docs/plans/evaluator-traction-2026-09-10.md",
+        "sprint": "S1",
+        "priority": "P1",
+        "updatedAt": "2026-09-10T11:37:00.023Z"
       }
     ]
   },
@@ -2223,6 +2275,12 @@
       "action": "plan",
       "version": "3.10.0",
       "note": "G12 Evaluator Traction ledger: +8 tasks T0268–T0275 (Scout/Firm/Program ladder, card-required trial, evaluations object, in-workspace A$3 report, batch scoring, Progress Radar, solutions pages + ChatGPT comparison, compliance)."
+    },
+    {
+      "ts": "2026-09-10T11:37:00.023Z",
+      "action": "plan",
+      "version": "3.10.0",
+      "note": "Pre-implementation review 2026-09-10: G11+G12 unified into sprints S0–S5 with priority P0–P3 (sprint/priority fields on 23 tasks); T0237/T0268/T0269/T0270/T0274/T0275 re-scoped (DB plans sync 0309, flag vocabulary = gate names, A$5.50 re-priced in place, PPL Food PTY LTD entity, one privacy policy)."
     }
   ],
   "shipped_this_session": {

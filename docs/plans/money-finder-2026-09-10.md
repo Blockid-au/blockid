@@ -4,7 +4,7 @@
 > **Goal ID:** G11 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** P0 shipped (this doc + seed data); execution plan approved 2026-09-10 (§8); ledger tasks T0237–T0251 pending; **no code yet** — Wave 0 (T0237) starts on founder "go".
 > **Amends:** G7 [`ux-ia-startup-flow-goal.md`](./ux-ia-startup-flow-goal.md) public-nav file boundary (`nav-v2.tsx`, `site/navbar.tsx`) and G9 "do not touch nav-v2" note — G11-P1 owns the **public** nav; G7/G8 keep the logged-in sidebar.
 > **Seed data:** [`web/content/data/grants-au.seed.json`](../../web/content/data/grants-au.seed.json) · [`web/content/data/programs-au.seed.json`](../../web/content/data/programs-au.seed.json)
-> **Entity:** Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW.
+> **Entity:** PPL Food PTY LTD (founder decision 2026-09-10; ABN/ACN to be supplied) · Sydney NSW.
 
 Founder requests (2026-09-10), verbatim intent:
 
@@ -696,3 +696,112 @@ Deploy gates: off-peak, `deploy-live.sh`, no Docker/CI (memory). Every phase com
 - Data: `scripts/seed/verify-funding-urls.mjs` — every `official_url` 200/301, `last_verified_at` set, no `status=open` row past `closes_at`; closed programs (Techstars Sydney, IGP paused, BFF) never appear in a paid ranking.
 - GA4: `cta_clicked{cta_id:"need_money"}`, `funding_preview`, `funding_paywall_hit`, `funding_report_paid` visible in `ga4-daily.jsonl`.
 - Compliance: disclaimers from §5f render on preview, report and PDF; CC BY attribution line on directory pages.
+
+---
+
+## 9-pre. Pre-implementation review (2026-09-10 11:25 UTC, HEAD `120a840d3`, live v3.10.0) — these corrections OVERRIDE earlier sections
+
+### What changed under the plan
+
+| # | Change | Impact |
+|---|---|---|
+| 1 | **Nav consolidated** — `1c359f000` (02:55 UTC): `NavV2.MENU` is now **7 entries** (Product · For · Free Tools · Pricing · Startup Index · Demo · Docs; Features under Product, Team under Docs) and **`site/navbar.tsx` derives from the exported `MENU`** via an adapter ([`navbar.tsx:9,34-43`](../../web/src/components/site/navbar.tsx#L34-L43)), keeping its own `useAuthUser` (`:58-76`) + `UserMenu` (`:81`). Desktop breakpoint now `xl`. | G11 §1a/§3a/§3d/D8 baseline ("9 entries / 40+ links", "two different navs") is obsolete. **T0238 shrinks**: edit `MENU` to 5 + "Get funding" dropdown, swap "Start free" → "Do you need money?", port `useAuthUser`/`UserMenu` into `NavV2`, footer column, unlock-preview, ProShell fix. No `lib/nav/public-menu.ts` needed. |
+| 2 | `e0c375f98` added snapshot test `entitlements/__snapshots__/tier-visibility.test.ts.snap` | T0242 (`grant_finder`), T0247 (`money_radar`), T0268 (evaluator flags) must regenerate the snapshot in the same commit. |
+| 3 | `96c6b2ca3` moved `data_room.access` + `investor_links.premium` to Starter; `8fc8e4de0` edited migration **0131 in place** to sync Starter flags | Confirms the "edit `plans.feature_flags` via migration" pattern; Starter feature copy in G11 §4h ladder table is still right. |
+| 4 | `aaec4e2a3` hardened `email-drip.ts` (expiry/suppression) | `enqueueOnboardingDrip :91`, `DripPayload :48` unchanged — T0246 unaffected. |
+| 5 | `deploy-live.sh` now counts **12** gates dynamically (`gate()` at `:116`); `2c6d2034f` only fixed cwd of the e2e smoke tier inside gate 8 | Plan text "11 gates" → 12. `menu-structure.spec.ts` is **not** run by deploy (only `smoke.*.spec.ts`) — run it manually in T0238. |
+| 6 | Orchestrator `plan` stage still count-based: `nextTaskId()` returns **T0236 (taken)**; next tick **12:00 UTC today** will mint T0236–T0238 duplicates | Wave 0 (T0237) must start by **re-id'ing any colliding tasks minted after 2026-09-10 03:19 UTC**, then fix `nextTaskId → max+1`. Also add `"merged"` to `TaskStatus` + `STATUS_ICON` ([`project-state.ts:25,136`](../../web/src/lib/project-state.ts#L25)) — JSON already uses it, renderer silently drops those rows. |
+
+---
+
+### G11 corrections
+
+| # | Where | Fix |
+|---|---|---|
+| G11-1 | §1a, §3a, §3d, D8 | Rewrite to the 7-entry single-`MENU` baseline (see 0.1). Keep Demo as a dropdown button (`menu-structure.spec.ts:42-43,:67`). 52 importers of `site/navbar` still true but irrelevant — no retirement needed. |
+| G11-2 | §3b | `readSignedInHint` path is `web/src/lib/supabase/session-hint.ts:34`; its docblock cites stale `web/middleware.ts` (edge file is `web/src/proxy.ts`). Homepage discards the hint at `(marketing)/page.tsx:139-142`. |
+| G11-3 | §4d review queue | `.gitignore:68-72` are 5 literal filenames, not a glob → T0243 must add `web/content/reports/grants-review-queue.jsonl` explicitly. |
+| G11-4 | §4h digest / §4f | `renderActionBlock` lives in `src/lib/digest/email-template.ts` (not `weekly.ts`); recommender path is `src/lib/nav/next-step-recommender.ts` (`PHASE_TO_STEP :99`, `recommendNextStep :201`). |
+| G11-5 | §4f `/funding/programs/[city]` | Seed `city` values include non-capitals (Gold Coast 5, Sunshine Coast 2, Regional QLD 1, Wollongong 1, Geelong 1, Launceston 1, Remote 14) → define `city → capital/state` grouping (Brisbane page = Brisbane + Gold Coast + Sunshine Coast + Regional QLD; Sydney = Sydney + Wollongong; Melbourne = Melbourne + Geelong; Hobart = Hobart + Launceston; Remote = "Australia-wide / online") before T0241. |
+| G11-6 | §8.2 absorptions | Match the ledger: T0169/T0185/T0198 → **T0240**; T0170/T0194 → **T0244**; T0202/T0209/T0212 were `done` copies (their pending copies were T0257/T0264/T0266/T0267, now `merged → T0243`). |
+| G11-7 | §8.0 table row 8 / §8.3 | "11 gates" → **12**; `self-upgrade-agent.sh` priority list at `:69-72`, `git reset --hard` at `:102,:118`; nav-v2 `MENU :80-203`, `NavV2() :485`. |
+| G11-8 | T0242 / T0247 scope | add "regenerate `tier-visibility.test.ts.snap`". |
+| G11-9 | §4i D-2 / live copy | Live homepage tier strip already says **Free / A$3 / A$29** and "20 AI credits a month"; the `/funding` hero + MoneyRadarTile copy must keep those numbers (no "A$5.50", no "Growth A$99"). |
+
+Everything else in G11 verified OK: all §4b–4i citations, `0308_` free, seeds valid (56 / 199, ids unique, zero consumers), `FEATURE_COSTS`/`Feature` union lack the new keys as assumed, founder rows unchanged (Starter 2900 · Growth 6900 · `founder_scale active=false` · package 14900), ledger T0237–T0251 + T0268–T0275 pending, version 3.10.0 = package.json, C-Level dailies contain nothing contradictory (they still cite T0185/T0198/T0170/T0194/T0211/T0209 which are now merged/done — stale, not conflicting).
+
+---
+
+### Live product contradictions to clean inside G11/G12
+
+| Page (live) | Stale string | Owner task |
+|---|---|---|
+| Homepage + site footer | **"PPL Food PTY LTD"** vs pricing FAQ / solutions / privacy **"Auschain PTY LTD (ABN 79 659 615 111)"** | founder decision Q-A below; fix in T0238 footer work |
+| `/investors` (raise page) | "Per-Analysis A$0.50 · Founding 100 A$5 · Growth Plan A$99/mo · Enterprise A$499/mo", "8 AI Agents", "19 Days to build", "10 Free tools" | T0274 (or a 30-min copy fix in Wave A) |
+| `/docs` | "Founding 100 lifetime deal A$5", "A$99/mo reverts to Growth", "17 AI-agent C-Levels", "9 AI providers" | T0274 |
+| `/version` | history lines "Free / Growth A$99 / Pro A$299" — historical, leave; but `ROADMAP.md:5` header still says "Universal 3-rung pricing ladder (Free / Growth A$99 / Pro A$299)" | fix ROADMAP header on approval (docs) |
+| `/for/advisor` | "Recommended plan Growth A$69", white-label "Not yet" | T0274 (G12-5) |
+| `/solutions/accelerator` | "batch scoring … in build", "no packaged sponsor or LP report yet" | T0272 flips copy when Program ships |
+| `/pricing` FAQ | "Can I switch segment (Founder → Investor)?" with no segment UI; "Beta pricing" badge; no credit-pack prices shown | T0268 |
+| `/one-click-report` | legacy footer ("SOC2 Type II in progress", Company/About/Contact); "never train third-party models on it" | T0275 unifies data sentence; T0238 footer |
+| `/legal/privacy` (v2.0, 30 Jul 2026) **and** `/privacy` (2026-08-23) — two different policies; provider table lists **only Anthropic** while `/docs` says "9 AI providers" and `ai-client.ts` chains groq/cerebras/sambanova/deepinfra/openrouter/ollama | T0275: one policy, provider list = actual chain, founder-approved data sentence (no training claim either way) |
+| `plans.csv` `founder_scale` Pro A$299 | csv row `active=true`? — **no: verified `active=false`**; but `/investors`+`/version` copy still cite it | copy only |
+| `/status` | "Uptime (24h) 87.10 %", health `gates_passed 11/12` | ops: check `uptime-guardian.jsonl` before scheduling Wave 1 deploys (not a plan item) |
+| sitemap (178 URLs) | no `/funding*`, no `/solutions/advisor` | T0241 / T0274 add |
+
+---
+
+## 5. Founder decisions needed now
+
+| Q | Question | Recommendation |
+|---|---|---|
+| Q-A | Legal entity in footers | **Decided 2026-09-10: PPL Food PTY LTD** everywhere. S0 replaces "Auschain PTY LTD (ABN 79 659 615 111)" in pricing FAQ, `/solutions/*`, both privacy policies, `/team`, SOT header + goal-doc headers, and the `business_entity` memory. **Founder to supply PPL Food ABN/ACN** (unknown in repo) before S0 — until then the ABN line is removed, not guessed. |
+| Q-B | Orchestrator will mint colliding IDs at 12:00 UTC (cannot deploy the fix in time) | Accept; Wave 0 step 1 re-ids them (no action now) |
+| Q-C | A$5.50 SKU | **Decided 2026-09-10: re-price in place** (keep id, amount 300c, label "A$3.00 inc-GST", name "Trust BizReport", one Stripe price swap) |
+
+---
+
+
+---
+
+## 9. UNIFIED MASTER PLAN — G11 + G12 in one priority-ordered backlog (restructured 2026-09-10)
+
+**Ordering rule:** fix what blocks money first → sell to the segment that pays soonest (evaluators: workspace already exists) → open the founder funnel (nav + Money Finder) → retention (Radar) → scale. One ledger, one sequence, each sprint ends deployable. Sessions run in ≤ 2 parallel worktrees; deploys off-peak (AEST 22:00–06:00 = UTC 12:00–20:00); every commit subject carries its `T02xx`.
+
+### 9.1 Priority classes
+| Class | Meaning |
+|---|---|
+| **P0 — Unblock** | wrong data / broken loop / legal-name error; nothing ships safely without it |
+| **P1 — Revenue** | directly creates a paying path (evaluator ladder, A$3 reports, funder CTA) |
+| **P2 — Retention & proof** | keeps payers (Radar, digests, tile) and proves positioning (comparison, cases) |
+| **P3 — Scale** | batch scoring, investor matching, growth extras |
+
+### 9.2 Sprint sequence (≈ 2–3 sessions per sprint; ~14 working days total)
+
+| Sprint | Class | Ledger tasks (order inside sprint) | Exit criteria (deployable state) | Blockers |
+|---|---|---|---|---|
+| **S0 Hygiene** (Day 1) | P0 | **T0237** — (1) re-id orchestrator collisions minted after 03:19 UTC; (2) `nextTaskId → max+1`, `merged` status, `stagePlan` selects `content`; (3) self-upgrade priority list → `[T0249, T0250, T0274]` + T-id rule; (4) **migration `0309_sync_b2b_plan_rows.sql`** (DB `plans` = csv for 7 B2B rows) applied via psql + NOTIFY; (5) legal entity → **PPL Food PTY LTD** site-wide (pricing FAQ, solutions, 2 privacy policies, /team, footers) + docs/memory; (6) `ROADMAP.md:5` + `deploy-live.sh` header drift | ledger stable (no dup ids), DB plan rows correct, one entity name site-wide, `npm test` green | **PPL Food ABN/ACN from founder** |
+| **S1 Sell to evaluators** (Day 2–4) | P1 | **T0268** ladder public: csv flags → gate vocabulary (`investor.dealflow, watchlist, portfolio, lp_export, advisor_portal, advisor.cohort, white_label, accelerator.cohort, lp_report, api.access`), `profiles` 25/50/200, `reports_per_month` 10/30/100, `public:true`, 2-tab `/pricing` (Founder / Evaluator), A$5.50 **re-priced in place** to A$3 "Trust BizReport", snapshot regenerated → **T0269** evaluator signup: `account_type` + CHECKs, `segment` set, `trial_days` from plan, card-required 7-day trial on Scout/Firm/Program, reminder copy fixed → **T0275** compliance: one privacy policy, provider list = real chain, approved data sentence, general-advice disclaimer, doctoral sentence → **T0274 (part 1)** `/solutions/advisor` real page (Firm A$149) + `/for/advisor` 301 + `/investors` & `/docs` stale copy + `/solutions/investor|accelerator` rewrite with the 6 differentiators | an investor/advisor/accelerator can register, trial 7 days on card, subscribe to Scout/Firm/Program, and reach every investor workspace page unlocked; A$3 label consistent site-wide; positioning live | **Stripe prices minted** (Angel/Advisor/VC Small + annual); until then checkout falls back to contact form |
+| **S2 Founder funnel + data** (Day 4–7) | P1 | **T0239** migration `0308_au_funding.sql` + `seed-au-funding.mjs` (56 grants / 199 programs, city→capital map) + `/admin/funding` ∥ **T0238** nav: `MENU` 7→5 + "Get funding" dropdown + "Do you need money?" CTA + `useAuthUser`/`UserMenu` in NavV2 + footer Funding column + unlock-preview + ProShell fix (run `menu-structure.spec.ts` manually) → **T0250** hero one-liners (F1/I1/G2, `hero-variants.ts`, GA4 `hero_variant`, `SITE_DESCRIPTION`) → **T0241** free SEO directories `/funding/grants`, `/funding/programs/[capital]` + sitemap | new nav live, free grant/program directories indexed, hero says founder + investor line, seeds in Postgres | — |
+| **S3 Reports that make money** (Day 7–10) | P1 | **T0240** `grant-advisor.ts` (match/score/timeline + narrative + audit) → **T0242** `/funding` landing + preview + A$3 guest SKU `FUNDING_REPORT_3AUD` + `POST /api/funding/report` (3 credits / `grant_finder`) ∥ **T0270** `evaluations` object (add-a-startup for evaluators, consent tiers, 6 missing migrations) → **T0271** in-workspace Trust BizReport (`trust_report: 3` credits / plan quota) + re-score A$1 → **T0243** `refresh-funding-sources` cron + fetch helper + research topics + gitignored queue | founder pays A$3 for a Money Finder report; evaluator adds a startup and pays A$3 (or quota) for its Trust BizReport; grants DB refreshes weekly | Stripe `STRIPE_PRICE_FUNDING_REPORT` |
+| **S4 Retention — Radar for both sides** (Day 10–14) | P2 | **T0244** `/funding/report/[id]` + PDF + data-room save + `/workspace/funding` + nav leaf + recommender secondary → **T0245** `funding_matches` + `money-radar-sweep` + notification kinds + bell repoint + `money_radar` email category + ICS → **T0246** radar drips T-30/14/3 + digest money block + events + `svi_trend_alert` writer → **T0247** Founder Radar in Starter (`plans.csv` flags, pricing row, A$3→subscribe upsell) ∥ **T0273** Evaluator Progress Radar (extends `watchlist-digest` to `evaluations`) → **T0248** `MoneyRadarTile` + `/workspace/funding` tabs + copy EN/VI → **T0249** (night loop) pricing row / insight links / GA4 map / Stripe sync drift → **T0274 (part 2)** "BlockID vs ChatGPT vs a valuer" page + evaluator GA4 funnel | subscribers get deadline alerts, monthly re-match, weekly digest; evaluators get weekly progress on tracked startups; upsell A$3 → Starter/Scout live | Q1/Q2 (G11), GA4 `hero_variant` |
+| **S5 Scale** (after MRR signal) | P3 | **T0272** Program batch scoring + cohort table + sponsor/LP report → **T0251** Growth extras (investor reverse-match, per-grant drafts, quarterly refresh) | accelerator pilots (T2 of the traction plan) run on batch scoring | — |
+
+### 9.3 Dependency spine (critical path)
+`T0237 → T0268 → T0269 → T0270 → T0271` (evaluator revenue) and `T0237 → T0239 → T0240 → T0242 → T0244 → T0245 → T0248` (founder revenue + retention). Parallel lanes: S1 (`T0275`, `T0274`) and S2 (`T0238`, `T0250`, `T0241`) are independent of the spines.
+
+### 9.4 Traction runs alongside the sprints
+- After **S1**: start T1 (angel groups + First Believers alumni) with the trial link; collect 5 testimonials.
+- After **S3**: start T2 accelerator pilots (3 programs from the seed) on manual scoring; batch scoring (S5) formalises it.
+- After **S4**: T3 advisory firms via reseller + T4 content (comparison page, 3 case studies).
+
+### 9.5 Ledger & doc changes on approval (no code)
+1. `project-state.json`: add `sprint:"S0…S5"` and `priority:"P0…P3"` fields + re-scoped `title/rationale` for T0237, T0268, T0269, T0270, T0274, T0275 (per §2/§4); re-render `implementing-plan.md`.
+2. SOT §1: replace G11/G12 "Next action" lines with the S0–S5 sequence; §5 add Q-A; change log.
+3. Goal docs G11/G12: apply §1/§2 corrections; add "§9 Unified sprint plan" pointer to this sequence (single source = SOT).
+4. `ROADMAP.md:5` header price fix; `feature-upgrade-roadmap-v2.md` G11/G12 blocks get sprint tags.
+5. Commit + push.
+
+### 9.6 Start conditions ("go" checklist)
+- [x] Q-A = PPL Food PTY LTD (ABN/ACN still to supply) · [x] Q-C = re-price in place · [ ] Stripe evaluator prices minted or explicitly deferred · [ ] uptime ≥ 99 % last 24 h · [ ] `npm test` green on HEAD · [ ] founder "go" → S0 starts same day (content + 4 small files, `deploy-live.sh --quick` off-peak).
+
