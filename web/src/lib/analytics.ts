@@ -165,6 +165,12 @@ export interface AnalyticsEventMap {
   roadmap_viewed: Record<string, never>;
   changelog_viewed: Record<string, never>;
   features_viewed: Record<string, never>;
+  /**
+   * G12 (T0274): `/compare` and its two alias routes. `all` = /compare,
+   * `chatgpt` = /compare/chatgpt, `valuers` = /compare/valuers. The
+   * evaluator signup funnel events belong to T0269, not here.
+   */
+  compare_viewed: { variant: "chatgpt" | "valuers" | "all" };
 
   // ── Reseller module (docs/plans/reseller-module-plan.md § U.9 + user
   //   direction: GA4 for user behavior + BlockID.au SEO/dev-progress

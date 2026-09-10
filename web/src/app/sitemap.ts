@@ -481,6 +481,46 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     },
+    // T0274 part 2 (2026-09-10) — BlockID vs ChatGPT vs a valuer. `/compare`
+    // has a VI mirror; the two alias routes are English-only.
+    {
+      url: `${SITE_URL}/compare`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/compare`,
+          vi: `${SITE_URL}/vi/compare`,
+          "x-default": `${SITE_URL}/compare`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/vi/compare`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/compare`,
+          vi: `${SITE_URL}/vi/compare`,
+          "x-default": `${SITE_URL}/compare`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/compare/chatgpt`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/compare/valuers`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
     // Business ID explainer (D3 — public, indexable)
     {
       url: `${SITE_URL}/business-id`,

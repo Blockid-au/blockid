@@ -72,6 +72,8 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
       { href: "/changelog", label: "Changelog" },
       { href: "/roadmap", label: "Roadmap" },
       { href: "/team", label: "Team" },
+      // T0274 (G12) — BlockID vs ChatGPT vs a valuer.
+      { href: "/compare", label: "Compare" },
       { href: "/status", label: "Status" },
       { href: "/security-audit", label: "Security audit" },
     ],

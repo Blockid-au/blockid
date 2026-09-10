@@ -41,6 +41,9 @@ import {
 
 type Lang = "en" | "vi";
 
+/** The alias route of `/compare` that the ChatGPT FAQ links through to. */
+export const COMPARE_CHATGPT_HREF = "/compare/chatgpt";
+
 /**
  * Regulatory facts about Auschain PTY LTD that we can point at, not
  * capability claims — hard-coded rather than translated for that reason.
@@ -74,8 +77,14 @@ function faqs(m: Messages, persona: string, count: number): SolutionFaq[] {
       a: t(m, `solutions.${persona}.faq.a${i}`),
     });
   }
-  // §4b — the one-paragraph answer, on every evaluator page.
-  out.push({ q: t(m, "solutions.faq.chatgpt.q"), a: t(m, "solutions.faq.chatgpt.a") });
+  // §4b — the one-paragraph answer, on every evaluator page, with a line
+  // through to the full three-way comparison (T0274 part 2).
+  out.push({
+    q: t(m, "solutions.faq.chatgpt.q"),
+    a: t(m, "solutions.faq.chatgpt.a"),
+    href: COMPARE_CHATGPT_HREF,
+    linkLabel: t(m, "compare.faq.link"),
+  });
   return out;
 }
 

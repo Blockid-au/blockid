@@ -66,6 +66,39 @@ describe("solutions.* catalogue parity (en ⇄ vi)", () => {
   });
 });
 
+describe("compare.* catalogue parity (en ⇄ vi) — T0274 part 2", () => {
+  it.each(["compare.", "meta.compare."])(
+    "every %s key in en.json exists in vi.json, and vice versa",
+    (prefix) => {
+      expect(enKeys(prefix).filter((k) => !(k in VI)), "missing in vi.json").toEqual([]);
+      expect(viKeys(prefix).filter((k) => !(k in EN)), "missing in en.json").toEqual([]);
+    },
+  );
+
+  it("no compare.* value is empty, and price tokens match between the two languages", () => {
+    const tokens = (s: string) => (s.match(/\{[a-zA-Z]+\}/g) ?? []).sort();
+    for (const k of [...enKeys("compare."), ...enKeys("meta.compare.")]) {
+      expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
+      expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
+      expect(tokens(VI[k]!), k).toEqual(tokens(EN[k]!));
+    }
+  });
+
+  it("carries the approved data principle verbatim, never 'PhD', never the retired A$5.50", () => {
+    const enText = enKeys("compare.").map((k) => EN[k]).join("\n");
+    const viText = viKeys("compare.").map((k) => VI[k]).join("\n");
+    expect(EN["compare.table.row.confidentiality.blockid"]).toBe(EN["solutions.principle.data"]);
+    expect(VI["compare.table.row.confidentiality.blockid"]).toBe(VI["solutions.principle.data"]);
+    expect(enText).not.toMatch(/PhD/);
+    expect(viText).not.toMatch(/PhD/);
+    expect(enText).not.toContain("5.50");
+    expect(enText).toContain("grounded in the founder's doctoral research (DBA) on startup valuation");
+    expect(enText).toMatch(/11 C-Level agents/);
+    expect(enText).toMatch(/13 criteria/);
+    expect(enText).toMatch(/12 growth phases/);
+  });
+});
+
 describe("solutions.* approved wording", () => {
   const evaluatorKeys = [
     ...enKeys("solutions.advisor."),

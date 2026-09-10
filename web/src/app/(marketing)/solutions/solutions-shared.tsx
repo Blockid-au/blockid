@@ -61,6 +61,12 @@ export interface SolutionJourneyStep {
 export interface SolutionFaq {
   q: string;
   a: string;
+  /**
+   * Optional "read more" line rendered under the answer — the evaluator
+   * pages' ChatGPT FAQ points at `/compare/chatgpt` this way (T0274).
+   */
+  href?: string;
+  linkLabel?: string;
 }
 
 /**
@@ -413,6 +419,15 @@ export function SolutionsPageShell(props: SolutionPageProps) {
                 </dt>
                 <dd className="mt-2 text-sm leading-relaxed text-secondary">
                   {fillPrices(f.a)}
+                  {f.href && f.linkLabel ? (
+                    <Link
+                      href={f.href}
+                      className="mt-3 flex w-fit items-center gap-1 font-medium text-action underline-offset-2 hover:underline"
+                    >
+                      {fillPrices(f.linkLabel)}
+                      <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                    </Link>
+                  ) : null}
                 </dd>
               </div>
             ))}
