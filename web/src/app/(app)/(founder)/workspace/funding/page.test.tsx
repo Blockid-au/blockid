@@ -147,7 +147,10 @@ beforeEach(() => {
   latestDraftMock.mockReset().mockResolvedValue(null);
 });
 
-describe("/workspace/funding (T0244)", () => {
+// The first test pays the cold transform of the whole workspace import graph
+// (tabs, drafts, investor match, radar tile); under parallel load that alone
+// exceeds the 5 s default, so the suite gets a wider per-test budget.
+describe("/workspace/funding (T0244)", { timeout: 20_000 }, () => {
   it("redirects signed-out visitors to login with next=", async () => {
     getCurrentUserMock.mockResolvedValueOnce(null);
     await expect(html()).rejects.toThrow("REDIRECT:/auth/login?next=/workspace/funding");
