@@ -58,6 +58,24 @@ export function isSignupPlanAllowed(planId: string | null | undefined): boolean 
   return typeof planId === "string" && SIGNUP_ALLOWED_PLAN_IDS.has(planId);
 }
 
+/**
+ * Can this plan ROW be bought self-serve? A negotiated tier
+ * (`plans.interval = 'custom'`, e.g. founder_enterprise — invoiced offline,
+ * never minted as a Stripe Price) or a row without a positive price must
+ * answer "contact sales", never start a card-required trial (review
+ * 2026-09-10 #17: the id allow-list alone let founder_enterprise through and
+ * only an unprovisioned env key kept it from self-serve). Used by both the
+ * `/signup` picker and `register-with-card`.
+ */
+export function isSelfServePlan(
+  plan: { interval?: string | null; price_aud_cents?: number | null } | null | undefined,
+): boolean {
+  if (!plan) return false;
+  if (plan.interval === "custom") return false;
+  const price = plan.price_aud_cents;
+  return typeof price === "number" && Number.isFinite(price) && price > 0;
+}
+
 export function isEvaluatorPlanId(
   planId: string | null | undefined,
 ): planId is EvaluatorTrialPlanId {

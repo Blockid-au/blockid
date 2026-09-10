@@ -27,6 +27,7 @@ import {
   evaluatorPlanLabel,
   isEvaluatorPlanId,
   isFounderPlanId,
+  isSelfServePlan,
   isSignupAccountType,
   isSignupPlanAllowed,
   resolvePreferredPlan,
@@ -58,6 +59,18 @@ describe("plan ladders + allow-list", () => {
       expect(isSignupPlanAllowed(id), id).toBe(true);
       expect(SIGNUP_ALLOWED_PLAN_IDS.has(id)).toBe(true);
     }
+  });
+
+  // Review 2026-09-10 #17
+  it("isSelfServePlan: custom interval or a non-positive / missing price is never self-serve", () => {
+    expect(isSelfServePlan({ interval: "monthly", price_aud_cents: 2900 })).toBe(true);
+    expect(isSelfServePlan({ interval: "yearly", price_aud_cents: 29000 })).toBe(true);
+    expect(isSelfServePlan({ interval: "custom", price_aud_cents: 150000 })).toBe(false);
+    expect(isSelfServePlan({ interval: "monthly", price_aud_cents: 0 })).toBe(false);
+    expect(isSelfServePlan({ interval: "monthly", price_aud_cents: null })).toBe(false);
+    expect(isSelfServePlan({ interval: "monthly" })).toBe(false);
+    expect(isSelfServePlan(null)).toBe(false);
+    expect(isSelfServePlan(undefined)).toBe(false);
   });
 
   it("allow-list rejects retired / contact-sales / unknown ids", () => {

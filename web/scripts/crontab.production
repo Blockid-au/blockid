@@ -231,6 +231,13 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # something changed. `?dry=1` previews without writes; `?force=1` rebuilds.
 0 6 1 1,4,7,10 * bash $RUN analysis-refresh-quarterly --timeout 300
 
+# Every 30 min — stuck Money Finder report retry (review 2026-09-10 #11).
+# Paid guest rows the Stripe webhook left at paid / generating / failed
+# (paid marker older than 10 min) are regenerated with the same generator
+# the webhook uses and the "report ready" email is sent once
+# (meta.email_sent_at dedupe). Max 10 rows per tick. `?dry=1` previews.
+*/30 * * * * bash $RUN funding-report-retry --timeout 120
+
 # ═══════════════════════════════════════════════════════════════
 # PIPELINE FLOW DIAGRAM
 # ═══════════════════════════════════════════════════════════════

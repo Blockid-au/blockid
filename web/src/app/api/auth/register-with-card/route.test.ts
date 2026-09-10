@@ -26,6 +26,7 @@ interface PlanRow {
   trial_days: number;
   stripe_price_id: string | null;
   active: boolean;
+  interval?: string;
 }
 
 const mocks = vi.hoisted(() => ({
@@ -232,6 +233,23 @@ describe("plan allow-list", () => {
   it("still accepts the founder rungs", async () => {
     const res = await POST(req(body({ plan_id: "founder_starter", account_type: "founder" })));
     expect(res.status).toBe(200);
+  });
+
+  // Review 2026-09-10 #17: founder_enterprise is on the id allow-list (the
+  // /signup ladder shows it) but its plan row is negotiated (interval =
+  // custom, A$1,500 "from" price, trial_days 0) — it must never start a
+  // self-serve card trial, even when a Stripe price happens to be provisioned.
+  it("rejects a custom-priced plan row (founder_enterprise) with 400 plan_not_self_serve before Stripe or the DB", async () => {
+    mocks.getPlanCached.mockImplementation(async (id) =>
+      id === "founder_enterprise"
+        ? { id, name: "Enterprise", price_aud_cents: 150000, trial_days: 0, stripe_price_id: "price_ent", active: true, interval: "custom" }
+        : PLANS[id] ?? null,
+    );
+    const res = await POST(req(body({ plan_id: "founder_enterprise", account_type: "founder" })));
+    expect(res.status).toBe(400);
+    expect(await json(res)).toMatchObject({ error: "plan_not_self_serve", plan_id: "founder_enterprise" });
+    expect(mocks.inserted).toHaveLength(0);
+    expect(mocks.subscriptionCreates).toHaveLength(0);
   });
 
   it.each(["founder_scale", "investor_vc_ent", "accelerator_starter", "founder_free", "bogus"])(
