@@ -4,10 +4,18 @@
 // BizReport / re-score (T0271). Flow:
 //   open → POST /api/evaluations/[id]/report {kind}            (preview, no charge)
 //        → shows "1 of N included reports" or "3 credits (balance B)"
-//        → Run → POST … {kind, confirm:true}                    (charged after success)
+//        → Run → POST … {kind, confirm:true, idempotency_key}   (credits reserved first)
 //        → links to /tbr/<token> + PDF.
 // Transparent-pricing rule: the cost is on screen before the confirm button
 // is enabled; a 402 preview disables it and points at credit packs.
+//
+// Timeouts (money-path review #9): a full run takes 1–3 min while Cloudflare
+// caps the origin response at 100 s, so the confirmed POST carries one uuid
+// minted per dialog open. If the fetch times out (RUN_TIMEOUT_MS) the dialog
+// does NOT re-POST — it polls GET …/report?kind=&idempotency_key= every
+// POLL_INTERVAL_MS for up to POLL_MAX_MS and picks up the row the server
+// writes; a retried POST with the same key is answered from that row too.
+// The server never charges twice for one key.
 
 import * as React from "react";
 import Link from "next/link";
@@ -35,6 +43,98 @@ export interface ReportRunResult {
   report_url: string | null;
   pdf_url: string | null;
   share_token: string | null;
+  /** True when the server answered from an existing row (retry / poll). */
+  reused?: boolean;
+}
+
+/** Client fetch budget for the confirmed POST (Cloudflare's origin cap is 100 s). */
+export const RUN_TIMEOUT_MS = 150_000;
+/** After a timeout, poll for the row this often … */
+export const POLL_INTERVAL_MS = 10_000;
+/** … for at most this long before giving up (the row may still land later). */
+export const POLL_MAX_MS = 180_000;
+
+export const TIMEOUT_COPY =
+  "Still generating — this can take up to 3 minutes. We will not charge twice; reopen this dialog to pick it up.";
+
+export function newIdempotencyKey(): string {
+  const c = typeof globalThis.crypto !== "undefined" ? globalThis.crypto : null;
+  if (c && typeof c.randomUUID === "function") return c.randomUUID();
+  // RFC 4122 v4 fallback for very old WebViews.
+  const bytes = new Uint8Array(16);
+  if (c && typeof c.getRandomValues === "function") c.getRandomValues(bytes);
+  else for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const h = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+export type RunOutcome =
+  | { status: "ok"; result: ReportRunResult }
+  | { status: "error"; message: string; cost?: ReportCostPreview }
+  | { status: "timeout"; message: string };
+
+export interface RunReportDeps {
+  fetchImpl?: typeof fetch;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+  timeoutMs?: number;
+  pollIntervalMs?: number;
+  pollMaxMs?: number;
+}
+
+const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * The confirmed run, exported for tests: POST once with the key; on a
+ * timeout / network drop poll GET for the row instead of re-POSTing.
+ */
+export async function runReport(
+  args: { evaluationId: string; kind: ReportKind; idempotencyKey: string },
+  deps: RunReportDeps = {},
+): Promise<RunOutcome> {
+  const fetchImpl = deps.fetchImpl ?? fetch;
+  const sleep = deps.sleep ?? defaultSleep;
+  const now = deps.now ?? Date.now;
+  const timeoutMs = deps.timeoutMs ?? RUN_TIMEOUT_MS;
+  const pollIntervalMs = deps.pollIntervalMs ?? POLL_INTERVAL_MS;
+  const pollMaxMs = deps.pollMaxMs ?? POLL_MAX_MS;
+  const path = `/api/evaluations/${encodeURIComponent(args.evaluationId)}/report`;
+  const startedAt = new Date(now()).toISOString();
+
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const res = await fetchImpl(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: args.kind, confirm: true, idempotency_key: args.idempotencyKey }),
+      signal: controller?.signal,
+    });
+    const json = (await res.json()) as (ReportRunResult & { ok: true }) | { ok: false; message?: string; error?: string; cost?: ReportCostPreview };
+    if (json.ok) return { status: "ok", result: json };
+    return { status: "error", message: json.message ?? json.error ?? "The report could not be generated. Nothing was charged.", cost: json.cost };
+  } catch {
+    // Abort (our timer) or a dropped connection: the server may still be
+    // running — never re-POST; poll for the row instead.
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+
+  const pollStart = now();
+  const query = `?kind=${encodeURIComponent(args.kind)}&idempotency_key=${encodeURIComponent(args.idempotencyKey)}&since=${encodeURIComponent(startedAt)}`;
+  while (now() - pollStart < pollMaxMs) {
+    await sleep(pollIntervalMs);
+    try {
+      const res = await fetchImpl(path + query, { method: "GET" });
+      const json = (await res.json()) as { ok: boolean; report?: (ReportRunResult & { reused: true }) | null };
+      if (json.ok && json.report) return { status: "ok", result: json.report };
+    } catch {
+      /* transient — keep polling */
+    }
+  }
+  return { status: "timeout", message: TIMEOUT_COPY };
 }
 
 export interface ReportDialogProps {
@@ -90,6 +190,10 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
   const [error, setError] = React.useState<string | null>(null);
   const [running, setRunning] = React.useState(false);
   const [result, setResult] = React.useState<ReportRunResult | null>(null);
+  const [slow, setSlow] = React.useState(false);
+  // One key per dialog open (the parent remounts per evaluation/kind via `key`).
+  const idempotencyKey = React.useRef<string | null>(null);
+  if (idempotencyKey.current === null) idempotencyKey.current = newIdempotencyKey();
   const copy = KIND_COPY[kind];
 
   // The parent mounts one dialog per (evaluationId, kind) via `key`, so the
@@ -122,23 +226,22 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
     if (!preview || preview.via === "none") return;
     setRunning(true);
     setError(null);
+    setSlow(false);
+    const slowTimer = setTimeout(() => setSlow(true), 90_000);
     try {
-      const res = await fetch(`/api/evaluations/${encodeURIComponent(evaluationId)}/report`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, confirm: true }),
-      });
-      const json = (await res.json()) as (ReportRunResult & { ok: true }) | { ok: false; message?: string; error?: string; cost?: ReportCostPreview };
-      if (json.ok) {
-        setResult(json);
-        onSuccess(json);
+      const outcome = await runReport({ evaluationId, kind, idempotencyKey: idempotencyKey.current as string });
+      if (outcome.status === "ok") {
+        setResult(outcome.result);
+        onSuccess(outcome.result);
+      } else if (outcome.status === "error") {
+        if (outcome.cost) setPreview(outcome.cost);
+        setError(outcome.message);
       } else {
-        if (json.cost) setPreview(json.cost);
-        setError(json.message ?? json.error ?? "The report could not be generated. Nothing was charged.");
+        setError(outcome.message);
       }
-    } catch {
-      setError("Network error. Nothing was charged — please try again.");
     } finally {
+      clearTimeout(slowTimer);
+      setSlow(false);
       setRunning(false);
     }
   }
@@ -192,9 +295,11 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
             <div role="status" data-testid="report-result" className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-emerald-900 space-y-2">
               <p>
                 Done — SVI <strong>{Math.round(result.svi)}</strong>.{" "}
-                {result.via === "quota"
-                  ? `Used 1 included report (${bigNumber(result.remaining_quota) ? "unlimited" : result.remaining_quota} left this month).`
-                  : `${result.credits_spent} credit${result.credits_spent === 1 ? "" : "s"} charged (balance ${result.balance.toFixed(2)}).`}
+                {result.reused
+                  ? "This report was already generated for this run — nothing more was charged."
+                  : result.via === "quota"
+                    ? `Used 1 included report (${bigNumber(result.remaining_quota) ? "unlimited" : result.remaining_quota} left this month).`
+                    : `${result.credits_spent} credit${result.credits_spent === 1 ? "" : "s"} charged (balance ${result.balance.toFixed(2)}).`}
               </p>
               {result.report_url ? (
                 <div className="flex flex-wrap gap-3">
@@ -221,6 +326,12 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
             </div>
           ) : null}
 
+          {running && slow && (
+            <p role="status" className="text-xs text-ink-600">
+              Still generating — a full report can take up to 3 minutes. Keep this dialog open; we will not charge twice.
+            </p>
+          )}
+
           {error && (
             <p role="alert" className="text-sm font-medium text-red-600">
               {error}
@@ -246,7 +357,7 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
                 className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {running && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />}
-                {running ? (kind === "full" ? "Generating (1–3 min)…" : "Re-scoring…") : copy.button}
+                {running ? (kind === "full" ? "Generating (up to 3 min)…" : "Re-scoring…") : copy.button}
               </button>
             )}
           </div>

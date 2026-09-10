@@ -12,7 +12,11 @@
 // paid_via='quota' inside the current UTC calendar month; the row is written
 // by the route only AFTER the pipeline succeeded, so a failed run consumes
 // nothing. The cost preview (`previewReportCharge`) is what the confirm
-// dialog shows before anything runs — transparent-pricing rule.
+// dialog shows before anything runs — transparent-pricing rule. Items
+// queued in the user's batches are reserved quota and are subtracted from
+// the preview (review #8); a row created in the last 10 min for the same
+// (evaluation, kind) — or carrying the client's idempotency key — is reused
+// by the route instead of re-run (review #9, migration 0325).
 
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -39,7 +43,16 @@ export interface ReportQuota {
   used: number;
   remaining: number;
   unlimited: boolean;
+  /**
+   * False when the plan row carries no `usage_limits.reports_per_month` at
+   * all (accelerator_* Contact-Sales rows) — distinct from a configured 0.
+   * Batch POST turns it into 402 quota_not_configured (review #14).
+   */
+  configured?: boolean;
 }
+
+/** How long a just-written evaluation_reports row is returned instead of re-run (review #9). */
+export const REPORT_REUSE_WINDOW_MS = 10 * 60 * 1000;
 
 export interface ReportCharge {
   kind: EvaluationReportKind;
@@ -67,6 +80,7 @@ export interface EvaluationReportRow {
   shareToken: string | null;
   sviTotal: number | null;
   createdAt: string;
+  idempotencyKey?: string | null;
 }
 
 export interface LastEvaluationReport {
@@ -80,6 +94,9 @@ export interface LastEvaluationReport {
 }
 
 type Row = Record<string, unknown>;
+
+const REPORT_COLUMNS = "id, evaluation_id, project_id, user_id, kind, paid_via, credits_cost, report_ref, share_token, svi_total, created_at";
+const REPORT_COLUMNS_WITH_KEY = "id, evaluation_id, project_id, user_id, kind, paid_via, credits_cost, report_ref, share_token, svi_total, created_at, idempotency_key";
 
 // ---------------------------------------------------------------------------
 // Pure helpers (exported for tests)
@@ -104,14 +121,23 @@ export function reportLimitFromUsageLimits(limits: Record<string, unknown> | nul
   return Math.floor(n);
 }
 
-export function buildQuota(limit: number, used: number): ReportQuota {
+export function buildQuota(limit: number, used: number, configured = true): ReportQuota {
   const unlimited = limit >= Number.MAX_SAFE_INTEGER;
   return {
     limit,
     used,
     remaining: unlimited ? Number.MAX_SAFE_INTEGER : Math.max(0, limit - used),
     unlimited,
+    configured,
   };
+}
+
+/** True when `usage_limits.reports_per_month` is present (any value, incl. 0). */
+export function reportLimitIsConfigured(limits: Record<string, unknown> | null | undefined): boolean {
+  const raw = limits?.reports_per_month;
+  if (raw == null) return false;
+  const n = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw) : NaN;
+  return Number.isFinite(n);
 }
 
 /**
@@ -167,7 +193,22 @@ export function mapEvaluationReportRow(row: Row): EvaluationReportRow {
     shareToken: row.share_token == null ? null : String(row.share_token),
     sviTotal: svi != null && Number.isFinite(svi) ? svi : null,
     createdAt: String(row.created_at ?? ""),
+    idempotencyKey: row.idempotency_key == null ? null : String(row.idempotency_key),
   };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** A client idempotency key must be a uuid; anything else is treated as absent. */
+export function normaliseIdempotencyKey(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const v = raw.trim().toLowerCase();
+  return UUID_RE.test(v) ? v : null;
+}
+
+/** 42703 = undefined column → migration 0325 not applied yet. */
+function isMissingColumn(error: unknown): boolean {
+  return (error as { code?: string } | null)?.code === "42703";
 }
 
 // ---------------------------------------------------------------------------
@@ -180,12 +221,44 @@ function resolvePlanId(planId: string | null | undefined): string {
 }
 
 export async function getReportLimitForPlan(plan: string | null | undefined): Promise<number> {
+  return (await getReportLimitInfoForPlan(plan)).limit;
+}
+
+/** `limit` plus whether the plan row configures reports_per_month at all. */
+export async function getReportLimitInfoForPlan(plan: string | null | undefined): Promise<{ limit: number; configured: boolean }> {
   try {
     const row = await getPlanCached(resolvePlanId(plan));
-    return reportLimitFromUsageLimits(row?.usage_limits ?? null);
+    const limits = row?.usage_limits ?? null;
+    return { limit: reportLimitFromUsageLimits(limits), configured: reportLimitIsConfigured(limits) };
   } catch {
-    return 0;
+    return { limit: 0, configured: false };
   }
+}
+
+/**
+ * Items still queued or running across every batch the user owns — reserved
+ * quota. POST /api/evaluations/batch and previewReportCharge subtract this
+ * from the remaining reports_per_month so a queued batch and direct runs
+ * cannot both claim the same slots (review #8). Lives here (not batch.ts)
+ * because batch.ts imports this module.
+ */
+export async function countPendingBatchItems(userId: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return 0;
+  const { data, error } = await supabase
+    .from("evaluation_batches")
+    .select("id")
+    .eq("user_id", userId)
+    .in("status", ["queued", "running"]);
+  if (error || !data || data.length === 0) return 0;
+  const ids = (data as Row[]).map((r) => String(r.id));
+  const { count, error: err2 } = await supabase
+    .from("evaluation_batch_items")
+    .select("id", { count: "exact", head: true })
+    .in("batch_id", ids)
+    .in("status", ["queued", "running"]);
+  if (err2) return 0;
+  return count ?? 0;
 }
 
 async function countQuotaUsedThisMonth(userId: string, now: Date): Promise<number> {
@@ -214,20 +287,72 @@ export async function getReportQuota(
   user: { id: string; plan?: string | null },
   now: Date = new Date(),
 ): Promise<ReportQuota> {
-  const [limit, used] = await Promise.all([
-    getReportLimitForPlan(user.plan ?? null),
+  const [info, used] = await Promise.all([
+    getReportLimitInfoForPlan(user.plan ?? null),
     countQuotaUsedThisMonth(user.id, now),
   ]);
-  return buildQuota(limit, used);
+  return buildQuota(info.limit, used, info.configured);
 }
 
-/** The cost preview shown before anything runs. */
+/**
+ * The cost preview shown before anything runs. Items already queued in the
+ * user's batches are reserved quota (review #8): they are subtracted from
+ * `remaining` so a direct run never takes a slot a queued batch will need.
+ */
 export async function previewReportCharge(
   user: { id: string; plan?: string | null },
   kind: EvaluationReportKind,
 ): Promise<ReportCharge> {
-  const [quota, balance] = await Promise.all([getReportQuota(user), getBalance(user.id)]);
-  return resolveReportCharge(kind, quota, balance);
+  const [quota, balance, pending] = await Promise.all([
+    getReportQuota(user),
+    getBalance(user.id),
+    countPendingBatchItems(user.id).catch(() => 0),
+  ]);
+  const reserved = quota.unlimited ? quota : buildQuota(quota.limit, quota.used + pending, quota.configured);
+  return resolveReportCharge(kind, reserved, balance);
+}
+
+/**
+ * A row for (evaluation, kind) that a retried POST should return instead of
+ * running again (review #9): the one carrying `idempotencyKey`, else the
+ * newest created inside REPORT_REUSE_WINDOW_MS. Null when neither exists.
+ */
+export async function findRecentEvaluationReport(input: {
+  evaluationId: string;
+  kind: EvaluationReportKind;
+  idempotencyKey?: string | null;
+  now?: Date;
+  windowMs?: number;
+}): Promise<EvaluationReportRow | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  if (input.idempotencyKey) {
+    const { data, error } = await supabase
+      .from("evaluation_reports")
+      .select(REPORT_COLUMNS_WITH_KEY)
+      .eq("evaluation_id", input.evaluationId)
+      .eq("kind", input.kind)
+      .eq("idempotency_key", input.idempotencyKey)
+      .limit(1)
+      .maybeSingle();
+    if (data) return mapEvaluationReportRow(data as Row);
+    if (error && !isMissingColumn(error) && (error as { code?: string }).code !== "42P01") {
+      console.error("[blockid:evaluations:quota] idempotency lookup failed", error);
+    }
+  }
+  const now = input.now ?? new Date();
+  const since = new Date(now.getTime() - (input.windowMs ?? REPORT_REUSE_WINDOW_MS)).toISOString();
+  const { data, error } = await supabase
+    .from("evaluation_reports")
+    .select(REPORT_COLUMNS)
+    .eq("evaluation_id", input.evaluationId)
+    .eq("kind", input.kind)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapEvaluationReportRow(data as unknown as Row);
 }
 
 /** Latest evaluation_reports row per evaluation the user holds (for the list page). */
@@ -237,7 +362,7 @@ export async function listLastEvaluationReports(userId: string): Promise<Record<
   if (!supabase) return out;
   const { data, error } = await supabase
     .from("evaluation_reports")
-    .select("id, evaluation_id, project_id, user_id, kind, paid_via, credits_cost, report_ref, share_token, svi_total, created_at")
+    .select(REPORT_COLUMNS)
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -276,27 +401,35 @@ export async function recordEvaluationReport(input: {
   reportRef: string | null;
   shareToken: string | null;
   sviTotal: number | null;
+  /** Client key (review #9); stored so a retried POST finds this row. */
+  idempotencyKey?: string | null;
 }): Promise<EvaluationReportRow | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
-  const { data, error } = await supabase
-    .from("evaluation_reports")
-    .insert({
-      evaluation_id: input.evaluationId,
-      project_id: input.projectId,
-      user_id: input.userId,
-      kind: input.kind,
-      paid_via: input.paidVia,
-      credits_cost: input.creditsCost,
-      report_ref: input.reportRef,
-      share_token: input.shareToken,
-      svi_total: input.sviTotal,
-    })
-    .select("id, evaluation_id, project_id, user_id, kind, paid_via, credits_cost, report_ref, share_token, svi_total, created_at")
-    .single();
-  if (error || !data) {
-    console.error("[blockid:evaluations:quota] evaluation_reports insert failed", error);
+  const base: Row = {
+    evaluation_id: input.evaluationId,
+    project_id: input.projectId,
+    user_id: input.userId,
+    kind: input.kind,
+    paid_via: input.paidVia,
+    credits_cost: input.creditsCost,
+    report_ref: input.reportRef,
+    share_token: input.shareToken,
+    svi_total: input.sviTotal,
+  };
+  const insertPlain = () => supabase.from("evaluation_reports").insert(base).select(REPORT_COLUMNS).single();
+  const insertKeyed = () =>
+    supabase.from("evaluation_reports").insert({ ...base, idempotency_key: input.idempotencyKey }).select(REPORT_COLUMNS_WITH_KEY).single();
+
+  let res: { data: unknown; error: { code?: string } | null } = input.idempotencyKey ? await insertKeyed() : await insertPlain();
+  // Migration 0325 not applied yet → write the row without the key rather
+  // than lose the quota decrement / billing record.
+  if (res.error && input.idempotencyKey && isMissingColumn(res.error)) {
+    res = await insertPlain();
+  }
+  if (res.error || !res.data) {
+    console.error("[blockid:evaluations:quota] evaluation_reports insert failed", res.error);
     return null;
   }
-  return mapEvaluationReportRow(data as Row);
+  return mapEvaluationReportRow(res.data as unknown as Row);
 }
