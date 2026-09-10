@@ -78,6 +78,9 @@ describe("FEATURE_COSTS", () => {
     expect(FEATURE_COSTS.docx_export).toBe(0.5);
     expect(FEATURE_COSTS.data_room_generate).toBe(3.0);
     expect(FEATURE_COSTS.investor_pack).toBe(5.0);
+    // T0271 — evaluator ladder (docs/plans/evaluator-traction-2026-09-10.md §3b)
+    expect(FEATURE_COSTS.trust_report).toBe(3.0);
+    expect(FEATURE_COSTS.trust_report_rescore).toBe(1.0);
   });
 
   it("keeps every 0-cost 'free' feature at exactly 0 (not undefined)", () => {

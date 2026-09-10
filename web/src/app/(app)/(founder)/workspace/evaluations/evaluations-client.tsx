@@ -6,8 +6,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail } from "lucide-react";
+import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail, FileText, RefreshCw, FileDown } from "lucide-react";
 import type { EvaluationListRow, EvaluationConsentTier } from "@/lib/evaluations";
+import type { LastEvaluationReport, ReportQuota } from "@/lib/evaluations/report-quota";
+import { ReportDialog, type ReportKind, type ReportRunResult } from "./report-dialog";
 
 // ---------------------------------------------------------------------------
 // Props + local constants
@@ -21,6 +23,10 @@ export interface EvaluationsClientProps {
   isEvaluator: boolean;
   /** `?claim=<token>` from the founder invite email. */
   claimToken?: string | null;
+  /** Latest evaluation_reports row per evaluation id (T0271). */
+  lastReports?: Record<string, LastEvaluationReport>;
+  /** Included Trust BizReports this month from usage_limits.reports_per_month. */
+  reportQuota?: ReportQuota | null;
 }
 
 const AU_STATE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -86,10 +92,35 @@ export function EvaluationsClient({
   plan,
   isEvaluator,
   claimToken = null,
+  lastReports: initialLastReports = {},
+  reportQuota = null,
 }: EvaluationsClientProps) {
   const router = useRouter();
   const [rows, setRows] = React.useState<EvaluationListRow[]>(initialEvaluations);
   const [used, setUsed] = React.useState(initialUsed);
+
+  // --- Trust BizReport / re-score (T0271) ---
+  const [lastReports, setLastReports] = React.useState<Record<string, LastEvaluationReport>>(initialLastReports);
+  const [reportDialog, setReportDialog] = React.useState<{ row: EvaluationListRow; kind: ReportKind } | null>(null);
+  const [quotaRemaining, setQuotaRemaining] = React.useState<number | null>(reportQuota ? reportQuota.remaining : null);
+
+  function handleReportSuccess(row: EvaluationListRow, result: ReportRunResult) {
+    setLastReports((prev) => ({
+      ...prev,
+      [row.id]: {
+        evaluationId: row.id,
+        kind: result.kind,
+        createdAt: new Date().toISOString(),
+        sviTotal: result.svi,
+        shareToken: result.share_token,
+        reportUrl: result.report_url,
+        pdfUrl: result.pdf_url,
+      },
+    }));
+    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, latestSvi: result.svi, latestSviAt: new Date().toISOString() } : r)));
+    if (result.via === "quota") setQuotaRemaining(result.remaining_quota);
+    router.refresh();
+  }
 
   // --- Add dialog state ---
   const [showAdd, setShowAdd] = React.useState(false);
@@ -329,6 +360,21 @@ export function EvaluationsClient({
             <strong>{used} of {limitLabel}</strong> tracked startup{limit === 1 ? "" : "s"} used
             <span className="mx-1.5 text-surface-300">|</span>
             <span className="capitalize">{plan.replace(/_/g, " ")}</span> plan
+            {reportQuota && reportQuota.limit > 0 ? (
+              <>
+                <span className="mx-1.5 text-surface-300">|</span>
+                <span data-testid="report-quota">
+                  {reportQuota.unlimited || isUnlimited(reportQuota.limit)
+                    ? "Unlimited Trust BizReports"
+                    : `${quotaRemaining ?? reportQuota.remaining} of ${reportQuota.limit} included Trust BizReports left this month`}
+                </span>
+              </>
+            ) : reportQuota ? (
+              <>
+                <span className="mx-1.5 text-surface-300">|</span>
+                <span data-testid="report-quota">Trust BizReport A$3 · re-score A$1</span>
+              </>
+            ) : null}
           </span>
           {atLimit && (
             <Link href="/pricing?segment=evaluator" className="font-semibold underline">
@@ -441,6 +487,28 @@ export function EvaluationsClient({
                           "Not scored yet"
                         )}
                       </div>
+                      {lastReports[row.id] ? (
+                        <div className="mt-1 text-[11px] text-ink-500" data-testid="last-report">
+                          Last report: {formatDate(lastReports[row.id].createdAt)}
+                          {lastReports[row.id].sviTotal != null ? <> · SVI {Math.round(lastReports[row.id].sviTotal as number)}</> : null}
+                          {lastReports[row.id].reportUrl ? (
+                            <>
+                              {" "}
+                              <a href={lastReports[row.id].reportUrl as string} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                                Open
+                              </a>
+                              {lastReports[row.id].pdfUrl ? (
+                                <>
+                                  {" · "}
+                                  <a href={lastReports[row.id].pdfUrl as string} className="inline-flex items-center gap-0.5 text-brand-700 hover:underline">
+                                    <FileDown className="h-3 w-3" /> PDF
+                                  </a>
+                                </>
+                              ) : null}
+                            </>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chip.className}`}>
@@ -458,6 +526,26 @@ export function EvaluationsClient({
                     <td className="px-4 py-3 text-ink-600 whitespace-nowrap">{formatDate(row.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setReportDialog({ row, kind: "full" })}
+                          aria-label={`Run Trust BizReport for ${row.projectName}`}
+                          className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 cursor-pointer"
+                        >
+                          <FileText strokeWidth={1.75} className="h-3.5 w-3.5" />
+                          Run Trust BizReport
+                        </button>
+                        {lastReports[row.id] ? (
+                          <button
+                            type="button"
+                            onClick={() => setReportDialog({ row, kind: "rescore" })}
+                            aria-label={`Re-score ${row.projectName}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-brand-300 bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50 cursor-pointer"
+                          >
+                            <RefreshCw strokeWidth={1.75} className="h-3.5 w-3.5" />
+                            Re-score
+                          </button>
+                        ) : null}
                         <Link
                           href={`/workspace/projects/${encodeURIComponent(row.projectSlug)}/analyze`}
                           className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
@@ -493,6 +581,18 @@ export function EvaluationsClient({
           </table>
         </div>
       ) : null}
+
+      {/* Trust BizReport / re-score confirm dialog (T0271) */}
+      {reportDialog && (
+        <ReportDialog
+          key={`${reportDialog.row.id}:${reportDialog.kind}`}
+          evaluationId={reportDialog.row.id}
+          startupName={reportDialog.row.projectName}
+          kind={reportDialog.kind}
+          onClose={() => setReportDialog(null)}
+          onSuccess={(result) => handleReportSuccess(reportDialog.row, result)}
+        />
+      )}
 
       {/* Add dialog */}
       {showAdd && (
