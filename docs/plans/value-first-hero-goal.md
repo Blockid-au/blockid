@@ -2,6 +2,7 @@
 
 > **Source of truth: [SOURCE-OF-TRUTH.md](./SOURCE-OF-TRUTH.md)** — this file is a specialised view; consult the source-of-truth first for status.
 > **G11 amendment (2026-09-10):** the "do NOT touch `nav-v2.tsx` (G7)" file boundary is superseded for the public nav by [`money-finder-2026-09-10.md`](./money-finder-2026-09-10.md) G11-P1. The value-first copy rule still governs the new `/funding` hero and the "Do you need money?" CTA.
+> **G11-P14 (2026-09-10):** candidate hero one-liners (founder view F1–F4, investor view I1–I3, general G1–G3, EN+VI) and the 5-second / say-it-back / A/B selection method live in [`money-finder-2026-09-10.md`](./money-finder-2026-09-10.md) §4i D-5. Winners are to be recorded **here** so the value-first loop does not rewrite them.
 
 ```yaml
 ---

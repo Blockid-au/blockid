@@ -145,9 +145,9 @@
 
 ### G11 — Money Finder: simple public menu + "Do you need money?" (AU grants, programs, Founder Radar)
 - **Source:** [`docs/plans/money-finder-2026-09-10.md`](./money-finder-2026-09-10.md) · seed data `web/content/data/grants-au.seed.json` (56 rows) + `web/content/data/programs-au.seed.json` (8 capitals + national)
-- **Status:** **P0 shipped 2026-09-10** (goal doc + seed data, plan-only). P1–P13 `open` — **no code lane started**; implementation gated on founder "go".
+- **Status:** **P0 shipped 2026-09-10** (goal doc + seed data, plan-only). P1–P14 `open` — **no code lane started**; implementation gated on founder "go".
 - **Founder decisions (2026-09-10):** public nav = 5 items (Get my score · Get funding ▾ · Free tools ▾ · Pricing · Demo ▾) + CTA "Do you need money?" · gate = A$3 one-off (guest SKU, same pattern as One-Click Report) + 3 credits + plan-included · programs = all 8 capitals in v1 · "Founder Radar" alerts/re-match/digest bundled into **Starter A$29** (no new tier, no add-on).
-- **Parts:** A public-menu simplification (legacy `site/navbar.tsx` mirrors, not retired — 52 importers, shell swap stays in G8-P6) · B Money Finder (`au_grants`/`au_programs`/`funding_reports`/`project_grant_profiles`, `lib/agents/grant-advisor.ts`, `/funding*`, A$3 SKU) · C Founder Radar (deadline drips T-30/14/3, monthly re-match, weekly digest money block, ICS, capital map, application drafts) · D weekly refresh cron + dashboard `MoneyRadarTile` + messaging pack.
+- **Parts:** A public-menu simplification (legacy `site/navbar.tsx` mirrors, not retired — 52 importers, shell swap stays in G8-P6) · B Money Finder (`au_grants`/`au_programs`/`funding_reports`/`project_grant_profiles`, `lib/agents/grant-advisor.ts`, `/funding*`, A$3 SKU) · C Founder Radar (deadline drips T-30/14/3, monthly re-match, weekly digest money block, ICS, capital map, application drafts) · D weekly refresh cron + dashboard `MoneyRadarTile` + messaging pack + **D-5 hero one-liners** (founder view F1 "See your startup the way an investor will — your score, what it's worth, and where the money is, in 60 seconds." · investor view I1 "One score across 8 investor dimensions, backed by evidence — screen an Australian startup in minutes, not weeks." · tagline "A credit score for startups."; winners recorded back in G9).
 - **Amendments:** G7 public-nav file boundary and G9 "do not touch `nav-v2.tsx`" are superseded by G11-P1 for the **public** nav only; G7 "never hide a feature" continues to govern the logged-in sidebar (G8).
 - **Positioning constraint:** business.gov.au says "don't pay for government grant information" — lists + official links stay free; A$3/plan buys eligibility analysis, ranking, A$ estimate, timeline, drafts. CC BY 3.0 AU attribution on reused Commonwealth text.
 - **Next action:** founder "go" → G11-P1 (nav) and G11-P2 (migration `0308_au_funding.sql` + seed script) can run in parallel; P3 agent after P2.
@@ -224,6 +224,7 @@
 | G11-P11 | money-finder-2026-09-10 | Founder Radar packaging in Starter + upsell card | open | cro + stripe-saas-billing | — |
 | G11-P12 | money-finder-2026-09-10 | Growth extras: investor reverse-match, per-grant drafts, quarterly refresh (v2) | open | investor-relations + cfo-advisor | — |
 | G11-P13 | money-finder-2026-09-10 | MoneyRadarTile + /workspace/funding tabs + messaging copy EN/VI | open | react-expert + cmo + conversion-optimizer | — |
+| G11-P14 | money-finder-2026-09-10 | hero one-liners (founder/investor/general, EN+VI) + 5-second test + A/B | open | cmo + cro + conversion-optimizer | — |
 
 ---
 
@@ -387,6 +388,6 @@ the sentinels is overwritten._
 | When | Who | What |
 |---|---|---|
 | 2026-07-23 | loop agent (SOT consolidation task) | Initial consolidation. §1–§7 authored; back-links applied to reseller-plan + unicorn-masterplan; memory pointer added. |
-| 2026-09-10 | CEO + Claude (plan session) | G11 Money Finder opened (P0 shipped, plan-only): goal doc `money-finder-2026-09-10.md`, §2 rows G11-P0..P13, §7 markers; amendments recorded in G7/G9 goal docs, `feature-upgrade-roadmap-v2.md` Q4, `ROADMAP.md` §4, `pricing-upgrade-plan-2026-07-16.md`, `GOALS.md` Goal 3, `role-based-2026-07-25/founder.md` gap #8; seed data `web/content/data/grants-au.seed.json` + `programs-au.seed.json`. |
+| 2026-09-10 | CEO + Claude (plan session) | G11 Money Finder opened (P0 shipped, plan-only): goal doc `money-finder-2026-09-10.md`, §2 rows G11-P0..P14, §7 markers; amendments recorded in G7/G9 goal docs, `feature-upgrade-roadmap-v2.md` Q4, `ROADMAP.md` §4, `pricing-upgrade-plan-2026-07-16.md`, `GOALS.md` Goal 3, `role-based-2026-07-25/founder.md` gap #8; seed data `web/content/data/grants-au.seed.json` + `programs-au.seed.json`. |
 | 2026-07-23 | qa/regression sweep | Iteration 5-9 sync: G1 tick 290 → 317; G2 audit #1/2/3/4/5/8/9 flipped to shipped with commit SHAs (#6/7/10 remain founder-review-blocked); G4 Top-5 #3 PDF branding flipped to shipped; requirements register rows added for AUD-R1/2/3/4/5/8/9 + Q3-PDF-BRAND; §3 shipped-log expanded with audit-remediation, product/branding, QA/infra subsections. |
 

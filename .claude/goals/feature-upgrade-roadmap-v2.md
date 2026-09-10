@@ -62,6 +62,7 @@
 - [ ] P11 Founder Radar bundled into Starter A$29 (flag `money_radar`) + A$3→subscribe upsell card
 - [ ] P12 Growth extras: investor reverse-match, per-grant application drafts, quarterly expert refresh (v2)
 - [ ] P13 dashboard `MoneyRadarTile` (5 states) + `/workspace/funding` tabs + messaging copy EN/VI
+- [ ] P14 hero one-liners (founder / investor / general, EN+VI) — truth check, 5-second + say-it-back tests, A/B via `cta-variants.ts`; winners → hero, `/solutions/*`, og, i18n, directory bios; recorded in G9
 
 ### Multi-Project System Enhancement (CTO)
 - [ ] Portfolio dashboard (all startups side-by-side)

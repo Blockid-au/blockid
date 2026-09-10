@@ -1,7 +1,7 @@
 # Money Finder — Simple Public Menu + "Do you need money?" — Goal Doc
 
 > **Back-link:** [`docs/plans/SOURCE-OF-TRUTH.md`](./SOURCE-OF-TRUTH.md) — consult that file first.
-> **Goal ID:** G11 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** P0 shipped (this doc + seed data); P1–P13 open, **no code yet**.
+> **Goal ID:** G11 · **Opened:** 2026-09-10 · **Owner:** CEO (Do Van Long) · **Status:** P0 shipped (this doc + seed data); P1–P14 open, **no code yet**.
 > **Amends:** G7 [`ux-ia-startup-flow-goal.md`](./ux-ia-startup-flow-goal.md) public-nav file boundary (`nav-v2.tsx`, `site/navbar.tsx`) and G9 "do not touch nav-v2" note — G11-P1 owns the **public** nav; G7/G8 keep the logged-in sidebar.
 > **Seed data:** [`web/content/data/grants-au.seed.json`](../../web/content/data/grants-au.seed.json) · [`web/content/data/programs-au.seed.json`](../../web/content/data/programs-au.seed.json)
 > **Entity:** Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111 · Sydney NSW.
@@ -12,9 +12,10 @@ Founder requests (2026-09-10), verbatim intent:
 2. Research Australian grants for the user's input topic and recommend the right ones after the user pays ≥ A$3 or subscribes; build a full grant database with links; design an agent that reviews grants and suggests the right ones for the user's idea/startup.
 3. CTA: "Do you need money or investment?" → grant suggestions + other value info.
 4. Also recommend startup programs in every capital (timing, content, benefits) laid out on a timeline.
-5. After login: notifications for grant deadlines, program intakes, suitable events; a subscription package attractive and clear enough to convert (valuation info, next-step guidance, more credits, funding sources, investor connections, expert analysis updates).
-6. The grant/event/program store auto-updates weekly into the knowledge base; matching shown on the dashboard or emailed to matching users; friendly, effective UX with attractive messaging.
-7. Plan only — no code; add to the upgrade plan.
+5. Short, speakable 1–2 sentence hero messages from the customer view and the investor view, usable to introduce BlockID to anyone (§4i D-5).
+6. After login: notifications for grant deadlines, program intakes, suitable events; a subscription package attractive and clear enough to convert (valuation info, next-step guidance, more credits, funding sources, investor connections, expert analysis updates).
+7. The grant/event/program store auto-updates weekly into the knowledge base; matching shown on the dashboard or emailed to matching users; friendly, effective UX with attractive messaging.
+8. Plan only — no code; add to the upgrade plan.
 
 ---
 
@@ -318,9 +319,50 @@ Also: `/workspace/funding` = full Radar page (tabs Grants · Programs · Events 
 - Notification frequency caps: ≤1 email/day/user, digest weekly; in-app unlimited but deduped; all money emails carry unsubscribe (category `money_radar`).
 - Locale: dates in AEST/AWST per user state; A$ formatting; VI strings reviewed for the 12 messaging keys above.
 
-### Added phase
+### D-5. Hero one-liners — short, speakable, customer view + investor view (founder request, 2026-09-10)
+
+**Purpose:** one or two sentences anyone can say out loud — at a meetup, in a LinkedIn bio, on the homepage — that explain BlockID from the founder's side and from the investor's side. Must obey G9 (lead with what the person GETS + the hard problem) and G10 (score-first, truthful numbers only: "8 SVI dimensions", "11 C-Level agents", never an invented user count).
+
+**Speakability rules (used as the acceptance test):**
+- ≤ 20 words per sentence, ≤ 2 sentences; readable aloud in one breath (< 6 s).
+- No internal jargon: no "SVI", "SCN", "tokenisation", "data room" in the first sentence; plain nouns (score, worth, money, investors).
+- One promise + one proof (a number or a concrete artefact). Numbers in the sub-line must be live (from DB) or verifiable.
+- Passes the "friend test": a non-founder can repeat it after hearing it once.
+
+**Candidates — Founder / customer view (EN → VI):**
+| # | Line | Why |
+|---|---|---|
+| F1 | **"See your startup the way an investor will — your score, what it's worth, and where the money is, in 60 seconds."** / *"Nhìn startup của bạn theo cách nhà đầu tư nhìn — điểm số, giá trị, và tiền có thể xin ở đâu, trong 60 giây."* | Keeps the shipped H1 (`hero-section.tsx`) and adds the money promise from G11 |
+| F2 | "Know where you stand, prove what you're worth, and find the money — before you pitch." / *"Biết mình đang ở đâu, chứng minh mình đáng giá bao nhiêu, và tìm được tiền — trước khi đi gọi vốn."* | Mirrors the 3 core questions (where / worth / next) from the mission |
+| F3 | "Paste your idea. Get an investor-ready score, a valuation range and the grants you qualify for — free." / *"Dán ý tưởng vào. Nhận điểm sẵn sàng gọi vốn, khoảng định giá và các grant bạn đủ điều kiện — miễn phí."* | Action-first for the omnibox hero; ties to `/funding` |
+| F4 (spoken) | "It's like a credit score for startups — you paste your idea and it tells you your score, your valuation range, and which grants and investors fit you." | Elevator / meetup version; analogy does the work |
+
+**Candidates — Investor view (EN → VI):**
+| # | Line | Why |
+|---|---|---|
+| I1 | **"One score across 8 investor dimensions, backed by evidence — screen an Australian startup in minutes, not weeks."** / *"Một điểm số trên 8 tiêu chí nhà đầu tư quan tâm, có bằng chứng — sàng lọc startup Úc trong vài phút thay vì vài tuần."* | Quantified, truthful ("8 dimensions"), states the pain (weeks of screening) |
+| I2 | "See if a founder is investor-ready before the first coffee: one score, one trust report, one link." / *"Biết founder đã sẵn sàng gọi vốn hay chưa trước cả buổi cà phê đầu tiên: một điểm số, một báo cáo tin cậy, một đường link."* | Uses shipped artefacts (Trust Report share link, per-investor links) |
+| I3 | "The Startup Value Index: a live, evidence-backed score for Australian startups — so you back the ones that are actually ready." / *"Startup Value Index: điểm số cập nhật, có bằng chứng, cho startup Úc — để bạn rót vốn vào những công ty thực sự sẵn sàng."* | Brand-forward for the index/exchange narrative (G3) |
+
+**Candidates — General / public (press, bios, friends):**
+- G1 **"BlockID is Australia's startup readiness score — it tells founders what they're worth and where to get money, and tells investors who's ready."** / *"BlockID là điểm sẵn sàng của startup Úc — cho founder biết mình đáng giá bao nhiêu và xin tiền ở đâu, cho nhà đầu tư biết ai đã sẵn sàng."*
+- G2 (3 words) **"A credit score for startups."** / *"Điểm tín nhiệm cho startup."*
+- G3 (one-breath pitch) "Founders paste an idea and get a score, a valuation and a list of grants and investors that fit. Investors get the same score to screen deals faster."
+
+**Recommended set (default until the 5-second test says otherwise):** homepage H1 = F1 · homepage sub-line = F3 (with live numbers strip per G9-P3) · `/solutions/investor` H1 = I1 · `/funding` H1 = the D-3 money hero · spoken/bio = G1 · tagline = G2.
+
+**Research + selection method (G11-P14):**
+1. Corpus check against G10 truth list (`/features`, PRD §6) — every number in a line must resolve to a live value or a shipped artefact.
+2. **5-second test**: show each line for 5 s to 10 founders + 5 investors (Fishburners/TCIH, Startmate alumni, Sydney Angels contacts), ask "what does it do / who is it for / would you click" — score recall + intent; run VI lines with 5 Vietnamese-speaking founders.
+3. **Say-it-back test**: read the line once; can they repeat the promise? Drop any line < 70% say-back.
+4. A/B on production: register F1/F2/F3 as hero variants in `web/src/lib/sales/cta-variants.ts` (landing surface) + a `hero_variant` GA4 dimension; primary metric = `SmartIntake` submit rate, secondary = `cta_clicked{need_money}`; 2 weeks or 500 sessions per arm.
+5. Ship winners to: homepage hero, `/solutions/founder|investor`, `/funding`, `og:description` + `<title>`, `messages/en.json`/`vi.json` `hero.*` keys (retire stale `hero.v3.*`), directory bios (LinkedIn, F6S, Crunchbase — see directory-listings memory), pitch deck slide 1, email signatures, `/team` intro, README tagline.
+6. Guardrail: G9 owns hero copy rules; this section only supplies the candidates and the test — record the winner back in `value-first-hero-goal.md` so the loop agent doesn't rewrite it.
+
+### Added phases
 | ID | Track | Owner | Size | Depends |
 |---|---|---|---|---|
+| G11-P14 | Hero one-liners: truth check, 5-second + say-it-back tests (EN/VI), A/B via `cta-variants.ts` + GA4 `hero_variant`, roll winners to hero/solutions/og/i18n/bios; record in G9 goal doc | cmo + cro + conversion-optimizer | S | — (can run before P1) |
 | G11-P13 | Dashboard `MoneyRadarTile` (5 states) + `/workspace/funding` tabs + messaging keys file `lib/funding/copy.ts` (EN) + VI review + A/B variant registration in `cta-variants.ts` | react-expert + cmo + conversion-optimizer | M | P5, P9 |
 
 ## 5. Research seed — AU grants (web research 2026-09-10; full 55-row table with URLs goes into `grants-au.seed.json` + goal-doc appendix)
@@ -544,6 +586,7 @@ Remaining founder-review (non-blocking, recorded in goal doc §Q): Q1 whether to
 | G11-P6 | Public directories `/funding/grants`, `/funding/programs`, `/funding/programs/[city]` + JSON-LD + sitemap | seo-content-au + nextjs-developer | M | P2 |
 | G11-P7 | `lib/funding/fetch-source.ts` + `api/cron/refresh-funding-sources` + crontab line + goal-tree research topics + gitignored review queue + IR daily brief hook | cto + rnd | M | P2 |
 | G11-P8 | `/pricing` matrix row, insight cross-links, `AnalyticsEventMap` events, `sync-stripe-pricing.mjs` credit-pack price drift fix (1500/2500 → 3500/6000), docs + `/features` card | cmo + code-documenter | S | P4 |
+| G11-P14 | Hero one-liners (§4i D-5): founder/investor/general lines EN+VI, truth check, 5-second + say-it-back tests, A/B via `cta-variants.ts`, roll winners to hero/solutions/og/i18n/bios; winner recorded in G9 goal doc | cmo + cro + conversion-optimizer | S | — |
 
 Deploy gates: off-peak, `deploy-live.sh`, no Docker/CI (memory). Every phase commits + pushes in the same tick (nightly `git reset --hard`).
 
