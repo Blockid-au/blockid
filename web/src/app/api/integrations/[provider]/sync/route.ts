@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import {
   getConnection,
   markSynced,
@@ -29,7 +29,13 @@ export async function POST(
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
 
-  const projectId = await getProjectIdFromRequest();
+  // S18-A — member-aware (editor+): the connection is the CALLER's own
+  // token for this project; the refreshed signals are written under the
+  // project OWNER's user_id so owner + members read one set.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const signalsUserId = scope?.ownerUserId ?? user.id;
   const conn = await getConnection(user.id, provider, projectId);
   if (!conn || conn.status !== "active" || !conn.accessToken) {
     return NextResponse.json({ ok: false, error: "not_connected" }, { status: 404 });
@@ -52,7 +58,7 @@ export async function POST(
   try {
     if (provider === "github") {
       const s = await fetchGithubSignals(conn.accessToken);
-      await writeSignals(user.id, projectId, "github", [
+      await writeSignals(signalsUserId, projectId, "github", [
         { key: "recent_commits_30d", numeric: s.recentCommits30d },
         { key: "public_repos", numeric: s.publicRepos },
         { key: "top_language", text: s.topLanguage },
@@ -61,7 +67,7 @@ export async function POST(
       ]);
     } else if (provider === "stripe") {
       const s = await fetchStripeSignals(conn.accessToken);
-      await writeSignals(user.id, projectId, "stripe", [
+      await writeSignals(signalsUserId, projectId, "stripe", [
         { key: "mrr_aud", numeric: s.mrrAud },
         { key: "active_customers", numeric: s.activeCustomers },
         { key: "recent_payments_30d", numeric: s.recentPayments30d },
@@ -76,7 +82,7 @@ export async function POST(
         throw new Error("no_property_id");
       }
       const s = await fetchGa4Signals(conn.accessToken, propertyId);
-      await writeSignals(user.id, projectId, "ga4", [
+      await writeSignals(signalsUserId, projectId, "ga4", [
         { key: "sessions_30d", numeric: s.sessions30d },
         { key: "new_users_30d", numeric: s.newUsers30d },
         { key: "conversions_30d", numeric: s.conversions30d },

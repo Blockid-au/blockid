@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
 import { fetchStripeSignals } from "@/lib/oauth-stripe-signals";
 
@@ -53,6 +53,17 @@ export async function GET(request: Request) {
     );
   }
 
+  // S18-A — linking is admin+; gate before the code exchange. Token under
+  // the CALLER's user_id, signals under the project OWNER's user_id.
+  const { scope, denied } = await projectScopeOrRedirect(
+    "admin",
+    `${baseUrl()}/workspace/integrations`,
+    "stripe_forbidden_role",
+  );
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const signalsUserId = scope?.ownerUserId ?? user.id;
+
   const clientSecret =
     process.env.STRIPE_OAUTH_CLIENT_SECRET ??
     process.env.STRIPE_CLIENT_SECRET ??
@@ -79,8 +90,6 @@ export async function GET(request: Request) {
       throw new Error(tokenJson.error_description ?? "no_access_token");
     }
 
-    const projectId = await getProjectIdFromRequest();
-
     const conn = await saveConnection({
       userId: user.id,
       projectId,
@@ -97,7 +106,7 @@ export async function GET(request: Request) {
 
     try {
       const signals = await fetchStripeSignals(tokenJson.access_token);
-      await writeSignals(user.id, projectId, "stripe", [
+      await writeSignals(signalsUserId, projectId, "stripe", [
         { key: "mrr_aud", numeric: signals.mrrAud },
         { key: "active_customers", numeric: signals.activeCustomers },
         { key: "recent_payments_30d", numeric: signals.recentPayments30d },

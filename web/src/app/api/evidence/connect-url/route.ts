@@ -10,7 +10,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import { findOrCreateSVIAccount } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,13 @@ export async function POST(request: Request) {
       );
     }
 
+    // S18-A — member-aware write (editor+): the evidence row lands on the
+    // OWNER's account; a viewer is refused BEFORE the outbound reachability
+    // probe so a refused member cannot use the route as a URL prober.
+    const { scope, denied } = await projectScopeOrDeny("editor");
+    if (denied) return denied;
+    const projectId = scope?.projectId ?? null;
+
     // Validate URL is reachable (HEAD request with timeout)
     let reachable = false;
     try {
@@ -160,9 +168,8 @@ export async function POST(request: Request) {
       ? `GitHub: ${hostname}${pathSnippet}`
       : `${typeLabel}: ${hostname}${pathSnippet}`;
 
-    // Save evidence
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(auth.email, projectId);
+    // Save evidence on the project's (owner's) account
+    const accountId = await findOrCreateSVIAccount(scope?.dataEmail ?? auth.email, projectId);
     if (!accountId) {
       return NextResponse.json(
         { ok: false, error: "Failed to resolve account" },

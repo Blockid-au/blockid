@@ -76,11 +76,19 @@ vi.mock("@/lib/credits", () => ({
   spendCredits: (userId: string, feature: string, meta?: unknown) =>
     mocks.spendCredits(userId, feature, meta),
 }));
-vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
-  findSVIAccountWithFallback: (email: string, projectId: string | null) =>
-    mocks.findSVIAccountWithFallback(email, projectId),
-}));
+// S18-A — member-aware scope on top of the existing project spy.
+const scopeRole = vi.hoisted(() => ({ value: "owner" as "owner" | "admin" | "editor" | "viewer" }));
+vi.mock("@/lib/projects", async () => {
+  const { scopeAdapter } = await import("@/test/project-scope-mock");
+  return {
+    ...scopeAdapter(() => mocks.getProjectIdFromRequest(), scopeRole, {
+      callerEmail: "founder@example.com",
+      callerId: "user-1",
+    }),
+    findSVIAccountWithFallback: (email: string, projectId: string | null) =>
+      mocks.findSVIAccountWithFallback(email, projectId),
+  };
+});
 
 import { POST, dynamic } from "./route";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
@@ -206,10 +214,34 @@ beforeEach(() => {
   mocks.spendCredits.mockResolvedValue({ ok: true, balance: 9.9 });
   mocks.getProjectIdFromRequest.mockResolvedValue("proj-1");
   mocks.findSVIAccountWithFallback.mockResolvedValue(ACCOUNT);
+  scopeRole.value = "owner";
 });
 
 afterEach(() => {
   vi.clearAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// S18-A — member access (editor+: suggestions are stored on the owner's row)
+// ---------------------------------------------------------------------------
+
+describe("member access (S18-A)", () => {
+  it("viewer: 403 before the AI call or any spend", async () => {
+    scopeRole.value = "viewer";
+    const res = await POST(req(), paramsOf("idea"));
+    expect(res.status).toBe(403);
+    expect(mocks.callAI).not.toHaveBeenCalled();
+    expect(mocks.spendCredits).not.toHaveBeenCalled();
+  });
+
+  it("editor: account resolved under the OWNER's email; caller pays; member creditNote", async () => {
+    scopeRole.value = "editor";
+    const res = await POST(req(), paramsOf("idea"));
+    expect(res.status).toBe(200);
+    expect(mocks.findSVIAccountWithFallback).toHaveBeenCalledWith("owner@x.test", "proj-1");
+    expect(mocks.spendCredits).toHaveBeenCalledWith("user-1", "criterion_ai_suggest", expect.anything());
+    expect(((await res.json()) as { creditNote: string }).creditNote).toMatch(/not the project owner/);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -13,7 +13,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { findOrCreateSVIAccount } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -141,6 +142,13 @@ export async function POST(req: NextRequest) {
   const limited = enforceRateLimit("bank-statement", user.email, req, 10, 3_600_000);
   if (limited) return limited;
 
+  // S18-A — member-aware write (editor+): the evidence row lands on the
+  // OWNER's account; a viewer is refused before the upload is parsed.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -182,8 +190,7 @@ export async function POST(req: NextRequest) {
     let evidenceId: string | null = null;
 
     if (supabase) {
-      const projectId = await getProjectIdFromRequest();
-      const accountId = await findOrCreateSVIAccount(user.email, projectId);
+      const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
       if (accountId) {
         const { data: ev } = await supabase
           .from("svi_evidence")

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
 import { fetchGithubSignals } from "@/lib/oauth-github-signals";
 
@@ -47,6 +47,19 @@ export async function GET(request: Request) {
     );
   }
 
+  // S18-A — linking a third-party account to the project is admin+ (the
+  // token is stored under the CALLER's user_id; the signals it yields are
+  // written under the project OWNER's user_id so every member sees them).
+  // Gate BEFORE the code exchange so a refused member does not burn the code.
+  const { scope, denied } = await projectScopeOrRedirect(
+    "admin",
+    `${baseUrl()}/workspace/integrations`,
+    "github_forbidden_role",
+  );
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const signalsUserId = scope?.ownerUserId ?? user.id;
+
   const clientId =
     process.env.GITHUB_OAUTH_CLIENT_ID ?? process.env.GITHUB_CLIENT_ID;
   const clientSecret =
@@ -83,8 +96,6 @@ export async function GET(request: Request) {
     });
     const me = (await meRes.json()) as GhUser;
 
-    const projectId = await getProjectIdFromRequest();
-
     const conn = await saveConnection({
       userId: user.id,
       projectId,
@@ -98,7 +109,7 @@ export async function GET(request: Request) {
 
     try {
       const signals = await fetchGithubSignals(tokenJson.access_token);
-      await writeSignals(user.id, projectId, "github", [
+      await writeSignals(signalsUserId, projectId, "github", [
         { key: "recent_commits_30d", numeric: signals.recentCommits30d },
         { key: "public_repos", numeric: signals.publicRepos },
         { key: "top_language", text: signals.topLanguage },

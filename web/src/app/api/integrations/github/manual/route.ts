@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import { findOrCreateSVIAccount } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { parseRepoInput, fetchRepoStats } from "@/lib/github";
 
 export const dynamic = "force-dynamic";
@@ -53,8 +54,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, stats, persisted: false });
   }
 
-  const projectId = await getProjectIdFromRequest();
-  const accountId = await findOrCreateSVIAccount(user.email, projectId);
+  // S18-A — member-aware write (editor+): the github_repo evidence row is
+  // replaced on the OWNER's account; a viewer is refused before the write.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const accountId = await findOrCreateSVIAccount(scope?.dataEmail ?? user.email, projectId);
   if (!accountId) {
     return NextResponse.json({ ok: true, stats, persisted: false });
   }

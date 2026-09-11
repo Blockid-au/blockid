@@ -16,9 +16,10 @@ import {
   type CriterionKey,
 } from "@/lib/evaluation-criteria";
 import {
-  getProjectIdFromRequest,
   findSVIAccountWithFallback,
+  creditChargeNote,
 } from "@/lib/projects";
+import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -63,9 +64,18 @@ export async function POST(
     }, { status: 402 });
   }
 
-  // Load the criterion data
-  const projectId = await getProjectIdFromRequest();
-  const account = await findSVIAccountWithFallback(user.email, projectId);
+  // Load the criterion data.
+  // S18-A — member-aware (editor+): suggestions are stored back on the
+  // OWNER's criterion row, so a viewer is refused before any AI spend.
+  const { scope, denied } = await projectScopeOrDeny("editor");
+  if (denied) return denied;
+  const projectId = scope?.projectId ?? null;
+  const account = await findSVIAccountWithFallback(
+    scope?.dataEmail ?? user.email,
+    projectId,
+    undefined,
+    { callerEmail: user.email },
+  );
 
   let criterionRow: Record<string, unknown> | null = null;
   if (account) {
@@ -181,6 +191,7 @@ Provide 5 specific suggestions to improve this criterion's evidence, plus 3 qual
       currentQuality,
       balance: spend.balance,
       creditsUsed: FEATURE_COSTS[featureKey],
+      creditNote: creditChargeNote(scope),
     });
   } catch (err) {
     console.error("[blockid:evaluation:ai-suggest]", err);

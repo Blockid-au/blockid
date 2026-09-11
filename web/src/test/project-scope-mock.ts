@@ -172,6 +172,74 @@ export function projectsMock(state: ScopeState) {
   };
 }
 
+/**
+ * Adapter for OLDER colocated tests that already mock `@/lib/projects`
+ * with their own `getProjectIdFromRequest` / data-key spies: builds the
+ * `getProjectScope` + `creditChargeNote` exports on top of those spies.
+ *
+ *   const scopeRole = vi.hoisted(() => ({ value: "owner" as ScopeRole }));
+ *   vi.mock("@/lib/projects", async () => {
+ *     const { scopeAdapter } = await import("@/test/project-scope-mock");
+ *     return {
+ *       ...scopeAdapter(() => mocks.getProjectIdFromRequest(), scopeRole, {
+ *         callerEmail: "founder@example.com", callerId: "user-1",
+ *       }),
+ *       findSVIAccountWithFallback: ...,   // the test's own spies
+ *     };
+ *   });
+ *
+ * Owner → `dataEmail` = the caller's own email; member → `ownerEmail`
+ * (default owner@x.test) so the shared record is used.
+ */
+export function scopeAdapter(
+  projectIdSource: () => Promise<string | null> | string | null,
+  role: { value: ScopeRole },
+  ids: { callerEmail: string; callerId: string; ownerEmail?: string; ownerId?: string },
+) {
+  const ownerEmail = ids.ownerEmail ?? "owner@x.test";
+  const ownerId = ids.ownerId ?? "owner-1";
+  const build = (projectId: string | null, minRole?: string) => {
+    if (!projectId) return null;
+    if (minRole && RANK[role.value] < RANK[minRole as ScopeRole]) {
+      throw accessError("forbidden");
+    }
+    const isOwner = role.value === "owner";
+    return {
+      projectId,
+      project: {
+        id: projectId,
+        slug: "p",
+        name: "P",
+        userId: isOwner ? ids.callerId : ownerId,
+        role: role.value,
+        isShared: !isOwner,
+      },
+      role: role.value,
+      isOwner,
+      userId: ids.callerId,
+      email: ids.callerEmail,
+      dataEmail: isOwner ? ids.callerEmail : ownerEmail,
+      ownerUserId: isOwner ? ids.callerId : ownerId,
+    };
+  };
+  return {
+    getProjectScope: async (minRole?: string) => build(await projectIdSource(), minRole),
+    assertProjectScope: async (
+      _user: { id: string; email: string },
+      projectId: string,
+      minRole?: string,
+    ) => {
+      const scope = build(projectId, minRole);
+      if (!scope) throw accessError("not_found");
+      return scope;
+    },
+    creditChargeNote: (scope: { isOwner: boolean } | null | undefined) =>
+      !scope || scope.isOwner
+        ? "Charged to your credits."
+        : "Charged to your own credits — not the project owner's.",
+  };
+}
+
 /** Data-key calls made with the given helper name. */
 export function keyCalls(state: ScopeState, fn: string) {
   return state.calls.filter((c) => c.fn === fn);

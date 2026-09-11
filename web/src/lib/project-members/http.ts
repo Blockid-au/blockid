@@ -61,6 +61,32 @@ export function projectAccessResponse(err: unknown): NextResponse | null {
  * project — the route then falls back to the caller's OWN legacy record,
  * never another user's. Any non-access error is rethrown untouched.
  */
+/**
+ * S18-A — variant for browser-redirect flows (OAuth callbacks): a refused
+ * role redirects to `redirectTo` with `?error=<errorCode>` instead of a
+ * JSON 4xx, because the caller is a browser mid-redirect, not fetch().
+ * Any non-access error is rethrown untouched.
+ */
+export async function projectScopeOrRedirect(
+  minRole: ProjectMemberRole,
+  redirectTo: string,
+  errorCode: string,
+): Promise<
+  | { scope: ProjectScope | null; denied: null }
+  | { scope: null; denied: NextResponse }
+> {
+  try {
+    const scope = await getProjectScope(minRole);
+    return { scope, denied: null };
+  } catch (err) {
+    if (!isProjectAccessError(err)) throw err;
+    const url = new URL(redirectTo);
+    url.searchParams.set("error", errorCode);
+    url.searchParams.set("code", err.code);
+    return { scope: null, denied: NextResponse.redirect(url.toString()) };
+  }
+}
+
 export async function projectScopeOrDeny(
   minRole?: ProjectMemberRole,
 ): Promise<
