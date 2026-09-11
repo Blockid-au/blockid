@@ -327,9 +327,16 @@ describe("S7-C trial allowance", () => {
     state.queue.push({ table: "subscription_trial_state", error: { code: "42P01" } });
     expect(await getTrialState("u-1", NOW)).toBe(NO_TRIAL);
     state.queue.push({ table: "evaluation_reports", error: { code: "42P01" } });
-    expect(await countTrialReportsUsed("u-1", { started_at: null })).toBe(0);
+    expect(await countTrialReportsUsed("u-1", { started_at: "2026-09-08T00:00:00Z" })).toBe(0);
     const count = state.calls.find((c) => c.table === "evaluation_reports")!;
-    expect(count.gte).toEqual([]);
+    expect(count.gte).toEqual([{ col: "created_at", val: "2026-09-08T00:00:00Z" }]);
+  });
+
+  it("countTrialReportsUsed returns 0 without touching the DB when trial_start is unknown", async () => {
+    // Stripe can omit trial_start; an unbounded count would show "1/1 used"
+    // to a previously paying or re-trialling evaluator.
+    expect(await countTrialReportsUsed("u-1", { started_at: null })).toBe(0);
+    expect(state.calls.find((c) => c.table === "evaluation_reports")).toBeUndefined();
   });
 });
 

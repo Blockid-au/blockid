@@ -140,6 +140,7 @@ export async function GET(request: Request) {
           weekday: "long",
           day: "numeric",
           month: "short",
+          timeZone: "Australia/Sydney", // same zone as the workspace trial banner
         })
       : "in 3 days";
 

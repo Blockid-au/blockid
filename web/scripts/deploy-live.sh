@@ -1114,7 +1114,7 @@ sleep 5
 # distinct dynamic-render cache entry is hot before the deterministic
 # first-render smoke assertion probes it (Next 16 keys the RSC cache on
 # the full URL including searchParams).
-WARMUP_URLS=(/ /pricing "/pricing?tier=accelerator" /roadmap /dashboard/portfolio)
+WARMUP_URLS=(/ /pricing "/pricing?tier=accelerator" /roadmap /dashboard/portfolio /funding /funding/report/demo /docs/unlocks /compare/chatgpt /solutions/accelerator)
 echo "  ℹ  Warming up ${#WARMUP_URLS[@]} routes before hydrated smoke..."
 for url in "${WARMUP_URLS[@]}"; do
   for i in {1..3}; do

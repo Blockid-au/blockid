@@ -22,6 +22,7 @@
 // Cookie is HttpOnly + SameSite=Lax + Secure-when-https.
 
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
@@ -369,7 +370,11 @@ export async function clearSessionCookie(): Promise<void> {
 // unconfigured (returns null without throwing) so dev pages don't crash.
 // -----------------------------------------------------------------------------
 
-export async function getCurrentUser(): Promise<AppUser | null> {
+// Memoised per request (React `cache`): the `(app)` layout, the `(founder)`
+// layout and the page each call this, so without the cache every founder
+// request paid three session + app_users reads and three fire-and-forget
+// `sessions.last_used_at` writes. Outside a request scope `cache` is a no-op.
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<AppUser | null> {
   if (!isSupabaseConfigured()) return null;
   // Next 16 throws "cookies() called outside a request scope" when this helper
   // is transitively called during static prerender / build-time resolution
@@ -417,7 +422,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
     .maybeSingle();
   if (!user) return null;
   return mapAppUser(user);
-}
+});
 
 // -----------------------------------------------------------------------------
 // Row → AppUser mapper. Centralises the camelCase conversion so every call

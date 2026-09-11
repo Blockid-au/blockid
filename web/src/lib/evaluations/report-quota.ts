@@ -380,6 +380,10 @@ export async function getTrialState(userId: string, now: Date = new Date()): Pro
 
 /** paid_via='quota' rows since the trial started (whole trial, not per month). */
 export async function countTrialReportsUsed(userId: string, trial: Pick<ReportTrial, "started_at">): Promise<number> {
+  // Stripe omits `trial_start` on some subscription payloads; without a start
+  // bound the count would cover the user's whole history and show "1/1 used"
+  // to a re-trialling or previously paying evaluator. Treat unknown as 0.
+  if (!trial.started_at) return 0;
   return countQuotaUsed(userId, trial.started_at, null);
 }
 

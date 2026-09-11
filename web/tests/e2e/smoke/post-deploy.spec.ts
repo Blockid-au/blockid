@@ -265,6 +265,10 @@ test.describe("Post-deploy hydrated smoke", () => {
     await page.setViewportSize({ width: 400, height: 800 });
     await page.goto("/funding", { waitUntil: "domcontentloaded" });
     await expect(page.locator("form[data-funding-intake]")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    // Late web-font swaps and lazy images can widen inline content after
+    // first paint — settle both before measuring.
+    await page.waitForLoadState("networkidle").catch(() => {});
+    await page.evaluate(() => document.fonts.ready).catch(() => {});
     const overflow = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       innerWidth: window.innerWidth,

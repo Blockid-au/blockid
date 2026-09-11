@@ -148,7 +148,7 @@ export function isForbiddenHostname(hostname: string): boolean {
 }
 
 async function defaultResolve(hostname: string): Promise<string[]> {
-  const rows = await dns.lookup(hostname, { all: true, verbatim: true });
+  const rows = await dns.lookup(hostname, { all: true, order: "verbatim" });
   return rows.map((r) => r.address);
 }
 
