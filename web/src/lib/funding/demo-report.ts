@@ -26,6 +26,7 @@ import { templateNarrative } from "@/lib/agents/grant-advisor-narrative";
 import { catalogueForIntake } from "./preview";
 import { intakeToGrantProfile, type FundingIntake } from "./intake";
 import { mapGrantSeeds, mapProgramSeeds, type AuGrantRow, type AuProgramRow } from "./seed-map";
+import { DEMO_DESCRIPTION_TEXT, DEMO_TITLE_CORE } from "./seo";
 import type { FundingReportMeta, PublicFundingReport } from "./reports";
 
 /** The three answers the sample was built from — shown verbatim in the header. */
@@ -48,9 +49,9 @@ export const DEMO_BANNER = "Sample report — a real one is built from your answ
 
 const SITE_URL = "https://blockid.au";
 export const DEMO_CANONICAL = `${SITE_URL}${DEMO_REPORT_PATH}`;
-export const DEMO_TITLE = "Sample Money Finder report — what A$3 buys an Australian founder";
-export const DEMO_DESCRIPTION =
-  "A full sample of the BlockID Money Finder report: ranked grants with eligibility checklists and A$ estimates, matched accelerators and programs, and a 12-month action timeline for an NSW agtech startup at MVP stage. Build yours from three answers for A$3.";
+/** S8-A: ≤ 47 so the root "| BlockID.au" template lands the tab title at ≤ 60; description 140–160. */
+export const DEMO_TITLE = DEMO_TITLE_CORE;
+export const DEMO_DESCRIPTION = DEMO_DESCRIPTION_TEXT;
 
 /** Minimal schema.org Article for the sample (pure — the page wraps it in FundingJsonLd with the CSP nonce). */
 export function demoReportJsonLd(): Record<string, unknown> {

@@ -35,6 +35,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
+import { FAQJsonLd } from "@/components/seo/json-ld";
 import { fillPrices } from "./solutions-pricing";
 
 /**
@@ -219,8 +221,22 @@ export function SolutionsPageShell(props: SolutionPageProps) {
     pilotCta,
   } = props;
 
+  // S8-A: the visible FAQ below is the page's FAQPage (one per page — the
+  // marketing layout no longer emits an invisible one); prices are filled
+  // the same way the rendered dl is, so the schema text matches the page.
+  const faqEntity = faqs.map((f) => ({ question: fillPrices(f.q), answer: fillPrices(f.a) }));
+  const pagePath = `${lang === "vi" ? "/vi" : ""}/solutions/${slug}`;
+
   return (
     <MarketingShell>
+      <BreadcrumbListJsonLd
+        items={[
+          { name: "Home", href: lang === "vi" ? "/vi" : "/" },
+          { name: lang === "vi" ? "Giải pháp" : "Solutions", href: `${lang === "vi" ? "/vi" : ""}/solutions` },
+          { name: fillPrices(headline), href: pagePath },
+        ]}
+      />
+      {faqEntity.length > 0 ? <FAQJsonLd items={faqEntity} /> : null}
       <div lang={lang} data-persona={slug}>
         {/* Hero */}
         <section

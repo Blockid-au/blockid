@@ -17,6 +17,7 @@ import { CapitalPicker } from "@/components/funding/capital-picker";
 import { FilterChips, type FilterChipGroup } from "@/components/funding/filter-chips";
 import { ProgramCard } from "@/components/funding/program-card";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
+import { FundingGuides } from "@/components/funding/funding-guides";
 import { listPrograms } from "@/lib/funding/data";
 import { CAPITALS } from "@/lib/funding/seed-map";
 import {
@@ -33,28 +34,16 @@ import {
   stageLabel,
   type SearchParamsLike,
 } from "@/lib/funding/directory";
+import { FUNDING_CRUMBS, PROGRAMS_DESCRIPTION, PROGRAMS_TITLE, PROGRAM_GUIDES } from "@/lib/funding/seo";
+import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
 
 const PATH = "/funding/programs";
-const TITLE = "Accelerators, incubators and startup programs in every Australian capital · BlockID.au";
-const DESCRIPTION =
-  "Free directory of Australian accelerators, incubators, pre-accelerators, university programs, angel groups and founder communities in Sydney, Melbourne, Brisbane, Perth, Adelaide, Canberra, Hobart, Darwin and online — with intake dates, funding, equity terms and official links.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-    url: `${SITE_URL}${PATH}`,
-    siteName: "BlockID.au",
-    type: "website",
-    locale: "en_AU",
-  },
-  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
-};
+// S8-A: primary keyword "startup accelerators australia"; ≤ 60 with the
+// brand suffix the root template appends, 140–160 description, OG image.
+export const metadata: Metadata = pageMetadata({ title: PROGRAMS_TITLE, description: PROGRAMS_DESCRIPTION, path: PATH });
 
 export default async function ProgramsDirectoryPage({
   searchParams,
@@ -123,19 +112,13 @@ export default async function ProgramsDirectoryPage({
   return (
     <MarketingShell>
       <PageViewTracker event="funding_directory_viewed" params={{ kind: "programs" }} />
-      <BreadcrumbListJsonLd
-        items={[
-          { name: "Home", href: "/" },
-          { name: "Funding", href: "/funding" },
-          { name: "Programs", href: PATH },
-        ]}
-      />
+      <BreadcrumbListJsonLd items={[...FUNDING_CRUMBS.programs]} />
       <FundingJsonLd data={itemList} />
 
       <section className="mx-auto max-w-5xl px-6 pt-16 pb-8 sm:pt-24">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-action">Free directory</p>
         <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-primary sm:text-5xl">
-          Accelerators, incubators and startup programs in every Australian capital
+          Startup accelerators, incubators and programs in every Australian capital
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-secondary">
           <strong className="font-semibold text-primary" data-total-count={all.length}>
@@ -197,6 +180,8 @@ export default async function ProgramsDirectoryPage({
           </div>
         )}
       </section>
+
+      <FundingGuides guides={PROGRAM_GUIDES} heading="Read before you apply" />
 
       <FundingDisclaimer lastVerifiedAt={lastVerified} />
     </MarketingShell>

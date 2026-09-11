@@ -4,8 +4,9 @@ import { listPublicSlugsForSitemap } from "@/lib/business-id/list-public-slugs";
 import { getPublicListings } from "@/lib/listings/listings-db";
 import { listPublishedForSitemap } from "@/lib/publish/store";
 import { listGrants, listPrograms } from "@/lib/funding/data";
-import { CAPITALS } from "@/lib/funding/seed-map";
-import { capitalSlug } from "@/lib/funding/directory";
+import { AU_STATES, CAPITALS } from "@/lib/funding/seed-map";
+import { capitalSlug, latestVerifiedAt } from "@/lib/funding/directory";
+import { grantsStatePath } from "@/lib/funding/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -87,15 +88,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     listPrograms(),
   ]);
   const verifiedDate = (v: string | null | undefined) => (v ? new Date(v) : lastModified);
+  // S8-A: index + capital pages inherit the newest `last_verified_at` of the
+  // rows they list, so a refresh-cron verification bumps the parent too;
+  // the state-only grants views (`?state=NSW`) self-canonicalise and are
+  // enumerated as "<state> startup grants" landing pages.
+  const newest = (rows: ReadonlyArray<{ last_verified_at: string | null }>) => verifiedDate(latestVerifiedAt(rows));
+  const fundingAlternates = {
+    languages: {
+      en: `${SITE_URL}/funding`,
+      vi: `${SITE_URL}/vi/funding`,
+      "x-default": `${SITE_URL}/funding`,
+    },
+  };
   const fundingEntries: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/funding`, lastModified, changeFrequency: "daily" as const, priority: 0.9 },
-    { url: `${SITE_URL}/funding/grants`, lastModified, changeFrequency: "daily" as const, priority: 0.8 },
-    { url: `${SITE_URL}/funding/programs`, lastModified, changeFrequency: "daily" as const, priority: 0.8 },
+    { url: `${SITE_URL}/funding`, lastModified: newest([...grants, ...programs]), changeFrequency: "daily" as const, priority: 0.9, alternates: fundingAlternates },
+    { url: `${SITE_URL}/vi/funding`, lastModified: newest([...grants, ...programs]), changeFrequency: "daily" as const, priority: 0.7, alternates: fundingAlternates },
+    { url: `${SITE_URL}/funding/grants`, lastModified: newest(grants), changeFrequency: "daily" as const, priority: 0.8 },
+    { url: `${SITE_URL}/funding/programs`, lastModified: newest(programs), changeFrequency: "daily" as const, priority: 0.8 },
     // S7-B — public sample of the A$3 report (static, built from the seeds).
     { url: `${SITE_URL}/funding/report/demo`, lastModified, changeFrequency: "monthly" as const, priority: 0.6 },
+    ...AU_STATES.filter((st) => grants.some((g) => g.state === st)).map((st) => ({
+      url: `${SITE_URL}${grantsStatePath(st)}`,
+      lastModified: newest(grants.filter((g) => g.state === st)),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
     ...CAPITALS.map((c) => ({
       url: `${SITE_URL}/funding/programs/${capitalSlug(c)}`,
-      lastModified,
+      lastModified: newest(programs.filter((p) => p.capital === c)),
       changeFrequency: "weekly" as const,
       priority: 0.7,
     })),

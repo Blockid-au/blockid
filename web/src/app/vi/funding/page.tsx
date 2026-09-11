@@ -7,33 +7,20 @@
 
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import { FundingLanding } from "../../(marketing)/funding/funding-landing";
 
 export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const m = await getMessages("vi");
-  return {
+  return pageMetadata({
     title: t(m, "meta.funding.title"),
     description: t(m, "meta.funding.description"),
-    alternates: {
-      canonical: "https://blockid.au/vi/funding",
-      languages: {
-        en: "https://blockid.au/funding",
-        vi: "https://blockid.au/vi/funding",
-        "x-default": "https://blockid.au/funding",
-      },
-    },
-    openGraph: {
-      title: t(m, "meta.funding.title"),
-      description: t(m, "meta.funding.description"),
-      url: "https://blockid.au/vi/funding",
-      siteName: "BlockID.au",
-      type: "website",
-      locale: "vi_VN",
-    },
-    robots: { index: true, follow: true },
-  };
+    path: "/vi/funding",
+    viPath: "/vi/funding",
+    lang: "vi",
+  });
 }
 
 export default async function ViFundingPage() {

@@ -8,6 +8,7 @@ import type React from "react";
 import { renderToReadableStream } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { DEMO_BANNER, DEMO_CTA_HREF, DEMO_CTA_LABEL, buildDemoFundingReport } from "@/lib/funding/demo-report";
+import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/components/marketing/marketing-shell", () => ({
@@ -87,5 +88,22 @@ describe("/funding/report/demo", () => {
     expect(mod.metadata.alternates?.canonical).toBe("https://blockid.au/funding/report/demo");
     expect(mod.revalidate).toBe(3600);
     expect((mod as { dynamic?: string }).dynamic).toBeUndefined();
+  });
+
+  it("S8-A: ≤ 60 title via the brand template, 140–160 description, OG image; Article + BreadcrumbList validate; links both free directories; one H1", async () => {
+    const { metadata } = await import("./page");
+    expect(String(metadata.title)).toBe("Sample startup funding report — what A$3 buys");
+    expect(`${String(metadata.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(metadata.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(metadata.description).length).toBeLessThanOrEqual(160);
+    expect((metadata.openGraph as { images?: unknown[]; type?: string }).images).toHaveLength(1);
+    expect((metadata.openGraph as { type?: string }).type).toBe("article");
+    const out = await html();
+    const blocks = extractJsonLd(out);
+    expect(blocks.map((b) => b["@type"]).sort()).toEqual(["Article", "BreadcrumbList"]);
+    for (const b of blocks) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
+    expect(out).toContain('href="/funding/grants"');
+    expect(out).toContain('href="/funding/programs"');
+    expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
   });
 });

@@ -28,11 +28,13 @@ import { headers } from "next/headers";
  * they only render for pages under `(marketing)`:
  *
  *   1. `Product` — the A$3 One-Click Report SKU (Task 8 hard requirement).
- *   2. `FAQPage` — top-of-funnel questions (pricing, refund, GST). These are
- *      surfaced across multiple marketing pages, so we register the schema
- *      once at layout scope rather than duplicating on every page.
- *   3. `BreadcrumbList` — Home → Marketing anchor. Per-page BreadcrumbList
- *      schemas can extend this via the JsonLd helpers.
+ *
+ * S8-A (2026-09-11) removed the layout-scope `FAQPage` and the Home-only
+ * `BreadcrumbList`: Google requires FAQPage content to be visible on the
+ * page and allows one FAQPage per page, so the invisible block was invalid
+ * everywhere and doubled the real FAQ on /compare and /solutions/*; the
+ * one-crumb trail added nothing next to the per-page BreadcrumbList. Pages
+ * with a visible FAQ emit `FAQJsonLd` themselves.
  */
 const SITE_URL = "https://blockid.au";
 
@@ -62,58 +64,6 @@ const marketingProductJsonLd = {
   },
 };
 
-const marketingFaqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "How much does the One-Click Report cost?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "A$3 one-off, GST-inclusive. Every charge produces an ATO tax invoice.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Do you charge GST?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes. Auschain PTY LTD (ABN 79 659 615 111) is GST-registered. All prices shown on blockid.au are GST-inclusive — the price you see is the price you pay — and every charge produces an ATO-compliant tax invoice.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Do I need to sign up to try BlockID?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "No. The One-Click Report is a guest checkout — pay A$3, upload your pitch or paste your URL, and receive the report by email. No account required.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Is my data secure?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "BlockID.au follows the Australian Privacy Act 1988 (APP 1–13) and the ACSC Essential Eight (Maturity Level 1). Payments are processed by Stripe (PCI DSS Level 1). No personally identifying information is passed to AI providers.",
-      },
-    },
-  ],
-};
-
-const marketingBreadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    {
-      "@type": "ListItem",
-      position: 1,
-      name: "Home",
-      item: SITE_URL,
-    },
-  ],
-};
-
 export default async function MarketingLayout({ children }: { children: ReactNode }) {
   // Thread the request-scoped CSP nonce onto every JSON-LD script tag so
   // the strict-dynamic script-src directive accepts them. Without the nonce
@@ -127,16 +77,6 @@ export default async function MarketingLayout({ children }: { children: ReactNod
         type="application/ld+json"
         nonce={nonce}
         dangerouslySetInnerHTML={{ __html: JSON.stringify(marketingProductJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        nonce={nonce}
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(marketingFaqJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        nonce={nonce}
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(marketingBreadcrumbJsonLd) }}
       />
       {children}
     </>
