@@ -74,3 +74,7 @@ web/content/reports/ux-ia-goal-history.jsonl
 # AU funding review queue — written by /api/cron/refresh-funding-sources (T0243), read by /admin/funding.
 # This block is literal filenames, not a glob (plan §9-pre G11-3).
 web/content/reports/grants-review-queue.jsonl
+
+# Privacy retention sweep audit trail — one line per rule per weekly tick,
+# written by /api/cron/privacy-retention (S15-A). Literal filename.
+web/content/reports/retention-history.jsonl

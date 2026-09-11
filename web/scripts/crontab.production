@@ -238,6 +238,17 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # (meta.email_sent_at dedupe). Max 10 rows per tick. `?dry=1` previews.
 */30 * * * * bash $RUN funding-report-retry --timeout 120
 
+# 1:15pm AEST Monday (03:15 UTC) — Privacy retention sweep (S15-A, privacy
+# v2.2 §4). The Monday after the Sunday funding crons so the Radar sweep has
+# re-stamped last_seen_at first. RETENTION_RULES in src/lib/privacy/retention.ts
+# mirrors the policy table (parity test): guest Money Finder reports
+# anonymised at 12 months (email + access link nulled, Stripe ids kept),
+# funding_matches of lapsed subscribers deleted at active+90 d, email_drips
+# deleted 90 d after send, evaluator claim tokens expired at 90 d. ≤ 500 rows
+# per rule per tick; active Radar subscribers' rows never touched. One audit
+# line per rule → content/reports/retention-history.jsonl. `?dry=1` previews.
+15 3 * * 1 bash $RUN privacy-retention --timeout 300
+
 # ═══════════════════════════════════════════════════════════════
 # PIPELINE FLOW DIAGRAM
 # ═══════════════════════════════════════════════════════════════
