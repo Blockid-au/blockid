@@ -65,9 +65,7 @@ beforeEach(() => {
 });
 
 describe("/api/evaluations/batch — S8-C guards", () => {
-  it("refuses cross-site POSTs, caps the body at 32 KB and marks GET private/no-store", async () => {
-    const cross = await POST(new Request("http://localhost/api/evaluations/batch", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ evaluation_ids: ["e-1"] }) }));
-    expect(cross.status).toBe(403);
+  it("caps the body at 32 KB and marks GET private/no-store (cross-site refusal moved to the S9-A proxy gate — src/proxy.test.ts)", async () => {
     const big = await POST(post({ evaluation_ids: ["e-1"], name: "x".repeat(40 * 1024) }));
     expect(big.status).toBe(413);
     const g = await GET();

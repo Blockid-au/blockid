@@ -15,7 +15,6 @@
 
 import { NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { getProjectById } from "@/lib/projects";
 import { getFundingReport, publicFundingReport } from "@/lib/funding/reports";
@@ -30,9 +29,6 @@ export const SAVE_RATE_MAX = 10;
 export const SAVE_RATE_WINDOW_MS = 60 * 60 * 1000;
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   const { id } = await params;
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });

@@ -16,7 +16,6 @@
 
 import { NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { claimEvaluation } from "@/lib/evaluations";
 
@@ -30,9 +29,6 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { token } = await params;

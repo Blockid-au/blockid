@@ -14,7 +14,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/entitlements";
 import {
@@ -61,9 +61,6 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const crossSite = rejectCrossSite(req);
-  if (crossSite) return crossSite;
-
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

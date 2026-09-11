@@ -36,10 +36,7 @@ describe("POST /api/evaluations/claim/[token]", () => {
     expect(claimEvaluationMock).not.toHaveBeenCalled();
   });
 
-  it("S8-C: refuses cross-site POSTs and rate-limits claim attempts per user", async () => {
-    const cross = new Request("http://localhost/api/evaluations/claim/tok", { method: "POST", headers: { "sec-fetch-site": "cross-site" } });
-    expect((await POST(cross, ctx())).status).toBe(403);
-    expect(claimEvaluationMock).not.toHaveBeenCalled();
+  it("S8-C: rate-limits claim attempts per user (cross-site refusal moved to the S9-A proxy gate — src/proxy.test.ts)", async () => {
     enforceRateLimitMock.mockClear();
     enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429 }));
     expect((await POST(req(), ctx())).status).toBe(429);

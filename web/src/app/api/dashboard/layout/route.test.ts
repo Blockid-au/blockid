@@ -83,14 +83,8 @@ describe("GET /api/dashboard/layout", () => {
   });
 });
 
-describe("PUT /api/dashboard/layout — S8-C CSRF posture", () => {
-  it("refuses a browser cross-site PUT before auth", async () => {
-    const req = new Request("http://localhost/api/dashboard/layout", { method: "PUT", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: "{}" }) as unknown as NextRequest;
-    const res = await PUT(req);
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ ok: false, error: "cross_site_request_refused" });
-  });
-});
+// CSRF posture (cross-site PUT → 403) moved to the edge proxy in S9-A;
+// see src/proxy.test.ts.
 
 describe("PUT /api/dashboard/layout — auth + limits", () => {
   it("401 when signed out; limiter and store untouched", async () => {

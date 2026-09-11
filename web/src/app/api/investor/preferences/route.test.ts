@@ -189,11 +189,9 @@ describe("GET /api/investor/preferences", () => {
 });
 
 describe("POST /api/investor/preferences — S8-C guards", () => {
-  it("GET is private/no-store; POST refuses cross-site, rate-limits per user and caps the body at 16 KB", async () => {
+  it("GET is private/no-store; POST rate-limits per user and caps the body at 16 KB (cross-site refusal moved to the S9-A proxy gate — src/proxy.test.ts)", async () => {
     const g = await GET();
     if (g.status === 200) expect(g.headers.get("cache-control")).toBe("private, no-store");
-    const cross = new Request("http://localhost/api/investor/preferences", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: "{}" }) as unknown as NextRequest;
-    expect((await POST(cross)).status).toBe(403);
     enforceRateLimitMock.mockClear();
     enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429 }));
     const limited = await POST(jsonReq({ sectors: ["fintech"] }));

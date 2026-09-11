@@ -70,14 +70,10 @@ describe("/api/evaluations", () => {
     expect(createEvaluationMock).not.toHaveBeenCalled();
   });
 
-  it("S8-C: GET is private/no-store; POST refuses cross-site, caps the body at 16 KB and rate-limits per user", async () => {
+  it("S8-C: GET is private/no-store; POST caps the body at 16 KB and rate-limits per user (cross-site refusal moved to the S9-A proxy gate — src/proxy.test.ts)", async () => {
     listEvaluationsMock.mockResolvedValue([]);
     const g = await GET();
     expect(g.headers.get("cache-control")).toBe("private, no-store");
-
-    const cross = await POST(new Request("http://localhost/api/evaluations", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ name: "Acme" }) }));
-    expect(cross.status).toBe(403);
-    expect(createEvaluationMock).not.toHaveBeenCalled();
 
     enforceRateLimitMock.mockClear();
     enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429 }));

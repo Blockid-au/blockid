@@ -140,9 +140,8 @@ describe("POST /api/funding/report — gates", () => {
     getProjectByIdMock.mockClear();
     expect((await POST(req({ ...GOOD, project_id: "p1" }))).status).toBe(400);
     expect(getProjectByIdMock).not.toHaveBeenCalled();
-    // S8-C: browser cross-site POST refused; oversize body 413; over-long description 400.
-    const cross = await POST(new Request("http://x/api/funding/report", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify(GOOD) }));
-    expect(cross.status).toBe(403);
+    // S8-C: oversize body 413; over-long description 400. (Cross-site refusal
+    // moved to the S9-A proxy gate — src/proxy.test.ts.)
     const big = await POST(req({ ...GOOD, pad: "x".repeat(20 * 1024) }));
     expect(big.status).toBe(413);
     const longDesc = await POST(req({ ...GOOD, description: "d".repeat(2001) }));

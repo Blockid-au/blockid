@@ -44,14 +44,7 @@ describe("/api/evaluations/[id]", () => {
     expect((await DELETE(del(), ctx())).status).toBe(401);
   });
 
-  it("S8-C: PATCH / DELETE refuse browser cross-site requests before auth", async () => {
-    const cross = new Request("http://localhost/api/evaluations/e-1", { method: "PATCH", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ label: "x" }) });
-    expect((await PATCH(cross, ctx())).status).toBe(403);
-    const crossDel = new Request("http://localhost/api/evaluations/e-1", { method: "DELETE", headers: { "sec-fetch-site": "cross-site" } });
-    expect((await DELETE(crossDel, ctx())).status).toBe(403);
-    expect(getCurrentUserMock).not.toHaveBeenCalled();
-    expect(updateEvaluationMock).not.toHaveBeenCalled();
-    expect(deleteEvaluationMock).not.toHaveBeenCalled();
+  it("S8-C: PATCH 413s an oversize body (cross-site refusal moved to the S9-A proxy gate — src/proxy.test.ts)", async () => {
     const big = await PATCH(patch({ notes: "n".repeat(70 * 1024) }), ctx());
     expect(big.status).toBe(413);
   });

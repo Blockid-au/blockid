@@ -34,7 +34,7 @@
 // was paid for.
 
 import { NextResponse } from "next/server";
-import { PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { isAIConfigured } from "@/lib/ai-client";
@@ -127,9 +127,6 @@ export async function GET(request: Request, { params }: Ctx) {
 }
 
 export async function POST(request: Request, { params }: Ctx) {
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;

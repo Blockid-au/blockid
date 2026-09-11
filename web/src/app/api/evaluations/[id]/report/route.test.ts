@@ -177,10 +177,7 @@ describe("POST /api/evaluations/[id]/report", () => {
     expect(spendCreditsMock).not.toHaveBeenCalled();
   });
 
-  it("S8-C: refuses cross-site POSTs; GET responses are private/no-store", async () => {
-    const cross = new Request("http://localhost/api/evaluations/e-1/report", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ kind: "full" }) });
-    expect((await POST(cross, ctx())).status).toBe(403);
-    expect(runFullMock).not.toHaveBeenCalled();
+  it("S8-C: GET responses are private/no-store (cross-site refusal moved to the S9-A proxy gate — src/proxy.test.ts)", async () => {
     findRecentMock.mockResolvedValue(null);
     const g = await GET(new Request("http://localhost/api/evaluations/e-1/report?kind=full"), ctx());
     expect(g.status).toBe(200);

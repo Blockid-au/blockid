@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
+import { SESSION_COOKIE } from "@/lib/auth-cookie";
 import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
@@ -30,11 +31,14 @@ import { getMiddlewareClient } from "@/lib/supabase/server-anon";
  *      `x-nonce` so the root layout can thread it onto inline `<Script>`.
  *   3. Request-path stamping (`x-pathname`) so Server Components can see
  *      the URL they are rendering — see requestHeadersFor() below.
- *   4. Rate-limit gate on expensive `/api/*` routes → 429 + Retry-After.
- *   5. Supabase SSO session refresh (Master Upgrade Plan §8.9 stage 2).
- *   6. `bid_jur` jurisdiction cookie seeding (CISO spec).
- *   7. Security headers (HSTS, Referrer-Policy, …) on EVERY response,
- *      including 429s.
+ *   4. CSRF gate (S9-A) — a cookie-authenticated, non-safe-method request
+ *      to `/api/*` that a browser stamped `Sec-Fetch-Site: cross-site` is
+ *      refused with 403 before any handler runs. See crossSiteApiGate().
+ *   5. Rate-limit gate on expensive `/api/*` routes → 429 + Retry-After.
+ *   6. Supabase SSO session refresh (Master Upgrade Plan §8.9 stage 2).
+ *   7. `bid_jur` jurisdiction cookie seeding (CISO spec).
+ *   8. Security headers (HSTS, Referrer-Policy, …) on EVERY response,
+ *      including 403s and 429s.
  *
  * Deeper jurisdiction triangulation (billing address vs. declared vs. IP)
  * lives in lib/jurisdiction.ts and runs in Node route handlers.
@@ -221,10 +225,95 @@ export function subdomainRewrite(request: NextRequest): NextResponse | null {
   return NextResponse.rewrite(url);
 }
 
+// ── CSRF gate for cookie-authenticated API mutations (S9-A) ─────────────
+//
+// Global successor to the per-route `rejectCrossSite()` calls S8-C added to
+// eleven routes (lib/security/request-guards.ts keeps the helper for any
+// handler that might one day live outside the matcher). Applied once here
+// so every current AND future `/api/**` mutation is covered by default.
+//
+// Scope — a request is refused only when ALL of:
+//   • path is under `/api/`                         (pages are not JSON APIs)
+//   • method is not GET / HEAD / OPTIONS            (safe methods, CORS preflight)
+//   • it carries the app session cookie             (`blockid_session`, lib/auth.ts)
+//   • the browser stamped `Sec-Fetch-Site: cross-site`
+//
+// Cookie-gating is what keeps every non-browser caller out of scope: Bearer
+// cron routes (lib/security/cron-auth.ts), the API-key partner surface
+// (`/api/v1/**`), the Stripe / GitHub webhooks (`/api/stripe/webhook`,
+// `/api/webhook/github`) and guest POSTs (`/api/funding/preview`,
+// `/api/funding/checkout`, `/api/auth/request`, contact form) never carry
+// `blockid_session`, and a request without it has nothing a CSRF could
+// ride on. `same-origin`, `same-site` (reseller `*.blockid.au` subdomains
+// calling the apex) and `none` (user-typed navigation) pass, as does an
+// absent header (curl, server-to-server, pre-2020 browsers).
+//
+// Allow-list decision (2026-09-11): the only routes that advertise a
+// credentialed cross-site contract are `/api/watchlist` and `/api/eoi`,
+// which answer CORS for `https://startupvalueindex.com` (the read-only SVI
+// exchange front-end, port 4002). The session cookie is `SameSite=Lax`, so
+// a browser never attaches it to that cross-site fetch and the contract is
+// inert today — but it is the routes' documented intent, so it is honoured
+// here as an Origin-bound exception rather than silently broken. `Origin`
+// is browser-set and unforgeable, so this exception is exactly as wide as
+// the CORS grant on those two routes and no wider. Nothing else qualifies:
+// every `<form action="/api/…">` is same-origin (CSP `form-action 'self'`),
+// OAuth / Stripe callbacks return via GET, and Sign-In-With-Google runs in
+// popup mode so `/api/auth/google` is a same-origin fetch.
+const CROSS_SITE_ALLOW: ReadonlyArray<readonly [path: string, origins: ReadonlySet<string>]> = [
+  ["/api/watchlist", new Set(["https://startupvalueindex.com"])],
+  ["/api/eoi", new Set(["https://startupvalueindex.com"])],
+];
+
+const SAFE_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD", "OPTIONS"]);
+
+function crossSiteAllowed(pathname: string, origin: string | null): boolean {
+  if (!origin) return false;
+  for (const [path, origins] of CROSS_SITE_ALLOW) {
+    if ((pathname === path || pathname.startsWith(path + "/")) && origins.has(origin)) return true;
+  }
+  return false;
+}
+
+/**
+ * Returns a ready 403 when the request is a cookie-authenticated cross-site
+ * API mutation, else null. Pure — reads only method, path, cookies and
+ * headers — so it is unit-tested without the Redis / Supabase stack.
+ * @internal — exported for unit tests only
+ */
+export function crossSiteApiGate(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (!pathname.startsWith("/api/")) return null;
+  if (SAFE_METHODS.has(request.method.toUpperCase())) return null;
+  if (!request.cookies.get(SESSION_COOKIE)?.value) return null;
+  const site = (request.headers.get("sec-fetch-site") ?? "").trim().toLowerCase();
+  if (site !== "cross-site") return null;
+  if (crossSiteAllowed(pathname, request.headers.get("origin"))) return null;
+
+  // One structured line, no PII: method + route family only — never the
+  // full path (`/api/evaluations/claim/[token]` carries a secret), never
+  // the cookie, IP or query string.
+  console.warn(JSON.stringify({
+    event: "proxy.cross_site_rejected",
+    method: request.method.toUpperCase(),
+    route: pathname.split("/").slice(0, 4).join("/"),
+  }));
+
+  return NextResponse.json(
+    { ok: false, error: "cross_site_request" },
+    { status: 403, headers: { "Cache-Control": "no-store" } },
+  );
+}
+
 export async function proxy(request: NextRequest) {
   // ── Subdomain rewrite (must run first, before any header mutation) ──
   const rewritten = subdomainRewrite(request);
   if (rewritten) return rewritten;
+
+  // ── CSRF gate (S9-A) — before the limiter so a forged request burns no
+  // token, and before any handler so no route needs its own guard. ─────
+  const crossSite = crossSiteApiGate(request);
+  if (crossSite) return applySecurityHeaders(crossSite);
 
   const pathname = request.nextUrl.pathname;
   const locale = detectLocale(request);
@@ -316,8 +405,14 @@ export async function proxy(request: NextRequest) {
  *
  * `/api` is deliberately INCLUDED — the rate-limit buckets above all live
  * under `/api/*`, and the previous proxy excluded them, which is how the
- * limiter ended up dead. Static assets and Next internals are skipped
- * (they render no HTML and consume no nonce).
+ * limiter ended up dead. The S9-A CSRF gate relies on the same coverage:
+ * every `/api/**` route handler sits behind this matcher — the extension
+ * exclusions are for static files, and the three dotted API paths
+ * (`/api/openapi.json`, `/api/funding/calendar.ics`,
+ * `/api/evaluations/batch/[id]/export.csv`) are GET-only with extensions
+ * that are not in the list anyway. `src/proxy.test.ts` pins both facts.
+ * Static assets and Next internals are skipped (they render no HTML and
+ * consume no nonce).
  *
  * The `missing` clause keeps prefetched `next/link` navigations out, so a
  * prefetch cannot burn a rate-limit token or bust caches.

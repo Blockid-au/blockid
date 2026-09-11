@@ -27,7 +27,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { isUuid, PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
+import { isUuid, PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
@@ -60,10 +60,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  // 0. CSRF posture (S8-C): cookie-auth mutation — refuse browser cross-site calls.
-  const crossSite = rejectCrossSite(request);
-  if (crossSite) return crossSite;
-
   // 1. Auth
   const user = await getCurrentUser();
   if (!user) {
