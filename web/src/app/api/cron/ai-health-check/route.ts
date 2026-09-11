@@ -29,11 +29,11 @@ import {
 import { KNOWN_GOOD_FREE_MODELS, poolWithKeys } from "@/lib/ai/known-good-pool";
 import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const MAX_BACKUPS_INJECTED = 3;
 const CHECK_TIMEOUT_MS = 5_000;
 const CHECK_CONCURRENCY = 6;
@@ -74,8 +74,7 @@ function readActiveTargets(): { provider: string; model: string }[] {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const auth = request.headers.get("authorization");
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

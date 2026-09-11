@@ -17,10 +17,10 @@ import * as fs from "fs";
 import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchJson, filterFreeOpenRouter, rank } from "@/lib/model-discovery";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
-const CRON_SECRET = process.env.CRON_SECRET;
 
 async function dbKey(provider: string): Promise<string | null> {
   const supabase = getSupabaseAdmin();
@@ -35,8 +35,7 @@ async function dbKey(provider: string): Promise<string | null> {
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization");
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

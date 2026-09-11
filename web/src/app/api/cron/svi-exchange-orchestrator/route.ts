@@ -19,6 +19,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -211,8 +212,7 @@ async function runCycle(): Promise<CycleResult> {
 
 export async function GET(req: NextRequest) {
   // Read-only inspection
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
@@ -224,8 +224,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {

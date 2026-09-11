@@ -19,11 +19,11 @@ import * as fs from "fs";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { sendEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const ADMIN_EMAIL = "admin@blockid.au";
 const STATE_FILE = "/tmp/blockid-guardian-state.json";
 const ALERT_COOLDOWN_MS = 30 * 60 * 1000; // 30 min between repeat alerts for same issue
@@ -413,8 +413,7 @@ function findCriticalErrors(): string[] {
 // ═══════════════════════════════════════════════════════════════
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization");
-  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

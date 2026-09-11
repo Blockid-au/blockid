@@ -9,11 +9,11 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
 import { computeListings } from "@/lib/startup-index-listings";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const SVI_THRESHOLD = 5;
 
 interface WatchlistRow {
@@ -75,11 +75,8 @@ function renderHtml(name: string, moves: Movement[]): string {
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  if (CRON_SECRET) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
+  if (!isCronAuthorised(req)) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false, error: "DB unavailable" }, { status: 500 });

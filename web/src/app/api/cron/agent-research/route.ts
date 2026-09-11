@@ -17,6 +17,7 @@ import {
 } from "@/lib/ai-client";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAllAgentGoals, type AgentGoal } from "@/lib/agent-goals/goal-tree";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 min max
@@ -178,13 +179,10 @@ async function researchTopic(
 // ── Main handler ───────────────────────────────────────────────────────
 
 export async function GET(request: Request) {
-  // Verify cron secret
-  const bearer = request.headers.get("authorization")?.replace("Bearer ", "");
-  const secret =
-    bearer ||
-    request.headers.get("x-cron-secret") ||
-    new URL(request.url).searchParams.get("secret");
-  if (secret !== process.env.CRON_SECRET && secret !== "local-dev") {
+  // Verify cron secret: Bearer header, x-cron-secret header, or ?secret= query.
+  // (S8-E: the former hard-coded "local-dev" bypass is gone — it let anyone
+  // trigger paid AI research with `?secret=local-dev` in production.)
+  if (!isCronAuthorised(request, { xCronSecretHeader: true, querySecret: true })) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

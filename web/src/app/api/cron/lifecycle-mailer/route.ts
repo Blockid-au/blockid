@@ -14,6 +14,7 @@ import { shouldFire, recordConversionEvent, type ConversionTrigger } from "@/lib
 import { renderLifecycleEmail } from "@/emails/lifecycle/render";
 import { sendEmail } from "@/lib/email";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 /** Map lifecycle steps that have matching CRO triggers to their trigger IDs. */
 const STEP_TO_TRIGGER: Partial<Record<string, ConversionTrigger>> = {
@@ -48,14 +49,7 @@ const LIMIT = 100;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://blockid.au";
 
 function authorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  // Fail closed: if no secret is configured, refuse the request rather than
-  // opening the endpoint to the world (env rotation / staging clone risk).
-  if (!secret) return false;
-  const header = request.headers.get("x-cron-secret");
-  if (header && header === secret) return true;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
+  return isCronAuthorised(request, { xCronSecretHeader: true });
 }
 
 // The cron-runner sends POST requests; export POST so the Node.js runtime

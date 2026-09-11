@@ -26,9 +26,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-// CRON_SECRET is captured at module load (const CRON_SECRET = process.env.CRON_SECRET),
-// so it must be set BEFORE the `import { POST } from "./route"` at the bottom of
-// this file. vi.hoisted runs before imports; beforeEach cannot help here.
+// Since S8-E the route reads CRON_SECRET per request via isCronAuthorised, so
+// the value only needs to be present at request time; it is (re)set in
+// beforeEach below. The hoisted assignment is kept so the import order stays
+// irrelevant.
 const SECRET = "cron-secret-milestone-test";
 vi.hoisted(() => {
   process.env.CRON_SECRET = "cron-secret-milestone-test";
@@ -189,16 +190,13 @@ describe("auth gate", () => {
     expect(checkRateLimitMock).toHaveBeenCalledOnce();
   });
 
-  it("no CRON_SECRET set → auth gate is skipped (inline caller uses no secret)", async () => {
-    // CRON_SECRET is captured at module load, so we have to reset the module
-    // registry, unset the env var, and re-import the route to exercise the
-    // "public cron" code path.
+  it("fails closed with 401 when CRON_SECRET is unset, and rejects a prefix of the secret (S8-E)", async () => {
+    expect((await POST(makeReq({ auth: `Bearer ${SECRET.slice(0, -1)}` }))).status).toBe(401);
+    // isCronAuthorised reads the env at request time, so no module reset needed.
     delete process.env.CRON_SECRET;
-    vi.resetModules();
-    const mod = await import("./route");
-    const res = await mod.POST(makeReq());
-    expect(res.status).toBe(200);
-    expect(checkRateLimitMock).toHaveBeenCalledOnce();
+    const res = await POST(makeReq({ auth: `Bearer ${SECRET}` }));
+    expect(res.status).toBe(401);
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
   });
 });
 

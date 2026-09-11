@@ -18,18 +18,14 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { sendTrialChargeWarning } from "@/lib/email";
 import { getPlanCached } from "@/lib/plans-db";
 import { TRIAL_WARNING_HOURS_BEFORE, formatAud } from "@/lib/plans/trial-copy";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 function authorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false; // dev
-  const header = request.headers.get("x-cron-secret");
-  if (header && header === secret) return true;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
+  return isCronAuthorised(request, { xCronSecretHeader: true });
 }
 
 interface Row {

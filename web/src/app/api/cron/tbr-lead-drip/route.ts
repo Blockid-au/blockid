@@ -24,6 +24,7 @@ import {
   shareUrl,
   unsubscribeUrl,
 } from "@/lib/investor-drips/send";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,8 +52,7 @@ function baseUrl(request: Request): string {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const auth = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   const supabase = getSupabaseAdmin();

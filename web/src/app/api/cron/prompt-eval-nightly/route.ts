@@ -38,6 +38,7 @@ import {
   type PromptVersion as PromptVersionT,
 } from "@/lib/ai/prompt-registry";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -48,13 +49,7 @@ const FIXTURE_DIR = path.join(process.cwd(), "test-fixtures", "prompt-eval");
 const MAX_PER_INVOCATION = 20;
 
 function isAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || secret.length === 0) return false;
-  const auth = request.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return true;
-  const xCron = request.headers.get("x-cron-secret");
-  if (xCron === secret) return true;
-  return false;
+  return isCronAuthorised(request, { xCronSecretHeader: true });
 }
 
 async function loadFixture(

@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { computeSVIIndex } from "@/lib/svi-index";
 import { maybeWriteSviTrendAlert } from "@/lib/svi-trend-alert";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +31,7 @@ function extractDimensionScores(
 
 export async function GET(request: Request) {
   // Verify cron secret
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

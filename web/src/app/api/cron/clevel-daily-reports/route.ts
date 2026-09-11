@@ -21,11 +21,11 @@ import { loadProjectState, type PlanTask } from "@/lib/project-state";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { countRecentReviewEntries } from "@/lib/funding/review-queue";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const WEB_DIR = process.env.BLOCKID_WEB_DIR ?? "/home/dovanlong/blockid.au/web";
 const REPORTS_DIR = `${WEB_DIR}/content/reports`;
 const MATRIX_FILE = `${REPORTS_DIR}/clevel-kpi-matrix.json`;
@@ -248,8 +248,7 @@ function renderAgentReport(opts: {
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get("authorization");
-  if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

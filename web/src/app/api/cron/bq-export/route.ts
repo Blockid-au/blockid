@@ -15,20 +15,14 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 function authorised(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  // Fail closed: refuse when the secret env var is missing so a
-  // misconfigured / staging deploy can't be triggered externally.
-  if (!secret) return false;
-  const header = request.headers.get("x-cron-secret");
-  if (header && header === secret) return true;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
+  return isCronAuthorised(request, { xCronSecretHeader: true });
 }
 
 interface RunResult {

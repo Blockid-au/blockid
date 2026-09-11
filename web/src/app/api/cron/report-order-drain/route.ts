@@ -24,6 +24,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { processNextQueuedOrder } from "@/lib/paywall/report-order-worker";
 import { generateTrustReportForOrder } from "@/lib/paywall/report-generator";
 import { refundFailedOrder } from "@/lib/paywall/report-refund";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -33,16 +34,7 @@ export const dynamic = "force-dynamic";
 const MAX_PER_INVOCATION = 5;
 
 function isAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || secret.length === 0) return false;
-
-  const auth = request.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return true;
-
-  const xCron = request.headers.get("x-cron-secret");
-  if (xCron === secret) return true;
-
-  return false;
+  return isCronAuthorised(request, { xCronSecretHeader: true });
 }
 
 /**
