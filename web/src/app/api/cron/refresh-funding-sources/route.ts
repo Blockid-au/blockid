@@ -19,6 +19,7 @@
 import { NextResponse } from "next/server";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { refreshFundingSources } from "@/lib/funding/refresh";
+import { revalidateFundingCatalogue } from "@/lib/funding/data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,9 +51,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: summary.error ?? "refresh_failed", summary }, { status: 500 });
   }
 
+  // S8-D: a live run may have flipped `upcoming → open` / stamped verified_by;
+  // expire the 1 h catalogue data cache so the directories show it now.
+  const revalidated = dryRun ? false : revalidateFundingCatalogue();
+
   const { entries, ...rest } = summary;
   return NextResponse.json({
     ...rest,
+    revalidated,
     ok: true,
     duration_ms: Date.now() - startedAt,
     // Full entry list only on dry runs (keeps the cron-health detail short).

@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getSupabaseAdmin: vi.fn(),
+  revalidateFundingCatalogue: vi.fn(() => true),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -20,6 +21,8 @@ vi.mock("@/lib/auth", () => ({
   ADMIN_EMAIL: "admin@blockid.au",
 }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => mocks.getSupabaseAdmin() }));
+// S8-D: the route expires the catalogue data cache after a successful write.
+vi.mock("@/lib/funding/data", () => ({ revalidateFundingCatalogue: () => mocks.revalidateFundingCatalogue() }));
 
 import { GET, PATCH } from "./route";
 
@@ -86,6 +89,7 @@ describe("PATCH /api/admin/funding/[kind]/[id]", () => {
   beforeEach(() => {
     mocks.getCurrentUser.mockReset();
     mocks.getSupabaseAdmin.mockReset();
+    mocks.revalidateFundingCatalogue.mockClear();
   });
 
   it("401 for anonymous and for non-admin", async () => {
@@ -142,6 +146,8 @@ describe("PATCH /api/admin/funding/[kind]/[id]", () => {
     res = await PATCH(patchReq({ status: "closed" }), params("grants", "rdti"));
     expect(res.status).toBe(500);
     expect(await json(res)).toMatchObject({ reason: "update_failed", error: "boom" });
+    // Nothing was written, so the catalogue cache is left alone.
+    expect(mocks.revalidateFundingCatalogue).not.toHaveBeenCalled();
   });
 
   it("updates the grant row with the human-verified stamp and echoes it", async () => {
@@ -169,6 +175,8 @@ describe("PATCH /api/admin/funding/[kind]/[id]", () => {
     });
     expect(captured.update?.last_verified_at).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(body.applied).toEqual(captured.update);
+    // S8-D: a successful write expires the 1 h catalogue data cache.
+    expect(mocks.revalidateFundingCatalogue).toHaveBeenCalledTimes(1);
   });
 
   it("routes programs to au_programs and aliases closes_at → applications_close", async () => {
@@ -188,6 +196,7 @@ describe("GET /api/admin/funding/[kind]/[id]", () => {
   beforeEach(() => {
     mocks.getCurrentUser.mockReset();
     mocks.getSupabaseAdmin.mockReset();
+    mocks.revalidateFundingCatalogue.mockClear();
   });
 
   it("401 for non-admin", async () => {

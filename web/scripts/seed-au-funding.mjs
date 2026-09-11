@@ -122,4 +122,36 @@ for (const [table, rows] of [
   if (failed > 0) exitCode = 1;
 }
 
+// S8-D: the directory pages read the catalogue through a 1 h data cache
+// inside the Next process. Ask the running server to expire it so the
+// re-seed is visible now rather than at the top of the hour. Best-effort:
+// needs CRON_SECRET; the server defaults to the production port used by
+// scripts/cron-runner.sh and can be pointed elsewhere with
+// FUNDING_REVALIDATE_URL. A failure is reported, never fatal.
+await revalidateCatalogue();
+
 process.exit(exitCode);
+
+async function revalidateCatalogue() {
+  const secret = env.CRON_SECRET;
+  if (!secret) {
+    console.log("revalidate: skipped (CRON_SECRET not set) — the catalogue cache expires within 1 h.");
+    return;
+  }
+  const target = env.FUNDING_REVALIDATE_URL || "http://127.0.0.1:4001/api/cron/revalidate-funding";
+  try {
+    const res = await fetch(target, {
+      method: "POST",
+      headers: { authorization: `Bearer ${secret}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.ok && body.ok) {
+      console.log(`revalidate: catalogue cache expired via ${target} (revalidated=${body.revalidated})`);
+    } else {
+      console.warn(`revalidate: ${target} answered ${res.status} — the cache expires within 1 h.`);
+    }
+  } catch (err) {
+    console.warn(`revalidate: ${target} unreachable (${err instanceof Error ? err.message : err}) — the cache expires within 1 h.`);
+  }
+}
