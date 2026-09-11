@@ -15,6 +15,7 @@ import {
   setUserProperties,
   trackPurchase,
   trackPageView,
+  type AnalyticsEventMap,
 } from "./analytics";
 
 type GtagCall = [string, ...unknown[]];
@@ -560,6 +561,30 @@ describe("G11/G12 funnel events are in AnalyticsEventMap", () => {
       "compare_viewed",
     ]);
     expect(ctx.win.dataLayer?.[4]).toMatchObject({ kind: "programs", capital: "Sydney" });
+    ctx.restore();
+  });
+
+  it("S13-A: evaluator_checklist_viewed { completed } and evaluator_checklist_step { step 1–4 } are typed", () => {
+    const rec = makeGtagRecorder();
+    const ctx = install({ gtag: rec.gtag });
+    trackEvent("evaluator_checklist_viewed", { completed: 0 });
+    trackEvent("evaluator_checklist_step", { step: 1 });
+    trackEvent("evaluator_checklist_step", { step: 2 });
+    trackEvent("evaluator_checklist_step", { step: 3 });
+    trackEvent("evaluator_checklist_step", { step: 4 });
+    trackEvent("evaluator_checklist_viewed", { completed: 4 });
+    expect(rec.calls).toEqual([
+      ["event", "evaluator_checklist_viewed", { completed: 0 }],
+      ["event", "evaluator_checklist_step", { step: 1 }],
+      ["event", "evaluator_checklist_step", { step: 2 }],
+      ["event", "evaluator_checklist_step", { step: 3 }],
+      ["event", "evaluator_checklist_step", { step: 4 }],
+      ["event", "evaluator_checklist_viewed", { completed: 4 }],
+    ]);
+    expect(ctx.win.dataLayer?.[1]).toEqual({ event: "evaluator_checklist_step", step: 1 });
+    // @ts-expect-error — step is 1 | 2 | 3 | 4, never 5
+    const bad: AnalyticsEventMap["evaluator_checklist_step"] = { step: 5 };
+    void bad;
     ctx.restore();
   });
 });

@@ -7,6 +7,10 @@
 // T0272 (Program) adds row multi-select → "Batch score" (BatchDialog →
 // POST /api/evaluations/batch) and the Cohorts section listing batches with
 // progress + links to the cohort table / CSV / sponsor-LP report.
+// S13-A adds the 4-step activation checklist directly under the trial strip
+// (EvaluatorActivationChecklist — its CTAs open the same add / report
+// dialogs) and `autoOpenReport` (`?from=trial_reminder` from the T-3d
+// email) which opens the report dialog on the first evaluation on load.
 
 import * as React from "react";
 import Link from "next/link";
@@ -14,7 +18,9 @@ import { useRouter } from "next/navigation";
 import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail, FileText, RefreshCw, FileDown, Radar, CalendarClock, Layers } from "lucide-react";
 import type { EvaluationListRow, EvaluationConsentTier } from "@/lib/evaluations";
 import type { LastEvaluationReport, ReportQuota } from "@/lib/evaluations/report-quota";
-import { TrialReportBanner } from "./trial-report-banner";
+import { TrialReportBanner, trialDaysLeft } from "./trial-report-banner";
+import { EvaluatorActivationChecklist } from "./evaluator-activation-checklist";
+import type { ActivationInputs } from "@/lib/evaluations/activation-checklist";
 import { formatDelta, type EvaluatorProgress, type EvaluatorProgressItem, type ProgressDeadline } from "@/lib/evaluations/progress-shared";
 import { ReportDialog, type ReportKind, type ReportRunResult } from "./report-dialog";
 import { BatchDialog, type BatchQueuedResult } from "./batch-dialog";
@@ -33,6 +39,15 @@ export interface EvaluationsClientProps {
   isEvaluator: boolean;
   /** `?claim=<token>` from the founder invite email. */
   claimToken?: string | null;
+  /**
+   * S13-A activation checklist inputs (null → not rendered; the page only
+   * passes it for evaluator personas). Evaluation / report counts are
+   * re-derived from live client state so a step ticks straight after an add
+   * or a run without a refresh.
+   */
+  activation?: ActivationInputs | null;
+  /** `?from=trial_reminder` — open the Trust BizReport dialog on the first evaluation on load (S13-A). */
+  autoOpenReport?: boolean;
   /** Latest evaluation_reports row per evaluation id (T0271). */
   lastReports?: Record<string, LastEvaluationReport>;
   /** Included Trust BizReports this month from usage_limits.reports_per_month. */
@@ -339,6 +354,8 @@ export function EvaluationsClient({
   hasMoneyRadar = false,
   canBatch = false,
   batches: initialBatches = [],
+  activation = null,
+  autoOpenReport = false,
 }: EvaluationsClientProps) {
   const progressByEval = React.useMemo(() => {
     const m = new Map<string, EvaluatorProgressItem>();
@@ -351,7 +368,10 @@ export function EvaluationsClient({
 
   // --- Trust BizReport / re-score (T0271) ---
   const [lastReports, setLastReports] = React.useState<Record<string, LastEvaluationReport>>(initialLastReports);
-  const [reportDialog, setReportDialog] = React.useState<{ row: EvaluationListRow; kind: ReportKind } | null>(null);
+  const [reportDialog, setReportDialog] = React.useState<{ row: EvaluationListRow; kind: ReportKind } | null>(() =>
+    // S13-A: the trial-end reminder deep link lands with the dialog already open on the first startup.
+    autoOpenReport && isEvaluator && initialEvaluations[0] ? { row: initialEvaluations[0], kind: "full" } : null,
+  );
   const [quotaRemaining, setQuotaRemaining] = React.useState<number | null>(reportQuota ? reportQuota.remaining : null);
   // S7-C: while trialing the quota IS the 1 included trial report.
   const trial = reportQuota?.trial?.active ? reportQuota.trial : null;
@@ -436,6 +456,16 @@ export function EvaluationsClient({
 
   const atLimit = !isUnlimited(limit) && used >= limit;
   const canAdd = isEvaluator && !atLimit;
+
+  // --- Activation checklist (S13-A) — live counts over the server's thesis inputs ---
+  const activationInput = React.useMemo<ActivationInputs | null>(
+    () => (activation ? { ...activation, evaluations: rows.length, reports: Object.keys(lastReports).length } : null),
+    [activation, rows.length, lastReports],
+  );
+  const checklistDaysLeft = trial ? trialDaysLeft(trial.ends_at) : null;
+  function openFirstReport() {
+    if (rows[0]) setReportDialog({ row: rows[0], kind: "full" });
+  }
 
   React.useEffect(() => {
     if (!claimToken) return;
@@ -582,7 +612,7 @@ export function EvaluationsClient({
   const limitLabel = isUnlimited(limit) ? "unlimited" : String(limit);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-6 max-w-6xl mx-auto space-y-6" data-from={autoOpenReport ? "trial_reminder" : undefined}>
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
@@ -649,6 +679,17 @@ export function EvaluationsClient({
 
       {/* Trial strip (S7-C) — 1 included Trust BizReport, then credits */}
       {isEvaluator && trial ? <TrialReportBanner trial={trial} used={trialUsed} /> : null}
+
+      {/* Activation checklist (S13-A) — directly under the trial strip; hides itself when complete / dismissed */}
+      {isEvaluator && activationInput ? (
+        <EvaluatorActivationChecklist
+          input={activationInput}
+          trialDaysLeft={checklistDaysLeft}
+          canAdd={canAdd}
+          onAddStartup={() => setShowAdd(true)}
+          onRunReport={openFirstReport}
+        />
+      ) : null}
 
       {/* Plan-limit banner */}
       {isEvaluator && (

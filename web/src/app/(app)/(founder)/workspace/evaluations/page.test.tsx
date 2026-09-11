@@ -58,6 +58,13 @@ const getEntitlementsMock = vi.fn();
 vi.mock("@/lib/entitlements", () => ({ getEntitlements: (plan: string, id: string) => getEntitlementsMock(plan, id) }));
 const listBatchesMock = vi.fn();
 vi.mock("@/lib/evaluations/batch", () => ({ listBatches: (id: string) => listBatchesMock(id) }));
+// S13-A checklist inputs (thesis step).
+const getPrefsMock = vi.fn();
+const getVisibilityMock = vi.fn();
+vi.mock("@/lib/investor-portal", () => ({
+  getInvestorPreferences: (id: string) => getPrefsMock(id),
+  getInvestorVisibility: (id: string) => getVisibilityMock(id),
+}));
 
 const SCOUT_FLAGS = ["watchlist", "svi.feed", "investor.dealflow", "grant_finder", "money_radar"];
 const PROGRAM_FLAGS = [...SCOUT_FLAGS, "advisor.cohort", "portfolio", "api.access", "lp_export", "lp_report"];
@@ -155,6 +162,11 @@ beforeEach(() => {
   buildProgressMock.mockResolvedValue(PROGRESS);
   getEntitlementsMock.mockResolvedValue(SCOUT_FLAGS);
   listBatchesMock.mockResolvedValue([]);
+  getPrefsMock.mockReset();
+  getVisibilityMock.mockReset();
+  // Default fixture: 2 evaluations + 1 report, no thesis → 3 of 4 (checklist visible).
+  getPrefsMock.mockResolvedValue({ sectors: [], stages: [], geos: [], cheque_band: "any", min_svi: null, updated_at: null });
+  getVisibilityMock.mockResolvedValue({ evaluator: true, discoverable: false });
 });
 
 describe("/workspace/evaluations", () => {
@@ -399,5 +411,93 @@ describe("/workspace/evaluations", () => {
 
     const plain = await html();
     expect(plain).toContain("This workspace is for evaluators.");
+  });
+
+  // ── S13-A: activation checklist under the trial strip + reminder deep link ──
+
+  it("S13-A: a fresh trialing evaluator sees the checklist directly under the trial strip — 0 of 4, days left, 4 steps", async () => {
+    listEvaluationsMock.mockResolvedValue([]);
+    listLastReportsMock.mockResolvedValue({});
+    getEvaluationQuotaMock.mockResolvedValue({ used: 0, limit: 25 });
+    const endsAt = new Date(Date.now() + 5 * 86_400_000 + 60_000).toISOString();
+    const trial = { active: true, ends_at: endsAt, started_at: "2026-09-10T00:00:00.000Z", allowance: 1, used: 0, plan_id: "investor_angel" };
+    getReportQuotaMock.mockResolvedValue({ limit: 1, used: 0, remaining: 1, unlimited: false, configured: true, trial });
+
+    const out = await html();
+    expect(out).toContain('data-testid="evaluator-activation-checklist"');
+    expect(out).toContain('data-completed="0"');
+    expect(out).toContain("0 of 4 done");
+    expect(out).toContain("6 days left in your trial");
+    expect((out.match(/data-testid="evaluator-checklist-step"/g) ?? []).length).toBe(4);
+    expect(out).toContain("Add the first startup you&#x27;re evaluating");
+    expect(out).toContain("Run your included Trust BizReport");
+    expect(out).toContain("Set your thesis so matching founders can find you");
+    expect(out).toContain("Add a startup to your watchlist / cohort");
+    expect(out).toContain('href="/workspace/investor/preferences"');
+    // Placement: banner first, checklist next, then the plan-limit banner. The banner is not duplicated.
+    const banner = out.indexOf('data-testid="trial-report-banner"');
+    const checklist = out.indexOf('data-testid="evaluator-activation-checklist"');
+    const planLimit = out.indexOf('data-testid="plan-limit-banner"');
+    expect(banner).toBeGreaterThan(-1);
+    expect(checklist).toBeGreaterThan(banner);
+    expect(planLimit).toBeGreaterThan(checklist);
+    expect((out.match(/data-testid="trial-report-banner"/g) ?? []).length).toBe(1);
+    expect(getPrefsMock).toHaveBeenCalledWith("u-1");
+    expect(getVisibilityMock).toHaveBeenCalledWith("u-1");
+  });
+
+  it("S13-A: progress derives from live data — 2 evaluations + 1 report + no thesis = 3 of 4; thesis set → hidden", async () => {
+    let out = await html();
+    expect(out).toContain('data-completed="3"');
+    expect(out).toContain("3 of 4 done");
+    expect(out).toMatch(/data-step="3" data-done="0"/);
+    expect(out).not.toContain("left in your trial"); // not trialing → no days chip
+
+    getPrefsMock.mockResolvedValue({ sectors: ["fintech"], stages: [], geos: [], cheque_band: "any", min_svi: null, updated_at: null });
+    getVisibilityMock.mockResolvedValue({ evaluator: true, discoverable: true });
+    out = await html();
+    expect(out).not.toContain('data-testid="evaluator-activation-checklist"');
+
+    // Sectors without discoverability is NOT done.
+    getVisibilityMock.mockResolvedValue({ evaluator: true, discoverable: false });
+    out = await html();
+    expect(out).toContain('data-completed="3"');
+  });
+
+  it("S13-A: a failed prefs / visibility read degrades to 'thesis not set' rather than a crash", async () => {
+    getPrefsMock.mockRejectedValue(new Error("db down"));
+    getVisibilityMock.mockRejectedValue(new Error("db down"));
+    const out = await html();
+    expect(out).toContain('data-testid="evaluator-activation-checklist"');
+    expect(out).toContain('data-completed="3"');
+  });
+
+  it("S13-A: founder personas never see the checklist and the thesis lookups are not made", async () => {
+    isEvaluatorUserMock.mockResolvedValue(false);
+    const out = await html();
+    expect(out).not.toContain('data-testid="evaluator-activation-checklist"');
+    expect(getPrefsMock).not.toHaveBeenCalled();
+    expect(getVisibilityMock).not.toHaveBeenCalled();
+  });
+
+  it("S13-A: ?from=trial_reminder opens the Trust BizReport dialog on the first evaluation", async () => {
+    const out = await html({ from: "trial_reminder" });
+    expect(out).toContain('data-from="trial_reminder"');
+    expect(out).toContain('data-testid="report-dialog"');
+    expect(out).toContain("Acme Robotics"); // first row is the dialog's startup
+    expect((out.match(/data-testid="report-dialog"/g) ?? []).length).toBe(1);
+  });
+
+  it("S13-A: without ?from= (or another value / no evaluations / founder) the dialog stays closed", async () => {
+    for (const search of [{}, { from: "email" }]) {
+      const out = await html(search);
+      expect(out).not.toContain('data-from="trial_reminder"');
+      expect(out).not.toContain('data-testid="report-dialog"');
+    }
+    listEvaluationsMock.mockResolvedValue([]);
+    expect(await html({ from: "trial_reminder" })).not.toContain('data-testid="report-dialog"');
+    listEvaluationsMock.mockResolvedValue(ROWS);
+    isEvaluatorUserMock.mockResolvedValue(false);
+    expect(await html({ from: "trial_reminder" })).not.toContain('data-testid="report-dialog"');
   });
 });

@@ -16,6 +16,13 @@
 //
 // T0272: Program (lp_export / accelerator.cohort via getEntitlements) gets
 // row multi-select → Batch score, plus the Cohorts section (listBatches).
+//
+// S13-A: evaluators also get the 4-step activation checklist under the trial
+// strip — inputs computed here (evaluation count, report count from the
+// lastReports map, thesis sectors + investor_discoverable from
+// investor-portal) and never passed for founder personas. `?from=trial_reminder`
+// (the T-3d reminder deep link) opens the report dialog on the first
+// evaluation; server prop only, same pattern as /workspace/funding?from=radar_setup.
 
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -28,6 +35,8 @@ import { buildEvaluatorProgress } from "@/lib/evaluations/progress-radar";
 import { getEntitlements } from "@/lib/entitlements";
 import { listBatches } from "@/lib/evaluations/batch";
 import { canBatchScore } from "@/lib/evaluations/batch-shared";
+import { getInvestorPreferences, getInvestorVisibility } from "@/lib/investor-portal";
+import { TRIAL_REMINDER_FROM, type ActivationInputs } from "@/lib/evaluations/activation-checklist";
 import { EvaluationsClient } from "./evaluations-client";
 
 export const metadata: Metadata = {
@@ -39,23 +48,25 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ claim?: string | string[] }>;
+  searchParams: Promise<{ claim?: string | string[]; from?: string | string[] }>;
 }
+
+const first = (v: string | string[] | undefined): string | null => (Array.isArray(v) ? v[0] : v) ?? null;
 
 export default async function EvaluationsPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/evaluations");
 
   const params = await searchParams;
-  const rawClaim = params?.claim;
-  const claimToken = (Array.isArray(rawClaim) ? rawClaim[0] : rawClaim) ?? null;
+  const claimToken = first(params?.claim);
+  const fromTrialReminder = first(params?.from) === TRIAL_REMINDER_FROM;
 
   const [isSandbox, isEvaluator] = await Promise.all([
     getCurrentProjectIsSandbox(),
     isEvaluatorUser(user),
   ]);
 
-  const [evaluations, quota, lastReports, reportQuota, progress, flags, batches] = isEvaluator
+  const [evaluations, quota, lastReports, reportQuota, progress, flags, batches, prefs, visibility] = isEvaluator
     ? await Promise.all([
         listEvaluations(user.id),
         getEvaluationQuota(user),
@@ -64,10 +75,21 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
         buildEvaluatorProgress({ userId: user.id }).catch(() => null),
         getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
         listBatches(user.id).catch(() => []),
+        getInvestorPreferences(user.id).catch(() => null),
+        getInvestorVisibility(user.id).catch(() => null),
       ])
-    : [[], { used: 0, limit: 0 }, {}, null, null, [] as string[], []];
+    : [[], { used: 0, limit: 0 }, {}, null, null, [] as string[], [], null, null];
   const hasMoneyRadar = flags.includes("money_radar");
   const canBatch = canBatchScore(flags);
+  // S13-A — checklist inputs; only evaluators get one (founders never see it).
+  const activation: ActivationInputs | null = isEvaluator
+    ? {
+        evaluations: evaluations.length,
+        reports: Object.keys(lastReports).length,
+        sectors: prefs?.sectors?.length ?? 0,
+        discoverable: visibility?.discoverable === true,
+      }
+    : null;
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -84,6 +106,8 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
         hasMoneyRadar={hasMoneyRadar}
         canBatch={canBatch}
         batches={batches}
+        activation={activation}
+        autoOpenReport={fromTrialReminder}
       />
     </WorkspaceLayout>
   );

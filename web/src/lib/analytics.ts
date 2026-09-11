@@ -69,6 +69,10 @@ export interface AnalyticsEventMap {
   pricing_viewed: Record<string, never>;
   /** G12 (T0268): the Evaluator tab (Scout / Firm / Program) was shown on /pricing. */
   evaluator_pricing_viewed: { via: "tab" | "deep_link" };
+  /** G12 (S13-A): the 4-step activation checklist under the trial banner was shown; `completed` = steps already done (0–4). */
+  evaluator_checklist_viewed: { completed: number };
+  /** G12 (S13-A): a checklist step CTA was clicked (1 add startup · 2 run report · 3 set thesis · 4 second startup). */
+  evaluator_checklist_step: { step: 1 | 2 | 3 | 4 };
   pricing_toggle_billing: { annual: boolean };
   plan_cta_clicked: { plan: string; label: string };
   checkout_started: { plan: string };
