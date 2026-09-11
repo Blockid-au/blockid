@@ -177,12 +177,38 @@ describe("POST /api/evaluations/[id]/report", () => {
     expect(spendCreditsMock).not.toHaveBeenCalled();
   });
 
+  it("S8-C: refuses cross-site POSTs; GET responses are private/no-store", async () => {
+    const cross = new Request("http://localhost/api/evaluations/e-1/report", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ kind: "full" }) });
+    expect((await POST(cross, ctx())).status).toBe(403);
+    expect(runFullMock).not.toHaveBeenCalled();
+    findRecentMock.mockResolvedValue(null);
+    const g = await GET(new Request("http://localhost/api/evaluations/e-1/report?kind=full"), ctx());
+    expect(g.status).toBe(200);
+    expect(g.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("S8-C: the raw pipeline error is not echoed in production", async () => {
+    const orig = process.env.NODE_ENV;
+    (process.env as Record<string, string>).NODE_ENV = "production";
+    try {
+      runFullMock.mockRejectedValue(new Error("ECONNREFUSED 10.0.0.9:11434"));
+      const res = await POST(post({ kind: "full", confirm: true }), ctx());
+      expect(res.status).toBe(500);
+      const json = await res.json();
+      expect(json.detail).toBeUndefined();
+      expect(JSON.stringify(json)).not.toContain("10.0.0.9");
+    } finally {
+      (process.env as Record<string, string>).NODE_ENV = orig ?? "test";
+    }
+  });
+
   it("quota run: pipeline throws → 500, no evaluation_reports row, credits never touched", async () => {
     runFullMock.mockRejectedValue(new Error("orchestrator exploded"));
     const res = await POST(post({ kind: "full", confirm: true }), ctx());
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toBe("report_failed");
+    expect(json.detail).toBe("orchestrator exploded"); // non-production keeps the detail
     expect(json.message).toMatch(/Nothing was charged/);
     expect(recordMock).not.toHaveBeenCalled();
     expect(spendCreditsMock).not.toHaveBeenCalled();

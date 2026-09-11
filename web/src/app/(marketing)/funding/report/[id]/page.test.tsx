@@ -155,6 +155,22 @@ describe("/funding/report/[id] (T0244 full view)", () => {
     expect(out).not.toMatch(/tok_secret|g@example.com/);
   });
 
+  // S8-C 2026-09-11: the narrative is LLM text — raw HTML must stay escaped
+  // (no rehype-raw), javascript: links must be dropped and every markdown
+  // link must carry rel="noopener noreferrer nofollow".
+  it("renders the narrative safely: HTML escaped, javascript: href dropped, links noopener", async () => {
+    getFundingReportMock.mockResolvedValue({
+      ...ROW,
+      narrative_md: 'Read <script>alert(1)</script> the [official page](https://business.gov.au/x) and [not this](javascript:alert(1)) <img src=x onerror=alert(1)>',
+    });
+    const out = await html({ s: "cs_live_1" });
+    expect(out).not.toContain("<script>alert(1)</script>");
+    expect(out).toContain("&lt;script&gt;");
+    expect(out).not.toMatch(/<img[^>]*onerror/);
+    expect(out).toMatch(/<a href="https:\/\/business\.gov\.au\/x" target="_blank" rel="noopener noreferrer nofollow">official page<\/a>/);
+    expect(out).not.toContain('href="javascript:');
+  });
+
   // T0247 — the upsell block reads the report's own timeline (meta.today =
   // 2026-09-10; MVP Ventures closes 2026-11-30 = 81 days; Plus Eight is next
   // February so no other round this quarter).

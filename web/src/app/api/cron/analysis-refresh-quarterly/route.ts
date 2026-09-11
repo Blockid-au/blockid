@@ -14,6 +14,7 @@
 // `?force=1` rebuilds quarters that already have a row (upsert).
 
 import { NextResponse } from "next/server";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { runAnalysisRefreshQuarterly } from "@/lib/funding/analysis-refresh";
 
 export const runtime = "nodejs";
@@ -30,8 +31,8 @@ function flag(request: Request, name: string): boolean {
 }
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // S8-C (2026-09-11): constant-time compare of the bearer secret.
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

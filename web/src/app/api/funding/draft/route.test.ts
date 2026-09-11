@@ -58,10 +58,10 @@ vi.mock("@/lib/agents/grant-application-drafter", () => ({
   draftGrantApplication: (g: unknown, p: unknown, c: unknown) => draftMock(g, p, c),
 }));
 
-import { PATCH, POST } from "./route";
+import { ANSWER_KEY_MAX_LEN, ANSWER_MAX_KEYS, PATCH, POST } from "./route";
 
 const USER = { id: "u-1", email: "f@acme.io", plan: "founder_starter" };
-const PROJECT = { id: "proj-1", userId: "u-1", name: "Acme", description: "Soil sensors", industry: "AgTech", stage: 2 };
+const PROJECT = { id: "11111111-1111-4111-8111-111111111111", userId: "u-1", name: "Acme", description: "Soil sensors", industry: "AgTech", stage: 2 };
 const GRANT = {
   id: "nsw-mvp-ventures", name: "MVP Ventures", provider: "Investment NSW", summary: "s", amount_note: null, co_contribution: "1:1",
   official_url: "https://x", exclude_from_matching: false, closes_at: null,
@@ -87,7 +87,7 @@ beforeEach(() => {
   getProjectByIdMock.mockReset().mockResolvedValue(PROJECT);
   getGrantMock.mockReset().mockResolvedValue(GRANT);
   gatherMock.mockReset().mockResolvedValue(CTX);
-  insertMock.mockReset().mockImplementation(async (row: Record<string, unknown>) => ({ id: "d-1", ...row, created_at: "", updated_at: "" }));
+  insertMock.mockReset().mockImplementation(async (row: Record<string, unknown>) => ({ id: "22222222-2222-4222-8222-222222222222", ...row, created_at: "", updated_at: "" }));
   updateMock.mockReset();
   draftMock.mockReset().mockResolvedValue({ answers: { product: "A", budget: "B", team: "C" }, ai_ok: true, failed: [], provider: "groq", model: "m" });
 });
@@ -101,9 +101,19 @@ describe("POST /api/funding/draft — guards", () => {
 
     getGrantMock.mockResolvedValueOnce(null);
     expect((await post({ grant_id: "nope" })).status).toBe(404);
+    // S8-C: catalogue id shape is checked before any lookup.
+    expect((await post({ grant_id: "Nope;drop" })).status).toBe(400);
+    expect((await post({ grant_id: "../rdti" })).status).toBe(400);
+    expect((await post({ grant_id: GRANT.id, project_id: "proj-1" })).status).toBe(400);
+    // S8-C: browser cross-site POST is refused before auth.
+    const cross = await POST(new Request("http://localhost/api/funding/draft", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ grant_id: GRANT.id }) }));
+    expect(cross.status).toBe(403);
+    // S8-C: oversize body is a 413 before parsing.
+    const big = await POST(new Request("http://localhost/api/funding/draft", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ grant_id: GRANT.id, pad: "x".repeat(20 * 1024) }) }));
+    expect(big.status).toBe(413);
 
     getProjectByIdMock.mockResolvedValueOnce({ ...PROJECT, userId: "someone-else" });
-    expect((await post({ grant_id: GRANT.id, project_id: "proj-1" })).status).toBe(403);
+    expect((await post({ grant_id: GRANT.id, project_id: "11111111-1111-4111-8111-111111111111" })).status).toBe(403);
 
     canMock.mockResolvedValueOnce(false);
     const locked = await post({ grant_id: GRANT.id });
@@ -121,7 +131,7 @@ describe("POST /api/funding/draft — guards", () => {
 describe("POST — Growth / Startup Package rail", () => {
   it("cost 0, no credit calls, no confirm needed, draft stored with the grant's prompts", async () => {
     growthMock.mockResolvedValue(true);
-    const res = await post({ grant_id: GRANT.id, project_id: "proj-1" });
+    const res = await post({ grant_id: GRANT.id, project_id: "11111111-1111-4111-8111-111111111111" });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ ok: true, cost: 0, creditsCharged: 0, ai_ok: true });
@@ -130,14 +140,14 @@ describe("POST — Growth / Startup Package rail", () => {
     expect(spendCreditsMock).not.toHaveBeenCalled();
     expect(draftMock).toHaveBeenCalledTimes(1);
     expect(draftMock.mock.calls[0]![1]).toEqual(GRANT.application_prompts);
-    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ user_id: "u-1", project_id: "proj-1", grant_id: GRANT.id, credits_cost: 0, status: "draft", answers: { product: "A", budget: "B", team: "C" } }));
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ user_id: "u-1", project_id: "11111111-1111-4111-8111-111111111111", grant_id: GRANT.id, credits_cost: 0, status: "draft", answers: { product: "A", budget: "B", team: "C" } }));
     expect(gatherMock).toHaveBeenCalledWith({ id: "u-1", email: "f@acme.io" }, PROJECT, GRANT.id, expect.anything());
   });
 });
 
 describe("POST — Starter credits rail (transparent pricing)", () => {
   it("confirm omitted → 200 preview with the cost + prompts, nothing generated or spent", async () => {
-    const res = await post({ grant_id: GRANT.id, project_id: "proj-1" });
+    const res = await post({ grant_id: GRANT.id, project_id: "11111111-1111-4111-8111-111111111111" });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ ok: true, preview: true, cost: 2, balance: 10, grant: { id: GRANT.id, name: "MVP Ventures" } });
@@ -150,14 +160,14 @@ describe("POST — Starter credits rail (transparent pricing)", () => {
 
   it("confirm:true → generate, spend 2 credits, THEN insert (spend before insert, #3)", async () => {
     const order: string[] = [];
-    insertMock.mockImplementation(async (row: Record<string, unknown>) => { order.push("insert"); return { id: "d-1", ...row, created_at: "", updated_at: "" }; });
+    insertMock.mockImplementation(async (row: Record<string, unknown>) => { order.push("insert"); return { id: "22222222-2222-4222-8222-222222222222", ...row, created_at: "", updated_at: "" }; });
     spendCreditsMock.mockImplementation(async () => { order.push("spend"); return { ok: true, balance: 8 }; });
-    const res = await post({ grant_id: GRANT.id, project_id: "proj-1", confirm: true });
+    const res = await post({ grant_id: GRANT.id, project_id: "11111111-1111-4111-8111-111111111111", confirm: true });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ ok: true, cost: 2, creditsCharged: 2, balance: 8, ai_ok: true });
     expect(order).toEqual(["spend", "insert"]);
-    expect(spendCreditsMock).toHaveBeenCalledWith("u-1", "grant_application_draft", { project_id: "proj-1", grant_id: GRANT.id });
+    expect(spendCreditsMock).toHaveBeenCalledWith("u-1", "grant_application_draft", { project_id: "11111111-1111-4111-8111-111111111111", grant_id: GRANT.id });
     expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ credits_cost: 2, status: "draft" }));
     expect(grantCreditsMock).not.toHaveBeenCalled();
   });
@@ -220,17 +230,27 @@ describe("POST — never blank", () => {
 describe("PATCH /api/funding/draft", () => {
   it("401 / 400 / 404 and the owner update", async () => {
     getCurrentUserMock.mockResolvedValueOnce(null);
-    expect((await patch({ id: "d-1", answers: {} })).status).toBe(401);
+    expect((await patch({ id: "22222222-2222-4222-8222-222222222222", answers: {} })).status).toBe(401);
     expect((await patch({ answers: { a: "x" } })).status).toBe(400);
-    expect((await patch({ id: "d-1" })).status).toBe(400);
+    expect((await patch({ id: "22222222-2222-4222-8222-222222222222" })).status).toBe(400);
 
     updateMock.mockResolvedValueOnce(null);
+    expect((await patch({ id: "99999999-9999-4999-8999-999999999999", answers: { a: "x" } })).status).toBe(404);
+    // S8-C: a non-uuid id is a 404 without touching the DB; keys are capped.
+    updateMock.mockClear();
     expect((await patch({ id: "d-9", answers: { a: "x" } })).status).toBe(404);
+    expect(updateMock).not.toHaveBeenCalled();
+    const many = Object.fromEntries(Array.from({ length: 80 }, (_, i) => [`k${i}`, "v"]));
+    updateMock.mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222", answers: {}, status: "draft" });
+    expect((await patch({ id: "22222222-2222-4222-8222-222222222222", answers: { ...many, ["L".repeat(65)]: "v" } })).status).toBe(200);
+    const sent = updateMock.mock.calls.at(-1)?.[2] as { answers: Record<string, string> };
+    expect(Object.keys(sent.answers)).toHaveLength(ANSWER_MAX_KEYS);
+    expect(Object.keys(sent.answers).some((k) => k.length > ANSWER_KEY_MAX_LEN)).toBe(false);
 
-    updateMock.mockResolvedValueOnce({ id: "d-1", answers: { a: "x" }, status: "final" });
-    const res = await patch({ id: "d-1", answers: { a: "x", junk: 5 }, status: "final" });
+    updateMock.mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222", answers: { a: "x" }, status: "final" });
+    const res = await patch({ id: "22222222-2222-4222-8222-222222222222", answers: { a: "x", junk: 5 }, status: "final" });
     expect(res.status).toBe(200);
-    expect(updateMock).toHaveBeenCalledWith("d-1", "u-1", { answers: { a: "x" }, status: "final" });
+    expect(updateMock).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222", "u-1", { answers: { a: "x" }, status: "final" });
     expect((await res.json()).draft.status).toBe("final");
   });
 });

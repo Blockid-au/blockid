@@ -14,6 +14,8 @@
  */
 
 import { NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { getProjectById } from "@/lib/projects";
 import { getFundingReport, publicFundingReport } from "@/lib/funding/reports";
@@ -24,8 +26,13 @@ import { saveDeliverable } from "@/lib/dataroom/save-deliverable";
 export const dynamic = "force-dynamic";
 
 const FUNDING_REPORT_TEMPLATE_SLUG = "funding_money_finder_report";
+export const SAVE_RATE_MAX = 10;
+export const SAVE_RATE_WINDOW_MS = 60 * 60 * 1000;
 
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const { id } = await params;
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
@@ -33,6 +40,10 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+
+  // S8-C: every call renders a PDF and files a new data-room object.
+  const limited = enforceRateLimit("funding-save-to-dataroom", user.id, request, SAVE_RATE_MAX, SAVE_RATE_WINDOW_MS);
+  if (limited) return limited;
 
   const row = await getFundingReport(id);
   if (!row) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });

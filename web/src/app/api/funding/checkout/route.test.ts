@@ -105,6 +105,11 @@ describe("POST /api/funding/checkout — validation", () => {
     expect(createSessionMock).not.toHaveBeenCalled();
   });
 
+  it("S8-C: oversize body → 413 before any parsing or DB work", async () => {
+    const big = await POST(req({ email: "a@b.co", description: "x".repeat(20 * 1024), state: "NSW", stage: "mvp" }));
+    expect(big.status).toBe(413);
+  });
+
   it("400s on a bad intake with the field name", async () => {
     const res = await POST(req({ ...GOOD, description: "too short" }));
     expect(res.status).toBe(400);

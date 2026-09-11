@@ -13,6 +13,7 @@
 // self-service RLS policy — and always scoped to the caller's own id.
 
 import { NextResponse, type NextRequest } from "next/server";
+import { PRIVATE_JSON_HEADERS, rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getDashboardLayout, setDashboardLayout } from "@/lib/dashboard/layout-store";
@@ -30,10 +31,13 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "auth_required", layout: null }, { status: 401 });
   }
   const layout = await getDashboardLayout(user.id);
-  return NextResponse.json({ ok: true, layout }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ok: true, layout }, { headers: PRIVATE_JSON_HEADERS });
 }
 
 export async function PUT(req: NextRequest) {
+  const crossSite = rejectCrossSite(req);
+  if (crossSite) return crossSite;
+
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });

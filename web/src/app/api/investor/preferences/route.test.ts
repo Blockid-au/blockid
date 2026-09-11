@@ -34,6 +34,8 @@ const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: () => getCurrentUserMock(),
 }));
+const enforceRateLimitMock = vi.hoisted(() => vi.fn<(...a: unknown[]) => unknown>(() => null));
+vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => enforceRateLimitMock(...a) }));
 
 const canMock = vi.fn();
 vi.mock("@/lib/entitlements", () => ({
@@ -65,7 +67,7 @@ vi.mock("@/lib/investor-portal", async () => {
   };
 });
 
-import { GET, POST } from "./route";
+import { GET, POST, POST_RATE_MAX, POST_RATE_WINDOW_MS } from "./route";
 
 const USER = { id: "u-99", email: "angel@example.com", plan: "investor_angel" };
 
@@ -183,6 +185,25 @@ describe("GET /api/investor/preferences", () => {
     expect(body.prefs.stages).toEqual(["any"]);
     expect(body.prefs.geos).toEqual(["AU"]);
     expect(body.prefs.min_svi).toBeNull();
+  });
+});
+
+describe("POST /api/investor/preferences — S8-C guards", () => {
+  it("GET is private/no-store; POST refuses cross-site, rate-limits per user and caps the body at 16 KB", async () => {
+    const g = await GET();
+    if (g.status === 200) expect(g.headers.get("cache-control")).toBe("private, no-store");
+    const cross = new Request("http://localhost/api/investor/preferences", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: "{}" }) as unknown as NextRequest;
+    expect((await POST(cross)).status).toBe(403);
+    enforceRateLimitMock.mockClear();
+    enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429 }));
+    const limited = await POST(jsonReq({ sectors: ["fintech"] }));
+    if (limited.status !== 401 && limited.status !== 402) {
+      expect(limited.status).toBe(429);
+      expect(enforceRateLimitMock).toHaveBeenCalledWith("investor-preferences", expect.any(String), expect.anything(), POST_RATE_MAX, POST_RATE_WINDOW_MS);
+    }
+    enforceRateLimitMock.mockReturnValue(null);
+    const big = await POST(jsonReq({ thesis: "t".repeat(20 * 1024) }));
+    if (big.status !== 401 && big.status !== 402) expect(big.status).toBe(413);
   });
 });
 

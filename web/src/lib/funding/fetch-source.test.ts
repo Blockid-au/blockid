@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   FUNDING_BOT_UA,
   MAX_BODY_BYTES,
+  MAX_REDIRECTS,
   decodeEntities,
   discoverFeedUrl,
   extractStatusHints,
@@ -16,8 +17,11 @@ import {
 } from "./fetch-source";
 
 const noSleep = async () => {};
+// SSRF guard (S8-C): every fetchText call resolves through this stub so the
+// suite never touches DNS and every host is "public".
+const pub = async () => ["13.54.1.1"];
 
-function fakeFetch(seq: Array<{ status: number; body?: string; throws?: string }>) {
+function fakeFetch(seq: Array<{ status: number; body?: string; throws?: string; location?: string }>) {
   let i = 0;
   const calls: Array<{ url: string; ua: string | undefined }> = [];
   const impl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -30,7 +34,7 @@ function fakeFetch(seq: Array<{ status: number; body?: string; throws?: string }
       if (step.throws === "abort") e.name = "AbortError";
       throw e;
     }
-    return new Response(step.body ?? "", { status: step.status });
+    return new Response(step.body ?? "", { status: step.status, headers: step.location ? { location: step.location } : {} });
   });
   return { impl: impl as unknown as typeof fetch, calls };
 }
@@ -38,7 +42,7 @@ function fakeFetch(seq: Array<{ status: number; body?: string; throws?: string }
 describe("fetchText", () => {
   it("returns ok + body with the browser-like UA on 200", async () => {
     const { impl, calls } = fakeFetch([{ status: 200, body: "<html>hi</html>" }]);
-    const r = await fetchText("https://example.gov.au/x", { fetchImpl: impl, sleep: noSleep });
+    const r = await fetchText("https://example.gov.au/x", { fetchImpl: impl, resolve: pub, sleep: noSleep });
     expect(r).toMatchObject({ ok: true, status: 200, text: "<html>hi</html>", blocked: false, truncated: false, attempts: 1 });
     expect(calls[0].ua).toBe(FUNDING_BOT_UA);
     expect(FUNDING_BOT_UA).toMatch(/^Mozilla\/5\.0 \(compatible; BlockID-FundingBot\/1\.0; \+https:\/\/blockid\.au\/funding\)$/);
@@ -46,7 +50,7 @@ describe("fetchText", () => {
 
   it("403 is blocked immediately — no retries", async () => {
     const { impl, calls } = fakeFetch([{ status: 403, body: "Forbidden" }]);
-    const r = await fetchText("https://www.grants.gov.au/go/list", { fetchImpl: impl, sleep: noSleep, retries: 3 });
+    const r = await fetchText("https://www.grants.gov.au/go/list", { fetchImpl: impl, resolve: pub, sleep: noSleep, retries: 3 });
     expect(r).toMatchObject({ ok: false, status: 403, blocked: true, text: "", attempts: 1 });
     expect(calls).toHaveLength(1);
   });
@@ -54,7 +58,7 @@ describe("fetchText", () => {
   it("429 retries once with backoff, then blocked", async () => {
     const sleeps: number[] = [];
     const { impl, calls } = fakeFetch([{ status: 429 }, { status: 429 }, { status: 200, body: "never" }]);
-    const r = await fetchText("https://x", { fetchImpl: impl, retries: 5, backoffMs: 100, sleep: async (ms) => { sleeps.push(ms); } });
+    const r = await fetchText("https://x.gov.au", { fetchImpl: impl, resolve: pub, retries: 5, backoffMs: 100, sleep: async (ms) => { sleeps.push(ms); } });
     expect(r).toMatchObject({ ok: false, status: 429, blocked: true, attempts: 2 });
     expect(calls).toHaveLength(2);
     expect(sleeps).toEqual([100]);
@@ -63,14 +67,14 @@ describe("fetchText", () => {
   it("5xx and network errors retry with exponential backoff and can recover", async () => {
     const sleeps: number[] = [];
     const { impl } = fakeFetch([{ status: 503 }, { status: 0, throws: "ECONNRESET" }, { status: 200, body: "ok" }]);
-    const r = await fetchText("https://x", { fetchImpl: impl, retries: 2, backoffMs: 250, sleep: async (ms) => { sleeps.push(ms); } });
+    const r = await fetchText("https://x.gov.au", { fetchImpl: impl, resolve: pub, retries: 2, backoffMs: 250, sleep: async (ms) => { sleeps.push(ms); } });
     expect(r).toMatchObject({ ok: true, status: 200, text: "ok", attempts: 3 });
     expect(sleeps).toEqual([250, 500]);
   });
 
   it("gives up after retries with the last error (timeout → AbortError)", async () => {
     const { impl } = fakeFetch([{ status: 0, throws: "abort" }]);
-    const r = await fetchText("https://x", { fetchImpl: impl, retries: 1, sleep: noSleep, timeoutMs: 1234 });
+    const r = await fetchText("https://x.gov.au", { fetchImpl: impl, resolve: pub, retries: 1, sleep: noSleep, timeoutMs: 1234 });
     expect(r.ok).toBe(false);
     expect(r.blocked).toBe(false);
     expect(r.status).toBe(0);
@@ -80,15 +84,69 @@ describe("fetchText", () => {
 
   it("404 is not ok, not blocked, not retried", async () => {
     const { impl, calls } = fakeFetch([{ status: 404, body: "gone" }]);
-    const r = await fetchText("https://x", { fetchImpl: impl, retries: 3, sleep: noSleep });
+    const r = await fetchText("https://x.gov.au", { fetchImpl: impl, resolve: pub, retries: 3, sleep: noSleep });
     expect(r).toMatchObject({ ok: false, status: 404, blocked: false, text: "gone" });
     expect(calls).toHaveLength(1);
+  });
+
+  it("passes redirect: manual and follows a public redirect hop, re-checking every hop", async () => {
+    const seen: string[] = [];
+    const { impl, calls } = fakeFetch([
+      { status: 301, location: "https://www.business.gov.au/grants" },
+      { status: 302, location: "/grants/igp" },
+      { status: 200, body: "landed" },
+    ]);
+    const r = await fetchText("https://business.gov.au/x", { fetchImpl: impl, sleep: noSleep, resolve: async (h) => { seen.push(h); return ["13.54.1.1"]; } });
+    expect(r).toMatchObject({ ok: true, status: 200, text: "landed", attempts: 1, finalUrl: "https://www.business.gov.au/grants/igp" });
+    expect(calls.map((c) => c.url)).toEqual(["https://business.gov.au/x", "https://www.business.gov.au/grants", "https://www.business.gov.au/grants/igp"]);
+    expect(seen).toEqual(["business.gov.au", "www.business.gov.au", "www.business.gov.au"]);
+    const init = (impl as unknown as { mock: { calls: Array<[string, RequestInit]> } }).mock.calls[0][1];
+    expect(init.redirect).toBe("manual");
+  });
+
+  it("SSRF: refuses the cloud metadata address, loopback and non-http schemes without fetching", async () => {
+    for (const bad of ["http://169.254.169.254/latest/meta-data/", "http://127.0.0.1:54321/admin", "http://localhost/", "file:///etc/passwd", "ftp://business.gov.au/"]) {
+      const { impl, calls } = fakeFetch([{ status: 200, body: "secret" }]);
+      const r = await fetchText(bad, { fetchImpl: impl, sleep: noSleep, resolve: pub, retries: 3 });
+      expect(r.ok, bad).toBe(false);
+      expect(r.refused, bad).toBe(true);
+      expect(r.error, bad).toMatch(/^ssrf_refused:/);
+      expect(r.text).toBe("");
+      expect(calls, bad).toHaveLength(0);
+    }
+  });
+
+  it("SSRF: refuses a redirect from a seed host to a private address (no retry, body never read)", async () => {
+    const { impl, calls } = fakeFetch([
+      { status: 302, location: "http://169.254.169.254/latest/meta-data/iam/" },
+      { status: 200, body: "secret" },
+    ]);
+    const r = await fetchText("https://business.gov.au/x", { fetchImpl: impl, sleep: noSleep, resolve: pub, retries: 3 });
+    expect(r).toMatchObject({ ok: false, refused: true, status: 0, text: "", attempts: 1, error: "ssrf_refused:hostname_forbidden" });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("SSRF: refuses a host that resolves to a private address (rebinding / internal CNAME)", async () => {
+    const { impl, calls } = fakeFetch([{ status: 200, body: "secret" }]);
+    const r = await fetchText("https://evil.example.com/", { fetchImpl: impl, sleep: noSleep, resolve: async () => ["10.0.0.7"] });
+    expect(r).toMatchObject({ ok: false, refused: true, error: "ssrf_refused:private_ip" });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("stops after MAX_REDIRECTS hops", async () => {
+    const seq = Array.from({ length: 10 }, (_, i) => ({ status: 301, location: `https://business.gov.au/hop${i}` }));
+    const { impl, calls } = fakeFetch(seq);
+    const r = await fetchText("https://business.gov.au/start", { fetchImpl: impl, sleep: noSleep, resolve: pub, retries: 0 });
+    expect(r.ok).toBe(false);
+    expect(r.refused).toBeUndefined();
+    expect(r.error).toMatch(/too many redirects/);
+    expect(calls).toHaveLength(MAX_REDIRECTS + 1);
   });
 
   it("caps the body at 2 MB and flags truncation", async () => {
     const big = "a".repeat(MAX_BODY_BYTES + 5000);
     const { impl } = fakeFetch([{ status: 200, body: big }]);
-    const r = await fetchText("https://x", { fetchImpl: impl, sleep: noSleep });
+    const r = await fetchText("https://x.gov.au", { fetchImpl: impl, resolve: pub, sleep: noSleep });
     expect(r.ok).toBe(true);
     expect(r.truncated).toBe(true);
     expect(r.text.length).toBe(MAX_BODY_BYTES);
@@ -291,8 +349,8 @@ describe("extractStatusHints", () => {
     const html = `<html><head><link rel="alternate" type="application/rss+xml" title="GrantConnect" href="/public_data/rss/rss.xml"></head><body>x</body></html>`;
     expect(discoverFeedUrl(html, "https://www.grants.gov.au/go/list")).toBe("https://www.grants.gov.au/public_data/rss/rss.xml");
     expect(discoverFeedUrl(`<a href="/public_data/rss/rss.xml">RSS</a>`, "https://www.grants.gov.au/go/list")).toBe("https://www.grants.gov.au/public_data/rss/rss.xml");
-    expect(discoverFeedUrl("<html><body>no feed</body></html>", "https://x")).toBeNull();
-    expect(discoverFeedUrl("", "https://x")).toBeNull();
+    expect(discoverFeedUrl("<html><body>no feed</body></html>", "https://x.gov.au")).toBeNull();
+    expect(discoverFeedUrl("", "https://x.gov.au")).toBeNull();
   });
 
   it("nothing recognisable → low confidence with no fields", () => {

@@ -6,6 +6,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+const enforceRateLimitMock = vi.hoisted(() => vi.fn<(...a: unknown[]) => unknown>(() => null));
+vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => enforceRateLimitMock(...a) }));
 
 const state = vi.hoisted(() => ({
   user: { id: "u1", email: "f@x.au", plan: "founder_starter" } as { id: string; email: string | null; plan: string | null } | null,
@@ -23,7 +25,7 @@ vi.mock("@/lib/funding/calendar-token", async () => {
 });
 vi.mock("@/lib/entitlements", () => ({ getEntitlements: async () => state.flags }));
 
-import { GET, dynamic } from "./route";
+import { GET, ICS_RATE_MAX, ICS_RATE_WINDOW_MS, dynamic } from "./route";
 
 const TOKEN = "t".repeat(32);
 /** 30 days out — inside the 12-month horizon whatever "now" is. */
@@ -42,6 +44,15 @@ describe("GET /api/funding/calendar.ics", () => {
 
   it("is force-dynamic", () => {
     expect(dynamic).toBe("force-dynamic");
+  });
+
+  it("S8-C: rate-limits token guesses per IP before any lookup", async () => {
+    enforceRateLimitMock.mockClear();
+    enforceRateLimitMock.mockReturnValueOnce(new Response(JSON.stringify({ ok: false }), { status: 429 }));
+    const limited = await GET(new Request(url("token=" + "z".repeat(32))));
+    expect(limited.status).toBe(429);
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("funding-calendar-ics", null, expect.any(Request), ICS_RATE_MAX, ICS_RATE_WINDOW_MS);
+    enforceRateLimitMock.mockReturnValue(null);
   });
 
   it("401 when the token is missing, malformed or unknown", async () => {

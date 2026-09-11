@@ -292,7 +292,11 @@ export const CSV_BOM = "\uFEFF";
 
 export function csvCell(v: unknown): string {
   if (v == null) return "";
-  let s = typeof v === "number" ? String(v) : String(v);
+  // A finite number can never be a formula — emit it bare so a negative
+  // delta stays numeric in Excel (S8-C review 2026-09-11). NaN / ±Infinity
+  // fall through to the string path.
+  if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  let s = String(v);
   // A leading = + - @ or tab/CR would be executed by Excel as a formula.
   if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   if (/[",\r\n]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;

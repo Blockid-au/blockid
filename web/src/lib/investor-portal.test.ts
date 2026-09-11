@@ -302,14 +302,16 @@ describe("investor-portal — getInvestorPreferences", () => {
     expect(prefs.geos).toEqual(["AU"]);
   });
 
-  it("caps sectors at 20 entries + coerces to string (never let a UI-side loop OOM)", async () => {
-    const monster = Array.from({ length: 40 }, (_, i) => i);
+  it("caps sectors at 20 entries; non-string entries are dropped, not coerced (S8-C)", async () => {
+    const monster = Array.from({ length: 40 }, (_, i) => `s${i}`);
     state.queue.push({ data: { investor_prefs: { sectors: monster } } });
     const { getInvestorPreferences } = await import("./investor-portal");
     const prefs = await getInvestorPreferences("u-1");
     expect(prefs.sectors).toHaveLength(20);
-    expect(prefs.sectors[0]).toBe("0");
-    expect(prefs.sectors[19]).toBe("19");
+    expect(prefs.sectors[0]).toBe("s0");
+    expect(prefs.sectors[19]).toBe("s19");
+    state.queue.push({ data: { investor_prefs: { sectors: [1, { a: 1 }, null, "fintech"] } } });
+    expect((await getInvestorPreferences("u-1")).sectors).toEqual(["fintech"]);
   });
 
   it("caps stages at 6 entries", async () => {
@@ -340,13 +342,13 @@ describe("investor-portal — getInvestorPreferences", () => {
     expect(prefs.cheque_band).toBe("any");
   });
 
-  it("preserves cheque_band verbatim (currently no allowlist — bad values pass through)", async () => {
+  it("falls back to 'any' for a cheque_band outside the allow-list (S8-C guard)", async () => {
     state.queue.push({ data: { investor_prefs: { cheque_band: "wildcard-band" } } });
     const { getInvestorPreferences } = await import("./investor-portal");
     const prefs = await getInvestorPreferences("u-1");
-    // Regression pin: today's normaliser does not validate cheque_band —
-    // a future guard should intentionally update this expectation.
-    expect(prefs.cheque_band).toBe("wildcard-band");
+    // The pre-S8-C pin said "bad values pass through"; the normaliser now
+    // validates against CHEQUE_BANDS and this expectation was updated on purpose.
+    expect(prefs.cheque_band).toBe("any");
   });
 
   it("coerces non-string updated_at to null (avoid leaking a Date object into JSON)", async () => {
@@ -369,6 +371,29 @@ describe("investor-portal — getInvestorPreferences", () => {
 // ---------------------------------------------------------------------------
 // setInvestorPreferences
 // ---------------------------------------------------------------------------
+
+describe("investor-portal — normalisePrefs (S8-C input hardening)", () => {
+  it("validates enums, drops non-string / oversize tags and non-finite min_svi", async () => {
+    const { normalisePrefs, PREF_TAG_MAX_LEN } = await import("./investor-portal");
+    const out = normalisePrefs({
+      sectors: ["fintech", { evil: 1 }, 42, "", "  ai  ", "x".repeat(500), "fintech"] as unknown as string[],
+      stages: ["seed", "bogus", "<script>", "seed", "growth"] as unknown as never,
+      geos: [{}, "AU", "nz\n\n"] as unknown as string[],
+      cheque_band: { $gt: 0 } as unknown as never,
+      min_svi: Number.NaN,
+    });
+    expect(out.sectors).toEqual(["fintech", "ai", "x".repeat(PREF_TAG_MAX_LEN)]);
+    expect(out.stages).toEqual(["seed", "growth"]);
+    expect(out.geos).toEqual(["AU", "nz"]);
+    expect(out.cheque_band).toBe("any");
+    expect(out.min_svi).toBeNull();
+    expect(normalisePrefs({ cheque_band: "2m_plus", min_svi: 150 }).cheque_band).toBe("2m_plus");
+    expect(normalisePrefs({ min_svi: 150 }).min_svi).toBe(100);
+    expect(normalisePrefs({ stages: ["bogus"] as unknown as never }).stages).toEqual(["any"]);
+    expect(normalisePrefs({ geos: [] }).geos).toEqual(["AU"]);
+    expect(normalisePrefs({ sectors: Array.from({ length: 50 }, (_, i) => `s${i}`) }).sectors).toHaveLength(20);
+  });
+});
 
 describe("investor-portal — setInvestorPreferences", () => {
   it("returns not_configured with the merged view when admin is null", async () => {

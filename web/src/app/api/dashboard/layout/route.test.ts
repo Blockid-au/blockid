@@ -69,7 +69,8 @@ describe("GET /api/dashboard/layout", () => {
     getLayoutMock.mockResolvedValue(stored);
     const res = await GET();
     expect(res.status).toBe(200);
-    expect(res.headers.get("cache-control")).toBe("no-store");
+    // S8-C: per-user JSON is `private, no-store` (never shared-cacheable).
+    expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(await res.json()).toEqual({ ok: true, layout: stored });
     expect(getLayoutMock).toHaveBeenCalledWith("u-42");
   });
@@ -79,6 +80,15 @@ describe("GET /api/dashboard/layout", () => {
     getLayoutMock.mockResolvedValue(null);
     const res = await GET();
     expect(await res.json()).toEqual({ ok: true, layout: null });
+  });
+});
+
+describe("PUT /api/dashboard/layout — S8-C CSRF posture", () => {
+  it("refuses a browser cross-site PUT before auth", async () => {
+    const req = new Request("http://localhost/api/dashboard/layout", { method: "PUT", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: "{}" }) as unknown as NextRequest;
+    const res = await PUT(req);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ ok: false, error: "cross_site_request_refused" });
   });
 });
 

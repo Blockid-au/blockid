@@ -135,8 +135,20 @@ describe("POST /api/funding/report — gates", () => {
   });
 
   it("403 when the project is not the caller's", async () => {
-    getProjectByIdMock.mockResolvedValueOnce({ id: "p1", userId: "someone-else" });
-    const res = await POST(req({ ...GOOD, project_id: "p1" }));
+    getProjectByIdMock.mockResolvedValueOnce({ id: "11111111-1111-4111-8111-111111111111", userId: "someone-else" });
+    // S8-C: a non-uuid project id is a 400 before any lookup.
+    getProjectByIdMock.mockClear();
+    expect((await POST(req({ ...GOOD, project_id: "p1" }))).status).toBe(400);
+    expect(getProjectByIdMock).not.toHaveBeenCalled();
+    // S8-C: browser cross-site POST refused; oversize body 413; over-long description 400.
+    const cross = await POST(new Request("http://x/api/funding/report", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify(GOOD) }));
+    expect(cross.status).toBe(403);
+    const big = await POST(req({ ...GOOD, pad: "x".repeat(20 * 1024) }));
+    expect(big.status).toBe(413);
+    const longDesc = await POST(req({ ...GOOD, description: "d".repeat(2001) }));
+    expect(longDesc.status).toBe(400);
+    expect(await longDesc.json()).toMatchObject({ ok: false, field: "description" });
+    const res = await POST(req({ ...GOOD, project_id: "11111111-1111-4111-8111-111111111111" }));
     expect(res.status).toBe(403);
     expect(buildReportMock).not.toHaveBeenCalled();
   });
@@ -196,13 +208,13 @@ describe("POST /api/funding/report — rails", () => {
   });
 
   it("with an owned project_id the intake is persisted to project_grant_profiles", async () => {
-    getProjectByIdMock.mockResolvedValueOnce({ id: "p1", userId: "user-1" });
-    const res = await POST(req({ ...GOOD, project_id: "p1", women_led: true }));
+    getProjectByIdMock.mockResolvedValueOnce({ id: "11111111-1111-4111-8111-111111111111", userId: "user-1" });
+    const res = await POST(req({ ...GOOD, project_id: "11111111-1111-4111-8111-111111111111", women_led: true }));
     expect(res.status).toBe(200);
     const upsert = calls.find((c) => c.table === "project_grant_profiles" && c.op === "upsert")!.row as Record<string, unknown>;
-    expect(upsert).toMatchObject({ project_id: "p1", state: "NSW", entity_type: "pty_ltd", founder_demographics: ["women_led"] });
+    expect(upsert).toMatchObject({ project_id: "11111111-1111-4111-8111-111111111111", state: "NSW", entity_type: "pty_ltd", founder_demographics: ["women_led"] });
     const inserted = calls.find((c) => c.table === "funding_reports" && c.op === "insert")!.row as Record<string, unknown>;
-    expect(inserted.project_id).toBe("p1");
+    expect(inserted.project_id).toBe("11111111-1111-4111-8111-111111111111");
   });
 });
 

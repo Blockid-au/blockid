@@ -373,7 +373,8 @@ export async function enqueueRadarDripsFromMatches(opts: RadarDripsOptions = {})
       } catch (err) {
         summary.errors++;
         rowFailed = true;
-        console.warn("[radar-drips] preference lookup failed", email, err instanceof Error ? err.message : String(err));
+        // S8-C: log the user id, never the address (PII in cron output).
+        console.warn("[radar-drips] preference lookup failed", { user_id: row.user_id }, err instanceof Error ? err.message : String(err));
         continue;
       }
       if (!g.allowed) {

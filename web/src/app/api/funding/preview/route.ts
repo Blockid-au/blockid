@@ -17,6 +17,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/security/request-guards";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { listGrants, listPrograms } from "@/lib/funding/data";
 import { parseFundingIntake } from "@/lib/funding/intake";
@@ -26,17 +27,19 @@ import { FUNDING_DISCLAIMER } from "@/lib/agents/grant-advisor";
 export const dynamic = "force-dynamic";
 
 const PREVIEW_RATE_LIMIT = { max: 30, windowMs: 10 * 60 * 1000 } as const;
+export const INTAKE_BODY_MAX_BYTES = 16 * 1024;
 
 export async function POST(request: Request) {
   const limited = enforceRateLimit("funding-preview", null, request, PREVIEW_RATE_LIMIT.max, PREVIEW_RATE_LIMIT.windowMs);
   if (limited) return limited;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
+  // S8-C: 16 KB byte cap before parsing (the intake is ≤ 2 000 chars + flags).
+  const read = await readJsonBody(request, INTAKE_BODY_MAX_BYTES);
+  if (!read.ok) {
+    if (read.status === 413) return read.response;
     return NextResponse.json({ ok: false, error: "Invalid JSON body", field: "description" }, { status: 400 });
   }
+  const body = read.body;
 
   const parsed = parseFundingIntake(body);
   if (!parsed.ok) {

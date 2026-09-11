@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { safeNextPath } from "@/lib/security/safe-redirect";
 import {
   isValidEmail,
   normaliseEmail,
@@ -63,9 +64,9 @@ export async function POST(request: Request) {
   // route can honour it after the magic link is consumed.
   const mergedPayload: PendingPayload = {
     ...(pendingPayload ?? {}),
-    ...(next && typeof next === "string" && next.startsWith("/")
-      ? { next }
-      : {}),
+    // S8-C: same-origin absolute path only — "//evil.com" and "/\\evil.com"
+    // start with "/" yet resolve off-site, so the check is safeNextPath().
+    ...(typeof next === "string" && safeNextPath(next, "") ? { next: safeNextPath(next, "") } : {}),
   };
 
   const result = await requestMagicLink({

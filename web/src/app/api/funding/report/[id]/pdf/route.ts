@@ -12,6 +12,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/lib/auth";
 import { getProjectById } from "@/lib/projects";
 import { canViewFundingReport, getFundingReport, publicFundingReport } from "@/lib/funding/reports";
@@ -19,6 +20,9 @@ import { latestVerifiedAt } from "@/lib/funding/directory";
 import { fundingReportFilename, renderFundingReportPdf } from "@/lib/pdf/funding-report-pdf";
 
 export const dynamic = "force-dynamic";
+
+export const PDF_RATE_MAX = 20;
+export const PDF_RATE_WINDOW_MS = 10 * 60 * 1000;
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,6 +36,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     token: url.searchParams.get("t"),
     sessionId: url.searchParams.get("s"),
   };
+
+  // S8-C: the render is CPU-bound and reachable with a guest token — bound
+  // it per user (or per IP for token / session viewers).
+  const limited = enforceRateLimit("funding-report-pdf", viewer.userId, request, PDF_RATE_MAX, PDF_RATE_WINDOW_MS);
+  if (limited) return limited;
 
   const row = await getFundingReport(id);
   if (!row || !canViewFundingReport(row, viewer)) {

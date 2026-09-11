@@ -8,6 +8,7 @@
 // verified_by='human' + last_verified_at=today. T0239 / G11 sprint S2.
 
 import { NextResponse } from "next/server";
+import { readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { requireAdmin, AdminGateError } from "@/lib/reseller/require-admin";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -16,6 +17,8 @@ import { KIND_TABLE, parseFundingKind, validateFundingAdminPatch } from "@/lib/f
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ kind: string; id: string }> };
+
+const BODY_MAX_BYTES = 16 * 1024;
 
 async function gate() {
   const user = await getCurrentUser();
@@ -58,6 +61,9 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const g = await gate();
   if ("response" in g) return g.response;
 
@@ -65,12 +71,12 @@ export async function PATCH(request: Request, { params }: Params) {
   const t = resolveTarget(rawKind, rawId);
   if ("response" in t) return t.response;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
+  const read = await readJsonBody(request, BODY_MAX_BYTES);
+  if (!read.ok) {
+    if (read.status === 413) return read.response;
     return NextResponse.json({ ok: false, reason: "invalid_json" }, { status: 400 });
   }
+  const body: unknown = read.body;
 
   const v = validateFundingAdminPatch(t.kind, body);
   if (!v.ok) return NextResponse.json({ ok: false, reason: "invalid_patch", error: v.error }, { status: 400 });

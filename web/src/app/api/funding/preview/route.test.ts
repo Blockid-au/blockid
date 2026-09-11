@@ -45,7 +45,7 @@ function program(id: string, name: string, city: string) {
   };
 }
 
-import { POST, dynamic } from "./route";
+import { INTAKE_BODY_MAX_BYTES, POST, dynamic } from "./route";
 
 function req(body: unknown, raw = false): Request {
   return new Request("http://x/api/funding/preview", {
@@ -87,6 +87,15 @@ describe("POST /api/funding/preview", () => {
     const missing = await POST(req({ ...GOOD, stage: "unicorn" }));
     expect(missing.status).toBe(400);
     expect(await missing.json()).toMatchObject({ ok: false, field: "stage" });
+  });
+
+  it("S8-C: over-long description → 400 (field named); oversize body → 413 before parsing", async () => {
+    const long = await POST(req({ ...GOOD, description: "d".repeat(2001) }));
+    expect(long.status).toBe(400);
+    expect(await long.json()).toMatchObject({ ok: false, field: "description" });
+    const big = await POST(req({ ...GOOD, pad: "x".repeat(INTAKE_BODY_MAX_BYTES) }));
+    expect(big.status).toBe(413);
+    expect(await big.json()).toMatchObject({ ok: false, error: "payload_too_large", max_bytes: INTAKE_BODY_MAX_BYTES });
   });
 
   it("returns the free-tier shape only: counts, top-3 with why, hero A$, locked counts, disclaimer", async () => {

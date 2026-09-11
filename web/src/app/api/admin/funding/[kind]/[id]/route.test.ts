@@ -73,6 +73,15 @@ async function json(res: Response) {
   return (await res.json()) as Record<string, unknown>;
 }
 
+describe("PATCH /api/admin/funding/[kind]/[id] — S8-C guards", () => {
+  it("refuses a browser cross-site PATCH before the admin gate; 413s an oversize body", async () => {
+    const cross = new Request("http://x/api/admin/funding/grants/rdti", { method: "PATCH", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ status: "open" }) });
+    expect((await PATCH(cross, params("grants", "rdti"))).status).toBe(403);
+    const big = await PATCH(patchReq({ next_round_note: "n".repeat(20 * 1024) }), params("grants", "rdti"));
+    expect([401, 413]).toContain(big.status);
+  });
+});
+
 describe("PATCH /api/admin/funding/[kind]/[id]", () => {
   beforeEach(() => {
     mocks.getCurrentUser.mockReset();

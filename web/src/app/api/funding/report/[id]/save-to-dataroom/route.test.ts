@@ -8,6 +8,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+const enforceRateLimitMock = vi.hoisted(() => vi.fn<(...a: unknown[]) => unknown>(() => null));
+vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => enforceRateLimitMock(...a) }));
 
 const getCurrentUserMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
@@ -32,7 +34,7 @@ const saveDeliverableMock = vi.hoisted(() =>
 );
 vi.mock("@/lib/dataroom/save-deliverable", () => ({ saveDeliverable: (input: unknown) => saveDeliverableMock(input as never) }));
 
-import { POST } from "./route";
+import { POST, SAVE_RATE_MAX, SAVE_RATE_WINDOW_MS } from "./route";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const ROW = {
@@ -68,6 +70,24 @@ beforeEach(() => {
 });
 
 describe("POST /api/funding/report/[id]/save-to-dataroom", () => {
+  it("S8-C: refuses browser cross-site POSTs and rate-limits per owner", async () => {
+    const cross = await POST(
+      new Request(`http://x/api/funding/report/${ID}/save-to-dataroom`, { method: "POST", headers: { "sec-fetch-site": "cross-site" } }),
+      { params: Promise.resolve({ id: ID }) },
+    );
+    expect(cross.status).toBe(403);
+    expect(await cross.json()).toMatchObject({ ok: false, error: "cross_site_request_refused" });
+    expect(getFundingReportMock).not.toHaveBeenCalled();
+
+    enforceRateLimitMock.mockClear();
+    enforceRateLimitMock.mockReturnValueOnce(new Response(JSON.stringify({ ok: false }), { status: 429 }));
+    const limited = await post(ID);
+    expect(limited.status).toBe(429);
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("funding-save-to-dataroom", "user-1", expect.any(Request), SAVE_RATE_MAX, SAVE_RATE_WINDOW_MS);
+    expect(renderMock).not.toHaveBeenCalled();
+    enforceRateLimitMock.mockReturnValue(null);
+  });
+
   it("401 / 404 / 403 guards", async () => {
     expect((await post("nope")).status).toBe(404);
     getCurrentUserMock.mockResolvedValueOnce(null);

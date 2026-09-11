@@ -10,6 +10,8 @@
 // (isEvaluatorUser). Everything else is decided in lib/evaluations.ts.
 
 import { NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { recordGateHit } from "@/lib/entitlements";
 import {
@@ -22,6 +24,10 @@ import {
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+export const CREATE_RATE_MAX = 30;
+export const CREATE_RATE_WINDOW_MS = 60 * 60 * 1000;
+const BODY_MAX_BYTES = 16 * 1024;
 
 async function gate() {
   const user = await getCurrentUser();
@@ -50,19 +56,23 @@ export async function GET() {
     listEvaluations(user.id),
     getEvaluationQuota(user),
   ]);
-  return NextResponse.json({ ok: true, evaluations, used: quota.used, limit: quota.limit });
+  return NextResponse.json({ ok: true, evaluations, used: quota.used, limit: quota.limit }, { headers: PRIVATE_JSON_HEADERS });
 }
 
 export async function POST(request: Request) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const { user, response } = await gate();
   if (!user) return response;
 
-  let body: CreateEvaluationInput;
-  try {
-    body = (await request.json()) as CreateEvaluationInput;
-  } catch {
-    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
-  }
+  // S8-C: each create can send a founder invite email — bound it per user.
+  const limited = enforceRateLimit("evaluations-create", user.id, request, CREATE_RATE_MAX, CREATE_RATE_WINDOW_MS);
+  if (limited) return limited;
+
+  const read = await readJsonBody<CreateEvaluationInput>(request, BODY_MAX_BYTES);
+  if (!read.ok) return read.response;
+  const body = read.body;
   if (!body || typeof body !== "object") {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
