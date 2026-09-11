@@ -7,10 +7,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const { refreshMock } = vi.hoisted(() => ({ refreshMock: vi.fn() }));
+const { refreshMock, revalidateMock } = vi.hoisted(() => ({ refreshMock: vi.fn(), revalidateMock: vi.fn(() => true) }));
 vi.mock("@/lib/funding/refresh", () => ({
   refreshFundingSources: (opts: unknown) => refreshMock(opts),
 }));
+// S8-D: a live run expires the 1 h catalogue data cache; a dry run must not.
+vi.mock("@/lib/funding/data", () => ({ revalidateFundingCatalogue: () => revalidateMock() }));
 
 import { GET, POST, dynamic, maxDuration } from "./route";
 
@@ -39,6 +41,7 @@ describe("refresh-funding-sources route", () => {
     process.env.CRON_SECRET = "s3cret";
     refreshMock.mockReset();
     refreshMock.mockResolvedValue({ ...OK_SUMMARY });
+    revalidateMock.mockClear();
   });
   afterEach(() => {
     if (origSecret === undefined) delete process.env.CRON_SECRET;
@@ -71,6 +74,8 @@ describe("refresh-funding-sources route", () => {
     expect(body.entries).toBeUndefined();
     expect(typeof body.duration_ms).toBe("number");
     expect(refreshMock).toHaveBeenCalledWith({ dryRun: false });
+    expect(revalidateMock).toHaveBeenCalledTimes(1);
+    expect(body.revalidated).toBe(true);
   });
 
   it("?dry=1 passes dryRun and includes the would-be queue entries", async () => {
@@ -80,6 +85,8 @@ describe("refresh-funding-sources route", () => {
     expect(refreshMock).toHaveBeenCalledWith({ dryRun: true });
     expect(body.dryRun).toBe(true);
     expect(body.entries).toHaveLength(1);
+    expect(revalidateMock).not.toHaveBeenCalled();
+    expect(body.revalidated).toBe(false);
   });
 
   it("503 when Supabase is unavailable, 500 on other loop failures", async () => {
