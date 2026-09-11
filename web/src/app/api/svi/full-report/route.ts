@@ -81,8 +81,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Database unavailable" }, { status: 503 });
   }
 
-  // SVI account — with fallback for legacy records (project_id NULL)
-  const account = await findSVIAccountWithFallback(dataEmail, projectId);
+  // SVI account — with fallback for legacy records (project_id NULL).
+  // P2-1: the legacy fallback is owner-only — `callerEmail` ≠ dataEmail
+  // (a member) skips it.
+  const dataKey = { callerEmail: user.email };
+  const account = await findSVIAccountWithFallback(dataEmail, projectId, undefined, dataKey);
 
   if (!account) {
     return NextResponse.json({ ok: false, error: "No SVI account found for this project — run an analysis first" }, { status: 404 });
@@ -93,6 +96,7 @@ export async function POST(request: Request) {
     dataEmail,
     projectId,
     "raw_input, total_svi, analysis_json",
+    dataKey,
   );
 
   // All evidence items

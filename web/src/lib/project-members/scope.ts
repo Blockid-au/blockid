@@ -44,7 +44,8 @@ export class ProjectMemberScopeError extends Error {
       | "service_unavailable"
       | "duplicate"
       | "invalid_role"
-      | "forbidden" = "not_owner",
+      | "forbidden"
+      | "invite_email_mismatch" = "not_owner",
   ) {
     super(msg);
     this.name = "ProjectMemberScopeError";
@@ -341,10 +342,17 @@ export async function inviteMember(
 /**
  * Consume an invite token. Marks the row as accepted and pins user_id.
  * Throws when the token is unknown, already accepted, or revoked.
+ *
+ * S17-A review (P2-5): the token is no longer bearer-only. The accepting
+ * user's email must equal the invited `user_email` (case-insensitive) or
+ * the accept is refused with `invite_email_mismatch` — an accepted
+ * membership now grants real access to the owner's startup record, so a
+ * forwarded/leaked link must not bind to whoever presents it.
  */
 export async function acceptInvite(
   token: string,
   userId: string,
+  userEmail: string,
 ): Promise<ProjectMember> {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -377,6 +385,15 @@ export async function acceptInvite(
   }
   if (existing.status === "revoked") {
     throw new ProjectMemberScopeError("invite has been revoked", "revoked");
+  }
+
+  const invitedEmail = normaliseEmail(String(existing.user_email ?? ""));
+  const acceptingEmail = normaliseEmail(userEmail ?? "");
+  if (!invitedEmail || !acceptingEmail || invitedEmail !== acceptingEmail) {
+    throw new ProjectMemberScopeError(
+      `this invite was sent to ${invitedEmail || "another address"} — sign in with that email to accept it`,
+      "invite_email_mismatch",
+    );
   }
 
   const { data, error } = await supabase

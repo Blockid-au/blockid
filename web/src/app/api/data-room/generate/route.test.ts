@@ -16,8 +16,10 @@
 //     3.00 static cost lives on that key;
 //   - dropping the 402 { balance, cost:3.0 } shape when credits are short —
 //     the pricing card reads cost off the response to compute a top-up amount;
-//   - dropping the .eq("email", user.email) filter on svi_accounts — the
-//     tenancy boundary for the sviAccount lookup;
+//   - dropping the .eq("email", dataEmail) + project_id filter on
+//     svi_accounts — the tenancy boundary for the sviAccount lookup (S17-A
+//     review P2-2: email alone let a member of project A compile whichever
+//     of the owner's startups matched by email);
 //   - dropping the .eq("account_id", user.id) filter on shareholders — the
 //     ONLY tenancy boundary preventing a founder's cap-table row leaking to
 //     someone else's data room;
@@ -46,7 +48,7 @@ vi.mock("@/lib/feature-gate", () => ({
 
 // ── Supabase mock — FIFO queue chain builder ────────────────────────────
 // The route calls the following chains in order (per full-data branch):
-//   1) .from("svi_accounts").select().eq().maybeSingle()
+//   1) .from("svi_accounts").select().eq().eq()|.is().maybeSingle()
 //   2) .from("svi_analyses").select().eq().order().limit().maybeSingle()
 //   3) .from("startup_metrics").select().eq().order().limit().maybeSingle()
 //   4) .from("svi_snapshots").select().eq().order().limit().maybeSingle()
@@ -95,6 +97,12 @@ function makeFakeSupabase() {
       return chain;
     },
     eq(col: string, val: unknown) {
+      state.eqCalls.push({ table: state.currentTable, col, val });
+      return chain;
+    },
+    // `.is("project_id", null)` — recorded alongside eq so the P2-2
+    // project filter can be asserted whichever form the route uses.
+    is(col: string, val: unknown) {
       state.eqCalls.push({ table: state.currentTable, col, val });
       return chain;
     },
@@ -378,18 +386,31 @@ describe("POST /api/data-room/generate — credit charge contract", () => {
 });
 
 describe("POST /api/data-room/generate — tenancy filters + query shape", () => {
-  it("scopes svi_accounts on .eq('email', user.email)", async () => {
+  it("scopes svi_accounts on .eq('email', user.email) AND project_id IS NULL when there is no active project (P2-2)", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
     getProjectIdFromRequestMock.mockResolvedValue(null);
     spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
     await POST();
-    const sviAcctEq = state.eqCalls.find((c) => c.table === "svi_accounts");
-    expect(sviAcctEq).toEqual({
-      table: "svi_accounts",
-      col: "email",
-      val: "founder@x.co",
-    });
+    const sviAcctFilters = state.eqCalls.filter((c) => c.table === "svi_accounts");
+    expect(sviAcctFilters).toEqual([
+      { table: "svi_accounts", col: "email", val: "founder@x.co" },
+      { table: "svi_accounts", col: "project_id", val: null },
+    ]);
+  });
+
+  // S17-A review P2-2 — the record is (email, project_id), never email alone.
+  it("scopes svi_accounts on (email, project_id) when a project is active — an owner with several startups gets THIS project's record", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    getProjectIdFromRequestMock.mockResolvedValue("proj-xyz");
+    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
+    await POST();
+    const sviAcctFilters = state.eqCalls.filter((c) => c.table === "svi_accounts");
+    expect(sviAcctFilters).toEqual([
+      { table: "svi_accounts", col: "email", val: "founder@x.co" },
+      { table: "svi_accounts", col: "project_id", val: "proj-xyz" },
+    ]);
   });
 
   it("scopes shareholders on .eq('account_id', user.id) — cap-table tenancy boundary", async () => {
@@ -428,11 +449,12 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
     const res = await POST();
     expect(res.status).toBe(200);
     expect(spendCreditsMock.mock.calls[0][0]).toBe("u-1");
-    expect(state.eqCalls.find((c) => c.table === "svi_accounts")).toEqual({
-      table: "svi_accounts",
-      col: "email",
-      val: "owner@x.co",
-    });
+    // P2-2: a member compiles the OWNER's record for THIS project only —
+    // (owner email, scoped project_id), never the owner's other startups.
+    expect(state.eqCalls.filter((c) => c.table === "svi_accounts")).toEqual([
+      { table: "svi_accounts", col: "email", val: "owner@x.co" },
+      { table: "svi_accounts", col: "project_id", val: "proj-shared" },
+    ]);
     expect(state.eqCalls.find((c) => c.table === "shareholders")).toEqual({
       table: "shareholders",
       col: "account_id",

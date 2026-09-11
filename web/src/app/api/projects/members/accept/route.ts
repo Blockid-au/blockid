@@ -44,6 +44,9 @@ function scopeErrorToStatus(err: ProjectMemberScopeError): number {
       return 409;
     case "revoked":
       return 410;
+    case "invite_email_mismatch":
+      // S17-A review (P2-5): signed-in email ≠ invited email.
+      return 403;
     case "service_unavailable":
       return 503;
     default:
@@ -79,7 +82,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const member = await acceptInvite(token, user.id);
+    // P2-5: the invite is bound to the invited email — acceptInvite
+    // refuses (invite_email_mismatch → 403) when user.email differs.
+    const member = await acceptInvite(token, user.id, user.email);
 
     // SOC2-lite audit: record the successful accept. Domain only —
     // never the local-part — so PII is preserved.
@@ -123,7 +128,7 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof ProjectMemberScopeError) {
       return NextResponse.json(
-        { ok: false, error: err.message },
+        { ok: false, error: err.message, code: err.code },
         { status: scopeErrorToStatus(err) },
       );
     }

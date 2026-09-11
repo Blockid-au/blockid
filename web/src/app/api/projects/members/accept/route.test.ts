@@ -35,8 +35,8 @@ vi.mock("@/lib/projects", () => ({
 }));
 
 vi.mock("@/lib/project-members/scope", () => ({
-  acceptInvite: (token: string, userId: string) =>
-    hoisted.acceptInviteMock(token, userId),
+  acceptInvite: (token: string, userId: string, userEmail: string) =>
+    hoisted.acceptInviteMock(token, userId, userEmail),
   ProjectMemberScopeError: hoisted.ProjectMemberScopeError,
 }));
 
@@ -152,6 +152,41 @@ describe("POST /api/projects/members/accept audit wire-in", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(404);
+    expect(logUserActionMock).not.toHaveBeenCalled();
+  });
+});
+
+// S17-A review P2-5 — the invite is bound to the invited email.
+describe("P2-5 invite email binding", () => {
+  it("passes the signed-in user's email to acceptInvite (the binding check lives there)", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1", email: "Carol@Corp.io" });
+    acceptInviteMock.mockResolvedValue({ id: "m1", projectId: "proj-1", userEmail: "carol@corp.io", role: "viewer" });
+    await POST(
+      new Request("http://x/api/projects/members/accept", {
+        method: "POST",
+        body: JSON.stringify({ token: "tok-abc" }),
+      }),
+    );
+    expect(acceptInviteMock).toHaveBeenCalledWith("tok-abc", "u1", "Carol@Corp.io");
+  });
+
+  it("invite_email_mismatch → 403 with code, no cookie, no audit row", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1", email: "wrong@z.io" });
+    acceptInviteMock.mockRejectedValue(
+      new ProjectMemberScopeError("this invite was sent to carol@corp.io", "invite_email_mismatch"),
+    );
+    const res = await POST(
+      new Request("http://x/api/projects/members/accept", {
+        method: "POST",
+        body: JSON.stringify({ token: "tok-abc" }),
+      }),
+    );
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.code).toBe("invite_email_mismatch");
+    expect(body.error).toMatch(/carol@corp\.io/);
+    expect(res.headers.get("set-cookie") ?? "").not.toContain("blockid_project");
     expect(logUserActionMock).not.toHaveBeenCalled();
   });
 });

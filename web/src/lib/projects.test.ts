@@ -16,6 +16,26 @@ vi.mock("./plans-db", () => ({
   getPlanCached: (id: string) => getPlanCachedMock(id),
 }));
 
+// S17-A review — request context for getProjectIdFromRequest() /
+// getProjectScope(): both dynamically import next/headers + @/lib/auth.
+// `requestCtx` is mutated per test to pick the signed-in user and the
+// `blockid_project` cookie.
+const requestCtx: {
+  user: { id: string; email: string } | null;
+  projectCookie: string | undefined;
+} = { user: null, projectCookie: undefined };
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name === "blockid_project" && requestCtx.projectCookie
+        ? { value: requestCtx.projectCookie }
+        : undefined,
+  }),
+}));
+vi.mock("@/lib/auth", () => ({
+  getCurrentUser: async () => requestCtx.user,
+}));
+
 import {
   getProjectLimit,
   purgeArchivedOlderThan,
@@ -30,6 +50,10 @@ import {
   creditChargeNote,
   resolveProjectDataEmail,
   findOrCreateSVIAccount,
+  findSVIAccountWithFallback,
+  findLatestAnalysisWithFallback,
+  getProjectIdFromRequest,
+  getProjectScope,
   projectCookieValue,
 } from "./projects";
 
@@ -309,8 +333,21 @@ function makeMemoryDb(tables: Record<string, Row[]>) {
       rows = [created];
       return b;
     };
-    b.then = (onOk: (v: unknown) => unknown, onErr?: (e: unknown) => unknown) =>
-      Promise.resolve({ data: resolveRows(), error: null }).then(onOk, onErr);
+    // `.update(patch).eq(...).is(...)` then `await` — the patch is applied
+    // to whatever rows survive the filters when the thenable resolves.
+    let pendingUpdate: Row | null = null;
+    b.update = (patch: Row) => {
+      log("update", patch);
+      pendingUpdate = patch;
+      return b;
+    };
+    b.then = (onOk: (v: unknown) => unknown, onErr?: (e: unknown) => unknown) => {
+      if (pendingUpdate) {
+        for (const r of rows) Object.assign(r, pendingUpdate);
+        pendingUpdate = null;
+      }
+      return Promise.resolve({ data: resolveRows(), error: null }).then(onOk, onErr);
+    };
     return b;
   }
 
@@ -319,6 +356,7 @@ function makeMemoryDb(tables: Record<string, Row[]>) {
 
 const OWNER = "owner-1";
 const MEMBER = "member-1";
+const VIEWER = "viewer-1";
 const STRANGER = "stranger-1";
 
 function seed() {
@@ -326,6 +364,7 @@ function seed() {
     app_users: [
       { id: OWNER, email: "Owner@Acme.io" },
       { id: MEMBER, email: "cofounder@acme.io" },
+      { id: VIEWER, email: "viewer@acme.io" },
     ],
     projects: [
       { id: "p-own", user_id: OWNER, name: "Acme", slug: "acme", is_default: true, archived_at: null, created_at: "2026-01-01" },
@@ -338,9 +377,18 @@ function seed() {
       { id: "m2", project_id: "p-own-2", user_id: MEMBER, user_email: "cofounder@acme.io", role: "viewer", status: "invited" },
       { id: "m3", project_id: "p-archived", user_id: MEMBER, user_email: "cofounder@acme.io", role: "admin", status: "accepted" },
       { id: "m4", project_id: "p-own", user_id: STRANGER, user_email: "x@y.io", role: "admin", status: "revoked" },
+      { id: "m5", project_id: "p-own", user_id: VIEWER, user_email: "viewer@acme.io", role: "viewer", status: "accepted" },
     ],
     svi_accounts: [
-      { id: "acc-owner", email: "owner@acme.io", project_id: "p-own" },
+      { id: "acc-owner", email: "owner@acme.io", project_id: "p-own", last_active_at: "2026-02-01" },
+      // Owner's pre-project (legacy) record — reachable by the OWNER only.
+      { id: "acc-owner-legacy", email: "owner@acme.io", project_id: null, last_active_at: "2025-01-01" },
+    ],
+    svi_analyses: [
+      { id: "an-owner-legacy", email: "owner@acme.io", project_id: null, created_at: "2025-01-01", total_svi: 88 },
+    ],
+    svi_evidence: [
+      { id: "ev-owner", account_id: "acc-owner", evidence_type: "stripe" },
     ],
   });
 }
@@ -515,19 +563,156 @@ describe("S17-A shared startup record — owner email is the data key", () => {
     expect(await resolveProjectDataEmail("cofounder@acme.io", null)).toBe("cofounder@acme.io");
   });
 
-  it("findOrCreateSVIAccount for a member returns the OWNER's existing account instead of creating a split row", async () => {
-    const db = seed();
-    getSupabaseAdminMock.mockReturnValue(db.client);
-    const id = await findOrCreateSVIAccount("cofounder@acme.io", "p-own");
-    expect(id).toBe("acc-owner");
-    expect(db.calls.some((c) => c.table === "svi_accounts" && c.op === "insert")).toBe(false);
-  });
-
-  it("findOrCreateSVIAccount for the owner takes the fast path (no app_users lookup)", async () => {
+  it("findOrCreateSVIAccount given the OWNER's email (scope.dataEmail) returns the owner's account — no app_users lookup", async () => {
     const db = seed();
     getSupabaseAdminMock.mockReturnValue(db.client);
     const id = await findOrCreateSVIAccount("owner@acme.io", "p-own");
     expect(id).toBe("acc-owner");
     expect(db.calls.some((c) => c.table === "app_users")).toBe(false);
+    expect(db.calls.some((c) => c.table === "svi_accounts" && c.op === "insert")).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S17-A review — P1-1 / P2-1: the readers never resolve the owner's email.
+// ---------------------------------------------------------------------------
+//
+// Only getProjectScope(minRole) hands out `dataEmail` (after enforcing the
+// role). findOrCreateSVIAccount / find*WithFallback use exactly the email
+// they are given, so an UNCONVERTED route (getProjectIdFromRequest() +
+// user.email) keeps the pre-S17-A split-row behaviour: a viewer on a shared
+// project can only ever touch a row keyed on their OWN email.
+
+describe("S17-A review P1-1 — readers use the email they are given, never the owner's", () => {
+  beforeEach(() => {
+    getSupabaseAdminMock.mockReset();
+    requestCtx.user = null;
+    requestCtx.projectCookie = undefined;
+  });
+
+  it("findOrCreateSVIAccount for a member does NOT return the owner's row — it creates a split row keyed on the member's email and never consults app_users/projects for the owner", async () => {
+    const db = seed();
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    const id = await findOrCreateSVIAccount("cofounder@acme.io", "p-own");
+    expect(id).not.toBe("acc-owner");
+    const created = db.tables.svi_accounts.find((r) => r.id === id);
+    expect(created?.email).toBe("cofounder@acme.io");
+    expect(created?.project_id).toBe("p-own");
+    // No owner-email resolution anywhere in the call log.
+    expect(db.calls.some((c) => c.table === "app_users")).toBe(false);
+    // Owner's record untouched.
+    expect(db.tables.svi_accounts.find((r) => r.id === "acc-owner")?.email).toBe("owner@acme.io");
+  });
+
+  it("findSVIAccountWithFallback / findLatestAnalysisWithFallback for a member's email return null — never the owner's project row", async () => {
+    const db = seed();
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    expect(await findSVIAccountWithFallback("cofounder@acme.io", "p-own", "id")).toBeNull();
+    expect(await findLatestAnalysisWithFallback("cofounder@acme.io", "p-own", "id")).toBeNull();
+    expect(db.calls.some((c) => c.table === "app_users")).toBe(false);
+    expect(db.calls.some((c) => c.table === "projects")).toBe(false);
+  });
+
+  it("UNCONVERTED write route shape — viewer with the shared project cookie: getProjectIdFromRequest() resolves the shared project, but findOrCreateSVIAccount(viewer.email, P) is keyed on the VIEWER's email; the owner's svi_accounts / svi_evidence rows are unreachable", async () => {
+    const db = seed();
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    requestCtx.user = { id: VIEWER, email: "viewer@acme.io" };
+    requestCtx.projectCookie = "acme"; // the shared project's slug
+
+    // This is exactly what DELETE /api/evidence/disconnect and POST
+    // /api/metrics did before conversion.
+    const projectId = await getProjectIdFromRequest();
+    expect(projectId).toBe("p-own");
+    const accountId = await findOrCreateSVIAccount("viewer@acme.io", projectId);
+
+    expect(accountId).not.toBe("acc-owner");
+    const resolved = db.tables.svi_accounts.find((r) => r.id === accountId);
+    expect(resolved?.email).toBe("viewer@acme.io");
+    // The owner's evidence is attached to acc-owner, which the viewer's
+    // resolved account id can never address.
+    expect(db.tables.svi_evidence.every((e) => e.account_id !== accountId)).toBe(true);
+    expect(db.tables.svi_evidence.find((e) => e.id === "ev-owner")?.account_id).toBe("acc-owner");
+  });
+
+  it("getProjectScope is the ONLY path to the owner's email: viewer gets dataEmail = owner's for reads, and is refused (403) for editor writes before any data key is resolved", async () => {
+    const db = seed();
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    requestCtx.user = { id: VIEWER, email: "viewer@acme.io" };
+    requestCtx.projectCookie = "acme";
+
+    const read = await getProjectScope("viewer");
+    expect(read?.projectId).toBe("p-own");
+    expect(read?.role).toBe("viewer");
+    expect(read?.isOwner).toBe(false);
+    expect(read?.dataEmail).toBe("owner@acme.io");
+    expect(read?.email).toBe("viewer@acme.io");
+
+    const before = db.calls.length;
+    await expect(getProjectScope("editor")).rejects.toMatchObject({
+      name: "ProjectAccessError",
+      code: "forbidden",
+      status: 403,
+    });
+    // No app_users (owner email) lookup happened on the refused call.
+    expect(db.calls.slice(before).some((c) => c.table === "app_users")).toBe(false);
+  });
+
+  it("getProjectScope for the owner keeps dataEmail = own email without an app_users lookup", async () => {
+    const db = seed();
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    requestCtx.user = { id: OWNER, email: "owner@acme.io" };
+    requestCtx.projectCookie = "acme";
+    const scope = await getProjectScope("admin");
+    expect(scope?.isOwner).toBe(true);
+    expect(scope?.dataEmail).toBe("owner@acme.io");
+    expect(db.calls.some((c) => c.table === "app_users")).toBe(false);
+  });
+});
+
+describe("S17-A review P2-1 — legacy null-project fallback is owner-only", () => {
+  beforeEach(() => getSupabaseAdminMock.mockReset());
+
+  it("owner (no callerEmail, or callerEmail === email) still falls back to their legacy (email, project_id IS NULL) account", async () => {
+    const db = seed();
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    // p-own-2 has no project-scoped row → legacy fallback for the owner.
+    const a = await findSVIAccountWithFallback("owner@acme.io", "p-own-2", "id");
+    expect(a?.id).toBe("acc-owner-legacy");
+    const b = await findSVIAccountWithFallback("owner@acme.io", "p-own-2", "id", {
+      callerEmail: "Owner@Acme.io",
+    });
+    expect(b?.id).toBe("acc-owner-legacy");
+  });
+
+  it("member (callerEmail ≠ dataEmail) never reaches the owner's legacy account row", async () => {
+    const db = seed();
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    const row = await findSVIAccountWithFallback("owner@acme.io", "p-own-2", "id", {
+      callerEmail: "cofounder@acme.io",
+    });
+    expect(row).toBeNull();
+    // The null-project query was never issued.
+    expect(
+      db.calls.some((c) => c.table === "svi_accounts" && c.op === "is" && c.args[0] === "project_id"),
+    ).toBe(false);
+  });
+
+  it("member never reads the owner's orphaned svi_analyses AND never triggers the project_id migration UPDATE; the owner still does", async () => {
+    const db = seed();
+    getSupabaseAdminMock.mockReturnValue(db.client);
+
+    const asMember = await findLatestAnalysisWithFallback("owner@acme.io", "p-own-2", "id", {
+      callerEmail: "cofounder@acme.io",
+    });
+    expect(asMember).toBeNull();
+    expect(db.calls.some((c) => c.table === "svi_analyses" && c.op === "update")).toBe(false);
+    expect(db.tables.svi_analyses[0].project_id).toBeNull();
+
+    const asOwner = await findLatestAnalysisWithFallback("owner@acme.io", "p-own-2", "id", {
+      callerEmail: "owner@acme.io",
+    });
+    expect(asOwner?.id).toBe("an-owner-legacy");
+    expect(db.calls.some((c) => c.table === "svi_analyses" && c.op === "update")).toBe(true);
+    expect(db.tables.svi_analyses[0].project_id).toBe("p-own-2");
   });
 });

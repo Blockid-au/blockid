@@ -432,7 +432,7 @@ describe("acceptInvite", () => {
       token: "TOK",
     });
 
-    const member = await acceptInvite("TOK", "u2");
+    const member = await acceptInvite("TOK", "u2", "x@y.com");
     expect(member.status).toBe("accepted");
     expect(member.userId).toBe("u2");
 
@@ -444,22 +444,65 @@ describe("acceptInvite", () => {
 
   it("rejects an unknown token", async () => {
     setHandler("project_members", "select", null);
-    await expect(acceptInvite("nope", "u2")).rejects.toMatchObject({
+    await expect(acceptInvite("nope", "u2", "x@y.com")).rejects.toMatchObject({
       code: "invalid_token",
     });
   });
 
   it("rejects an already-accepted invite", async () => {
     setHandler("project_members", "select", { id: "m1", status: "accepted" });
-    await expect(acceptInvite("TOK", "u2")).rejects.toMatchObject({
+    await expect(acceptInvite("TOK", "u2", "x@y.com")).rejects.toMatchObject({
       code: "already_accepted",
     });
   });
 
   it("rejects a revoked invite", async () => {
     setHandler("project_members", "select", { id: "m1", status: "revoked" });
-    await expect(acceptInvite("TOK", "u2")).rejects.toMatchObject({
+    await expect(acceptInvite("TOK", "u2", "x@y.com")).rejects.toMatchObject({
       code: "revoked",
+    });
+  });
+
+  // S17-A review P2-5 — the token is bound to the invited email.
+  describe("invite email binding (P2-5)", () => {
+    const invited = () => ({
+      id: "m1",
+      project_id: "p1",
+      status: "invited",
+      user_email: "x@y.com",
+      role: "viewer",
+    });
+
+    it("refuses a different signed-in email with invite_email_mismatch and does NOT flip the row", async () => {
+      setHandler("project_members", "select", invited());
+      await expect(acceptInvite("TOK", "u-other", "someone-else@z.com")).rejects.toMatchObject({
+        name: "ProjectMemberScopeError",
+        code: "invite_email_mismatch",
+      });
+      expect(lastUpdate.has("project_members")).toBe(false);
+    });
+
+    it("refuses when the accepting email is empty", async () => {
+      setHandler("project_members", "select", invited());
+      await expect(acceptInvite("TOK", "u2", "")).rejects.toMatchObject({
+        code: "invite_email_mismatch",
+      });
+      expect(lastUpdate.has("project_members")).toBe(false);
+    });
+
+    it("matches case-insensitively and ignores surrounding whitespace", async () => {
+      setHandler("project_members", "select", { ...invited(), user_email: "X@Y.com" });
+      setHandler("project_members", "update", {
+        ...invited(),
+        status: "accepted",
+        user_id: "u2",
+        invited_at: "2026-07-23T00:00:00Z",
+        accepted_at: "2026-07-23T01:00:00Z",
+        token: "TOK",
+      });
+      const member = await acceptInvite("TOK", "u2", "  x@y.COM ");
+      expect(member.status).toBe("accepted");
+      expect(lastUpdate.get("project_members")).toMatchObject({ status: "accepted", user_id: "u2" });
     });
   });
 });

@@ -35,8 +35,11 @@ export async function POST() {
   const projectId = scope?.projectId ?? null;
   const dataEmail = scope?.dataEmail ?? user.email;
 
-  // 1. Get the project's SVI account — with fallback for legacy records (project_id NULL)
-  const account = await findSVIAccountWithFallback(dataEmail, projectId, "*");
+  // 1. Get the project's SVI account — with fallback for legacy records
+  //    (project_id NULL). P2-1: the legacy fallback is owner-only —
+  //    `callerEmail` ≠ dataEmail (a member) skips it.
+  const dataKey = { callerEmail: user.email };
+  const account = await findSVIAccountWithFallback(dataEmail, projectId, "*", dataKey);
 
   if (!account) {
     return NextResponse.json({ ok: false, reason: "No SVI account found for this project" }, { status: 404 });
@@ -49,6 +52,7 @@ export async function POST() {
     dataEmail,
     projectId,
     "raw_input, analysis_json",
+    dataKey,
   );
 
   const rawInput = (latestAnalysis?.raw_input as string) ?? "";

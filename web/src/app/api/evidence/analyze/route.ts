@@ -195,11 +195,21 @@ export async function POST(request: Request) {
   // The evidence must belong to the caller's active project (or, for the
   // legacy null-project path, to the caller's own email). Anything else is
   // a 404 — never confirm another founder's evidence ids.
+  //
+  // S17-A review (P1-2): the email clause is the OWNER's legacy path only.
+  // For a member, `dataEmail` is the owner's email, so matching on it would
+  // let a member on project A reach evidence from the owner's OTHER
+  // projects (B, or the legacy null-project row). A member therefore
+  // passes only when the evidence's account is pinned to the scoped
+  // project id.
+  const isMember = Boolean(scope) && !scope!.isOwner;
   const accountEmail = String(account?.email ?? "").toLowerCase();
   const ownsEvidence =
     Boolean(account) &&
-    ((projectId && account?.project_id === projectId) ||
-      accountEmail === dataEmail.toLowerCase());
+    (isMember
+      ? Boolean(projectId) && account?.project_id === projectId
+      : (projectId && account?.project_id === projectId) ||
+        accountEmail === dataEmail.toLowerCase());
   if (!ownsEvidence) {
     return NextResponse.json({ ok: false, error: "Evidence not found" }, { status: 404 });
   }

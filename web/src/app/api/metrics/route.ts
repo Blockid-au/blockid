@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateSVIAccount, getProjectIdFromRequest } from "@/lib/projects";
+import { findOrCreateSVIAccount, getProjectScope } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
+
+// S17-A review (P1-1) — POST is member-aware: writing startup_metrics is
+// editor+ on the active project (owner always passes; a viewer on a shared
+// project gets 403 before anything is resolved). The account is keyed
+// under the OWNER's email (scope.dataEmail) so co-founders journal into
+// the same startup record.
 
 
 // ---------------------------------------------------------------------------
@@ -130,8 +137,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const projectId = await getProjectIdFromRequest();
-    const accountId = await findOrCreateSVIAccount(user.email, projectId);
+    let scope;
+    try {
+      scope = await getProjectScope("editor");
+    } catch (err) {
+      const denied = projectAccessResponse(err);
+      if (denied) return denied;
+      throw err;
+    }
+    const projectId = scope?.projectId ?? null;
+    const dataEmail = scope?.dataEmail ?? user.email;
+    const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
     if (!accountId) {
       return NextResponse.json(
         { ok: false, error: "Failed to resolve account" },
@@ -139,13 +155,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Upsert: one row per account + date
+    // Upsert: one row per account + date. `email` is the data key (the
+    // owner's on a shared project) so GET — which filters on email — shows
+    // the row to the owner.
     const { data: row, error } = await supabase
       .from("startup_metrics")
       .upsert(
         {
           account_id: accountId,
-          email: user.email,
+          email: dataEmail,
           metric_date: metricDate,
           source,
           updated_at: new Date().toISOString(),
