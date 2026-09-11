@@ -7,6 +7,27 @@ import { projectScopeOrDeny } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
+// S18-A review P1-1 — id-keyed mutations (issue_shares / update_shareholder /
+// DELETE) must be bounded by the PROJECT, not just the owner's account_id:
+// an editor on project A holding a row id from the owner's project B must
+// 404, never mutate B. When a scope resolves the row must carry that
+// project_id; an owner with no active project only reaches legacy
+// (project_id IS NULL) rows — mirrors `listGrants` / founder-crud.
+function shareholderPreCheck<C extends string>(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  cols: C,
+  shareholderId: string,
+  accountId: string,
+  projectId: string | null,
+) {
+  const q = supabase
+    .from("shareholders")
+    .select(cols)
+    .eq("id", shareholderId)
+    .eq("account_id", accountId);
+  return (projectId ? q.eq("project_id", projectId) : q.is("project_id", null)).single();
+}
+
 // ---------------------------------------------------------------------------
 // GET /api/cap-table — full cap table for the logged-in user's active project
 // ---------------------------------------------------------------------------
@@ -264,13 +285,14 @@ export async function POST(request: Request) {
         );
       }
 
-      // Verify shareholder belongs to this account
-      const { data: existing } = await supabase
-        .from("shareholders")
-        .select("id, shares_held")
-        .eq("id", shareholderId)
-        .eq("account_id", accountId)
-        .single();
+      // Verify shareholder belongs to this account AND this project
+      const { data: existing } = await shareholderPreCheck(
+        supabase,
+        "id, shares_held",
+        shareholderId,
+        accountId,
+        projectId,
+      );
 
       if (!existing) {
         return NextResponse.json({ ok: false, error: "Shareholder not found" }, { status: 404 });
@@ -347,13 +369,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: false, error: "shareholderId is required" }, { status: 400 });
       }
 
-      // Verify ownership
-      const { data: existing } = await supabase
-        .from("shareholders")
-        .select("id")
-        .eq("id", shareholderId)
-        .eq("account_id", accountId)
-        .single();
+      // Verify ownership (account_id) + project boundary
+      const { data: existing } = await shareholderPreCheck(
+        supabase,
+        "id",
+        shareholderId,
+        accountId,
+        projectId,
+      );
 
       if (!existing) {
         return NextResponse.json({ ok: false, error: "Shareholder not found" }, { status: 404 });
@@ -430,17 +453,18 @@ export async function DELETE(request: Request) {
   }
 
   // S18-A — editor+; the pre-check is the tenancy boundary and it is keyed
-  // on the project OWNER's account_id.
+  // on the project OWNER's account_id + the active project_id (P1-1).
   const { scope, denied } = await projectScopeOrDeny("editor");
   if (denied) return denied;
 
-  // Verify ownership
-  const { data: existing } = await supabase
-    .from("shareholders")
-    .select("id")
-    .eq("id", shareholderId)
-    .eq("account_id", scope?.ownerUserId ?? user.id)
-    .single();
+  // Verify ownership + project boundary
+  const { data: existing } = await shareholderPreCheck(
+    supabase,
+    "id",
+    shareholderId,
+    scope?.ownerUserId ?? user.id,
+    scope?.projectId ?? null,
+  );
 
   if (!existing) {
     return NextResponse.json(

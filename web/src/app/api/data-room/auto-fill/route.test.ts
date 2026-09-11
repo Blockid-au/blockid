@@ -34,7 +34,11 @@ vi.mock("@/lib/feature-gate", () => ({
 
 // ── Supabase mock — a small chain-builder fake with a FIFO response queue.
 // The route calls the following chains in order (per branch):
-//   1) .from("data_room_documents").select().eq().eq().maybeSingle()
+//   0) .from("data_rooms").select().eq().eq()|is().order().limit(1).maybeSingle()
+//      (S18-A review P1-1 — only when documentId is supplied; resolves the
+//      ACTIVE project's room so the document lookup can require
+//      data_room_id = room.id)
+//   1) .from("data_room_documents").select().eq().eq().eq().maybeSingle()
 //   2) .from("svi_accounts").select().eq().maybeSingle()
 //   3) .from("svi_analyses").select().eq().order().limit(1).maybeSingle()
 //   4) .from("startup_metrics").select().eq().order().limit(1).maybeSingle()
@@ -185,8 +189,16 @@ function gateFail(status: number, error: string) {
 
 const USER = { id: "u-1", email: "founder@x.co" };
 
-function queueDocRow(row: Record<string, unknown> | null) {
-  state.responses.push({ data: row, error: null });
+// Queues the project's room (resolved first) and then the document row.
+// A doc row without an explicit `data_room_id` is stamped with the room's id
+// (the real DB filter `.eq("data_room_id", room.id)` guarantees the match;
+// the route re-checks it defensively).
+function queueDocRow(row: Record<string, unknown> | null, room: { id: string } | null = { id: "room-1" }) {
+  state.responses.push({ data: room, error: null });
+  state.responses.push({
+    data: row ? { data_room_id: room?.id ?? null, ...row } : null,
+    error: null,
+  });
 }
 function queueEmpty(n: number) {
   for (let i = 0; i < n; i++) state.responses.push({ data: null, error: null });
@@ -286,21 +298,47 @@ describe("POST /api/data-room/auto-fill — credits + document lookup", () => {
     expect(metadata).toEqual({ email: "founder@x.co", project_id: "proj-active" });
   });
 
-  it("404s when a documentId is supplied but no row matches on (id, account_id)", async () => {
+  it("404s when a documentId is supplied but no row matches on (id, account_id, data_room_id)", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
-    // First .from() → data_room_documents fetch returns null.
+    // data_rooms resolves room-1; the data_room_documents fetch returns null.
     queueDocRow(null);
     const res = await POST(jsonReq({ documentId: "doc-missing" }));
     expect(res.status).toBe(404);
     const body = await res.json();
     expect(body.error).toBe("Document not found");
-    // The doc fetch MUST filter on both id and account_id (tenancy boundary).
-    const eqOnDocs = state.eqCalls.slice(0, 2);
-    expect(eqOnDocs).toEqual([
+    expect(state.fromCalls).toEqual(["data_rooms", "data_room_documents"]);
+    // The room is the ACTIVE project's room, keyed on (user_id, project_id).
+    expect(state.eqCalls.slice(0, 2)).toEqual([
+      { col: "user_id", val: "u-1" },
+      { col: "project_id", val: "proj-active" },
+    ]);
+    // The doc fetch MUST filter on id + account_id + data_room_id (tenancy boundary).
+    expect(state.eqCalls.slice(2, 5)).toEqual([
       { col: "id", val: "doc-missing" },
       { col: "account_id", val: "u-1" },
+      { col: "data_room_id", val: "room-1" },
     ]);
     expect(anthropicCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("404s (no document lookup) when the active project has no data room", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    state.responses.push({ data: null, error: null }); // data_rooms → none
+    const res = await POST(jsonReq({ documentId: "doc-1" }));
+    expect(res.status).toBe(404);
+    expect(state.fromCalls).toEqual(["data_rooms"]);
+    expect(anthropicCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("owner with no active project resolves the legacy (project_id IS NULL) room", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getProjectIdFromRequestMock.mockResolvedValue(null);
+    queueDocRow(null);
+    await POST(jsonReq({ documentId: "doc-1" }));
+    expect(state.eqCalls.slice(0, 2)).toEqual([
+      { col: "user_id", val: "u-1" },
+      { col: "is:project_id", val: null },
+    ]);
   });
 
   it("skips the data_room_documents fetch entirely when only templateSlug is supplied", async () => {
@@ -420,10 +458,12 @@ describe("POST /api/data-room/auto-fill — AI success path", () => {
     expect(state.updatePayload!.template_content).toBe("filled body here");
     expect(typeof state.updatePayload!.completed_at).toBe("string");
     expect(typeof state.updatePayload!.updated_at).toBe("string");
-    // The .eq() chain after update MUST filter by both id and account_id.
+    // The .eq() chain after update MUST filter by id + account_id + the
+    // active project's room (S18-A review P1-1).
     expect(state.updateEqAfter).toEqual([
       { col: "id", val: "doc-1" },
       { col: "account_id", val: "u-1" },
+      { col: "data_room_id", val: "room-1" },
     ]);
   });
 });
@@ -521,5 +561,34 @@ describe("POST /api/data-room/auto-fill — S18-A member access", () => {
     expect(state.eqCalls).toContainEqual({ col: "email", val: "owner@x.test" });
     expect(state.eqCalls).toContainEqual({ col: "project_id", val: "proj-active" });
     expect(state.updateEqAfter).toContainEqual({ col: "account_id", val: "owner-1" });
+  });
+
+  // S18-A review P1-1 — an editor on project A holding a document id from
+  // the owner's project-B room: the room resolves to A's room and the doc
+  // lookup is bounded by data_room_id = A's room → 404, no AI call, no write.
+  it("editor on project A with a document id from the owner's project-B room: 404, no AI, no write", async () => {
+    scopeRole.value = "editor";
+    gateMock.mockResolvedValue(gateOk(USER));
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    queueDocRow(null, { id: "room-A" }); // the B document is not in room-A
+    const res = await POST(jsonReq({ documentId: "doc-in-B" }));
+    expect(res.status).toBe(404);
+    expect(state.eqCalls).toContainEqual({ col: "user_id", val: "owner-1" });
+    expect(state.eqCalls).toContainEqual({ col: "project_id", val: "proj-A" });
+    expect(state.eqCalls).toContainEqual({ col: "data_room_id", val: "room-A" });
+    expect(anthropicCreateMock).not.toHaveBeenCalled();
+    expect(state.updatePayload).toBeNull();
+  });
+
+  it("a document whose data_room_id does not match the resolved room is rejected even if the DB returned it", async () => {
+    scopeRole.value = "editor";
+    gateMock.mockResolvedValue(gateOk(USER));
+    queueDocRow(
+      { id: "doc-1", document_name: "X", template_content: "T", account_id: "owner-1", data_room_id: "room-B" },
+      { id: "room-A" },
+    );
+    const res = await POST(jsonReq({ documentId: "doc-1" }));
+    expect(res.status).toBe(404);
+    expect(anthropicCreateMock).not.toHaveBeenCalled();
   });
 });

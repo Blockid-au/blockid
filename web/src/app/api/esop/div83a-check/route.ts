@@ -36,13 +36,14 @@ export async function POST(request: Request) {
   }
 
   // S18-A — editor+ (persists a Div83A check and updates the grant); the
-  // grant is looked up under the project OWNER's user_id.
+  // grant is looked up under the project OWNER's user_id AND the active
+  // project_id (review P1-1: a foreign-project grant id → 404).
   const { scope, denied } = await projectScopeOrDeny("editor");
   if (denied) return denied;
   const ownerUserId = scope?.ownerUserId ?? user.id;
   const projectId = scope?.projectId ?? null;
 
-  const grant = await getGrant(grantId, ownerUserId);
+  const grant = await getGrant(grantId, ownerUserId, projectId);
   if (!grant) {
     return NextResponse.json(
       { ok: false, error: "Grant not found" },
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
     if (insertErr) {
       console.error("[div83a-check] persist failed", insertErr.message);
     }
-    await updateDiv83AStatus(grant.id, ownerUserId, result.status);
+    await updateDiv83AStatus(grant.id, ownerUserId, result.status, projectId);
   }
 
   return NextResponse.json({

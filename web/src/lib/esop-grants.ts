@@ -160,16 +160,29 @@ export async function createGrant(input: NewGrant): Promise<Grant | null> {
   return mapGrant(data as GrantRow);
 }
 
-export async function getGrant(id: string, userId: string): Promise<Grant | null> {
+// S18-A review P1-1 — every single-row path is bounded by the PROJECT as
+// well as the owner's user_id (mirrors `listGrants`): a member on project A
+// holding a grant id from the owner's project B must see "not found", never
+// read or mutate B. `projectId === null` reaches legacy (NULL project) rows
+// only — the owner-without-project branch.
+function withProjectBoundary<
+  Q extends { eq(col: string, val: unknown): Q; is(col: string, val: null): Q },
+>(q: Q, projectId: string | null): Q {
+  return projectId ? q.eq("project_id", projectId) : q.is("project_id", null);
+}
+
+export async function getGrant(
+  id: string,
+  userId: string,
+  projectId: string | null,
+): Promise<Grant | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
 
-  const { data, error } = await supabase
-    .from("esop_option_grants")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { data, error } = await withProjectBoundary(
+    supabase.from("esop_option_grants").select("*").eq("id", id).eq("user_id", userId),
+    projectId,
+  ).maybeSingle();
 
   if (error) {
     console.error("[esop-grants] getGrant failed", error.message);
@@ -182,16 +195,20 @@ export async function updateGrantStatus(
   id: string,
   userId: string,
   status: GrantStatus,
+  projectId: string | null,
 ): Promise<boolean> {
   if (!VALID_STATUSES.includes(status)) return false;
   const supabase = getSupabaseAdmin();
   if (!supabase) return false;
 
-  const { error } = await supabase
-    .from("esop_option_grants")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("user_id", userId);
+  const { error } = await withProjectBoundary(
+    supabase
+      .from("esop_option_grants")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", userId),
+    projectId,
+  );
 
   if (error) {
     console.error("[esop-grants] updateGrantStatus failed", error.message);
@@ -204,19 +221,23 @@ export async function updateDiv83AStatus(
   id: string,
   userId: string,
   status: Div83AStatus,
+  projectId: string | null,
 ): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return false;
 
-  const { error } = await supabase
-    .from("esop_option_grants")
-    .update({
-      div83a_status: status,
-      div83a_last_checked_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .eq("user_id", userId);
+  const { error } = await withProjectBoundary(
+    supabase
+      .from("esop_option_grants")
+      .update({
+        div83a_status: status,
+        div83a_last_checked_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("user_id", userId),
+    projectId,
+  );
 
   if (error) {
     console.error("[esop-grants] updateDiv83AStatus failed", error.message);

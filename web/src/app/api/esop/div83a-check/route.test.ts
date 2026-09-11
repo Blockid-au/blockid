@@ -94,14 +94,17 @@ type GrantFixture = {
   cliffMonths: number;
 };
 
-const getGrantMock = vi.fn<(id: string, userId: string) => Promise<GrantFixture | null>>();
+const getGrantMock = vi.fn<
+  (id: string, userId: string, projectId: string | null) => Promise<GrantFixture | null>
+>();
 const updateDiv83AStatusMock = vi.fn<
-  (id: string, userId: string, status: string) => Promise<boolean>
+  (id: string, userId: string, status: string, projectId: string | null) => Promise<boolean>
 >();
 vi.mock("@/lib/esop-grants", () => ({
-  getGrant: (id: string, userId: string) => getGrantMock(id, userId),
-  updateDiv83AStatus: (id: string, userId: string, status: string) =>
-    updateDiv83AStatusMock(id, userId, status),
+  getGrant: (id: string, userId: string, projectId: string | null) =>
+    getGrantMock(id, userId, projectId),
+  updateDiv83AStatus: (id: string, userId: string, status: string, projectId: string | null) =>
+    updateDiv83AStatusMock(id, userId, status, projectId),
 }));
 
 import { POST } from "./route";
@@ -244,14 +247,14 @@ describe("POST /api/esop/div83a-check", () => {
     expect(getGrantMock).not.toHaveBeenCalled();
   });
 
-  it("404s when `getGrant` returns null — user.id is forwarded to the loader", async () => {
+  it("404s when `getGrant` returns null — user.id + null project (no active project) forwarded to the loader", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     getGrantMock.mockResolvedValue(null);
     const res = await POST(req({ grantId: "g-missing" }));
     expect(res.status).toBe(404);
     const body = await res.json();
     expect(body).toEqual({ ok: false, error: "Grant not found" });
-    expect(getGrantMock).toHaveBeenCalledWith("g-missing", USER.id);
+    expect(getGrantMock).toHaveBeenCalledWith("g-missing", USER.id, null);
     expect(checkDiv83AMock).not.toHaveBeenCalled();
     expect(insertMock).not.toHaveBeenCalled();
     expect(updateDiv83AStatusMock).not.toHaveBeenCalled();
@@ -341,7 +344,7 @@ describe("POST /api/esop/div83a-check", () => {
       criteria: result.criteria,
       guidance: result.guidance,
     });
-    expect(updateDiv83AStatusMock).toHaveBeenCalledWith(grant.id, USER.id, "ineligible");
+    expect(updateDiv83AStatusMock).toHaveBeenCalledWith(grant.id, USER.id, "ineligible", null);
   });
 
   it("swallows a persist insert error — still returns 200 and still updates the div83a cache", async () => {
@@ -407,14 +410,29 @@ describe("POST /api/esop/div83a-check — S18-A member access", () => {
     expect(updateDiv83AStatusMock).not.toHaveBeenCalled();
   });
 
-  it("editor: grant resolved + status updated under the OWNER's user_id", async () => {
+  it("editor: grant resolved + status updated under the OWNER's user_id AND the active project_id", async () => {
     scopeRole.value = "editor";
     gateMock.mockResolvedValue(gateOk(USER));
     getProjectIdFromRequestMock.mockResolvedValue("proj-1");
     getGrantMock.mockResolvedValue(grantFixture());
     const res = await POST(req({ grantId: "g-1" }));
     expect(res.status).toBe(200);
-    expect(getGrantMock).toHaveBeenCalledWith("g-1", "owner-1");
-    expect(updateDiv83AStatusMock).toHaveBeenCalledWith("g-1", "owner-1", expect.any(String));
+    expect(getGrantMock).toHaveBeenCalledWith("g-1", "owner-1", "proj-1");
+    expect(updateDiv83AStatusMock).toHaveBeenCalledWith("g-1", "owner-1", expect.any(String), "proj-1");
+  });
+
+  // S18-A review P1-1 — the project boundary is passed through to the
+  // loader; a grant id from the owner's OTHER project resolves null → 404
+  // and nothing is persisted.
+  it("editor on project A with a grant id from project B: loader called with A, 404, no persist", async () => {
+    scopeRole.value = "editor";
+    gateMock.mockResolvedValue(gateOk(USER));
+    getProjectIdFromRequestMock.mockResolvedValue("proj-A");
+    getGrantMock.mockResolvedValue(null);
+    const res = await POST(req({ grantId: "g-in-B" }));
+    expect(res.status).toBe(404);
+    expect(getGrantMock).toHaveBeenCalledWith("g-in-B", "owner-1", "proj-A");
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(updateDiv83AStatusMock).not.toHaveBeenCalled();
   });
 });
