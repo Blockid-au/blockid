@@ -7,6 +7,7 @@
 // All numbers derive from files the platform writes — nothing hardcoded.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
@@ -20,13 +21,11 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export const metadata: Metadata = {
-  title: "Stats — BlockID.au",
-  description:
-    "Live platform counters — commits, uptime, cron health, and deploys.",
-  robots: { index: true, follow: true },
-  alternates: { canonical: "https://blockid.au/stats" },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Stats — live platform counters",
+  description: "Live BlockID.au platform counters — commits, uptime, cron health, and deploys — refreshed from the production server.",
+  path: "/stats",
+});
 
 const DASH = "—";
 

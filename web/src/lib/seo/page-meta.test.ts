@@ -3,6 +3,7 @@ import {
   BRAND_SUFFIX,
   OG_IMAGE,
   absoluteTitle,
+  brandedOrAbsolute,
   fitDescription,
   fitTitle,
   fitTitleKeepTail,
@@ -37,6 +38,20 @@ describe("fitTitle / truncateAtWord", () => {
     expect(t.length).toBeLessThanOrEqual(60);
     expect(t.endsWith(" — Australia wage subsidy")).toBe(true);
     expect(t).toContain("…");
+  });
+});
+
+describe("brandedOrAbsolute (S12-A)", () => {
+  it("keeps the brand while the name fits under 65, drops it when the name alone is worth more, truncates last", () => {
+    expect(brandedOrAbsolute("Founders")).toBe("Founders");
+    expect(renderedTitle(brandedOrAbsolute("Founders"))).toBe(`Founders${BRAND_SUFFIX}`);
+    const long = "Startup Tax Valuation Australia: ATO Compliance Guide"; // 53 + 13 = 66
+    expect(brandedOrAbsolute(long)).toEqual({ absolute: long });
+    const huge = "A".repeat(40) + " " + "B".repeat(40);
+    const abs = brandedOrAbsolute(huge) as { absolute: string };
+    expect(abs.absolute.length).toBeLessThanOrEqual(65);
+    expect(abs.absolute.endsWith("…")).toBe(true);
+    expect(brandedOrAbsolute("  spaced   out ")).toBe("spaced out");
   });
 });
 

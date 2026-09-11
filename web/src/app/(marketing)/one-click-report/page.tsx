@@ -18,9 +18,8 @@ import { PageTracker } from "@/components/analytics/page-tracker";
 import { ObfuscatedEmail } from "@/components/marketing/obfuscated-email";
 import { OneClickForm } from "./one-click-form";
 
-const TITLE = "One-Click Investor Analysis — A$3 | BlockID.au";
-const DESCRIPTION =
-  "See how professional investors look at your startup. Upload your pitch or paste your website URL. Full SVI valuation report emailed in minutes. No signup.";
+const TITLE = "One-Click Investor Analysis — A$3";
+const DESCRIPTION = "See how professional investors look at your startup. Upload your pitch or paste your website URL. Full SVI valuation report emailed in minutes. No signup.";
 
 export const metadata: Metadata = {
   title: TITLE,

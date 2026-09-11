@@ -10,24 +10,17 @@
 // button POST) lives in a tiny client sub-component below.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { STARTUP_PACKAGE_MONEY_FINDER_LINE } from "@/lib/plans-v2";
 import { CheckoutButton } from "./checkout-button";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Startup Package · Idea to investor-ready in 90 days",
-  description:
-    "Guided interview, C-Level AI analysis, real-time SVI, dataroom templates, public /startup/[slug] listing, 1 Money Finder report + 3 months Founder Radar — one A$149 package.",
-  openGraph: {
-    title: "BlockID Startup Package — investor-ready in 90 days",
-    description:
-      "Guided interview + C-Level AI analysis + real-time SVI + Day-0 dataroom + public listing. One A$149 unlock, pay-as-you-go from there.",
-    url: "https://blockid.au/startup-package",
-    type: "website",
-  },
-  alternates: { canonical: "https://blockid.au/startup-package" },
-};
+  description: "Guided interview, C-Level AI analysis, real-time SVI, dataroom templates, public listing, 1 Money Finder report + 3 months Founder Radar — one A$149 package.",
+  path: "/startup-package",
+});
 
 const VALUE_STEPS = [
   {

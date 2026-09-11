@@ -4,10 +4,8 @@ import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { ProjectionsTool } from "./projections-tool";
 
-const TITLE =
-  "3-Year Financial Projections — AU Startup Tool | BlockID.au";
-const DESCRIPTION =
-  "Generate investor-grade 36-month financial projections for your Australian startup. Sector-tuned growth, EBITDA-first structure, R&D tax offsets, CSV export. Deterministic — same inputs, same output.";
+const TITLE = "3-year financial projections — AU startup tool";
+const DESCRIPTION = "Generate investor-grade 36-month financial projections for your Australian startup. Sector-tuned growth, EBITDA-first structure, R&D tax offsets, CSV export.";
 const CANONICAL = "https://blockid.au/tools/financial-projections";
 
 const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [

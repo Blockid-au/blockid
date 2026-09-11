@@ -11,6 +11,7 @@
  */
 
 import type { Metadata } from "next";
+import { brandedOrAbsolute } from "@/lib/seo/page-meta";
 import Script from "next/script";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -88,7 +89,7 @@ export function buildProfileMetadata({
   // company is exactly the misread this branch prevents.
   const chrome = profileChromeKeys(profile.profileKind);
   const suffix = t(m, chrome.metaTitleSuffixKey);
-  const title = `${profile.legalName} — ${suffix}`;
+  const title = brandedOrAbsolute(`${profile.legalName} — ${suffix}`);
   const description = interpolate(t(m, chrome.metaDescriptionKey), {
     name: profile.legalName,
     level: profile.verificationLevel,

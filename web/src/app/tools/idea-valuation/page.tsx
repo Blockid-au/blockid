@@ -5,9 +5,8 @@ import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { IdeaValuationTool } from "./idea-valuation-tool";
 
-const TITLE = "Idea Valuation — Free Startup Calculator | BlockID";
-const DESCRIPTION =
-  "Estimate your Australian startup's pre-money valuation at the idea stage. Berkus + Scorecard methods, AUD-native, completely free. Built for AU founders.";
+const TITLE = "Idea valuation — free startup calculator";
+const DESCRIPTION = "Estimate your Australian startup's pre-money valuation at the idea stage. Berkus + Scorecard methods, AUD-native, completely free. Built for AU founders.";
 
 const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
   {

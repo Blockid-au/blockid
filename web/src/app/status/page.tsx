@@ -10,6 +10,7 @@
 //   - Reskinned to the shared fintech marketing shell.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -20,12 +21,11 @@ import { readUptimeSnapshot } from "@/lib/platform-metrics";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export const metadata: Metadata = {
-  title: "Status — BlockID.au",
-  description: "System status, SLOs, and the last 30 days of deploys.",
-  robots: { index: true, follow: true },
-  alternates: { canonical: "https://blockid.au/status" },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Status — SLOs and recent deploys",
+  description: "BlockID.au system status: uptime SLOs, incident notes, and the last 30 days of production deploys.",
+  path: "/status",
+});
 
 // ---------- Types (mirror /api/status response) ----------
 

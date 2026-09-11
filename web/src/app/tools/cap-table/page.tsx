@@ -4,10 +4,8 @@ import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { CapTableDiffTool } from "./cap-table-diff";
 
-const TITLE =
-  "Cap Table — Free Before & After Dilution Visualiser for AU Startups";
-const DESCRIPTION =
-  "See exactly how a new round dilutes founders, ESOP and existing investors. Free, no login required. Built for Australian seed-to-Series-A founders.";
+const TITLE = "Cap table — free dilution visualiser for AU startups";
+const DESCRIPTION = "See exactly how a new round dilutes founders, ESOP and existing investors. Free, no login required. Built for Australian seed-to-Series-A founders.";
 
 export const metadata: Metadata = {
   title: TITLE,

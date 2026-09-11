@@ -4,10 +4,8 @@ import { Footer } from "@/components/site/footer";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { SAFECalculator } from "./safe-calculator";
 
-const TITLE =
-  "SAFE Note Calculator — Free AU SAFE Conversion & Dilution Modelling | BlockID.au";
-const DESCRIPTION =
-  "Model SAFE conversion at the next priced round — cap, discount, interest, shares issued and effective dilution. Tuned for Australian SAFE templates and MFN clauses.";
+const TITLE = "SAFE note calculator — AU conversion and dilution";
+const DESCRIPTION = "Model SAFE conversion at the next priced round — cap, discount, interest, shares issued and effective dilution. Tuned for Australian SAFE templates and MFN clauses.";
 
 const FAQ_ITEMS: ReadonlyArray<{ title: string; body: string }> = [
   {

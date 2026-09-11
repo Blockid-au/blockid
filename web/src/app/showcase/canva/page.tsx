@@ -4,13 +4,14 @@
 // public facts as a starting point).
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Canva Showcase — BlockID.au Founder Platform",
-  description:
-    "See how Canva's growth story maps to the BlockID Startup Valuation Index and cap-table tooling.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Canva showcase — founder platform walkthrough",
+  description: "See how Canva's growth story maps to the BlockID Startup Valuation Index and cap-table tooling.",
+  path: "/showcase/canva",
+});
 
 import { CanonicalStageBadge } from "@/components/showcase/canonical-stage-badge";
 import {

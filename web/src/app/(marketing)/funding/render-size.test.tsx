@@ -41,6 +41,24 @@ function countHref(html: string, href: string): number {
   return html.split(`href="${href}"`).length - 1;
 }
 
+/**
+ * S12-A: four visible Q&As under an H2 ("Questions founders ask"), each a
+ * native <details>/<summary>, and exactly one FAQPage whose questions are
+ * the ones on the page.
+ */
+function assertVisibleFaq(html: string, questions: string[]): void {
+  expect(html).toContain('data-funding-faq="4"');
+  expect(html).toContain("Questions founders ask");
+  for (const q of questions) expect(html).toContain(`</span>${q}</summary>`);
+  const faqs = extractJsonLd(html).filter((b) => b["@type"] === "FAQPage");
+  expect(faqs).toHaveLength(1);
+  const names = (faqs[0].mainEntity as Array<{ name: string }>).map((q) => q.name);
+  expect(names).toHaveLength(4);
+  for (const q of questions) expect(names).toContain(q);
+  for (const n of names) expect(html).toContain(`${n}</summary>`);
+  expect(validateJsonLd(faqs[0])).toEqual({ ok: true, errors: [] });
+}
+
 describe("/funding/programs — render size with the real seed (S10-A)", () => {
   it(`renders the 199 programs in < ${MAX_BYTES} bytes, links every detail URL exactly once, groups by capital in CAPITALS order with a <details> tail`, async () => {
     const html = await toHtml(await ProgramsDirectoryPage({ searchParams: Promise.resolve({}) }));
@@ -65,6 +83,7 @@ describe("/funding/programs — render size with the real seed (S10-A)", () => {
     for (const c of CAPITALS) expect(items.some((i) => i.url === `https://blockid.au/funding/programs/${c.toLowerCase()}`), c).toBe(true);
     expect(list.numberOfItems).toBe(PROGRAMS.length + CAPITALS.length);
     expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+    assertVisibleFaq(html, ["Which cities are covered?", "Do programs take equity?"]);
   });
 });
 
@@ -90,5 +109,6 @@ describe("/funding/grants — render size with the real seed (S10-A)", () => {
     expect(items.length).toBeLessThanOrEqual(6 + states.length);
     for (const s of states) expect(items.some((i) => i.url === `https://blockid.au/funding/grants?state=${s}`), s).toBe(true);
     expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+    assertVisibleFaq(html, ["Is grant information free?", "Do you take a cut of grants?"]);
   });
 });

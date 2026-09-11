@@ -19,8 +19,7 @@ import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 export const dynamic = "force-static";
 
 const TITLE = "Sample Trusted Business Report — BlockID SVI preview";
-const DESCRIPTION =
-  "See what a BlockID Trusted Business Report looks like before requesting one from a founder: 8 SVI dimensions, 13 investor criteria, valuation range and next-action roadmap. Anonymous preview, no login required.";
+const DESCRIPTION = "See a BlockID Trusted Business Report before requesting one from a founder: 8 SVI dimensions, 13 investor criteria, valuation range and next-action roadmap.";
 const CANONICAL = "https://blockid.au/tbr/demo";
 
 export const metadata: Metadata = {

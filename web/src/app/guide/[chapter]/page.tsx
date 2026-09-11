@@ -9,6 +9,7 @@
  */
 
 import type { Metadata } from "next";
+import { brandedOrAbsolute, fitDescription, pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/site/navbar";
@@ -47,8 +48,8 @@ export async function generateMetadata({
   const c = getChapter(chapter);
   if (!c) return {};
   const url = `${SITE_URL}/guide/${c.slug}`;
-  const title = `${c.title.en} — BlockID Startup Journey`;
-  const description = c.summary.en;
+  const title = brandedOrAbsolute(`${c.title.en} — Startup Journey`);
+  const description = fitDescription([c.summary.en], { min: 70, max: 160 });
   return {
     title,
     description,
@@ -58,17 +59,7 @@ export async function generateMetadata({
       c.phaseLabel.en.toLowerCase(),
       "blockid guide",
     ],
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      url,
-      siteName: "BlockID",
-      locale: "en_AU",
-    },
-    twitter: { card: "summary_large_image", title, description },
-    alternates: { canonical: url },
-    robots: { index: true, follow: true },
+    ...pageMetadata({ title, description, path: url, ogType: "article" }),
   };
 }
 

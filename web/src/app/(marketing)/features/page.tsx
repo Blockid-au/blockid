@@ -14,6 +14,7 @@
  */
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -35,38 +36,11 @@ import { UnlockPreview } from "@/components/marketing/unlock-preview";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 
-const CANONICAL_URL = "https://blockid.au/features";
-
-export const metadata: Metadata = {
-  title: "Features · BlockID.au",
-  description:
-    "Eight platform capabilities most visitors never see — cohort percentile scoring, per-investor tracked share links, ATO tax invoicing, dividend engine, and more.",
-  alternates: { canonical: "/features" },
-  openGraph: {
-    title: "Features · BlockID.au",
-    description:
-      "Eight platform capabilities most visitors never see — cohort percentile scoring, per-investor tracked share links, ATO tax invoicing, dividend engine, and more.",
-    url: CANONICAL_URL,
-    siteName: "BlockID.au",
-    type: "website",
-    locale: "en_AU",
-    images: [
-      {
-        url: "https://blockid.au/images/logo-full.png",
-        width: 1556,
-        height: 880,
-        alt: "BlockID.au Features",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Features · BlockID.au",
-    description:
-      "Eight platform capabilities most visitors never see — cohort percentile scoring, per-investor tracked share links, ATO tax invoicing, dividend engine, and more.",
-    images: ["https://blockid.au/images/logo-full.png"],
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Platform features most visitors never see",
+  description: "Eight platform capabilities most visitors never see — cohort percentile scoring, per-investor tracked share links, ATO tax invoicing, dividend engine, and more.",
+  path: "/features",
+});
 
 // ---------------------------------------------------------------------------
 // Feature model

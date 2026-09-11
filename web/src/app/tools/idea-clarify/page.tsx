@@ -4,9 +4,8 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { IdeaClarifyTool } from "./idea-clarify-tool";
 
-const TITLE = "First-Principles Idea Clarifier — Free Founder Tool";
-const DESCRIPTION =
-  "Answer 5–7 Socratic questions about your startup idea and get routed to the right next step — SVI analysis, cap table, ESIC eligibility, or fundraise prep. Free, no login required.";
+const TITLE = "First-principles idea clarifier — free founder tool";
+const DESCRIPTION = "Answer 5–7 Socratic questions about your startup idea and get routed to the right next step — SVI analysis, cap table, ESIC eligibility or fundraise prep. Free.";
 
 export const metadata: Metadata = {
   title: TITLE,

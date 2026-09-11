@@ -11,20 +11,17 @@
  */
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
-const SITE_URL = "https://blockid.au";
-
-export const metadata: Metadata = {
-  title: "Solutions for founders, investors, advisors, accelerators and VN SMEs — BlockID",
-  description:
-    "Pick the persona that fits — founders raising in Australia, angel and VC investors screening AU startups, advisory firms reviewing clients, accelerator programs running cohorts, or Vietnamese-Australian SMEs formalising for growth.",
-  alternates: { canonical: `${SITE_URL}/solutions` },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Solutions by persona — founders to accelerators",
+  description: "Pick your persona: founders raising in Australia, investors screening AU startups, advisory firms, accelerator cohorts or Vietnamese-Australian SMEs.",
+  path: "/solutions",
+});
 
 interface SolutionCard {
   href: string;

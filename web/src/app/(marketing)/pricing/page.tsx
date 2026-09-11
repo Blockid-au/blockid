@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { Building2, Check } from "lucide-react";
 import Link from "next/link";
@@ -42,39 +43,12 @@ function resolveInitialTab(sp: {
   return resolvePricingTab(sp.segment ?? sp.tab ?? sp.tier);
 }
 
-export const metadata: Metadata = {
-  title: "Pricing — BlockID.au",
-  description:
-    "Founder plans from free (Starter A$29, Growth A$69) and Evaluator plans for investors, advisors and programs (Scout A$79, Firm A$149, Program A$349). Every monthly plan includes a 7-day free trial. Cancel anytime before Day 8 — no charge.",
-  alternates: {
-    canonical: "https://blockid.au/pricing",
-  },
-  openGraph: {
-    title: "Pricing — BlockID.au",
-    description:
-      "Founder plans from free and Evaluator plans (Scout A$79 · Firm A$149 · Program A$349). Every monthly plan includes a 7-day free trial.",
-    url: "https://blockid.au/pricing",
-    siteName: "BlockID.au",
-    type: "website",
-    locale: "en_AU",
-    images: [
-      {
-        url: "/images/logo-full.png",
-        width: 1556,
-        height: 880,
-        alt: "BlockID.au — Founder and Evaluator pricing with 7-day trial",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Pricing — BlockID.au",
-    description:
-      "Founder plans from free and Evaluator plans (Scout A$79 · Firm A$149 · Program A$349). 7-day trial included.",
-    images: ["/images/logo-full.png"],
-  },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Pricing — founder and evaluator plans",
+  description: "Founder plans from free (Starter A$29, Growth A$69). Evaluator plans for investors, advisors and programs (Scout A$79, Firm A$149, Program A$349). 7-day free trial.",
+  path: "/pricing",
+  viPath: "/vi/pricing",
+});
 
 const FAQ_JSONLD = [
   {

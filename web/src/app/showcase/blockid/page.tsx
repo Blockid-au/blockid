@@ -37,9 +37,8 @@ import {
 const SITE_URL = "https://blockid.au";
 const CANONICAL = `${SITE_URL}/showcase/blockid`;
 
-const TITLE = "BlockID.au — Live Startup Showcase";
-const DESCRIPTION =
-  "A public, read-only mirror of the BlockID.au workspace — the startup building BlockID, dogfooding its own product. See the current phase, milestone timeline, and C-Level agent activity as it happens.";
+const TITLE = "Live startup showcase — BlockID building BlockID";
+const DESCRIPTION = "A public, read-only mirror of the BlockID.au workspace — the startup building BlockID, dogfooding its own product. Current phase, milestones and agent activity.";
 // Iteration-8 T3 — App Router file-convention paths for the
 // opengraph-image.tsx / twitter-image.tsx routes colocated in this segment.
 // Next.js auto-injects og:image / twitter:image tags for the conventions, but

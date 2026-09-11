@@ -19,9 +19,8 @@ import { PageTracker } from "@/components/analytics/page-tracker";
 const SITE_URL = "https://blockid.au";
 const CANONICAL = `${SITE_URL}/guide/scn`;
 
-const TITLE = "Startup Compass — Framework citations & primer | BlockID";
-const DESCRIPTION =
-  "Startup Compass (SCN) is BlockID's 5-dimension synthesis overlay on Sean Ellis 40% Rule, Porter Five Forces, T2D3 growth, Christensen JTBD, and Bessemer BVP canonical stages. See every citation.";
+const TITLE = "Startup Compass — framework citations and primer";
+const DESCRIPTION = "Startup Compass (SCN) is BlockID's 5-dimension synthesis of the Sean Ellis 40% Rule, Porter Five Forces, T2D3 growth, Christensen JTBD and Bessemer BVP stages.";
 
 export const metadata: Metadata = {
   title: TITLE,

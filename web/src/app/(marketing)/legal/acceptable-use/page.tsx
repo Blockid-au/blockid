@@ -12,19 +12,16 @@
  */
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
-const SITE_URL = "https://blockid.au";
-
-export const metadata: Metadata = {
-  title: "Acceptable Use Policy — BlockID.au",
-  description:
-    "Acceptable Use Policy for the BlockID.au platform — customer personal information, prohibited content, monitoring, and reseller sandbox rules.",
-  alternates: { canonical: `${SITE_URL}/legal/acceptable-use` },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Acceptable Use Policy",
+  description: "Acceptable Use Policy for the BlockID.au platform — customer personal information, prohibited content, monitoring, and reseller sandbox rules.",
+  path: "/legal/acceptable-use",
+});
 
 interface Rule {
   heading: string;

@@ -6,6 +6,7 @@
 // ATLASSIAN_DEMO fixture and renders a KPI-tile grid + founder-mentor panel.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import { AtlassianWalkthroughProvider } from "@/components/showcase/atlassian-walkthrough-provider";
@@ -18,11 +19,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Atlassian dashboard — Step 2 — BlockID Demo",
-  description:
-    "The BlockID.au founder dashboard populated with real Atlassian data — SVI composite, current phase, latest milestone, revenue snapshot, team, and runway tiles.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Atlassian dashboard — demo step 2",
+  description: "The BlockID.au founder dashboard populated with real Atlassian data — SVI composite, current phase, latest milestone, revenue snapshot, team, and runway tiles.",
+  path: "/showcase/atlassian/dashboard",
+});
 
 function meanScore(scores: number[]): number {
   if (scores.length === 0) return 0;

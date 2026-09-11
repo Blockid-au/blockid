@@ -15,6 +15,7 @@
  */
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { ArrowRight, Wallet, Cpu, Lock, Check } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
@@ -22,12 +23,11 @@ import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 
-export const metadata: Metadata = {
-  title: "Blockchain equity for Australian startups — private EVM, off-chain-first",
-  description:
-    "On-chain shares for AU founders on a private EVM (Anvil chainId 420). MetaMask-ready, ESOP + vesting enforced by smart contract, off-chain legal register is the source of truth.",
-  alternates: { canonical: "https://blockid.au/tokenize" },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Blockchain equity for Australian startups",
+  description: "On-chain shares for AU founders on a private EVM (Anvil chainId 420). MetaMask-ready, ESOP and vesting enforced by smart contract; legal register stays off-chain.",
+  path: "/tokenize",
+});
 
 export const dynamic = "force-dynamic";
 

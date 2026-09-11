@@ -6,9 +6,8 @@ import { PageTracker } from "@/components/analytics/page-tracker";
 import { CofounderMatchForm } from "./cofounder-match-form";
 import { ProfileList } from "./profile-list";
 
-const TITLE = "Cofounder Match — Free AU Startup Cofounder Directory";
-const DESCRIPTION =
-  "Find your Australian startup cofounder. Free directory for idea-stage founders to connect with technical and business cofounders across Australia.";
+const TITLE = "Cofounder match — free AU cofounder directory";
+const DESCRIPTION = "Find your Australian startup cofounder. Free directory for idea-stage founders to connect with technical and business cofounders across Australia.";
 
 export const metadata: Metadata = {
   title: TITLE,

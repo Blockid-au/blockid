@@ -19,9 +19,10 @@
 // API route so the two can never drift).
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getPlansCached } from "@/lib/plans-db";
-import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, formatAud } from "@/lib/plans/trial-copy";
+import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, formatAud } from "@/lib/plans/trial-copy";
 import {
   accountTypeOptionsForSegment,
   evaluatorPlanLabel,
@@ -36,10 +37,11 @@ import { SignupForm, type SignupPlanChoice } from "./signup-form";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export const metadata: Metadata = {
-  title: `Start your ${TRIAL_DAYS}-day trial — BlockID`,
-  description: TRIAL_COPY.headline,
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Start your 7-day free trial",
+  description: "Create your BlockID account and start a 7-day free trial — score your startup on the Startup Value Index, see a valuation range and next steps. Cancel before Day 8.",
+  path: "/signup",
+});
 
 export default async function SignupPage({
   searchParams,

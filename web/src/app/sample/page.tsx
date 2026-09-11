@@ -14,9 +14,8 @@ import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 
-const TITLE = "Sample BlockID reports — SVI grade, TBR preview and showcase";
-const DESCRIPTION =
-  "One page, three sample surfaces: the interactive Atlassian showcase, the anonymous Trusted Business Report preview, and the sector-by-sector report gallery.";
+const TITLE = "Sample BlockID reports — SVI grade and TBR preview";
+const DESCRIPTION = "One page, three sample surfaces: the interactive Atlassian showcase, the anonymous Trusted Business Report preview, and the sector-by-sector report gallery.";
 const CANONICAL = "https://blockid.au/sample";
 
 export const metadata: Metadata = {

@@ -5,10 +5,8 @@ import { PageTracker } from "@/components/analytics/page-tracker";
 import { DataRoomChecklist } from "./data-room-checklist";
 import { Building2, FileCheck2, ShieldCheck } from "lucide-react";
 
-const TITLE =
-  "Data Room — Investor-Ready Checklist | BlockID";
-const DESCRIPTION =
-  "Build an investor-ready data room for an Australian seed or Series A raise. Track corporate, cap table, financing, governance, tax and legal readiness.";
+const TITLE = "Data room — investor-ready checklist";
+const DESCRIPTION = "Build an investor-ready data room for an Australian seed or Series A raise. Track corporate, cap table, financing, governance, tax and legal readiness.";
 
 export const metadata: Metadata = {
   title: TITLE,

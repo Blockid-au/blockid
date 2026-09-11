@@ -8,33 +8,18 @@
  */
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 import { HowItWorksSection } from "@/components/marketing/how-it-works-section";
 
-const SITE_URL = "https://blockid.au";
-
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "How BlockID and the Startup Value Index work",
-  description:
-    "The 3-step arc from paste-an-idea to investor-ready — how the Startup Value Index scores 8 SVI dimensions, benchmarks against real AU cohorts, and drives the guided roadmap.",
-  alternates: { canonical: `${SITE_URL}/how-it-works` },
-  robots: { index: true, follow: true },
-  openGraph: {
-    title: "How BlockID and the Startup Value Index work",
-    description:
-      "The 3-step arc from paste-an-idea to investor-ready — how the SVI scores 8 SVI dimensions and drives the guided roadmap.",
-    url: `${SITE_URL}/how-it-works`,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "How BlockID and the Startup Value Index work",
-    description:
-      "The 3-step arc from paste-an-idea to investor-ready — how the SVI scores 8 SVI dimensions and drives the guided roadmap.",
-  },
-};
+  description: "The 3-step arc from paste-an-idea to investor-ready — how the Startup Value Index scores 8 SVI dimensions, benchmarks real AU cohorts and drives the roadmap.",
+  path: "/how-it-works",
+});
 
 interface Dimension {
   code: string;

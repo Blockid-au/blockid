@@ -3,9 +3,8 @@ import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { ASICChecker } from "./asic-checker";
 
-const TITLE = "ASIC Compliance Checker — Free Tool for Australian Startups";
-const DESCRIPTION =
-  "Check your Australian startup's ASIC compliance status. Verify you meet all Corporations Act 2001 requirements — ABN, ACN, annual review, directors, share register, financial records, and more.";
+const TITLE = "ASIC compliance checker — free AU startup tool";
+const DESCRIPTION = "Check your Australian startup's ASIC compliance status against the Corporations Act 2001 — ABN, ACN, annual review, directors, share register and financial records.";
 
 export const metadata: Metadata = {
   title: TITLE,

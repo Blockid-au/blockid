@@ -11,6 +11,7 @@
 // Server component only — no auth, no I/O — pure fixture render.
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
 
 import {
@@ -31,11 +32,11 @@ import { PHASE_LABELS, PHASE_COUNT } from "@/lib/showcase/gallery";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Atlassian 12-phase growth map — Step 4 — BlockID Demo",
-  description:
-    "Every founder walks the same 12 phases from Vision to Exit. See exactly what Atlassian did at each one — with milestone timeline dots, canonical-stage badges, and SVI mini-gauges.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Atlassian 12-phase growth map — demo step 4",
+  description: "Every founder walks the same 12 phases from Vision to Exit. See exactly what Atlassian did at each one — milestone timeline dots, stage badges and SVI mini-gauges.",
+  path: "/showcase/atlassian/growth-phases",
+});
 
 interface PhaseColumn {
   phase: number;

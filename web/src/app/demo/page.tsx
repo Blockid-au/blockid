@@ -12,6 +12,7 @@
  */
 
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import { CheckCircle2 } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
@@ -19,15 +20,11 @@ import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
 import { GrowthPhaseStrip } from "@/components/marketing/growth-phase-strip";
 
-const SITE_URL = "https://blockid.au";
-
-export const metadata: Metadata = {
-  title: "Book a demo — BlockID.au",
-  description:
-    "See a 20-minute walk-through of the BlockID.au investor-readiness stack — SVI, valuation, cap table, ESOP, and data room in one live session.",
-  alternates: { canonical: `${SITE_URL}/demo` },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Book a BlockID demo",
+  description: "See a 20-minute walk-through of the BlockID.au investor-readiness stack — SVI, valuation, cap table, ESOP, and data room in one live session.",
+  path: "/demo",
+});
 
 const HIGHLIGHTS = [
   "SVI live-score against a startup you nominate before the call.",

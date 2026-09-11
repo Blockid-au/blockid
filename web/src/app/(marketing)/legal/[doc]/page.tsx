@@ -28,25 +28,25 @@ type DocSlug = "terms" | "privacy" | "disclaimers" | "mentor-access-policy";
 
 const DOC_META: Record<DocSlug, { title: string; description: string; heading: string }> = {
   terms: {
-    title: "Terms of Service — BlockID.au",
+    title: "Terms of Service",
     description:
       "Auschain PTY LTD Terms of Service governing use of the BlockID.au platform.",
     heading: "Terms of Service",
   },
   privacy: {
-    title: "Privacy Policy — BlockID.au",
+    title: "Privacy Policy",
     description:
       "How Auschain PTY LTD collects, holds, uses, and discloses personal information under the Privacy Act 1988 (Cth).",
     heading: "Privacy Policy",
   },
   disclaimers: {
-    title: "Legal disclaimers — BlockID.au",
+    title: "Legal disclaimers",
     description:
       "Canonical disclaimers surfaced across BlockID.au — advice, wholesale, equity offer, share issuance, trial, and more.",
     heading: "Legal disclaimers",
   },
   "mentor-access-policy": {
-    title: "Mentor Access Policy — BlockID.au",
+    title: "Mentor Access Policy",
     description:
       "What mentors see when a founder shares access, how long consent lasts, and how founders can revoke access at any time.",
     heading: "Mentor Access Policy",
