@@ -6,6 +6,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import {
+  ValuationTrendChart,
+  type ValuationTrendRow,
+} from "@/components/dashboard/valuation-trend-chart";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +125,11 @@ interface RawEntry {
   total_score: number;
   valuation_low_aud: number | null;
   valuation_high_aud: number | null;
+  /** S17-B (migration 0330) — present once applied; select("*") tolerates absence. */
+  valuation_method?: string | null;
+  valuation_method_note?: string | null;
+  connected_mrr_aud?: number | null;
+  connected_mrr_provider?: string | null;
   source: string | null;
   created_at: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,6 +173,17 @@ export default async function StartupHistoryPage({
   }
 
   const startupName = entries[0].startup_name;
+  const trendRows: ValuationTrendRow[] = entries.map((e) => ({
+    id: e.id,
+    createdAt: e.created_at,
+    svi: e.total_score,
+    lowAud: e.valuation_low_aud,
+    highAud: e.valuation_high_aud,
+    method: e.valuation_method ?? null,
+    methodNote: e.valuation_method_note ?? null,
+    connectedMrrAud: e.connected_mrr_aud ?? null,
+    connectedMrrProvider: e.connected_mrr_provider ?? null,
+  }));
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -182,6 +202,12 @@ export default async function StartupHistoryPage({
           <p className="text-sm text-muted mt-1">
             Analysis History &mdash; {entries.length} record{entries.length !== 1 ? "s" : ""}
           </p>
+        </div>
+
+        {/* ── SVI + AUD valuation band (S17-B) ── */}
+        <div className="rounded-2xl border border-line-subtle bg-surface-sunken px-6 py-5">
+          <h2 className="text-sm font-semibold text-primary mb-3">SVI &amp; valuation over time</h2>
+          <ValuationTrendChart rows={trendRows} startupName={startupName} />
         </div>
 
         {/* ── Entry cards ── */}
@@ -247,6 +273,21 @@ export default async function StartupHistoryPage({
                           ? `${latestLow} – ${latestHigh}`
                           : latestLow ?? latestHigh}
                       </span>
+                      {entry.valuation_method === "svi+arr_multiple" && (
+                        <span className="ml-1.5">
+                          · Includes connected revenue
+                          {entry.connected_mrr_aud
+                            ? ` (${fmtAud(entry.connected_mrr_aud)} MRR from ${
+                                entry.connected_mrr_provider === "xero" ? "Xero" : "Stripe"
+                              })`
+                            : ""}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {entry.valuation_method_note && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
+                      {entry.valuation_method_note}
                     </p>
                   )}
 

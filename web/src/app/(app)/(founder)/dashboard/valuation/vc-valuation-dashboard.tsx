@@ -101,6 +101,15 @@ export function VcValuationDashboard() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [svi, setSvi] = React.useState<number | null>(null);
+  // S17-B — connected-revenue cross-check metadata from /api/valuation/vc.
+  const [connectedRevenue, setConnectedRevenue] = React.useState<{
+    label: string;
+    relation: "overlap" | "disjoint";
+    multipleLow: number;
+    multipleHigh: number;
+    multipleSource: string;
+  } | null>(null);
+  const [methodNote, setMethodNote] = React.useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = React.useState(false);
 
   const handlePdfExport = React.useCallback(async () => {
@@ -134,6 +143,8 @@ export function VcValuationDashboard() {
         if (d.ok) {
           setReport(d.report);
           setSvi(d.svi ?? null);
+          setConnectedRevenue(d.connectedRevenue ?? null);
+          setMethodNote(d.methodNote ?? null);
         } else {
           setError(d.error ?? "Could not load valuation");
         }
@@ -188,6 +199,16 @@ export function VcValuationDashboard() {
             <p className="mt-1 text-sm text-brand-200">
               {fmtAud(report.blended.lowAud)} – {fmtAud(report.blended.highAud)} range
             </p>
+            {connectedRevenue && (
+              <p className="mt-1 text-xs text-brand-200" data-testid="connected-revenue-line">
+                {connectedRevenue.label} · {connectedRevenue.multipleLow}–{connectedRevenue.multipleHigh}× ARR ({connectedRevenue.multipleSource})
+              </p>
+            )}
+            {methodNote && (
+              <p className="mt-1 text-xs text-amber-200" data-testid="valuation-method-note">
+                {methodNote}
+              </p>
+            )}
           </div>
           <div className="text-right flex flex-col items-end gap-2">
             <div>

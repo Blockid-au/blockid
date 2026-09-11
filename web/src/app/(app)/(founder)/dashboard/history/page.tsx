@@ -6,6 +6,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import {
+  ValuationTrendChart,
+  type ValuationTrendRow,
+} from "@/components/dashboard/valuation-trend-chart";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +52,22 @@ function sourceLabel(source: string | null | undefined) {
   return source.toLowerCase().includes("svi") ? "svi" : "blockid";
 }
 
+// S17-B — rows → chart input (the select above is the only source; the
+// optional method columns arrive once migration 0330 is applied).
+function toTrendRows(entries: RawEntry[]): ValuationTrendRow[] {
+  return entries.map((e) => ({
+    id: e.id,
+    createdAt: e.created_at,
+    svi: e.total_score,
+    lowAud: e.valuation_low_aud,
+    highAud: e.valuation_high_aud,
+    method: e.valuation_method ?? null,
+    methodNote: e.valuation_method_note ?? null,
+    connectedMrrAud: e.connected_mrr_aud ?? null,
+    connectedMrrProvider: e.connected_mrr_provider ?? null,
+  }));
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface RawEntry {
@@ -57,6 +77,10 @@ interface RawEntry {
   total_score: number;
   valuation_low_aud: number | null;
   valuation_high_aud: number | null;
+  valuation_method?: string | null;
+  valuation_method_note?: string | null;
+  connected_mrr_aud?: number | null;
+  connected_mrr_provider?: string | null;
   source: string | null;
   created_at: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -258,6 +282,20 @@ export default async function ScoreHistoryPage() {
                   </div>
                 )}
               </div>
+
+              {/* ── SVI + AUD valuation band (S17-B) ── */}
+              {group.entries.length > 1 && (
+                <div className="px-6 py-4 border-b border-line-subtle">
+                  <p className="text-[10px] uppercase tracking-wider text-muted mb-2">
+                    SVI &amp; valuation over time
+                  </p>
+                  <ValuationTrendChart
+                    rows={toTrendRows(group.entries)}
+                    startupName={group.startup_name}
+                    compact
+                  />
+                </div>
+              )}
 
               {/* ── Recent entries list ── */}
               <div className="px-6 py-3">

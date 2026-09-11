@@ -11,7 +11,11 @@
 //     createdAt: string,
 //     overallScore: number,
 //     dimScores: { ftv, mpc, ptd, tre, cgh, iri, lco, svm },
-//     criterionCount: number
+//     criterionCount: number,
+//     valuationAud: number | null   // S17-B: svi_snapshots.estimated_valuation
+//                                   // (single point written by /api/svi/rescore;
+//                                   // the low/high band lives on
+//                                   // startup_score_history → /dashboard/history)
 //   }]
 // }
 
@@ -32,6 +36,7 @@ interface SnapshotRow {
   dim_results: unknown;
   criterion_results: unknown;
   project_id: string | null;
+  estimated_valuation?: number | string | null;
 }
 
 function extractDimScores(row: SnapshotRow): Record<DimKey, number | null> {
@@ -86,7 +91,7 @@ export async function GET(request: Request) {
 
   let q = supabase
     .from("svi_snapshots")
-    .select("created_at, svi_total, dimension_scores, dim_results, criterion_results, project_id")
+    .select("created_at, svi_total, dimension_scores, dim_results, criterion_results, project_id, estimated_valuation")
     .eq("account_id", accountId)
     .order("created_at", { ascending: false })
     .limit(12);
@@ -107,11 +112,14 @@ export async function GET(request: Request) {
       overall = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
     }
     const criterionCount = Array.isArray(row.criterion_results) ? row.criterion_results.length : 0;
+    const estRaw = row.estimated_valuation == null ? NaN : Number(row.estimated_valuation);
+    const valuationAud = Number.isFinite(estRaw) && estRaw > 0 ? Math.round(estRaw) : null;
     return {
       createdAt: row.created_at,
       overallScore: overall,
       dimScores: dims,
       criterionCount,
+      valuationAud,
     };
   });
 

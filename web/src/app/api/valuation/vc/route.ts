@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { buildVcValuationReport, type VcValuationInput } from "@/lib/agents/cfo-valuation";
 import { findSVIAccountWithFallback, getProjectIdFromRequest } from "@/lib/projects";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
+import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
 
 export const dynamic = "force-dynamic";
 
@@ -142,17 +144,43 @@ export async function GET() {
 
     const report = buildVcValuationReport(input);
 
+    // S17-B — connected-revenue cross-check on the blended range. The
+    // per-method rows stay untouched so the Methods tab still explains the
+    // SVI-side derivation; `sviRange` keeps the pre-bridge blended numbers.
+    const signals = await loadConnectedRevenueSignals(supabase, {
+      userId: user.id,
+      projectId,
+      accountId: account.id as string,
+    });
+    const bridged = applyConnectedRevenueBridge(report.blended, signals, { sector });
+    const sviRange = {
+      lowAud: report.blended.lowAud,
+      midAud: report.blended.midAud,
+      highAud: report.blended.highAud,
+    };
+    report.blended = {
+      ...report.blended,
+      lowAud: bridged.lowAud,
+      midAud: bridged.midAud,
+      highAud: bridged.highAud,
+    };
+
     return NextResponse.json({
       ok: true,
       report,
       svi: sviScore,
       stage,
       numericStage,
+      valuationMethod: bridged.valuationMethod,
+      methodNote: bridged.methodNote,
+      connectedRevenue: bridged.connectedRevenue,
+      sviRange,
       dataSource: {
         hasMetrics: !!metrics,
         hasAnalysis: !!latestAnalysis,
         hasSector: !!sector,
         mrrAud: mrrAud ?? null,
+        connectedMrrAud: bridged.connectedRevenue?.mrrAud ?? null,
       },
     });
   } catch (err) {

@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { computeValuation, type ValuationInput } from "@/lib/valuation";
 import { canAfford, spendCredits } from "@/lib/credits";
 import { getProjectIdFromRequest, findSVIAccountWithFallback } from "@/lib/projects";
+import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
+import { applyConnectedRevenueBridge } from "@/lib/valuation-mrr-bridge";
 
 export const dynamic = "force-dynamic";
 
@@ -109,7 +111,32 @@ export async function GET() {
     };
 
     // 5. Run valuation engine
-    const valuation = computeValuation(input);
+    const engine = computeValuation(input);
+
+    // 6. S17-B — cross-check against connected revenue (Stripe `svi_signals.mrr_aud`,
+    //    Xero `svi_evidence.xero_revenue`). Overlap narrows, disagreement widens
+    //    + notes, stale (> 90d) signals are ignored + noted, no MRR = unchanged.
+    const signals = await loadConnectedRevenueSignals(supabase, {
+      userId: user.id,
+      projectId,
+      accountId: account.id as string,
+    });
+    const bridged = applyConnectedRevenueBridge(engine, signals, { sector: input.sector });
+
+    const valuation = {
+      ...engine,
+      lowAud: bridged.lowAud,
+      midAud: bridged.midAud,
+      highAud: bridged.highAud,
+      method:
+        bridged.valuationMethod === "svi+arr_multiple"
+          ? `${engine.method} + connected ARR multiple cross-check`
+          : engine.method,
+      valuationMethod: bridged.valuationMethod,
+      methodNote: bridged.methodNote,
+      connectedRevenue: bridged.connectedRevenue,
+      sviRange: { lowAud: engine.lowAud, midAud: engine.midAud, highAud: engine.highAud },
+    };
 
     return NextResponse.json({
       ok: true,

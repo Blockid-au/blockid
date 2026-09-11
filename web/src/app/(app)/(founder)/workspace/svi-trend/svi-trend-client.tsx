@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ValuationTrendChart } from "@/components/dashboard/valuation-trend-chart";
 
 const DIM_KEYS = ["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"] as const;
 type DimKey = (typeof DIM_KEYS)[number];
@@ -29,7 +30,12 @@ interface Snapshot {
   overallScore: number;
   dimScores: Record<DimKey, number | null>;
   criterionCount: number;
+  /** S17-B — svi_snapshots.estimated_valuation (A$), null when the rescore did not record one. */
+  valuationAud?: number | null;
 }
+
+const SNAPSHOT_VALUATION_EMPTY_COPY =
+  "Estimated valuation appears once an evidence-driven rescore records one — connect Stripe or Xero, or add evidence, to trigger a rescore. Your scored analyses carry the full A$ low–high band on Score History.";
 
 interface Props {
   projectId: string;
@@ -226,6 +232,30 @@ export function SviTrendClient({ projectId }: Props) {
             height={220}
           />
         )}
+      </div>
+
+      {/* ── Estimated valuation (A$) — S17-B ────────────────────────────── */}
+      <div className="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+          <h2 className="text-sm font-bold text-ink-800 dark:text-ink-100">Estimated valuation over time (A$)</h2>
+          <Link
+            href="/dashboard/history"
+            className="text-[11px] font-medium text-brand-600 dark:text-brand-300 hover:underline"
+          >
+            Full A$ low–high band on Score History <ArrowUpRight className="inline h-3 w-3" aria-hidden="true" />
+          </Link>
+        </div>
+        <ValuationTrendChart
+          rows={snapshots.map((s, i) => ({
+            id: `${s.createdAt}-${i}`,
+            createdAt: s.createdAt,
+            svi: s.overallScore,
+            lowAud: s.valuationAud ?? null,
+            highAud: s.valuationAud ?? null,
+          }))}
+          hideSvi
+          emptyCopy={SNAPSHOT_VALUATION_EMPTY_COPY}
+        />
       </div>
 
       {/* ── 8 dim sparklines ────────────────────────────────────────────── */}
