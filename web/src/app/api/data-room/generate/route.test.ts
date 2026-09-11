@@ -413,18 +413,27 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
     ]);
   });
 
-  it("scopes shareholders on .eq('account_id', user.id) — cap-table tenancy boundary", async () => {
+  it("scopes shareholders on .eq('account_id', user.id) — cap-table tenancy boundary (no project → no project filter, like GET /api/cap-table)", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
     getProjectIdFromRequestMock.mockResolvedValue(null);
     spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
     await POST();
-    const shEq = state.eqCalls.find((c) => c.table === "shareholders");
-    expect(shEq).toEqual({
-      table: "shareholders",
-      col: "account_id",
-      val: "u-1",
-    });
+    expect(state.eqCalls.filter((c) => c.table === "shareholders")).toEqual([
+      { table: "shareholders", col: "account_id", val: "u-1" },
+    ]);
+  });
+
+  it("S18-A: with an active project, shareholders are ALSO filtered on project_id", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    getProjectIdFromRequestMock.mockResolvedValue("proj-xyz");
+    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
+    await POST();
+    expect(state.eqCalls.filter((c) => c.table === "shareholders")).toEqual([
+      { table: "shareholders", col: "account_id", val: "u-1" },
+      { table: "shareholders", col: "project_id", val: "proj-xyz" },
+    ]);
   });
 
   // S17-A — project-level permissions on a shared project.
@@ -455,11 +464,12 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
       { table: "svi_accounts", col: "email", val: "owner@x.co" },
       { table: "svi_accounts", col: "project_id", val: "proj-shared" },
     ]);
-    expect(state.eqCalls.find((c) => c.table === "shareholders")).toEqual({
-      table: "shareholders",
-      col: "account_id",
-      val: "owner-1",
-    });
+    // S18-A: shareholders keyed on the owner's id AND the scoped project —
+    // the same filter GET /api/cap-table applies.
+    expect(state.eqCalls.filter((c) => c.table === "shareholders")).toEqual([
+      { table: "shareholders", col: "account_id", val: "owner-1" },
+      { table: "shareholders", col: "project_id", val: "proj-shared" },
+    ]);
     const body = await res.json();
     expect(body.role).toBe("editor");
     expect(body.creditNote).toMatch(/your own credits/);

@@ -203,11 +203,15 @@ export async function POST() {
     shareholders: Array<{ name: string; role: string; shares_held: number }>;
   } | null = null;
 
-  const { data: holders } = await supabase
+  // S18-A — keyed on the owner's app_users id AND the active project, the
+  // same filter GET /api/cap-table applies, so project B's holders never
+  // land in project A's team section.
+  const holderQuery = supabase
     .from("shareholders")
     .select("name, role, shares_held")
-    .eq("account_id", ownerUserId)
-    .order("created_at", { ascending: true });
+    .eq("account_id", ownerUserId);
+  if (projectId) holderQuery.eq("project_id", projectId);
+  const { data: holders } = await holderQuery.order("created_at", { ascending: true });
 
   if (holders && holders.length > 0) {
     capTable = {

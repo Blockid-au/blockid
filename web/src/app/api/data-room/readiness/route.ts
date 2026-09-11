@@ -2,7 +2,12 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectScope, assertProjectAccess, type ProjectRole } from "@/lib/projects";
+import {
+  getProjectScope,
+  assertProjectScope,
+  findSVIAccountWithFallback,
+  type ProjectRole,
+} from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +86,7 @@ export async function GET(req: NextRequest) {
   const qProjectId = req.nextUrl.searchParams.get("project_id");
   let projectId: string | null;
   let ownerUserId = user.id;
+  let dataEmail = user.email;
   let role: ProjectRole = "owner";
   try {
     if (qProjectId !== null) {
@@ -88,15 +94,17 @@ export async function GET(req: NextRequest) {
       // colocated test); a non-empty id must be one the caller can open.
       projectId = qProjectId;
       if (qProjectId) {
-        const access = await assertProjectAccess(user.id, qProjectId, "viewer");
-        ownerUserId = access.ownerUserId;
-        role = access.role;
+        const scope = await assertProjectScope(user, qProjectId, "viewer");
+        ownerUserId = scope.ownerUserId;
+        dataEmail = scope.dataEmail;
+        role = scope.role;
       }
     } else {
       const scope = await getProjectScope("viewer");
       projectId = scope?.projectId ?? null;
       if (scope) {
         ownerUserId = scope.ownerUserId;
+        dataEmail = scope.dataEmail;
         role = scope.role;
       }
     }
@@ -161,16 +169,32 @@ export async function GET(req: NextRequest) {
   };
 
   // Also check svi_evidence and shareholders tables for additional signals
-  // (non-data-room evidence that counts toward team_info and cap_table)
-  const { count: evidenceCount } = await supabase
-    .from("svi_evidence")
-    .select("id", { count: "exact", head: true })
-    .eq("account_id", ownerUserId);
+  // (non-data-room evidence that counts toward team_info and cap_table).
+  //
+  // S18-A — the two side-channels use DIFFERENT keys:
+  //   • svi_evidence.account_id → svi_accounts.id (FK, migration 0008), so
+  //     the project's SVI account is resolved first on (owner email,
+  //     project_id) — keying on the owner's app_users id always counted 0.
+  //   • shareholders.account_id → the owner's app_users id (cap-table
+  //     route), narrowed to the active project like GET /api/cap-table.
+  const sviAccount = await findSVIAccountWithFallback(dataEmail, projectId, "id", {
+    callerEmail: user.email,
+  });
+  let evidenceCount: number | null = 0;
+  if (sviAccount?.id) {
+    const { count } = await supabase
+      .from("svi_evidence")
+      .select("id", { count: "exact", head: true })
+      .eq("account_id", sviAccount.id as string);
+    evidenceCount = count;
+  }
 
-  const { count: shareholderCount } = await supabase
+  const shareholderQuery = supabase
     .from("shareholders")
     .select("id", { count: "exact", head: true })
     .eq("account_id", ownerUserId);
+  if (projectId) shareholderQuery.eq("project_id", projectId);
+  const { count: shareholderCount } = await shareholderQuery;
 
   for (const doc of docs ?? []) {
     const cat = classifyDocument(doc);
