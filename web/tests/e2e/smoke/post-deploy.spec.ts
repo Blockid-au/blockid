@@ -15,7 +15,8 @@
  * Constraints:
  *   - Reuses playwright.config.ts baseURL (PLAYWRIGHT_BASE_URL env, defaults
  *     to https://blockid.au via package.json script).
- *   - <10 assertions total, target <60s wall time. Chromium only.
+ *   - Target <90s wall time. Chromium only. Every S7-B test below is
+ *     capped at 15 s (test.setTimeout) so a stuck page cannot hang Gate 12.
  */
 
 import { test, expect } from "@playwright/test";
@@ -197,5 +198,111 @@ test.describe("Post-deploy hydrated smoke", () => {
     expect(resp.status()).toBe(200);
     const ct = resp.headers()["content-type"] ?? "";
     expect(ct.toLowerCase()).toContain("image/png");
+  });
+
+  // ── S7-B (2026-09-10): Money Finder + G12 marketing surfaces ──────────
+  // Each of these is a hydrated journey the curl gates cannot see: the
+  // /funding intake is a client form that only enables its submit button
+  // after React state fills in, the preview card is fetched from the live
+  // /api/funding/preview route (nothing stubbed — the point is to catch a
+  // broken catalogue read or matcher), and the sample report / unlock
+  // tables / comparison table / pilot CTA are the pages the ProductHunt kit
+  // and the G12 evaluator funnel link to. Every test keeps a 15 s ceiling.
+
+  test("/funding — hero + 3-question intake, live preview after NSW / MVP / agtech", async ({
+    page,
+  }) => {
+    test.setTimeout(15_000);
+    await page.goto("/funding", { waitUntil: "domcontentloaded" });
+    // Hero H1 is live-computed ("There's A$X in Australian grants…") or the
+    // fallback ("Australian startup grants, programs and investors…") — both
+    // name grants.
+    await expect(
+      page.getByRole("heading", { level: 1, name: /grants/i }),
+    ).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(
+      page.getByRole("heading", { name: /what could you apply for this year/i }),
+    ).toBeVisible({ timeout: PAGE_TIMEOUT });
+
+    // Hydration probe: the "Improve my match" drawer toggle only flips
+    // aria-expanded once React owns the form. Re-click while it does not,
+    // instead of sleeping — a click that lands pre-hydration is simply lost.
+    const drawer = page.getByRole("button", { name: /improve my match/i });
+    await expect(drawer).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(async () => {
+      await drawer.click();
+      await expect(drawer).toHaveAttribute("aria-expanded", "true", { timeout: 1_000 });
+    }).toPass({ timeout: PAGE_TIMEOUT });
+
+    await page
+      .getByLabel(/what are you building/i)
+      .fill("Soil-moisture sensors and an app that tell grain farmers when to irrigate");
+    await page.getByLabel(/where is the company registered/i).selectOption("NSW");
+    await page.getByRole("radio", { name: /^MVP/i }).check();
+    const agtech = page.getByRole("button", { name: /agtech \/ food/i });
+    await agtech.click();
+    await expect(agtech).toHaveAttribute("aria-pressed", "true", { timeout: PAGE_TIMEOUT });
+
+    const submit = page.getByRole("button", { name: /show my matches/i });
+    await expect(submit).toBeEnabled({ timeout: PAGE_TIMEOUT });
+    await submit.click();
+
+    // Live preview: the D-3 sentence, or the never-blank national fallback.
+    await expect(
+      page.getByRole("heading", {
+        name: /^We found \d+ grants|^No exact matches yet/i,
+      }),
+    ).toBeVisible({ timeout: PAGE_TIMEOUT });
+  });
+
+  test("/funding/report/demo — sample banner, >= 3 grant cards, Gantt, A$3 CTA", async ({
+    page,
+  }) => {
+    test.setTimeout(15_000);
+    await page.goto("/funding/report/demo", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("demo-report-banner")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(page.getByTestId("demo-report-cta")).toHaveAttribute("href", "/funding?intent=money");
+    const cards = page.getByRole("region", { name: /grants, ranked/i }).getByRole("listitem");
+    await expect(cards.nth(2)).toBeVisible({ timeout: PAGE_TIMEOUT });
+    expect(await cards.count()).toBeGreaterThanOrEqual(3);
+    await expect(
+      page.getByRole("img", { name: /12-month funding timeline/i }),
+    ).toBeVisible({ timeout: PAGE_TIMEOUT });
+    // Nothing a paid viewer would see.
+    await expect(page.getByRole("link", { name: /download pdf/i })).toHaveCount(0);
+  });
+
+  test("/docs/unlocks — renders the unlock matrix and the rules table", async ({
+    page,
+  }) => {
+    test.setTimeout(15_000);
+    await page.goto("/docs/unlocks", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("unlock-matrix-table")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(page.getByTestId("unlock-rules-table")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    expect(await page.getByTestId("unlock-matrix-table").getByRole("row").count()).toBeGreaterThan(1);
+    expect(await page.getByTestId("unlock-rules-table").getByRole("row").count()).toBeGreaterThan(1);
+  });
+
+  test("/compare/chatgpt — renders the BlockID vs ChatGPT comparison table", async ({
+    page,
+  }) => {
+    test.setTimeout(15_000);
+    await page.goto("/compare/chatgpt", { waitUntil: "domcontentloaded" });
+    const table = page.getByRole("table").first();
+    await expect(table).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(table.getByRole("columnheader", { name: /^BlockID$/ })).toBeVisible();
+    await expect(table.getByRole("columnheader", { name: /^ChatGPT$/ })).toBeVisible();
+    expect(await table.getByRole("row").count()).toBeGreaterThan(3);
+  });
+
+  test("/solutions/accelerator — pilot offer CTA links the Program trial", async ({
+    page,
+  }) => {
+    test.setTimeout(15_000);
+    await page.goto("/solutions/accelerator", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("pilot-cta")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    const link = page.getByTestId("pilot-cta-link");
+    await expect(link).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(link).toHaveAttribute("href", /\/signup\?plan=investor_vc_small&trial=1&from=pilot/);
   });
 });
