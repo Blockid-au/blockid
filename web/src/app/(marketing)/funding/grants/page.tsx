@@ -11,6 +11,12 @@
  *
  * SEO (S8-A): primary keyword "startup grants australia"; the state-only
  * filter view targets "<state> startup grants" (see `stateOnlyFilter`).
+ *
+ * S10-A (perf audit finding 4): rows are grouped by state — federal first
+ * (six compact rows + a `<details>` tail), each state collapsed into its
+ * own `<details>` of name-only links; the state the visitor filtered to
+ * leads and expands. Every indexable grant URL stays in the HTML exactly
+ * once and the page stays under 300 KB.
  */
 
 import type { Metadata } from "next";
@@ -22,10 +28,11 @@ import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
 import { FundingGuides } from "@/components/funding/funding-guides";
 import { FilterChips, type FilterChipGroup } from "@/components/funding/filter-chips";
-import { GrantCard } from "@/components/funding/grant-card";
+import { DirectoryGroup } from "@/components/funding/directory-group";
+import { GrantRow, INDEX_ROWS_CLASS } from "@/components/funding/index-rows";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { listGrants } from "@/lib/funding/data";
-import { AU_STATES } from "@/lib/funding/seed-map";
+import { AU_STATES, type AuState } from "@/lib/funding/seed-map";
 import {
   SITE_URL,
   applyGrantFilters,
@@ -36,19 +43,21 @@ import {
   grantUrl,
   latestVerifiedAt,
   parseGrantFilters,
-  sortByStatusThenName,
   stageLabel,
   stateLabel,
   type SearchParamsLike,
 } from "@/lib/funding/directory";
+import { grantGroupExpanded, groupGrantsByState } from "@/lib/funding/index-groups";
 import {
   FUNDING_CRUMBS,
   GRANTS_DESCRIPTION,
   GRANTS_TITLE,
   GRANT_GUIDES,
+  grantPath,
   grantsStatePath,
   grantsStateSeo,
   stateOnlyFilter,
+  stateSeoName,
 } from "@/lib/funding/seo";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
@@ -78,7 +87,9 @@ export default async function GrantsDirectoryPage({
   const pagePath = stateOnly ? grantsStatePath(stateOnly) : PATH;
   const all = await listGrants({ excludeNonMatching: true });
   const stats = grantStats(all);
-  const rows = sortByStatusThenName(applyGrantFilters(all, filters));
+  const rows = applyGrantFilters(all, filters);
+  const filterState = (AU_STATES as readonly string[]).includes(filters.state ?? "") ? (filters.state as AuState) : null;
+  const stateGroups = groupGrantsByState(rows, filterState).map((g) => ({ ...g, expanded: grantGroupExpanded(g.key, filterState) }));
   const lastVerified = latestVerifiedAt(all);
 
   const current = { state: filters.state, type: filters.type, stage: filters.stage, status: filters.status };
@@ -104,18 +115,19 @@ export default async function GrantsDirectoryPage({
     { param: "stage", label: "Stage", options: stageOptions },
   ];
 
+  // Capped at the rows visible per expanded group; each state view (which
+  // carries its full list) is referenced as its own ListItem ahead of its rows.
+  const listItems = stateGroups.flatMap((g) => [
+    { name: grantsStateSeo(g.key).h1, url: `${SITE_URL}${grantsStatePath(g.key)}` },
+    ...(g.expanded ? g.visible : []).map((r) => ({ name: r.name, url: grantUrl(r.id) })),
+  ]);
   const itemList = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: stateSeo ? stateSeo.h1 : "Australian startup grants",
     url: `${SITE_URL}${pagePath}`,
-    numberOfItems: rows.length,
-    itemListElement: rows.slice(0, 100).map((g, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      name: g.name,
-      url: grantUrl(g.id),
-    })),
+    numberOfItems: rows.length + stateGroups.length,
+    itemListElement: listItems.map((it, i) => ({ "@type": "ListItem", position: i + 1, ...it })),
   };
 
   const scopeLine = [
@@ -194,10 +206,11 @@ export default async function GrantsDirectoryPage({
       ) : null}
 
       <section className="mx-auto max-w-5xl px-6 pb-12" aria-labelledby="grants-list-heading">
-        <h2 id="grants-list-heading" className="mb-4 text-sm font-semibold text-secondary">
+        <p id="grants-list-heading" className="mb-4 text-sm font-semibold text-secondary">
           {rows.length} {rows.length === 1 ? "grant" : "grants"}
           {scopeLine ? ` · ${scopeLine}` : ""}
-        </h2>
+          {stateGroups.length > 1 ? " · federal first, then by state, open first" : ""}
+        </p>
         {rows.length === 0 ? (
           <p className="rounded-2xl border border-line-subtle bg-surface-sunken p-6 text-sm text-secondary">
             {all.length === 0
@@ -205,10 +218,46 @@ export default async function GrantsDirectoryPage({
               : "No grants match those filters. Try clearing one — national schemes apply in every state."}
           </p>
         ) : (
-          <div className="grid gap-4">
-            {rows.map((g) => (
-              <GrantCard key={g.id} grant={g} />
-            ))}
+          <div className="space-y-10">
+            {stateGroups.map((g) => {
+              const n = g.rows.length;
+              const isNational = g.key === "national";
+              const heading = isNational
+                ? filterState && filterState !== "national"
+                  ? `Federal grants ${stateSeoName(filterState)} startups can also apply for`
+                  : "Federal grants, open Australia-wide"
+                : `${stateLabel(g.key)} grants`;
+              const tailRows = g.expanded ? g.tail : g.rows;
+              return (
+                <DirectoryGroup
+                  key={g.key}
+                  dataAttrs={{ "data-state-group": g.key, "data-expanded": g.expanded ? "true" : "false" }}
+                  headingId={`state-${g.key}`}
+                  heading={heading}
+                  href={grantsStatePath(g.key)}
+                  note={`${n} ${n === 1 ? "grant" : "grants"} · ${g.open} open`}
+                  seeAllLabel={
+                    (g.expanded && n <= g.visible.length) || grantsStatePath(g.key) === pagePath
+                      ? null
+                      : isNational
+                        ? `See all ${n} federal grants`
+                        : `See ${n === 1 ? "the" : `all ${n}`} ${stateSeoName(g.key)} ${n === 1 ? "grant" : "grants"} with the federal schemes`
+                  }
+                  collapsed={!g.expanded}
+                  tail={tailRows.map((r) => ({ href: grantPath(r.id), name: r.name }))}
+                  tailSummary={
+                    g.expanded ? `All ${n} federal grants` : n === 1 ? `The one ${stateLabel(g.key)} grant` : `All ${n} ${stateLabel(g.key)} grants`
+                  }
+                  tailLead={g.expanded ? "Continuing from the rows above, open first then by name:" : "Open first, then by name:"}
+                >
+                  <ul className={INDEX_ROWS_CLASS}>
+                    {g.visible.map((r) => (
+                      <GrantRow key={r.id} grant={r} />
+                    ))}
+                  </ul>
+                </DirectoryGroup>
+              );
+            })}
           </div>
         )}
       </section>

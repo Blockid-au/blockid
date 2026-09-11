@@ -22,6 +22,10 @@ describe("deadlineStatus", () => {
     expect(deadlineStatus({ rolling: true }, TODAY)).toMatchObject({ status: "open", days_until: null });
     expect(deadlineStatus({ rolling: true }, TODAY).label).toBe("Rolling — apply any time");
     expect(deadlineStatus({ catalogue_status: "upcoming" }, TODAY).status).toBe("future");
+    // Upcoming with only a close date known stays future (not "open"); a past close is overdue as usual.
+    expect(deadlineStatus({ catalogue_status: "upcoming", closes_at: "2027-03" }, TODAY)).toMatchObject({ status: "future", label: "Upcoming — closes Mar 2027" });
+    expect(deadlineStatus({ catalogue_status: "upcoming", closes_at: "2020-01-01" }, TODAY).status).toBe("overdue");
+    expect(deadlineStatus({ catalogue_status: "upcoming", opens_at: "2026-10-01", closes_at: "2026-12-01" }, TODAY).status).toBe("future");
   });
 
   it("short-circuits closed / paused catalogue rows", () => {
