@@ -218,6 +218,18 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+describe("S8-C input guards", () => {
+  it("413s an oversize body before parsing; 400s a payment_method_id that is not a Stripe pm_ id", async () => {
+    const big = await POST(req(body({ display_name: "x".repeat(20 * 1024) })));
+    expect(big.status).toBe(413);
+    for (const bad of ["cus_123", "pm_", "pm_1 2", "pm_<script>", "x".repeat(200)]) {
+      const res = await POST(req(body({ payment_method_id: bad })));
+      expect(res.status, bad).toBe(400);
+      expect(await res.json()).toMatchObject({ ok: false, error: "payment_method_required" });
+    }
+  });
+});
+
 describe("plan allow-list", () => {
   it.each(["investor_angel", "investor_advisor", "investor_vc_small"])(
     "accepts evaluator rung %s",

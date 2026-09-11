@@ -4,7 +4,7 @@
 // skipped, stable UIDs, and a VCALENDAR that parses block-by-block.
 
 import { describe, expect, it } from "vitest";
-import { escapeIcsText, renderIcs } from "@/lib/compliance/calendar";
+import { escapeIcsText, renderIcs, safeIcsUri } from "@/lib/compliance/calendar";
 import {
   FUNDING_CALENDAR_NAME,
   FUNDING_CALENDAR_PRODID,
@@ -112,5 +112,27 @@ describe("buildFundingCalendar", () => {
     expect(lines.some((l) => l.startsWith("ATTENDEE:"))).toBe(false);
     expect(lines.some((l) => l.startsWith("X:"))).toBe(false);
     expect(ics).not.toMatch(/\r(?!\n)/);
+  });
+
+  // S8-C review 2026-09-11: URL: is a URI value (not TEXT-escaped), so a CR/LF
+  // inside official_url was still a live injection vector; and UID: is a
+  // single token. Both are now sanitised in renderIcs.
+  it("strips control characters from URL: / UID: and drops non-http official_url", () => {
+    const evil = "https://example.gov.au/x\r\nATTENDEE:mailto:x@example.com\r\nX-INJECT:1";
+    const events = buildFundingCalendar([row({ official_url: evil })], { now: NOW });
+    const ics = renderIcs(events, { now: NOW, calendarName: FUNDING_CALENDAR_NAME, prodId: FUNDING_CALENDAR_PRODID });
+    const lines = ics.split("\r\n");
+    expect(lines.some((l) => l.startsWith("ATTENDEE:"))).toBe(false);
+    expect(lines.some((l) => l.startsWith("X-INJECT:"))).toBe(false);
+    expect(lines.find((l) => l.startsWith("URL:"))).toBe("URL:https://example.gov.au/xATTENDEE:mailto:x@example.comX-INJECT:1");
+    expect(safeIcsUri("javascript:alert(1)")).toBeNull();
+    expect(safeIcsUri("ftp://example.gov.au/x")).toBeNull();
+    expect(safeIcsUri(null)).toBeNull();
+    expect(safeIcsUri("https://example.gov.au/grant?x=1")).toBe("https://example.gov.au/grant?x=1");
+    const js = buildFundingCalendar([row({ official_url: "javascript:alert(1)" })], { now: NOW });
+    const jsIcs = renderIcs(js, { now: NOW, calendarName: FUNDING_CALENDAR_NAME, prodId: FUNDING_CALENDAR_PRODID });
+    expect(jsIcs.split("\r\n").some((l) => l.startsWith("URL:"))).toBe(false);
+    const uidIcs = renderIcs([{ ...events[0], uid: "u\r\nATTENDEE:mailto:y@example.com" }], { now: NOW });
+    expect(uidIcs.split("\r\n").some((l) => l.startsWith("ATTENDEE:"))).toBe(false);
   });
 });

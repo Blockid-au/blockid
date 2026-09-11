@@ -13,6 +13,7 @@
 // cron-runner.sh appends the JSON body to content/reports/cron-health.jsonl.
 
 import { NextResponse } from "next/server";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { retryStuckFundingReports } from "@/lib/funding/report-retry";
 
 export const runtime = "nodejs";
@@ -29,8 +30,8 @@ function isDry(request: Request): boolean {
 }
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // S8-C (2026-09-11): constant-time compare of the bearer secret.
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

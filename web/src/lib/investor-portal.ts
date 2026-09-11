@@ -59,6 +59,11 @@ export interface InvestorPreferences {
 export const FIRM_MAX_LEN = 80;
 export const THESIS_MAX_LEN = 200;
 
+export const STAGE_BANDS: readonly StageBand[] = ["pre_seed", "seed", "series_a", "series_b", "growth", "any"];
+export const CHEQUE_BANDS: readonly ChequeBand[] = ["under_25k", "25k_100k", "100k_500k", "500k_2m", "2m_plus", "any"];
+/** Per-item cap for the free-text `sectors` / `geos` tags (S8-C review 2026-09-11). */
+export const PREF_TAG_MAX_LEN = 40;
+
 export const DEFAULT_PREFS: InvestorPreferences = {
   sectors: [],
   stages: ["any"],
@@ -507,17 +512,42 @@ function cardText(v: unknown, max: number): string | null {
   return t.length ? t : null;
 }
 
-function normalisePrefs(p: Partial<InvestorPreferences>): InvestorPreferences {
+/** String tags only, trimmed, capped, de-duplicated — objects / numbers / blanks dropped. */
+function tagList(v: unknown, max: number): string[] {
+  if (!Array.isArray(v)) return [];
+  const out: string[] = [];
+  for (const item of v.slice(0, max)) {
+    if (typeof item !== "string") continue;
+    const t = item.replace(/\s+/g, " ").trim().slice(0, PREF_TAG_MAX_LEN);
+    if (t && !out.includes(t)) out.push(t);
+  }
+  return out;
+}
+
+/**
+ * Untrusted prefs patch → the stored shape. Enums are validated against
+ * STAGE_BANDS / CHEQUE_BANDS (an unknown value falls back to "any" rather
+ * than being persisted verbatim), tags are string-only and capped, and
+ * min_svi must be a finite number (S8-C review 2026-09-11). Exported for
+ * the colocated test.
+ */
+export function normalisePrefs(p: Partial<InvestorPreferences>): InvestorPreferences {
   const firm = cardText(p.firm, FIRM_MAX_LEN);
   const thesis = cardText(p.thesis, THESIS_MAX_LEN);
+  const stages = Array.isArray(p.stages)
+    ? (p.stages.filter((s): s is StageBand => typeof s === "string" && (STAGE_BANDS as readonly string[]).includes(s)).slice(0, 6))
+    : [];
+  const geos = tagList(p.geos, 20);
+  const minSvi = typeof p.min_svi === "number" && Number.isFinite(p.min_svi) ? Math.max(0, Math.min(100, p.min_svi)) : null;
   return {
-    sectors: Array.isArray(p.sectors) ? p.sectors.slice(0, 20).map(String) : [],
-    stages: Array.isArray(p.stages) && p.stages.length
-      ? (p.stages.slice(0, 6) as StageBand[])
-      : ["any"],
-    geos: Array.isArray(p.geos) ? p.geos.slice(0, 20).map(String) : ["AU"],
-    cheque_band: (p.cheque_band as ChequeBand) ?? "any",
-    min_svi: typeof p.min_svi === "number" ? Math.max(0, Math.min(100, p.min_svi)) : null,
+    sectors: tagList(p.sectors, 20),
+    stages: stages.length ? Array.from(new Set(stages)) : ["any"],
+    geos: geos.length ? geos : ["AU"],
+    cheque_band:
+      typeof p.cheque_band === "string" && (CHEQUE_BANDS as readonly string[]).includes(p.cheque_band)
+        ? (p.cheque_band as ChequeBand)
+        : "any",
+    min_svi: minSvi,
     updated_at: typeof p.updated_at === "string" ? p.updated_at : null,
     // Only carried when set so DEFAULT_PREFS and legacy rows keep their shape.
     ...(firm ? { firm } : {}),

@@ -13,6 +13,8 @@
 // flag + persona so the preferences page can render the switch.
 
 import { NextResponse, type NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/entitlements";
 import {
@@ -25,6 +27,10 @@ import {
 } from "@/lib/investor-portal";
 
 export const dynamic = "force-dynamic";
+
+export const POST_RATE_MAX = 60;
+export const POST_RATE_WINDOW_MS = 60_000;
+const BODY_MAX_BYTES = 16 * 1024;
 
 /** Wire body: the prefs patch plus the optional opt-in flag. */
 export type InvestorPreferencesBody = Partial<InvestorPreferences> & {
@@ -43,15 +49,21 @@ export async function GET() {
     getInvestorPreferences(user.id),
     getInvestorVisibility(user.id),
   ]);
-  return NextResponse.json({
-    ok: true,
-    prefs,
-    discoverable: visibility.discoverable,
-    evaluator: visibility.evaluator,
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      prefs,
+      discoverable: visibility.discoverable,
+      evaluator: visibility.evaluator,
+    },
+    { headers: PRIVATE_JSON_HEADERS },
+  );
 }
 
 export async function POST(req: NextRequest) {
+  const crossSite = rejectCrossSite(req);
+  if (crossSite) return crossSite;
+
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
@@ -73,15 +85,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: InvestorPreferencesBody = {};
-  try {
-    body = (await req.json()) as InvestorPreferencesBody;
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "invalid_json" },
-      { status: 400 },
-    );
-  }
+  // S8-C: 16 KB cap — prefs are a handful of short tags; per-user write bound.
+  const limited = enforceRateLimit("investor-preferences", user.id, req, POST_RATE_MAX, POST_RATE_WINDOW_MS);
+  if (limited) return limited;
+  const read = await readJsonBody<InvestorPreferencesBody>(req, BODY_MAX_BYTES);
+  if (!read.ok) return read.response;
+  const body: InvestorPreferencesBody = read.body;
 
   // Split the opt-in flag off the prefs patch. A non-object body (array,
   // scalar) is forwarded verbatim as before — the lib normalises it.

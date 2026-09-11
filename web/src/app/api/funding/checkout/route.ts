@@ -17,6 +17,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/security/request-guards";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -27,6 +28,7 @@ import { createPendingGuestReport } from "@/lib/funding/reports";
 export const dynamic = "force-dynamic";
 
 const ORIGIN_FALLBACK = "https://blockid.au";
+const INTAKE_BODY_MAX_BYTES = 16 * 1024;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Same block-list as guest-analysis/create-order — the report is delivered by
@@ -72,12 +74,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Payments not configured" }, { status: 503 });
   }
 
-  let body: Record<string, unknown> = {};
-  try {
-    body = ((await request.json()) ?? {}) as Record<string, unknown>;
-  } catch {
+  // S8-C: 16 KB byte cap before parsing.
+  const read = await readJsonBody<Record<string, unknown> | null>(request, INTAKE_BODY_MAX_BYTES);
+  if (!read.ok) {
+    if (read.status === 413) return read.response;
     return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
   }
+  const body: Record<string, unknown> = read.body && typeof read.body === "object" ? read.body : {};
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   if (email.length === 0 || email.length > 254 || !EMAIL_RE.test(email)) {

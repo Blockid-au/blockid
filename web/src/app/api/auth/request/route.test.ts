@@ -265,6 +265,15 @@ describe("POST /api/auth/request — next redirect guard", () => {
     expect(call?.pendingPayload?.next).toBeUndefined();
   });
 
+  it("S8-C: REJECTS protocol-relative and backslash paths that start with '/' but leave the origin", async () => {
+    for (const bad of ["//evil.example/steal", "/\\evil.example", "/\\/evil.example", "/x\r\nLocation: https://evil.example"]) {
+      mocks.requestMagicLinkMock.mockClear();
+      await POST(req({ email: "a@b.co", next: bad }));
+      const call = mocks.requestMagicLinkMock.mock.calls[0]?.[0];
+      expect(call?.pendingPayload?.next, bad).toBeUndefined();
+    }
+  });
+
   it("REJECTS a next that is not a string", async () => {
     await POST(req({ email: "a@b.co", next: { url: "/x" } }));
     const call = mocks.requestMagicLinkMock.mock.calls[0]?.[0];

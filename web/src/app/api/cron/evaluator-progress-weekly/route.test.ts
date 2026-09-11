@@ -114,6 +114,10 @@ describe("evaluator-progress-weekly route", () => {
   it("401 without / with wrong bearer, and when CRON_SECRET is unset; 503 without Supabase", async () => {
     expect((await GET(req())).status).toBe(401);
     expect((await GET(req(undefined, "Bearer nope"))).status).toBe(401);
+    // S8-C: constant-time compare — a correct prefix / extra suffix is still 401.
+    expect((await GET(req(undefined, "Bearer s3cre"))).status).toBe(401);
+    expect((await GET(req(undefined, "Bearer s3cretX"))).status).toBe(401);
+    expect((await GET(req(undefined, "s3cret"))).status).toBe(401);
     delete process.env.CRON_SECRET;
     expect((await GET(req(undefined, "Bearer s3cret"))).status).toBe(401);
     expect(h.buildMock).not.toHaveBeenCalled();

@@ -24,6 +24,7 @@
 // summaries. cron-runner.sh POSTs; GET is kept for manual checks.
 
 import { NextResponse } from "next/server";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getEntitlements } from "@/lib/entitlements";
 import { sendEmail } from "@/lib/email";
@@ -75,8 +76,8 @@ interface UserSummary {
 }
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // S8-C (2026-09-11): constant-time compare of the bearer secret.
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

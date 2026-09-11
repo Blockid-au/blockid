@@ -32,6 +32,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { isGrantId, isUuid, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { canAfford, grantCredits, spendCredits, FEATURE_COSTS } from "@/lib/credits";
@@ -49,27 +50,42 @@ export const maxDuration = 120;
 
 const FEATURE_KEY = "grant_application_draft";
 const RATE_LIMIT_PER_HOUR = 20;
+const PATCH_RATE_PER_MIN = 60;
+const POST_BODY_MAX_BYTES = 16 * 1024;
+export const ANSWER_MAX_KEYS = 50;
+export const ANSWER_KEY_MAX_LEN = 64;
+export const ANSWER_MAX_LEN = 20_000;
+// 50 answers × 20 000 chars (multi-byte) + envelope.
+const PATCH_BODY_MAX_BYTES = 4 * 1024 * 1024;
 
 function str(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 }
 
 export async function POST(request: Request) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
   const limited = enforceRateLimit("funding-draft", user.id, request, RATE_LIMIT_PER_HOUR, 60 * 60 * 1000);
   if (limited) return limited;
 
-  let body: Record<string, unknown> = {};
-  try {
-    body = ((await request.json()) ?? {}) as Record<string, unknown>;
-  } catch {
+  const read = await readJsonBody<Record<string, unknown> | null>(request, POST_BODY_MAX_BYTES);
+  if (!read.ok) {
+    if (read.status === 413) return read.response;
     return NextResponse.json({ ok: false, error: "Invalid JSON body", field: "grant_id" }, { status: 400 });
   }
+  const body: Record<string, unknown> = read.body && typeof read.body === "object" ? read.body : {};
   const grantId = str(body.grant_id ?? body.grantId);
   if (!grantId) return NextResponse.json({ ok: false, error: "grant_id is required", field: "grant_id" }, { status: 400 });
+  // S8-C: catalogue ids are lower-case slugs — anything else is a 400, not a DB round-trip.
+  if (!isGrantId(grantId)) return NextResponse.json({ ok: false, error: "invalid_grant_id", field: "grant_id" }, { status: 400 });
   const projectId = str(body.project_id ?? body.projectId);
+  if (projectId && !isUuid(projectId)) {
+    return NextResponse.json({ ok: false, error: "invalid_project_id", field: "project_id" }, { status: 400 });
+  }
   const confirmed = body.confirm === true;
 
   let project = null;
@@ -188,23 +204,36 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
-  let body: Record<string, unknown> = {};
-  try {
-    body = ((await request.json()) ?? {}) as Record<string, unknown>;
-  } catch {
+  // Editor autosave — generous, but bounded (S8-C).
+  const limited = enforceRateLimit("funding-draft-patch", user.id, request, PATCH_RATE_PER_MIN, 60 * 1000);
+  if (limited) return limited;
+
+  const read = await readJsonBody<Record<string, unknown> | null>(request, PATCH_BODY_MAX_BYTES);
+  if (!read.ok) {
+    if (read.status === 413) return read.response;
     return NextResponse.json({ ok: false, error: "Invalid JSON body", field: "id" }, { status: 400 });
   }
+  const body: Record<string, unknown> = read.body && typeof read.body === "object" ? read.body : {};
   const id = str(body.id);
   if (!id) return NextResponse.json({ ok: false, error: "id is required", field: "id" }, { status: 400 });
+  if (!isUuid(id)) return NextResponse.json({ ok: false, error: "draft_not_found" }, { status: 404 });
 
   const patch: { answers?: Record<string, string>; status?: "draft" | "final" } = {};
   if (body.answers && typeof body.answers === "object" && !Array.isArray(body.answers)) {
     const answers: Record<string, string> = {};
+    let n = 0;
     for (const [k, v] of Object.entries(body.answers as Record<string, unknown>)) {
-      if (typeof v === "string") answers[k] = v.slice(0, 20_000);
+      // Prompt ids are short slugs; cap the key set so the jsonb column cannot
+      // be turned into an arbitrary-size document (S8-C).
+      if (typeof v !== "string" || k.length > ANSWER_KEY_MAX_LEN) continue;
+      if (++n > ANSWER_MAX_KEYS) break;
+      answers[k] = v.slice(0, ANSWER_MAX_LEN);
     }
     patch.answers = answers;
   }

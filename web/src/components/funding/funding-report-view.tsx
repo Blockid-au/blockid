@@ -29,6 +29,22 @@ import { formatAudCompact, latestVerifiedAt } from "@/lib/funding/directory";
 import { formatDateAu, formatDateTimeAu } from "@/lib/funding/deadline-status";
 import { FUNDING_DISCLAIMER } from "@/lib/agents/grant-advisor";
 
+/**
+ * S8-C (2026-09-11): the narrative is LLM-generated text. react-markdown
+ * already escapes raw HTML (no rehype-raw here — do not add it) and its
+ * default urlTransform drops `javascript:` / `data:` hrefs; this override
+ * additionally opens every link in a new tab with `rel="noopener
+ * noreferrer nofollow"` so a model-written link can neither reach
+ * `window.opener` nor pass PageRank.
+ */
+export const NARRATIVE_MD_COMPONENTS = {
+  a: ({ href, children }: { href?: string; children?: ReactNode }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer nofollow">
+      {children}
+    </a>
+  ),
+};
+
 export interface FundingReportViewProps {
   report: PublicFundingReport;
   /** Signed-in viewers get the ICS + draft links on every card; guests see the official link only. */
@@ -183,7 +199,7 @@ export function FundingReportView({ report, signedIn, banner, ownerActions, afte
             <section className="mt-10 rounded-2xl border border-line-subtle bg-surface p-6" aria-labelledby="fr-narrative">
               <h2 id="fr-narrative" className="text-2xl font-semibold text-primary">Your plan, in plain English</h2>
               <div className="prose prose-sm mt-4 max-w-none text-secondary">
-                <Markdown>{report.narrative_md}</Markdown>
+                <Markdown components={NARRATIVE_MD_COMPONENTS}>{report.narrative_md}</Markdown>
               </div>
             </section>
           ) : null}

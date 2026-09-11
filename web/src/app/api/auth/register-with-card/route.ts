@@ -35,6 +35,7 @@
 // into any admin flow.
 
 import { NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/security/request-guards";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import {
@@ -64,6 +65,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const BCRYPT_ROUNDS = 12;
+const BODY_MAX_BYTES = 16 * 1024;
 
 // Superset of legacy new-signup tiers + founder_* + evaluator SKUs — see
 // `SIGNUP_ALLOWED_PLAN_IDS` (`@/lib/plans/signup-plans`), which /signup shares.
@@ -83,7 +85,9 @@ const BodySchema = z.object({
   display_name: z.string().trim().max(100).optional(),
   account_type: ACCOUNT_TYPE_ENUM.optional().default("founder"),
   plan_id: z.string().min(1).max(64),
-  payment_method_id: z.string().min(4).max(128),
+  // Stripe PaymentMethod ids are `pm_` + alphanumerics — anything else never
+  // reaches the Stripe API (S8-C).
+  payment_method_id: z.string().regex(/^pm_[A-Za-z0-9]{1,125}$/),
   terms_accepted: z.literal(true),
   // Task M2 — optional reseller/promo code carried through from the signup
   // form. Validated + normalised server-side; a bad code is silently
@@ -106,12 +110,12 @@ export async function POST(request: Request) {
     );
   }
 
-  let raw: unknown;
-  try {
-    raw = await request.json();
-  } catch {
+  const read = await readJsonBody(request, BODY_MAX_BYTES);
+  if (!read.ok) {
+    if (read.status === 413) return read.response;
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
+  const raw: unknown = read.body;
 
   const parsed = BodySchema.safeParse(raw);
   if (!parsed.success) {

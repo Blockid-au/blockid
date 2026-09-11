@@ -19,6 +19,7 @@
 // so the non-dry response keeps `events` out (counts only).
 
 import { NextResponse } from "next/server";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { runMoneyRadarSweep } from "@/lib/funding/radar-sweep";
 import { enqueueRadarDripsFromMatches, type RadarDripsSummary } from "@/lib/funding/radar-drips";
 
@@ -36,8 +37,8 @@ function isDry(request: Request): boolean {
 }
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // S8-C (2026-09-11): constant-time compare of the bearer secret.
+  if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

@@ -10,6 +10,7 @@
 // `?download=1` forces a file attachment.
 
 import { NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getEntitlements } from "@/lib/entitlements";
 import { renderIcs } from "@/lib/compliance/calendar";
 import {
@@ -23,7 +24,14 @@ import { isCalendarTokenShape, loadFundingCalendarRows, userForCalendarToken } f
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+export const ICS_RATE_MAX = 60;
+export const ICS_RATE_WINDOW_MS = 10 * 60 * 1000;
+
 export async function GET(request: Request) {
+  // S8-C: the token is the only credential — bound guesses per IP.
+  const limited = enforceRateLimit("funding-calendar-ics", null, request, ICS_RATE_MAX, ICS_RATE_WINDOW_MS);
+  if (limited) return limited;
+
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
   if (!isCalendarTokenShape(token)) {

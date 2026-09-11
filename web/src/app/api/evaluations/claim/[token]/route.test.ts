@@ -8,13 +8,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
+const enforceRateLimitMock = vi.hoisted(() => vi.fn<(...a: unknown[]) => unknown>(() => null));
+vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => enforceRateLimitMock(...a) }));
 
 const claimEvaluationMock = vi.fn();
 vi.mock("@/lib/evaluations", () => ({
   claimEvaluation: (t: string, u: unknown) => claimEvaluationMock(t, u),
 }));
 
-import { POST } from "./route";
+import { CLAIM_RATE_MAX, CLAIM_RATE_WINDOW_MS, POST } from "./route";
 
 const FOUNDER = { id: "u-f", email: "jo@acme.io", plan: "founder_free" };
 const req = () => new Request("http://localhost/api/evaluations/claim/tok", { method: "POST" });
@@ -31,6 +33,17 @@ describe("POST /api/evaluations/claim/[token]", () => {
     getCurrentUserMock.mockResolvedValue(null);
     const res = await POST(req(), ctx());
     expect(res.status).toBe(401);
+    expect(claimEvaluationMock).not.toHaveBeenCalled();
+  });
+
+  it("S8-C: refuses cross-site POSTs and rate-limits claim attempts per user", async () => {
+    const cross = new Request("http://localhost/api/evaluations/claim/tok", { method: "POST", headers: { "sec-fetch-site": "cross-site" } });
+    expect((await POST(cross, ctx())).status).toBe(403);
+    expect(claimEvaluationMock).not.toHaveBeenCalled();
+    enforceRateLimitMock.mockClear();
+    enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429 }));
+    expect((await POST(req(), ctx())).status).toBe(429);
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("evaluations-claim", "u-f", expect.any(Request), CLAIM_RATE_MAX, CLAIM_RATE_WINDOW_MS);
     expect(claimEvaluationMock).not.toHaveBeenCalled();
   });
 

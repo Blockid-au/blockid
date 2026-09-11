@@ -27,6 +27,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { isUuid, PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
@@ -40,6 +41,7 @@ export const dynamic = "force-dynamic";
 
 const FEATURE_KEY = "grant_match";
 const RATE_LIMIT_PER_HOUR = 10;
+const INTAKE_BODY_MAX_BYTES = 16 * 1024;
 
 /**
  * GET /api/funding/report — how many reports the signed-in user has paid for
@@ -58,6 +60,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  // 0. CSRF posture (S8-C): cookie-auth mutation — refuse browser cross-site calls.
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   // 1. Auth
   const user = await getCurrentUser();
   if (!user) {
@@ -68,19 +74,22 @@ export async function POST(request: Request) {
   const limited = enforceRateLimit("funding-report", user.id, request, RATE_LIMIT_PER_HOUR, 60 * 60 * 1000);
   if (limited) return limited;
 
-  // 3. Body
-  let body: Record<string, unknown> = {};
-  try {
-    body = ((await request.json()) ?? {}) as Record<string, unknown>;
-  } catch {
+  // 3. Body — 16 KB byte cap before parsing (S8-C).
+  const read = await readJsonBody<Record<string, unknown> | null>(request, INTAKE_BODY_MAX_BYTES);
+  if (!read.ok) {
+    if (read.status === 413) return read.response;
     return NextResponse.json({ ok: false, error: "Invalid JSON body", field: "description" }, { status: 400 });
   }
+  const body: Record<string, unknown> = read.body && typeof read.body === "object" ? read.body : {};
   const parsed = parseFundingIntake(body);
   if (!parsed.ok) {
     return NextResponse.json({ ok: false, error: parsed.error, field: parsed.field }, { status: 400 });
   }
   const projectIdRaw = body.project_id ?? body.projectId;
   const projectId = typeof projectIdRaw === "string" && projectIdRaw.trim() ? projectIdRaw.trim() : null;
+  if (projectId && !isUuid(projectId)) {
+    return NextResponse.json({ ok: false, error: "invalid_project_id", field: "project_id" }, { status: 400 });
+  }
 
   // 4. Ownership (only when a project is attached)
   if (projectId) {
@@ -183,12 +192,15 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    reportId,
-    url: `/funding/report/${reportId}`,
-    paidVia: included ? "plan" : "credits",
-    creditsCharged,
-    summary: report.summary,
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      reportId,
+      url: `/funding/report/${reportId}`,
+      paidVia: included ? "plan" : "credits",
+      creditsCharged,
+      summary: report.summary,
+    },
+    { headers: PRIVATE_JSON_HEADERS },
+  );
 }

@@ -97,6 +97,10 @@ describe("/api/cron/evaluation-batch-runner", () => {
   it("401s without the bearer secret (unset or mismatched)", async () => {
     expect((await GET(req("", null))).status).toBe(401);
     expect((await GET(req("", "Bearer wrong"))).status).toBe(401);
+    // S8-C: constant-time compare — a correct prefix / extra suffix is still 401.
+    expect((await GET(req("", "Bearer test-secre"))).status).toBe(401);
+    expect((await GET(req("", "Bearer test-secretX"))).status).toBe(401);
+    expect((await GET(req("", "test-secret"))).status).toBe(401);
     delete process.env.CRON_SECRET;
     expect((await GET(req())).status).toBe(401);
     expect(h.claimMock).not.toHaveBeenCalled();

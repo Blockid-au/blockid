@@ -15,19 +15,31 @@
 //   403 { ok:false, error:"email_mismatch", message }
 
 import { NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { claimEvaluation } from "@/lib/evaluations";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+export const CLAIM_RATE_MAX = 20;
+export const CLAIM_RATE_WINDOW_MS = 10 * 60 * 1000;
+
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { token } = await params;
+
+  // S8-C: the invite token is the credential — bound guesses per user.
+  const limited = enforceRateLimit("evaluations-claim", user.id, request, CLAIM_RATE_MAX, CLAIM_RATE_WINDOW_MS);
+  if (limited) return limited;
 
   const result = await claimEvaluation(token, user);
   if (!result.ok) {

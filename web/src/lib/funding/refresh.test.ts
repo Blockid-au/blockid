@@ -24,6 +24,7 @@ import {
   reviewEntryKey,
   type RefreshDb,
   type RefreshGrantRow,
+  isSameFeedHost,
 } from "./refresh";
 import { readReviewQueue } from "./review-queue";
 
@@ -301,6 +302,22 @@ describe("refreshFundingSources", () => {
     expect(calls).toEqual([listUrl, "https://www.grants.gov.au/public_data/rss/rss.xml"]);
     expect(s.feed).toEqual({ url: "https://www.grants.gov.au/public_data/rss/rss.xml", items: 3, blocked: false, newCandidates: 2 });
     expect(readReviewQueue(200, queuePath).every((e) => e.reason === "possible_new_grant")).toBe(true);
+  });
+
+  it("S8-C SSRF: an advertised feed on another host is NOT followed (feed_empty instead)", async () => {
+    const { db } = fakeDb([]);
+    const listUrl = "https://www.grants.gov.au/go/list";
+    const offHost = `<html><head><link rel="alternate" type="application/rss+xml" href="http://169.254.169.254/latest/rss.xml"></head><body>list</body></html>`;
+    const { fetch, calls } = fakeFetch({ [listUrl]: res({ text: offHost }), "http://169.254.169.254/latest/rss.xml": res({ text: RSS }) });
+    const queuePath = tmpQueue();
+    const s = await refreshFundingSources({ now: NOW, db, fetch, queuePath, grantConnectUrl: listUrl });
+    expect(calls).toEqual([listUrl]);
+    expect(s.feed.items).toBe(0);
+    expect(readReviewQueue(200, queuePath)[0]).toMatchObject({ kind: "new", reason: "feed_empty" });
+    expect(isSameFeedHost("https://www.grants.gov.au/public_data/rss/rss.xml", listUrl)).toBe(true);
+    expect(isSameFeedHost("https://grants.gov.au/rss.xml", listUrl)).toBe(false);
+    expect(isSameFeedHost("ftp://www.grants.gov.au/rss.xml", listUrl)).toBe(false);
+    expect(isSameFeedHost("not a url", listUrl)).toBe(false);
   });
 
   it("feed returning HTML (no items) is queued as feed_empty", async () => {

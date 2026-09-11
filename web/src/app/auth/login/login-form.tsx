@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
 import { broadcastAuthEvent } from "@/components/auth/auth-sync-logic";
 import { withClaimedParam } from "@/lib/analyses/summary";
+import { safeNextPath } from "@/lib/security/safe-redirect";
 
 /* ---------- Types ---------- */
 type EmailState = "idle" | "sending" | "sent" | "error";
@@ -569,7 +570,10 @@ function EmailPasswordForm({
 export function LoginForm() {
   const searchParams = useSearchParams();
   const plan = searchParams.get("plan");
-  const nextUrl = searchParams.get("next");
+  // S8-C: `?next=` is only ever a same-origin path — an absolute URL or a
+  // protocol-relative "//evil.com" would otherwise become window.location
+  // after login (open redirect). Empty → null so the callers' defaults apply.
+  const nextUrl = safeNextPath(searchParams.get("next"), "") || null;
   // `?mode=register` — arrived from a "create an account to keep this" prompt,
   // so open on the register tab rather than making them find it.
   const initialMode =

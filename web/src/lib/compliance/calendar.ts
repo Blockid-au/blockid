@@ -443,6 +443,30 @@ export function escapeIcsText(text: string): string {
     .replace(/,/g, "\\,");
 }
 
+/**
+ * URI-typed property values (URL:) are not TEXT-escaped by RFC 5545, so
+ * `escapeIcsText` would corrupt them — but a CR/LF (or any control char)
+ * inside one still terminates the content line and injects properties
+ * (S8-C review 2026-09-11). Keep only http(s) URLs with every control
+ * character stripped; anything else is dropped (the description already
+ * carries the official page as text).
+ */
+export function safeIcsUri(raw: string | null | undefined): string | null {
+  if (typeof raw !== "string") return null;
+  const cleaned = raw.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  if (!/^https?:\/\//i.test(cleaned)) return null;
+  try {
+    return new URL(cleaned).toString();
+  } catch {
+    return null;
+  }
+}
+
+/** UID: is TEXT-like but must be a single token — strip anything that could break the line. */
+function safeIcsUid(raw: string): string {
+  return String(raw ?? "").replace(/[\u0000-\u001f\u007f;,]/g, "").slice(0, 255) || "event";
+}
+
 function toIcsDate(iso: string): string {
   return iso.replace(/-/g, "");
 }
@@ -484,7 +508,7 @@ export function renderIcs(
 
   for (const ev of events) {
     const compliance = isComplianceEvent(ev);
-    const url = compliance ? ev.source_url : ev.url;
+    const url = safeIcsUri(compliance ? ev.source_url : ev.url);
     const dateEnd = compliance ? ev.date_end : (ev.date_end ?? addDaysIso(ev.date_start, 1));
     const leads = (Array.isArray(ev.reminder_lead_days) ? ev.reminder_lead_days : [ev.reminder_lead_days as number])
       .filter((d) => Number.isInteger(d) && d >= 0)
@@ -493,7 +517,7 @@ export function renderIcs(
     const category = compliance ? undefined : ev.category;
 
     lines.push("BEGIN:VEVENT");
-    lines.push(`UID:${ev.uid}`);
+    lines.push(`UID:${safeIcsUid(ev.uid)}`);
     lines.push(`DTSTAMP:${dtstamp}`);
     lines.push(`DTSTART;VALUE=DATE:${toIcsDate(ev.date_start)}`);
     lines.push(`DTEND;VALUE=DATE:${toIcsDate(dateEnd)}`);

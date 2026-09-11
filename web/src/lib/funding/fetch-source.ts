@@ -14,11 +14,18 @@
 // state HTML "Closes / Closing date / Status" blocks are all regular enough
 // for regex + a small state machine. Colocated tests: fetch-source.test.ts.
 
+import { checkOutboundUrl, type OutboundUrlOptions } from "@/lib/security/outbound-url";
+
 export const FUNDING_BOT_UA =
   "Mozilla/5.0 (compatible; BlockID-FundingBot/1.0; +https://blockid.au/funding)";
 
 /** Hard cap on the bytes kept from one response body. */
 export const MAX_BODY_BYTES = 2 * 1024 * 1024;
+
+/** Redirect hops followed per attempt — each hop is re-checked by the SSRF guard. */
+export const MAX_REDIRECTS = 5;
+
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 export interface FetchTextOptions {
   /** Per-attempt timeout. Default 10 s. */
@@ -32,6 +39,16 @@ export interface FetchTextOptions {
   fetchImpl?: typeof fetch;
   /** Injected for tests so backoff does not actually sleep. */
   sleep?: (ms: number) => Promise<void>;
+  /**
+   * SSRF guard (S8-C, 2026-09-11): DNS resolver injected for tests. The
+   * guard itself cannot be switched off — every URL, including each redirect
+   * hop, must be http(s) on a public host that resolves only to public
+   * addresses (lib/security/outbound-url.ts). Refusals come back as
+   * `{ ok:false, status:0, refused:true, error:"ssrf_refused:<reason>" }`.
+   */
+  resolve?: OutboundUrlOptions["resolve"];
+  /** Redirect hops per attempt. Default MAX_REDIRECTS. */
+  maxRedirects?: number;
 }
 
 export interface FetchTextResult {
@@ -45,6 +62,10 @@ export interface FetchTextResult {
   truncated: boolean;
   attempts: number;
   error?: string;
+  /** True when the SSRF guard refused the URL (or one of its redirect hops). Never retried. */
+  refused?: boolean;
+  /** The URL the body came from (after redirects). */
+  finalUrl?: string;
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -94,6 +115,24 @@ export async function fetchText(url: string, opts: FetchTextOptions = {}): Promi
   const ua = opts.userAgent ?? FUNDING_BOT_UA;
   const doFetch = opts.fetchImpl ?? globalThis.fetch;
   const sleep = opts.sleep ?? defaultSleep;
+  const maxRedirects = Math.max(0, opts.maxRedirects ?? MAX_REDIRECTS);
+  const guardOpts: OutboundUrlOptions = { resolve: opts.resolve };
+
+  const refuse = (reason: string, attempts: number): FetchTextResult => ({
+    ok: false,
+    status: 0,
+    text: "",
+    blocked: false,
+    truncated: false,
+    attempts,
+    refused: true,
+    error: `ssrf_refused:${reason}`,
+  });
+
+  // The starting URL is checked once, before any attempt — a refusal is
+  // final (retrying cannot make a private address public).
+  const first = await checkOutboundUrl(url, guardOpts);
+  if (!first.ok) return refuse(first.reason, 0);
 
   let attempts = 0;
   let lastError = "";
@@ -104,47 +143,79 @@ export async function fetchText(url: string, opts: FetchTextOptions = {}): Promi
     attempts = attempt + 1;
     if (attempt > 0) await sleep(backoffMs * 2 ** (attempt - 1));
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await doFetch(url, {
-        method: "GET",
-        redirect: "follow",
-        signal: controller.signal,
-        headers: {
-          "user-agent": ua,
-          accept: "text/html,application/xhtml+xml,application/xml,application/rss+xml,text/csv,text/plain;q=0.9,*/*;q=0.8",
-          "accept-language": "en-AU,en;q=0.9",
-        },
-      });
-      lastStatus = res.status;
+    // Redirects are followed by hand so every hop goes through the guard —
+    // `redirect: "follow"` would let a seed host bounce us to 169.254.169.254.
+    let current = first.url.toString();
+    let hops = 0;
+    let settled = false;
+    while (!settled) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await doFetch(current, {
+          method: "GET",
+          redirect: "manual",
+          signal: controller.signal,
+          headers: {
+            "user-agent": ua,
+            accept: "text/html,application/xhtml+xml,application/xml,application/rss+xml,text/csv,text/plain;q=0.9,*/*;q=0.8",
+            "accept-language": "en-AU,en;q=0.9",
+          },
+        });
+        lastStatus = res.status;
 
-      // Explicit refusal of automation. 403 is final on the first sight; 429
-      // is retried once with backoff then reported as blocked.
-      if (res.status === 403 || (res.status === 429 && sawRateLimit)) {
-        clearTimeout(timer);
-        return { ok: false, status: res.status, text: "", blocked: true, truncated: false, attempts };
-      }
-      if (res.status === 429) {
-        sawRateLimit = true;
-        lastError = "429 rate limited";
-        clearTimeout(timer);
-        continue;
-      }
-      if (res.status >= 500) {
-        lastError = `HTTP ${res.status}`;
-        clearTimeout(timer);
-        continue; // transient — retry
-      }
+        if (REDIRECT_STATUSES.has(res.status)) {
+          clearTimeout(timer);
+          const location = res.headers.get("location");
+          if (!location) {
+            return { ok: false, status: res.status, text: "", blocked: false, truncated: false, attempts, error: `redirect without location`, finalUrl: current };
+          }
+          if (hops >= maxRedirects) {
+            return { ok: false, status: res.status, text: "", blocked: false, truncated: false, attempts, error: `too many redirects (>${maxRedirects})`, finalUrl: current };
+          }
+          let next: string;
+          try {
+            next = new URL(location, current).toString();
+          } catch {
+            return refuse("invalid_url", attempts);
+          }
+          const hop = await checkOutboundUrl(next, guardOpts);
+          if (!hop.ok) return refuse(hop.reason, attempts);
+          current = hop.url.toString();
+          hops++;
+          continue;
+        }
 
-      const { text, truncated } = await readBodyCapped(res, MAX_BODY_BYTES);
-      clearTimeout(timer);
-      return { ok: res.ok, status: res.status, text, blocked: false, truncated, attempts };
-    } catch (err) {
-      clearTimeout(timer);
-      const name = err instanceof Error ? err.name : "";
-      lastError = name === "AbortError" ? `timeout after ${timeoutMs}ms` : err instanceof Error ? err.message : String(err);
-      lastStatus = 0;
+        // Explicit refusal of automation. 403 is final on the first sight; 429
+        // is retried once with backoff then reported as blocked.
+        if (res.status === 403 || (res.status === 429 && sawRateLimit)) {
+          clearTimeout(timer);
+          return { ok: false, status: res.status, text: "", blocked: true, truncated: false, attempts, finalUrl: current };
+        }
+        if (res.status === 429) {
+          sawRateLimit = true;
+          lastError = "429 rate limited";
+          clearTimeout(timer);
+          settled = true;
+          continue; // → next attempt
+        }
+        if (res.status >= 500) {
+          lastError = `HTTP ${res.status}`;
+          clearTimeout(timer);
+          settled = true;
+          continue; // transient — retry
+        }
+
+        const { text, truncated } = await readBodyCapped(res, MAX_BODY_BYTES);
+        clearTimeout(timer);
+        return { ok: res.ok, status: res.status, text, blocked: false, truncated, attempts, finalUrl: current };
+      } catch (err) {
+        clearTimeout(timer);
+        const name = err instanceof Error ? err.name : "";
+        lastError = name === "AbortError" ? `timeout after ${timeoutMs}ms` : err instanceof Error ? err.message : String(err);
+        lastStatus = 0;
+        settled = true;
+      }
     }
   }
 

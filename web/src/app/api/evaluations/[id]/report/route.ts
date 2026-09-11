@@ -34,6 +34,7 @@
 // was paid for.
 
 import { NextResponse } from "next/server";
+import { PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { isAIConfigured } from "@/lib/ai-client";
@@ -56,6 +57,8 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+const BODY_MAX_BYTES = 4 * 1024;
 
 function siteBase(request: Request): string {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
@@ -112,23 +115,29 @@ export async function GET(request: Request, { params }: Ctx) {
     idempotencyKey,
     ...(Number.isFinite(sinceMs) ? { windowMs: Math.max(0, Date.now() - sinceMs) } : {}),
   });
-  if (!row) return NextResponse.json({ ok: true, report: null });
+  if (!row) return NextResponse.json({ ok: true, report: null }, { headers: PRIVATE_JSON_HEADERS });
   const cost = await previewReportCharge(user, kind);
-  return NextResponse.json({
-    ok: true,
-    report: reusedPayload(row, siteBase(request), { balance: cost.balance, remaining_quota: cost.quota.remaining }),
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      report: reusedPayload(row, siteBase(request), { balance: cost.balance, remaining_quota: cost.quota.remaining }),
+    },
+    { headers: PRIVATE_JSON_HEADERS },
+  );
 }
 
 export async function POST(request: Request, { params }: Ctx) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
 
-  let body: { kind?: unknown; confirm?: unknown; idempotency_key?: unknown };
-  try {
-    body = (await request.json()) as typeof body;
-  } catch {
+  const read = await readJsonBody<{ kind?: unknown; confirm?: unknown; idempotency_key?: unknown } | null>(request, BODY_MAX_BYTES);
+  if (!read.ok) return read.response;
+  const body = read.body ?? {};
+  if (typeof body !== "object") {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
   const kind = parseKind(body.kind);
@@ -261,7 +270,9 @@ export async function POST(request: Request, { params }: Ctx) {
         refunded: creditsSpent > 0 ? refunded : undefined,
         credits_refunded: creditsSpent > 0 && refunded ? creditsSpent : 0,
         balance,
-        detail: err instanceof Error ? err.message : undefined,
+        // S8-C: raw pipeline errors (provider names, hostnames) stay in the
+        // server log outside production.
+        detail: process.env.NODE_ENV === "production" ? undefined : err instanceof Error ? err.message : undefined,
       },
       { status: 500 },
     );

@@ -9,6 +9,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+const enforceRateLimitMock = vi.hoisted(() => vi.fn<(...a: unknown[]) => unknown>(() => null));
+vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => enforceRateLimitMock(...a) }));
 
 const getCurrentUserMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
@@ -28,7 +30,7 @@ vi.mock("@/lib/pdf/funding-report-pdf", async (importOriginal) => {
   return { ...orig, renderFundingReportPdf: (input: unknown) => renderMock(input as never) };
 });
 
-import { GET } from "./route";
+import { GET, PDF_RATE_MAX, PDF_RATE_WINDOW_MS } from "./route";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const ROW = {
@@ -63,6 +65,22 @@ beforeEach(() => {
 });
 
 describe("GET /api/funding/report/[id]/pdf", () => {
+  it("S8-C: rate-limits the render per viewer (user id, else IP) and returns the 429 untouched", async () => {
+    enforceRateLimitMock.mockClear();
+    const ok = await get(ID, "?t=tok_secret");
+    expect(ok.status).toBe(200);
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("funding-report-pdf", null, expect.any(Request), PDF_RATE_MAX, PDF_RATE_WINDOW_MS);
+    getCurrentUserMock.mockResolvedValue({ id: "user-1" });
+    await get(ID);
+    expect(enforceRateLimitMock).toHaveBeenLastCalledWith("funding-report-pdf", "user-1", expect.any(Request), PDF_RATE_MAX, PDF_RATE_WINDOW_MS);
+    renderMock.mockClear();
+    enforceRateLimitMock.mockReturnValueOnce(new Response(JSON.stringify({ ok: false }), { status: 429 }));
+    const limited = await get(ID, "?t=tok_secret");
+    expect(limited.status).toBe(429);
+    expect(renderMock).not.toHaveBeenCalled();
+    enforceRateLimitMock.mockReturnValue(null);
+  });
+
   it("404s on a malformed id, a missing row and a viewer with no claim", async () => {
     expect((await get("nope")).status).toBe(404);
     expect(getFundingReportMock).not.toHaveBeenCalled();

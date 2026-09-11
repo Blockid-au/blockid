@@ -18,6 +18,7 @@
 // failed item consumes nothing (transparent-pricing rule).
 
 import { NextResponse } from "next/server";
+import { PRIVATE_JSON_HEADERS, readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntitlements, recordGateHit } from "@/lib/entitlements";
 import { getReportQuota } from "@/lib/evaluations/report-quota";
@@ -26,6 +27,9 @@ import { BATCH_MAX_ITEMS, canBatchScore, normaliseWeights } from "@/lib/evaluati
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+// 200 uuids + name + weights fit comfortably in 32 KB.
+const BODY_MAX_BYTES = 32 * 1024;
 
 const UPGRADE_HINT = "Batch scoring is included in Program (A$349/mo — 100 Trust BizReports, 200 tracked startups, 5 seats). Upgrade at /pricing?segment=evaluator.";
 
@@ -52,17 +56,20 @@ export async function GET() {
   const { user, response } = await gate();
   if (!user) return response;
   const batches = await listBatches(user.id);
-  return NextResponse.json({ ok: true, batches });
+  return NextResponse.json({ ok: true, batches }, { headers: PRIVATE_JSON_HEADERS });
 }
 
 export async function POST(request: Request) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const { user, response } = await gate();
   if (!user) return response;
 
-  let body: { evaluation_ids?: unknown; name?: unknown; rubric_weights?: unknown };
-  try {
-    body = (await request.json()) as typeof body;
-  } catch {
+  const read = await readJsonBody<{ evaluation_ids?: unknown; name?: unknown; rubric_weights?: unknown } | null>(request, BODY_MAX_BYTES);
+  if (!read.ok) return read.response;
+  const body = read.body ?? {};
+  if (typeof body !== "object") {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
   const rawIds = Array.isArray(body.evaluation_ids) ? body.evaluation_ids : null;

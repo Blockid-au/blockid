@@ -160,6 +160,12 @@ describe("cohortCsv", () => {
     expect(csvCell("+1")).toBe("'+1");
     expect(csvCell(null)).toBe("");
     expect(csvCell(12.5)).toBe("12.5");
+    // S8-C: numbers are never formulas — a negative delta stays numeric.
+    expect(csvCell(-3)).toBe("-3");
+    expect(csvCell("-3")).toBe("'-3");
+    expect(csvCell("@cmd")).toBe("'@cmd");
+    expect(csvCell("\tcmd")).toBe("'\tcmd");
+    expect(csvCell("=cmd|' /C calc'!A0")).toBe("'=cmd|' /C calc'!A0");
     const csv = cohortCsv([row({ startup: "Bad, Inc", label: "=cmd", error: "boom" })]);
     expect(csv).toContain('"Bad, Inc",\'=cmd,');
     expect(csv).toContain(",boom\r\n");

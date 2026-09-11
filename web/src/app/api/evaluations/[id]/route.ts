@@ -8,6 +8,7 @@
 // by `evaluator_user_id = user.id`, so a foreign id simply reads as 404.
 
 import { NextResponse } from "next/server";
+import { readJsonBody, rejectCrossSite } from "@/lib/security/request-guards";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteEvaluation, getEvaluationForUser, updateEvaluation } from "@/lib/evaluations";
 
@@ -16,15 +17,21 @@ export const runtime = "nodejs";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+const PATCH_BODY_MAX_BYTES = 64 * 1024;
+
 export async function PATCH(request: Request, { params }: Ctx) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
 
-  let body: { label?: unknown; notes?: unknown };
-  try {
-    body = (await request.json()) as { label?: unknown; notes?: unknown };
-  } catch {
+  // notes ≤ 20 000 chars after the lib's cap; 64 KB leaves room for multi-byte text.
+  const read = await readJsonBody<{ label?: unknown; notes?: unknown } | null>(request, PATCH_BODY_MAX_BYTES);
+  if (!read.ok) return read.response;
+  const body = read.body;
+  if (!body || typeof body !== "object") {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
   const patch: { label?: string | null; notes?: string | null } = {};
@@ -49,7 +56,10 @@ export async function PATCH(request: Request, { params }: Ctx) {
   return NextResponse.json({ ok: true, evaluation });
 }
 
-export async function DELETE(_request: Request, { params }: Ctx) {
+export async function DELETE(request: Request, { params }: Ctx) {
+  const crossSite = rejectCrossSite(request);
+  if (crossSite) return crossSite;
+
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;

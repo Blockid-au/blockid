@@ -12,6 +12,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
+const enforceRateLimitMock = vi.hoisted(() => vi.fn<(...a: unknown[]) => unknown>(() => null));
+vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: (...a: unknown[]) => enforceRateLimitMock(...a) }));
 
 const recordGateHitMock = vi.fn();
 vi.mock("@/lib/entitlements", () => ({
@@ -29,7 +31,7 @@ vi.mock("@/lib/evaluations", () => ({
   createEvaluation: (u: unknown, i: unknown) => createEvaluationMock(u, i),
 }));
 
-import { GET, POST, dynamic } from "./route";
+import { CREATE_RATE_MAX, CREATE_RATE_WINDOW_MS, GET, POST, dynamic } from "./route";
 
 const USER = { id: "u-1", email: "scout@fund.vc", plan: "investor_angel", displayName: "Sam" };
 
@@ -65,6 +67,26 @@ describe("/api/evaluations", () => {
     const p = await POST(post({ name: "Acme" }));
     expect(p.status).toBe(401);
     expect(isEvaluatorUserMock).not.toHaveBeenCalled();
+    expect(createEvaluationMock).not.toHaveBeenCalled();
+  });
+
+  it("S8-C: GET is private/no-store; POST refuses cross-site, caps the body at 16 KB and rate-limits per user", async () => {
+    listEvaluationsMock.mockResolvedValue([]);
+    const g = await GET();
+    expect(g.headers.get("cache-control")).toBe("private, no-store");
+
+    const cross = await POST(new Request("http://localhost/api/evaluations", { method: "POST", headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" }, body: JSON.stringify({ name: "Acme" }) }));
+    expect(cross.status).toBe(403);
+    expect(createEvaluationMock).not.toHaveBeenCalled();
+
+    enforceRateLimitMock.mockClear();
+    enforceRateLimitMock.mockReturnValueOnce(new Response("{}", { status: 429 }));
+    expect((await POST(post({ name: "Acme" }))).status).toBe(429);
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("evaluations-create", "u-1", expect.any(Request), CREATE_RATE_MAX, CREATE_RATE_WINDOW_MS);
+    expect(createEvaluationMock).not.toHaveBeenCalled();
+
+    const big = await POST(post({ name: "Acme", description: "x".repeat(20 * 1024) }));
+    expect(big.status).toBe(413);
     expect(createEvaluationMock).not.toHaveBeenCalled();
   });
 

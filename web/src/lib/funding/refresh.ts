@@ -273,6 +273,17 @@ function hintToRecord(hint: StatusHint): Record<string, unknown> {
   return r;
 }
 
+/** True when `candidate` is http(s) on exactly the same host as `base`. Exported for tests. */
+export function isSameFeedHost(candidate: string, base: string): boolean {
+  try {
+    const a = new URL(candidate);
+    const b = new URL(base);
+    return (a.protocol === "http:" || a.protocol === "https:") && a.hostname.toLowerCase() === b.hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
 export async function refreshFundingSources(opts: RefreshOptions = {}): Promise<RefreshSummary> {
   const now = opts.now ?? new Date();
   const today = now.toISOString().slice(0, 10);
@@ -426,7 +437,9 @@ export async function refreshFundingSources(opts: RefreshOptions = {}): Promise<
         // HTML list page instead of a feed (plan's `/go/list`) → follow the
         // advertised RSS once.
         const alt = discoverFeedUrl(feedRes.text, feedUrl);
-        if (alt && alt !== feedUrl) {
+        // S8-C SSRF: the advertised feed comes from the fetched page, so it
+        // is only followed when it stays on the GrantConnect host itself.
+        if (alt && alt !== feedUrl && isSameFeedHost(alt, feedUrl)) {
           let altRes: FetchTextResult | null = null;
           try {
             altRes = await doFetch(alt);
