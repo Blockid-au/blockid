@@ -20,22 +20,20 @@
 
 import type { Metadata } from "next";
 import { FundingLanding } from "./funding-landing";
+import { LANDING_DESCRIPTION, LANDING_TITLE } from "@/lib/funding/seo";
+import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Do you need money for your startup? Grants, programs and investors in Australia",
-  description:
-    "Every open Australian startup grant and every accelerator, incubator and founder program in the eight capitals — free to browse, with official links. Answer three questions for a free match, then a ranked report with a 12-month plan for A$3.",
-  alternates: {
-    canonical: "https://blockid.au/funding",
-    languages: {
-      en: "https://blockid.au/funding",
-      vi: "https://blockid.au/vi/funding",
-      "x-default": "https://blockid.au/funding",
-    },
-  },
-};
+// S8-A: primary keyword "startup funding australia" (the directories own
+// "startup grants australia" / "startup accelerators australia"); hreflang
+// pair with /vi/funding; OG image carried explicitly.
+export const metadata: Metadata = pageMetadata({
+  title: LANDING_TITLE,
+  description: LANDING_DESCRIPTION,
+  path: "/funding",
+  viPath: "/vi/funding",
+});
 
 export default async function FundingLandingPage() {
   return <FundingLanding />;

@@ -21,6 +21,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, FlaskConical } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
 import { FundingReportView } from "@/components/funding/funding-report-view";
 import {
@@ -34,24 +35,17 @@ import {
   demoReportJsonLd,
 } from "@/lib/funding/demo-report";
 import { formatAudCompact } from "@/lib/funding/directory";
+import { FUNDING_CRUMBS } from "@/lib/funding/seo";
+import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: CANONICAL },
-  robots: { index: true, follow: true },
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-    url: CANONICAL,
-    siteName: "BlockID.au",
-    type: "article",
-    locale: "en_AU",
-  },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-};
+  path: CANONICAL,
+  ogType: "article",
+});
 
 function SampleBanner() {
   return (
@@ -91,6 +85,17 @@ function BuildMineCard({ upTo }: { upTo: number }) {
         12-month plan. {upTo > 0 ? `This sample found up to ${formatAudCompact(upTo)} across its top five grants.` : ""}{" "}
         A$3 once, or included with Founder Radar.
       </p>
+      <p className="mt-2 text-sm text-secondary">
+        Browse the free lists first:{" "}
+        <Link href="/funding/grants" className="font-semibold text-action underline-offset-2 hover:underline">
+          every Australian startup grant
+        </Link>{" "}
+        and{" "}
+        <Link href="/funding/programs" className="font-semibold text-action underline-offset-2 hover:underline">
+          every accelerator and program
+        </Link>
+        .
+      </p>
       <Link
         href={DEMO_CTA_HREF}
         className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-action px-5 py-2.5 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover"
@@ -106,6 +111,7 @@ export default async function FundingReportDemoPage() {
   const report = buildDemoFundingReport();
   return (
     <MarketingShell>
+      <BreadcrumbListJsonLd items={[...FUNDING_CRUMBS.demo]} />
       <FundingJsonLd data={demoReportJsonLd()} />
       <FundingReportView
         report={report}

@@ -4,7 +4,10 @@
 // JSON-LD builders.
 
 import { describe, expect, it } from "vitest";
-import type { AuGrantRow, AuProgramRow } from "./seed-map";
+import grantsSeed from "../../../content/data/grants-au.seed.json";
+import programsSeed from "../../../content/data/programs-au.seed.json";
+import { validateJsonLd } from "@/lib/seo/structured-data";
+import { mapGrantSeeds, mapProgramSeeds, type AuGrantRow, type AuProgramRow } from "./seed-map";
 import {
   applyGrantFilters,
   applyProgramFilters,
@@ -374,6 +377,27 @@ describe("JSON-LD builders", () => {
       }),
     );
     expect(JSON.stringify(data)).not.toContain("undefined");
+    expect(validateJsonLd(data)).toEqual({ ok: true, errors: [] });
+  });
+
+  it("grant from a university / private / RDC provider → plain Service with an Organization provider (S8-A)", () => {
+    const uni = buildGrantJsonLd(grant({ id: "uni", level: "university", provider: "UNSW" }));
+    expect(uni["@type"]).toBe("Service");
+    expect(uni.provider).toEqual({ "@type": "Organization", name: "UNSW" });
+    expect(validateJsonLd(uni).ok).toBe(true);
+    const council = buildGrantJsonLd(grant({ id: "council", level: "local", provider: "City of Sydney" }));
+    expect(council["@type"]).toBe("GovernmentService");
+    expect(council.provider).toEqual({ "@type": "GovernmentOrganization", name: "City of Sydney" });
+  });
+
+  it("every seed row builds a JSON-LD object that passes validateJsonLd", () => {
+    const grants = mapGrantSeeds((grantsSeed as { grants: unknown[] }).grants).filter((g) => !g.exclude_from_matching);
+    const programs = mapProgramSeeds((programsSeed as { programs: unknown[] }).programs);
+    for (const g of grants) expect(validateJsonLd(buildGrantJsonLd(g)), g.id).toEqual({ ok: true, errors: [] });
+    for (const p of programs) {
+      expect(validateJsonLd(buildProgramJsonLd(p)), p.id).toEqual({ ok: true, errors: [] });
+      for (const ev of buildProgramEventsJsonLd([p])) expect(validateJsonLd(ev), p.id).toEqual({ ok: true, errors: [] });
+    }
   });
 
   it("program → Service; Event only for rows with a day-level next_cohort_start that are not closed", () => {

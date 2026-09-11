@@ -1,11 +1,14 @@
 // Colocated test for /solutions/advisor (T0274). The marketing shell mounts
 // NavV2 → LocaleSwitcher → useRouter(), which throws outside an app-router
 // context, so the shell is mocked to a pass-through and the persona body is
-// rendered with renderToStaticMarkup (this workspace does not install
+// rendered through renderToReadableStream so the async JSON-LD components
+// (BreadcrumbList + FAQPage, S8-A) resolve (this workspace does not install
 // @testing-library/react).
 
 import { describe, expect, it, vi } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToReadableStream } from "react-dom/server";
+import type { ReactElement } from "react";
+import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 
 vi.mock("@/components/marketing/marketing-shell", () => ({
   MarketingShell: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -21,6 +24,12 @@ import ViSolutionsAdvisorPage from "../../../vi/solutions/advisor/page";
 
 const EN = en as unknown as Messages;
 const VI = vi_ as unknown as Messages;
+
+async function render(el: ReactElement): Promise<string> {
+  const stream = await renderToReadableStream(el);
+  await stream.allReady;
+  return new Response(stream).text();
+}
 
 const HEADLINE_EN =
   "A C-suite review of every client, in AUD, with ESIC and R&D Tax checks — white-labelled, A$3 a report.";
@@ -118,7 +127,7 @@ describe("/solutions/advisor — approved wording rules", () => {
 
 describe("/solutions/advisor — rendered page", () => {
   it("EN page renders the headline and both CTA hrefs", async () => {
-    const html = renderToStaticMarkup(await SolutionsAdvisorPage());
+    const html = await render(await SolutionsAdvisorPage());
     expect(html).toContain('data-persona="advisor"');
     expect(html).toContain('lang="en"');
     // React escapes the apostrophe-free headline as-is except for `&`.
@@ -127,27 +136,44 @@ describe("/solutions/advisor — rendered page", () => {
     expect(html).toContain(attr(PRICING));
   });
 
-  it("EN page substitutes every price token from the catalogue — no `{token}` reaches a visitor", () => {
-    return SolutionsAdvisorPage().then((el) => {
-      const html = renderToStaticMarkup(el);
-      expect(html).not.toMatch(/\{[a-zA-Z]+\}/);
-      expect(html).toContain(SOLUTION_PRICE_TOKENS.firmPrice);
-      expect(html).toContain(SOLUTION_PRICE_TOKENS.reportPrice);
-    });
+  it("EN page substitutes every price token from the catalogue — no `{token}` reaches a visitor", async () => {
+    const html = await render(await SolutionsAdvisorPage());
+    expect(html).not.toMatch(/\{[a-zA-Z]+\}/);
+    expect(html).toContain(SOLUTION_PRICE_TOKENS.firmPrice);
+    expect(html).toContain(SOLUTION_PRICE_TOKENS.reportPrice);
+  });
+
+  it("emits one valid FAQPage (matching the visible FAQ, prices filled) and a BreadcrumbList (S8-A)", async () => {
+    const html = await render(await SolutionsAdvisorPage());
+    const blocks = extractJsonLd(html);
+    const faqs = blocks.filter((b) => b["@type"] === "FAQPage");
+    expect(faqs).toHaveLength(1);
+    expect(validateJsonLd(faqs[0])).toEqual({ ok: true, errors: [] });
+    expect(JSON.stringify(faqs[0])).not.toMatch(/\{[a-zA-Z]+\}/);
+    const crumbs = blocks.filter((b) => b["@type"] === "BreadcrumbList");
+    expect(crumbs).toHaveLength(1);
+    expect(validateJsonLd(crumbs[0]).ok).toBe(true);
+    expect(JSON.stringify(crumbs[0])).toContain("https://blockid.au/solutions/advisor");
   });
 
   it("VI mirror renders the Vietnamese headline with the same CTA hrefs", async () => {
-    const html = renderToStaticMarkup(await ViSolutionsAdvisorPage());
+    const html = await render(await ViSolutionsAdvisorPage());
     expect(html).toContain('lang="vi"');
     expect(html).toContain(HEADLINE_VI.replace(/&/g, "&amp;"));
     expect(html).toContain(attr(SIGNUP));
     expect(html).toContain(attr(PRICING));
   });
 
-  it("metadata is canonical at /solutions/advisor with a VI alternate", async () => {
+  it("metadata is canonical at /solutions/advisor with a VI alternate, ≤ 60 title, 140–160 description, OG image (S8-A)", async () => {
     const meta = await generateMetadata();
     expect(meta.alternates?.canonical).toBe("https://blockid.au/solutions/advisor");
     expect(meta.alternates?.languages?.vi).toBe("https://blockid.au/vi/solutions/advisor");
     expect(String(meta.title)).not.toMatch(/PhD/);
+    expect(String(meta.title)).not.toContain("BlockID.au");
+    expect(`${String(meta.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(meta.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(meta.description).length).toBeLessThanOrEqual(160);
+    expect((meta.openGraph as { images?: unknown[] }).images).toHaveLength(1);
+    expect((meta.twitter as { images?: unknown[] }).images).toEqual(["/opengraph-image"]);
   });
 });

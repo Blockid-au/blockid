@@ -1,6 +1,7 @@
 import type React from "react";
 import { renderToReadableStream } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 
 vi.mock("@/components/marketing/marketing-shell", () => ({
   MarketingShell: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
@@ -39,6 +40,26 @@ describe("/funding landing (T0242)", () => {
     expect(out).toContain("A$3");
     expect(out).toContain("/pricing?segment=evaluator");
     expect(out).not.toMatch(/A\$5\.50|PhD|A\$99/);
+  });
+
+  it("S8-A: ≤ 60 title via the brand template, 140–160 description, hreflang pair, OG image; BreadcrumbList validates; one H1", async () => {
+    const { metadata } = await import("./page");
+    expect(String(metadata.title)).toBe("Find startup funding in Australia in 60 seconds");
+    expect(`${String(metadata.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(metadata.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(metadata.description).length).toBeLessThanOrEqual(160);
+    expect(metadata.alternates?.canonical).toBe("https://blockid.au/funding");
+    expect(metadata.alternates?.languages).toEqual({
+      en: "https://blockid.au/funding",
+      vi: "https://blockid.au/vi/funding",
+      "x-default": "https://blockid.au/funding",
+    });
+    expect((metadata.openGraph as { images?: unknown[] }).images).toHaveLength(1);
+    const out = await html();
+    const blocks = extractJsonLd(out);
+    expect(blocks.map((b) => b["@type"])).toEqual(["BreadcrumbList"]);
+    expect(validateJsonLd(blocks[0])).toEqual({ ok: true, errors: [] });
+    expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
   });
 
   it("renders the 3-question intake with 8 states + not incorporated, 5 stages and the improve-my-match drawer", async () => {

@@ -16,9 +16,9 @@ import { FundingJsonLd } from "@/components/funding/funding-json-ld";
 import { StatusChip } from "@/components/funding/status-chip";
 import { programTerms } from "@/components/funding/program-card";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
+import { FundingGuides } from "@/components/funding/funding-guides";
 import { getProgram, listPrograms } from "@/lib/funding/data";
 import {
-  SITE_URL,
   buildProgramEventsJsonLd,
   buildProgramJsonLd,
   capitalDisplayName,
@@ -33,6 +33,8 @@ import {
   stageLabel,
   stateLabel,
 } from "@/lib/funding/directory";
+import { FUNDING_CRUMBS, PROGRAM_GUIDES, grantsStatePath, programDescription, programPath, programTitle } from "@/lib/funding/seo";
+import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
 
@@ -47,19 +49,11 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const { capital: slug, id } = await params;
   const capital = capitalFromSlug(slug);
   const p = await getProgram(id);
-  if (!capital || !p || p.capital !== capital) return { title: "Program not found · BlockID.au", robots: { index: false } };
-  const title = `${p.name} — ${programTypeLabel(p.program_type)} in ${p.city} · BlockID.au`;
-  const description =
-    p.summary ??
-    `${p.name}: ${programTypeLabel(p.program_type).toLowerCase()} run by ${p.operator ?? "its operator"} in ${p.city}. Benefits, funding and equity terms, eligibility, intake dates and the official application link.`;
-  const path = `/funding/programs/${capitalSlug(capital)}/${encodeURIComponent(p.id)}`;
-  return {
-    title,
-    description,
-    alternates: { canonical: path },
-    openGraph: { title, description, url: `${SITE_URL}${path}`, siteName: "BlockID.au", type: "website", locale: "en_AU" },
-    twitter: { card: "summary", title, description },
-  };
+  if (!capital || !p || p.capital !== capital) {
+    return pageMetadata({ title: { absolute: "Program not found" }, description: "This program is not in the BlockID directory.", path: "/funding/programs", index: false });
+  }
+  // S8-A: `${name} — ${type} in ${city}, ${STATE}` (≤ 60, unique) + composed 140–160 description.
+  return pageMetadata({ title: { absolute: programTitle(p) }, description: programDescription(p), path: programPath(p.capital, p.id) });
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -78,7 +72,6 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
   if (!capital || !p || p.capital !== capital) notFound();
 
   const capitalPath = `/funding/programs/${capitalSlug(capital)}`;
-  const path = `${capitalPath}/${encodeURIComponent(p.id)}`;
   const planHref = `/funding?program=${encodeURIComponent(p.id)}`;
   const requirements = eligibilityRequirements(p.eligibility);
   const terms = programTerms(p);
@@ -86,15 +79,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
 
   return (
     <MarketingShell>
-      <BreadcrumbListJsonLd
-        items={[
-          { name: "Home", href: "/" },
-          { name: "Funding", href: "/funding" },
-          { name: "Programs", href: "/funding/programs" },
-          { name: capitalDisplayName(capital), href: capitalPath },
-          { name: p.name, href: path },
-        ]}
-      />
+      <BreadcrumbListJsonLd items={FUNDING_CRUMBS.program(p)} />
       <FundingJsonLd data={[buildProgramJsonLd(p), ...buildProgramEventsJsonLd([p])]} />
 
       <article className="mx-auto max-w-5xl px-6 pt-12 pb-12 sm:pt-16" data-program-id={p.id}>
@@ -217,6 +202,27 @@ export default async function ProgramDetailPage({ params }: { params: Promise<Pa
                 <span className="text-secondary">{p.status_confidence} confidence</span>
               </Field>
             </dl>
+            <nav className="mt-6 space-y-1.5 border-t border-line-subtle pt-4 text-sm" aria-label="Related">
+              <p className="text-xs font-semibold uppercase tracking-wide text-secondary">More funding</p>
+              <p>
+                <Link href={capitalPath} className="text-action underline-offset-2 hover:underline">
+                  All {capitalDisplayName(capital)} programs
+                </Link>
+              </p>
+              <p>
+                <Link href={grantsStatePath(p.state)} className="text-action underline-offset-2 hover:underline">
+                  {p.state === "national" ? "Federal startup grants" : `${stateLabel(p.state)} startup grants`}
+                </Link>
+              </p>
+              <p>
+                <Link href="/funding/report/demo" className="text-action underline-offset-2 hover:underline">
+                  See a sample A$3 report
+                </Link>
+              </p>
+            </nav>
+            <div className="mt-6 border-t border-line-subtle pt-4">
+              <FundingGuides guides={PROGRAM_GUIDES} heading="Guides" compact />
+            </div>
           </aside>
         </div>
       </article>

@@ -8,6 +8,9 @@
  * grant information", so the list and every official link are free. The
  * "Am I eligible?" link is the only door to the paid analysis (/funding,
  * T0242). Counts and A$ totals are computed from the rows — never typed.
+ *
+ * SEO (S8-A): primary keyword "startup grants australia"; the state-only
+ * filter view targets "<state> startup grants" (see `stateOnlyFilter`).
  */
 
 import type { Metadata } from "next";
@@ -17,6 +20,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingJsonLd } from "@/components/funding/funding-json-ld";
+import { FundingGuides } from "@/components/funding/funding-guides";
 import { FilterChips, type FilterChipGroup } from "@/components/funding/filter-chips";
 import { GrantCard } from "@/components/funding/grant-card";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
@@ -37,28 +41,30 @@ import {
   stateLabel,
   type SearchParamsLike,
 } from "@/lib/funding/directory";
+import {
+  FUNDING_CRUMBS,
+  GRANTS_DESCRIPTION,
+  GRANTS_TITLE,
+  GRANT_GUIDES,
+  grantsStatePath,
+  grantsStateSeo,
+  stateOnlyFilter,
+} from "@/lib/funding/seo";
+import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
 
 const PATH = "/funding/grants";
-const TITLE = "Australian startup grants, open right now · BlockID.au";
-const DESCRIPTION =
-  "Every Australian government grant, voucher, tax offset and loan for startups in one free list — federal, state and council — with official links, A$ ranges, closing dates and stage tags. Filter by state, funding type and stage.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: PATH },
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-    url: `${SITE_URL}${PATH}`,
-    siteName: "BlockID.au",
-    type: "website",
-    locale: "en_AU",
-  },
-  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
-};
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParamsLike> }): Promise<Metadata> {
+  const filters = parseGrantFilters(await searchParams);
+  const state = stateOnlyFilter(filters);
+  if (state) {
+    const seo = grantsStateSeo(state);
+    return pageMetadata({ title: seo.title, description: seo.description, path: grantsStatePath(state) });
+  }
+  return pageMetadata({ title: GRANTS_TITLE, description: GRANTS_DESCRIPTION, path: PATH });
+}
 
 export default async function GrantsDirectoryPage({
   searchParams,
@@ -67,6 +73,9 @@ export default async function GrantsDirectoryPage({
 }) {
   const sp = await searchParams;
   const filters = parseGrantFilters(sp);
+  const stateOnly = stateOnlyFilter(filters);
+  const stateSeo = stateOnly ? grantsStateSeo(stateOnly) : null;
+  const pagePath = stateOnly ? grantsStatePath(stateOnly) : PATH;
   const all = await listGrants({ excludeNonMatching: true });
   const stats = grantStats(all);
   const rows = sortByStatusThenName(applyGrantFilters(all, filters));
@@ -98,8 +107,8 @@ export default async function GrantsDirectoryPage({
   const itemList = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Australian startup grants",
-    url: `${SITE_URL}${PATH}`,
+    name: stateSeo ? stateSeo.h1 : "Australian startup grants",
+    url: `${SITE_URL}${pagePath}`,
     numberOfItems: rows.length,
     itemListElement: rows.slice(0, 100).map((g, i) => ({
       "@type": "ListItem",
@@ -121,18 +130,14 @@ export default async function GrantsDirectoryPage({
     <MarketingShell>
       <PageViewTracker event="funding_directory_viewed" params={{ kind: "grants" }} />
       <BreadcrumbListJsonLd
-        items={[
-          { name: "Home", href: "/" },
-          { name: "Funding", href: "/funding" },
-          { name: "Grants", href: PATH },
-        ]}
+        items={stateOnly ? [...FUNDING_CRUMBS.grants, { name: `${stateLabel(stateOnly)} grants`, href: pagePath }] : [...FUNDING_CRUMBS.grants]}
       />
       <FundingJsonLd data={itemList} />
 
       <section className="mx-auto max-w-5xl px-6 pt-16 pb-8 sm:pt-24">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-action">Free directory</p>
         <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-primary sm:text-5xl">
-          Australian startup grants, open right now
+          {stateSeo ? stateSeo.h1 : "Australian startup grants, open right now"}
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-secondary">
           <strong className="font-semibold text-primary" data-open-count={stats.open}>
@@ -174,6 +179,20 @@ export default async function GrantsDirectoryPage({
         <FilterChips base={PATH} current={current} groups={groups} />
       </section>
 
+      {stateOnly ? (
+        <nav className="mx-auto max-w-5xl px-6 pb-6 text-sm text-secondary" aria-label="Other states">
+          Also see:{" "}
+          {AU_STATES.filter((s) => s !== stateOnly && all.some((g) => g.state === s)).map((s, i) => (
+            <span key={s}>
+              {i > 0 ? " · " : ""}
+              <Link href={grantsStatePath(s)} className="text-action underline-offset-2 hover:underline">
+                {s === "national" ? "Federal grants" : `${stateLabel(s)} grants`}
+              </Link>
+            </span>
+          ))}
+        </nav>
+      ) : null}
+
       <section className="mx-auto max-w-5xl px-6 pb-12" aria-labelledby="grants-list-heading">
         <h2 id="grants-list-heading" className="mb-4 text-sm font-semibold text-secondary">
           {rows.length} {rows.length === 1 ? "grant" : "grants"}
@@ -193,6 +212,8 @@ export default async function GrantsDirectoryPage({
           </div>
         )}
       </section>
+
+      <FundingGuides guides={GRANT_GUIDES} heading="Read before you apply" />
 
       <FundingDisclaimer lastVerifiedAt={lastVerified} />
     </MarketingShell>

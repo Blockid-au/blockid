@@ -9,6 +9,7 @@ vi.mock("@/components/marketing/marketing-shell", () => ({
   MarketingShell: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 import matrix from "../../../../../content/generated/unlock-matrix.json";
 import UnlocksPage, { metadata } from "./page";
 
@@ -25,6 +26,21 @@ describe("/docs/unlocks", () => {
   it("is indexable with a canonical URL", () => {
     expect(metadata.robots).toEqual({ index: true, follow: true });
     expect(metadata.alternates?.canonical).toBe("https://blockid.au/docs/unlocks");
+  });
+
+  it("S8-A: ≤ 60 title via the root brand template (no hand-written suffix), 140–160 description, OG image; WebPage + BreadcrumbList JSON-LD validate; one outcome-led H1", async () => {
+    expect(String(metadata.title)).toBe("What unlocks when: phases, plans and tools");
+    expect(`${String(metadata.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(metadata.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(metadata.description).length).toBeLessThanOrEqual(160);
+    expect((metadata.openGraph as { images?: unknown[] }).images).toHaveLength(1);
+    const out = await html();
+    const blocks = extractJsonLd(out);
+    expect(blocks.map((b) => b["@type"]).sort()).toEqual(["BreadcrumbList", "WebPage"]);
+    for (const b of blocks) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
+    expect(JSON.stringify(blocks)).toContain("https://blockid.au/docs/unlocks");
+    expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
+    expect(out).toContain("What unlocks when: the tools each phase and plan opens");
   });
 
   it("renders both generated tables with all 12 phases and 7 plan columns", async () => {

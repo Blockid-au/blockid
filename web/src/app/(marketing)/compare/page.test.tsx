@@ -16,6 +16,7 @@ vi.mock("@/components/site/page-view-tracker", () => ({
   ),
 }));
 
+import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 import en from "@/lib/i18n/messages/en.json";
 import vi_ from "@/lib/i18n/messages/vi.json";
 import type { Messages } from "@/lib/i18n/t";
@@ -266,5 +267,43 @@ describe("/solutions/* evaluator pages link through to the comparison", () => {
       expect(faq.href).toBe("/compare/chatgpt");
       expect(faq.linkLabel).toBe(m["compare.faq.link"]);
     }
+  });
+});
+
+describe("/compare — SEO (S8-A)", () => {
+  it("titles are ≤ 60 with the root brand template (no doubled suffix), descriptions 140–160 once prices fill, OG image on all three", async () => {
+    const all = await allMetadata();
+    const chatgpt = await aliasMetadata({ params: Promise.resolve({ slug: "chatgpt" }) });
+    const valuers = await aliasMetadata({ params: Promise.resolve({ slug: "valuers" }) });
+    for (const [name, md] of [["all", all], ["chatgpt", chatgpt], ["valuers", valuers]] as const) {
+      expect(String(md.title), name).not.toContain("BlockID.au");
+      expect(`${String(md.title)} | BlockID.au`.length, name).toBeLessThanOrEqual(60);
+      const desc = String(md.description);
+      expect(desc, name).not.toMatch(/\{[a-zA-Z]+\}/);
+      expect(desc.length, name).toBeGreaterThanOrEqual(140);
+      expect(desc.length, name).toBeLessThanOrEqual(160);
+      expect((md.openGraph as { images?: unknown[] }).images, name).toHaveLength(1);
+      expect(md.robots, name).toEqual({ index: true, follow: true });
+    }
+    expect(all.alternates?.languages).toEqual({
+      en: "https://blockid.au/compare",
+      vi: "https://blockid.au/vi/compare",
+      "x-default": "https://blockid.au/compare",
+    });
+    // English-only aliases carry no hreflang set (nothing to pair with).
+    expect(chatgpt.alternates?.languages).toBeUndefined();
+    expect(chatgpt.alternates?.canonical).toBe("https://blockid.au/compare/chatgpt");
+    const vi = await viMetadata();
+    expect(`${String(vi.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect((vi.openGraph as { locale?: string }).locale).toBe("vi_VN");
+  });
+
+  it("emits exactly one FAQPage (the visible FAQ) and one BreadcrumbList, both valid; one H1", async () => {
+    const out = await html(await CompareAllPage());
+    const blocks = extractJsonLd(out);
+    expect(blocks.filter((b) => b["@type"] === "FAQPage")).toHaveLength(1);
+    expect(blocks.filter((b) => b["@type"] === "BreadcrumbList")).toHaveLength(1);
+    for (const b of blocks) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
+    expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
   });
 });

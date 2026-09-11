@@ -43,7 +43,12 @@ describe("/vi/funding (T0248)", () => {
   it("metadata carries the VI title + hreflang pair", async () => {
     const { generateMetadata } = await import("./page");
     const meta = await generateMetadata();
-    expect(meta.title).toBe("Bạn cần tiền cho startup? Grant, chương trình và nhà đầu tư tại Úc");
+    expect(meta.title).toBe("Tìm vốn cho startup tại Úc trong 60 giây");
+    expect(`${String(meta.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(meta.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(meta.description).length).toBeLessThanOrEqual(160);
+    expect((meta.openGraph as { locale?: string; images?: unknown[] }).locale).toBe("vi_VN");
+    expect((meta.openGraph as { images?: unknown[] }).images).toHaveLength(1);
     expect(meta.alternates?.languages).toMatchObject({ en: "https://blockid.au/funding", vi: "https://blockid.au/vi/funding" });
   });
 });

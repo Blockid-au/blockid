@@ -693,15 +693,20 @@ export function capitalUrl(capital: Capital): string {
   return `${SITE_URL}/funding/programs/${capitalSlug(capital)}`;
 }
 
+const GOVERNMENT_LEVELS: ReadonlySet<string> = new Set(["federal", "state", "territory", "local"]);
+
 /**
  * A grant is a service offered by a government (or RDC / council) — the
- * closest schema.org fit is `GovernmentService`. Amounts ride on an
- * `offers.priceSpecification` so the A$ range is machine-readable.
+ * closest schema.org fit is `GovernmentService` (plain `Service` with an
+ * `Organization` provider for university / private / RDC rows, S8-A).
+ * Amounts ride on an `offers.priceSpecification` so the A$ range is
+ * machine-readable.
  */
 export function buildGrantJsonLd(g: AuGrantRow): Record<string, unknown> {
+  const government = GOVERNMENT_LEVELS.has(g.level);
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "GovernmentService",
+    "@type": government ? "GovernmentService" : "Service",
     name: g.name,
     url: grantUrl(g.id),
     sameAs: g.official_url,
@@ -709,7 +714,7 @@ export function buildGrantJsonLd(g: AuGrantRow): Record<string, unknown> {
     serviceType: fundingTypeLabel(g.funding_type),
     areaServed: { "@type": "Country", name: "Australia" },
     audience: { "@type": "BusinessAudience", name: "Australian startups" },
-    provider: g.provider ? { "@type": "GovernmentOrganization", name: g.provider } : undefined,
+    provider: g.provider ? { "@type": government ? "GovernmentOrganization" : "Organization", name: g.provider } : undefined,
     isPartOf: { "@type": "WebSite", name: "BlockID.au", url: SITE_URL },
   };
   if (g.state !== "national") {
@@ -788,9 +793,15 @@ export function buildProgramEventsJsonLd(rows: ReadonlyArray<AuProgramRow>): Rec
   return out;
 }
 
+/** Deep: drops `undefined` keys at every level so the emitted JSON-LD passes `validateJsonLd` (S8-A). */
 function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
   for (const k of Object.keys(obj)) {
-    if (obj[k] === undefined) delete obj[k];
+    const v = obj[k];
+    if (v === undefined) {
+      delete obj[k];
+    } else if (v && typeof v === "object" && !Array.isArray(v)) {
+      stripUndefined(v as Record<string, unknown>);
+    }
   }
   return obj;
 }

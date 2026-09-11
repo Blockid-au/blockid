@@ -16,12 +16,14 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
+import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
 import { FundingIntake } from "@/components/funding/funding-intake";
 import { listGrants, listPrograms } from "@/lib/funding/data";
 import { capitalSlug, formatAudCompact, grantStats, latestVerifiedAt } from "@/lib/funding/directory";
 import { fundingCopy, type FundingCopyGroup } from "@/lib/funding/copy";
 import { CAPITALS } from "@/lib/funding/seed-map";
+import { FUNDING_CRUMBS } from "@/lib/funding/seo";
 import { getArticleBySlug } from "@/lib/insights";
 
 // G11 §1b / T0249 — the funding insight articles that carry the "See which of
@@ -76,6 +78,7 @@ export async function FundingLanding({ messages = null }: FundingLandingProps) {
 
   return (
     <MarketingShell>
+      <BreadcrumbListJsonLd items={[...FUNDING_CRUMBS.landing]} />
       <MarketingHero
         eyebrow={c("hero", "eyebrow")}
         title={title}

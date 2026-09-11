@@ -63,6 +63,7 @@ vi.mock("@/lib/funding/data", () => ({
   getGrant: async (id: string) => (id === "esic" ? esic : null),
 }));
 
+import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
 import GrantDetailPage, { generateMetadata, generateStaticParams, revalidate } from "./page";
 
 async function render(id: string): Promise<string> {
@@ -78,12 +79,19 @@ describe("/funding/grants/[id] — params and metadata", () => {
     expect(revalidate).toBe(3600);
   });
 
-  it("titles the page with the grant name and A$ range; unknown ids are noindex", async () => {
+  it("titles the page `name — state noun` as an absolute ≤ 60 title (no doubled brand), composes a 140–160 description, absolute canonical + OG image; unknown ids are noindex (S8-A)", async () => {
     const md = await generateMetadata({ params: Promise.resolve({ id: "esic" }) });
-    expect(md.title).toBe("Early Stage Innovation Company (ESIC) investor tax incentives — up to A$200,000 · BlockID.au");
-    expect(md.alternates?.canonical).toBe("/funding/grants/esic");
+    // The acronym rule keeps the searched-for "(ESIC)" instead of truncating mid-name.
+    expect(md.title).toEqual({ absolute: "Early Stage Innovation Company (ESIC) — Australia" });
+    expect((md.title as { absolute: string }).absolute.length).toBeLessThanOrEqual(60);
+    expect(String(md.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(md.description).length).toBeLessThanOrEqual(160);
+    expect(String(md.description)).toContain("Early Stage Innovation Company (ESIC) investor tax incentives: tax incentive from ATO / Treasury for Australian startups");
+    expect(md.alternates?.canonical).toBe("https://blockid.au/funding/grants/esic");
+    expect((md.openGraph as { images?: unknown[] }).images).toHaveLength(1);
+    expect((md.openGraph as { title?: string }).title).toBe("Early Stage Innovation Company (ESIC) — Australia");
     const missing = await generateMetadata({ params: Promise.resolve({ id: "nope" }) });
-    expect(missing.robots).toEqual({ index: false });
+    expect(missing.robots).toEqual({ index: false, follow: false });
   });
 
   it("404s an unknown id", async () => {
@@ -126,5 +134,18 @@ describe("/funding/grants/[id] — rendered", () => {
     expect(html).toContain('data-last-verified="2026-09-10"');
     expect(html).not.toContain("A$5.50");
     expect(html).not.toMatch(/PhD/);
+  });
+
+  it("every JSON-LD block validates, one H1, and the related links reach the state view, programs, demo and the ESIC guide first (S8-A)", async () => {
+    const html = await render("esic");
+    const blocks = extractJsonLd(html);
+    expect(blocks.map((b) => b["@type"]).sort()).toEqual(["BreadcrumbList", "GovernmentService"]);
+    for (const b of blocks) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
+    expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+    expect(html).toContain('href="/funding/grants?state=national"');
+    expect(html).toContain('href="/funding/programs"');
+    expect(html).toContain('href="/funding/report/demo"');
+    expect(html).toContain('data-funding-guides="compact"');
+    expect(html.indexOf("esic-and-rnd-tax-incentive-guide-2026")).toBeLessThan(html.indexOf("government-grants-startups-australia-2026"));
   });
 });

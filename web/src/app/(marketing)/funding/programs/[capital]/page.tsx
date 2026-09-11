@@ -20,11 +20,13 @@ import { CapitalPicker } from "@/components/funding/capital-picker";
 import { IntakeCalendar } from "@/components/funding/intake-calendar";
 import { ProgramCard } from "@/components/funding/program-card";
 import { FundingDisclaimer } from "@/components/funding/funding-disclaimer";
+import { FundingGuides } from "@/components/funding/funding-guides";
 import { listPrograms } from "@/lib/funding/data";
 import { CAPITALS } from "@/lib/funding/seed-map";
 import {
   SITE_URL,
   buildIntakeCalendar,
+  stateLabel,
   buildProgramEventsJsonLd,
   capitalDisplayName,
   capitalFromSlug,
@@ -34,6 +36,8 @@ import {
   programUrl,
   sortByStatusThenName,
 } from "@/lib/funding/directory";
+import { FUNDING_CRUMBS, PROGRAM_GUIDES, capitalPath, capitalSeo, grantsStatePath, stateForCapital } from "@/lib/funding/seo";
+import { pageMetadata } from "@/lib/seo/page-meta";
 
 export const revalidate = 3600;
 
@@ -46,24 +50,13 @@ export function generateStaticParams(): Params[] {
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { capital: slug } = await params;
   const capital = capitalFromSlug(slug);
-  if (!capital) return { title: "Capital not found · BlockID.au", robots: { index: false } };
-  const name = capitalDisplayName(capital);
-  const path = `/funding/programs/${capitalSlug(capital)}`;
-  const title =
-    capital === "Remote"
-      ? "Online and Australia-wide startup programs · BlockID.au"
-      : `Startup programs in ${capital} — accelerators, incubators and intake dates · BlockID.au`;
-  const description =
-    capital === "Remote"
-      ? "Free directory of remote, online and national accelerators, incubators and founder programs open to startups anywhere in Australia, with a twelve-month intake calendar and official links."
-      : `Free directory of accelerators, incubators, pre-accelerators, university programs and angel groups in ${name}, with a twelve-month intake calendar, funding and equity terms, and official application links.`;
-  return {
-    title,
-    description,
-    alternates: { canonical: path },
-    openGraph: { title, description, url: `${SITE_URL}${path}`, siteName: "BlockID.au", type: "website", locale: "en_AU" },
-    twitter: { card: "summary", title, description },
-  };
+  if (!capital) {
+    return pageMetadata({ title: { absolute: "Capital not found" }, description: "No programs directory for that city.", path: "/funding/programs", index: false });
+  }
+  // S8-A: "accelerator programs <city>" / "startup incubator <city>"; the
+  // description names the satellite cities the capital page folds in.
+  const seo = capitalSeo(capital);
+  return pageMetadata({ title: seo.title, description: seo.description, path: capitalPath(capital) });
 }
 
 export default async function CapitalProgramsPage({ params }: { params: Promise<Params> }) {
@@ -80,7 +73,9 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
   const closedCount = rows.filter((p) => p.status === "closed").length;
   const lastVerified = latestVerifiedAt(rows);
   const name = capitalDisplayName(capital);
-  const heading = capital === "Remote" ? "Startup programs online and Australia-wide" : `Startup programs in ${capital}`;
+  const seo = capitalSeo(capital);
+  const heading = seo.h1;
+  const state = stateForCapital(capital);
 
   const itemList = {
     "@context": "https://schema.org",
@@ -100,14 +95,7 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
   return (
     <MarketingShell>
       <PageViewTracker event="funding_directory_viewed" params={{ kind: "programs", capital }} />
-      <BreadcrumbListJsonLd
-        items={[
-          { name: "Home", href: "/" },
-          { name: "Funding", href: "/funding" },
-          { name: "Programs", href: "/funding/programs" },
-          { name, href: path },
-        ]}
-      />
+      <BreadcrumbListJsonLd items={FUNDING_CRUMBS.capital(capital)} />
       <FundingJsonLd data={[itemList, ...events]} />
 
       <section className="mx-auto max-w-5xl px-6 pt-12 pb-8 sm:pt-16" data-capital={capital}>
@@ -127,6 +115,21 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
           </strong>
           {closedCount ? ` · ${closedCount} closed and kept for the record` : ""}. Intake months below come from each
           program&rsquo;s published dates; the official page is always the source of truth.
+        </p>
+        {seo.coverage ? (
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-secondary" data-capital-coverage>
+            {seo.coverage}
+          </p>
+        ) : null}
+        <p className="mt-3 text-sm text-secondary">
+          Looking for grants instead?{" "}
+          <Link href={grantsStatePath(state)} className="font-semibold text-action underline-offset-2 hover:underline">
+            {state === "national" ? "Federal startup grants" : `${stateLabel(state)} startup grants`}
+          </Link>
+          {" · "}
+          <Link href="/funding/report/demo" className="font-semibold text-action underline-offset-2 hover:underline">
+            see a sample A$3 report
+          </Link>
         </p>
         <div className="mt-6">
           <CapitalPicker counts={counts} current={capital} variant="compact" />
@@ -168,6 +171,8 @@ export default async function CapitalProgramsPage({ params }: { params: Promise<
           </div>
         )}
       </section>
+
+      <FundingGuides guides={PROGRAM_GUIDES} heading="Read before you apply" />
 
       <FundingDisclaimer lastVerifiedAt={lastVerified} />
     </MarketingShell>

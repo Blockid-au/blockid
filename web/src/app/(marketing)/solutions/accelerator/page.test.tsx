@@ -27,7 +27,8 @@ import {
   buildAdvisorProps,
   buildInvestorProps,
 } from "../evaluator-page-props";
-import SolutionsAcceleratorPage from "./page";
+import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
+import SolutionsAcceleratorPage, { generateMetadata } from "./page";
 import ViSolutionsAcceleratorPage from "../../../vi/solutions/accelerator/page";
 
 const EN = en as unknown as Messages;
@@ -103,5 +104,29 @@ describe("/solutions/accelerator — rendered pilot CTA", () => {
     expect(out).toContain(attr(ACCELERATOR_PILOT_HREF));
     expect(out).toContain(PILOT_LABEL_VI);
     expect(out).toContain("A$349");
+  });
+});
+
+describe("/solutions/accelerator — SEO (S8-A)", () => {
+  it("metadata: ≤ 60 title without a doubled brand, 140–160 description, hreflang pair, OG image", async () => {
+    const meta = await generateMetadata();
+    expect(String(meta.title)).toBe("Score your whole cohort on one startup rubric");
+    expect(`${String(meta.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(meta.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(meta.description).length).toBeLessThanOrEqual(160);
+    expect(meta.alternates?.canonical).toBe("https://blockid.au/solutions/accelerator");
+    expect(meta.alternates?.languages?.vi).toBe("https://blockid.au/vi/solutions/accelerator");
+    expect((meta.openGraph as { images?: unknown[] }).images).toHaveLength(1);
+  });
+
+  it("emits exactly one FAQPage (the visible FAQ) and one BreadcrumbList, both valid; one H1", async () => {
+    const out = await html(await SolutionsAcceleratorPage());
+    const blocks = extractJsonLd(out);
+    expect(blocks.filter((b) => b["@type"] === "FAQPage")).toHaveLength(1);
+    expect(blocks.filter((b) => b["@type"] === "BreadcrumbList")).toHaveLength(1);
+    for (const b of blocks) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
+    expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
+    const vi = await html(await ViSolutionsAcceleratorPage());
+    expect(JSON.stringify(extractJsonLd(vi).find((b) => b["@type"] === "BreadcrumbList"))).toContain("https://blockid.au/vi/solutions/accelerator");
   });
 });

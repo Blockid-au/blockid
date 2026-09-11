@@ -13,39 +13,23 @@
 
 import type { Metadata } from "next";
 import { getMessages, t } from "@/lib/i18n/t";
+import { pageMetadata } from "@/lib/seo/page-meta";
 import { SolutionsPageShell } from "../solutions-shared";
 import { buildAcceleratorProps } from "../evaluator-page-props";
 
-const SITE_URL = "https://blockid.au";
-const CANONICAL_EN = `${SITE_URL}/solutions/accelerator`;
-const CANONICAL_VI = `${SITE_URL}/vi/solutions/accelerator`;
+const PATH = "/solutions/accelerator";
+const VI_PATH = "/vi/solutions/accelerator";
 
+// S8-A: catalogue title carries no brand suffix (the root template appends
+// it); hreflang pair + OG image via `pageMetadata`.
 export async function generateMetadata(): Promise<Metadata> {
   const m = await getMessages("en");
-  const title = t(m, "meta.solutions.accelerator.title");
-  const description = t(m, "meta.solutions.accelerator.description");
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: CANONICAL_EN,
-      languages: {
-        en: CANONICAL_EN,
-        vi: CANONICAL_VI,
-        "x-default": CANONICAL_EN,
-      },
-    },
-    openGraph: {
-      title,
-      description,
-      url: CANONICAL_EN,
-      siteName: "BlockID.au",
-      type: "website",
-      locale: "en_AU",
-    },
-    twitter: { card: "summary_large_image", title, description },
-    robots: { index: true, follow: true },
-  };
+  return pageMetadata({
+    title: t(m, "meta.solutions.accelerator.title"),
+    description: t(m, "meta.solutions.accelerator.description"),
+    path: PATH,
+    viPath: VI_PATH,
+  });
 }
 
 export default async function SolutionsAcceleratorPage() {

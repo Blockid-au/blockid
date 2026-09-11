@@ -72,7 +72,8 @@ vi.mock("@/lib/funding/data", () => ({
   getProgram: async (id: string) => rows.find((r) => r.id === id) ?? null,
 }));
 
-import ProgramsDirectoryPage from "../page";
+import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
+import ProgramsDirectoryPage, { metadata as indexMetadata } from "../page";
 import CapitalProgramsPage, { generateMetadata, generateStaticParams } from "./page";
 import ProgramDetailPage, { generateMetadata as detailMetadata } from "./[id]/page";
 
@@ -85,7 +86,8 @@ async function toHtml(el: React.ReactElement): Promise<string> {
 describe("/funding/programs — index", () => {
   it("renders the H1, nine capital cards with live counts, and the mixed list", async () => {
     const html = await toHtml(await ProgramsDirectoryPage({ searchParams: Promise.resolve({}) }));
-    expect(html).toContain("Accelerators, incubators and startup programs in every Australian capital");
+    expect(html).toContain("Startup accelerators, incubators and programs in every Australian capital");
+    expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
     expect(html).toContain('data-total-count="4"');
     expect(html).toContain('data-open-count="2"');
     for (const c of ["sydney", "melbourne", "brisbane", "perth", "adelaide", "canberra", "hobart", "darwin", "remote"]) {
@@ -99,6 +101,18 @@ describe("/funding/programs — index", () => {
     const html = await toHtml(await ProgramsDirectoryPage({ searchParams: Promise.resolve({ capital: "perth" }) }));
     expect(html).toContain('data-program-id="per-plus-eight"');
     expect(html).not.toContain('data-program-id="syd-startmate"');
+  });
+
+  it("metadata: ≤ 60 title via the root template, 140–160 description, absolute canonical, OG image; guides strip + valid JSON-LD (S8-A)", async () => {
+    expect(indexMetadata.title).toBe("Startup accelerators & incubators in Australia");
+    expect(`${String(indexMetadata.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(indexMetadata.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(indexMetadata.description).length).toBeLessThanOrEqual(160);
+    expect(indexMetadata.alternates?.canonical).toBe("https://blockid.au/funding/programs");
+    expect((indexMetadata.openGraph as { images?: unknown[] }).images).toHaveLength(1);
+    const html = await toHtml(await ProgramsDirectoryPage({ searchParams: Promise.resolve({}) }));
+    expect(html).toContain('href="/insights/australian-startup-accelerators-2026"');
+    for (const b of extractJsonLd(html)) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
   });
 });
 
@@ -117,16 +131,26 @@ describe("/funding/programs/[capital]", () => {
     ]);
   });
 
-  it("metadata names the capital; unknown slugs are noindex", async () => {
+  it("metadata targets 'accelerators & incubators in <city>' (≤ 60 with brand), names the satellite cities, absolute canonical; unknown slugs are noindex", async () => {
     const md = await generateMetadata({ params: Promise.resolve({ capital: "Sydney" }) });
-    expect(md.title).toContain("Startup programs in Sydney");
-    expect(md.alternates?.canonical).toBe("/funding/programs/sydney");
-    expect((await generateMetadata({ params: Promise.resolve({ capital: "gold-coast" }) })).robots).toEqual({ index: false });
+    expect(md.title).toBe("Startup accelerators & incubators in Sydney");
+    expect(`${String(md.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(md.description)).toContain("Sydney, Wollongong");
+    expect(String(md.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(md.description).length).toBeLessThanOrEqual(160);
+    expect(md.alternates?.canonical).toBe("https://blockid.au/funding/programs/sydney");
+    expect((md.openGraph as { images?: unknown[] }).images).toHaveLength(1);
+    const bne = await generateMetadata({ params: Promise.resolve({ capital: "brisbane" }) });
+    expect(String(bne.description)).toContain("Gold Coast, Sunshine Coast and Regional Queensland");
+    const remote = await generateMetadata({ params: Promise.resolve({ capital: "remote" }) });
+    expect(String(remote.title)).toContain("Online startup accelerators");
+    expect((await generateMetadata({ params: Promise.resolve({ capital: "gold-coast" }) })).robots).toEqual({ index: false, follow: false });
   });
 
   it("renders the H1, twelve-month calendar, open-first list with closed rows marked, and Event JSON-LD", async () => {
     const html = await toHtml(await CapitalProgramsPage({ params: Promise.resolve({ capital: "sydney" }) }));
-    expect(html).toContain("Startup programs in Sydney");
+    expect(html).toContain("Startup accelerators and incubators in Sydney");
+    expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
     expect(html).toContain('data-total-count="3"');
     expect(html).toContain('data-open-count="1"');
     expect(html.match(/data-month="/g)).toHaveLength(12);
@@ -151,6 +175,22 @@ describe("/funding/programs/[capital]", () => {
     expect(html).toContain('data-surface="funding_directory"');
   });
 
+  it("describes the capital → city grouping in copy, links the state grants view, the demo and the guides; every JSON-LD block validates (S8-A)", async () => {
+    const syd = await toHtml(await CapitalProgramsPage({ params: Promise.resolve({ capital: "sydney" }) }));
+    expect(syd).toContain('data-capital-coverage');
+    expect(syd).toContain("Sydney listings also cover Wollongong, so the whole New South Wales startup ecosystem");
+    expect(syd).toContain('href="/funding/grants?state=NSW"');
+    expect(syd).toContain('href="/funding/report/demo"');
+    expect(syd).toContain('data-funding-guides="strip"');
+    for (const b of extractJsonLd(syd)) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
+    const per = await toHtml(await CapitalProgramsPage({ params: Promise.resolve({ capital: "perth" }) }));
+    expect(per).not.toContain("data-capital-coverage");
+    expect(per).toContain('href="/funding/grants?state=WA"');
+    const remote = await toHtml(await CapitalProgramsPage({ params: Promise.resolve({ capital: "remote" }) }));
+    expect(remote).toContain("Online startup accelerators and programs, Australia-wide");
+    expect(remote).toContain('href="/funding/grants?state=national"');
+  });
+
   it("404s an unknown capital", async () => {
     await expect(CapitalProgramsPage({ params: Promise.resolve({ capital: "gold-coast" }) })).rejects.toThrow("NEXT_NOT_FOUND");
   });
@@ -172,7 +212,24 @@ describe("/funding/programs/[capital]/[id]", () => {
     expect(html).toContain('"@type":"Event"');
     expect(html).toContain("January, July");
     const md = await detailMetadata({ params: Promise.resolve({ capital: "sydney", id: "syd-startmate" }) });
-    expect(md.alternates?.canonical).toBe("/funding/programs/sydney/syd-startmate");
+    expect(md.alternates?.canonical).toBe("https://blockid.au/funding/programs/sydney/syd-startmate");
+    // S8-A: absolute `name — noun in city, STATE` title ≤ 60, composed 140–160 description, OG image.
+    expect(md.title).toEqual({ absolute: "Startmate Accelerator — accelerator program in Sydney, NSW" });
+    expect(String(md.description)).toContain("Startmate Accelerator: accelerator program run by Operator in Sydney, New South Wales.");
+    expect(String(md.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(md.description).length).toBeLessThanOrEqual(160);
+    expect((md.openGraph as { images?: unknown[] }).images).toHaveLength(1);
+    // Related links + guides + valid JSON-LD, one H1.
+    expect(html).toContain('href="/funding/programs/sydney"');
+    expect(html).toContain('href="/funding/grants?state=NSW"');
+    expect(html).toContain('href="/funding/report/demo"');
+    expect(html).toContain('data-funding-guides="compact"');
+    expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+    const blocks = extractJsonLd(html);
+    expect(blocks.map((b) => b["@type"]).sort()).toEqual(["BreadcrumbList", "Event", "Service"]);
+    for (const b of blocks) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
+    const crumbs = blocks.find((b) => b["@type"] === "BreadcrumbList")!;
+    expect((crumbs.itemListElement as unknown[]).length).toBe(5);
   });
 
   it("404s when the id exists under a different capital (one canonical URL per program)", async () => {
@@ -181,6 +238,7 @@ describe("/funding/programs/[capital]/[id]", () => {
     );
     expect((await detailMetadata({ params: Promise.resolve({ capital: "perth", id: "syd-startmate" }) })).robots).toEqual({
       index: false,
+      follow: false,
     });
   });
 });

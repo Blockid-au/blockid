@@ -18,7 +18,8 @@ vi.mock("@/lib/funding/data", () => ({
   getGrant: async (id: string) => rows.find((r) => r.id === id) ?? null,
 }));
 
-import GrantsDirectoryPage, { metadata, revalidate } from "./page";
+import { extractJsonLd, validateJsonLd } from "@/lib/seo/structured-data";
+import GrantsDirectoryPage, { generateMetadata, revalidate } from "./page";
 
 function grant(over: Partial<AuGrant>): AuGrant {
   return {
@@ -74,10 +75,32 @@ async function render(sp: Record<string, string> = {}): Promise<string> {
 }
 
 describe("/funding/grants — metadata and caching", () => {
-  it("is titled, canonical and revalidated hourly", () => {
-    expect(metadata.title).toBe("Australian startup grants, open right now · BlockID.au");
-    expect(metadata.alternates?.canonical).toBe("/funding/grants");
+  it("is titled ≤ 60 (brand via the root template, no doubled suffix), 140–160 description, absolute canonical, OG image, revalidated hourly", async () => {
+    const md = await generateMetadata({ searchParams: Promise.resolve({}) });
+    expect(md.title).toBe("Australian startup grants, open right now");
+    expect(`${String(md.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(md.description).length).toBeGreaterThanOrEqual(140);
+    expect(String(md.description).length).toBeLessThanOrEqual(160);
+    expect(md.alternates?.canonical).toBe("https://blockid.au/funding/grants");
+    expect((md.openGraph as { images?: unknown[] }).images).toEqual([{ url: "/opengraph-image", width: 1200, height: 630, alt: "BlockID.au" }]);
+    expect(md.robots).toEqual({ index: true, follow: true });
     expect(revalidate).toBe(3600);
+  });
+
+  it("a state-only filter is its own '<state> startup grants' landing page: self-canonical + state title; other filter combos canonicalise to the base (S8-A)", async () => {
+    const wa = await generateMetadata({ searchParams: Promise.resolve({ state: "WA" }) });
+    expect(wa.title).toBe("WA startup grants open right now");
+    expect(wa.alternates?.canonical).toBe("https://blockid.au/funding/grants?state=WA");
+    expect(String(wa.description)).toContain("Western Australia");
+    const national = await generateMetadata({ searchParams: Promise.resolve({ state: "national" }) });
+    expect(national.alternates?.canonical).toBe("https://blockid.au/funding/grants?state=national");
+    const combo = await generateMetadata({ searchParams: Promise.resolve({ state: "WA", type: "voucher" }) });
+    expect(combo.alternates?.canonical).toBe("https://blockid.au/funding/grants");
+    expect(combo.title).toBe("Australian startup grants, open right now");
+    const typeOnly = await generateMetadata({ searchParams: Promise.resolve({ type: "voucher" }) });
+    expect(typeOnly.alternates?.canonical).toBe("https://blockid.au/funding/grants");
+    const junk = await generateMetadata({ searchParams: Promise.resolve({ state: "XX" }) });
+    expect(junk.alternates?.canonical).toBe("https://blockid.au/funding/grants");
   });
 });
 
@@ -114,6 +137,35 @@ describe("/funding/grants — rendered", () => {
     expect(html).toContain('href="/funding/grants?state=WA&amp;type=voucher"');
     expect(html).toContain("Clear all filters");
     expect(html).not.toContain("onclick");
+  });
+
+  it("the state-only view swaps the H1, breadcrumb and ItemList name to the state and links the sibling states (S8-A)", async () => {
+    const html = await render({ state: "WA" });
+    expect(html).toContain("<h1");
+    expect(html).toContain("WA startup grants, open right now");
+    expect(html).not.toContain("Australian startup grants, open right now</h1>");
+    expect(html).toContain('href="/funding/grants?state=NSW"');
+    expect(html).toContain('href="/funding/grants?state=national"');
+    expect(html).not.toContain('aria-label="Other states">Also see: · ');
+    const blocks = extractJsonLd(html);
+    const list = blocks.find((b) => b["@type"] === "ItemList")!;
+    expect(list.name).toBe("WA startup grants, open right now");
+    expect(list.url).toBe("https://blockid.au/funding/grants?state=WA");
+    const crumbs = blocks.find((b) => b["@type"] === "BreadcrumbList")!;
+    expect(JSON.stringify(crumbs)).toContain("Western Australia grants");
+    // The combined filter view keeps the base H1.
+    const combo = await render({ state: "WA", type: "voucher" });
+    expect(combo).toContain("Australian startup grants, open right now");
+  });
+
+  it("links the grant guides (directory → insights) and every JSON-LD block validates (S8-A)", async () => {
+    const html = await render();
+    expect(html).toContain('data-funding-guides="strip"');
+    expect(html).toContain('href="/insights/government-grants-startups-australia-2026"');
+    expect(html).toContain('href="/insights/r-and-d-tax-incentive-startups-australia"');
+    for (const b of extractJsonLd(html)) expect(validateJsonLd(b), String(b["@type"])).toEqual({ ok: true, errors: [] });
+    // Exactly one H1.
+    expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
   });
 
   it("emits ItemList + BreadcrumbList JSON-LD and the registry disclaimer with attribution + last verified", async () => {

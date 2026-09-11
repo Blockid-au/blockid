@@ -17,27 +17,21 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { MarketingCtaStrip } from "@/components/marketing/marketing-cta-strip";
+import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
+import { WebPageJsonLd } from "@/components/seo/json-ld";
+import { fitDescription, pageMetadata, SITE_URL } from "@/lib/seo/page-meta";
 import rawMatrix from "../../../../../content/generated/unlock-matrix.json";
 
-const SITE_URL = "https://blockid.au";
-const TITLE = "What unlocks when — phases, plans and the sidebar";
-const DESCRIPTION =
-  "Exactly which BlockID tools appear at each of the 12 growth phases on Free, Starter, Growth, the Startup Package and the Evaluator plans — and the evidence that clears each phase gate.";
+const PATH = "/docs/unlocks";
+const TITLE = "What unlocks when: phases, plans and tools";
+const DESCRIPTION = fitDescription([
+  "Which BlockID tools appear at each of the 12 growth phases on Free, Starter, Growth, the Startup Package and the Evaluator plans",
+  "And the evidence that clears each phase gate",
+]);
 
-export const metadata: Metadata = {
-  title: `${TITLE} — BlockID.au`,
-  description: DESCRIPTION,
-  robots: { index: true, follow: true },
-  alternates: { canonical: `${SITE_URL}/docs/unlocks` },
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-    url: `${SITE_URL}/docs/unlocks`,
-    siteName: "BlockID.au",
-    type: "article",
-    locale: "en_AU",
-  },
-};
+// S8-A: no hand-written brand suffix (the root template appends it), OG
+// image carried, WebPage + BreadcrumbList JSON-LD below.
+export const metadata: Metadata = pageMetadata({ title: TITLE, description: DESCRIPTION, path: PATH, ogType: "article" });
 
 // Shape of `unlock-matrix.json` (see scripts/docs/unlock-matrix.mts).
 type GroupState = "visible" | "hidden_phase" | "hidden_segment" | "later_preview" | "empty";
@@ -144,9 +138,17 @@ export default function UnlocksPage() {
   const columns = matrix.columns;
   return (
     <MarketingShell>
+      <BreadcrumbListJsonLd
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Docs", href: "/docs" },
+          { name: "What unlocks when", href: PATH },
+        ]}
+      />
+      <WebPageJsonLd url={`${SITE_URL}${PATH}`} name={TITLE} description={DESCRIPTION} />
       <MarketingHero
         eyebrow="Docs · Progressive unlock"
-        title="What unlocks when"
+        title="What unlocks when: the tools each phase and plan opens"
         subtitle="The BlockID sidebar grows with your startup. This page shows exactly which groups appear at each of the 12 growth phases on every plan, and the evidence that clears each phase gate — generated from the same rules the app runs."
         primaryCta={{ href: "/dashboard", label: "See my next unlock" }}
         secondaryCta={{ href: "/pricing", label: "Compare plans" }}

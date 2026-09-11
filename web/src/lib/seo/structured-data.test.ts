@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { extractJsonLd, validateJsonLd } from "./structured-data";
 import {
   buildItemListJsonLd,
   buildWebPageJsonLd,
@@ -109,5 +110,82 @@ describe("buildItemListJsonLd", () => {
     });
     const el = (data.itemListElement as Array<Record<string, unknown>>)[0];
     expect(el.description).toBe("Rich");
+  });
+});
+
+describe("validateJsonLd", () => {
+  it("accepts a well-formed BreadcrumbList, ItemList, FAQPage and Article", () => {
+    const crumbs = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://blockid.au/" },
+        { "@type": "ListItem", position: 2, name: "Funding", item: "https://blockid.au/funding" },
+      ],
+    };
+    expect(validateJsonLd(crumbs)).toEqual({ ok: true, errors: [] });
+    const list = buildItemListJsonLd({ url: "https://blockid.au/x", name: "n", description: "d", items: [{ name: "a", url: "https://blockid.au/a" }] });
+    expect(validateJsonLd(list).ok).toBe(true);
+    const faq = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: [{ "@type": "Question", name: "q", acceptedAnswer: { "@type": "Answer", text: "a" } }],
+    };
+    expect(validateJsonLd(faq).ok).toBe(true);
+    expect(validateJsonLd({ "@context": "https://schema.org", "@type": "Article", headline: "h", url: "https://blockid.au/a" }).ok).toBe(true);
+  });
+
+  it("rejects missing @context/@type, undefined / null / empty values, nested objects without @type, and bad positions", () => {
+    const r = validateJsonLd({
+      "@type": "GovernmentService",
+      name: "",
+      description: undefined,
+      provider: { name: "x" },
+      offers: null,
+      tags: [],
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors).toEqual(
+      expect.arrayContaining([
+        "root.@context: expected https://schema.org",
+        "root.name: empty string",
+        "root.description: undefined (JSON.stringify drops it silently)",
+        "root.provider: missing @type",
+        "root.offers: null",
+        "root.tags: empty array",
+      ]),
+    );
+    const crumbs = validateJsonLd({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [{ "@type": "ListItem", position: 2, name: "Home", item: "/" }],
+    });
+    expect(crumbs.errors).toEqual(
+      expect.arrayContaining([
+        "BreadcrumbList.itemListElement[0].position: expected 1, got 2",
+        "BreadcrumbList: needs at least two crumbs",
+        "BreadcrumbList[0].item: absolute URL required",
+      ]),
+    );
+    const list = validateJsonLd({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      numberOfItems: 0,
+      itemListElement: [{ "@type": "ListItem", position: 1, name: "a" }],
+    });
+    expect(list.errors).toContain("ItemList.numberOfItems (0) < listed elements (1)");
+    expect(validateJsonLd(null).ok).toBe(false);
+    expect(validateJsonLd([]).ok).toBe(false);
+  });
+
+  it("extractJsonLd pulls every ld+json block out of rendered HTML", () => {
+    const html =
+      '<html><script type="application/ld+json" nonce="n">{"@context":"https://schema.org","@type":"WebPage","url":"https://blockid.au/x"}</script>' +
+      '<p>x</p><script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[]}</script>' +
+      '<script type="application/ld+json">not json</script></html>';
+    const blocks = extractJsonLd(html);
+    expect(blocks.map((b) => b["@type"])).toEqual(["WebPage", "BreadcrumbList", "PARSE_ERROR"]);
+    expect(validateJsonLd(blocks[0]).ok).toBe(true);
+    expect(validateJsonLd(blocks[1]).ok).toBe(false);
   });
 });

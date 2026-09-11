@@ -67,6 +67,7 @@ const CITY_TO_CAPITAL: Readonly<Record<string, Capital>> = {
   "gold coast": "Brisbane",
   "sunshine coast": "Brisbane",
   "regional qld": "Brisbane",
+  "regional queensland": "Brisbane",
   perth: "Perth",
   adelaide: "Adelaide",
   canberra: "Canberra",
@@ -77,6 +78,25 @@ const CITY_TO_CAPITAL: Readonly<Record<string, Capital>> = {
   online: "Remote",
   national: "Remote",
   "australia-wide": "Remote",
+};
+
+/**
+ * The non-capital cities each capital page lists, in display form (S8-A).
+ * Rendered in the `/funding/programs/[capital]` copy and metadata so the
+ * page ranks for "accelerator Gold Coast" / "startup incubator Geelong"
+ * without a route per satellite. Every entry resolves back to its capital
+ * through `capitalForCity` (pinned in seed-map.test.ts).
+ */
+export const CAPITAL_SATELLITES: Readonly<Record<Capital, readonly string[]>> = {
+  Sydney: ["Wollongong"],
+  Melbourne: ["Geelong"],
+  Brisbane: ["Gold Coast", "Sunshine Coast", "Regional Queensland"],
+  Perth: [],
+  Adelaide: [],
+  Canberra: [],
+  Hobart: ["Launceston"],
+  Darwin: [],
+  Remote: [],
 };
 
 const STATE_TO_CAPITAL: Readonly<Record<string, Capital>> = {
