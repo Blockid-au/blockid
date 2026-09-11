@@ -8,7 +8,8 @@ import {
   type SVISubScore,
 } from "@/lib/svi-analysis";
 import { checkAndAwardBadges, type BadgeContext } from "@/lib/badges";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectScope } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 // POST /api/svi/rescore-from-evidence
 // Re-computes SVI using the original analysis text + all evidence items.
@@ -39,13 +40,25 @@ export async function POST() {
   }
 
   const supabase = getSupabaseAdmin()!;
-  const projectId = await getProjectIdFromRequest();
+
+  // S17-A — editor+ on the active project; the startup record is keyed
+  // under the OWNER's email so a co-founder rescores the same account.
+  let scope;
+  try {
+    scope = await getProjectScope("editor");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
 
   // 1. Get SVI account — scoped by project_id
   const accountQuery = supabase
     .from("svi_accounts")
     .select("id, current_svi")
-    .eq("email", user.email);
+    .eq("email", dataEmail);
 
   if (projectId) {
     accountQuery.eq("project_id", projectId);
@@ -63,7 +76,7 @@ export async function POST() {
   const analysisQuery = supabase
     .from("svi_analyses")
     .select("id, raw_input, analysis_json")
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .order("created_at", { ascending: false })
     .limit(1);
 
@@ -166,7 +179,7 @@ export async function POST() {
   const { count: analysisCount } = await supabase
     .from("svi_analyses")
     .select("id", { count: "exact", head: true })
-    .eq("email", user.email);
+    .eq("email", dataEmail);
 
   // Get connected sources from evidence types
   const evidenceTypes = (evidence ?? []).map(

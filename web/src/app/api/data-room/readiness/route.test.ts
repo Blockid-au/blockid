@@ -57,10 +57,32 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => getSupabaseAdminMock(),
 }));
 
+// S17-A: the route is member-aware. `getProjectIdFromRequestMock` still
+// drives which project the cookie path resolves; `scopeRoleMock` decides the
+// caller's role on it (owner by default). For an explicit ?project_id the
+// route calls assertProjectAccess — `assertProjectAccessMock` answers.
 const getProjectIdFromRequestMock =
   vi.fn<() => Promise<string | null>>();
+const scopeRoleMock = vi.fn<() => "owner" | "admin" | "editor" | "viewer">(() => "owner");
+const assertProjectAccessMock = vi.fn();
 vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
+  getProjectScope: async () => {
+    const projectId = await getProjectIdFromRequestMock();
+    if (!projectId) return null;
+    const role = scopeRoleMock();
+    return {
+      projectId,
+      role,
+      isOwner: role === "owner",
+      userId: "user-1",
+      email: "u@x.com",
+      dataEmail: role === "owner" ? "u@x.com" : "owner@x.com",
+      ownerUserId: role === "owner" ? "user-1" : "owner-1",
+      project: { id: projectId, slug: "p", name: "P", userId: role === "owner" ? "user-1" : "owner-1", role },
+    };
+  },
+  assertProjectAccess: (userId: string, projectId: string, minRole: string) =>
+    assertProjectAccessMock(userId, projectId, minRole),
 }));
 
 // Route import must come AFTER the mocks are registered.
@@ -293,10 +315,60 @@ beforeEach(() => {
   getCurrentUserMock.mockReset();
   getSupabaseAdminMock.mockReset();
   getProjectIdFromRequestMock.mockReset();
+  scopeRoleMock.mockReset();
+  scopeRoleMock.mockReturnValue("owner");
+  assertProjectAccessMock.mockReset();
+  assertProjectAccessMock.mockImplementation(async (userId: string, projectId: string) => ({
+    project: { id: projectId, userId, role: "owner" },
+    role: "owner",
+    isOwner: true,
+    ownerUserId: userId,
+  }));
 
   getCurrentUserMock.mockResolvedValue({ id: "user-1", email: "u@x.com" });
   getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
   getProjectIdFromRequestMock.mockResolvedValue("proj-cookie");
+});
+
+// ─── S17-A project-level permissions ───────────────────────────────────────
+
+describe("S17-A member-aware access", () => {
+  it("viewer member on a shared project (cookie path) reads the OWNER's room, not their own", async () => {
+    scopeRoleMock.mockReturnValue("viewer");
+    const { status, body } = await callGet();
+    expect(status).toBe(200);
+    expect(body.projectId).toBe("proj-cookie");
+    expect((body as { role?: string }).role).toBe("viewer");
+    const filter = state.calls.eqFilters.find((c) => c.table === "data_rooms");
+    expect(filter!.col).toBe("account_id");
+    expect(filter!.val).toBe("owner-1");
+  });
+
+  it("explicit ?project_id the caller is not a member of → 404 (existence not confirmed)", async () => {
+    const err = new Error("nf") as Error & { code: string };
+    err.name = "ProjectAccessError";
+    err.code = "not_found";
+    assertProjectAccessMock.mockRejectedValue(err);
+    const { status, body } = await callGet("?project_id=proj-foreign");
+    expect(status).toBe(404);
+    expect(body.ok).toBe(false);
+    expect(assertProjectAccessMock).toHaveBeenCalledWith("user-1", "proj-foreign", "viewer");
+    expect(state.calls.eqFilters.find((c) => c.table === "data_rooms")).toBeUndefined();
+  });
+
+  it("explicit ?project_id on a shared project resolves the owner's room via assertProjectAccess", async () => {
+    assertProjectAccessMock.mockResolvedValue({
+      project: { id: "proj-shared", userId: "owner-1", role: "editor" },
+      role: "editor",
+      isOwner: false,
+      ownerUserId: "owner-1",
+    });
+    const { status, body } = await callGet("?project_id=proj-shared");
+    expect(status).toBe(200);
+    expect((body as { role?: string }).role).toBe("editor");
+    const filter = state.calls.eqFilters.find((c) => c.table === "data_rooms");
+    expect(filter!.val).toBe("owner-1");
+  });
 });
 
 // ─── auth + infra guards ───────────────────────────────────────────────────

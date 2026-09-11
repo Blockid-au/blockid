@@ -10,7 +10,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectScope, creditChargeNote } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendReportDelivery } from "@/lib/email";
 
@@ -141,6 +142,21 @@ export async function POST(request: Request) {
 
   const featureKey = TIER_FEATURE_KEY[tier];
 
+  // S17-A — editor+ on the active project (owner always passes). Credits
+  // are PER USER: a co-founder running an analysis spends their own
+  // wallet, never the owner's — `creditNote` says so in the response.
+  let scope;
+  try {
+    scope = await getProjectScope("editor");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+  const creditNote = creditChargeNote(scope);
+
   // Credit check
   const affordCheck = await canAfford(user.id, featureKey);
   if (!affordCheck.allowed) {
@@ -149,6 +165,7 @@ export async function POST(request: Request) {
       error: "Insufficient credits",
       balance: affordCheck.balance,
       cost: affordCheck.cost,
+      creditNote,
     }, { status: 402 });
   }
 
@@ -171,15 +188,29 @@ export async function POST(request: Request) {
   // Fetch the SVI account for context
   const { data: account } = await supabase
     .from("svi_accounts")
-    .select("id, email, startup_name, current_svi, current_stage")
+    .select("id, email, project_id, startup_name, current_svi, current_stage")
     .eq("id", evidence.account_id)
     .single();
 
+  // The evidence must belong to the caller's active project (or, for the
+  // legacy null-project path, to the caller's own email). Anything else is
+  // a 404 — never confirm another founder's evidence ids.
+  const accountEmail = String(account?.email ?? "").toLowerCase();
+  const ownsEvidence =
+    Boolean(account) &&
+    ((projectId && account?.project_id === projectId) ||
+      accountEmail === dataEmail.toLowerCase());
+  if (!ownsEvidence) {
+    return NextResponse.json({ ok: false, error: "Evidence not found" }, { status: 404 });
+  }
+
   // Fetch latest analysis for additional context
-  const { data: latestAnalysis } = await supabase
+  const latestQuery = supabase
     .from("svi_analyses")
     .select("id, analysis_json, total_svi")
-    .eq("email", user.email)
+    .eq("email", dataEmail);
+  if (projectId) latestQuery.eq("project_id", projectId);
+  const { data: latestAnalysis } = await latestQuery
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -227,8 +258,8 @@ export async function POST(request: Request) {
     const sviBoost = Math.min(15, Math.max(0, Number(analysisData.sviBoost ?? 0)));
     const dimension = String(analysisData.dimension ?? evidence.dimension ?? "general");
 
-    // Spend credits
-    const projectId = await getProjectIdFromRequest();
+    // Spend credits — always the CALLER's wallet (user.id), even on a
+    // shared project.
     const spend = await spendCredits(user.id, featureKey, {
       evidenceId,
       tier,
@@ -292,6 +323,8 @@ export async function POST(request: Request) {
       dimension,
       balance: spend.balance,
       creditsUsed: FEATURE_COSTS[featureKey],
+      creditNote,
+      role: scope?.role ?? "owner",
     });
   } catch (err) {
     console.error("[blockid:evidence:analyze]", err);

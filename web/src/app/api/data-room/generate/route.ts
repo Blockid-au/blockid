@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectScope, creditChargeNote } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 import {
   generateDataRoom,
   composeRoomDocuments,
@@ -44,8 +45,24 @@ export async function POST() {
     );
   }
 
+  // ── Project scope (S17-A) ─────────────────────────────────────────────
+  // editor+ on the active project (owner always passes). The room is the
+  // OWNER's (ownerUserId / dataEmail) so a co-founder regenerates the same
+  // room; the 3 credits come out of the CALLER's wallet — `creditNote`.
+  let scope;
+  try {
+    scope = await getProjectScope("editor");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+  const ownerUserId = scope?.ownerUserId ?? user.id;
+  const creditNote = creditChargeNote(scope);
+
   // ── Charge credits ────────────────────────────────────────────────────
-  const projectId = await getProjectIdFromRequest();
   const spend = await spendCredits(user.id, "data_room_generate", {
     email: user.email,
     project_id: projectId,
@@ -57,6 +74,7 @@ export async function POST() {
         error: "Insufficient credits",
         balance: spend.balance,
         cost: 3.0,
+        creditNote,
       },
       { status: 402 },
     );
@@ -66,7 +84,7 @@ export async function POST() {
   const { data: sviAccount } = await supabase
     .from("svi_accounts")
     .select("id, current_svi, current_stage, startup_name")
-    .eq("email", user.email)
+    .eq("email", dataEmail)
     .maybeSingle();
 
   // ── Section 2: Product — Pull latest SVI analysis ─────────────────────
@@ -183,7 +201,7 @@ export async function POST() {
   const { data: holders } = await supabase
     .from("shareholders")
     .select("name, role, shares_held")
-    .eq("account_id", user.id)
+    .eq("account_id", ownerUserId)
     .order("created_at", { ascending: true });
 
   if (holders && holders.length > 0) {
@@ -285,7 +303,7 @@ export async function POST() {
       .from("data_rooms")
       .upsert(
         {
-          user_id: user.id,
+          user_id: ownerUserId,
           project_id: projectId,
           name: sviAccount?.startup_name ?? "Data room",
           sections: dataRoom.sections,
@@ -324,7 +342,7 @@ export async function POST() {
       await supabase.from("data_room_documents").insert(
         documents.map((d) => ({
           data_room_id: dataRoomId,
-          account_id: user.id,
+          account_id: ownerUserId,
           section: d.section,
           folder: d.folder,
           document_name: d.documentName,
@@ -354,6 +372,8 @@ export async function POST() {
       completeness: documentScore,
     },
     creditsUsed: 3.0,
+    creditNote,
+    role: scope?.role ?? "owner",
     balance: spend.balance,
   });
 }

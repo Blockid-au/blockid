@@ -16,8 +16,16 @@ import {
   ProjectMemberScopeError,
 } from "@/lib/project-members/scope";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
+import { getProjectById } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
+
+// S17-A: after a successful accept the response pins the shared project as
+// the caller's active workspace (`blockid_project` cookie = project ID for a shared project —
+// the same cookie the ProjectSwitcher writes) and returns `project` so the
+// client can land on it. Cookie attrs mirror project-switcher.tsx.
+const PROJECT_COOKIE = "blockid_project";
+const PROJECT_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
 // Extract the domain portion of an email for PII-safe audit metadata.
 // We NEVER log the local-part — only the host, or null if malformed.
@@ -90,7 +98,28 @@ export async function POST(request: Request) {
       ua: extractUserAgent(request.headers),
     });
 
-    return NextResponse.json({ ok: true, member });
+    // Land the invitee on the shared project: look up its slug and set the
+    // active-project cookie. A missing/archived project row still returns
+    // ok:true (the membership is accepted) — just without the redirect hint.
+    const project = await getProjectById(member.projectId).catch(() => null);
+    const res = NextResponse.json({
+      ok: true,
+      member,
+      project: project
+        ? { id: project.id, name: project.name, slug: project.slug, role: member.role }
+        : null,
+      redirect: project ? "/workspace" : "/workspace/projects",
+    });
+    if (project?.id) {
+      // Shared projects are addressed by ID in the cookie (slugs are only
+      // unique per owner — see projectCookieValue in lib/projects).
+      res.cookies.set(PROJECT_COOKIE, project.id, {
+        path: "/",
+        maxAge: PROJECT_COOKIE_MAX_AGE,
+        sameSite: "lax",
+      });
+    }
+    return res;
   } catch (err) {
     if (err instanceof ProjectMemberScopeError) {
       return NextResponse.json(

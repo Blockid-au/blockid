@@ -151,9 +151,38 @@ vi.mock("@/lib/credits", () => ({
 }));
 
 // ── Projects mock ──────────────────────────────────────────────────────
+// S17-A: the route resolves the active project via getProjectScope("editor").
+// `getProjectIdFromRequestMock` still picks the project id (null → no
+// project); `scopeRoleMock` picks the caller's role on it (owner default —
+// a viewer makes the mock throw a ProjectAccessError-shaped "forbidden").
 const getProjectIdFromRequestMock = vi.fn<() => Promise<string | null>>();
+const scopeRoleMock = vi.fn<() => "owner" | "admin" | "editor" | "viewer">(() => "owner");
 vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
+  getProjectScope: async (minRole?: string) => {
+    const projectId = await getProjectIdFromRequestMock();
+    if (!projectId) return null;
+    const role = scopeRoleMock();
+    const rank = { viewer: 1, editor: 2, admin: 3, owner: 4 } as const;
+    if (minRole && rank[role] < rank[minRole as keyof typeof rank]) {
+      const err = new Error("below") as Error & { code: string };
+      err.name = "ProjectAccessError";
+      err.code = "forbidden";
+      throw err;
+    }
+    const isOwner = role === "owner";
+    return {
+      projectId,
+      role,
+      isOwner,
+      userId: "u-1",
+      email: "founder@x.co",
+      dataEmail: isOwner ? "founder@x.co" : "owner@x.co",
+      ownerUserId: isOwner ? "u-1" : "owner-1",
+      project: { id: projectId, slug: "p", name: "P", userId: isOwner ? "u-1" : "owner-1", role },
+    };
+  },
+  creditChargeNote: (scope: { isOwner: boolean } | null) =>
+    !scope || scope.isOwner ? "Charged to your credits." : "Charged to your own credits — not the project owner's.",
 }));
 
 // ── Data-room composer mock — captures params + returns a sentinel ─────
@@ -330,6 +359,7 @@ describe("POST /api/data-room/generate — credit charge contract", () => {
       error: "Insufficient credits",
       balance: 0.5,
       cost: 3.0,
+      creditNote: "Charged to your credits.",
     });
     // spendCredits ran BEFORE any DB reads — no from() calls captured.
     expect(state.fromCalls).toEqual([]);
@@ -374,6 +404,44 @@ describe("POST /api/data-room/generate — tenancy filters + query shape", () =>
       col: "account_id",
       val: "u-1",
     });
+  });
+
+  // S17-A — project-level permissions on a shared project.
+  it("viewer member → 403 before credits are spent or any DB read", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    getProjectIdFromRequestMock.mockResolvedValue("proj-shared");
+    scopeRoleMock.mockReturnValue("viewer");
+    const res = await POST();
+    expect(res.status).toBe(403);
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    expect(state.fromCalls).toEqual([]);
+    scopeRoleMock.mockReturnValue("owner");
+  });
+
+  it("editor member: credits from the MEMBER's wallet, room + cap table read under the OWNER (dataEmail / ownerUserId)", async () => {
+    gateMock.mockResolvedValue(gateOk(USER));
+    getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
+    getProjectIdFromRequestMock.mockResolvedValue("proj-shared");
+    scopeRoleMock.mockReturnValue("editor");
+    spendCreditsMock.mockResolvedValue({ ok: true, balance: 10 });
+    const res = await POST();
+    expect(res.status).toBe(200);
+    expect(spendCreditsMock.mock.calls[0][0]).toBe("u-1");
+    expect(state.eqCalls.find((c) => c.table === "svi_accounts")).toEqual({
+      table: "svi_accounts",
+      col: "email",
+      val: "owner@x.co",
+    });
+    expect(state.eqCalls.find((c) => c.table === "shareholders")).toEqual({
+      table: "shareholders",
+      col: "account_id",
+      val: "owner-1",
+    });
+    const body = await res.json();
+    expect(body.role).toBe("editor");
+    expect(body.creditNote).toMatch(/your own credits/);
+    scopeRoleMock.mockReturnValue("owner");
   });
 
   it("skips svi_analyses / startup_metrics / svi_snapshots / svi_evidence when the founder has no svi_account", async () => {
@@ -894,6 +962,8 @@ describe("POST /api/data-room/generate — happy-path response envelope", () => 
       dataRoom: DATA_ROOM_SENTINEL,
       documents: { total: 2, complete: 1, pending: 0, missing: 1, completeness: 50 },
       creditsUsed: 3.0,
+      creditNote: "Charged to your credits.",
+      role: "owner",
       balance: 42.75,
     });
   });

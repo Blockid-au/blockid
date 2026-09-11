@@ -37,10 +37,36 @@ vi.mock("@/lib/security/clamav", () => ({
   getScannerVersion: () => getScannerVersionMock(),
 }));
 
+// S17-A: the route resolves the active project via getProjectScope("editor")
+// — the mock returns a scope object (or throws a ProjectAccessError-shaped
+// error for a viewer). `getProjectIdFromRequestMock` remains the knob tests
+// use to pick the project id / null.
 const getProjectIdFromRequestMock = vi.fn();
 const findOrCreateSVIAccountMock = vi.fn();
+const scopeRoleMock = vi.fn<() => "owner" | "admin" | "editor" | "viewer">(() => "owner");
 vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => getProjectIdFromRequestMock(),
+  getProjectScope: async (minRole?: string) => {
+    const projectId = (await getProjectIdFromRequestMock()) as string | null;
+    if (!projectId) return null;
+    const role = scopeRoleMock();
+    const rank = { viewer: 1, editor: 2, admin: 3, owner: 4 } as const;
+    if (minRole && rank[role] < rank[minRole as keyof typeof rank]) {
+      const err = new Error("below") as Error & { code: string };
+      err.name = "ProjectAccessError";
+      err.code = "forbidden";
+      throw err;
+    }
+    return {
+      projectId,
+      role,
+      isOwner: role === "owner",
+      userId: "user-1",
+      email: "founder@x.test",
+      dataEmail: role === "owner" ? "founder@x.test" : "owner@x.test",
+      ownerUserId: "owner-1",
+      project: { id: projectId, slug: "p1", name: "P1", userId: "owner-1", role },
+    };
+  },
   findOrCreateSVIAccount: (email: string, projectId: string | null) =>
     findOrCreateSVIAccountMock(email, projectId),
 }));
@@ -295,6 +321,33 @@ describe("POST /api/evidence/upload", () => {
     expect(res.status).toBe(401);
     expect(scanBufferMock).not.toHaveBeenCalled();
     expect(uploadAndShareWithAdminMock).not.toHaveBeenCalled();
+  });
+
+  // S17-A — project-level permissions on a shared project.
+  it("shared project, viewer role: 403 before scan or Drive, nothing written", async () => {
+    scopeRoleMock.mockReturnValue("viewer");
+    const res = await POST(buildRequest());
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.code).toBe("forbidden");
+    expect(scanBufferMock).not.toHaveBeenCalled();
+    expect(uploadAndShareWithAdminMock).not.toHaveBeenCalled();
+    expect(inserts).toHaveLength(0);
+    scopeRoleMock.mockReturnValue("owner");
+  });
+
+  it("shared project, editor role: upload proceeds and svi_evidence is keyed under the OWNER's email", async () => {
+    scopeRoleMock.mockReturnValue("editor");
+    scanBufferMock.mockResolvedValue({ ok: true });
+    const res = await POST(buildRequest());
+    expect(res.status).toBe(200);
+    // svi_accounts row resolved under the owner's email, not the editor's
+    expect(findOrCreateSVIAccountMock).toHaveBeenCalledWith("owner@x.test", "project-1");
+    const ev = inserts.find((i) => i.table === "evidence")!;
+    expect(ev.row.business_id).toBe("project-1");
+    // the uploader (member) is still recorded as the acting user
+    expect(ev.row.owner_user_id).toBe("user-1");
+    scopeRoleMock.mockReturnValue("owner");
   });
 
   it("race: concurrent duplicate that beats us to the evidence insert returns 200 deduped, no crash", async () => {

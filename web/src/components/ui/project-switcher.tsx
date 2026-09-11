@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Briefcase, ChevronDown, Plus, Check, Loader2 } from "lucide-react";
+import { Briefcase, ChevronDown, Plus, Check, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+type ProjectRole = "owner" | "admin" | "editor" | "viewer";
 
 interface Project {
   id: string;
@@ -15,6 +17,34 @@ interface Project {
   slug: string;
   industry: string | null;
   isDefault: boolean;
+  /** S17-A — caller's role; absent/"owner" for owned projects. */
+  role?: ProjectRole;
+  isShared?: boolean;
+}
+
+const ROLE_LABEL: Record<ProjectRole, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  editor: "Editor",
+  viewer: "Viewer",
+};
+
+/** "Shared · Editor" chip for projects the caller does not own (S17-A). */
+export function SharedRoleChip({ role, className }: { role?: ProjectRole; className?: string }) {
+  const label = ROLE_LABEL[role ?? "viewer"];
+  return (
+    <span
+      data-testid="shared-role-chip"
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-700 whitespace-nowrap",
+        className,
+      )}
+      title={`Shared with you as ${label.toLowerCase()}`}
+    >
+      <Users strokeWidth={1.75} className="h-3 w-3" aria-hidden="true" />
+      Shared · {label}
+    </span>
+  );
 }
 
 interface ProjectsResponse {
@@ -35,6 +65,15 @@ function getProjectCookie(): string | null {
 
 function setProjectCookie(slug: string) {
   document.cookie = `blockid_project=${encodeURIComponent(slug)};path=/;max-age=${365 * 24 * 60 * 60};samesite=lax`;
+}
+
+/**
+ * Cookie value for a project (mirrors `projectCookieValue` in lib/projects).
+ * Slugs are unique per OWNER only (most are "default"), so a shared project
+ * is addressed by id — otherwise the member's own "default" would shadow it.
+ */
+export function cookieKey(p: Pick<Project, "id" | "slug" | "isShared">): string {
+  return p.isShared ? p.id : p.slug;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,12 +100,12 @@ export function ProjectSwitcher() {
           setData(json);
           // Determine active project from cookie or default
           const cookie = getProjectCookie();
-          const matchesCookie = json.projects.find((p) => p.slug === cookie);
+          const matchesCookie = json.projects.find((p) => cookieKey(p) === cookie);
           const defaultProject = json.projects.find((p) => p.isDefault);
           const active = matchesCookie ?? defaultProject ?? json.projects[0];
           if (active) {
-            setActiveSlug(active.slug);
-            if (!matchesCookie) setProjectCookie(active.slug);
+            setActiveSlug(cookieKey(active));
+            if (!matchesCookie) setProjectCookie(cookieKey(active));
           }
         }
       } catch {
@@ -114,7 +153,7 @@ export function ProjectSwitcher() {
 
   if (!data || data.projects.length === 0) return null;
 
-  const activeProject = data.projects.find((p) => p.slug === activeSlug) ?? data.projects[0];
+  const activeProject = data.projects.find((p) => cookieKey(p) === activeSlug) ?? data.projects[0];
   const canCreate = data.used < data.limit;
 
   return (
@@ -129,6 +168,9 @@ export function ProjectSwitcher() {
         <span className="font-semibold text-ink-800 truncate max-w-[160px]">
           {activeProject.name}
         </span>
+        {activeProject.isShared && (
+          <SharedRoleChip role={activeProject.role} className="hidden sm:inline-flex" />
+        )}
         {data.projects.length > 1 && (
           <ChevronDown
             strokeWidth={1.75}
@@ -163,12 +205,12 @@ export function ProjectSwitcher() {
           {/* Project list */}
           <div className="py-1 max-h-60 overflow-y-auto">
             {data.projects.map((project) => {
-              const isActive = project.slug === activeSlug;
+              const isActive = cookieKey(project) === activeSlug;
               return (
                 <button
                   key={project.id}
                   type="button"
-                  onClick={() => switchProject(project.slug)}
+                  onClick={() => switchProject(cookieKey(project))}
                   className={cn(
                     "flex items-center gap-3 w-full px-4 py-2.5 text-left text-sm transition-colors cursor-pointer",
                     isActive
@@ -191,6 +233,7 @@ export function ProjectSwitcher() {
                       <p className="text-[10px] text-ink-400 truncate">{project.industry}</p>
                     )}
                   </div>
+                  {project.isShared && <SharedRoleChip role={project.role} />}
                   {isActive && (
                     <Check strokeWidth={2} className="h-4 w-4 text-brand-600 shrink-0" />
                   )}

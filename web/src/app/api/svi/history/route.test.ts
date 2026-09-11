@@ -26,6 +26,9 @@ const mocks = vi.hoisted(() => ({
   isSupabaseConfigured: vi.fn(),
   getProjectIdFromRequest: vi.fn(),
   findOrCreateSVIAccount: vi.fn(),
+  // S17-A: role the mocked getProjectScope reports for the active project;
+  // `dataEmail` is the owner's email whenever the role is not "owner".
+  scopeRole: vi.fn(() => "owner" as "owner" | "admin" | "editor" | "viewer"),
 }));
 
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser() }));
@@ -34,7 +37,28 @@ vi.mock("@/lib/supabase", () => ({
   isSupabaseConfigured: () => mocks.isSupabaseConfigured(),
 }));
 vi.mock("@/lib/projects", () => ({
-  getProjectIdFromRequest: () => mocks.getProjectIdFromRequest(),
+  getProjectScope: async (minRole?: string) => {
+    const projectId = (await mocks.getProjectIdFromRequest()) as string | null;
+    if (!projectId) return null;
+    const role = mocks.scopeRole();
+    const rank = { viewer: 1, editor: 2, admin: 3, owner: 4 } as const;
+    if (minRole && rank[role] < rank[minRole as keyof typeof rank]) {
+      const err = new Error("below") as Error & { code: string };
+      err.name = "ProjectAccessError";
+      err.code = "forbidden";
+      throw err;
+    }
+    return {
+      projectId,
+      role,
+      isOwner: role === "owner",
+      userId: "u-1",
+      email: "founder@example.com",
+      dataEmail: role === "owner" ? "founder@example.com" : "owner@example.com",
+      ownerUserId: "owner-1",
+      project: { id: projectId, slug: "p", name: "P", userId: "owner-1", role },
+    };
+  },
   findOrCreateSVIAccount: (email: string, projectId: string | null) =>
     mocks.findOrCreateSVIAccount(email, projectId),
 }));
@@ -305,6 +329,26 @@ describe("GET /api/svi/history", () => {
       USER.email,
       "proj-42",
     );
+  });
+
+  // S17-A — shared project: a viewer member reads the OWNER's account.
+  it("viewer member on a shared project resolves the account under the owner's email", async () => {
+    const { sb } = makeSb({
+      account: { id: "acc-1", current_svi: 60, current_stage: 2 },
+      snapshots: [],
+    });
+    mocks.getSupabaseAdmin.mockReturnValue(sb);
+    mocks.getProjectIdFromRequest.mockResolvedValue("proj-shared");
+    mocks.scopeRole.mockReturnValue("viewer");
+    mocks.findOrCreateSVIAccount.mockResolvedValue("acc-1");
+
+    const res = await GET();
+    expect(res.status).toBe(200);
+    expect(mocks.findOrCreateSVIAccount).toHaveBeenCalledWith(
+      "owner@example.com",
+      "proj-shared",
+    );
+    mocks.scopeRole.mockReturnValue("owner");
   });
 
   it("scopes the svi_snapshots query to the resolved account_id (not user email)", async () => {

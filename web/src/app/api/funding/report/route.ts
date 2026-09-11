@@ -33,7 +33,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { can } from "@/lib/entitlements";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectById } from "@/lib/projects";
+import { getProject, roleCanWrite, creditChargeNote } from "@/lib/projects";
 import { parseFundingIntake, intakeToProjectGrantProfile } from "@/lib/funding/intake";
 import { buildReportFromIntake, countPaidFundingReports, newAccessToken, reportColumns } from "@/lib/funding/reports";
 
@@ -87,12 +87,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid_project_id", field: "project_id" }, { status: 400 });
   }
 
-  // 4. Ownership (only when a project is attached)
+  // 4. Access (only when a project is attached) — S17-A: owner OR an
+  //    accepted editor/admin member may run the report against the project.
+  //    Non-members and viewers get the same 403 (existence not confirmed).
+  //    Credits are the CALLER's — a member pays from their own wallet.
+  let creditNote = creditChargeNote(null);
   if (projectId) {
-    const project = await getProjectById(projectId);
-    if (!project || project.userId !== user.id) {
+    const project = await getProject(user.id, projectId);
+    const role = project?.role ?? (project?.userId === user.id ? "owner" : null);
+    if (!project || !roleCanWrite(role)) {
       return NextResponse.json({ ok: false, error: "project_not_found_or_forbidden" }, { status: 403 });
     }
+    creditNote = creditChargeNote({ isOwner: role === "owner" });
   }
 
   // 5. Entitlement → credit pre-flight
@@ -108,6 +114,7 @@ export async function POST(request: Request) {
           creditsRequired: FEATURE_COSTS[FEATURE_KEY] ?? afford.cost,
           balance: afford.balance,
           reason: afford.reason ?? "insufficient_credits",
+          creditNote,
         },
         { status: 402 },
       );
@@ -195,6 +202,7 @@ export async function POST(request: Request) {
       url: `/funding/report/${reportId}`,
       paidVia: included ? "plan" : "credits",
       creditsCharged,
+      creditNote,
       summary: report.summary,
     },
     { headers: PRIVATE_JSON_HEADERS },

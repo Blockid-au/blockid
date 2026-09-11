@@ -24,8 +24,37 @@ vi.mock("@/lib/credits", () => ({
   spendCredits: (u: string, f: string, m: unknown) => spendCreditsMock(u, f, m),
 }));
 
+// S17-A: the route resolves the project via getProjectScope("editor"). The
+// mock derives a scope from getProjectIdMock (null → no project) and
+// scopeRoleMock (viewer throws a ProjectAccessError-shaped "forbidden").
 const getProjectIdMock = vi.fn();
-vi.mock("@/lib/projects", () => ({ getProjectIdFromRequest: () => getProjectIdMock() }));
+const scopeRoleMock = vi.fn<() => "owner" | "admin" | "editor" | "viewer">(() => "owner");
+vi.mock("@/lib/projects", () => ({
+  getProjectScope: async (minRole?: string) => {
+    const projectId = (await getProjectIdMock()) as string | null;
+    if (!projectId) return null;
+    const role = scopeRoleMock();
+    const rank = { viewer: 1, editor: 2, admin: 3, owner: 4 } as const;
+    if (minRole && rank[role] < rank[minRole as keyof typeof rank]) {
+      const err = new Error("below") as Error & { code: string };
+      err.name = "ProjectAccessError";
+      err.code = "forbidden";
+      throw err;
+    }
+    return {
+      projectId,
+      role,
+      isOwner: role === "owner",
+      userId: "u-1",
+      email: "founder@acme.io",
+      dataEmail: role === "owner" ? "founder@acme.io" : "owner@acme.io",
+      ownerUserId: "owner-1",
+      project: { id: projectId, slug: "acme", name: "Acme", userId: "owner-1", role },
+    };
+  },
+  creditChargeNote: (scope: { isOwner: boolean } | null) =>
+    !scope || scope.isOwner ? "Charged to your credits." : "Charged to your own credits — not the project owner's.",
+}));
 
 const loadCtxMock = vi.fn();
 const generateMock = vi.fn();
@@ -140,6 +169,39 @@ describe("POST /api/svi/enhanced-report (founder)", () => {
     await POST(post({ tier: "investor_memo" }));
     expect(canAffordMock).toHaveBeenCalledWith("u-1", "enhanced_report_investor");
     expect(generateMock).toHaveBeenLastCalledWith(expect.objectContaining({ tier: "investor_memo", creditsCost: 10 }));
+  });
+
+  // S17-A — shared-project members.
+  it("viewer member → 403 before any credit check or context load", async () => {
+    scopeRoleMock.mockReturnValue("viewer");
+    const res = await POST(post({ tier: "standard" }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("forbidden");
+    expect(canAffordMock).not.toHaveBeenCalled();
+    expect(loadCtxMock).not.toHaveBeenCalled();
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    scopeRoleMock.mockReturnValue("owner");
+  });
+
+  it("editor member: context keyed by the OWNER's email, credits spent from the MEMBER's wallet, creditNote says so", async () => {
+    scopeRoleMock.mockReturnValue("editor");
+    const res = await POST(post({ tier: "standard" }));
+    expect(res.status).toBe(200);
+    expect(loadCtxMock).toHaveBeenCalledWith({ ownerEmail: "owner@acme.io", projectId: "p-1" });
+    expect(spendCreditsMock).toHaveBeenCalledWith("u-1", "enhanced_report_standard", expect.any(Object));
+    const json = await res.json();
+    expect(json.role).toBe("editor");
+    expect(json.creditNote).toMatch(/your own credits/);
+    scopeRoleMock.mockReturnValue("owner");
+  });
+
+  it("402 for a member carries the own-wallet creditNote", async () => {
+    scopeRoleMock.mockReturnValue("editor");
+    canAffordMock.mockResolvedValue({ allowed: false, balance: 0, cost: 3 });
+    const res = await POST(post({ tier: "standard" }));
+    expect(res.status).toBe(402);
+    expect((await res.json()).creditNote).toMatch(/not the project owner/);
+    scopeRoleMock.mockReturnValue("owner");
   });
 
   it("orchestration failure → 500 and credits stay charged (founder semantics)", async () => {

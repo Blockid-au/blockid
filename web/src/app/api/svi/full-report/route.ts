@@ -13,7 +13,13 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest, findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
+import {
+  getProjectScope,
+  creditChargeNote,
+  findSVIAccountWithFallback,
+  findLatestAnalysisWithFallback,
+} from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +50,21 @@ export async function POST(request: Request) {
   const tier: ReportTier = body.tier === "premium" ? "premium" : "standard";
   const featureKey = tier === "premium" ? "full_report_premium" : "full_report_standard";
 
+  // S17-A — editor+ on the active project (owner always passes). Credits
+  // are PER USER: a co-founder generating the report spends their OWN
+  // wallet — `creditNote` makes that explicit wherever the cost is shown.
+  let scope;
+  try {
+    scope = await getProjectScope("editor");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+  const creditNote = creditChargeNote(scope);
+
   const affordCheck = await canAfford(user.id, featureKey);
   if (!affordCheck.allowed) {
     return NextResponse.json({
@@ -51,6 +72,7 @@ export async function POST(request: Request) {
       error: "Insufficient credits",
       balance: affordCheck.balance,
       cost: affordCheck.cost,
+      creditNote,
     }, { status: 402 });
   }
 
@@ -59,10 +81,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Database unavailable" }, { status: 503 });
   }
 
-  const projectId = await getProjectIdFromRequest();
-
   // SVI account — with fallback for legacy records (project_id NULL)
-  const account = await findSVIAccountWithFallback(user.email, projectId);
+  const account = await findSVIAccountWithFallback(dataEmail, projectId);
 
   if (!account) {
     return NextResponse.json({ ok: false, error: "No SVI account found for this project — run an analysis first" }, { status: 404 });
@@ -70,7 +90,7 @@ export async function POST(request: Request) {
 
   // Latest analysis — with fallback for legacy records
   const latestAnalysis = await findLatestAnalysisWithFallback(
-    user.email,
+    dataEmail,
     projectId,
     "raw_input, total_svi, analysis_json",
   );
@@ -270,6 +290,8 @@ ${sections}`;
       generatedAt: new Date().toISOString(),
       balance: spend.balance,
       creditsUsed: FEATURE_COSTS[featureKey],
+      creditNote,
+      role: scope?.role ?? "owner",
     });
   } catch (err) {
     console.error("[blockid:full-report]", err);

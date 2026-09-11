@@ -43,7 +43,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { canAfford, grantCredits, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { can } from "@/lib/entitlements";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectById } from "@/lib/projects";
+import { getProject, roleCanWrite, creditChargeNote } from "@/lib/projects";
 import { getGrant, getProgram } from "@/lib/funding/data";
 import { hasGrowthExtras } from "@/lib/funding/growth-extras";
 import { promptsForGrant, promptsForProgram, emptyAnswers, programIntakeLabel, programFundingLabel } from "@/lib/funding/application-prompts";
@@ -96,12 +96,18 @@ export async function POST(request: Request) {
   }
   const confirmed = body.confirm === true;
 
+  // S17-A: owner OR an accepted editor/admin member may draft against the
+  // project; non-members and viewers get the same 403. Credits are the
+  // CALLER's — `creditNote` says so on the preview and the charge.
   let project = null;
+  let creditNote = creditChargeNote(null);
   if (projectId) {
-    project = await getProjectById(projectId);
-    if (!project || project.userId !== user.id) {
+    project = await getProject(user.id, projectId);
+    const role = project?.role ?? (project?.userId === user.id ? "owner" : null);
+    if (!project || !roleCanWrite(role)) {
       return NextResponse.json({ ok: false, error: "project_not_found_or_forbidden" }, { status: 403 });
     }
+    creditNote = creditChargeNote({ isOwner: role === "owner" });
   }
 
   // Resolve the catalogue row → drafter target + prompt set.
@@ -158,13 +164,13 @@ export async function POST(request: Request) {
     balance = afford.balance;
     if (!afford.allowed) {
       return NextResponse.json(
-        { ok: false, error: "insufficient_credits", creditsRequired: cost, balance: afford.balance, reason: afford.reason ?? "insufficient_credits" },
+        { ok: false, error: "insufficient_credits", creditsRequired: cost, balance: afford.balance, reason: afford.reason ?? "insufficient_credits", creditNote },
         { status: 402 },
       );
     }
     if (!confirmed) {
       // Transparent pricing: show the price, spend nothing.
-      return NextResponse.json({ ok: true, preview: true, cost, balance, prompts, kind: ref.kind, ...echo });
+      return NextResponse.json({ ok: true, preview: true, cost, balance, creditNote, prompts, kind: ref.kind, ...echo });
     }
   }
 
@@ -228,6 +234,7 @@ export async function POST(request: Request) {
     prompts,
     cost,
     creditsCharged,
+    creditNote,
     balance,
     ai_ok: result.ai_ok,
     failed: result.failed,

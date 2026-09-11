@@ -7,14 +7,13 @@
 // POST   /api/projects/[id]/members            → invite {email, role}
 // DELETE /api/projects/[id]/members?memberId=… → revoke that member
 //
-// Ownership is enforced by assertProjectOwner() — the same shape used by
-// the sibling /archive route (getProjectById + userId compare) delegated
-// into the scope helper so a single chokepoint covers reads and writes.
+// Access is enforced by assertProjectMemberCan(…, "admin") — owner OR an
+// accepted admin member — for GET, POST and DELETE alike (S17-A), so one
+// chokepoint covers reads and writes.
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import {
-  assertProjectOwner,
   assertProjectMemberCan,
   listMembers,
   inviteMember,
@@ -82,7 +81,10 @@ export async function GET(
   const { id } = await params;
 
   try {
-    await assertProjectOwner(id, user.id);
+    // S17-A: owner OR accepted admin member may read the roster — the same
+    // guard the invite/revoke handlers use, so an admin co-founder sees who
+    // they can manage.
+    await assertProjectMemberCan(id, user.id, "admin");
     const members = await listMembers(id);
     return NextResponse.json({ ok: true, members });
   } catch (err) {

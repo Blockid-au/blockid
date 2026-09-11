@@ -23,7 +23,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { getActiveProject, getCurrentProjectIsSandbox } from "@/lib/projects";
+import { getActiveProject, getCurrentProjectIsSandbox, roleCanWrite } from "@/lib/projects";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ProjectAnalyzeShell } from "./project-analyze-shell";
 
@@ -57,6 +57,12 @@ export default async function ProjectAnalyzePage({
 
   const project = await getActiveProject(user.id, slug);
   if (!project) notFound();
+
+  // S17-A — running an analysis mutates the project: editor+ only. A
+  // viewer on a shared project is sent back to the (read-only) project list.
+  if (!roleCanWrite(project.role ?? "owner")) {
+    redirect("/workspace/projects?readonly=1");
+  }
 
   const queryParam = typeof sp.query === "string" ? sp.query : "";
 

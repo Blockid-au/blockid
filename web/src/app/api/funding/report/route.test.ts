@@ -33,7 +33,22 @@ const canMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/entitlements", () => ({ can: (u: unknown, f: string) => canMock(u, f) }));
 
 const getProjectByIdMock = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/projects", () => ({ getProjectById: (id: string) => getProjectByIdMock(id) }));
+// S17-A: the route is member-aware (getProject + roleCanWrite). The mock
+// keeps `getProjectByIdMock` as the knob: a row whose userId is the caller
+// is the owner; a row with `role` set is a shared-project member; a row
+// owned by someone else with no role is a non-member (route → 403).
+vi.mock("@/lib/projects", () => ({
+  getProject: async (userId: string, id: string) => {
+    const row = await getProjectByIdMock(id);
+    if (!row) return null;
+    if (row.role) return row;
+    if (row.userId === userId) return { ...row, role: "owner" };
+    return null;
+  },
+  roleCanWrite: (role: string | null) => role === "owner" || role === "admin" || role === "editor",
+  creditChargeNote: (scope: { isOwner: boolean } | null) =>
+    !scope || scope.isOwner ? "Charged to your credits." : "Charged to your own credits — not the project owner's.",
+}));
 
 const { calls } = vi.hoisted(() => ({ calls: [] as Array<{ table: string; op: string; row: unknown }> }));
 vi.mock("@/lib/supabase", () => ({
@@ -150,6 +165,21 @@ describe("POST /api/funding/report — gates", () => {
     const res = await POST(req({ ...GOOD, project_id: "11111111-1111-4111-8111-111111111111" }));
     expect(res.status).toBe(403);
     expect(buildReportMock).not.toHaveBeenCalled();
+  });
+
+  // S17-A — shared-project members.
+  it("viewer member → 403, editor member → runs and pays from their OWN credits (creditNote)", async () => {
+    const PID = "11111111-1111-4111-8111-111111111111";
+    getProjectByIdMock.mockResolvedValueOnce({ id: PID, userId: "owner-9", role: "viewer" });
+    expect((await POST(req({ ...GOOD, project_id: PID }))).status).toBe(403);
+    expect(buildReportMock).not.toHaveBeenCalled();
+
+    getProjectByIdMock.mockResolvedValueOnce({ id: PID, userId: "owner-9", role: "editor" });
+    const res = await POST(req({ ...GOOD, project_id: PID }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.creditNote).toMatch(/your own credits/);
+    expect(spendCreditsMock.mock.calls[0][0]).toBe("user-1");
   });
 });
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import {
-  getUserProjects,
+  listProjects,
   getUserArchivedProjects,
   getProjectLimit,
   getCurrentProjectIsSandbox,
@@ -26,7 +26,7 @@ export default async function ProjectsPage() {
   const isSandbox = await getCurrentProjectIsSandbox();
 
   const [projects, archivedProjects, limit] = await Promise.all([
-    getUserProjects(user.id),
+    listProjects(user.id),
     getUserArchivedProjects(user.id),
     getProjectLimit(user.plan ?? "free"),
   ]);

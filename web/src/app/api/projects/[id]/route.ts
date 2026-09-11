@@ -1,10 +1,56 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getProjectById, updateProject, archiveProject } from "@/lib/projects";
+import {
+  updateProject,
+  archiveProject,
+  assertProjectAccess,
+  ProjectAccessError,
+  getProject,
+} from "@/lib/projects";
 import { logUserAction, extractIp, extractUserAgent } from "@/lib/audit/log";
-import { assertProjectMemberCan } from "@/lib/project-members/scope";
 
 export const dynamic = "force-dynamic";
+
+// S17-A — project settings are member-aware:
+//   GET    → viewer+  (owner / admin / editor / viewer)
+//   PATCH  → editor+
+//   DELETE → admin+   (archive is destructive; viewers/editors are refused)
+// Non-members get 404 (the project's existence is not confirmed).
+
+function accessErrorResponse(err: unknown) {
+  if (err instanceof ProjectAccessError) {
+    const error =
+      err.code === "not_found"
+        ? "Project not found"
+        : err.code === "forbidden"
+          ? "Forbidden"
+          : "Service unavailable";
+    return NextResponse.json({ ok: false, error }, { status: err.status });
+  }
+  console.error("[blockid:projects] access check failed", err);
+  return NextResponse.json({ ok: false, error: "Internal error" }, { status: 500 });
+}
+
+// GET /api/projects/[id] — read a project (with the caller's role)
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, error: "Authentication required" },
+      { status: 401 },
+    );
+  }
+  const { id } = await params;
+  try {
+    const access = await assertProjectAccess(user.id, id, "viewer");
+    return NextResponse.json({ ok: true, project: access.project, role: access.role });
+  } catch (err) {
+    return accessErrorResponse(err);
+  }
+}
 
 // PATCH /api/projects/[id] — update a project
 // Body: { name?: string, description?: string, industry?: string }
@@ -22,24 +68,12 @@ export async function PATCH(
 
   const { id } = await params;
 
-  // Verify project exists (surface 404 vs 403 distinctly for UX).
-  const project = await getProjectById(id);
-  if (!project) {
-    return NextResponse.json(
-      { ok: false, error: "Project not found" },
-      { status: 404 },
-    );
-  }
-
   // Member-aware write guard: owner OR accepted admin/editor may PATCH.
-  // Viewers, invited, and revoked members are rejected with 403.
+  // Viewers get 403; non-members and missing projects get 404.
   try {
-    await assertProjectMemberCan(id, user.id, "write");
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "Forbidden" },
-      { status: 403 },
-    );
+    await assertProjectAccess(user.id, id, "editor");
+  } catch (err) {
+    return accessErrorResponse(err);
   }
 
   let body: unknown = null;
@@ -109,8 +143,8 @@ export async function PATCH(
     ua: extractUserAgent(request.headers),
   });
 
-  // Return updated project
-  const updated = await getProjectById(id);
+  // Return updated project (with the caller's role)
+  const updated = await getProject(user.id, id);
   return NextResponse.json({ ok: true, project: updated });
 }
 
@@ -129,23 +163,13 @@ export async function DELETE(
 
   const { id } = await params;
 
-  // Verify project exists (surface 404 vs 403 distinctly for UX).
-  const project = await getProjectById(id);
-  if (!project) {
-    return NextResponse.json(
-      { ok: false, error: "Project not found" },
-      { status: 404 },
-    );
-  }
-
-  // Member-aware write guard: owner OR accepted admin/editor may archive.
+  // Member-aware guard: owner OR accepted admin may archive.
+  let wasDefault = false;
   try {
-    await assertProjectMemberCan(id, user.id, "write");
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "Forbidden" },
-      { status: 403 },
-    );
+    const access = await assertProjectAccess(user.id, id, "admin");
+    wasDefault = Boolean(access.project.isDefault);
+  } catch (err) {
+    return accessErrorResponse(err);
   }
 
   const result = await archiveProject(id);
@@ -163,7 +187,7 @@ export async function DELETE(
     action: "project.archive",
     subjectType: "project",
     subjectId: id,
-    fields: { was_default: Boolean(project.isDefault) },
+    fields: { was_default: wasDefault },
     route: `/api/projects/${id}`,
     ip: extractIp(request.headers),
     ua: extractUserAgent(request.headers),

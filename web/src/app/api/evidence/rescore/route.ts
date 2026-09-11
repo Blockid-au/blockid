@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectScope, findOrCreateSVIAccount } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 import {
   extractSignals,
   computeSVI,
@@ -34,9 +35,19 @@ export async function POST() {
 
   const supabase = getSupabaseAdmin()!;
 
-  // 1. Resolve active project + SVI account
-  const projectId = await getProjectIdFromRequest();
-  const accountId = await findOrCreateSVIAccount(user.email, projectId);
+  // 1. Resolve active project + SVI account (S17-A: editor+ on a shared
+  //    project; the record is keyed under the OWNER's email).
+  let scope;
+  try {
+    scope = await getProjectScope("editor");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+  const accountId = await findOrCreateSVIAccount(dataEmail, projectId);
 
   if (!accountId) {
     return NextResponse.json(
@@ -62,7 +73,7 @@ export async function POST() {
   const analysisQuery = supabase
     .from("svi_analyses")
     .select("id, raw_input, analysis_json")
-    .eq("email", user.email);
+    .eq("email", dataEmail);
   if (projectId) analysisQuery.eq("project_id", projectId);
   else analysisQuery.is("project_id", null);
 
@@ -115,7 +126,7 @@ export async function POST() {
   const { data: savedAnalysis } = await supabase
     .from("svi_analyses")
     .insert({
-      email: user.email,
+      email: dataEmail,
       raw_input: enhancedRawText,
       total_svi: newAnalysis.totalSVI,
       net_adjustment: newAnalysis.netAdjustment,

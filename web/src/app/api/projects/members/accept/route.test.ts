@@ -18,15 +18,20 @@ const hoisted = vi.hoisted(() => {
   return {
     getCurrentUserMock: vi.fn(),
     acceptInviteMock: vi.fn(),
+    getProjectByIdMock: vi.fn(),
     ProjectMemberScopeError,
   };
 });
 
-const { getCurrentUserMock, acceptInviteMock, ProjectMemberScopeError } =
+const { getCurrentUserMock, acceptInviteMock, getProjectByIdMock, ProjectMemberScopeError } =
   hoisted;
 
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: () => hoisted.getCurrentUserMock(),
+}));
+
+vi.mock("@/lib/projects", () => ({
+  getProjectById: (id: string) => hoisted.getProjectByIdMock(id),
 }));
 
 vi.mock("@/lib/project-members/scope", () => ({
@@ -47,8 +52,52 @@ import { POST } from "./route";
 beforeEach(() => {
   getCurrentUserMock.mockReset();
   acceptInviteMock.mockReset();
+  getProjectByIdMock.mockReset();
+  getProjectByIdMock.mockResolvedValue({ id: "proj-1", name: "Acme", slug: "acme" });
   logUserActionMock.mockReset();
   logUserActionMock.mockResolvedValue({ ok: true });
+});
+
+describe("S17-A: accept lands on the shared project", () => {
+  it("sets the blockid_project cookie to the shared project ID (slugs are per-owner) and returns the project", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    acceptInviteMock.mockResolvedValue({
+      id: "m1",
+      projectId: "proj-1",
+      userEmail: "carol@corp.io",
+      role: "viewer",
+    });
+    const req = new Request("http://x/api/projects/members/accept", {
+      method: "POST",
+      body: JSON.stringify({ token: "tok-abc" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.project).toEqual({ id: "proj-1", name: "Acme", slug: "acme", role: "viewer" });
+    expect(body.redirect).toBe("/workspace");
+    const setCookie = res.headers.get("set-cookie") ?? "";
+    expect(setCookie).toContain("blockid_project=proj-1");
+    expect(setCookie.toLowerCase()).toContain("path=/");
+    expect(getProjectByIdMock).toHaveBeenCalledWith("proj-1");
+  });
+
+  it("still returns ok without a cookie when the project row cannot be loaded", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    getProjectByIdMock.mockResolvedValue(null);
+    acceptInviteMock.mockResolvedValue({ id: "m1", projectId: "proj-gone", userEmail: "c@x.io", role: "editor" });
+    const res = await POST(
+      new Request("http://x/api/projects/members/accept", {
+        method: "POST",
+        body: JSON.stringify({ token: "tok-abc" }),
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.project).toBeNull();
+    expect(body.redirect).toBe("/workspace/projects");
+    expect(res.headers.get("set-cookie") ?? "").not.toContain("blockid_project");
+  });
 });
 
 describe("POST /api/projects/members/accept audit wire-in", () => {

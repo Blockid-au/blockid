@@ -2,7 +2,8 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectScope, assertProjectAccess, type ProjectRole } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -71,15 +72,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
   }
 
-  // Allow explicit project_id from query param, fall back to cookie-scoped project
+  // Allow explicit project_id from query param, fall back to cookie-scoped project.
+  //
+  // S17-A — both paths are member-aware (viewer+). An explicit ?project_id
+  // the caller cannot access is a 404 (existence is not confirmed). The
+  // room belongs to the OWNER (`ownerUserId`), so a shared-project member
+  // reads the same readiness score the owner sees.
   const qProjectId = req.nextUrl.searchParams.get("project_id");
-  const projectId = qProjectId ?? (await getProjectIdFromRequest());
+  let projectId: string | null;
+  let ownerUserId = user.id;
+  let role: ProjectRole = "owner";
+  try {
+    if (qProjectId !== null) {
+      // Explicit override wins (even the empty string — pinned by the
+      // colocated test); a non-empty id must be one the caller can open.
+      projectId = qProjectId;
+      if (qProjectId) {
+        const access = await assertProjectAccess(user.id, qProjectId, "viewer");
+        ownerUserId = access.ownerUserId;
+        role = access.role;
+      }
+    } else {
+      const scope = await getProjectScope("viewer");
+      projectId = scope?.projectId ?? null;
+      if (scope) {
+        ownerUserId = scope.ownerUserId;
+        role = scope.role;
+      }
+    }
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
 
-  // ── Fetch the user's data room ────────────────────────────────────────────
+  // ── Fetch the project owner's data room ───────────────────────────────────
   const roomQuery = supabase
     .from("data_rooms")
     .select("id, completeness_score")
-    .eq("account_id", user.id)
+    .eq("account_id", ownerUserId)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
@@ -103,6 +134,7 @@ export async function GET(req: NextRequest) {
       missingCategories: CATEGORIES.map((c) => c.label),
       dataRoomExists: false,
       projectId,
+      role,
     });
   }
 
@@ -127,12 +159,12 @@ export async function GET(req: NextRequest) {
   const { count: evidenceCount } = await supabase
     .from("svi_evidence")
     .select("id", { count: "exact", head: true })
-    .eq("account_id", user.id);
+    .eq("account_id", ownerUserId);
 
   const { count: shareholderCount } = await supabase
     .from("shareholders")
     .select("id", { count: "exact", head: true })
-    .eq("account_id", user.id);
+    .eq("account_id", ownerUserId);
 
   for (const doc of docs ?? []) {
     const cat = classifyDocument(doc);
@@ -199,5 +231,6 @@ export async function GET(req: NextRequest) {
     missingCategories,
     dataRoomExists: true,
     projectId,
+    role,
   });
 }

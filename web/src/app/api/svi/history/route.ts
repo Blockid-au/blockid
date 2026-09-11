@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { getProjectIdFromRequest, findOrCreateSVIAccount } from "@/lib/projects";
+import { getProjectScope, findOrCreateSVIAccount } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
+// S17-A — read surface: viewer+ on the active (possibly shared) project.
+// Snapshots hang off the OWNER's svi_accounts row (scope.dataEmail).
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
@@ -15,9 +18,17 @@ export async function GET() {
 
   const supabase = getSupabaseAdmin()!;
 
-  // Resolve active project and find the correct SVI account
-  const projectId = await getProjectIdFromRequest();
-  const accountId = await findOrCreateSVIAccount(user.email, projectId);
+  // Resolve active project (member-aware) and find the correct SVI account
+  let scope;
+  try {
+    scope = await getProjectScope("viewer");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const projectId = scope?.projectId ?? null;
+  const accountId = await findOrCreateSVIAccount(scope?.dataEmail ?? user.email, projectId);
 
   if (!accountId) {
     return NextResponse.json({ ok: true, snapshots: [], currentSVI: null, weekDelta: null, monthDelta: null });

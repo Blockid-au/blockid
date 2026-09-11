@@ -21,7 +21,8 @@ import { canAfford, spendCredits, FEATURE_COSTS } from "@/lib/credits";
 import { isAIConfigured } from "@/lib/ai-client";
 import type { ReportTier } from "@/lib/report-pipeline/types";
 import { generateAndPersistReport, loadProjectReportContext } from "@/lib/report-pipeline/run-for-project";
-import { getProjectIdFromRequest } from "@/lib/projects";
+import { getProjectScope, creditChargeNote } from "@/lib/projects";
+import { projectAccessResponse } from "@/lib/project-members/http";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,22 @@ export async function POST(request: Request) {
   const locale: "en" | "vi" = body.locale === "vi" ? "vi" : "en";
   const featureKey = TIER_FEATURE_MAP[tier];
 
+  // ── 1b. Project scope (S17-A) ───────────────────────────────────────────
+  // editor+ on the active project (owner always passes). The report is
+  // built from the OWNER's startup record (scope.dataEmail); the credits
+  // are the CALLER's — a co-founder pays from their own wallet.
+  let scope;
+  try {
+    scope = await getProjectScope("editor");
+  } catch (err) {
+    const denied = projectAccessResponse(err);
+    if (denied) return denied;
+    throw err;
+  }
+  const projectId = scope?.projectId ?? null;
+  const dataEmail = scope?.dataEmail ?? user.email;
+  const creditNote = creditChargeNote(scope);
+
   // ── 2. Credit check ─────────────────────────────────────────────────────
   const affordCheck = await canAfford(user.id, featureKey);
   if (!affordCheck.allowed) {
@@ -82,14 +99,14 @@ export async function POST(request: Request) {
         balance: affordCheck.balance,
         cost: affordCheck.cost,
         tier,
+        creditNote,
       },
       { status: 402 },
     );
   }
 
   // ── 3–5. Load SVI account, analysis, evidence + 13-criteria inputs ─────
-  const projectId = await getProjectIdFromRequest();
-  const loaded = await loadProjectReportContext({ ownerEmail: user.email, projectId });
+  const loaded = await loadProjectReportContext({ ownerEmail: dataEmail, projectId });
   if (!loaded.ok) {
     if (loaded.error === "db_unavailable") {
       return NextResponse.json({ ok: false, error: "Database unavailable" }, { status: 503 });
@@ -152,6 +169,8 @@ export async function POST(request: Request) {
       generatedAt: report.createdAt,
       balance: spend.balance,
       creditsUsed: FEATURE_COSTS[featureKey],
+      creditNote,
+      role: scope?.role ?? "owner",
     });
   } catch (err) {
     return NextResponse.json(
